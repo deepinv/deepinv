@@ -168,7 +168,7 @@ class IndicatorL2Distance(Distance):
         ).view(-1, 1, 1, 1)
 
 
-class PoissonLogLikelihood(Distance):
+class PoissonLikelihoodDistance(Distance):
     r"""
     (Negative) Log-likelihood of the Poisson distribution.
 

@@ -31,7 +31,7 @@ from .potential import Potential
 from .distance import (
     L2Distance,
     IndicatorL2Distance,
-    PoissonLogLikelihood,
+    PoissonLikelihoodDistance,
     L1Distance,
     AmplitudeLossDistance,
     LogPoissonLikelihoodDistance,

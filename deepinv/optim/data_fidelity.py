@@ -4,7 +4,7 @@ from deepinv.optim.distance import (
     L1Distance,
     IndicatorL2Distance,
     AmplitudeLossDistance,
-    PoissonLogLikelihood,
+    PoissonLikelihoodDistance,
     LogPoissonLikelihoodDistance,
 )
 from deepinv.optim.potential import Potential
@@ -222,7 +222,7 @@ class PoissonLikelihood(DataFidelity):
 
     def __init__(self, gain=1.0, bkg=0, normalize=True):
         super().__init__()
-        self.d = KullbackLeiblerDistance(gain=gain, bkg=bkg, normalize=normalize)
+        self.d = PoissonLikelihoodDistance(gain=gain, bkg=bkg, normalize=normalize)
         self.bkg = bkg
         self.gain = gain
         self.normalize = normalize
