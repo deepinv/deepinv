@@ -66,7 +66,7 @@ class FISTAIteration(OptimIterator):
         else:
             self.requires_prox_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args):
+    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs):
         r"""
         Forward pass of an iterate of the FISTA algorithm.
 

@@ -91,7 +91,7 @@ class BregmanL2(Bregman):
 
     def div(self, x, y, *args, **kwargs):
         r"""
-        Computes the Bregman divergence with potential :math:`\phi`.
+        Computes the Bregman divergence with potential :math:`\phi`. Here falls back to the L2 distance.
 
         :param torch.Tensor x: Variable :math:`x` at which the divergence is computed.
         :param torch.Tensor y: Variable :math:`y` at which the divergence is computed.
@@ -199,7 +199,7 @@ class NegEntropy(Bregman):
         return torch.exp(x - 1)
 
 
-class ICNN(Bregman):
+class Bregman_ICNN(Bregman):
     r"""
     Module for the using a deep ICNN as Bregman potential.
     """
