@@ -217,15 +217,15 @@ class PoissonLikelihood(DataFidelity):
 
     :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
-    :param bool normalize: if True, the measurement is multiplied by the gain. Default: True.
+    :param bool denormalize: if True, the measurement is multiplied by the gain. Default: True.
     """
 
-    def __init__(self, gain=1.0, bkg=0, normalize=True):
+    def __init__(self, gain=1.0, bkg=0, denormalize=True):
         super().__init__()
-        self.d = PoissonLikelihoodDistance(gain=gain, bkg=bkg, normalize=normalize)
+        self.d = PoissonLikelihoodDistance(gain=gain, bkg=bkg, denormalize=denormalize)
         self.bkg = bkg
         self.gain = gain
-        self.normalize = normalize
+        self.normalize = denormalize
 
 
 class L1(DataFidelity):
