@@ -108,9 +108,9 @@ def histogramdd(
 
     :param torch.Tensor x: A tensor, (\*, D).
     :param int, sequence[int] bins: The number of bins in each dimension, scalar or (D,).
-    :param float, sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is `None`,
+    :param float, sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is ``None``,
             the min of `x` is used instead.
-    :param float, sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is `None`,
+    :param float, sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is ``None``,
             the max of `x` is used instead.
     :param bool bounded: Whether `x` is bounded by `low` and `upp`, included.
             If `False`, out-of-bounds values are filtered out.
@@ -218,8 +218,8 @@ def histogram(
 
     :param torch.Tensor x: A tensor, (*,).
     :param int bins: The number of bins.
-    :param float low: The lower bound. If `low` is `None` the min of `x` is used instead.
-    :param float upp: The upper bound. If `upp` is `None` the max of `x` is used instead.
+    :param float low: The lower bound. If `low` is ``None`` the min of `x` is used instead.
+    :param float upp: The upper bound. If `upp` is ``None`` the max of `x` is used instead.
     :param kwargs: Keyword arguments passed to `histogramdd`.
 
     :return torch.Tensor: The histogram

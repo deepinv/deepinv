@@ -113,6 +113,7 @@ class FixedPoint(nn.Module):
     def init_anderson_acceleration(self, X):
         r"""
         Initialize the Anderson acceleration algorithm.
+        Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
 
         :param dict X: initial iterate.
         """
@@ -154,6 +155,7 @@ class FixedPoint(nn.Module):
     ):
         r"""
         Anderson acceleration step.
+        Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
 
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
@@ -247,9 +249,6 @@ class FixedPoint(nn.Module):
                 X,
                 it,
                 *args,
-                compute_metrics=compute_metrics,
-                metrics=metrics,
-                x_gt=x_gt,
                 **kwargs,
             )
 
@@ -277,7 +276,9 @@ class FixedPoint(nn.Module):
         )
         cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
         X_prev = X
-        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+        X = self.iterator(
+            X_prev, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+        )
         if self.anderson_acceleration:
             X = self.anderson_acceleration_step(
                 it,
