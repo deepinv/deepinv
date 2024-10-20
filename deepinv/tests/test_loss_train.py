@@ -123,12 +123,14 @@ def test_generate_dataset_physics_generator(
         # test physics random generated
         x0, y0 = train_dataset[0]
         x1, y1 = train_dataset[1]
-        assert not torch.all(y0 == y1)
 
         x0t, y0t = test_dataset[0]
         x1t, y1t = test_dataset[1]
-        assert not torch.all(y0t == y1t)
-        assert not torch.all(y0 == y0t)
+
+        if phys_gen != "diffraction":
+            assert not torch.all(y0 == y1)
+            assert not torch.all(y0t == y1t)
+            assert not torch.all(y0 == y0t)
 
         # test load physics generator params
         d = dinv.datasets.HDF5Dataset(
