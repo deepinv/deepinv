@@ -10,9 +10,16 @@ def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator
     """Sample a random tensor from a list of values"""
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
-    indices = torch.floor(
-        N * torch.rand(shape, device=device, dtype=dtype, generator=generator)
-    ).to(torch.long)
+    indices = (
+        torch.floor(
+            N
+            * torch.rand(
+                shape, device=generator.device, dtype=dtype, generator=generator
+            )
+        )
+        .to(torch.long)
+        .to(device)
+    )
     return values[indices]
 
 
@@ -63,7 +70,9 @@ class Scale(Transform):
 
         # Sample a random transformation center for each batch element
         # with coordinates in [-1, 1]
-        center = torch.rand((b, 2), dtype=x.dtype, device=x.device, generator=self.rng)
+        center = torch.rand(
+            (b, 2), dtype=x.dtype, device=self.rng.device, generator=self.rng
+        ).to(x.device)
 
         # Scale params override negation
         return {
