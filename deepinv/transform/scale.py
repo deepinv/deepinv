@@ -11,12 +11,7 @@ def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
     indices = (
-        torch.floor(
-            N
-            * torch.rand(
-                shape, device=generator.device, dtype=dtype, generator=generator
-            )
-        )
+        torch.floor(N * torch.rand(shape, dtype=dtype, generator=generator))
         .to(torch.long)
         .to(device)
     )
@@ -66,13 +61,11 @@ class Scale(Transform):
         # Sample a random scale factor for each batch element
         factor = sample_from(
             self.factors, shape=(b,), device=x.device, generator=self.rng
-        )
+        ).to(x.device)
 
         # Sample a random transformation center for each batch element
         # with coordinates in [-1, 1]
-        center = torch.rand(
-            (b, 2), dtype=x.dtype, device=self.rng.device, generator=self.rng
-        ).to(x.device)
+        center = torch.rand((b, 2), dtype=x.dtype, generator=self.rng).to(x.device)
 
         # Scale params override negation
         return {
