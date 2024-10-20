@@ -23,7 +23,7 @@ New Features
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
-- generate_dataset features: complex numbers, save/load physics_generator params (:gh:`316` by `Andrew Wang`_)
+- generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -31,8 +31,9 @@ Fixed
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
-- Fixed generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
-- Fixed generate_dataset error not using random physics generator (:gh:`316` by `Andrew Wang`_) 
+- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
+- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
+- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_) 
 
 Changed
 ^^^^^^^
