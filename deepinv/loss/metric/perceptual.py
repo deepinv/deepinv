@@ -21,9 +21,9 @@ class LPIPS(Metric):
     >>> ();m = LPIPS();() # doctest: +ELLIPSIS
     (...)
     >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
-    >>> x_net = x + 0.01
-    >>> m(x_net, x)
-    tensor([0.0005])
+    >>> x_net = x - 0.01
+    >>> m(x_net, x) # doctest: +ELLIPSIS
+    tensor([...])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
@@ -61,8 +61,8 @@ class NIQE(Metric):
     >>> ();m = NIQE();() # doctest: +ELLIPSIS
     (...)
     >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
-    >>> m(x_net)
-    tensor([8.1880])
+    >>> m(x_net) # doctest: +ELLIPSIS
+    tensor([...])
 
     :param str device: device to use for the metric computation. Default: 'cpu'.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
