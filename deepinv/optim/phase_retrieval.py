@@ -3,6 +3,7 @@ import os
 from dotmap import DotMap
 from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
@@ -16,7 +17,26 @@ def load_config(config_file):
         config_dict = yaml.safe_load(file)
     return DotMap(config_dict)
 
-def generate_signal(img_size, mode, config, dtype, device):
+def permute(arr: torch.tensor) -> torch.tensor:
+    # Step 1: Create a permutation for values in range [0, 255]
+    permuted_values = np.random.permutation(256)
+    
+    # Step 2: Create a mapping from original values to permuted values
+    value_mapping = {i: permuted_values[i] for i in range(256)}
+    
+    # Step 3: Apply the mapping to the original array
+    permuted_array = np.vectorize(value_mapping.get)(arr.cpu() * 255)
+    
+    return torch.from_numpy(permuted_array) / 255
+
+def generate_signal(
+        img_size,
+        mode,
+        transform = None,
+        config = None,
+        dtype = torch.complex64,
+        device = "cpu",
+    ):
     if mode == "shepp-logan":
         url = get_image_url("SheppLogan.png")
         img = load_url_image(
@@ -25,27 +45,28 @@ def generate_signal(img_size, mode, config, dtype, device):
     elif mode == "random":
         # random phase signal
         img = torch.rand((1, 1, img_size, img_size), device=device)
-    elif mode == "mix":
-        url = get_image_url("SheppLogan.png")
-        img = load_url_image(
-        url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
-        )
-        img = img * (1-config.noise_ratio) + torch.rand_like(img) * config.noise_ratio
     elif mode == "delta":
         img = torch.zeros((1, 1, img_size, img_size), device=device)
         img[0, 0, img_size // 2, img_size // 2] = 1.0
     elif mode == "constant":
-        img == 0.3 * torch.ones((1, 1, img_size, img_size), device=device)
+        img == config.constant * torch.ones((1, 1, img_size, img_size), device=device)
     else:
-        raise ValueError("Invalid image mode.")
-    if config.reverse is True:
-        img = 1 - img
+        raise ValueError("Invalid mode.")
+    if transform:
+        if transform == 'reverse':
+            img = 1 - img
+        elif transform == 'permute':
+            img = permute(img)
+        elif transform == 'noise':
+            img = img * (1-config.noise_ratio) + torch.rand_like(img) * config.noise_ratio
+        else:
+            raise ValueError("Invalid transform.")
     # generate phase signal
-    # The phase is computed as 2*pi*x - pi, where x is the original image.
+    # the phase is computed as pi*x - 0.5pi, where x is the original image.
     x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
-    # Every element of the signal should have unit norm.
-    assert torch.allclose(x.real**2 + x.imag**2, torch.tensor(1.0))
-    if config.varying_norm is True:
+    if config.unit_mag is True:
+        assert torch.allclose(x.abs(), torch.tensor(1.0)), "The magnitudes of the signal are not all 1s."
+    else:
         scale = config.max_scale*torch.rand_like(x, dtype=torch.float)
         x = x * scale
     return x

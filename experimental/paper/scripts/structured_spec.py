@@ -1,4 +1,5 @@
 import sys
+import os
 
 sys.path.append("/home/zhhu/workspaces/deepinv/")
 
@@ -77,6 +78,8 @@ if save:
 
     # copy the config file to the save directory
     shutil.copy(config_path, SAVE_DIR / "config.yaml")
+    # Set the file permissions to read-only (0o444 is the code for read-only for owner, group, and others)
+    os.chmod(SAVE_DIR / "config.yaml", 0o444)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 

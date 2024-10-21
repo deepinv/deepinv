@@ -1,5 +1,5 @@
 general:
-  name: "structured_shepp_laplace_unit_mag_FDF"
+  name: "structured_shepp_gaussian_unit_mag_FDF"
   recon: "spec"
   save: True
 
@@ -14,7 +14,7 @@ signal:
 model:
   n_layers: 1.5
   diagonal:
-    mode: 'laplace' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
+    mode: 'gaussian' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
       complex: True

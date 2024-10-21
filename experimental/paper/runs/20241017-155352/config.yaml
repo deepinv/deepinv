@@ -1,5 +1,5 @@
 general:
-  name: "structured_shepp_laplace_unit_mag_FDF"
+  name: "structured_shepp_laplace_unit_mag_FDFD"
   recon: "spec"
   save: True
 
@@ -12,7 +12,7 @@ signal:
     max_scale: 40.0 # max scale for varying mag
 
 model:
-  n_layers: 1.5
+  n_layers: 2
   diagonal:
     mode: 'laplace' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:

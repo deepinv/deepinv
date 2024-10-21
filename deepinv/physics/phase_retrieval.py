@@ -80,7 +80,7 @@ class MarchenkoPastur:
         return self.gamma*self.sigma**4
 
 def generate_diagonal(
-    tensor_shape,
+    shape,
     mode,
     dtype=torch.complex64,
     device="cpu",
@@ -93,50 +93,49 @@ def generate_diagonal(
     #! all distributions should be normalized to have E[|x|^2] = 1
     if mode == "uniform_phase":
         # Generate REAL-VALUED random numbers in the interval [0, 1)
-        diagonal = torch.rand(tensor_shape, device=device)
-        diagonal = 2 * np.pi * diagonal
-        diagonal = torch.exp(1j * diagonal)
+        diag = torch.rand(shape, device=device)
+        diag = 2 * np.pi * diag
+        diag = torch.exp(1j * diag)
     elif mode == "uniform_magnitude":
         if config.range:
-            diagonal = config.range * torch.rand(tensor_shape, device=device)
+            diag = config.range * torch.rand(shape, device=device)
         else:
             # ensure E[|x|^2] = 1
-            diagonal = torch.sqrt(torch.tensor(3.0)) * torch.rand(tensor_shape, device=device)
-        diagonal = diagonal.to(dtype)
+            diag = torch.sqrt(torch.tensor(3.0)) * torch.rand(shape, device=device)
+        diag = diag.to(dtype)
     elif mode == "gaussian":
-        diagonal = torch.randn(tensor_shape, dtype=dtype, device=device)
+        diag = torch.randn(shape, dtype=dtype, device=device)
     elif mode == "laplace":
         #! variance = 2*scale^2
         #! variance of complex numbers is doubled
         laplace_dist = torch.distributions.laplace.Laplace(0,0.5)
-        diagonal = (laplace_dist.sample(tensor_shape) + 1j*laplace_dist.sample(tensor_shape)).to(device)
+        diag = (laplace_dist.sample(shape) + 1j*laplace_dist.sample(shape)).to(device)
     elif mode == "student-t":
         #! variance = df/(df-2) if df > 2
         #! variance of complex numbers is doubled
         student_t_dist = torch.distributions.studentT.StudentT(config.degree_of_freedom,0,1)
         scale = torch.sqrt((torch.tensor(config.degree_of_freedom)-2)/torch.tensor(config.degree_of_freedom)/2)
-        diagonal = (scale*(student_t_dist.sample(tensor_shape) + 1j*student_t_dist.sample(tensor_shape))).to(device)
+        diag = (scale*(student_t_dist.sample(shape) + 1j*student_t_dist.sample(shape))).to(device)
     elif mode == "marchenko-pastur":
-        diagonal = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(tensor_shape)).to(device).to(dtype)
+        diag = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(shape)).to(device).to(dtype)
     elif mode == "uniform":
         #! variance = 1/2a for real numbers
-        if config.complex == True:
-            real = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
-            imag = torch.sqrt(torch.tensor(6)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
-            diagonal = real + 1j*imag
-        else:
-            diagonal = torch.sqrt(torch.tensor(12)) * (torch.rand(tensor_shape, dtype=torch.float32, device=device) - 0.5)
+        real = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32, device=device) - 0.5)
+        imag = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32, device=device) - 0.5)
+        diag = real + 1j*imag
     elif mode == "triangular":
         #! variance = a^2/6 for real numbers
-        if config.complex == True:
-            real = triangular_distribution(torch.sqrt(torch.tensor(3)),tensor_shape)
-            imag = triangular_distribution(torch.sqrt(torch.tensor(3)),tensor_shape)
-            diagonal = real + 1j*imag
-        else:
-            diagonal = triangular_distribution(torch.sqrt(torch.tensor(6)),tensor_shape)
+        real = triangular_distribution(torch.sqrt(torch.tensor(3)),shape)
+        imag = triangular_distribution(torch.sqrt(torch.tensor(3)),shape)
+        diag = real + 1j*imag
     else:
         raise ValueError(f"Unsupported mode: {mode}")
-    return diagonal
+    if config.unit_mag is True:
+        diag /= torch.abs(diag)
+        assert torch.allclose(torch.abs(diag), torch.tensor(1.0)), "The magnitudes of the diagonal are not all 1s."
+    if config.complex is False:
+        diag = diag.real * torch.sqrt(torch.tensor(2.0)) # to ensure E[|x|^2] = 1
+    return diag
 
 class PhaseRetrieval(Physics):
     r"""
