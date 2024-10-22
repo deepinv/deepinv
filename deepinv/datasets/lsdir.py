@@ -39,6 +39,10 @@ class LsdirHR(torch.utils.data.Dataset):
                    |        -- X4
                    -- val1.tar.gz
 
+    .. warning::
+        The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.
+        Thus the download argument isn't working for now.
+
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
@@ -116,6 +120,10 @@ class LsdirHR(torch.utils.data.Dataset):
 
         # download a split of the dataset, we check first that this split isn't already downloaded
         if download:
+            raise ValueError(
+                f"""The official site hosting the dataset is unavailable : https://data.vision.ee.ethz.ch/yawli/.\n
+                    Thus the download argument isn't working for now."""
+            )
             if not os.path.isdir(self.root):
                 os.makedirs(self.root)
             # if a folder image exists, we stop the download
