@@ -86,15 +86,7 @@ class MDIteration(OptimIterator):
         self.bregman_potential = bregman_potential
 
     def forward(
-        self,
-        X,
-        cur_data_fidelity,
-        cur_prior,
-        cur_params,
-        y,
-        physics,
-        *args,
-        **kwargs
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         r"""
         Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.

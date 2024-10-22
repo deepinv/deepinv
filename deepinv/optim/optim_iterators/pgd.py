@@ -196,7 +196,7 @@ class PMDIteration(OptimIterator):
         """
         Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
         The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`g`.
-         
+
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
@@ -206,7 +206,17 @@ class PMDIteration(OptimIterator):
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
 
         """
-        super().forward(X, cur_data_fidelity, cur_prior, cur_params, y, physics, self.bregman_potential, *args, **kwargs)
+        super().forward(
+            X,
+            cur_data_fidelity,
+            cur_prior,
+            cur_params,
+            y,
+            physics,
+            self.bregman_potential,
+            *args,
+            **kwargs,
+        )
 
 
 class fStepPMD(fStep):

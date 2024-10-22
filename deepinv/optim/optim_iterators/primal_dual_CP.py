@@ -95,7 +95,7 @@ class fStepCP(fStep):
 
     def forward(self, x, w, cur_data_fidelity, y, physics, cur_params):
         r"""
-        Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`. 
+        Single Chambolle-Pock iteration step on the data-fidelity term :math:`f`.
 
         :param torch.Tensor x: Current first variable :math:`x` if `"g_first"` and :math:`u` otherwise.
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
