@@ -17,12 +17,16 @@ if TYPE_CHECKING:
 
 class HDF5Dataset(data.Dataset):
     r"""
-    DeepInverse HDF5 dataset with signal/measurement pairs.
+    DeepInverse HDF5 dataset with signal/measurement pairs ``(x, y)``.
 
     If there is no training ground truth (i.e. ``x_train``) in the dataset file,
     the dataset returns the measurement again as the signal.
 
-    Optionally also return physics generator params as a dict per sample, if one was used during data generation.
+    Optionally also return physics generator params as a dict per sample ``(x, y, params)``, if one was used during data generation.
+
+    ..note::
+
+        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
@@ -119,6 +123,12 @@ def generate_dataset(
     The generated dataset contains a train and test splits.
 
     Optionally, if random physics generator is used to generate data, also save physics generator params.
+    This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,
+    or for measurement consistency/data fidelity, and require knowledge of the params when constructing the loss.
+
+    ..note::
+
+        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
     :param torch.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
         with images used for generating associated measurements
