@@ -93,6 +93,8 @@ class MDIteration(OptimIterator):
         cur_params,
         y,
         physics,
+        *args,
+        **kwargs
     ):
         r"""
         Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
