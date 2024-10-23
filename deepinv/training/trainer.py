@@ -74,7 +74,7 @@ class Trainer:
     e.g. to change the physics parameters on-the-fly with parameters from the dataset.
 
     - Use :meth:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.
-    - Use :meth:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader.
+    - Use :meth:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
 
     For instance, in MRI, the dataloader often returns both the measurements and the mask associated with the measurements.
     In this case, to update the :meth:`deepinv.physics.Physics` parameters accordingly, a potential implementation would be:
@@ -117,6 +117,7 @@ class Trainer:
         If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
         If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
         Caveat: this requires ``shuffle=False`` in your dataloaders.
+        An alternative solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.
 
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -406,8 +407,13 @@ class Trainer:
         Get the samples for the offline measurements.
 
         In this setting, samples have been generated offline and are loaded from the dataloader.
-        This function returns a dictionary containing necessary data for the model inference. It needs to contain
-        the measurement, the ground truth, and the current physics operator, but can also contain additional data.
+        This function returns a tuple containing necessary data for the model inference. It needs to contain
+        the measurement, the ground truth, and the current physics operator, but can also contain additional data
+        (you can override this function to add custom data).
+
+        If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where
+        ``params`` is a dict of physics generator params. These params are then used to update
+        the physics.
 
         :param list iterators: List of dataloader iterators.
         :param int g: Current dataloader index.
@@ -419,7 +425,11 @@ class Trainer:
                 "If online_measurements=False, the dataloader should output a tuple (x, y)"
             )
 
-        x, y = data
+        if len(data) == 2:
+            x, y, params = *data, None
+        elif len(data) == 3:
+            x, y, params = data
+
         if type(x) is list or type(x) is tuple:
             x = [s.to(self.device) for s in x]
         else:
@@ -427,6 +437,10 @@ class Trainer:
 
         y = y.to(self.device)
         physics = self.physics[g]
+
+        if params is not None:
+            params = {k: p.to(self.device) for k, p in params.items()}
+            physics.update_parameters(**params)
 
         return x, y, physics
 

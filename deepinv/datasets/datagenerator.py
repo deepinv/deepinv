@@ -1,75 +1,134 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Union, Callable, Tuple
+
 from tqdm import tqdm
 import os
 import h5py
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch import Tensor
+from torch.utils.data import DataLoader, Subset, Dataset
 from torch.utils import data
+
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
+    from deepinv.physics.generator import PhysicsGenerator
+    from deepinv.transform import Transform
 
 
 class HDF5Dataset(data.Dataset):
     r"""
-    DeepInverse HDF5 dataset with signal/measurement pairs.
+    DeepInverse HDF5 dataset with signal/measurement pairs ``(x, y)``.
+
+    If there is no training ground truth (i.e. ``x_train``) in the dataset file,
+    the dataset returns the measurement again as the signal.
+
+    Optionally also return physics generator params as a dict per sample ``(x, y, params)``, if one was used during data generation.
+
+    ..note::
+
+        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
-    :param transform: A torchvision transform to apply to the data.
+    :param Transform, Callable transform: A deepinv or torchvision transform to apply to the data.
+    :param bool load_physics_generator_params: load physics generator params from dataset if they exist (e.g. if dataset created with :meth:`deepinv.datasets.generate_dataset`)
+    :param torch.dtype, str dtype: cast all real-valued data to this dtype.
+    :param torch.dtype, str complex_dtype: cast all complex-valued data to this dtype.
     """
 
-    def __init__(self, path, train=True, transform=None):
+    def __init__(
+        self,
+        path: str,
+        train: bool = True,
+        transform: Union[Transform, Callable] = None,
+        load_physics_generator_params: bool = False,
+        dtype: torch.dtype = torch.float,
+        complex_dtype: torch.dtype = torch.cfloat,
+    ):
         super().__init__()
         self.data_info = []
         self.data_cache = {}
         self.unsupervised = False
         self.transform = transform
+        self.load_physics_generator_params = load_physics_generator_params
+        self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
+
         hd5 = h5py.File(path, "r")
+        suffix = "_train" if train else "_test"
+        self.y = hd5[f"y{suffix}"]
+
         if train:
             if "x_train" in hd5:
-                self.x = hd5["x_train"]
+                self.x = hd5[f"x{suffix}"]
             else:
                 self.unsupervised = True
-            self.y = hd5["y_train"]
         else:
-            self.x = hd5["x_test"]
-            self.y = hd5["y_test"]
+            self.x = hd5[f"x{suffix}"]
+
+        if self.load_physics_generator_params:
+            self.params = {}
+            for k in hd5:
+                if suffix in k and k not in (f"x{suffix}", f"y{suffix}"):
+                    self.params[k.replace(suffix, "")] = hd5[k]
 
     def __getitem__(self, index):
-        y = torch.from_numpy(self.y[index]).type(torch.float)
+        y = self.cast(torch.from_numpy(self.y[index]))
 
         x = y
         if not self.unsupervised:
-            x = torch.from_numpy(self.x[index]).type(torch.float)
+            x = self.cast(torch.from_numpy(self.x[index]))
 
         if self.transform is not None:
             x = self.transform(x)
 
-        return x, y
+        if self.load_physics_generator_params:
+            params = {
+                k: self.cast(
+                    torch.from_numpy(param[index])
+                    if param.ndim > 1
+                    else torch.tensor(param[index])
+                )
+                for (k, param) in self.params.items()
+            }
+            return x, y, params
+        else:
+            return x, y
 
     def __len__(self):
         return len(self.y)
 
 
 def generate_dataset(
-    train_dataset,
-    physics,
-    save_dir,
-    test_dataset=None,
-    device="cpu",
-    train_datapoints=None,
-    test_datapoints=None,
-    physics_generator=None,
-    dataset_filename="dinv_dataset",
-    batch_size=4,
-    num_workers=0,
-    supervised=True,
-    verbose=True,
-    show_progress_bar=False,
+    train_dataset: Dataset,
+    physics: Physics,
+    save_dir: str,
+    test_dataset: Dataset = None,
+    device: Union[torch.device, str] = "cpu",
+    train_datapoints: int = None,
+    test_datapoints: int = None,
+    physics_generator: PhysicsGenerator = None,
+    save_physics_generator_params: bool = True,
+    dataset_filename: str = "dinv_dataset",
+    batch_size: int = 4,
+    num_workers: int = 0,
+    supervised: bool = True,
+    verbose: bool = True,
+    show_progress_bar: bool = False,
 ):
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
 
     It generates the measurement data using the forward operator provided by the user.
-    The dataset is saved in HD5 format and can be easily loaded using the HD5Dataset class.
+    The dataset is saved in HD5 format and can be easily loaded using the :class:`deepinv.datasets.HD5Dataset` class.
     The generated dataset contains a train and test splits.
+
+    Optionally, if random physics generator is used to generate data, also save physics generator params.
+    This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,
+    or for measurement consistency/data fidelity, and require knowledge of the params when constructing the loss.
+
+    ..note::
+
+        We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
     :param torch.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
         with images used for generating associated measurements
@@ -89,9 +148,10 @@ def generate_dataset(
         number of datapoints in the base test dataset.
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
             the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
+    :param bool save_physics_generator_params: save physics generator params too, ignored if ``physics_generator`` not used.
     :param str dataset_filename: desired filename of the dataset.
     :param int batch_size: batch size for generating the measurement data
-        (it only affects the speed of the generating process)
+        (it affects the speed of the generating process, and the physics generator batch size)
     :param int num_workers: number of workers for generating the measurement data
         (it only affects the speed of the generating process)
     :param bool supervised: Generates supervised pairs (x,y) of measurements and signals.
@@ -119,6 +179,10 @@ def generate_dataset(
     else:
         G = len(physics)
 
+    save_physics_generator_params = (
+        save_physics_generator_params and physics_generator is not None
+    )
+
     if train_dataset is not None:
         if train_datapoints is not None:
             datapoints = int(train_datapoints)
@@ -145,28 +209,45 @@ def generate_dataset(
 
         hf.attrs["operator"] = physics[g].__class__.__name__
 
+        # get initial image for image size
         if train_dataset is not None:
-            x = train_dataset[0]
+            x0 = train_dataset[0]
         elif test_dataset is not None:
-            x = test_dataset[0]
+            x0 = test_dataset[0]
 
-        x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
-        x = x.to(device).unsqueeze(0)
+        x0 = x0[0] if isinstance(x0, (list, tuple)) else x0
+        x0 = x0.to(device).unsqueeze(0)
 
-        # choose operator and generate measurement
+        # get initial measurement for initial image
+        def measure(x: Tensor, b: int, g: int) -> Tuple[Tensor, Union[dict, None]]:
+            if physics_generator is None:
+                return physics[g](x), None
+            else:
+                params = physics_generator.step(batch_size=b)
+                return physics[g](x, **params), params
+
+        y0, params0 = measure(x0, b=1, g=g)
+
         if physics_generator is not None:
-            params = physics_generator.step(batch_size=1)
-            y = physics[g](x, **params)
-        else:
-            y = physics[g](x)
+            # Reset physics generator so it starts again at initial rng
+            physics_generator.reset_rng()
 
-        # TODO save params if physics_generator is not None
+        # save physics
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:
-            hf.create_dataset("y_train", (n_train_g,) + y.shape[1:], dtype="float")
+            hf.create_dataset(
+                "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.numpy().dtype
+            )
             if supervised:
-                hf.create_dataset("x_train", (n_train_g,) + x.shape[1:], dtype="float")
+                hf.create_dataset(
+                    "x_train", (n_train_g,) + x0.shape[1:], dtype=x0.numpy().dtype
+                )
+            if save_physics_generator_params:
+                for k, p in params0.items():
+                    hf.create_dataset(
+                        f"{k}_train", (n_train_g,) + p.shape[1:], dtype=p.numpy().dtype
+                    )
 
             index = 0
 
@@ -202,15 +283,18 @@ def generate_dataset(
                     x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                     x = x.to(device)
 
-                    # choose operator and generate measurement
-                    y = physics[g](x)
-
-                    # Add new data to it
+                    # calculate batch size
                     bsize = x.size()[0]
-
                     if bsize + index > n_train_g:
                         bsize = n_train_g - index
 
+                    if bsize == 0:
+                        continue
+
+                    # choose operator and generate measurement
+                    y, params = measure(x, b=bsize, g=g)
+
+                    # Add new data to it
                     hf["y_train"][index : index + bsize] = (
                         y[:bsize, :].to("cpu").numpy()
                     )
@@ -218,6 +302,11 @@ def generate_dataset(
                         hf["x_train"][index : index + bsize] = (
                             x[:bsize, ...].to("cpu").numpy()
                         )
+                    if save_physics_generator_params:
+                        for p in params.keys():
+                            hf[f"{p}_train"][index : index + bsize] = (
+                                params[p][:bsize, ...].to("cpu").numpy()
+                            )
                     index = index + bsize
 
         if test_dataset is not None:
@@ -238,21 +327,35 @@ def generate_dataset(
                 x = x[0] if isinstance(x, list) or isinstance(x, tuple) else x
                 x = x.to(device)
 
-                # choose operator
-                y = physics[g](x)
+                # Calculate batch size
+                bsize = x.size()[0]
+
+                # choose operator and generate measurement
+                y, params = measure(x, b=bsize, g=g)
 
                 if i == 0:  # create dict
                     hf.create_dataset(
-                        "x_test", (n_test_g,) + x.shape[1:], dtype="float"
+                        "x_test", (n_test_g,) + x.shape[1:], dtype=x.numpy().dtype
                     )
                     hf.create_dataset(
-                        "y_test", (n_test_g,) + y.shape[1:], dtype="float"
+                        "y_test", (n_test_g,) + y.shape[1:], dtype=y.numpy().dtype
                     )
+                    if save_physics_generator_params:
+                        for k, p in params.items():
+                            hf.create_dataset(
+                                f"{k}_test",
+                                (n_test_g,) + p.shape[1:],
+                                dtype=p.numpy().dtype,
+                            )
 
-                # Add new data to it
-                bsize = x.size()[0]
                 hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
                 hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
+
+                if save_physics_generator_params:
+                    for p in params.keys():
+                        hf[f"{p}_test"][index : index + bsize] = (
+                            params[p].to("cpu").numpy()
+                        )
                 index = index + bsize
         hf.close()
 

@@ -2,13 +2,19 @@ import pytest
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
+from deepinv.physics import Inpainting, GaussianNoise, Blur
+from deepinv.physics.generator import (
+    BernoulliSplittingMaskGenerator,
+    SigmaGenerator,
+    DiffractionBlurGenerator,
+)
 
 
 def test_generate_dataset(tmp_path, imsize, device):
@@ -17,7 +23,7 @@ def test_generate_dataset(tmp_path, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
 
     dinv.datasets.generate_dataset(
         train_dataset,
@@ -35,6 +41,129 @@ def test_generate_dataset(tmp_path, imsize, device):
 
     x, y = dataset[0]
     assert x.shape == imsize
+
+
+@pytest.mark.parametrize(
+    "physics_combo",
+    ["single_physics_no_gen", "single_physics_with_gen", "multi_physics_no_gen"],
+)
+@pytest.mark.parametrize("bsize", [1, 4])
+@pytest.mark.parametrize(
+    "phys_gen",
+    [
+        "bernoulli_mask",
+        "sigma",
+        "diffraction",
+    ],
+)
+def test_generate_dataset_physics_generator(
+    physics_combo, tmp_path, imsize, bsize, phys_gen
+):
+    N = 10
+
+    class DummyDataset(Dataset):
+        def __getitem__(self, i):
+            return torch.ones(imsize)
+
+        def __len__(self):
+            return N
+
+    x_dataset = DummyDataset()
+
+    if physics_combo == "single_physics_no_gen":
+        physics = Inpainting(tensor_size=imsize)
+        physics_generator = None
+    elif physics_combo == "single_physics_with_gen":
+        if phys_gen == "bernoulli_mask":
+            physics = Inpainting(tensor_size=imsize)
+            physics_generator = BernoulliSplittingMaskGenerator(imsize, 0.6)
+        elif phys_gen == "sigma":
+            physics = GaussianNoise()
+            physics_generator = SigmaGenerator()
+        elif phys_gen == "diffraction":
+            physics = Blur()
+            physics_generator = DiffractionBlurGenerator((3, 3), num_channels=3)
+    elif physics_combo == "multi_physics_no_gen":
+        physics = [Inpainting(imsize, mask=0.1), Inpainting(imsize, mask=0.9)]
+        physics_generator = None
+
+    _ = dinv.datasets.generate_dataset(
+        x_dataset,
+        physics,
+        physics_generator=physics_generator,
+        save_physics_generator_params=True,
+        test_dataset=x_dataset,
+        save_dir=tmp_path,
+        train_datapoints=N,
+        test_datapoints=N,
+        batch_size=bsize,
+    )
+
+    train_dataset = dinv.datasets.HDF5Dataset(
+        path=f"{tmp_path}/dinv_dataset0.h5", train=True
+    )
+    test_dataset = dinv.datasets.HDF5Dataset(
+        path=f"{tmp_path}/dinv_dataset0.h5", train=False
+    )
+
+    if physics_combo == "single_physics_no_gen":
+        # test physics remains constant
+        x0, y0 = train_dataset[0]
+        x1, y1 = train_dataset[1]
+        x9, y9 = train_dataset[9]
+        assert torch.all(y0 == y1)
+        assert torch.all(y0 == y9)
+
+        x0t, y0t = test_dataset[0]
+        x1t, y1t = test_dataset[1]
+        x9t, y9t = test_dataset[9]
+        assert torch.all(y0t == y1t)
+        assert torch.all(y0t == y9t)
+    elif physics_combo == "single_physics_with_gen":
+        # test physics random generated
+        x0, y0 = train_dataset[0]
+        x1, y1 = train_dataset[1]
+
+        x0t, y0t = test_dataset[0]
+        x1t, y1t = test_dataset[1]
+
+        if phys_gen != "diffraction":
+            assert not torch.all(y0 == y1)
+            assert not torch.all(y0t == y1t)
+            assert not torch.all(y0 == y0t)
+
+        # test load physics generator params
+        d = dinv.datasets.HDF5Dataset(
+            path=f"{tmp_path}/dinv_dataset0.h5",
+            train=True,
+            load_physics_generator_params=True,
+        )
+        x, y, params = d[0]
+        if phys_gen == "bernoulli_mask":
+            assert torch.all(y == params["mask"])
+        elif phys_gen == "sigma":
+            assert params["sigma"].ndim == 0
+        elif phys_gen == "diffraction":
+            _ = params["filter"], params["coeff"], params["pupil"]
+
+    elif physics_combo == "multi_physics_no_gen":
+        # test each dataset has different physics
+        train_dataset1 = dinv.datasets.HDF5Dataset(
+            path=f"{tmp_path}/dinv_dataset1.h5", train=True
+        )
+        x0, y0 = train_dataset[0]
+        x1, y1 = train_dataset1[0]
+        assert y0.mean() < 0.5
+        assert y1.mean() > 0.5
+        assert len(train_dataset) == len(train_dataset1) == N // 2
+
+    # test dataloader
+    b = 3
+    batch = next(iter(DataLoader(train_dataset, batch_size=b)))
+    x, y, params = (*batch, {}) if len(batch) == 2 else batch
+
+    for t in [x, y] + list(params.values()):
+        assert t.shape[0] == b
 
 
 # optim_algos = [
