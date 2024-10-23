@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.tomography &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.tomography</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.tomography</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.forward</span> <span class="kn">import</span> <span class="n">LinearPhysics</span>
+
+<span class="kn">from</span> <span class="nn">deepinv.physics.functional</span> <span class="kn">import</span> <span class="n">Radon</span><span class="p">,</span> <span class="n">IRadon</span><span class="p">,</span> <span class="n">RampFilter</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">adjoint_function</span>
+
+
+<span class="n">PI</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">atan</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Tomography">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography">[docs]</a>
+<span class="k">class</span> <span class="nc">Tomography</span><span class="p">(</span><span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    (Computed) Tomography operator.</span>
+
+<span class="sd">    The Radon transform is the integral transform which takes a square image :math:`x` defined on the plane to a function</span>
+<span class="sd">    :math:`y=Rx` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal</span>
+<span class="sd">    to the line integral of the function over that line.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The pseudo-inverse is computed using the filtered back-projection algorithm with a Ramp filter.</span>
+<span class="sd">        This is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation which is</span>
+<span class="sd">        robust to noise.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The measurements are not normalized by the image size, thus the norm of the operator depends on the image size.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The adjoint operator has small numerical errors due to interpolation.</span>
+
+<span class="sd">    :param int, torch.tensor angles: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.</span>
+<span class="sd">        If the type is ``torch.tensor``, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).</span>
+<span class="sd">    :param int img_width: width/height of the square image input.</span>
+<span class="sd">    :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle</span>
+<span class="sd">        inscribed in the square image.</span>
+<span class="sd">    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.</span>
+<span class="sd">    :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).</span>
+<span class="sd">        In this case the operator norm is approximately given by :math:`\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}`,</span>
+<span class="sd">        If ``False``, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals</span>
+<span class="sd">    :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam</span>
+<span class="sd">    :param dict fan_parameters: Only used if fan_beam is ``True``. Contains the parameters defining the scanning geometry. The dict should contain the keys:</span>
+
+<span class="sd">        - &quot;pixel_spacing&quot; defining the distance between two pixels in the image, default: 0.5 / (in_size)</span>
+
+<span class="sd">        - &quot;source_radius&quot; distance between the x-ray source and the rotation axis (middle of the image), default: 57.5</span>
+
+<span class="sd">        - &quot;detector_radius&quot; distance between the x-ray detector and the rotation axis (middle of the image), default: 57.5</span>
+
+<span class="sd">        - &quot;n_detector_pixels&quot; number of pixels of the detector, default: 258</span>
+
+<span class="sd">        - &quot;detector_spacing&quot; distance between two pixels on the detector, default: 0.077</span>
+
+<span class="sd">        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 &lt;https://doi.org/10.5281/zenodo.8307932&gt;`_,</span>
+<span class="sd">        where pixel spacing, source and detector radius and detector spacing are given in cm.</span>
+<span class="sd">        Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.</span>
+<span class="sd">    :param str device: gpu or cpu.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Tomography operator with defined angles for 3x3 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Tomography</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0)  # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image</span>
+<span class="sd">        &gt;&gt;&gt; angles = torch.linspace(0, 45, steps=3)</span>
+<span class="sd">        &gt;&gt;&gt; physics = Tomography(angles=angles, img_width=4, circle=True)</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[[[ 0.1650,  1.2640,  1.6995],</span>
+<span class="sd">                  [-0.4860,  0.2674,  0.9971],</span>
+<span class="sd">                  [ 0.9002, -0.3856, -0.9360],</span>
+<span class="sd">                  [-2.4882, -2.1068, -2.5720]]]])</span>
+
+<span class="sd">        Tomography operator with 3 uniformly sampled angles in [0, 360] for 3x3 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Tomography</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0)  # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 4, 4)  # Define random 4x4 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = Tomography(angles=3, img_width=4, circle=True)</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[[[ 0.1650,  1.9493,  1.9897],</span>
+<span class="sd">                  [-0.4860,  0.7137, -1.6536],</span>
+<span class="sd">                  [ 0.9002, -0.8457, -0.1666],</span>
+<span class="sd">                  [-2.4882, -2.7340, -0.9793]]]])</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">angles</span><span class="p">,</span>
+        <span class="n">img_width</span><span class="p">,</span>
+        <span class="n">circle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">parallel_computation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">fan_beam</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">fan_parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">angles</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fan_beam</span> <span class="o">=</span> <span class="n">fan_beam</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span> <span class="o">=</span> <span class="n">img_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">radon</span> <span class="o">=</span> <span class="n">Radon</span><span class="p">(</span>
+            <span class="n">img_width</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">circle</span><span class="o">=</span><span class="n">circle</span><span class="p">,</span>
+            <span class="n">parallel_computation</span><span class="o">=</span><span class="n">parallel_computation</span><span class="p">,</span>
+            <span class="n">fan_beam</span><span class="o">=</span><span class="n">fan_beam</span><span class="p">,</span>
+            <span class="n">fan_parameters</span><span class="o">=</span><span class="n">fan_parameters</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fan_beam</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iradon</span> <span class="o">=</span> <span class="n">IRadon</span><span class="p">(</span>
+                <span class="n">img_width</span><span class="p">,</span>
+                <span class="n">theta</span><span class="p">,</span>
+                <span class="n">circle</span><span class="o">=</span><span class="n">circle</span><span class="p">,</span>
+                <span class="n">parallel_computation</span><span class="o">=</span><span class="n">parallel_computation</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filter</span> <span class="o">=</span> <span class="n">RampFilter</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Tomography.A">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A">[docs]</a>
+    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">radon</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="Tomography.A_dagger">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A_dagger">[docs]</a>
+    <span class="k">def</span> <span class="nf">A_dagger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fan_beam</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">*</span> <span class="n">PI</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">radon</span><span class="o">.</span><span class="n">theta</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">*</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iradon</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">*</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="Tomography.A_adjoint">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography.A_adjoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fan_beam</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">),</span> <span class="s2">&quot;Image size unknown. Apply forward operator or add it for initialization.&quot;</span>
+            <span class="c1"># lazy implementation for the adjoint...</span>
+            <span class="n">adj</span> <span class="o">=</span> <span class="n">adjoint_function</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_width</span><span class="p">),</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">adj</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># IRadon is not exactly the adjoint but a rescaled version of it...</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">iradon</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">filtering</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="o">/</span> <span class="n">PI</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iradon</span><span class="o">.</span><span class="n">theta</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">output</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,327 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image transforms for equivariance &amp; augmentations &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../_static/logo.ico"/>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Creating your own dataset" href="demo_dataset.html" />
+    <link rel="prev" title="Reconstructing an image using the deep image prior." href="demo_dip.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Examples</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../index.html#advanced">Advanced</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#adversarial-learning">Adversarial Learning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html#basics">Basics</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="demo_lidar.html">Single photon lidar operator for depth ranging.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_pansharpening.html">Stacking and concatenating forward operators.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dip.html">Reconstructing an image using the deep image prior.</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Image transforms for equivariance &amp; augmentations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data-augmentation">1. Data augmentation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#equivariant-denoiser-or-plug-and-play">2. Equivariant denoiser or plug-and-play</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#equivariant-imaging">3. Equivariant imaging</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="demo_dataset.html">Creating your own dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_hf_dataset.html">Using huggingface dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics.html">Creating a forward operator.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_microscopy_3d.html">3D diffraction PSF</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_train_inpainting.html">Training a reconstruction network.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_physics_tour.html">A tour of forward sensing operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_custom_prior.html">Image deblurring with custom deep explicit prior.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_loading.html">Saving and loading models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_blur_tour.html">A tour of blur operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="demo_phase_retrieval.html">Random phase retrieval and reconstruction methods.</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#optimization">Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#patch-priors">Patch Priors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#plug-and-play">Plug-and-Play</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#sampling">Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#self-supervised-learning">Self-Supervised Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#unfolded">Unfolded</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Image transforms for equivariance &amp; augmentations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/auto_examples/basics/demo_transforms.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-basics-demo-transforms-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="image-transforms-for-equivariance-augmentations">
+<span id="sphx-glr-auto-examples-basics-demo-transforms-py"></span><h1>Image transforms for equivariance &amp; augmentations<a class="headerlink" href="#image-transforms-for-equivariance-augmentations" title="Link to this heading"></a></h1>
+<p>We demonstrate the use of our <code class="docutils literal notranslate"><span class="pre">deepinv.transform</span></code> module for use in
+solving imaging problems. These can be used for:</p>
+<ol class="arabic simple">
+<li><p>Data augmentation (similar to <code class="docutils literal notranslate"><span class="pre">torchvision.transforms</span></code>)</p></li>
+<li><p>Building equivariant denoisers
+(<a class="reference internal" href="../../stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser" title="deepinv.models.EquivariantDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.EquivariantDenoiser</span></code></a>) for robust denoising
+(e.g from <a class="reference external" href="https://arxiv.org/abs/2312.01831">Terris et al., Equivariant plug-and-play image
+reconstruction</a>)</p></li>
+<li><p>Self-supervised learning using Equivariant Imaging from <a class="reference external" href="https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf">Chen et al.,
+Equivariant Imaging: Learning Beyond the Range
+Space</a>:
+see
+<a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a>,
+<a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a>
+for thorough examples.</p></li>
+</ol>
+<p>See <a class="reference internal" href="../../deepinv.transform.html#transform"><span class="std std-ref">docs</span></a> for full list of implemented transforms.</p>
+<section id="data-augmentation">
+<h2>1. Data augmentation<a class="headerlink" href="#data-augmentation" title="Link to this heading"></a></h2>
+<p>We can use <code class="docutils literal notranslate"><span class="pre">deepinv</span></code> transforms in the same way as <code class="docutils literal notranslate"><span class="pre">torchvision</span></code>
+transforms, and chain them together for data augmentation. Our
+transforms are customisable and offer some group-theoretic properties.</p>
+<p>We demonstrate a random roto-scale combined with a random masking, and a
+constrained pixel-shift with a random colour jitter.
+Note that all our transforms can easily be inverted using the method <code class="docutils literal notranslate"><span class="pre">transform.inverse()</span></code>.</p>
+<p>First, load a sample image.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="kn">from</span> <span class="nn">torchvision.transforms</span> <span class="kn">import</span> <span class="n">Compose</span><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">ColorJitter</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RandomErasing</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">Resize</span></a>
+
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">load_url_image</span><span class="p">(</span><span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">demo</span><span class="o">.</span><span class="n">get_image_url</span><span class="p">(</span><span class="s2">&quot;celeba_example.jpg&quot;</span><span class="p">))</span>
+
+<span class="c1"># Random roto-scale with random masking</span>
+<span class="n">transform</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span>
+    <span class="p">[</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Rotate</span></a><span class="p">()</span> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Scale</span></a><span class="p">(),</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">RandomErasing</span></a><span class="p">(),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># Constrained pixel-shift with a random colour jitter</span>
+<span class="n">transform2</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span>
+    <span class="p">[</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Shift</span></a><span class="p">(</span><span class="n">shift_max</span><span class="o">=</span><span class="mf">0.2</span><span class="p">),</span>
+        <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">ColorJitter</span></a><span class="p">(</span><span class="n">hue</span><span class="o">=</span><span class="mf">0.5</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># Random diffeomorphism</span>
+<span class="n">transform3</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">CPABDiffeomorphism</span></a><span class="p">()</span>
+
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="p">[</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="n">transform</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">),</span> <span class="n">transform2</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">),</span> <span class="n">transform3</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)],</span>
+    <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Orig&quot;</span><span class="p">,</span> <span class="s2">&quot;Transform 1&quot;</span><span class="p">,</span> <span class="s2">&quot;Transform 2&quot;</span><span class="p">,</span> <span class="s2">&quot;Transform 3&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<ul class="sphx-glr-horizontal">
+<li><img src="../../_images/sphx_glr_demo_transforms_001.png" srcset="../../_images/sphx_glr_demo_transforms_001.png" alt="demo transforms" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_transforms_002.png" srcset="../../_images/sphx_glr_demo_transforms_002.png" alt="demo transforms" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_transforms_003.png" srcset="../../_images/sphx_glr_demo_transforms_003.png" alt="demo transforms" class = "sphx-glr-multi-img"/></li>
+<li><img src="../../_images/sphx_glr_demo_transforms_004.png" srcset="../../_images/sphx_glr_demo_transforms_004.png" alt="Orig, Transform 1, Transform 2, Transform 3" class = "sphx-glr-multi-img"/></li>
+</ul>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.9.20/x64/lib/python3.9/site-packages/torch/functional.py:534: UserWarning: torch.meshgrid: in an upcoming release, it will be required to pass the indexing argument. (Triggered internally at ../aten/src/ATen/native/TensorShape.cpp:3595.)
+  return _VF.meshgrid(tensors, **kwargs)  # type: ignore[attr-defined]
+</pre></div>
+</div>
+<p>By letting <code class="docutils literal notranslate"><span class="pre">n_trans</span></code> be equal to the full group size, all transforms
+are recovered:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">reflect</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Reflect</span></a><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_trans</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">rotate</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Rotate</span></a><span class="p">(</span><span class="n">multiples</span><span class="o">=</span><span class="mi">90</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">n_trans</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">reflect</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">),</span> <span class="n">rotate</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Full 2D reflect group&quot;</span><span class="p">,</span> <span class="s2">&quot;Full rotate group&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_transforms_005.png" srcset="../../_images/sphx_glr_demo_transforms_005.png" alt="Full 2D reflect group, Full rotate group" class = "sphx-glr-single-img"/></section>
+<section id="equivariant-denoiser-or-plug-and-play">
+<h2>2. Equivariant denoiser or plug-and-play<a class="headerlink" href="#equivariant-denoiser-or-plug-and-play" title="Link to this heading"></a></h2>
+<p>Suppose we want to make a denoiser equivariant to the rotoreflect group,
+taken as the group product of the 90 degree rotations (order 4) and 1D reflects (order 2).
+We can do this with our transform arithmetic (note this results in the full dihedral group
+<span class="math notranslate nohighlight">\(\text{Dih}_4\)</span> of order 8):</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">transform</span> <span class="o">=</span> <span class="n">rotate</span> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">Reflect</span></a><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_trans</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Let’s simulate some Gaussian noise and turn a simple (median filter)
+denoiser into an equivariant denoiser
+(<a class="reference internal" href="../../stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser" title="deepinv.models.EquivariantDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.EquivariantDenoiser</span></code></a>):</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">physics</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span></a><span class="p">(</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="p">)</span>
+<a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">Resize</span></a><span class="p">(</span><span class="mi">128</span><span class="p">)(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">))</span>
+
+<span class="n">model</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">MedianFilter</span></a><span class="p">()</span>
+<span class="n">model_eq</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">EquivariantDenoiser</span></a><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">)</span>
+
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <span class="n">model</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="p">),</span> <span class="n">model_eq</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">y</span></a><span class="p">,</span> <a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="o">=</span><a href="https://docs.python.org/3.4/library/functions.html#float" title="builtins.float" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">sigma</span></a><span class="p">)])</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_transforms_006.png" srcset="../../_images/sphx_glr_demo_transforms_006.png" alt="demo transforms" class = "sphx-glr-single-img"/><p>What’s going on under the hood? We use the <code class="docutils literal notranslate"><span class="pre">transform.symmetrize</span></code>
+method to symmetrize the function <span class="math notranslate nohighlight">\(f\)</span> with respect to a projective
+transform (with a Monte Carlo approach of <code class="docutils literal notranslate"><span class="pre">n_trans=2</span></code> transforms per call):</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example non-equivariant function</span>
+<span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">:</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a>
+
+<span class="c1"># Example non-linear transform with n=2</span>
+<span class="n">t</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">projective</span><span class="o">.</span><span class="n">PanTiltRotate</span></a><span class="p">(</span><span class="n">n_trans</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">theta_max</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">theta_z_max</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Symmetrize function with respect to transform</span>
+<span class="n">f_s</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">symmetrize</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">average</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">dinv</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="p">[</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">,</span> <span class="n">f</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">),</span> <span class="n">f_s</span><span class="p">(</span><a href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="torch.Tensor" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">x</span></a><span class="p">)],</span> <span class="n">titles</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Orig&quot;</span><span class="p">,</span> <span class="s2">&quot;$f(x)$&quot;</span><span class="p">,</span> <span class="s2">&quot;$\sum_i T_i^{-1}f(T_ix)$&quot;</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<img src="../../_images/sphx_glr_demo_transforms_007.png" srcset="../../_images/sphx_glr_demo_transforms_007.png" alt="Orig, $f(x)$, $\sum_i T_i^{-1}f(T_ix)$" class = "sphx-glr-single-img"/></section>
+<section id="equivariant-imaging">
+<h2>3. Equivariant imaging<a class="headerlink" href="#equivariant-imaging" title="Link to this heading"></a></h2>
+<p>We can also use our transforms to create the self-supervised equivariant
+imaging loss. See
+<a class="reference internal" href="../self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a>,
+<a class="reference internal" href="../self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a>
+for examples of self-supervised learning for MRI and inpainting. For
+example, the EI loss can easily be defined using any combination of
+transforms:</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">loss</span> <span class="o">=</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">EILoss</span></a><span class="p">(</span>
+    <span class="n">transform</span><span class="o">=</span><a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">projective</span><span class="o">.</span><span class="n">Affine</span></a><span class="p">()</span> <span class="o">|</span> <a href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="torch.nn.Module" class="sphx-glr-backref-module-torch-nn sphx-glr-backref-type-py-class"><span class="n">dinv</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">projective</span><span class="o">.</span><span class="n">Euclidean</span></a><span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 5.227 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-transforms-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/af47b9db3dab463fc189e972ee1be0ff/demo_transforms.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_transforms.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/23162c7b8bbe52a2f2c748ac0b47deb8/demo_transforms.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">demo_transforms.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../../_downloads/edfc80b8013d2e00b8f454bc0ac7ff01/demo_transforms.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">demo_transforms.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="demo_dip.html" class="btn btn-neutral float-left" title="Reconstructing an image using the deep image prior." accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_dataset.html" class="btn btn-neutral float-right" title="Creating your own dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

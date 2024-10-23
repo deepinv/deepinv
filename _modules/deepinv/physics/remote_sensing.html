@@ -1,0 +1,281 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.remote_sensing &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.remote_sensing</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.remote_sensing</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.noise</span> <span class="kn">import</span> <span class="n">GaussianNoise</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.forward</span> <span class="kn">import</span> <span class="n">LinearPhysics</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.blur</span> <span class="kn">import</span> <span class="n">Downsampling</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.range</span> <span class="kn">import</span> <span class="n">Decolorize</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils</span> <span class="kn">import</span> <span class="n">TensorList</span>
+
+
+<div class="viewcode-block" id="Pansharpen">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen">[docs]</a>
+<span class="k">class</span> <span class="nc">Pansharpen</span><span class="p">(</span><span class="n">LinearPhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pansharpening forward operator.</span>
+
+<span class="sd">    The measurements consist of a high resolution grayscale image and a low resolution RGB image, and</span>
+<span class="sd">    are represented using :class:`deepinv.utils.TensorList`, where the first element is the RGB image and the second</span>
+<span class="sd">    element is the grayscale image.</span>
+
+<span class="sd">    By default, the downsampling is done with a gaussian filter with standard deviation equal to the downsampling,</span>
+<span class="sd">    however, the user can provide a custom downsampling filter.</span>
+
+<span class="sd">    It is possible to assign a different noise model to the RGB and grayscale images.</span>
+
+
+<span class="sd">    :param tuple[int] img_size: size of the input image.</span>
+<span class="sd">    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be &#39;gaussian&#39;, &#39;bilinear&#39; or &#39;bicubic&#39; or a</span>
+<span class="sd">        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.</span>
+<span class="sd">    :param int factor: downsampling factor.</span>
+<span class="sd">    :param torch.nn.Module noise_color: noise model for the RGB image.</span>
+<span class="sd">    :param torch.nn.Module noise_gray: noise model for the grayscale image.</span>
+
+<span class="sd">    :param str padding: options are ``&#39;valid&#39;``, ``&#39;circular&#39;``, ``&#39;replicate&#39;`` and ``&#39;reflect&#39;``.</span>
+<span class="sd">        If ``padding=&#39;valid&#39;`` the blurred output is smaller than the image (no padding)</span>
+<span class="sd">        otherwise the blurred output has the same size as the image.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Pansharpen operator applied to a random 32x32 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Pansharpen</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 3, 32, 32) # Define random 32x32 color image</span>
+<span class="sd">        &gt;&gt;&gt; physics = Pansharpen(img_size=x.shape[1:], device=x.device)</span>
+<span class="sd">        &gt;&gt;&gt; x.shape</span>
+<span class="sd">        torch.Size([1, 3, 32, 32])</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; y[0].shape</span>
+<span class="sd">        torch.Size([1, 3, 8, 8])</span>
+<span class="sd">        &gt;&gt;&gt; y[1].shape</span>
+<span class="sd">        torch.Size([1, 1, 32, 32])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">img_size</span><span class="p">,</span>
+        <span class="nb">filter</span><span class="o">=</span><span class="s2">&quot;bilinear&quot;</span><span class="p">,</span>
+        <span class="n">factor</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">noise_color</span><span class="o">=</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">noise_gray</span><span class="o">=</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">0.05</span><span class="p">),</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="s2">&quot;circular&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsampling</span> <span class="o">=</span> <span class="n">Downsampling</span><span class="p">(</span>
+            <span class="n">img_size</span><span class="o">=</span><span class="n">img_size</span><span class="p">,</span>
+            <span class="n">factor</span><span class="o">=</span><span class="n">factor</span><span class="p">,</span>
+            <span class="nb">filter</span><span class="o">=</span><span class="nb">filter</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_color</span> <span class="o">=</span> <span class="n">noise_color</span> <span class="k">if</span> <span class="n">noise_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise_gray</span> <span class="o">=</span> <span class="n">noise_gray</span> <span class="k">if</span> <span class="n">noise_gray</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span> <span class="o">=</span> <span class="n">Decolorize</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Pansharpen.A">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen.A">[docs]</a>
+    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">downsampling</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)]</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pansharpen.A_adjoint">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen.A_adjoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">A_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsampling</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Pansharpen.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">TensorList</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">noise_color</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">downsampling</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">noise_gray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colorize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)),</span>
+            <span class="p">]</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># test code</span>
+<span class="c1"># if __name__ == &quot;__main__&quot;:</span>
+<span class="c1">#     device = &quot;cuda:0&quot;</span>
+<span class="c1">#     import torch</span>
+<span class="c1">#     import torchvision</span>
+<span class="c1">#     import deepinv</span>
+<span class="c1">#</span>
+<span class="c1">#     device = &quot;cuda:0&quot;</span>
+<span class="c1">#</span>
+<span class="c1">#     x = torchvision.io.read_image(&quot;../../datasets/celeba/img_align_celeba/085307.jpg&quot;)</span>
+<span class="c1">#     x = x.unsqueeze(0).float().to(device) / 255</span>
+<span class="c1">#     x = torchvision.transforms.Resize((160, 180))(x)</span>
+<span class="c1">#</span>
+<span class="c1">#     class Toy(LinearPhysics):</span>
+<span class="c1">#         def __init__(self, **kwargs):</span>
+<span class="c1">#             super().__init__(**kwargs)</span>
+<span class="c1">#             self.A = lambda x: x * 2</span>
+<span class="c1">#             self.A_adjoint = lambda x: x * 2</span>
+<span class="c1">#</span>
+<span class="c1">#     sigma_noise = 0.1</span>
+<span class="c1">#     kernel = torch.zeros((1, 1, 15, 15), device=device)</span>
+<span class="c1">#     kernel[:, :, 7, :] = 1 / 15</span>
+<span class="c1">#     # physics = deepinv.physics.BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)</span>
+<span class="c1">#     physics = Pansharpen(factor=8, img_size=x.shape[1:], device=device)</span>
+<span class="c1">#</span>
+<span class="c1">#     y = physics(x)</span>
+<span class="c1">#</span>
+<span class="c1">#     xhat2 = physics.A_adjoint(y)</span>
+<span class="c1">#     xhat1 = physics.A_dagger(y)</span>
+<span class="c1">#</span>
+<span class="c1">#     physics.compute_norm(x)</span>
+<span class="c1">#     physics.adjointness_test(x)</span>
+<span class="c1">#</span>
+<span class="c1">#     deepinv.utils.plot(</span>
+<span class="c1">#         [y[0], y[1], xhat2, xhat1, x],</span>
+<span class="c1">#         titles=[&quot;low res color&quot;, &quot;high res gray&quot;, &quot;A_adjoint&quot;, &quot;A_dagger&quot;, &quot;x&quot;],</span>
+<span class="c1">#     )</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

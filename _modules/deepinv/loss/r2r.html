@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.r2r &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.r2r</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.r2r</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.loss</span> <span class="kn">import</span> <span class="n">Loss</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.metric.metric</span> <span class="kn">import</span> <span class="n">Metric</span>
+
+
+<div class="viewcode-block" id="R2RLoss">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss">[docs]</a>
+<span class="k">class</span> <span class="nc">R2RLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recorrupted-to-Recorrupted (R2R) Loss</span>
+
+<span class="sd">    This loss can be used for unsupervised image denoising with unorganized noisy images.</span>
+
+<span class="sd">    The loss is designed for the noise model:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        y \sim\mathcal{N}(u,\sigma^2 I) \quad \text{with}\quad u= A(x).</span>
+
+<span class="sd">    The loss is computed as:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \| y^- - AR(y^+) \|_2^2 \quad \text{s.t.} \quad y^+ = y + \alpha z, \quad y^- = y -  z / \alpha</span>
+
+<span class="sd">    where :math:`R` is the trainable network, :math:`A` is the forward operator,</span>
+<span class="sd">    :math:`y` is the noisy measurement,</span>
+<span class="sd">    :math:`z` is the additional Gaussian noise of standard deviation :math:`\sigma`,</span>
+<span class="sd">    and :math:`\alpha` is a scaling factor.</span>
+
+
+<span class="sd">    This loss is statistically equivalent to the supervised loss function defined on noisy/clean image pairs</span>
+<span class="sd">    according to authors in https://ieeexplore.ieee.org/document/9577798</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        The model should be adapted before training using the method :meth:`adapt_model` to include the additional noise at the input.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        :math:`\sigma` should be chosen equal or close to :math:`\sigma` to obtain the best performance.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        To obtain the best test performance, the trained model should be averaged at test time</span>
+<span class="sd">        over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)`</span>
+<span class="sd">        where :math:`N&gt;1`. This can be achieved using :meth:`adapt_model`.</span>
+
+<span class="sd">    :param Metric, torch.nn.Module metric: metric for calculating loss, defaults to MSE.</span>
+<span class="sd">    :param float sigma: standard deviation of the Gaussian noise used for the perturbation.</span>
+<span class="sd">    :param float alpha: scaling factor of the perturbation.</span>
+<span class="sd">    :param int eval_n_samples: number of samples used for the Monte Carlo approximation.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; import deepinv as dinv</span>
+<span class="sd">        &gt;&gt;&gt; sigma = 0.1</span>
+<span class="sd">        &gt;&gt;&gt; physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))</span>
+<span class="sd">        &gt;&gt;&gt; model = dinv.models.MedianFilter()</span>
+<span class="sd">        &gt;&gt;&gt; loss = dinv.loss.R2RLoss(sigma=sigma, eval_n_samples=2)</span>
+<span class="sd">        &gt;&gt;&gt; model = loss.adapt_model(model) # important step!</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.ones((1, 1, 8, 8))</span>
+<span class="sd">        &gt;&gt;&gt; y = physics(x)</span>
+<span class="sd">        &gt;&gt;&gt; x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass</span>
+<span class="sd">        &gt;&gt;&gt; l = loss(x_net, y, physics, model)</span>
+<span class="sd">        &gt;&gt;&gt; print(l.item() &gt; 0)</span>
+<span class="sd">        True</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Metric</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(),</span>
+        <span class="n">sigma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">eval_n_samples</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">R2RLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;r2r&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+
+<div class="viewcode-block" id="R2RLoss.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Computes the R2R Loss.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurements.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.</span>
+<span class="sd">        :param torch.nn.Module model: Reconstruction model.</span>
+<span class="sd">        :return: (torch.Tensor) R2R loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pert</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_noise</span><span class="p">()</span>
+        <span class="n">y_minus</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">pert</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">(</span><span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x_net</span><span class="p">),</span> <span class="n">y_minus</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="R2RLoss.adapt_model">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.R2RLoss.html#deepinv.loss.R2RLoss.adapt_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">adapt_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">R2RModel</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds noise to model input.</span>
+
+
+<span class="sd">        This method modifies a reconstruction</span>
+<span class="sd">        model :math:`R` to include the splitting mechanism at the input:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \hat{R}(y) = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)</span>
+
+<span class="sd">        where :math:`N\geq 1` are the number of samples used for the Monte Carlo approximation.</span>
+<span class="sd">        During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`</span>
+<span class="sd">        for computational efficiency, whereas at test time, we use multiple samples for better performance.</span>
+
+<span class="sd">        :param torch.nn.Module model: Reconstruction model.</span>
+<span class="sd">        :param float sigma: standard deviation of the Gaussian noise used for the perturbation.</span>
+<span class="sd">        :param float alpha: scaling factor of the perturbation.</span>
+<span class="sd">        :return: (torch.nn.Module) Modified model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">R2RModel</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">model</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">R2RModel</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">class</span> <span class="nc">R2RModel</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">eval_n_samples</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">R2RModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extra_noise</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span> <span class="o">=</span> <span class="n">eval_n_samples</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">eval_n_samples</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_n_samples</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">set_grad_enabled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">eval_n_samples</span><span class="p">):</span>
+                <span class="n">extra_noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span>
+                <span class="n">y_plus</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="n">extra_noise</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+                <span class="n">out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y_plus</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="n">update_parameters</span><span class="p">:</span>  <span class="c1"># save the noise</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">extra_noise</span> <span class="o">=</span> <span class="n">extra_noise</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">/</span> <span class="n">eval_n_samples</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">def</span> <span class="nf">get_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_noise</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

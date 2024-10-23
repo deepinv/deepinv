@@ -1,0 +1,1197 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.training.trainer &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.training.trainer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.training.trainer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils</span> <span class="kn">import</span> <span class="n">AverageMeter</span><span class="p">,</span> <span class="n">get_timestamp</span><span class="p">,</span> <span class="n">zeros_like</span><span class="p">,</span> <span class="n">plot</span><span class="p">,</span> <span class="n">plot_curves</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">wandb</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss</span> <span class="kn">import</span> <span class="n">Loss</span><span class="p">,</span> <span class="n">SupLoss</span><span class="p">,</span> <span class="n">BaseLossScheduler</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.metric</span> <span class="kn">import</span> <span class="n">PSNR</span><span class="p">,</span> <span class="n">Metric</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Physics</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">PhysicsGenerator</span>
+<span class="kn">from</span> <span class="nn">deepinv.utils.plotting</span> <span class="kn">import</span> <span class="n">prepare_images</span>
+<span class="kn">from</span> <span class="nn">torchvision.utils</span> <span class="kn">import</span> <span class="n">save_image</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+
+<div class="viewcode-block" id="Trainer">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">Trainer</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Trainer(model, physics, optimizer, train_dataloader, ...)</span>
+<span class="sd">    Trainer class for training a reconstruction network.</span>
+
+<span class="sd">    Training can be done by calling the :meth:`deepinv.Trainer.train` method, whereas</span>
+<span class="sd">    testing can be done by calling the :meth:`deepinv.Trainer.test` method.</span>
+
+<span class="sd">    Training details are saved every ``ckp_interval`` epochs in the following format</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        save_path/yyyy-mm-dd_hh-mm-ss/ckp_{epoch}.pth.tar</span>
+
+<span class="sd">    where ``.pth.tar`` file contains a dictionary with the keys: ``epoch`` current epoch, ``state_dict`` the state</span>
+<span class="sd">    dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,</span>
+<span class="sd">    and ``eval_metrics` the evaluation metrics history.</span>
+
+<span class="sd">    The class provides a flexible training loop that can be customized by the user. In particular, the user can</span>
+<span class="sd">    rewrite the :meth:`deepinv.Trainer.compute_loss` method to define their custom training step without having</span>
+<span class="sd">    to write all the training code from scratch:</span>
+
+
+<span class="sd">    ::</span>
+
+<span class="sd">        class CustomTrainer(Trainer):</span>
+<span class="sd">            def compute_loss(self, physics, x, y, train=True, epoch: int = None):</span>
+<span class="sd">                logs = {}</span>
+
+<span class="sd">                self.optimizer.zero_grad() # Zero the gradients</span>
+
+<span class="sd">                # Evaluate reconstruction network</span>
+<span class="sd">                x_net = self.model_inference(y=y, physics=physics)</span>
+
+<span class="sd">                # Compute the losses</span>
+<span class="sd">                loss_total = 0</span>
+<span class="sd">                for k, l in enumerate(self.losses):</span>
+<span class="sd">                    loss = l(x=x, x_net=x_net, y=y, physics=physics, model=self.model, epoch=epoch)</span>
+<span class="sd">                    loss_total += loss.mean()</span>
+
+<span class="sd">                metric = self.logs_total_loss_train if train else self.logs_total_loss_eval</span>
+<span class="sd">                metric.update(loss_total.item())</span>
+<span class="sd">                logs[f&quot;TotalLoss&quot;] = metric.avg</span>
+
+<span class="sd">                if train:</span>
+<span class="sd">                    loss_total.backward()  # Backward the total loss</span>
+<span class="sd">                    self.optimizer.step() # Optimizer step</span>
+
+<span class="sd">                return x_net, logs</span>
+
+
+<span class="sd">    If the user wants to change the way the metrics are computed, they can rewrite the</span>
+<span class="sd">    :meth:`deepinv.Trainer.compute_metrics` method.</span>
+<span class="sd">    The user can also change the way samples are generated by overriding either the :meth:`deepinv.Trainer.get_samples_online` method or the :meth:`deepinv.Trainer.get_samples_offline` method,</span>
+<span class="sd">    e.g. to change the physics parameters on-the-fly with parameters from the dataset.</span>
+
+<span class="sd">    - Use :meth:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.</span>
+<span class="sd">    - Use :meth:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).</span>
+
+<span class="sd">    For instance, in MRI, the dataloader often returns both the measurements and the mask associated with the measurements.</span>
+<span class="sd">    In this case, to update the :meth:`deepinv.physics.Physics` parameters accordingly, a potential implementation would be:</span>
+
+
+<span class="sd">    ::</span>
+
+<span class="sd">        class CustomTrainer(Trainer):</span>
+<span class="sd">            def get_samples_offline(self, iterators, g):</span>
+<span class="sd">                # Suppose your dataset returns per-sample masks, e.g. in MRI</span>
+<span class="sd">                x, y, mask = next(iterators[g])</span>
+
+<span class="sd">                # Suppose physics has class params such as DecomposablePhysics or MRI</span>
+<span class="sd">                physics = self.physics[g]</span>
+
+<span class="sd">                # Update physics parameters deterministically (i.e. not using a random generator)</span>
+<span class="sd">                physics.update_parameters(mask=mask.to(self.device))</span>
+
+<span class="sd">                return x.to(self.device), y.to(self.device), physics</span>
+
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The training code can synchronize with `Weights &amp; Biases &lt;https://wandb.ai/site&gt;`_ for logging and visualization</span>
+<span class="sd">        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing</span>
+<span class="sd">        a dictionary with the setup for wandb.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The losses and evaluation metrics</span>
+<span class="sd">        can be chosen from :ref:`the libraries&#39; training losses &lt;loss&gt;`, or can be a custom loss function,</span>
+<span class="sd">        as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground</span>
+<span class="sd">        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,</span>
+<span class="sd">        ``y`` is the measurement vector, ``physics`` is the forward operator</span>
+<span class="sd">        and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,</span>
+<span class="sd">        e.g., self-supervised losses will not make use of ``x``.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.</span>
+<span class="sd">        If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.</span>
+<span class="sd">        Caveat: this requires ``shuffle=False`` in your dataloaders.</span>
+<span class="sd">        An alternative solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.</span>
+
+<span class="sd">    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal</span>
+<span class="sd">        or any other custom reconstruction network.</span>
+<span class="sd">    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.</span>
+<span class="sd">    :param int epochs: Number of training epochs. Default is 100.</span>
+<span class="sd">    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.</span>
+<span class="sd">    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a</span>
+<span class="sd">        a signal x or a tuple of (x, y) signal/measurement pairs.</span>
+<span class="sd">    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.</span>
+<span class="sd">        Optionally wrap losses using a loss scheduler for more advanced training.</span>
+<span class="sd">        :ref:`See the libraries&#39; training losses &lt;loss&gt;`. By default, it uses the supervised mean squared error.</span>
+<span class="sd">    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)</span>
+<span class="sd">        should provide a signal x or a tuple of (x, y) signal/measurement pairs.</span>
+<span class="sd">    :param None, torch.optim.lr_scheduler scheduler: Torch scheduler for changing the learning rate across iterations.</span>
+<span class="sd">    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling</span>
+<span class="sd">        ``physics(x)``. This results in a wider range of measurements if the physics&#39; parameters, such as</span>
+<span class="sd">        parameters of the forward operator or noise realizations, can change between each sample;</span>
+<span class="sd">        the measurements are loaded from the training dataset.</span>
+<span class="sd">    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating</span>
+<span class="sd">        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.</span>
+<span class="sd">        Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.</span>
+<span class="sd">    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.</span>
+<span class="sd">        :ref:`See the libraries&#39; evaluation metrics &lt;loss&gt;`.</span>
+<span class="sd">    :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.</span>
+<span class="sd">    :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.</span>
+<span class="sd">    :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.</span>
+<span class="sd">    :param str save_path: Directory in which to save the trained model.</span>
+<span class="sd">    :param str device: Device on which to run the training (e.g., &#39;cuda&#39; or &#39;cpu&#39;).</span>
+<span class="sd">    :param bool verbose: Output training progress information in the console.</span>
+<span class="sd">    :param bool show_progress_bar: Show a progress bar during training.</span>
+<span class="sd">    :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs.</span>
+<span class="sd">    :param bool wandb_vis: Logs data onto Weights &amp; Biases, see https://wandb.ai/ for more details.</span>
+<span class="sd">    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details.</span>
+<span class="sd">    :param bool plot_measurements: Plot the measurements y. default=True.</span>
+<span class="sd">    :param bool check_grad: Compute and print the gradient norm at each iteration.</span>
+<span class="sd">    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded.</span>
+<span class="sd">    :param int freq_plot: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).</span>
+<span class="sd">        If ``1``, plots at each epoch.</span>
+<span class="sd">    :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.</span>
+<span class="sd">        Otherwise, only the total loss is printed.</span>
+<span class="sd">    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation.</span>
+<span class="sd">    :param str rescale_mode: Rescale mode for plotting images. Default is ``&#39;clip&#39;``.</span>
+<span class="sd">    :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction.</span>
+<span class="sd">    :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``&#39;A_dagger&#39;``, ``&#39;A_adjoint&#39;``,</span>
+<span class="sd">        ``&#39;prox_l2&#39;``, or ``&#39;y&#39;``. Default is ``&#39;A_dagger&#39;``. The user can also provide a custom method by overriding the</span>
+<span class="sd">        :meth:`deepinv.Trainer.no_learning_inference` method.</span>
+<span class="sd">    :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,</span>
+<span class="sd">        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.</span>
+<span class="sd">        Used in conjunction with ``physics_generator``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
+    <span class="n">physics</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Physics</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Physics</span><span class="p">]]</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">train_dataloader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">losses</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Loss</span><span class="p">,</span> <span class="n">BaseLossScheduler</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseLossScheduler</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">SupLoss</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">eval_dataloader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">scheduler</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Metric</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Metric</span><span class="p">]]</span> <span class="o">=</span> <span class="n">PSNR</span><span class="p">()</span>
+    <span class="n">online_measurements</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">physics_generator</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">PhysicsGenerator</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PhysicsGenerator</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grad_clip</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ckp_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">eval_interval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">show_progress_bar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">plot_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">plot_convergence_metrics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">wandb_vis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">wandb_setup</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">plot_measurements</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">check_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">ckpt_pretrained</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">freq_plot</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">verbose_individual_losses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">display_losses_eval</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">rescale_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;clip&quot;</span>
+    <span class="n">compare_no_learning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">no_learning_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;A_adjoint&quot;</span>
+    <span class="n">loop_physics_generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="Trainer.setup_train">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.setup_train">[docs]</a>
+    <span class="k">def</span> <span class="nf">setup_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set up the training process.</span>
+
+<span class="sd">        It initializes the wandb logging, the different metrics, the save path, the physics and dataloaders,</span>
+<span class="sd">        and the pretrained checkpoint if given.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">eval_metrics_history</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wandb_setup</span> <span class="o">!=</span> <span class="p">{}</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_setup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span>
+        <span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False).&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_measurements</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Physics generator is provided but online_measurements is False. Physics generator will not be used.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_measurements</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop_physics_generator</span>
+        <span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Generated measurements repeat each epoch. Ensure that dataloader is not shuffling.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch_start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_model</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># wandb initialization</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">wandb</span><span class="o">.</span><span class="n">run</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">wandb</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">wandb_setup</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">adapt_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">]</span>
+
+        <span class="c1"># losses</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_train</span> <span class="o">=</span> <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Training loss&quot;</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_train</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Training loss &quot;</span> <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_eval</span> <span class="o">=</span> <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Validation loss&quot;</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_eval</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Validation loss &quot;</span> <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span>
+        <span class="p">]</span>
+
+        <span class="c1"># metrics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_train</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Training metric &quot;</span> <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_eval</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Validation metric &quot;</span> <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compare_no_learning</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Validation metric &quot;</span> <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span>
+            <span class="p">]</span>
+
+        <span class="c1"># gradient clipping</span>
+        <span class="k">if</span> <span class="n">train</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_grad</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_grad_val</span> <span class="o">=</span> <span class="n">AverageMeter</span><span class="p">(</span><span class="s2">&quot;Gradient norm&quot;</span><span class="p">,</span> <span class="s2">&quot;:.2e&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">get_timestamp</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="c1"># count the overall training parameters</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">and</span> <span class="n">train</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The model has </span><span class="si">{</span><span class="n">params</span><span class="si">}</span><span class="s2"> trainable parameters&quot;</span><span class="p">)</span>
+
+        <span class="c1"># make physics and data_loaders of list type</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">physics</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_folder_im</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckpt_pretrained</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">checkpoint</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ckpt_pretrained</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;state_dict&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;optimizer&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;optimizer&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;wandb_id&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wandb_setup</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;wandb_id&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">wandb_setup</span><span class="p">[</span><span class="s2">&quot;resume&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;allow&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;epoch&quot;</span> <span class="ow">in</span> <span class="n">checkpoint</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">epoch_start</span> <span class="o">=</span> <span class="n">checkpoint</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Trainer.log_metrics_wandb">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.log_metrics_wandb">[docs]</a>
+    <span class="k">def</span> <span class="nf">log_metrics_wandb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logs</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log the metrics to wandb.</span>
+
+<span class="sd">        It logs the metrics to wandb.</span>
+
+<span class="sd">        :param dict logs: Dictionary containing the metrics to log.</span>
+<span class="sd">        :param int epoch: Current epoch.</span>
+<span class="sd">        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">train</span><span class="p">:</span>
+            <span class="n">logs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Eval &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">):</span> <span class="n">val</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">logs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span><span class="p">:</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">logs</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trainer.check_clip_grad">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.check_clip_grad">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_clip_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check the gradient norm and perform gradient clipping if necessary.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_clip</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">clip_grad_norm_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_clip</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_grad</span><span class="p">:</span>
+            <span class="c1"># from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7</span>
+            <span class="n">grads</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">]</span>
+            <span class="n">norm_grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">grads</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">norm_grads</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_grad_val</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">norm_grads</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+<div class="viewcode-block" id="Trainer.get_samples_online">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples_online">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_samples_online</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the samples for the online measurements.</span>
+
+<span class="sd">        In this setting, a new sample is generated at each iteration by calling the physics operator.</span>
+<span class="sd">        This function returns a dictionary containing necessary data for the model inference. It needs to contain</span>
+<span class="sd">        the measurement, the ground truth, and the current physics operator, but can also contain additional data.</span>
+
+<span class="sd">        :param list iterators: List of dataloader iterators.</span>
+<span class="sd">        :param int g: Current dataloader index.</span>
+<span class="sd">        :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">iterators</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
+        <span class="p">)</span>  <span class="c1"># In this case the dataloader outputs also a class label</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">physics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span><span class="p">[</span><span class="n">g</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span></div>
+
+
+<div class="viewcode-block" id="Trainer.get_samples_offline">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples_offline">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_samples_offline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the samples for the offline measurements.</span>
+
+<span class="sd">        In this setting, samples have been generated offline and are loaded from the dataloader.</span>
+<span class="sd">        This function returns a tuple containing necessary data for the model inference. It needs to contain</span>
+<span class="sd">        the measurement, the ground truth, and the current physics operator, but can also contain additional data</span>
+<span class="sd">        (you can override this function to add custom data).</span>
+
+<span class="sd">        If the dataloader returns 3-tuples, this is assumed to be ``(x, y, params)`` where</span>
+<span class="sd">        ``params`` is a dict of physics generator params. These params are then used to update</span>
+<span class="sd">        the physics.</span>
+
+<span class="sd">        :param list iterators: List of dataloader iterators.</span>
+<span class="sd">        :param int g: Current dataloader index.</span>
+<span class="sd">        :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">iterators</span><span class="p">[</span><span class="n">g</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;If online_measurements=False, the dataloader should output a tuple (x, y)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="o">*</span><span class="n">data</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">physics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics</span><span class="p">[</span><span class="n">g</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span></div>
+
+
+<div class="viewcode-block" id="Trainer.get_samples">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.get_samples">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the samples.</span>
+
+<span class="sd">        This function returns a dictionary containing necessary data for the model inference. It needs to contain</span>
+<span class="sd">        the measurement, the ground truth, and the current physics operator, but can also contain additional data.</span>
+
+<span class="sd">        :param list iterators: List of dataloader iterators.</span>
+<span class="sd">        :param int g: Current dataloader index.</span>
+<span class="sd">        :returns: the tuple returned by the get_samples_online or get_samples_offline function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">online_measurements</span><span class="p">:</span>  <span class="c1"># the measurements y are created on-the-fly</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_samples_online</span><span class="p">(</span><span class="n">iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># the measurements y were pre-computed</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_samples_offline</span><span class="p">(</span><span class="n">iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">samples</span></div>
+
+
+<div class="viewcode-block" id="Trainer.model_inference">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.model_inference">[docs]</a>
+    <span class="k">def</span> <span class="nf">model_inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the model inference.</span>
+
+<span class="sd">        It returns the network reconstruction given the samples.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurement.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Current physics operator.</span>
+<span class="sd">        :param torch.Tensor x: Optional ground truth, used for computing convergence metrics.</span>
+<span class="sd">        :returns: The network reconstruction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># check if the forward has &#39;update_parameters&#39; method, and if so, update the parameters</span>
+        <span class="k">if</span> <span class="s2">&quot;update_parameters&quot;</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;update_parameters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_convergence_metrics</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">train</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">x_net</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span>
+                    <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span>
+            <span class="n">x_net</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span>
+                <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x_gt</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">compute_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_net</span></div>
+
+
+<div class="viewcode-block" id="Trainer.compute_loss">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.compute_loss">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the loss and perform the backward pass.</span>
+
+<span class="sd">        It evaluates the reconstruction network, computes the losses, and performs the backward pass.</span>
+
+<span class="sd">        :param deepinv.physics.Physics physics: Current physics operator.</span>
+<span class="sd">        :param torch.Tensor x: Ground truth.</span>
+<span class="sd">        :param torch.Tensor y: Measurement.</span>
+<span class="sd">        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.</span>
+<span class="sd">        :param int epoch: current epoch.</span>
+<span class="sd">        :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and</span>
+<span class="sd">            the logs (for printing the training progress).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logs</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+        <span class="c1"># Evaluate reconstruction network</span>
+        <span class="n">x_net</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_inference</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">train</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">display_losses_eval</span><span class="p">:</span>
+            <span class="c1"># Compute the losses</span>
+            <span class="n">loss_total</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">):</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                    <span class="n">x_net</span><span class="o">=</span><span class="n">x_net</span><span class="p">,</span>
+                    <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+                    <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+                    <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">loss_total</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_individual_losses</span><span class="p">:</span>
+                    <span class="n">meters</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_train</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_eval</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="n">meters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                    <span class="n">cur_loss</span> <span class="o">=</span> <span class="n">meters</span><span class="o">.</span><span class="n">avg</span>
+                    <span class="n">logs</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">cur_loss</span>
+
+            <span class="n">meters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_train</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_eval</span>
+            <span class="n">meters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">loss_total</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="n">logs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;TotalLoss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">meters</span><span class="o">.</span><span class="n">avg</span>
+
+        <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+            <span class="n">loss_total</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>  <span class="c1"># Backward the total loss</span>
+
+            <span class="n">norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_clip_grad</span><span class="p">()</span>  <span class="c1"># Optional gradient clipping</span>
+            <span class="k">if</span> <span class="n">norm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;gradient_norm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_grad_val</span><span class="o">.</span><span class="n">avg</span>
+
+            <span class="c1"># Optimizer step</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">logs</span></div>
+
+
+<div class="viewcode-block" id="Trainer.compute_metrics">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.compute_metrics">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_metrics</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">logs</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the metrics.</span>
+
+<span class="sd">        It computes the metrics over the batch.</span>
+
+<span class="sd">        :param torch.Tensor x: Ground truth.</span>
+<span class="sd">        :param torch.Tensor x_net: Network reconstruction.</span>
+<span class="sd">        :param torch.Tensor y: Measurement.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Current physics operator.</span>
+<span class="sd">        :param dict logs: Dictionary containing the logs for printing the training progress.</span>
+<span class="sd">        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.</span>
+<span class="sd">        :param int epoch: current epoch.</span>
+<span class="sd">        :returns: The logs with the metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Compute the metrics over the batch</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">):</span>
+                <span class="n">metric</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span>
+                    <span class="n">x_net</span><span class="o">=</span><span class="n">x_net</span><span class="p">,</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                    <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">current_log</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_train</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_eval</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">current_log</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                <span class="n">logs</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_log</span><span class="o">.</span><span class="n">avg</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">train</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">compare_no_learning</span><span class="p">:</span>
+                    <span class="n">x_lin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_inference</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+                    <span class="n">metric</span> <span class="o">=</span> <span class="n">l</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="o">=</span><span class="n">x_lin</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+                    <span class="n">logs</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> no learning&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">avg</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">logs</span></div>
+
+
+<div class="viewcode-block" id="Trainer.no_learning_inference">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.no_learning_inference">[docs]</a>
+    <span class="k">def</span> <span class="nf">no_learning_inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the no learning inference.</span>
+
+<span class="sd">        By default it returns the (linear) pseudo-inverse reconstruction given the measurement.</span>
+
+<span class="sd">        :param torch.Tensor y: Measurement.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Current physics operator.</span>
+<span class="sd">        :returns: Reconstructed image.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_method</span> <span class="o">==</span> <span class="s2">&quot;A_adjoint&quot;</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;A_adjoint&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">DataParallel</span><span class="p">):</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_method</span> <span class="o">==</span> <span class="s2">&quot;A_dagger&quot;</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;A_dagger&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">DataParallel</span><span class="p">):</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_method</span> <span class="o">==</span> <span class="s2">&quot;prox_l2&quot;</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="s2">&quot;prox_l2&quot;</span><span class="p">):</span>
+            <span class="c1"># this is a regularized version of the pseudo-inverse, with an l2 regularization</span>
+            <span class="c1"># with parameter set to 5.0 for a mild regularization</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">physics</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">DataParallel</span><span class="p">):</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_method</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+            <span class="n">x_nl</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No learning reconstruction method </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">no_learning_method</span><span class="si">}</span><span class="s2"> not recognized&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x_nl</span></div>
+
+
+<div class="viewcode-block" id="Trainer.step">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.step">[docs]</a>
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">progress_bar</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">last_batch</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train/Eval a batch.</span>
+
+<span class="sd">        It performs the forward pass, the backward pass, and the evaluation at each iteration.</span>
+
+<span class="sd">        :param int epoch: Current epoch.</span>
+<span class="sd">        :param tqdm progress_bar: Progress bar.</span>
+<span class="sd">        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.</span>
+<span class="sd">        :param bool last_batch: If ``True``, the last batch of the epoch is being processed.</span>
+<span class="sd">        :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># random permulation of the dataloaders</span>
+        <span class="n">G_perm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">G_perm</span><span class="p">:</span>  <span class="c1"># for each dataloader</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics_cur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_samples</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_iterators</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+            <span class="c1"># Compute loss and perform backprop</span>
+            <span class="n">x_net</span><span class="p">,</span> <span class="n">logs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_loss</span><span class="p">(</span><span class="n">physics_cur</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
+
+            <span class="c1"># detach the network output for metrics and plotting</span>
+            <span class="n">x_net</span> <span class="o">=</span> <span class="n">x_net</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+            <span class="c1"># Log metrics</span>
+            <span class="n">logs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_metrics</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics_cur</span><span class="p">,</span> <span class="n">logs</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Update the progress bar</span>
+            <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">logs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">last_batch</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose_individual_losses</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Train&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">train</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;Eval&#39;</span><span class="si">}</span><span class="s2"> epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">:&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">=</span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">logs</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Train&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">train</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;Eval&#39;</span><span class="si">}</span><span class="s2"> epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">: Total loss: </span><span class="si">{</span><span class="n">logs</span><span class="p">[</span><span class="s1">&#39;TotalLoss&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+                <span class="n">logs</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">epoch</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_metrics_wandb</span><span class="p">(</span><span class="n">logs</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">train</span><span class="p">)</span>  <span class="c1"># Log metrics to wandb</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">epoch</span><span class="p">,</span>
+                <span class="n">physics_cur</span><span class="p">,</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">y</span><span class="p">,</span>
+                <span class="n">x_net</span><span class="p">,</span>
+                <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+            <span class="p">)</span>  <span class="c1"># plot images</span></div>
+
+
+<div class="viewcode-block" id="Trainer.plot">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.plot">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot and optinally save the reconstructions.</span>
+
+<span class="sd">        :param int epoch: Current epoch.</span>
+<span class="sd">        :param deepinv.physics.Physics physics: Current physics operator.</span>
+<span class="sd">        :param torch.Tensor x: Ground truth.</span>
+<span class="sd">        :param torch.Tensor y: Measurement.</span>
+<span class="sd">        :param torch.Tensor x_net: Network reconstruction.</span>
+<span class="sd">        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">post_str</span> <span class="o">=</span> <span class="s2">&quot;Training&quot;</span> <span class="k">if</span> <span class="n">train</span> <span class="k">else</span> <span class="s2">&quot;Eval&quot;</span>
+
+        <span class="n">plot_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_images</span> <span class="ow">and</span> <span class="p">((</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">freq_plot</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">save_images</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_folder_im</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">plot_images</span> <span class="ow">or</span> <span class="n">save_images</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compare_no_learning</span><span class="p">:</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_learning_inference</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_nl</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">imgs</span><span class="p">,</span> <span class="n">titles</span><span class="p">,</span> <span class="n">grid_image</span><span class="p">,</span> <span class="n">caption</span> <span class="o">=</span> <span class="n">prepare_images</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_net</span><span class="p">,</span> <span class="n">x_nl</span><span class="p">,</span> <span class="n">rescale_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rescale_mode</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">plot_images</span><span class="p">:</span>
+            <span class="n">plot</span><span class="p">(</span>
+                <span class="n">imgs</span><span class="p">,</span>
+                <span class="n">titles</span><span class="o">=</span><span class="n">titles</span><span class="p">,</span>
+                <span class="n">show</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">plot_images</span><span class="p">,</span>
+                <span class="n">return_fig</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">rescale_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rescale_mode</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span><span class="p">:</span>
+                <span class="n">log_dict_post_epoch</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">images</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span>
+                    <span class="n">grid_image</span><span class="p">,</span>
+                    <span class="n">caption</span><span class="o">=</span><span class="n">caption</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">log_dict_post_epoch</span><span class="p">[</span><span class="n">post_str</span> <span class="o">+</span> <span class="s2">&quot; samples&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">images</span>
+                <span class="n">log_dict_post_epoch</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">epoch</span>
+                <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">log_dict_post_epoch</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">epoch</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">save_images</span><span class="p">:</span>
+            <span class="c1"># save images</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">imgs</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+                    <span class="n">img_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">save_folder_im</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">titles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">}</span><span class="s2">/&quot;</span>
+                    <span class="c1"># make dir</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="n">img_name</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">save_image</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">img_name</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">img_counter</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">img_counter</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">imgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plot_curves</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span><span class="p">,</span>
+                <span class="n">save_dir</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">save_folder_im</span><span class="si">}</span><span class="s2">/convergence_metrics/&quot;</span><span class="p">,</span>
+                <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv_metrics</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Trainer.save_model">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.save_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the model.</span>
+
+<span class="sd">        It saves the model every ``ckp_interval`` epochs.</span>
+
+<span class="sd">        :param int epoch: Current epoch.</span>
+<span class="sd">        :param None, float eval_metrics: Evaluation metrics across epochs.</span>
+<span class="sd">        :param dict state: custom objects to save with model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">epoch</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ckp_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">state</span> <span class="o">|</span> <span class="p">{</span>
+                <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
+                <span class="s2">&quot;state_dict&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+                <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="p">,</span>
+                <span class="s2">&quot;optimizer&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">eval_metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">state</span><span class="p">[</span><span class="s2">&quot;eval_metrics&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_metrics</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span><span class="p">:</span>
+                <span class="n">state</span><span class="p">[</span><span class="s2">&quot;wandb_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+                <span class="n">state</span><span class="p">,</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_path</span><span class="p">),</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;ckp_</span><span class="si">{}</span><span class="s2">.pth.tar&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">epoch</span><span class="p">))</span>
+                <span class="p">),</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Trainer.reset_metrics">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.reset_metrics">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the metrics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_train</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_eval</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_train</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_eval</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_train</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_eval</span><span class="p">:</span>
+            <span class="n">l</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Trainer.train">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.train">[docs]</a>
+    <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Train the model.</span>
+
+<span class="sd">        It performs the training process, including the setup, the evaluation, the forward and backward passes,</span>
+<span class="sd">        and the visualization.</span>
+
+<span class="sd">        :returns: The trained model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_train</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_metrics</span><span class="p">()</span>
+
+            <span class="c1">## Training</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_iterators</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">]</span>
+
+            <span class="n">batches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="o">-</span> <span class="n">loader</span><span class="o">.</span><span class="n">drop_last</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_dataloader</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop_physics_generator</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">physics_generator</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">physics_generator</span><span class="p">:</span>
+                    <span class="n">physics_generator</span><span class="o">.</span><span class="n">reset_rng</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">progress_bar</span> <span class="o">:=</span> <span class="n">tqdm</span><span class="p">(</span>
+                    <span class="nb">range</span><span class="p">(</span><span class="n">batches</span><span class="p">),</span>
+                    <span class="n">ncols</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                    <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Train epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                    <span class="n">epoch</span><span class="p">,</span> <span class="n">progress_bar</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">last_batch</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">batches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logs_total_loss_train</span><span class="o">.</span><span class="n">avg</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+            <span class="c1">## Evaluation</span>
+            <span class="n">perform_eval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">epoch</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">perform_eval</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">current_iterators</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="nb">iter</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span>
+                <span class="p">]</span>
+
+                <span class="n">batches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+                    <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="o">-</span> <span class="n">loader</span><span class="o">.</span><span class="n">drop_last</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_dataloader</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="n">progress_bar</span> <span class="o">:=</span> <span class="n">tqdm</span><span class="p">(</span>
+                        <span class="nb">range</span><span class="p">(</span><span class="n">batches</span><span class="p">),</span>
+                        <span class="n">ncols</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                        <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span><span class="p">),</span>
+                    <span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Eval epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                        <span class="n">epoch</span><span class="p">,</span> <span class="n">progress_bar</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">last_batch</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">batches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_losses_eval</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">eval_metrics_history</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">avg</span>
+
+            <span class="c1"># Saving the model</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_model</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_metrics_history</span> <span class="k">if</span> <span class="n">perform_eval</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span><span class="p">:</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;model.h5&quot;</span><span class="p">)</span>
+            <span class="n">wandb</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="Trainer.test">
+<a class="viewcode-back" href="../../../stubs/deepinv.Trainer.html#deepinv.Trainer.test">[docs]</a>
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_dataloader</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compare_no_learning</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test the model.</span>
+
+<span class="sd">        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) should provide a</span>
+<span class="sd">            a signal x or a tuple of (x, y) signal/measurement pairs.</span>
+<span class="sd">        :param str save_path: Directory in which to save the trained model.</span>
+<span class="sd">        :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.</span>
+<span class="sd">        :returns: The trained model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compare_no_learning</span> <span class="o">=</span> <span class="n">compare_no_learning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_train</span><span class="p">(</span><span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_folder_im</span> <span class="o">=</span> <span class="n">save_path</span>
+        <span class="n">aux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_metrics</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">test_dataloader</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">test_dataloader</span> <span class="o">=</span> <span class="p">[</span><span class="n">test_dataloader</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_iterators</span> <span class="o">=</span> <span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="n">test_dataloader</span><span class="p">]</span>
+
+        <span class="n">batches</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span> <span class="o">-</span> <span class="n">loader</span><span class="o">.</span><span class="n">drop_last</span> <span class="k">for</span> <span class="n">loader</span> <span class="ow">in</span> <span class="n">test_dataloader</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">progress_bar</span> <span class="o">:=</span> <span class="n">tqdm</span><span class="p">(</span>
+                <span class="nb">range</span><span class="p">(</span><span class="n">batches</span><span class="p">),</span>
+                <span class="n">ncols</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span>
+                <span class="n">disable</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_progress_bar</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">progress_bar</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">last_batch</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="n">batches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wandb_vis</span> <span class="o">=</span> <span class="n">aux</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Test results:&quot;</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_eval</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">compare_no_learning</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; no learning&quot;</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">avg</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">std</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">avg</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> +- </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">logs_metrics_linear</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">avg</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">std</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">l</span><span class="o">.</span><span class="n">avg</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> +- </span><span class="si">{</span><span class="n">l</span><span class="o">.</span><span class="n">std</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="train">
+<a class="viewcode-back" href="../../../stubs/deepinv.train.html#deepinv.train">[docs]</a>
+<span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+    <span class="n">train_dataloader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">losses</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Loss</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]]</span> <span class="o">=</span> <span class="n">SupLoss</span><span class="p">(),</span>
+    <span class="n">eval_dataloader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Alias function for training a model using :class:`deepinv.Trainer` class.</span>
+
+<span class="sd">    This function creates a Trainer instance and returns the trained model.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        This function is deprecated and will be removed in future versions. Please use</span>
+<span class="sd">        :class:`deepinv.Trainer` instead.</span>
+
+<span class="sd">    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal</span>
+<span class="sd">        or any other custom reconstruction network.</span>
+<span class="sd">    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.</span>
+<span class="sd">    :param int epochs: Number of training epochs. Default is 100.</span>
+<span class="sd">    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.</span>
+<span class="sd">    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a</span>
+<span class="sd">        a signal x or a tuple of (x, y) signal/measurement pairs.</span>
+<span class="sd">    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.</span>
+<span class="sd">        :ref:`See the libraries&#39; training losses &lt;loss&gt;`. By default, it uses the supervised mean squared error.</span>
+<span class="sd">    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)</span>
+<span class="sd">        should provide a signal x or a tuple of (x, y) signal/measurement pairs.</span>
+<span class="sd">    :param args: Other positional arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.</span>
+<span class="sd">    :param kwargs: Keyword arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.</span>
+<span class="sd">    :return: Trained model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+        <span class="n">losses</span><span class="o">=</span><span class="n">losses</span><span class="p">,</span>
+        <span class="n">train_dataloader</span><span class="o">=</span><span class="n">train_dataloader</span><span class="p">,</span>
+        <span class="n">eval_dataloader</span><span class="o">=</span><span class="n">eval_dataloader</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">trained_model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">trained_model</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

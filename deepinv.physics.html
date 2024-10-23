@@ -1,0 +1,753 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Physics &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Physics" href="stubs/deepinv.physics.Physics.html" />
+    <link rel="prev" title="DeepInverse: a Pytorch library for imaging with deep learning" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Physics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.Physics.html">Physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#linear-operators">Linear operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html">LinearPhysics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.DecomposablePhysics.html">DecomposablePhysics</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#parameter-dependent-operators">Parameter-dependent operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#physics-generators">Physics Generators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.PhysicsGenerator.html">PhysicsGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.GeneratorMixture.html">GeneratorMixture</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#forward-operators">Forward operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pixelwise-operators">Pixelwise operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Denoising.html">Denoising</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Inpainting.html">Inpainting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Decolorize.html">Decolorize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Demosaicing.html">Demosaicing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html">BernoulliSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html">GaussianSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html">Phase2PhaseSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html">Artifact2ArtifactSplittingMaskGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#blur-super-resolution">Blur &amp; Super-Resolution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Blur.html">Blur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.BlurFFT.html">BlurFFT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.SpaceVaryingBlur.html">SpaceVaryingBlur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Downsampling.html">Downsampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.blur.gaussian_blur.html">gaussian_blur</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.blur.bilinear_filter.html">bilinear_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.blur.bicubic_filter.html">bicubic_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.blur.sinc_filter.html">sinc_filter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.MotionBlurGenerator.html">MotionBlurGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator.html">DiffractionBlurGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html">DiffractionBlurGenerator3D</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html">ProductConvolutionBlurGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#magnetic-resonance-imaging">Magnetic Resonance Imaging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.MRI.html">MRI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.DynamicMRI.html">DynamicMRI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.SequentialMRI.html">SequentialMRI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.BaseMaskGenerator.html">BaseMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianMaskGenerator.html">GaussianMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.RandomMaskGenerator.html">RandomMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.generator.EquispacedMaskGenerator.html">EquispacedMaskGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#tomography">Tomography</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Tomography.html">Tomography</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#remote-sensing">Remote Sensing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Pansharpen.html">Pansharpen</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#compressive-operators">Compressive operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.CompressedSensing.html">CompressedSensing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.SinglePixelCamera.html">SinglePixelCamera</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#radio-interferometric-imaging">Radio interferometric imaging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.RadioInterferometry.html">RadioInterferometry</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#single-photon-lidar">Single-photon lidar</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.SinglePhotonLidar.html">SinglePhotonLidar</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#dehazing">Dehazing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.Haze.html">Haze</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#phase-retrieval">Phase retrieval</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html">PhaseRetrieval</a></li>
+<li class="toctree-l4"><a class="reference internal" href="stubs/deepinv.physics.RandomPhaseRetrieval.html">RandomPhaseRetrieval</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#noise-distributions">Noise distributions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.GaussianNoise.html">GaussianNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.LogPoissonNoise.html">LogPoissonNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.PoissonNoise.html">PoissonNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.PoissonGaussianNoise.html">PoissonGaussianNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.UniformNoise.html">UniformNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.UniformGaussianNoise.html">UniformGaussianNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.GammaNoise.html">GammaNoise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.generator.SigmaGenerator.html">SigmaGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#defining-new-operators">Defining new operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.TimeMixin.html">TimeMixin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.adjoint_function.html">adjoint_function</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#functional">Functional</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d.html">conv2d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d.html">conv_transpose2d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d_fft.html">conv2d_fft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d_fft.html">conv_transpose2d_fft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv3d_fft.html">conv3d_fft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose3d_fft.html">conv_transpose3d_fft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.product_convolution2d.html">product_convolution2d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier.html">multiplier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier_adjoint.html">multiplier_adjoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.Radon.html">Radon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.IRadon.html">IRadon</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.histogramdd.html">histogramdd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.physics.functional.histogram.html">histogram</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Physics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.physics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="physics">
+<span id="id1"></span><h1>Physics<a class="headerlink" href="#physics" title="Link to this heading"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
+<p>This package contains a large collection of forward operators appearing in imaging applications.
+The acquisition models are of the form</p>
+<div class="math notranslate nohighlight">
+\[y = \noise{\forw{x}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(x\in\xset\)</span> is an image, <span class="math notranslate nohighlight">\(y\in\yset\)</span> are the measurements, <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> is a
+deterministic (linear or non-linear) operator capturing the physics of the acquisition and
+<span class="math notranslate nohighlight">\(N:\yset\mapsto \yset\)</span> is a mapping which characterizes the noise affecting the measurements.</p>
+<p>All forward operators inherit the structure of the <code class="xref py py-meth docutils literal notranslate"><span class="pre">Physics()</span></code> class:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Physics</span></code></a></p></td>
+<td><p>Parent class for forward operators</p></td>
+</tr>
+</tbody>
+</table>
+<p>They are <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></a> which can be called with the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># load an inpainting operator that masks 50% of the pixels and adds Gaussian noise</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">tensor_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span>
+<span class="gp">... </span>                   <span class="n">noise_model</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">.05</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="c1"># create a random image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># compute noisy measurements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># compute the A operator (no noise)</span>
+</pre></div>
+</div>
+<section id="linear-operators">
+<h3>Linear operators<a class="headerlink" href="#linear-operators" title="Link to this heading"></a></h3>
+<p>Linear operators <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> inherit the structure of the <a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics()</span></code></a> class.
+They have important specific properties such as the existence of an adjoint <span class="math notranslate nohighlight">\(A^*:\yset\mapsto \xset\)</span>.
+Linear operators with a closed-form singular value decomposition are defined via <a class="reference internal" href="stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics()</span></code></a>,
+which enables the efficient computation of their pseudo-inverse and regularized inverse.
+Composition and linear combinations of linear operators is still a linear operator.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">CompressedSensing</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">img_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span> <span class="c1"># create a random image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># compute noisy measurements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># compute the linear operator (no noise)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_adj</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_adjoint</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="c1"># compute the adjoint operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_dagger</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">A_dagger</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="c1"># compute the pseudo-inverse operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_prox</span> <span class="o">=</span> <span class="n">physics</span><span class="o">.</span><span class="n">prox_l2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mf">.1</span><span class="p">)</span> <span class="c1"># compute a regularized inverse</span>
+</pre></div>
+</div>
+<p>More details can be found in the doc of each class:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics</span></code></a></p></td>
+<td><p>Parent class for linear operators.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics</span></code></a></p></td>
+<td><p>Parent class for linear operators with SVD decomposition.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameter-dependent-operators">
+<h3>Parameter-dependent operators<a class="headerlink" href="#parameter-dependent-operators" title="Link to this heading"></a></h3>
+<p>Many (linear or non-linear) operators depend on (optional) parameters <span class="math notranslate nohighlight">\(\theta\)</span> that describe the imaging system, ie
+<span class="math notranslate nohighlight">\(y = \noise{\forw{x, \theta}}\)</span> where
+the <code class="docutils literal notranslate"><span class="pre">forward</span></code> method can be called with a dictionary of parameters as an extra input. The explicit dependency on
+<span class="math notranslate nohighlight">\(\theta\)</span> is often useful for blind inverse problems, model identification, imaging system optimization, etc.
+The following example shows how operators and their parameter can be instantiated and called as:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Blur</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="mi">4</span> <span class="c1"># a basic 2x2 averaging filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># default usage</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Blur</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span> <span class="c1"># we instantiate a blur operator with its convolution filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">theta2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># a random 2x2 filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">theta2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># A second possibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Blur</span><span class="p">()</span> <span class="c1"># a blur operator without convolution filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">filter</span><span class="o">=</span><span class="n">theta</span><span class="p">)</span> <span class="c1"># we define the blur by specifying its filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># now, the filter is well-defined and this line does the same as above</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The same can be done by passing in a dictionary including &#39;filter&#39; as a key</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Blur</span><span class="p">()</span> <span class="c1"># a blur operator without convolution filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dict_params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;filter&#39;</span><span class="p">:</span> <span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;dummy&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">dict_params</span><span class="p">)</span> <span class="c1"># # we define the blur by passing in the dictionary</span>
+</pre></div>
+</div>
+</section>
+<section id="physics-generators">
+<h3>Physics Generators<a class="headerlink" href="#physics-generators" title="Link to this heading"></a></h3>
+<p>We provide some parameters generation methods to sample random parameters’ <span class="math notranslate nohighlight">\(\theta\)</span>.
+Physics generators inherit from the <code class="xref py py-meth docutils literal notranslate"><span class="pre">PhysicsGenerator()</span></code> class:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.PhysicsGenerator</span></code></a></p></td>
+<td><p>Base class for parameter generation of physics parameters.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Blur</span><span class="p">(</span><span class="nb">filter</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">blur</span><span class="o">.</span><span class="n">gaussian_blur</span><span class="p">(</span><span class="mf">.2</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># compute with Gaussian blur</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generator</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">MotionBlurGenerator</span><span class="p">(</span><span class="n">psf_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="c1"># params = {&#39;filter&#39;: torch.tensor(...)}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y1</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span> <span class="c1"># compute with motion blur</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span> <span class="c1"># different blurs, different outputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y2</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="c1"># motion kernel is stored in the physics object as default kernel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">y1</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span> <span class="c1"># same blur, same output</span>
+</pre></div>
+</div>
+<p>If we want to generate both a new physics and noise parameters,
+it is possible to sum generators as follows:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mask_generator</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">SigmaGenerator</span><span class="p">()</span> \
+<span class="gp">... </span>   <span class="o">+</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">RandomMaskGenerator</span><span class="p">((</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">mask_generator</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+<span class="go">[&#39;mask&#39;, &#39;sigma&#39;]</span>
+</pre></div>
+</div>
+<p>It is also possible to mix generators of physics parameters through the <code class="xref py py-meth docutils literal notranslate"><span class="pre">GeneratorMixture()</span></code> class:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.GeneratorMixture.html#deepinv.physics.generator.GeneratorMixture" title="deepinv.physics.generator.GeneratorMixture"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.GeneratorMixture</span></code></a></p></td>
+<td><p>Base class for mixing multiple <code class="xref py py-class docutils literal notranslate"><span class="pre">PhysicsGenerator</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="forward-operators">
+<h2>Forward operators<a class="headerlink" href="#forward-operators" title="Link to this heading"></a></h2>
+<p>Various popular forward operators are provided with efficient implementations.</p>
+<section id="pixelwise-operators">
+<h3>Pixelwise operators<a class="headerlink" href="#pixelwise-operators" title="Link to this heading"></a></h3>
+<p>Pixelwise operators operate in the pixel domain and are used for denoising, inpainting, decolorization, etc.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Denoising.html#deepinv.physics.Denoising" title="deepinv.physics.Denoising"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Denoising</span></code></a></p></td>
+<td><p>Forward operator for denoising problems.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Inpainting</span></code></a></p></td>
+<td><p>Inpainting forward operator, keeps a subset of entries.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Decolorize.html#deepinv.physics.Decolorize" title="deepinv.physics.Decolorize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Decolorize</span></code></a></p></td>
+<td><p>Converts RGB images to grayscale.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.Demosaicing.html#deepinv.physics.Demosaicing" title="deepinv.physics.Demosaicing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Demosaicing</span></code></a></p></td>
+<td><p>Demosaicing operator.</p></td>
+</tr>
+</tbody>
+</table>
+<p>For random inpainting we also provide generators to create random masks on-the-fly. These can also be used as splitting masks for <a class="reference internal" href="stubs/deepinv.loss.SplittingLoss.html#deepinv.loss.SplittingLoss" title="deepinv.loss.SplittingLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.SplittingLoss</span></code></a> and its variations.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator" title="deepinv.physics.generator.BernoulliSplittingMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.BernoulliSplittingMaskGenerator</span></code></a></p></td>
+<td><p>Base generator for splitting/inpainting masks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianSplittingMaskGenerator.html#deepinv.physics.generator.GaussianSplittingMaskGenerator" title="deepinv.physics.generator.GaussianSplittingMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.GaussianSplittingMaskGenerator</span></code></a></p></td>
+<td><p>Randomly generate Gaussian splitting/inpainting masks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html#deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator" title="deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator</span></code></a></p></td>
+<td><p>Phase2Phase splitting mask generator for dynamic data.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html#deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator" title="deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator</span></code></a></p></td>
+<td><p>Artifact2Artifact splitting mask generator for dynamic data.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="blur-super-resolution">
+<h3>Blur &amp; Super-Resolution<a class="headerlink" href="#blur-super-resolution" title="Link to this heading"></a></h3>
+<p>Different types of blur operators are available, from simple stationary kernels to space-varying ones.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Blur.html#deepinv.physics.Blur" title="deepinv.physics.Blur"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Blur</span></code></a></p></td>
+<td><p>Blur operator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.BlurFFT.html#deepinv.physics.BlurFFT" title="deepinv.physics.BlurFFT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.BlurFFT</span></code></a></p></td>
+<td><p>FFT-based blur operator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.SpaceVaryingBlur.html#deepinv.physics.SpaceVaryingBlur" title="deepinv.physics.SpaceVaryingBlur"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.SpaceVaryingBlur</span></code></a></p></td>
+<td><p>Implements a space varying blur via product-convolution.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.Downsampling.html#deepinv.physics.Downsampling" title="deepinv.physics.Downsampling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Downsampling</span></code></a></p></td>
+<td><p>Downsampling operator for super-resolution problems.</p></td>
+</tr>
+</tbody>
+</table>
+<p>We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.blur.gaussian_blur.html#deepinv.physics.blur.gaussian_blur" title="deepinv.physics.blur.gaussian_blur"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.blur.gaussian_blur</span></code></a></p></td>
+<td><p>Gaussian blur filter.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.blur.bilinear_filter.html#deepinv.physics.blur.bilinear_filter" title="deepinv.physics.blur.bilinear_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.blur.bilinear_filter</span></code></a></p></td>
+<td><p>Bilinear filter.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.blur.bicubic_filter.html#deepinv.physics.blur.bicubic_filter" title="deepinv.physics.blur.bicubic_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.blur.bicubic_filter</span></code></a></p></td>
+<td><p>Bicubic filter.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.blur.sinc_filter.html#deepinv.physics.blur.sinc_filter" title="deepinv.physics.blur.sinc_filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.blur.sinc_filter</span></code></a></p></td>
+<td><p>Anti-aliasing sinc filter multiplied by a Kaiser window.</p></td>
+</tr>
+</tbody>
+</table>
+<p>We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
+deblurring networks.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.MotionBlurGenerator.html#deepinv.physics.generator.MotionBlurGenerator" title="deepinv.physics.generator.MotionBlurGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.MotionBlurGenerator</span></code></a></p></td>
+<td><p>Random motion blur generator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator.html#deepinv.physics.generator.DiffractionBlurGenerator" title="deepinv.physics.generator.DiffractionBlurGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.DiffractionBlurGenerator</span></code></a></p></td>
+<td><p>Diffraction limited blur generator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.DiffractionBlurGenerator3D.html#deepinv.physics.generator.DiffractionBlurGenerator3D" title="deepinv.physics.generator.DiffractionBlurGenerator3D"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.DiffractionBlurGenerator3D</span></code></a></p></td>
+<td><p>Generates 3D diffraction limited kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.ProductConvolutionBlurGenerator.html#deepinv.physics.generator.ProductConvolutionBlurGenerator" title="deepinv.physics.generator.ProductConvolutionBlurGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.ProductConvolutionBlurGenerator</span></code></a></p></td>
+<td><p>Generates parameters of space-varying blurs.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="magnetic-resonance-imaging">
+<h3>Magnetic Resonance Imaging<a class="headerlink" href="#magnetic-resonance-imaging" title="Link to this heading"></a></h3>
+<p>In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.MRI.html#deepinv.physics.MRI" title="deepinv.physics.MRI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.MRI</span></code></a></p></td>
+<td><p>Single-coil accelerated magnetic resonance imaging.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.DynamicMRI.html#deepinv.physics.DynamicMRI" title="deepinv.physics.DynamicMRI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.DynamicMRI</span></code></a></p></td>
+<td><p>Single-coil accelerated dynamic magnetic resonance imaging.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.SequentialMRI.html#deepinv.physics.SequentialMRI" title="deepinv.physics.SequentialMRI"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.SequentialMRI</span></code></a></p></td>
+<td><p>Single-coil accelerated magnetic resonance imaging using sequential sampling.</p></td>
+</tr>
+</tbody>
+</table>
+<p>We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.BaseMaskGenerator.html#deepinv.physics.generator.BaseMaskGenerator" title="deepinv.physics.generator.BaseMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.BaseMaskGenerator</span></code></a></p></td>
+<td><p>Base generator for MRI acceleration masks.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.GaussianMaskGenerator.html#deepinv.physics.generator.GaussianMaskGenerator" title="deepinv.physics.generator.GaussianMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.GaussianMaskGenerator</span></code></a></p></td>
+<td><p>Generator for MRI Cartesian acceleration masks using Gaussian undersampling.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.RandomMaskGenerator.html#deepinv.physics.generator.RandomMaskGenerator" title="deepinv.physics.generator.RandomMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.RandomMaskGenerator</span></code></a></p></td>
+<td><p>Generator for MRI Cartesian acceleration masks using random uniform undersampling.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.EquispacedMaskGenerator.html#deepinv.physics.generator.EquispacedMaskGenerator" title="deepinv.physics.generator.EquispacedMaskGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.EquispacedMaskGenerator</span></code></a></p></td>
+<td><p>Generator for MRI Cartesian acceleration masks using uniform (equispaced) non-random undersampling with random offset.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="tomography">
+<h3>Tomography<a class="headerlink" href="#tomography" title="Link to this heading"></a></h3>
+<p>Tomography is based on the Radon-transform which computes line-integrals.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Tomography.html#deepinv.physics.Tomography" title="deepinv.physics.Tomography"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Tomography</span></code></a></p></td>
+<td><p>(Computed) Tomography operator.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="remote-sensing">
+<h3>Remote Sensing<a class="headerlink" href="#remote-sensing" title="Link to this heading"></a></h3>
+<p>Remote sensing operators are used to simulate the acquisition of satellite data.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Pansharpen.html#deepinv.physics.Pansharpen" title="deepinv.physics.Pansharpen"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Pansharpen</span></code></a></p></td>
+<td><p>Pansharpening forward operator.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="compressive-operators">
+<h3>Compressive operators<a class="headerlink" href="#compressive-operators" title="Link to this heading"></a></h3>
+<p>Compressive operators are implemented in the following classes:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.CompressedSensing.html#deepinv.physics.CompressedSensing" title="deepinv.physics.CompressedSensing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.CompressedSensing</span></code></a></p></td>
+<td><p>Compressed Sensing forward operator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.SinglePixelCamera.html#deepinv.physics.SinglePixelCamera" title="deepinv.physics.SinglePixelCamera"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.SinglePixelCamera</span></code></a></p></td>
+<td><p>Single pixel imaging camera.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="radio-interferometric-imaging">
+<h3>Radio interferometric imaging<a class="headerlink" href="#radio-interferometric-imaging" title="Link to this heading"></a></h3>
+<p>The radio interferometric imaging operator is implemented in the following class:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.RadioInterferometry.html#deepinv.physics.RadioInterferometry" title="deepinv.physics.RadioInterferometry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.RadioInterferometry</span></code></a></p></td>
+<td><p>Radio Interferometry measurement operator.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="single-photon-lidar">
+<h3>Single-photon lidar<a class="headerlink" href="#single-photon-lidar" title="Link to this heading"></a></h3>
+<p>Single-photon lidar is a popular technique for depth ranging and imaging.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.SinglePhotonLidar.html#deepinv.physics.SinglePhotonLidar" title="deepinv.physics.SinglePhotonLidar"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.SinglePhotonLidar</span></code></a></p></td>
+<td><p>Single photon lidar operator for depth ranging.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dehazing">
+<h3>Dehazing<a class="headerlink" href="#dehazing" title="Link to this heading"></a></h3>
+<p>Haze operators are used to capture the physics of light scattering in the atmosphere.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.Haze.html#deepinv.physics.Haze" title="deepinv.physics.Haze"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.Haze</span></code></a></p></td>
+<td><p>Standard haze model</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="phase-retrieval">
+<h3>Phase retrieval<a class="headerlink" href="#phase-retrieval" title="Link to this heading"></a></h3>
+<p>Operators where <span class="math notranslate nohighlight">\(A:\xset\mapsto \yset\)</span> is of the form <span class="math notranslate nohighlight">\(A(x) = |Bx|^2\)</span> with <span class="math notranslate nohighlight">\(B\)</span> a linear operator.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.PhaseRetrieval.html#deepinv.physics.PhaseRetrieval" title="deepinv.physics.PhaseRetrieval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.PhaseRetrieval</span></code></a></p></td>
+<td><p>Phase Retrieval base class corresponding to the operator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.RandomPhaseRetrieval.html#deepinv.physics.RandomPhaseRetrieval" title="deepinv.physics.RandomPhaseRetrieval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.RandomPhaseRetrieval</span></code></a></p></td>
+<td><p>Random Phase Retrieval forward operator.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="noise-distributions">
+<h2>Noise distributions<a class="headerlink" href="#noise-distributions" title="Link to this heading"></a></h2>
+<p>Noise mappings <span class="math notranslate nohighlight">\(N:\yset\mapsto \yset\)</span> are simple <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></a>.
+The noise of a forward operator can be set in its construction
+or simply as</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">CompressedSensing</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">img_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">.05</span><span class="p">)</span> <span class="c1"># set up the noise</span>
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.GaussianNoise.html#deepinv.physics.GaussianNoise" title="deepinv.physics.GaussianNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.GaussianNoise</span></code></a></p></td>
+<td><p>Gaussian noise <span class="math notranslate nohighlight">\(y=z+\epsilon\)</span> where <span class="math notranslate nohighlight">\(\epsilon\sim \mathcal{N}(0,I\sigma^2)\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.LogPoissonNoise.html#deepinv.physics.LogPoissonNoise" title="deepinv.physics.LogPoissonNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.LogPoissonNoise</span></code></a></p></td>
+<td><p>Log-Poisson noise <span class="math notranslate nohighlight">\(y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu x) N_0)}{N_0})\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.PoissonNoise.html#deepinv.physics.PoissonNoise" title="deepinv.physics.PoissonNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.PoissonNoise</span></code></a></p></td>
+<td><p>Poisson noise <span class="math notranslate nohighlight">\(y = \mathcal{P}(\frac{x}{\gamma})\)</span> with gain <span class="math notranslate nohighlight">\(\gamma&gt;0\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.PoissonGaussianNoise.html#deepinv.physics.PoissonGaussianNoise" title="deepinv.physics.PoissonGaussianNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.PoissonGaussianNoise</span></code></a></p></td>
+<td><p>Poisson-Gaussian noise <span class="math notranslate nohighlight">\(y = \gamma z + \epsilon\)</span> where <span class="math notranslate nohighlight">\(z\sim\mathcal{P}(\frac{x}{\gamma})\)</span> and <span class="math notranslate nohighlight">\(\epsilon\sim\mathcal{N}(0, I \sigma^2)\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.UniformNoise.html#deepinv.physics.UniformNoise" title="deepinv.physics.UniformNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.UniformNoise</span></code></a></p></td>
+<td><p>Uniform noise <span class="math notranslate nohighlight">\(y = x + \epsilon\)</span> where <span class="math notranslate nohighlight">\(\epsilon\sim\mathcal{U}(-a,a)\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.UniformGaussianNoise.html#deepinv.physics.UniformGaussianNoise" title="deepinv.physics.UniformGaussianNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.UniformGaussianNoise</span></code></a></p></td>
+<td><p>Gaussian noise <span class="math notranslate nohighlight">\(y=z+\epsilon\)</span> where <span class="math notranslate nohighlight">\(\epsilon\sim \mathcal{N}(0,I\sigma^2)\)</span> and <span class="math notranslate nohighlight">\(\sigma \sim\mathcal{U}(\sigma_{\text{min}}, \sigma_{\text{max}})\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.GammaNoise.html#deepinv.physics.GammaNoise" title="deepinv.physics.GammaNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.GammaNoise</span></code></a></p></td>
+<td><p>Gamma noise <span class="math notranslate nohighlight">\(y = \mathcal{G}(\ell, x/\ell)\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>The parameters of noise distributions can also be created from a <a class="reference internal" href="stubs/deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.generator.PhysicsGenerator()</span></code></a>,
+which is useful for training and evaluating methods under various noise conditions.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.generator.SigmaGenerator.html#deepinv.physics.generator.SigmaGenerator" title="deepinv.physics.generator.SigmaGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.generator.SigmaGenerator</span></code></a></p></td>
+<td><p>Generator for the noise level <span class="math notranslate nohighlight">\(\sigma\)</span> in the Gaussian noise model.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="defining-new-operators">
+<h2>Defining new operators<a class="headerlink" href="#defining-new-operators" title="Link to this heading"></a></h2>
+<p>Defining a new forward operator is relatively simple. You need to create a new class that inherits from the right
+physics class, that is <a class="reference internal" href="stubs/deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.Physics()</span></code></a> for non-linear operators,
+<a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.LinearPhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics()</span></code></a> for linear operators and <a class="reference internal" href="stubs/deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.DecomposablePhysics"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.DecomposablePhysics()</span></code></a>
+for linear operators with a closed-form singular value decomposition. The only requirement is to define
+a <a class="reference internal" href="stubs/deepinv.physics.Physics.html#deepinv.physics.Physics.A" title="deepinv.physics.Physics.A"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Physics.A</span></code></a> method that computes the forward operator. See the
+example <a class="reference internal" href="auto_examples/basics/demo_physics.html#sphx-glr-auto-examples-basics-demo-physics-py"><span class="std std-ref">Creating a forward operator.</span></a> for more details.</p>
+<p>You can also inherit from mixin classes to provide useful methods for your physics:</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.TimeMixin.html#deepinv.physics.TimeMixin" title="deepinv.physics.TimeMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.TimeMixin</span></code></a></p></td>
+<td><p>Base class for temporal capabilities for physics and models.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Defining a new linear operator requires the definition of <a class="reference internal" href="stubs/deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.A_adjoint" title="deepinv.physics.LinearPhysics.A_adjoint"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.A_adjoint</span></code></a>,
+you can define the adjoint automatically using autograd with</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.adjoint_function.html#deepinv.physics.adjoint_function" title="deepinv.physics.adjoint_function"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.adjoint_function</span></code></a></p></td>
+<td><p>Provides the adjoint function of a linear operator <span class="math notranslate nohighlight">\(A\)</span>, i.e., <span class="math notranslate nohighlight">\(A^{\top}\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note however that coding a closed form adjoint is generally more efficient.</p>
+</section>
+<section id="functional">
+<h2>Functional<a class="headerlink" href="#functional" title="Link to this heading"></a></h2>
+<p>The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multipliers, Fourier transforms, convolutions, product-convolutions, Radon transform, interpolation mappings.
+Similar to the PyTorch structure, they are available within <code class="xref py py-mod docutils literal notranslate"><span class="pre">deepinv.physics.functional</span></code>.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d.html#deepinv.physics.functional.conv2d" title="deepinv.physics.functional.conv2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv2d</span></code></a></p></td>
+<td><p>A helper function performing the 2d convolution of images <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">filter</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d.html#deepinv.physics.functional.conv_transpose2d" title="deepinv.physics.functional.conv_transpose2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv_transpose2d</span></code></a></p></td>
+<td><p>A helper function performing the 2d transposed convolution 2d of x and filter.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv2d_fft.html#deepinv.physics.functional.conv2d_fft" title="deepinv.physics.functional.conv2d_fft"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv2d_fft</span></code></a></p></td>
+<td><p>A helper function performing the 2d convolution of images <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">filter</span></code> using FFT.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose2d_fft.html#deepinv.physics.functional.conv_transpose2d_fft" title="deepinv.physics.functional.conv_transpose2d_fft"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv_transpose2d_fft</span></code></a></p></td>
+<td><p>A helper function performing the 2d transposed convolution 2d of <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">filter</span></code> using FFT.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv3d_fft.html#deepinv.physics.functional.conv3d_fft" title="deepinv.physics.functional.conv3d_fft"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv3d_fft</span></code></a></p></td>
+<td><p>A helper function performing the 3d convolution of <code class="docutils literal notranslate"><span class="pre">x</span></code> and <cite>filter</cite> using FFT.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.conv_transpose3d_fft.html#deepinv.physics.functional.conv_transpose3d_fft" title="deepinv.physics.functional.conv_transpose3d_fft"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.conv_transpose3d_fft</span></code></a></p></td>
+<td><p>A helper function performing the 3d transposed convolution of <code class="docutils literal notranslate"><span class="pre">y</span></code> and <code class="docutils literal notranslate"><span class="pre">filter</span></code> using FFT.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.product_convolution2d.html#deepinv.physics.functional.product_convolution2d" title="deepinv.physics.functional.product_convolution2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.product_convolution2d</span></code></a></p></td>
+<td><p>Product-convolution operator in 2d.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier.html#deepinv.physics.functional.multiplier" title="deepinv.physics.functional.multiplier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.multiplier</span></code></a></p></td>
+<td><p>Implements diagonal matrices or multipliers <span class="math notranslate nohighlight">\(x\)</span> and <cite>mult</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.multiplier_adjoint.html#deepinv.physics.functional.multiplier_adjoint" title="deepinv.physics.functional.multiplier_adjoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.multiplier_adjoint</span></code></a></p></td>
+<td><p>Implements the adjoint of diagonal matrices or multipliers <span class="math notranslate nohighlight">\(x\)</span> and <cite>mult</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.Radon.html#deepinv.physics.functional.Radon" title="deepinv.physics.functional.Radon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.Radon</span></code></a></p></td>
+<td><p>Sparse Radon transform operator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.IRadon.html#deepinv.physics.functional.IRadon" title="deepinv.physics.functional.IRadon"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.IRadon</span></code></a></p></td>
+<td><p>Inverse sparse Radon transform operator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.histogramdd.html#deepinv.physics.functional.histogramdd" title="deepinv.physics.functional.histogramdd"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.histogramdd</span></code></a></p></td>
+<td><p>Computes the multidimensional histogram of a tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.physics.functional.histogram.html#deepinv.physics.functional.histogram" title="deepinv.physics.functional.histogram"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.physics.functional.histogram</span></code></a></p></td>
+<td><p>Computes the histogram of a tensor.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">))</span> <span class="c1"># Define black image of size 16x16</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Define one white pixel in the middle</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">filter</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">padding</span> <span class="o">=</span> <span class="s2">&quot;circular&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Ax</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">Ax</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">7</span><span class="p">:</span><span class="mi">10</span><span class="p">,</span> <span class="mi">7</span><span class="p">:</span><span class="mi">10</span><span class="p">])</span>
+<span class="go">tensor([[[[0.2500, 0.2500, 0.2500],</span>
+<span class="go">          [0.2500, 0.2500, 0.2500],</span>
+<span class="go">          [0.2500, 0.2500, 0.2500]]]])</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">Ax</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">conv_transpose2d</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">((</span><span class="n">Ax</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
+<span class="go">tensor([5.9605e-08])</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="DeepInverse: a Pytorch library for imaging with deep learning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.physics.Physics.html" class="btn btn-neutral float-right" title="Physics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

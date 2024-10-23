@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.physics.inpainting &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.physics.inpainting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.physics.inpainting</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">deepinv.physics.forward</span> <span class="kn">import</span> <span class="n">DecomposablePhysics</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.mri</span> <span class="kn">import</span> <span class="n">MRI</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">BernoulliSplittingMaskGenerator</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+
+<div class="viewcode-block" id="Inpainting">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting">[docs]</a>
+<span class="k">class</span> <span class="nc">Inpainting</span><span class="p">(</span><span class="n">DecomposablePhysics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Inpainting forward operator, keeps a subset of entries.</span>
+
+<span class="sd">    The operator is described by the diagonal matrix</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        A = \text{diag}(m) \in \mathbb{R}^{n\times n}</span>
+
+<span class="sd">    where :math:`m` is a binary mask with n entries.</span>
+
+<span class="sd">    This operator is linear and has a trivial SVD decomposition, which allows for fast computation</span>
+<span class="sd">    of the pseudo-inverse and proximal operator.</span>
+
+<span class="sd">    An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,</span>
+<span class="sd">    in a similar fashion to ``torch.nn.Module``.</span>
+
+<span class="sd">    Masks can also be created on-the-fly using mask generators such as :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`, see example below.</span>
+
+<span class="sd">    :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli</span>
+<span class="sd">        distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,</span>
+<span class="sd">        the mask will be set to this tensor. If ``mask`` is ``torch.Tensor``, it must be shape that is broadcastable to input shape and will be broadcast during forward call.</span>
+<span class="sd">        If None, it must be set during forward pass or using ``update_parameters`` method.</span>
+<span class="sd">    :param tuple tensor_size: size of the input images without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)</span>
+<span class="sd">    :param torch.device device: gpu or cpu</span>
+<span class="sd">    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously. If existing mask passed (i.e. mask is Tensor), this has no effect.</span>
+<span class="sd">    :param torch.Generator rng: a pseudorandom random number generator for the mask generation. Default to None.</span>
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Inpainting operator using defined mask, removing the second column of a 3x3 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Inpainting</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 3, 3) # Define random 3x3 image</span>
+<span class="sd">        &gt;&gt;&gt; mask = torch.zeros(1, 3, 3) # Define empty mask</span>
+<span class="sd">        &gt;&gt;&gt; mask[:, 2, :] = 1 # Keeping last line only</span>
+<span class="sd">        &gt;&gt;&gt; physics = Inpainting(mask=mask, tensor_size=x.shape[1:])</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[[[ 0.0000, -0.0000, -0.0000],</span>
+<span class="sd">                  [ 0.0000, -0.0000, -0.0000],</span>
+<span class="sd">                  [ 0.4033,  0.8380, -0.7193]]]])</span>
+
+<span class="sd">        Inpainting operator using random mask, keeping 70% of the entries of a 3x3 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Inpainting</span>
+<span class="sd">        &gt;&gt;&gt; seed = torch.manual_seed(0) # Random seed for reproducibility</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 3, 3) # Define random 3x3 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = Inpainting(mask=0.7, tensor_size=x.shape[1:])</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[[[ 1.5410, -0.0000, -2.1788],</span>
+<span class="sd">                  [ 0.5684, -0.0000, -1.3986],</span>
+<span class="sd">                  [ 0.4033,  0.0000, -0.0000]]]])</span>
+
+<span class="sd">        Generate random masks on-the-fly using mask generators:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Inpainting</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics.generator import BernoulliSplittingMaskGenerator</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.randn(1, 1, 3, 3) # Define random 3x3 image</span>
+<span class="sd">        &gt;&gt;&gt; physics = Inpainting(tensor_size=x.shape[1:])</span>
+<span class="sd">        &gt;&gt;&gt; gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)</span>
+<span class="sd">        &gt;&gt;&gt; params = gen.step(batch_size=1, seed = 0) # Generate random mask</span>
+<span class="sd">        &gt;&gt;&gt; physics(x, **params) # Set mask on-the-fly</span>
+<span class="sd">        tensor([[[[-0.4033, -0.0000,  0.1820],</span>
+<span class="sd">                  [-0.8567,  1.1006, -1.0712],</span>
+<span class="sd">                  [ 0.1227, -0.0000,  0.3731]]]])</span>
+<span class="sd">        &gt;&gt;&gt; physics.update_parameters(**params) # Alternatively update mask before forward call</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)</span>
+<span class="sd">        tensor([[[[-0.4033, -0.0000,  0.1820],</span>
+<span class="sd">                  [-0.8567,  1.1006, -1.0712],</span>
+<span class="sd">                  [ 0.1227, -0.0000,  0.3731]]]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tensor_size</span><span class="p">,</span>
+        <span class="n">mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">pixelwise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">gen</span> <span class="o">=</span> <span class="n">BernoulliSplittingMaskGenerator</span><span class="p">(</span>
+                <span class="n">tensor_size</span><span class="o">=</span><span class="n">tensor_size</span><span class="p">,</span>
+                <span class="n">split_ratio</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">pixelwise</span><span class="o">=</span><span class="n">pixelwise</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">gen</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;mask should either be torch.nn.Parameter, torch.Tensor, float or None.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor_size</span><span class="p">):</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span> <span class="o">=</span> <span class="n">tensor_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Inpainting.noise">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting.noise">[docs]</a>
+    <span class="k">def</span> <span class="nf">noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`</span>
+
+<span class="sd">        :param torch.Tensor x:  clean measurements</span>
+<span class="sd">        :return torch.Tensor: noisy measurements</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">V_adjoint</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">V</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U_adjoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">noise</span></div>
+
+
+<div class="viewcode-block" id="Inpainting.__mul__">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Inpainting.html#deepinv.physics.Inpainting.__mul__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__mul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation</span>
+
+<span class="sd">        If the second operator is an Inpainting or MRI operator, the masks are multiplied elementwise,</span>
+<span class="sd">        otherwise the default implementation of LinearPhysics is used (see :meth:`deepinv.physics.LinearPhysics.__mul__`).</span>
+
+<span class="sd">        :param deepinv.physics.Physics other: Physics operator :math:`A_2`</span>
+<span class="sd">        :return: (deepinv.physics.Physics) concantenated operator</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="n">tensor_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tensor_size</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">noise_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">MRI</span><span class="p">):</span>  <span class="c1"># handles derived classes</span>
+            <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">*</span> <span class="n">other</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+                <span class="n">noise_model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_model</span><span class="p">,</span>
+                <span class="n">img_size</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">img_size</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__mul__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Demosaicing">
+<a class="viewcode-back" href="../../../stubs/deepinv.physics.Demosaicing.html#deepinv.physics.Demosaicing">[docs]</a>
+<span class="k">class</span> <span class="nc">Demosaicing</span><span class="p">(</span><span class="n">Inpainting</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Demosaicing operator.</span>
+
+<span class="sd">    The operator chooses one color per pixel according to the pattern specified.</span>
+
+<span class="sd">    :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).</span>
+<span class="sd">    :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.</span>
+<span class="sd">    :param torch.device device: ``gpu`` or ``cpu``</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Demosaicing operator using Bayer pattern for a 4x4 image:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.physics import Demosaicing</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.ones(1, 3, 4, 4)</span>
+<span class="sd">        &gt;&gt;&gt; physics = Demosaicing(img_size=(4, 4))</span>
+<span class="sd">        &gt;&gt;&gt; physics(x)[0, 1, :, :] # Green channel</span>
+<span class="sd">        tensor([[0., 1., 0., 1.],</span>
+<span class="sd">                [1., 0., 1., 0.],</span>
+<span class="sd">                [0., 1., 0., 1.],</span>
+<span class="sd">                [1., 0., 1., 0.]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_size</span><span class="p">,</span> <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;bayer&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pattern</span> <span class="o">==</span> <span class="s2">&quot;bayer&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">img_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">img_size</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">img_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">img_size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="c1"># red</span>
+            <span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="c1"># green</span>
+            <span class="n">mask</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">mask</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="c1"># blue</span>
+            <span class="n">mask</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s2"> pattern is not implemented&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">tensor_size</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">pixelwise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,266 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdversarialTrainer &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="train" href="deepinv.train.html" />
+    <link rel="prev" title="Trainer" href="deepinv.Trainer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.utils.html">Utils</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.utils.html#training-and-testing">Training and Testing</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.Trainer.html">Trainer</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">AdversarialTrainer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.training.AdversarialTrainer"><code class="docutils literal notranslate"><span class="pre">AdversarialTrainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-adversarialtrainer">Examples using <code class="docutils literal notranslate"><span class="pre">AdversarialTrainer</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.train.html">train</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.test.html">test</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#plotting">Plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#tensorlist">TensorList</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.utils.html#other">Other</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.utils.html">Utils</a></li>
+      <li class="breadcrumb-item active">AdversarialTrainer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.training.AdversarialTrainer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="adversarialtrainer">
+<h1>AdversarialTrainer<a class="headerlink" href="#adversarialtrainer" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.training.AdversarialTrainer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.training.</span></span><span class="sig-name descname"><span class="pre">AdversarialTrainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model:</span> <span class="pre">~torch.nn.modules.module.Module,</span> <span class="pre">physics:</span> <span class="pre">~deepinv.physics.forward.Physics</span> <span class="pre">|</span> <span class="pre">~typing.List[~deepinv.physics.forward.Physics],</span> <span class="pre">optimizer:</span> <span class="pre">AdversarialOptimizer,</span> <span class="pre">train_dataloader:</span> <span class="pre">~torch.utils.data.dataloader.DataLoader,</span> <span class="pre">epochs:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">100,</span> <span class="pre">losses:</span> <span class="pre">~deepinv.loss.loss.Loss</span> <span class="pre">|</span> <span class="pre">~deepinv.loss.scheduler.BaseLossScheduler</span> <span class="pre">|</span> <span class="pre">~typing.List[~deepinv.loss.loss.Loss]</span> <span class="pre">|</span> <span class="pre">~typing.List[~deepinv.loss.scheduler.BaseLossScheduler]</span> <span class="pre">=</span> <span class="pre">SupLoss(</span>&#160;&#160; <span class="pre">(metric):</span> <span class="pre">MSELoss()</span> <span class="pre">),</span> <span class="pre">eval_dataloader:</span> <span class="pre">~torch.utils.data.dataloader.DataLoader</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">scheduler:</span> <span class="pre">&lt;module</span> <span class="pre">'torch.optim.lr_scheduler'</span> <span class="pre">from</span> <span class="pre">'/opt/hostedtoolcache/Python/3.9.20/x64/lib/python3.9/site-packages/torch/optim/lr_scheduler.py'&gt;</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">metrics:</span> <span class="pre">~deepinv.loss.metric.metric.Metric</span> <span class="pre">|</span> <span class="pre">~typing.List[~deepinv.loss.metric.metric.Metric]</span> <span class="pre">=</span> <span class="pre">PSNR(),</span> <span class="pre">online_measurements:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">physics_generator:</span> <span class="pre">~deepinv.physics.generator.base.PhysicsGenerator</span> <span class="pre">|</span> <span class="pre">~typing.List[~deepinv.physics.generator.base.PhysicsGenerator]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">grad_clip:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">ckp_interval:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">device:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~torch.device</span> <span class="pre">=</span> <span class="pre">'cpu',</span> <span class="pre">eval_interval:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">save_path:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~pathlib.Path</span> <span class="pre">=</span> <span class="pre">'.',</span> <span class="pre">verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">show_progress_bar:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">plot_images:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">plot_convergence_metrics:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">wandb_vis:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">wandb_setup:</span> <span class="pre">dict</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;,</span> <span class="pre">plot_measurements:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">check_grad:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">ckpt_pretrained:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">freq_plot:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1,</span> <span class="pre">verbose_individual_losses:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">display_losses_eval:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">rescale_mode:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'clip',</span> <span class="pre">compare_no_learning:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">no_learning_method:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'A_adjoint',</span> <span class="pre">loop_physics_generator:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">losses_d:</span> <span class="pre">Union[Loss,</span> <span class="pre">List[Loss]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">D:</span> <span class="pre">Module</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">step_ratio_D:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/adversarial.html#AdversarialTrainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.training.AdversarialTrainer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.Trainer.html#deepinv.Trainer" title="deepinv.training.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Trainer</span></code></a></p>
+<p>Trainer class for training a reconstruction network using adversarial learning.</p>
+<p>It overrides the <a class="reference internal" href="deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> class to provide the same functionality, whilst supporting training using adversarial losses. Note that the forward pass remains the same.</p>
+<p>The usual reconstruction model corresponds to the generator model in an adversarial framework, which is trained using losses specified in the <code class="docutils literal notranslate"><span class="pre">losses</span></code> argument.
+Additionally, a discriminator model <code class="docutils literal notranslate"><span class="pre">D</span></code> is also jointly trained using the losses provided in <code class="docutils literal notranslate"><span class="pre">losses_d</span></code>. The adversarial losses themselves are defined in the <code class="docutils literal notranslate"><span class="pre">deepinv.loss.adversarial</span></code> module.
+Examples of discriminators are in <code class="docutils literal notranslate"><span class="pre">deepinv.models.gan</span></code>.</p>
+<p>See <a class="reference internal" href="../auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a> for usage.</p>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A very basic example:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.training</span> <span class="kn">import</span> <span class="n">AdversarialTrainer</span><span class="p">,</span> <span class="n">AdversarialOptimizer</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.loss.adversarial</span> <span class="kn">import</span> <span class="n">SupAdversarialGeneratorLoss</span><span class="p">,</span> <span class="n">SupAdversarialDiscriminatorLoss</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.models</span> <span class="kn">import</span> <span class="n">UNet</span><span class="p">,</span> <span class="n">PatchGANDiscriminator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">LinearPhysics</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.datasets.utils</span> <span class="kn">import</span> <span class="n">PlaceholderDataset</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generator</span> <span class="o">=</span> <span class="n">UNet</span><span class="p">(</span><span class="n">scales</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">discrimin</span> <span class="o">=</span> <span class="n">PatchGANDiscriminator</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">AdversarialOptimizer</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">generator</span><span class="o">.</span><span class="n">parameters</span><span class="p">()),</span>
+<span class="gp">... </span>    <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">discrimin</span><span class="o">.</span><span class="n">parameters</span><span class="p">()),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">trainer</span> <span class="o">=</span> <span class="n">AdversarialTrainer</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">model</span> <span class="o">=</span> <span class="n">generator</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">D</span> <span class="o">=</span> <span class="n">discrimin</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">physics</span> <span class="o">=</span> <span class="n">LinearPhysics</span><span class="p">(),</span>
+<span class="gp">... </span>    <span class="n">train_dataloader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">PlaceholderDataset</span><span class="p">()),</span>
+<span class="gp">... </span>    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">losses</span> <span class="o">=</span> <span class="n">SupAdversarialGeneratorLoss</span><span class="p">(),</span>
+<span class="gp">... </span>    <span class="n">losses_d</span> <span class="o">=</span> <span class="n">SupAdversarialDiscriminatorLoss</span><span class="p">(),</span>
+<span class="gp">... </span>    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generator</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<p>Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.</p>
+<p>See <a class="reference internal" href="deepinv.Trainer.html#deepinv.Trainer" title="deepinv.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.Trainer</span></code></a> for additional parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>optimizer</strong> (<em>AdversarialOptimizer</em>) – optimizer encapsulating both generator and discriminator optimizers</p></li>
+<li><p><strong>losses_d</strong> (<a class="reference internal" href="deepinv.loss.Loss.html#deepinv.loss.Loss" title="deepinv.loss.Loss"><em>Loss</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a>) – losses to train the discriminator, e.g. adversarial losses</p></li>
+<li><p><strong>D</strong> (<em>Module</em>) – discriminator/critic/classification model, which must take in an image and return a scalar</p></li>
+<li><p><strong>step_ratio_D</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.training.AdversarialTrainer.check_clip_grad_D">
+<span class="sig-name descname"><span class="pre">check_clip_grad_D</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/adversarial.html#AdversarialTrainer.check_clip_grad_D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.training.AdversarialTrainer.check_clip_grad_D" title="Link to this definition"></a></dt>
+<dd><p>Check the discriminator’s gradient norm and perform gradient clipping if necessary.</p>
+<p>Analogous to <code class="docutils literal notranslate"><span class="pre">check_clip_grad</span></code> for generator.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.training.AdversarialTrainer.compute_loss">
+<span class="sig-name descname"><span class="pre">compute_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/adversarial.html#AdversarialTrainer.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.training.AdversarialTrainer.compute_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute losses and perform backward passes for both generator and discriminator networks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a>) – Current physics operator.</p></li>
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Ground truth.</p></li>
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Measurement.</p></li>
+<li><p><strong>train</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the model is trained, otherwise it is evaluated.</p></li>
+<li><p><strong>epoch</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – current epoch.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(tuple) The network reconstruction x_net (for plotting and computing metrics) and
+the logs (for printing the training progress).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.training.AdversarialTrainer.save_model">
+<span class="sig-name descname"><span class="pre">save_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_psnr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/adversarial.html#AdversarialTrainer.save_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.training.AdversarialTrainer.save_model" title="Link to this definition"></a></dt>
+<dd><p>Save discriminator model parameters alongside other models.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.training.AdversarialTrainer.setup_train">
+<span class="sig-name descname"><span class="pre">setup_train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/training/adversarial.html#AdversarialTrainer.setup_train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.training.AdversarialTrainer.setup_train" title="Link to this definition"></a></dt>
+<dd><p>After usual Trainer setup, setup losses for discriminator too.</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-adversarialtrainer">
+<span id="sphx-glr-backref-deepinv-training-adversarialtrainer"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">AdversarialTrainer</span></code>:<a class="headerlink" href="#examples-using-adversarialtrainer" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train various networks using adversarial training for deblurring problems. We demonstrate running training and inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and UAIR implemented in the library, and how to simply train your own GAN by using deepinv.training.AdversarialTrainer. These examples can also be easily extended to train more complicated GANs such as CycleGAN."><img alt="" src="../_images/sphx_glr_demo_gan_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/adversarial-learning/demo_gan_imaging.html#sphx-glr-auto-examples-adversarial-learning-demo-gan-imaging-py"><span class="std std-ref">Imaging inverse problems with adversarial networks</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Imaging inverse problems with adversarial networks</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.Trainer.html" class="btn btn-neutral float-left" title="Trainer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.train.html" class="btn btn-neutral float-right" title="train" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

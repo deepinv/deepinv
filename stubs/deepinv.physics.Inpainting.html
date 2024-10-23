@@ -1,0 +1,322 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inpainting &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Decolorize" href="deepinv.physics.Decolorize.html" />
+    <link rel="prev" title="Denoising" href="deepinv.physics.Denoising.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../deepinv.physics.html#pixelwise-operators">Pixelwise operators</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.Denoising.html">Denoising</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Inpainting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.Decolorize.html">Decolorize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.Demosaicing.html">Demosaicing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.BernoulliSplittingMaskGenerator.html">BernoulliSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.GaussianSplittingMaskGenerator.html">GaussianSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator.html">Phase2PhaseSplittingMaskGenerator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator.html">Artifact2ArtifactSplittingMaskGenerator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#blur-super-resolution">Blur &amp; Super-Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#magnetic-resonance-imaging">Magnetic Resonance Imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#tomography">Tomography</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#remote-sensing">Remote Sensing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#compressive-operators">Compressive operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#radio-interferometric-imaging">Radio interferometric imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#single-photon-lidar">Single-photon lidar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#dehazing">Dehazing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#phase-retrieval">Phase retrieval</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">Inpainting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.Inpainting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="inpainting">
+<h1>Inpainting<a class="headerlink" href="#inpainting" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.Inpainting">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.</span></span><span class="sig-name descname"><span class="pre">Inpainting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixelwise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><span class="pre">Generator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/inpainting.html#Inpainting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Inpainting" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.physics.DecomposablePhysics.html#deepinv.physics.DecomposablePhysics" title="deepinv.physics.forward.DecomposablePhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">DecomposablePhysics</span></code></a></p>
+<p>Inpainting forward operator, keeps a subset of entries.</p>
+<p>The operator is described by the diagonal matrix</p>
+<div class="math notranslate nohighlight">
+\[A = \text{diag}(m) \in \mathbb{R}^{n\times n}\]</div>
+<p>where <span class="math notranslate nohighlight">\(m\)</span> is a binary mask with n entries.</p>
+<p>This operator is linear and has a trivial SVD decomposition, which allows for fast computation
+of the pseudo-inverse and proximal operator.</p>
+<p>An existing operator can be loaded from a saved <code class="docutils literal notranslate"><span class="pre">.pth</span></code> file via <code class="docutils literal notranslate"><span class="pre">self.load_state_dict(save_path)</span></code>,
+in a similar fashion to <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code>.</p>
+<p>Masks can also be created on-the-fly using mask generators such as <a class="reference internal" href="deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator" title="deepinv.physics.generator.BernoulliSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.BernoulliSplittingMaskGenerator</span></code></a>, see example below.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – If the input is a float, the entries of the mask will be sampled from a bernoulli
+distribution with probability equal to <code class="docutils literal notranslate"><span class="pre">mask</span></code>. If the input is a <code class="docutils literal notranslate"><span class="pre">torch.tensor</span></code> matching tensor_size,
+the mask will be set to this tensor. If <code class="docutils literal notranslate"><span class="pre">mask</span></code> is <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, it must be shape that is broadcastable to input shape and will be broadcast during forward call.
+If None, it must be set during forward pass or using <code class="docutils literal notranslate"><span class="pre">update_parameters</span></code> method.</p></li>
+<li><p><strong>tensor_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – size of the input images without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – gpu or cpu</p></li>
+<li><p><strong>pixelwise</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously. If existing mask passed (i.e. mask is Tensor), this has no effect.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><em>torch.Generator</em></a>) – a pseudorandom random number generator for the mask generation. Default to None.</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list">
+<dt class="field-odd">Examples<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Inpainting operator using defined mask, removing the second column of a 3x3 image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Inpainting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Random seed for reproducibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># Define random 3x3 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># Define empty mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Keeping last line only</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Inpainting</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">tensor_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">tensor([[[[ 0.0000, -0.0000, -0.0000],</span>
+<span class="go">          [ 0.0000, -0.0000, -0.0000],</span>
+<span class="go">          [ 0.4033,  0.8380, -0.7193]]]])</span>
+</pre></div>
+</div>
+<p>Inpainting operator using random mask, keeping 70% of the entries of a 3x3 image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Inpainting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">seed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># Random seed for reproducibility</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># Define random 3x3 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Inpainting</span><span class="p">(</span><span class="n">mask</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">tensor_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">tensor([[[[ 1.5410, -0.0000, -2.1788],</span>
+<span class="go">          [ 0.5684, -0.0000, -1.3986],</span>
+<span class="go">          [ 0.4033,  0.0000, -0.0000]]]])</span>
+</pre></div>
+</div>
+<p>Generate random masks on-the-fly using mask generators:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics</span> <span class="kn">import</span> <span class="n">Inpainting</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.physics.generator</span> <span class="kn">import</span> <span class="n">BernoulliSplittingMaskGenerator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="c1"># Define random 3x3 image</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">Inpainting</span><span class="p">(</span><span class="n">tensor_size</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gen</span> <span class="o">=</span> <span class="n">BernoulliSplittingMaskGenerator</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">gen</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># Generate random mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span> <span class="c1"># Set mask on-the-fly</span>
+<span class="go">tensor([[[[-0.4033, -0.0000,  0.1820],</span>
+<span class="go">          [-0.8567,  1.1006, -1.0712],</span>
+<span class="go">          [ 0.1227, -0.0000,  0.3731]]]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span> <span class="c1"># Alternatively update mask before forward call</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">tensor([[[[-0.4033, -0.0000,  0.1820],</span>
+<span class="go">          [-0.8567,  1.1006, -1.0712],</span>
+<span class="go">          [ 0.1227, -0.0000,  0.3731]]]])</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.Inpainting.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/inpainting.html#Inpainting.__mul__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Inpainting.__mul__" title="Link to this definition"></a></dt>
+<dd><p>Concatenates two forward operators <span class="math notranslate nohighlight">\(A = A_1\circ A_2\)</span> via the mul operation</p>
+<p>If the second operator is an Inpainting or MRI operator, the masks are multiplied elementwise,
+otherwise the default implementation of LinearPhysics is used (see <a class="reference internal" href="deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics.__mul__" title="deepinv.physics.LinearPhysics.__mul__"><code class="xref py py-meth docutils literal notranslate"><span class="pre">deepinv.physics.LinearPhysics.__mul__()</span></code></a>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a>) – Physics operator <span class="math notranslate nohighlight">\(A_2\)</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(deepinv.physics.Physics) concantenated operator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.Inpainting.noise">
+<span class="sig-name descname"><span class="pre">noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/inpainting.html#Inpainting.noise"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.Inpainting.noise" title="Link to this definition"></a></dt>
+<dd><p>Incorporates noise into the measurements <span class="math notranslate nohighlight">\(\tilde{y} = N(y)\)</span></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – clean measurements</p>
+</dd>
+<dt class="field-even">Return torch.Tensor<span class="colon">:</span></dt>
+<dd class="field-even"><p>noisy measurements</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-inpainting">
+<span id="sphx-glr-backref-deepinv-physics-inpainting"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">Inpainting</span></code>:<a class="headerlink" href="#examples-using-inpainting" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="This code shows how to reconstruct a noisy and incomplete image using the deep image prior."><img alt="" src="../_images/sphx_glr_demo_dip_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_dip.html#sphx-glr-auto-examples-basics-demo-dip-py"><span class="std std-ref">Reconstructing an image using the deep image prior.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Reconstructing an image using the deep image prior.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to train a simple reconstruction network for an image inpainting inverse problem."><img alt="" src="../_images/sphx_glr_demo_train_inpainting_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_train_inpainting.html#sphx-glr-auto-examples-basics-demo-train-inpainting-py"><span class="std std-ref">Training a reconstruction network.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Training a reconstruction network.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of some of the forward operators implemented in DeepInverse. We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in here."><img alt="" src="../_images/sphx_glr_demo_physics_tour_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_physics_tour.html#sphx-glr-auto-examples-basics-demo-physics-tour-py"><span class="std std-ref">A tour of forward sensing operators</span></a></p>
+  <div class="sphx-glr-thumbnail-title">A tour of forward sensing operators</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model. The architecture of the model and its training are described in the constrained unfolded demo."><img alt="" src="../_images/sphx_glr_demo_loading_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_loading.html#sphx-glr-auto-examples-basics-demo-loading-py"><span class="std std-ref">Saving and loading models</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Saving and loading models</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows how to use a standard wavelet prior for image inpainting. The problem writes as y = Ax + \epsilon where A is a mask and \epsilon is the realization of some Gaussian noise. The goal is to recover the original image x from the blurred and noisy image y. The wavelet prior is used to regularize the problem."><img alt="" src="../_images/sphx_glr_demo_wavelet_prior_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/optimization/demo_wavelet_prior.html#sphx-glr-auto-examples-optimization-demo-wavelet-prior-py"><span class="std std-ref">Image inpainting with wavelet prior</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image inpainting with wavelet prior</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in &quot;From learning models of natural image patches to whole image restoration&quot;.  for denoising and inpainting of natural images. To this end, we consider the inverse problem y = Ax+\epsilon, where A is either the identity (for denoising) or a masking operator (for inpainting) and \epsilon\sim\mathcal{N}(0,\sigma^2 I) is white Gaussian noise with standard deviation \sigma."><img alt="" src="../_images/sphx_glr_demo_epll_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/patch-priors/demo_epll.html#sphx-glr-auto-examples-patch-priors-demo-epll-py"><span class="std std-ref">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use sampling algorithms to quantify uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_sampling_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_sampling.html#sphx-glr-auto-examples-sampling-demo-sampling-py"><span class="std std-ref">Uncertainty quantification with PnP-ULA.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Uncertainty quantification with PnP-ULA.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the uncertainty of a reconstruction from incomplete and noisy measurements."><img alt="" src="../_images/sphx_glr_demo_ddrm_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_ddrm.html#sphx-glr-auto-examples-sampling-demo-ddrm-py"><span class="std std-ref">Image reconstruction with a diffusion model</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image reconstruction with a diffusion model</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in Chung et al. The full algorithm is implemented in deepinv.sampling.DPS."><img alt="" src="../_images/sphx_glr_demo_dps_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/sampling/demo_dps.html#sphx-glr-auto-examples-sampling-demo-dps-py"><span class="std std-ref">Implementing DPS</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Implementing DPS</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example demonstrates various geometric image transformations implemented in deepinv that can be used in Equivariant Imaging (EI) for self-supervised learning:"><img alt="" src="../_images/sphx_glr_demo_ei_transforms_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image transformations for Equivariant Imaging</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a reconstruction network for an inpainting inverse problem on a fully self-supervised way, i.e., using measurement data only."><img alt="" src="../_images/sphx_glr_demo_multioperator_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_multioperator_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-multioperator-imaging-py"><span class="std std-ref">Self-supervised learning from incomplete measurements of multiple operators.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning from incomplete measurements of multiple operators.</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="Image inpainting consists in solving y = Ax where A is a mask operator. This problem can be reformulated as the following minimization problem:"><img alt="" src="../_images/sphx_glr_demo_unfolded_constrained_LISTA_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/unfolded/demo_unfolded_constrained_LISTA.html#sphx-glr-auto-examples-unfolded-demo-unfolded-constrained-lista-py"><span class="std std-ref">Unfolded Chambolle-Pock for constrained image inpainting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Unfolded Chambolle-Pock for constrained image inpainting</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.Denoising.html" class="btn btn-neutral float-left" title="Denoising" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.Decolorize.html" class="btn btn-neutral float-right" title="Decolorize" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

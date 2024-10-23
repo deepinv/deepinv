@@ -1,0 +1,236 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RadioInterferometry &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="SinglePhotonLidar" href="deepinv.physics.SinglePhotonLidar.html" />
+    <link rel="prev" title="SinglePixelCamera" href="deepinv.physics.SinglePixelCamera.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.physics.html">Physics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#introduction">Introduction</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.physics.html#forward-operators">Forward operators</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#pixelwise-operators">Pixelwise operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#blur-super-resolution">Blur &amp; Super-Resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#magnetic-resonance-imaging">Magnetic Resonance Imaging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#tomography">Tomography</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#remote-sensing">Remote Sensing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#compressive-operators">Compressive operators</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../deepinv.physics.html#radio-interferometric-imaging">Radio interferometric imaging</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">RadioInterferometry</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#single-photon-lidar">Single-photon lidar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#dehazing">Dehazing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../deepinv.physics.html#phase-retrieval">Phase retrieval</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#noise-distributions">Noise distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#defining-new-operators">Defining new operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.physics.html#functional">Functional</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.physics.html">Physics</a></li>
+      <li class="breadcrumb-item active">RadioInterferometry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.physics.RadioInterferometry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="radiointerferometry">
+<h1>RadioInterferometry<a class="headerlink" href="#radiointerferometry" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.physics.RadioInterferometry">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.physics.</span></span><span class="sig-name descname"><span class="pre">RadioInterferometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples_loc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataWeight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">tensor([1.])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_oversampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interp_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">7</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">real_projection</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/radio.html#RadioInterferometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.RadioInterferometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.physics.LinearPhysics.html#deepinv.physics.LinearPhysics" title="deepinv.physics.forward.LinearPhysics"><code class="xref py py-class docutils literal notranslate"><span class="pre">LinearPhysics</span></code></a></p>
+<p>Radio Interferometry measurement operator.</p>
+<p>The operator handles ungridded measurements using the non-uniform FFT (NUFFT), which is based in Kaiser-Bessel
+kernel interpolation. This particular implementation relies on the <a class="reference external" href="https://github.com/mmuckley/torchkbnufft">torchkbnufft</a> package.</p>
+<p>The forward operator is defined as <span class="math notranslate nohighlight">\(A:x \mapsto y\)</span>,
+where <span class="math notranslate nohighlight">\(A\)</span> can be decomposed as <span class="math notranslate nohighlight">\(A = GFZ \in \mathbb{C}^{m \times n}\)</span>.
+There, <span class="math notranslate nohighlight">\(G \in \mathbb{C}^{m \times d}\)</span> is a sparse interpolation matrix,
+encoding the non-uniform Fourier transform,
+<span class="math notranslate nohighlight">\(F \in \mathbb{C}^{d\times d}\)</span> is the 2D Discrete orthonormal Fourier Transform,
+<span class="math notranslate nohighlight">\(Z \in \mathbb{R}^{d\times n}\)</span> is a zero-padding operator,
+incorporating the correction for the convolution performed through the operator <span class="math notranslate nohighlight">\(G\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – Size of the target image, e.g., (H, W).</p></li>
+<li><p><strong>samples_loc</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Normalized sampling locations in the Fourier domain (Size: N x 2).</p></li>
+<li><p><strong>dataWeight</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Data weighting for the measurements (Size: N). Default is <code class="docutils literal notranslate"><span class="pre">torch.tensor([1.0])</span></code> (i.e. no weighting).</p></li>
+<li><p><strong>interp_points</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><em>Sequence</em><em>[</em><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>]</em><em>]</em>) – Number of neighbors to use for interpolation in each dimension. Default is <code class="docutils literal notranslate"><span class="pre">7</span></code>.</p></li>
+<li><p><strong>k_oversampling</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Oversampling of the k space grid, should be between <code class="docutils literal notranslate"><span class="pre">1.25</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span></code>. Default is <code class="docutils literal notranslate"><span class="pre">2</span></code>.</p></li>
+<li><p><strong>real_projection</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Apply real projection after the adjoint NUFFT. Default is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – Device where the operator is computed. Default is <code class="docutils literal notranslate"><span class="pre">cpu</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">real_projection</span></code> parameter is set to <code class="docutils literal notranslate"><span class="pre">False</span></code>, the output of the adjoint will have a complex type rather than a real typed.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.RadioInterferometry.A">
+<span class="sig-name descname"><span class="pre">A</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/radio.html#RadioInterferometry.A"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.RadioInterferometry.A" title="Link to this definition"></a></dt>
+<dd><p>Applies the weighted NUFFT operator to the input image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) containing the measurements</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.physics.RadioInterferometry.A_adjoint">
+<span class="sig-name descname"><span class="pre">A_adjoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/physics/radio.html#RadioInterferometry.A_adjoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.physics.RadioInterferometry.A_adjoint" title="Link to this definition"></a></dt>
+<dd><p>Applies the adjoint of the weighted NUFFT operator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input measurements</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) containing the reconstructed image</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-radiointerferometry">
+<span id="sphx-glr-backref-deepinv-physics-radiointerferometry"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">RadioInterferometry</span></code>:<a class="headerlink" href="#examples-using-radiointerferometry" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.  The following example and data are taken from Aghabiglou et al. (2024).  If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib."><img alt="" src="../_images/sphx_glr_demo_ri_basic_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/advanced/demo_ri_basic.html#sphx-glr-auto-examples-advanced-demo-ri-basic-py"><span class="std std-ref">Radio interferometric imaging with deepinverse</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.physics.SinglePixelCamera.html" class="btn btn-neutral float-left" title="SinglePixelCamera" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.physics.SinglePhotonLidar.html" class="btn btn-neutral float-right" title="SinglePhotonLidar" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

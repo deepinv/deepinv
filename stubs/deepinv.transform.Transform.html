@@ -1,0 +1,409 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transform &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Rotate" href="deepinv.transform.Rotate.html" />
+    <link rel="prev" title="Transforms" href="../deepinv.transform.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.transform.html">Transforms</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deepinv.transform.Transform"><code class="docutils literal notranslate"><span class="pre">Transform</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.__add__"><code class="docutils literal notranslate"><span class="pre">Transform.__add__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.__mul__"><code class="docutils literal notranslate"><span class="pre">Transform.__mul__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.forward"><code class="docutils literal notranslate"><span class="pre">Transform.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.get_params"><code class="docutils literal notranslate"><span class="pre">Transform.get_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.identity"><code class="docutils literal notranslate"><span class="pre">Transform.identity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.inverse"><code class="docutils literal notranslate"><span class="pre">Transform.inverse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.invert_params"><code class="docutils literal notranslate"><span class="pre">Transform.invert_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.symmetrize"><code class="docutils literal notranslate"><span class="pre">Transform.symmetrize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.transform.Transform.transform"><code class="docutils literal notranslate"><span class="pre">Transform.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#examples-using-transform">Examples using <code class="docutils literal notranslate"><span class="pre">Transform</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.transform.html#simple-transforms">Simple transforms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.transform.html#advanced-transforms">Advanced transforms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.transform.html#video-transforms">Video transforms</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.transform.html">Transforms</a></li>
+      <li class="breadcrumb-item active">Transform</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.transform.Transform.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="transform">
+<h1>Transform<a class="headerlink" href="#transform" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.transform.Transform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.transform.</span></span><span class="sig-name descname"><span class="pre">Transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trans</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><span class="pre">Generator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flatten_video_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a>, <a class="reference internal" href="deepinv.physics.TimeMixin.html#deepinv.physics.TimeMixin" title="deepinv.physics.time.TimeMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">TimeMixin</span></code></a></p>
+<p>Base class for image transforms.</p>
+<p>The base transform implements transform arithmetic and other methods to invert transforms and symmetrize functions.</p>
+<p>All transforms must implement <code class="docutils literal notranslate"><span class="pre">_get_params()</span></code> to randomly generate e.g. rotation degrees or shift pixels, and <code class="docutils literal notranslate"><span class="pre">_transform()</span></code> to deterministically transform an image given the params.</p>
+<p>To implement a new transform, please reimplement <code class="docutils literal notranslate"><span class="pre">_get_params()</span></code> and <code class="docutils literal notranslate"><span class="pre">_transform()</span></code> (with a <code class="docutils literal notranslate"><span class="pre">**kwargs</span></code> argument). See respective methods for details.</p>
+<p>Also handle deterministic (non-random) transformations by passing in fixed parameter values.</p>
+<p>All transforms automatically handle video input (5D of shape <code class="docutils literal notranslate"><span class="pre">(B,C,T,H,W)</span></code>) by flattening the time dimension.</p>
+<p><hr /></p>
+<p class="rubric">Examples</p>
+<p>Randomly transform an image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.transform</span> <span class="kn">import</span> <span class="n">Shift</span><span class="p">,</span> <span class="n">Rotate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># Define random image (B,C,H,W)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Define random shift transform</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+</pre></div>
+</div>
+<p>Deterministically transform an image:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_shift</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">x_shift</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">y</span><span class="p">)</span>
+<span class="go">tensor(True)</span>
+</pre></div>
+</div>
+<p># Accepts video input of shape (B,C,T,H,W):</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 3, 2, 2])</span>
+</pre></div>
+</div>
+<p>Multiply transforms to create compound transforms (direct product of groups) - similar to <code class="docutils literal notranslate"><span class="pre">torchvision.transforms.Compose</span></code>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rotoshift</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">*</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Chain rotate and shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rotoshift</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+</pre></div>
+</div>
+<p>Sum transforms to create stacks of transformed images (along the batch dimension).</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">+</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Stack rotate and shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([2, 1, 2, 2])</span>
+</pre></div>
+</div>
+<p>Randomly select from transforms - similar to <code class="docutils literal notranslate"><span class="pre">torchvision.transforms.RandomApply</span></code>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">|</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Randomly select rotate or shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+</pre></div>
+</div>
+<p>Symmetrize a function by averaging over the group (also known as Reynolds averaging):</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">x</span> <span class="c1"># Function to be symmetrized</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f_s</span> <span class="o">=</span> <span class="n">rotoshift</span><span class="o">.</span><span class="n">symmetrize</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f_s</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_trans</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of transformed versions generated per input image, defaults to 1</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.Generator.html#torch.Generator" title="(in PyTorch v2.0)"><em>torch.Generator</em></a>) – random number generator, if <code class="docutils literal notranslate"><span class="pre">None</span></code>, use <code class="xref py py-meth docutils literal notranslate"><span class="pre">torch.Generator()</span></code>, defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+<li><p><strong>constant_shape</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, transformed images are assumed to be same shape as input.
+For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
+If False, for certain transforms including <a class="reference internal" href="deepinv.transform.Rotate.html#deepinv.transform.Rotate" title="deepinv.transform.Rotate"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.transform.Rotate</span></code></a>,
+<code class="docutils literal notranslate"><span class="pre">transform</span></code> will try to switch off automatic cropping/padding resulting in errors.
+However, <code class="docutils literal notranslate"><span class="pre">symmetrize</span></code> will still work but perform one-by-one (i.e. without collating over batch, which is less efficient).</p></li>
+<li><p><strong>flatten_video_input</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – accept video (5D) input of shape <code class="docutils literal notranslate"><span class="pre">(B,C,T,H,W)</span></code> by flattening time dim before transforming and unflattening after all operations.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.__add__">
+<span class="sig-name descname"><span class="pre">__add__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#deepinv.transform.Transform" title="deepinv.transform.base.Transform"><span class="pre">Transform</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.__add__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.__add__" title="Link to this definition"></a></dt>
+<dd><p>Stacks two transforms via the + operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#deepinv.transform.Transform" title="deepinv.transform.Transform"><em>deepinv.transform.Transform</em></a>) – other transform</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(deepinv.transform.Transform) operator which produces stacked transformed images</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.__mul__">
+<span class="sig-name descname"><span class="pre">__mul__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#deepinv.transform.Transform" title="deepinv.transform.base.Transform"><span class="pre">Transform</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.__mul__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.__mul__" title="Link to this definition"></a></dt>
+<dd><p>Chains two transforms via the * operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>other</strong> (<a class="reference internal" href="#deepinv.transform.Transform" title="deepinv.transform.Transform"><em>deepinv.transform.Transform</em></a>) – other transform</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(deepinv.transform.Transform) chained operator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.forward" title="Link to this definition"></a></dt>
+<dd><p>Perform random transformation on image.</p>
+<p>Calls <code class="docutils literal notranslate"><span class="pre">get_params</span></code> to generate random params for image, then <code class="docutils literal notranslate"><span class="pre">transform</span></code> to deterministically transform.</p>
+<p>For purely deterministic transformation, pass in custom params and <code class="docutils literal notranslate"><span class="pre">get_params</span></code> will be ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image of shape (B,C,H,W)</p>
+</dd>
+<dt class="field-even">Return torch.Tensor<span class="colon">:</span></dt>
+<dd class="field-even"><p>randomly transformed images concatenated along the first dimension</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.get_params">
+<span class="sig-name descname"><span class="pre">get_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.get_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.get_params" title="Link to this definition"></a></dt>
+<dd><p>Randomly generate transform parameters, one set per n_trans.</p>
+<p>Params are represented as tensors where the first dimension indexes batch and <code class="docutils literal notranslate"><span class="pre">n_trans</span></code>.
+Params store e.g rotation degrees or shift amounts.</p>
+<p>Params may be any Tensor-like object. For inverse transforms, params are negated by default.
+To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a <code class="docutils literal notranslate"><span class="pre">TransformParam</span></code> class: <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">=</span> <span class="pre">TransformParam(p,</span> <span class="pre">neg=lambda</span> <span class="pre">x:</span> <span class="pre">1/x)</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image</p>
+</dd>
+<dt class="field-even">Return dict<span class="colon">:</span></dt>
+<dd class="field-even"><p>keyword args of transform parameters e.g. <code class="docutils literal notranslate"><span class="pre">{'theta':</span> <span class="pre">30}</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.identity">
+<span class="sig-name descname"><span class="pre">identity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">average</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.identity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.identity" title="Link to this definition"></a></dt>
+<dd><p>Sanity check function that should do nothing.</p>
+<p>This performs forward and inverse transform, which results in the exact original, down to interpolation and padding effects.</p>
+<p>Interpolation and padding effects will be visible in non-pixelwise transformations, such as arbitrary rotation, scale or projective transformation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image</p></li>
+<li><p><strong>average</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – average over <code class="docutils literal notranslate"><span class="pre">n_trans</span></code> transformed versions to get same number as output images as input images. No effect when <code class="docutils literal notranslate"><span class="pre">n_trans=1</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return torch.Tensor<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="math notranslate nohighlight">\(T_g^{-1}T_g x=x\)</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.inverse">
+<span class="sig-name descname"><span class="pre">inverse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">batchwise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.inverse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.inverse" title="Link to this definition"></a></dt>
+<dd><p>Perform random inverse transformation on image (i.e. when not a group).</p>
+<p>For purely deterministic transformation, pass in custom params and <code class="docutils literal notranslate"><span class="pre">get_params</span></code> will be ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image</p></li>
+<li><p><strong>batchwise</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if True, the output dim 0 expands to be of size <code class="docutils literal notranslate"><span class="pre">len(x)</span> <span class="pre">*</span> <span class="pre">len(param)</span></code> for the params of interest.
+If False, params will attempt to match each image in batch to keep constant <code class="docutils literal notranslate"><span class="pre">len(out)=len(x)</span></code>. No effect when <code class="docutils literal notranslate"><span class="pre">n_trans==1</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return torch.Tensor<span class="colon">:</span></dt>
+<dd class="field-even"><p>randomly transformed images</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.invert_params">
+<span class="sig-name descname"><span class="pre">invert_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><span class="pre">dict</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><span class="pre">dict</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.invert_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.invert_params" title="Link to this definition"></a></dt>
+<dd><p>Invert transformation parameters. Pass variable of type <code class="docutils literal notranslate"><span class="pre">TransformParam</span></code> to override negation (e.g. to take reciprocal).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>params</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#dict" title="(in Python v3.4)"><em>dict</em></a>) – transform parameters as dict</p>
+</dd>
+<dt class="field-even">Return dict<span class="colon">:</span></dt>
+<dd class="field-even"><p>inverted parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.symmetrize">
+<span class="sig-name descname"><span class="pre">symmetrize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">f</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">average</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collate_batch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.symmetrize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.symmetrize" title="Link to this definition"></a></dt>
+<dd><p>Symmetrise a function with a transform and its inverse.</p>
+<p>Given a function <span class="math notranslate nohighlight">\(f(\cdot):X\rightarrow X\)</span> and a transform <span class="math notranslate nohighlight">\(T_g\)</span>, returns the group averaged function  <span class="math notranslate nohighlight">\(\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)\)</span> where <span class="math notranslate nohighlight">\(N\)</span> is the number of random transformations.</p>
+<p>For example, this is useful for Reynolds averaging a function over a group. Set <code class="docutils literal notranslate"><span class="pre">average=True</span></code> to average over <code class="docutils literal notranslate"><span class="pre">n_trans</span></code>.
+For example, use <code class="docutils literal notranslate"><span class="pre">Rotate(n_trans=4,</span> <span class="pre">positive=True,</span> <span class="pre">multiples=90).symmetrize(f)</span></code> to symmetrize f over the entire group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>f</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a><em>, </em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a><em>]</em>) – function acting on tensors.</p></li>
+<li><p><strong>average</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – monte carlo average over all random transformations (in range <code class="docutils literal notranslate"><span class="pre">n_trans</span></code>) when symmetrising to get same number of output images as input images. No effect when <code class="docutils literal notranslate"><span class="pre">n_trans=1</span></code>.</p></li>
+<li><p><strong>collate_batch</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, collect <code class="docutils literal notranslate"><span class="pre">n_trans</span></code> transformed images in batch dim and evaluate <code class="docutils literal notranslate"><span class="pre">f</span></code> only once.
+However, this requires <code class="docutils literal notranslate"><span class="pre">n_trans</span></code> extra memory. If <code class="docutils literal notranslate"><span class="pre">False</span></code>, evaluate <code class="docutils literal notranslate"><span class="pre">f</span></code> for each transformation.
+Always will be <code class="docutils literal notranslate"><span class="pre">False</span></code> when transformed images aren’t constant shape.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return Callable[[torch.Tensor, Any], torch.Tensor]<span class="colon">:</span></dt>
+<dd class="field-even"><p>decorated function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.transform.Transform.transform">
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/deepinv/transform/base.html#Transform.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.transform.Transform.transform" title="Link to this definition"></a></dt>
+<dd><p>Transform image given transform parameters.</p>
+<p>Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image of shape (B,C,H,W)</p></li>
+<li><p><strong>**params</strong> – <p>params e.g. degrees or shifts provided as keyword args.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>torch.Tensor: transformed image.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-transform">
+<span id="sphx-glr-backref-deepinv-transform-transform"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">Transform</span></code>:<a class="headerlink" href="#examples-using-transform" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the use of our deepinv.transform module for use in solving imaging problems. These can be used for:"><img alt="" src="../_images/sphx_glr_demo_transforms_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/basics/demo_transforms.html#sphx-glr-auto-examples-basics-demo-transforms-py"><span class="std std-ref">Image transforms for equivariance &amp; augmentations</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image transforms for equivariance & augmentations</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example demonstrates various geometric image transformations implemented in deepinv that can be used in Equivariant Imaging (EI) for self-supervised learning:"><img alt="" src="../_images/sphx_glr_demo_ei_transforms_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Image transformations for Equivariant Imaging</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only."><img alt="" src="../_images/sphx_glr_demo_equivariant_imaging_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with Equivariant Imaging for MRI.</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../deepinv.transform.html" class="btn btn-neutral float-left" title="Transforms" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.transform.Rotate.html" class="btn btn-neutral float-right" title="Rotate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

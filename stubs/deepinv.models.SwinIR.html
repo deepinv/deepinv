@@ -1,0 +1,229 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SwinIR &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DiffUNet" href="deepinv.models.DiffUNet.html" />
+    <link rel="prev" title="GSDRUNet" href="deepinv.models.GSDRUNet.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#classical-denoisers">Classical Denoisers</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.denoisers.html#deep-denoisers">Deep Denoisers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.AutoEncoder.html">AutoEncoder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.UNet.html">UNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DnCNN.html">DnCNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DRUNet.html">DRUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.SCUNet.html">SCUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.GSDRUNet.html">GSDRUNet</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">SwinIR</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.models.SwinIR"><code class="docutils literal notranslate"><span class="pre">SwinIR</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DiffUNet.html">DiffUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.Restormer.html">Restormer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.ICNN.html">ICNN</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#equivariant-denoisers">Equivariant Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#adversarial-networks">Adversarial Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#complex-denoisers">Complex Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#pretrained-weights">Pretrained Weights</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.denoisers.html">Denoisers</a></li>
+      <li class="breadcrumb-item active">SwinIR</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.models.SwinIR.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="swinir">
+<h1>SwinIR<a class="headerlink" href="#swinir" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.models.SwinIR">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.models.</span></span><span class="sig-name descname"><span class="pre">SwinIR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">img_size=128,</span> <span class="pre">patch_size=1,</span> <span class="pre">in_chans=3,</span> <span class="pre">embed_dim=180,</span> <span class="pre">depths=[6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6],</span> <span class="pre">num_heads=[6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">6],</span> <span class="pre">window_size=8,</span> <span class="pre">mlp_ratio=2,</span> <span class="pre">qkv_bias=True,</span> <span class="pre">qk_scale=None,</span> <span class="pre">drop_rate=0.0,</span> <span class="pre">attn_drop_rate=0.0,</span> <span class="pre">drop_path_rate=0.1,</span> <span class="pre">norm_layer=&lt;class</span> <span class="pre">'torch.nn.modules.normalization.LayerNorm'&gt;,</span> <span class="pre">ape=False,</span> <span class="pre">patch_norm=True,</span> <span class="pre">use_checkpoint=False,</span> <span class="pre">upscale=1,</span> <span class="pre">img_range=1.0,</span> <span class="pre">upsampler='',</span> <span class="pre">resi_connection='1conv',</span> <span class="pre">pretrained='download',</span> <span class="pre">pretrained_noise_level=15,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/swinir.html#SwinIR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.SwinIR" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>SwinIR denoising network.</p>
+<p>The Swin Image Restoration (SwinIR) denoising network was introduced in <a class="reference external" href="https://arxiv.org/abs/2108.10257">SwinIR: Image Restoration Using Swin
+Transformer</a>. This code is adapted from the official implementation by the
+authors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – Input image size. Default 128.</p></li>
+<li><p><strong>patch_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – Patch size. Default: 1.</p></li>
+<li><p><strong>in_chans</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – Number of input image channels. Default: 3.</p></li>
+<li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – Patch embedding dimension. Default: 180.</p></li>
+<li><p><strong>depths</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – Depth of each Swin Transformer layer.</p></li>
+<li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#tuple" title="(in Python v3.4)"><em>tuple</em></a>) – Number of attention heads in different layers.</p></li>
+<li><p><strong>window_size</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – Window size. Default: 8.</p></li>
+<li><p><strong>mlp_ratio</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Ratio of mlp hidden dim to embedding dim. Default: 2.</p></li>
+<li><p><strong>qkv_bias</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If True, add a learnable bias to query, key, value. Default: True.</p></li>
+<li><p><strong>qk_scale</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Override default qk scale of head_dim ** -0.5 if set. Default: None.</p></li>
+<li><p><strong>drop_rate</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Dropout rate. Default: 0.</p></li>
+<li><p><strong>attn_drop_rate</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Attention dropout rate. Default: 0.</p></li>
+<li><p><strong>drop_path_rate</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Stochastic depth rate. Default: 0.1.</p></li>
+<li><p><strong>norm_layer</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – Normalization layer. Default: nn.LayerNorm.</p></li>
+<li><p><strong>ape</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If True, add absolute position embedding to the patch embedding. Default: False.</p></li>
+<li><p><strong>patch_norm</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – If True, add normalization after patch embedding. Default: True.</p></li>
+<li><p><strong>use_checkpoint</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Whether to use checkpointing to save memory. Default: False.</p></li>
+<li><p><strong>upscale</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – Upscale factor. 2/3/4/8 for image SR, 1 for denoising and compress artifact reduction</p></li>
+<li><p><strong>img_range</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – Image range. 1. or 255. Default: 1.</p></li>
+<li><p><strong>upsampler</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a><em>, </em><em>None</em>) – The reconstruction module. ‘’/’pixelshuffle’/’pixelshuffledirect’/’nearest+conv’/None.
+Default: ‘’.</p></li>
+<li><p><strong>resi_connection</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – The convolutional block before residual connection. Should be either ‘1conv’ or ‘3conv’.
+Default: ‘1conv’.</p></li>
+<li><p><strong>pretrained</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a><em>, </em><em>None</em>) – Use a pretrained network. If <code class="docutils literal notranslate"><span class="pre">pretrained=None</span></code>, the weights will be initialized at
+random using PyTorch’s default initialization. If <code class="docutils literal notranslate"><span class="pre">pretrained='download'</span></code>, the weights will be downloaded from
+the authors’ online repository <a class="reference external" href="https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0">https://github.com/JingyunLiang/SwinIR/releases/tag/v0.0</a> (only available for the
+default architecture). Finally, <code class="docutils literal notranslate"><span class="pre">pretrained</span></code> can also be set as a path to the user’s own pretrained weights.
+Default: ‘download’.
+See <a class="reference internal" href="../deepinv.denoisers.html#pretrained-weights"><span class="std std-ref">pretrained-weights</span></a> for more details.</p></li>
+<li><p><strong>pretrained_noise_level</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – The noise level of the pretrained model to be downloaded (in 0-255 scale). This
+value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.SwinIR.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/swinir.html#SwinIR.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.SwinIR.forward" title="Link to this definition"></a></dt>
+<dd><p>Run the denoiser on noisy image. The noise level is not used in this denoiser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – noisy image, of shape B, C, W, H.</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – noise level (not used).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="sphx-glr-backref-deepinv-models-swinir"></span></section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.models.GSDRUNet.html" class="btn btn-neutral float-left" title="GSDRUNet" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.models.DiffUNet.html" class="btn btn-neutral float-right" title="DiffUNet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

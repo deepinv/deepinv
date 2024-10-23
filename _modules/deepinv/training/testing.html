@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.training.testing &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.training.testing</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.training.testing</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.metric</span> <span class="kn">import</span> <span class="n">PSNR</span>
+<span class="kn">from</span> <span class="nn">deepinv.training</span> <span class="kn">import</span> <span class="n">Trainer</span>
+
+
+<div class="viewcode-block" id="test">
+<a class="viewcode-back" href="../../../stubs/deepinv.test.html#deepinv.test">[docs]</a>
+<span class="k">def</span> <span class="nf">test</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">test_dataloader</span><span class="p">,</span>
+    <span class="n">physics</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">PSNR</span><span class="p">(),</span>
+    <span class="n">online_measurements</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">physics_generator</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">plot_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">save_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">plot_convergence_metrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">rescale_mode</span><span class="o">=</span><span class="s2">&quot;clip&quot;</span><span class="p">,</span>
+    <span class="n">show_progress_bar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">no_learning_method</span><span class="o">=</span><span class="s2">&quot;A_dagger&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tests a reconstruction model (algorithm or network).</span>
+
+<span class="sd">    This function computes the chosen metrics of the reconstruction network on the test set,</span>
+<span class="sd">    and optionally plots the reconstructions as well as the metrics computed along the iterations.</span>
+<span class="sd">    Note that by default only the first batch is plotted.</span>
+
+<span class="sd">    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal</span>
+<span class="sd">        or any other custom reconstruction network (unfolded, plug-and-play, etc).</span>
+<span class="sd">    :param torch.utils.data.DataLoader test_dataloader: Test data loader, which should provide a tuple of (x, y) pairs.</span>
+<span class="sd">        See :ref:`datasets &lt;datasets&gt;` for more details.</span>
+<span class="sd">    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s)</span>
+<span class="sd">        used by the reconstruction network at test time.</span>
+<span class="sd">    :param deepinv.loss.Loss, list[deepinv.Loss] metrics: Metric or list of metrics used for evaluating the model.</span>
+<span class="sd">        :ref:`See the libraries&#39; evaluation metrics &lt;loss&gt;`.</span>
+<span class="sd">    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling</span>
+<span class="sd">        ``physics(x)``.</span>
+<span class="sd">    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating</span>
+<span class="sd">        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.</span>
+<span class="sd">        Should be used in conjunction with ``online_measurements=True``.</span>
+<span class="sd">    :param torch.device device: gpu or cpu.</span>
+<span class="sd">    :param bool plot_images: Plot the ground-truth and estimated images.</span>
+<span class="sd">    :param str save_folder: Directory in which to save plotted reconstructions.</span>
+<span class="sd">        Images are saved in the ``save_folder/images`` directory</span>
+<span class="sd">    :param bool plot_convergence_metrics: plot the metrics to be plotted w.r.t iteration.</span>
+<span class="sd">    :param bool verbose: Output training progress information in the console.</span>
+<span class="sd">    :param bool plot_measurements: Plot the measurements y. default=True.</span>
+<span class="sd">    :param bool show_progress_bar: Show progress bar.</span>
+<span class="sd">    :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``&#39;A_dagger&#39;``,</span>
+<span class="sd">        ``&#39;A_adjoint&#39;``, ``&#39;prox_l2&#39;``, or ``&#39;y&#39;``. Default is ``&#39;A_dagger&#39;``. The user can modify the no-learning method</span>
+<span class="sd">         by overwriting the :meth:`deepinv.Trainer.no_learning_inferece` method</span>
+<span class="sd">    :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include</span>
+<span class="sd">        the average and standard deviation of the metric.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+        <span class="n">train_dataloader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">eval_dataloader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+        <span class="n">online_measurements</span><span class="o">=</span><span class="n">online_measurements</span><span class="p">,</span>
+        <span class="n">physics_generator</span><span class="o">=</span><span class="n">physics_generator</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">plot_images</span><span class="o">=</span><span class="n">plot_images</span><span class="p">,</span>
+        <span class="n">plot_convergence_metrics</span><span class="o">=</span><span class="n">plot_convergence_metrics</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">rescale_mode</span><span class="o">=</span><span class="n">rescale_mode</span><span class="p">,</span>
+        <span class="n">no_learning_method</span><span class="o">=</span><span class="n">no_learning_method</span><span class="p">,</span>
+        <span class="n">show_progress_bar</span><span class="o">=</span><span class="n">show_progress_bar</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">trainer</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">test_dataloader</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">save_folder</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

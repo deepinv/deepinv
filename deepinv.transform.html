@@ -1,0 +1,274 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transforms &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Transform" href="stubs/deepinv.transform.Transform.html" />
+    <link rel="prev" title="NIQE" href="stubs/deepinv.loss.metric.NIQE.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Transforms</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stubs/deepinv.transform.Transform.html">Transform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simple-transforms">Simple transforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.Rotate.html">Rotate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.Shift.html">Shift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.Scale.html">Scale</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.Reflect.html">Reflect</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-transforms">Advanced transforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.Homography.html">Homography</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.projective.Euclidean.html">Euclidean</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.projective.Similarity.html">Similarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.projective.Affine.html">Affine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.projective.PanTiltRotate.html">PanTiltRotate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.CPABDiffeomorphism.html">CPABDiffeomorphism</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#video-transforms">Video transforms</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.transform.ShiftTime.html">ShiftTime</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Transforms</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.transform.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="transforms">
+<span id="transform"></span><h1>Transforms<a class="headerlink" href="#transforms" title="Link to this heading"></a></h1>
+<p>This package contains different transforms which can be used for data augmentation or together with the equivariant losses.</p>
+<p>We implement various geometric transforms, ranging from Euclidean to homography and diffeomorphisms, some of which offer group-theoretic properties.</p>
+<p><strong>See</strong> <a class="reference internal" href="auto_examples/basics/demo_transforms.html#sphx-glr-auto-examples-basics-demo-transforms-py"><span class="std std-ref">Image transforms for equivariance &amp; augmentations</span></a> <strong>for example usage and visualisations.</strong></p>
+<p>Transforms inherit from <a class="reference internal" href="stubs/deepinv.transform.Transform.html#deepinv.transform.Transform" title="deepinv.transform.Transform"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.transform.Transform</span></code></a>. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via <code class="docutils literal notranslate"><span class="pre">|</span></code> to randomly select.
+There are numerous other parameters e.g to randomly transform multiple times at once, to constrain the parameters to a range etc.</p>
+<p>Transforms can also be used to make a denoiser equivariant using <a class="reference internal" href="stubs/deepinv.models.EquivariantDenoiser.html#deepinv.models.EquivariantDenoiser" title="deepinv.models.EquivariantDenoiser"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.models.EquivariantDenoiser</span></code></a> by performing Reynolds averaging using <code class="docutils literal notranslate"><span class="pre">symmetrize()</span></code>.
+They can also be used for equivariant imaging (EI) using the <a class="reference internal" href="stubs/deepinv.loss.EILoss.html#deepinv.loss.EILoss" title="deepinv.loss.EILoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.EILoss</span></code></a> loss.
+See <a class="reference internal" href="auto_examples/self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a> and <a class="reference internal" href="auto_examples/self-supervised-learning/demo_equivariant_imaging.html#sphx-glr-auto-examples-self-supervised-learning-demo-equivariant-imaging-py"><span class="std std-ref">Self-supervised learning with Equivariant Imaging for MRI.</span></a> for examples.</p>
+<p>If needed, transforms can also be made deterministic by passing in specified parameters to the forward method.
+This allows every transform to have its own deterministic inverse using <code class="docutils literal notranslate"><span class="pre">transform.inverse()</span></code>.
+Transforms can also be seamlessly integrated with existing <code class="docutils literal notranslate"><span class="pre">torchvision</span></code> transforms.
+Transforms can also accept video (5D) input.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.Transform.html#deepinv.transform.Transform" title="deepinv.transform.Transform"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Transform</span></code></a></p></td>
+<td><p>Base class for image transforms.</p></td>
+</tr>
+</tbody>
+</table>
+<p>For example, random transforms can be used as follows:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">deepinv.transform</span> <span class="kn">import</span> <span class="n">Shift</span><span class="p">,</span> <span class="n">Rotate</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="c1"># Define random image (B,C,H,W)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Define random shift transform</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_shift</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">x_shift</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Deterministic transform</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">y</span><span class="p">)</span>
+<span class="go">tensor(True)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># Accepts video input of shape (B,C,T,H,W)</span>
+<span class="go">torch.Size([1, 1, 3, 2, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">+</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Stack rotate and shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([2, 1, 2, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rotoshift</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">*</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Chain rotate and shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rotoshift</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span> <span class="o">=</span> <span class="n">Rotate</span><span class="p">()</span> <span class="o">|</span> <span class="n">Shift</span><span class="p">()</span> <span class="c1"># Randomly select rotate or shift transforms</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">x</span> <span class="c1"># Function to be symmetrized</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f_s</span> <span class="o">=</span> <span class="n">rotoshift</span><span class="o">.</span><span class="n">symmetrize</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f_s</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([1, 1, 2, 2])</span>
+</pre></div>
+</div>
+<section id="simple-transforms">
+<h2>Simple transforms<a class="headerlink" href="#simple-transforms" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.Rotate.html#deepinv.transform.Rotate" title="deepinv.transform.Rotate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Rotate</span></code></a></p></td>
+<td><p>2D Rotations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.transform.Shift.html#deepinv.transform.Shift" title="deepinv.transform.Shift"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Shift</span></code></a></p></td>
+<td><p>Fast integer 2D translations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.Scale.html#deepinv.transform.Scale" title="deepinv.transform.Scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Scale</span></code></a></p></td>
+<td><p>2D Scaling.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.transform.Reflect.html#deepinv.transform.Reflect" title="deepinv.transform.Reflect"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Reflect</span></code></a></p></td>
+<td><p>Reflect (flip) in random multiple axes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="advanced-transforms">
+<h2>Advanced transforms<a class="headerlink" href="#advanced-transforms" title="Link to this heading"></a></h2>
+<p>We implement the following further geometric transforms.
+The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived.
+See <a class="reference internal" href="auto_examples/self-supervised-learning/demo_ei_transforms.html#sphx-glr-auto-examples-self-supervised-learning-demo-ei-transforms-py"><span class="std std-ref">Image transformations for Equivariant Imaging</span></a> for a demonstration. Note these require <code class="docutils literal notranslate"><span class="pre">kornia</span></code> installed.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.Homography.html#deepinv.transform.Homography" title="deepinv.transform.Homography"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.Homography</span></code></a></p></td>
+<td><p>Random projective transformations (homographies).</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.transform.projective.Euclidean.html#deepinv.transform.projective.Euclidean" title="deepinv.transform.projective.Euclidean"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.projective.Euclidean</span></code></a></p></td>
+<td><p>Random Euclidean image transformations using projective transformation framework.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.projective.Similarity.html#deepinv.transform.projective.Similarity" title="deepinv.transform.projective.Similarity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.projective.Similarity</span></code></a></p></td>
+<td><p>Random 2D similarity image transformations using projective transformation framework.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.transform.projective.Affine.html#deepinv.transform.projective.Affine" title="deepinv.transform.projective.Affine"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.projective.Affine</span></code></a></p></td>
+<td><p>Random affine image transformations using projective transformation framework.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.projective.PanTiltRotate.html#deepinv.transform.projective.PanTiltRotate" title="deepinv.transform.projective.PanTiltRotate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.projective.PanTiltRotate</span></code></a></p></td>
+<td><p>Random 3D camera rotation image transformations using projective transformation framework.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.transform.CPABDiffeomorphism.html#deepinv.transform.CPABDiffeomorphism" title="deepinv.transform.CPABDiffeomorphism"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.CPABDiffeomorphism</span></code></a></p></td>
+<td><p>Continuous Piecewise-Affine-based Diffeomorphism.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="video-transforms">
+<h2>Video transforms<a class="headerlink" href="#video-transforms" title="Link to this heading"></a></h2>
+<p>While all geometric transforms accept video input, the following transforms work specifically in the time dimension.
+These can be easily compounded with geometric transformations using the <code class="docutils literal notranslate"><span class="pre">*</span></code> operation.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.transform.ShiftTime.html#deepinv.transform.ShiftTime" title="deepinv.transform.ShiftTime"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.transform.ShiftTime</span></code></a></p></td>
+<td><p>Shift a video in time with reflective padding.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stubs/deepinv.loss.metric.NIQE.html" class="btn btn-neutral float-left" title="NIQE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.transform.Transform.html" class="btn btn-neutral float-right" title="Transform" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+﻿bilinear\_filter
+================
+
+.. currentmodule:: deepinv.physics.blur
+
+.. autofunction:: bilinear_filter
+
+.. minigallery:: deepinv.physics.blur.bilinear_filter
+    :add-heading: Examples using ``bilinear_filter``:

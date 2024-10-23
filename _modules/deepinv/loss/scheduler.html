@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deepinv.loss.scheduler &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../../../_static/logo.ico"/>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../../../index.html">
+            
+              <img src="../../../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">deepinv.loss.scheduler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for deepinv.loss.scheduler</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">randint</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">tensor</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">Module</span>
+<span class="kn">from</span> <span class="nn">deepinv.loss.loss</span> <span class="kn">import</span> <span class="n">Loss</span>
+<span class="kn">from</span> <span class="nn">deepinv.physics.forward</span> <span class="kn">import</span> <span class="n">Physics</span>
+
+
+<div class="viewcode-block" id="BaseLossScheduler">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">BaseLossScheduler</span><span class="p">(</span><span class="n">Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for loss schedulers.</span>
+
+<span class="sd">    Wraps a list of losses, and each time forward is called, some of them are selected based on a defined schedule.</span>
+
+<span class="sd">    :param Loss \*loss: loss or multiple losses to be scheduled.</span>
+<span class="sd">    :param Generator generator: torch random number generator, defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">loss</span><span class="p">:</span> <span class="n">Loss</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rng</span> <span class="o">=</span> <span class="n">generator</span> <span class="k">if</span> <span class="n">generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">Generator</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseLossScheduler.schedule">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.schedule">[docs]</a>
+    <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return selected losses based on defined schedule, optionally based on current epoch.</span>
+
+<span class="sd">        :param int epoch: current epoch number</span>
+<span class="sd">        :return list[Loss]: selected (sub)list of losses to be used this time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span></div>
+
+
+<div class="viewcode-block" id="BaseLossScheduler.forward">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x_net</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">physics</span><span class="p">:</span> <span class="n">Physics</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loss forward pass.</span>
+
+<span class="sd">        When called, subselect losses based on defined schedule to be used at this pass, and apply to inputs.</span>
+
+<span class="sd">        :param Tensor x_net: model output</span>
+<span class="sd">        :param Tensor x: ground truth</span>
+<span class="sd">        :param Tensor y: measurement</span>
+<span class="sd">        :param Physics physics: measurement operator</span>
+<span class="sd">        :param Module model: reconstruction model</span>
+<span class="sd">        :param int epoch: current epoch</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+        <span class="n">loss_total</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">losses</span><span class="p">:</span>
+            <span class="n">loss_total</span> <span class="o">+=</span> <span class="n">l</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span>
+                <span class="n">x_net</span><span class="o">=</span><span class="n">x_net</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span>
+                <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">epoch</span><span class="o">=</span><span class="n">epoch</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_total</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">tensor</span><span class="p">(</span><span class="n">loss_total</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss_total</span></div>
+
+
+<div class="viewcode-block" id="BaseLossScheduler.adapt_model">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.BaseLossScheduler.html#deepinv.loss.BaseLossScheduler.adapt_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">adapt_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Module</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adapt model using all wrapped losses.</span>
+
+<span class="sd">        Some loss functions require the model forward call to be adapted before the forward pass.</span>
+
+<span class="sd">        :param Module model: reconstruction model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">adapt_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RandomLossScheduler">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.RandomLossScheduler.html#deepinv.loss.RandomLossScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">RandomLossScheduler</span><span class="p">(</span><span class="n">BaseLossScheduler</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Schedule losses at random.</span>
+
+<span class="sd">    The scheduler wraps a list of losses. Each time this is called, one loss is selected at random and used for the forward pass.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss import RandomLossScheduler, SupLoss</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import SSIM</span>
+<span class="sd">    &gt;&gt;&gt; l = RandomLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose randomly between Sup and SSIM</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.tensor([0., 0., 0.])</span>
+<span class="sd">    &gt;&gt;&gt; l(x=x, x_net=x_net)</span>
+<span class="sd">    tensor(0.)</span>
+
+<span class="sd">    :param Loss \*loss: loss or multiple losses to be scheduled.</span>
+<span class="sd">    :param Generator generator: torch random number generator, defaults to None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RandomLossScheduler.schedule">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.RandomLossScheduler.html#deepinv.loss.RandomLossScheduler.schedule">[docs]</a>
+    <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]:</span>
+        <span class="n">choice</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,),</span> <span class="n">generator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rng</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">[</span><span class="n">choice</span><span class="p">]]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InterleavedLossScheduler">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.InterleavedLossScheduler.html#deepinv.loss.InterleavedLossScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">InterleavedLossScheduler</span><span class="p">(</span><span class="n">BaseLossScheduler</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Schedule losses sequentially one-by-one.</span>
+
+<span class="sd">    The scheduler wraps a list of losses. Each time this is called, the next loss is selected in order and used for the forward pass.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss import InterleavedLossScheduler, SupLoss</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import SSIM</span>
+<span class="sd">    &gt;&gt;&gt; l = InterleavedLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose alternating between Sup and SSIM</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.tensor([0., 0., 0.])</span>
+<span class="sd">    &gt;&gt;&gt; l(x=x, x_net=x_net)</span>
+<span class="sd">    tensor(0.)</span>
+
+<span class="sd">    :param Loss \*loss: loss or multiple losses to be scheduled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">loss</span><span class="p">:</span> <span class="n">Loss</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">loss</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">choice</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="InterleavedLossScheduler.schedule">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.InterleavedLossScheduler.html#deepinv.loss.InterleavedLossScheduler.schedule">[docs]</a>
+    <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">choice</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">choice</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choice</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InterleavedEpochLossScheduler">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.InterleavedEpochLossScheduler.html#deepinv.loss.InterleavedEpochLossScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">InterleavedEpochLossScheduler</span><span class="p">(</span><span class="n">BaseLossScheduler</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Schedule losses sequentially epoch-by-epoch.</span>
+
+<span class="sd">    The scheduler wraps a list of losses. Each epoch, the next loss is selected in order and used for the forward pass for that epoch.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss import InterleavedEpochLossScheduler, SupLoss</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import SSIM</span>
+<span class="sd">    &gt;&gt;&gt; l = InterleavedEpochLossScheduler(SupLoss(), SSIM(train_loss=True)) # Choose alternating between Sup and SSIM</span>
+<span class="sd">    &gt;&gt;&gt; x_net = x = torch.tensor([0., 0., 0.])</span>
+<span class="sd">    &gt;&gt;&gt; l(x=x, x_net=x_net, epoch=0)</span>
+<span class="sd">    tensor(0.)</span>
+
+<span class="sd">    :param Loss \*loss: loss or multiple losses to be scheduled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="InterleavedEpochLossScheduler.schedule">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.InterleavedEpochLossScheduler.html#deepinv.loss.InterleavedEpochLossScheduler.schedule">[docs]</a>
+    <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">[</span><span class="n">epoch</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="p">)]]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="StepLossScheduler">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.StepLossScheduler.html#deepinv.loss.StepLossScheduler">[docs]</a>
+<span class="k">class</span> <span class="nc">StepLossScheduler</span><span class="p">(</span><span class="n">BaseLossScheduler</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Activate losses at specified epoch.</span>
+
+<span class="sd">    The scheduler wraps a list of losses. When epoch is &lt;= threshold, this returns 0. Otherwise, it returns the sum of the losses.</span>
+
+<span class="sd">    :Example:</span>
+
+<span class="sd">    &gt;&gt;&gt; import torch</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss import StepLossScheduler</span>
+<span class="sd">    &gt;&gt;&gt; from deepinv.loss.metric import SSIM</span>
+<span class="sd">    &gt;&gt;&gt; l = StepLossScheduler(SSIM(train_loss=True)) # Use SSIM only after epoch 10</span>
+<span class="sd">    &gt;&gt;&gt; x_net = torch.zeros(1, 1, 12, 12)</span>
+<span class="sd">    &gt;&gt;&gt; x = torch.ones(1, 1, 12, 12)</span>
+<span class="sd">    &gt;&gt;&gt; l(x=x, x_net=x_net, epoch=0)</span>
+<span class="sd">    tensor(0., requires_grad=True)</span>
+<span class="sd">    &gt;&gt;&gt; l(x=x, x_net=x_net, epoch=11)</span>
+<span class="sd">    tensor([0.9999])</span>
+
+<span class="sd">    :param Loss \*loss: loss or multiple losses to be scheduled.</span>
+<span class="sd">    :param int epoch_thresh: threshold above which the losses are used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">loss</span><span class="p">:</span> <span class="n">Loss</span><span class="p">,</span> <span class="n">epoch_thresh</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">loss</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch_thresh</span> <span class="o">=</span> <span class="n">epoch_thresh</span>
+
+<div class="viewcode-block" id="StepLossScheduler.schedule">
+<a class="viewcode-back" href="../../../stubs/deepinv.loss.StepLossScheduler.html#deepinv.loss.StepLossScheduler.schedule">[docs]</a>
+    <span class="k">def</span> <span class="nf">schedule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Loss</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="k">if</span> <span class="n">epoch</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch_thresh</span> <span class="k">else</span> <span class="p">[]</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

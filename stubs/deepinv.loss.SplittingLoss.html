@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SplittingLoss &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Phase2PhaseLoss" href="deepinv.loss.Phase2PhaseLoss.html" />
+    <link rel="prev" title="Neighbor2Neighbor" href="deepinv.loss.Neighbor2Neighbor.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.loss.html">Loss</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#supervised-learning">Supervised Learning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.loss.html#self-supervised-learning">Self-Supervised Learning</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.MCLoss.html">MCLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.EILoss.html">EILoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.MOILoss.html">MOILoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.MOEILoss.html">MOEILoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.Neighbor2Neighbor.html">Neighbor2Neighbor</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">SplittingLoss</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.loss.SplittingLoss"><code class="docutils literal notranslate"><span class="pre">SplittingLoss</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-using-splittingloss">Examples using <code class="docutils literal notranslate"><span class="pre">SplittingLoss</span></code>:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.Phase2PhaseLoss.html">Phase2PhaseLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.Artifact2ArtifactLoss.html">Artifact2ArtifactLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.SureGaussianLoss.html">SureGaussianLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.SurePoissonLoss.html">SurePoissonLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.SurePGLoss.html">SurePGLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.TVLoss.html">TVLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.R2RLoss.html">R2RLoss</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.loss.ScoreLoss.html">ScoreLoss</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#adversarial-learning">Adversarial Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#network-regularization">Network Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#loss-schedulers">Loss schedulers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.loss.html#utils">Utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.loss.html">Loss</a></li>
+      <li class="breadcrumb-item active">SplittingLoss</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.loss.SplittingLoss.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="splittingloss">
+<h1>SplittingLoss<a class="headerlink" href="#splittingloss" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.loss.SplittingLoss">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.loss.</span></span><span class="sig-name descname"><span class="pre">SplittingLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric" title="deepinv.loss.metric.metric.Metric"><span class="pre">Metric</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><span class="pre">Module</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">MSELoss()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.base.PhysicsGenerator"><span class="pre">PhysicsGenerator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_split_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_split_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pixelwise</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/loss/measplit.html#SplittingLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.loss.SplittingLoss" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="deepinv.loss.Loss.html#deepinv.loss.Loss" title="deepinv.loss.loss.Loss"><code class="xref py py-class docutils literal notranslate"><span class="pre">Loss</span></code></a></p>
+<p>Measurement splitting loss.</p>
+<p>Implements measurement splitting loss from <a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/32614100/">Yaman et al.</a> (SSDU) for MRI,
+<a class="reference external" href="https://arxiv.org/abs/2001.11801">Hendriksen et al.</a> (Noise2Inverse) for CT,
+<a class="reference external" href="https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4">Acar et al.</a> dynamic MRI. Also see <a class="reference internal" href="deepinv.loss.Artifact2ArtifactLoss.html#deepinv.loss.Artifact2ArtifactLoss" title="deepinv.loss.Artifact2ArtifactLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.Artifact2ArtifactLoss</span></code></a>, <a class="reference internal" href="deepinv.loss.Phase2PhaseLoss.html#deepinv.loss.Phase2PhaseLoss" title="deepinv.loss.Phase2PhaseLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.loss.Phase2PhaseLoss</span></code></a> for similar.</p>
+<p>Splits the measurement and forward operator <span class="math notranslate nohighlight">\(\forw{}\)</span> (of size <span class="math notranslate nohighlight">\(m\)</span>)
+into two smaller pairs  <span class="math notranslate nohighlight">\((y_1,A_1)\)</span> (of size <span class="math notranslate nohighlight">\(m_1\)</span>) and  <span class="math notranslate nohighlight">\((y_2,A_2)\)</span> (of size <span class="math notranslate nohighlight">\(m_2\)</span>) ,
+to compute the self-supervised loss:</p>
+<div class="math notranslate nohighlight">
+\[\frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(R\)</span> is the trainable network, <span class="math notranslate nohighlight">\(A_1 = M_1 \forw{}, A_2 = M_2 \forw{}\)</span>, and <span class="math notranslate nohighlight">\(M_i\)</span> are randomly generated masks (i.e. diagonal matrices) such that <span class="math notranslate nohighlight">\(M_1+M_2=\mathbb{I}_m\)</span>.</p>
+<p>See <a class="reference internal" href="../auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a> for usage example.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the forward operator has its own subsampling mask <span class="math notranslate nohighlight">\(M_{\forw{}}\)</span>, e.g. <a class="reference internal" href="deepinv.physics.Inpainting.html#deepinv.physics.Inpainting" title="deepinv.physics.Inpainting"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.Inpainting</span></code></a> or <a class="reference internal" href="deepinv.physics.MRI.html#deepinv.physics.MRI" title="deepinv.physics.MRI"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.MRI</span></code></a>,
+the splitting masks will be subsets of the physics’ mask such that <span class="math notranslate nohighlight">\(M_1+M_2=M_{\forw{}}\)</span></p>
+</div>
+<p>This loss was used in SSDU for MRI in <a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/32614100/">Yaman et al. Self-supervised learning of physics-guided reconstruction neural networks without fully sampled reference data</a></p>
+<p>By default, the error is computed using the MSE metric, however any appropriate metric can be used.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The model should be adapted before training using the method <a class="reference internal" href="#deepinv.loss.SplittingLoss.adapt_model" title="deepinv.loss.SplittingLoss.adapt_model"><code class="xref py py-meth docutils literal notranslate"><span class="pre">adapt_model()</span></code></a> to include the splitting mechanism at the input.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To obtain the best test performance, the trained model should be averaged at test time
+over multiple realizations of the splitting, i.e.
+<span class="math notranslate nohighlight">\(\hat{x} = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}\)</span>. To disable this, set <code class="docutils literal notranslate"><span class="pre">eval_n_samples=1</span></code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To disable measurement splitting (and use the full input) at evaluation time, set <code class="docutils literal notranslate"><span class="pre">eval_split_input=True</span></code>. This is done in <a class="reference external" href="https://pubmed.ncbi.nlm.nih.gov/32614100/">SSDU</a>.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metric</strong> (<a class="reference internal" href="deepinv.loss.metric.Metric.html#deepinv.loss.metric.Metric" title="deepinv.loss.metric.Metric"><em>Metric</em></a><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – metric used for computing data consistency,
+which is set as the mean squared error by default.</p></li>
+<li><p><strong>split_ratio</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – splitting ratio, should be between 0 and 1. The size of <span class="math notranslate nohighlight">\(y_1\)</span> increases
+with the splitting ratio. Ignored if <code class="docutils literal notranslate"><span class="pre">mask_generator</span></code> passed.</p></li>
+<li><p><strong>mask_generator</strong> (<a class="reference internal" href="deepinv.physics.generator.PhysicsGenerator.html#deepinv.physics.generator.PhysicsGenerator" title="deepinv.physics.generator.PhysicsGenerator"><em>deepinv.physics.generator.PhysicsGenerator</em></a><em>, </em><em>None</em>) – function to generate the mask. If
+None, the <a class="reference internal" href="deepinv.physics.generator.BernoulliSplittingMaskGenerator.html#deepinv.physics.generator.BernoulliSplittingMaskGenerator" title="deepinv.physics.generator.BernoulliSplittingMaskGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">deepinv.physics.generator.BernoulliSplittingMaskGenerator</span></code></a> is used, with the parameters <code class="docutils literal notranslate"><span class="pre">split_ratio</span></code> and <code class="docutils literal notranslate"><span class="pre">pixelwise</span></code>.</p></li>
+<li><p><strong>eval_n_samples</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – Number of samples used for averaging at evaluation time. Must be greater than 0.</p></li>
+<li><p><strong>eval_split_input</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)</p></li>
+<li><p><strong>eval_split_output</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – at evaluation time, pass the output through the output mask too.
+i.e. <span class="math notranslate nohighlight">\((\sum_{j=1}^N M_2^{(j)})^{-1} \sum_{i=1}^N M_2^{(i)} \inversef{y_1^{(i)}}{A_1^{(i)}}\)</span>.
+Only valid when <span class="math notranslate nohighlight">\(y\)</span> is same domain (and dimension) as <span class="math notranslate nohighlight">\(x\)</span>. Although better results may be observed on small datasets, more samples must be used for bigger images. Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>pixelwise</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – if <code class="docutils literal notranslate"><span class="pre">True</span></code>, create pixelwise splitting masks i.e. zero all channels simultaneously. Ignored if <code class="docutils literal notranslate"><span class="pre">mask_generator</span></code> passed.</p></li>
+</ul>
+</dd>
+</dl>
+<p><hr /></p>
+<dl class="field-list simple">
+<dt class="field-odd">Example<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">Inpainting</span><span class="p">(</span><span class="n">tensor_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">MedianFilter</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">SplittingLoss</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">eval_n_samples</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">adapt_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span> <span class="c1"># important step!</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">physics</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x_net</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">update_parameters</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="c1"># save random mask in forward pass</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">l</span> <span class="o">=</span> <span class="n">loss</span><span class="p">(</span><span class="n">x_net</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">physics</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.loss.SplittingLoss.adapt_model">
+<span class="sig-name descname"><span class="pre">adapt_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">SplittingModel</span></span></span><a class="reference internal" href="../_modules/deepinv/loss/measplit.html#SplittingLoss.adapt_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.loss.SplittingLoss.adapt_model" title="Link to this definition"></a></dt>
+<dd><p>Apply random splitting to input.</p>
+<p>This method modifies a reconstruction
+model <span class="math notranslate nohighlight">\(R\)</span> to include the splitting mechanism at the input:</p>
+<div class="math notranslate nohighlight">
+\[\hat{R}(y, A) = \frac{1}{N}\sum_{i=1}^N \inversef{y_1^{(i)}}{A_1^{(i)}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(N\geq 1\)</span> is the number of Monte Carlo samples,
+and <span class="math notranslate nohighlight">\(y_1^{(i)}\)</span> and <span class="math notranslate nohighlight">\(A_1^{(i)}\)</span> are obtained by
+randomly splitting the measurements <span class="math notranslate nohighlight">\(y\)</span> and operator <span class="math notranslate nohighlight">\(A\)</span>.
+During training (i.e. when <code class="docutils literal notranslate"><span class="pre">model.train()</span></code>), we use only one sample, i.e. <span class="math notranslate nohighlight">\(N=1\)</span>
+for computational efficiency, whereas at test time, we use multiple samples for better performance.
+For other parameters that control how splitting is applied, see the class parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – Reconstruction model.</p></li>
+<li><p><strong>eval_n_samples</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – deprecated. Pass <code class="docutils literal notranslate"><span class="pre">eval_n_samples</span></code> at class initialisation instead.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.nn.Module) Model modified for evaluation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.loss.SplittingLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_net</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/loss/measplit.html#SplittingLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.loss.SplittingLoss.forward" title="Link to this definition"></a></dt>
+<dd><p>Computes the measurement splitting loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – Measurements.</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a>) – Forward operator associated with the measurements.</p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><em>torch.nn.Module</em></a>) – Reconstruction function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(torch.Tensor) loss.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.loss.SplittingLoss.split">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">physics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.forward.Physics"><span class="pre">Physics</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/loss/measplit.html#SplittingLoss.split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.loss.SplittingLoss.split" title="Link to this definition"></a></dt>
+<dd><p>Perform splitting given mask</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – splitting mask</p></li>
+<li><p><strong>y</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input data</p></li>
+<li><p><strong>physics</strong> (<a class="reference internal" href="deepinv.physics.Physics.html#deepinv.physics.Physics" title="deepinv.physics.Physics"><em>deepinv.physics.Physics</em></a>) – physics to split, retaining its original noise model. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, only <span class="math notranslate nohighlight">\(y\)</span> is split.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="examples-using-splittingloss">
+<span id="sphx-glr-backref-deepinv-loss-splittingloss"></span><h2>Examples using <code class="docutils literal notranslate"><span class="pre">SplittingLoss</span></code>:<a class="headerlink" href="#examples-using-splittingloss" title="Link to this heading"></a></h2>
+<div class="sphx-glr-thumbnails"><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate self-supervised learning with measurement splitting, to train a denoiser network on the MNIST dataset. The physics here is noisy computed tomography, as is the case in Noise2Inverse. Note this example can also be easily applied to undersampled multicoil MRI as is the case in SSDU."><img alt="" src="../_images/sphx_glr_demo_splitting_loss_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_splitting_loss.html#sphx-glr-auto-examples-self-supervised-learning-demo-splitting-loss-py"><span class="std std-ref">Self-supervised learning with measurement splitting</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised learning with measurement splitting</div>
+</div><div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the self-supervised Artifact2Artifact loss for solving an undersampled sequential MRI reconstruction problem without ground truth."><img alt="" src="../_images/sphx_glr_demo_artifact2artifact_thumb.png" />
+<p><a class="reference internal" href="../auto_examples/self-supervised-learning/demo_artifact2artifact.html#sphx-glr-auto-examples-self-supervised-learning-demo-artifact2artifact-py"><span class="std std-ref">Self-supervised MRI reconstruction with Artifact2Artifact</span></a></p>
+  <div class="sphx-glr-thumbnail-title">Self-supervised MRI reconstruction with Artifact2Artifact</div>
+</div></div></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.loss.Neighbor2Neighbor.html" class="btn btn-neutral float-left" title="Neighbor2Neighbor" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.loss.Phase2PhaseLoss.html" class="btn btn-neutral float-right" title="Phase2PhaseLoss" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

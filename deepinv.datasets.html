@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datasets &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="_static/logo.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=35a8b989"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="HDF5Dataset" href="stubs/deepinv.datasets.HDF5Dataset.html" />
+    <link rel="prev" title="histogram" href="stubs/deepinv.physics.functional.histogram.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="index.html">
+            
+              <img src="_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#hd5dataset">HD5Dataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.HDF5Dataset.html">HDF5Dataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.generate_dataset.html">generate_dataset</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#patchdataset">PatchDataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.PatchDataset.html">PatchDataset</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#image-datasets">Image Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.DIV2K.html">DIV2K</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.Urban100HR.html">Urban100HR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.Set14HR.html">Set14HR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.CBSD68.html">CBSD68</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.FastMRISliceDataset.html">FastMRISliceDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.LidcIdriSliceDataset.html">LidcIdriSliceDataset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.Flickr2kHR.html">Flickr2kHR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.LsdirHR.html">LsdirHR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stubs/deepinv.datasets.FMD.html">FMD</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.denoisers.html">Denoisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Datasets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/deepinv.datasets.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="datasets">
+<span id="id1"></span><h1>Datasets<a class="headerlink" href="#datasets" title="Link to this heading"></a></h1>
+<p>This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).</p>
+<section id="hd5dataset">
+<h2>HD5Dataset<a class="headerlink" href="#hd5dataset" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.HDF5Dataset.html#deepinv.datasets.HDF5Dataset" title="deepinv.datasets.HDF5Dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.HDF5Dataset</span></code></a></p></td>
+<td><p>DeepInverse HDF5 dataset with signal/measurement pairs <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset</span></code></a></p></td>
+<td><p>Generates dataset of signal/measurement pairs from base dataset.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Generating a dataset associated with a certain forward operator is done via <a class="reference internal" href="stubs/deepinv.datasets.generate_dataset.html#deepinv.datasets.generate_dataset" title="deepinv.datasets.generate_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">deepinv.datasets.generate_dataset()</span></code></a>
+using a base PyTorch dataset (<a class="reference external" href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.Dataset" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.Dataset</span></code></a>, in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We support all data types supported by <code class="docutils literal notranslate"><span class="pre">h5py</span></code>, including complex numbers.</p>
+</div>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">deepinv</span> <span class="k">as</span> <span class="nn">dinv</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">transforms</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">save_dir</span> <span class="o">=</span> <span class="s1">&#39;../datasets/MNIST/&#39;</span> <span class="c1"># directory where the dataset will be saved.</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># define base train dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">transform_data</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span><span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_train</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="s1">&#39;../datasets/&#39;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>                            <span class="n">transform</span><span class="o">=</span><span class="n">transform_data</span><span class="p">,</span> <span class="n">download</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_test</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">MNIST</span><span class="p">(</span><span class="n">root</span><span class="o">=</span><span class="s1">&#39;../datasets/&#39;</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># define forward operator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">CompressedSensing</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">img_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">physics</span><span class="o">.</span><span class="n">noise_model</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">GaussianNoise</span><span class="p">(</span><span class="n">sigma</span><span class="o">=</span><span class="mf">.05</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># generate paired dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generated_dataset_path</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span><span class="n">train_dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">test_dataset</span><span class="o">=</span><span class="n">data_test</span><span class="p">,</span>
+<span class="gp">... </span>                               <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">save_dir</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Similarly, we can generate a dataset from a local folder of images (other types of data can be loaded using the <code class="docutils literal notranslate"><span class="pre">loader</span></code>
+and <code class="docutils literal notranslate"><span class="pre">is_valid_file</span></code> arguments of <code class="xref py py-meth docutils literal notranslate"><span class="pre">torchvision.datasets.ImageFolder`()</span></code>):</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Note that ImageFolder requires file structure to be &#39;.../dir/train/xxx/yyy.ext&#39; where xxx is an arbitrary class label</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_train</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">ImageFolder</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">save_dir</span><span class="si">}</span><span class="s1">/train&#39;</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">transform_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data_test</span>  <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">ImageFolder</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">save_dir</span><span class="si">}</span><span class="s1">/test&#39;</span><span class="p">,</span>  <span class="n">transform</span><span class="o">=</span><span class="n">transform_data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span><span class="n">train_dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">test_dataset</span><span class="o">=</span><span class="n">data_test</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                               <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">save_dir</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The datasets are saved in <code class="docutils literal notranslate"><span class="pre">.h5</span></code> (HDF5) format, and can be easily loaded to pytorch’s standard
+<a class="reference external" href="http://pytorch.org/docs/2.0/data.html#torch.utils.data.DataLoader" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.DataLoader</span></code></a>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">generated_dataset_path</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We can also use physics generators to randomly generate physics params for data,
+and save and load the physics params into the dataset:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">physics_generator</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">physics</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">SigmaGenerator</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pth</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">generate_dataset</span><span class="p">(</span><span class="n">train_dataset</span><span class="o">=</span><span class="n">data_train</span><span class="p">,</span> <span class="n">test_dataset</span><span class="o">=</span><span class="n">data_test</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                                     <span class="n">physics</span><span class="o">=</span><span class="n">physics</span><span class="p">,</span> <span class="n">physics_generator</span><span class="o">=</span><span class="n">physics_generator</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                                     <span class="n">device</span><span class="o">=</span><span class="n">dinv</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="n">save_dir</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dinv</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">HDF5Dataset</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">pth</span><span class="p">,</span> <span class="n">load_physics_generator_params</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataloader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">dataloader</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="go">torch.Size([4])</span>
+</pre></div>
+</div>
+</section>
+<section id="patchdataset">
+<h2>PatchDataset<a class="headerlink" href="#patchdataset" title="Link to this heading"></a></h2>
+<p>Generate a dataset of all patches out of a tensor of images.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.PatchDataset.html#deepinv.datasets.PatchDataset" title="deepinv.datasets.PatchDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.PatchDataset</span></code></a></p></td>
+<td><p>Builds the dataset of all patches from a tensor of images.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="image-datasets">
+<h2>Image Datasets<a class="headerlink" href="#image-datasets" title="Link to this heading"></a></h2>
+<p>Ready-made datasets available in the <cite>deepinv.datasets</cite> module.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.DIV2K.html#deepinv.datasets.DIV2K" title="deepinv.datasets.DIV2K"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.DIV2K</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://data.vision.ee.ethz.ch/cvl/DIV2K">DIV2K Image Super-Resolution Challenge</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.datasets.Urban100HR.html#deepinv.datasets.Urban100HR" title="deepinv.datasets.Urban100HR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.Urban100HR</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://paperswithcode.com/dataset/urban100">Urban100</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.Set14HR.html#deepinv.datasets.Set14HR" title="deepinv.datasets.Set14HR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.Set14HR</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://paperswithcode.com/dataset/set14">Set14</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.datasets.CBSD68.html#deepinv.datasets.CBSD68" title="deepinv.datasets.CBSD68"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.CBSD68</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://paperswithcode.com/dataset/cbsd68">CBSBD68</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset" title="deepinv.datasets.FastMRISliceDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.FastMRISliceDataset</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://fastmri.med.nyu.edu/">fastMRI</a> that provides access to MR image slices.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.datasets.LidcIdriSliceDataset.html#deepinv.datasets.LidcIdriSliceDataset" title="deepinv.datasets.LidcIdriSliceDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.LidcIdriSliceDataset</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://www.cancerimagingarchive.net/collection/lidc-idri/">LIDC-IDRI</a> that provides access to CT image slices.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.Flickr2kHR.html#deepinv.datasets.Flickr2kHR" title="deepinv.datasets.Flickr2kHR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.Flickr2kHR</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://github.com/limbee/NTIRE2017">Flickr2K</a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="stubs/deepinv.datasets.LsdirHR.html#deepinv.datasets.LsdirHR" title="deepinv.datasets.LsdirHR"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.LsdirHR</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://data.vision.ee.ethz.ch/yawli/">LSDIR</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="stubs/deepinv.datasets.FMD.html#deepinv.datasets.FMD" title="deepinv.datasets.FMD"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deepinv.datasets.FMD</span></code></a></p></td>
+<td><p>Dataset for <a class="reference external" href="https://github.com/yinhaoz/denoising-fluorescence">Fluorescence Microscopy Denoising</a>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stubs/deepinv.physics.functional.histogram.html" class="btn btn-neutral float-left" title="histogram" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stubs/deepinv.datasets.HDF5Dataset.html" class="btn btn-neutral float-right" title="HDF5Dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>

@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restormer &mdash; deepinverse 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=35a8b989"></script>
+      <script>window.MathJax = {"tex": {"equationNumbers": {"autoNumber": "AMS", "useLabelIds": true}, "macros": {"forw": ["{A\\left({#1}\\right)}", 1], "noise": ["{N\\left({#1}\\right)}", 1], "inverse": ["{R\\left({#1}\\right)}", 1], "inversef": ["{R\\left({#1},{#2}\\right)}", 2], "reg": ["{g_\\sigma\\left({#1}\\right)}", 1], "regname": "g_\\sigma", "sensor": ["{\\eta\\left({#1}\\right)}", 1], "datafid": ["{f\\left({#1},{#2}\\right)}", 2], "datafidname": "f", "distance": ["{d\\left({#1},{#2}\\right)}", 2], "distancename": "d", "denoiser": ["{\\operatorname{D}_{{#2}}\\left({#1}\\right)}", 2], "denoisername": "\\operatorname{D}_{\\sigma}", "xset": "\\mathcal{X}", "yset": "\\mathcal{Y}", "group": "\\mathcal{G}", "metric": ["{d\\left({#1},{#2}\\right)}", 2], "loss": ["{\\mathcal\\left({#1}\\right)}", 1], "conj": ["{\\overline{#1}^{\\top}}", 1]}}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ICNN" href="deepinv.models.ICNN.html" />
+    <link rel="prev" title="DiffUNet" href="deepinv.models.DiffUNet.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: white" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/deepinv_logolarge.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.physics.html">Physics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.datasets.html">Datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.utils.html">Utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.loss.html">Loss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.metric.html">Metrics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.transform.html">Transforms</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../deepinv.denoisers.html">Denoisers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#classical-denoisers">Classical Denoisers</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../deepinv.denoisers.html#deep-denoisers">Deep Denoisers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.AutoEncoder.html">AutoEncoder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.UNet.html">UNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DnCNN.html">DnCNN</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DRUNet.html">DRUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.SCUNet.html">SCUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.GSDRUNet.html">GSDRUNet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.SwinIR.html">SwinIR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.DiffUNet.html">DiffUNet</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Restormer</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#deepinv.models.Restormer"><code class="docutils literal notranslate"><span class="pre">Restormer</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="deepinv.models.ICNN.html">ICNN</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#equivariant-denoisers">Equivariant Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#adversarial-networks">Adversarial Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#complex-denoisers">Complex Denoisers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../deepinv.denoisers.html#pretrained-weights">Pretrained Weights</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.optim.html">Optim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.iterative.html">Iterative Reconstruction (PnP, RED, etc.)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.unfolded.html">Unfolded Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.sampling.html">Diffusion Algorithms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.other_models.html">Other Reconstruction Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../auto_examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.multigpu.html">Using multiple GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.notation.html">Math Notation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deepinv.contributing.html">How to Contribute</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: white" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">deepinverse</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../deepinv.denoisers.html">Denoisers</a></li>
+      <li class="breadcrumb-item active">Restormer</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/stubs/deepinv.models.Restormer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="restormer">
+<h1>Restormer<a class="headerlink" href="#restormer" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="deepinv.models.Restormer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">deepinv.models.</span></span><span class="sig-name descname"><span class="pre">Restormer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">48</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[4,</span> <span class="pre">6,</span> <span class="pre">6,</span> <span class="pre">8]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_refinement_blocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">4,</span> <span class="pre">8]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ffn_expansion_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2.66</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LayerNorm_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'BiasFree'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dual_pixel_task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretrained</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'denoising'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><span class="pre">device</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.4/library/constants.html#None" title="(in Python v3.4)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="http://pytorch.org/docs/2.0/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></a></p>
+<p>Restormer denoiser network.</p>
+<p>This network architecture was proposed in the paper:
+<a class="reference external" href="https://arxiv.org/abs/2111.09881">Restormer: Efficient Transformer for High-Resolution Image Restoration</a></p>
+<a class="reference internal image-reference" href="../_images/restormer_architecture.png"><img alt="Overview of the Restormer architecture / Fig 2 in paper by Zamir et al." src="../_images/restormer_architecture.png" style="width: 600px;" />
+</a>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line-block">
+<div class="line">By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.</div>
+<div class="line">Usage :</div>
+<div class="line-block">
+<div class="line">model = Restormer()</div>
+<div class="line">output = model(input)</div>
+</div>
+</div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of channels of the input.</p></li>
+<li><p><strong>out_channels</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of channels of the output.</p></li>
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of channels after the first conv operation (<code class="docutils literal notranslate"><span class="pre">in_channel</span></code>, H, W) -&gt; (<code class="docutils literal notranslate"><span class="pre">dim</span></code>, H, W).
+<code class="docutils literal notranslate"><span class="pre">dim</span></code> corresponds to <code class="docutils literal notranslate"><span class="pre">C</span></code> in the figure.</p></li>
+<li><p><strong>num_blocks</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a>) – number of <code class="docutils literal notranslate"><span class="pre">TransformerBlock</span></code> for each level of scale in the encoder-decoder stage with a total of 4-level of scales.
+<code class="docutils literal notranslate"><span class="pre">num_blocks</span> <span class="pre">=</span> <span class="pre">[L1,</span> <span class="pre">L2,</span> <span class="pre">L3,</span> <span class="pre">L4]</span></code> with L1 ≤ L2 ≤ L3 ≤ L4.</p></li>
+<li><p><strong>num_refinement_blocks</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#int" title="(in Python v3.4)"><em>int</em></a>) – number of <code class="docutils literal notranslate"><span class="pre">TransformerBlock</span></code> in the refinement stage after the decoder stage.
+Corresponds to <code class="docutils literal notranslate"><span class="pre">Lr</span></code> in the figure.</p></li>
+<li><p><strong>heads</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#list" title="(in Python v3.4)"><em>list</em></a>) – number of heads in <code class="docutils literal notranslate"><span class="pre">TransformerBlock</span></code> for each level of scale in the encoder-decoder stage and in the refinement stage.
+At same scale, all <cite>TransformerBlock</cite> have the same number of heads. The number of heads for the refinement block is <code class="docutils literal notranslate"><span class="pre">heads[0]</span></code>.</p></li>
+<li><p><strong>ffn_expansion_factor</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – corresponds to <span class="math notranslate nohighlight">\(\eta\)</span> in GDFN.</p></li>
+<li><p><strong>bias</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Add bias or not in each of the Attention and Feedforward layers inside of the <code class="docutils literal notranslate"><span class="pre">TransformerBlock</span></code>.</p></li>
+<li><p><strong>LayerNorm_type</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – Add bias or not in each of the LayerNorm inside of the <code class="docutils literal notranslate"><span class="pre">TransformerBlock</span></code>.
+<code class="docutils literal notranslate"><span class="pre">LayerNorm_type</span> <span class="pre">=</span> <span class="pre">'BiasFree'</span> <span class="pre">/</span> <span class="pre">'WithBias'</span></code>.</p></li>
+<li><p><strong>dual_pixel_task</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.</p></li>
+<li><p><strong>device</strong> (<em>NoneType</em><em>, </em><a class="reference external" href="http://pytorch.org/docs/2.0/tensor_attributes.html#torch.device" title="(in PyTorch v2.0)"><em>torch.device</em></a>) – Instruct our module to be either on cpu or on gpu. Default to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which suggests working on cpu.</p></li>
+<li><p><strong>pretrained</strong> (<em>NoneType</em><em>, </em><a class="reference external" href="https://docs.python.org/3.4/library/stdtypes.html#str" title="(in Python v3.4)"><em>str</em></a>) – Default to <code class="docutils literal notranslate"><span class="pre">'denoising'</span></code>.
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">pretrained</span> <span class="pre">=</span> <span class="pre">'denoising'</span> <span class="pre">/</span> <span class="pre">'denoising_gray'</span> <span class="pre">/</span> <span class="pre">'denoising_color'</span> <span class="pre">/</span> <span class="pre">'denoising_real'</span> <span class="pre">/</span> <span class="pre">'deraining'</span> <span class="pre">/</span> <span class="pre">'defocus_deblurring'</span></code>, will download weights from the HuggingFace Hub.
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">pretrained</span> <span class="pre">=</span> <span class="pre">'\*.pth'</span></code>, will load weights from a local pth file.</p></li>
+<li><p><strong>train</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#bool" title="(in Python v3.4)"><em>bool</em></a>) – training or testing mode.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
+<code class="docutils literal notranslate"><span class="pre">LayerNorm_type='BiasFree'</span></code> and <code class="docutils literal notranslate"><span class="pre">bias=False</span></code>
+(<a class="reference external" href="https://arxiv.org/abs/1906.05478">Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks</a>).</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.Restormer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer.forward" title="Link to this definition"></a></dt>
+<dd><p>Run the denoiser on noisy image. The noise level is not used in this denoiser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – noisy image</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3.4/library/functions.html#float" title="(in Python v3.4)"><em>float</em></a>) – noise level (not used)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.Restormer.forward_restormer">
+<span class="sig-name descname"><span class="pre">forward_restormer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer.forward_restormer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer.forward_restormer" title="Link to this definition"></a></dt>
+<dd><p>Run the Restormer network on the input image.</p>
+<p>The input shape is expected to be divisible by 8.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="http://pytorch.org/docs/2.0/tensors.html#torch.Tensor" title="(in PyTorch v2.0)"><em>torch.Tensor</em></a>) – input image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.Restormer.is_standard_deblurring_network">
+<span class="sig-name descname"><span class="pre">is_standard_deblurring_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_refinement_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ffn_expansion_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LayerNorm_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dual_pixel_task</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer.is_standard_deblurring_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer.is_standard_deblurring_network" title="Link to this definition"></a></dt>
+<dd><p>Check if model params are the params used to pre-trained the standard network for deblurring.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.Restormer.is_standard_denoising_network">
+<span class="sig-name descname"><span class="pre">is_standard_denoising_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_refinement_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ffn_expansion_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LayerNorm_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dual_pixel_task</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer.is_standard_denoising_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer.is_standard_denoising_network" title="Link to this definition"></a></dt>
+<dd><p>Check if model params are the params used to pre-trained the standard network for denoising.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="deepinv.models.Restormer.is_standard_deraining_network">
+<span class="sig-name descname"><span class="pre">is_standard_deraining_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_refinement_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ffn_expansion_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">LayerNorm_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dual_pixel_task</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/deepinv/models/restormer.html#Restormer.is_standard_deraining_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#deepinv.models.Restormer.is_standard_deraining_network" title="Link to this definition"></a></dt>
+<dd><p>Check if model params are the params used to pre-trained the standard network for deraining.</p>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="sphx-glr-backref-deepinv-models-restormer"></span></section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deepinv.models.DiffUNet.html" class="btn btn-neutral float-left" title="DiffUNet" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deepinv.models.ICNN.html" class="btn btn-neutral float-right" title="ICNN" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, DeepInv.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+    <!-- Theme Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-NSEKFKYSGR', {
+          'anonymize_ip': false,
+      });
+    </script> 
+
+</body>
+</html>
