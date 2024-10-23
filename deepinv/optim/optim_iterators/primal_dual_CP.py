@@ -47,7 +47,9 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the Chambolle-Pock algorithm.
 
@@ -107,8 +109,8 @@ class fStepCP(fStep):
             return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
         else:
             p = x + cur_params["stepsize_dual"] * w
-            return cur_data_fidelity.prox_d_conjugate(
-                p, y, gamma=cur_params["stepsize_dual"]
+            return cur_data_fidelity.prox_conjugate(
+                p, y, physics, gamma=cur_params["stepsize_dual"]
             )
 
 

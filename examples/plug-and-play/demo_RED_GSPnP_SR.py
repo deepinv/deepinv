@@ -128,7 +128,7 @@ class GSPnP(RED):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the prior :math:`g(x)`.
 

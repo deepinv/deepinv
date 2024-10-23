@@ -205,7 +205,7 @@ class PoissonNoise(NoiseModel):
     Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`
     with gain :math:`\gamma>0`.
 
-    If ``normalize=True``, the output is divided by the gain, i.e., :math:`\tilde{y} = \gamma y`.
+    If ``normalize=True``, the output is multiplied by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
     |sep|
 
