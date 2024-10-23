@@ -23,6 +23,7 @@ from deepinv.optim.phase_retrieval import (
     load_config,
     generate_signal,
 )
+from deepinv.physics import StructuredRandomPhaseRetrieval
 
 # load config
 config_path = "../config/structured_spectral.yaml"
@@ -36,6 +37,7 @@ save = config.general.save
 # model
 img_size = config.signal.img_size
 n_layers = config.model.n_layers
+structure = StructuredRandomPhaseRetrieval.get_structure(n_layers)
 transform = config.model.transform
 diagonal_mode = config.model.diagonal.mode
 distri_config = config.model.diagonal.config
@@ -61,6 +63,7 @@ n_oversampling = oversampling_ratios.shape[0]
 if save:
     res_name = config.save.name.format(
         model_name = model_name,
+        structure = structure,
         img_mode = config.signal.mode,
         # keep 4 digits of the following numbers
         oversampling_start = np.round(oversampling_ratios[0].numpy(),4),
@@ -107,7 +110,7 @@ for i in trange(n_oversampling):
     print(f"output_size: {output_size}")
     print(f"oversampling_ratio: {oversampling_ratio}")
     for j in range(n_repeats):
-        physics = dinv.physics.StructuredRandomPhaseRetrieval(
+        physics = StructuredRandomPhaseRetrieval(
             input_shape=(1, img_size, img_size),
             output_shape=(1, output_size, output_size),
             n_layers=n_layers,

@@ -1,0 +1,30 @@
+general:
+  name: "full-unit"
+  recon: "spec"
+  save: True
+
+signal:
+  img_size: 64
+  mode: "shepp-logan"
+  config:
+    noise_ratio: 0.0 # noise ratio for mix mode
+    unit_mag: True
+    max_scale: 40.0 # max scale for varying mag
+
+model:
+  config:
+    use_haar: False
+    circulant: False
+    unit_mag: True
+
+recon:
+  series: "arange"
+  start: 0.1
+  end: 5.1
+  list: []
+  n_repeats: 50
+  max_iter: 5000
+
+save:
+  path: "../runs"
+  name: "res_{model_name}_{img_mode}_{recon}_{oversampling_start}-{oversampling_end}_{n_repeats}repeat.csv"

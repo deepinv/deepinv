@@ -50,6 +50,11 @@ def generate_signal(
         img[0, 0, img_size // 2, img_size // 2] = 1.0
     elif mode == "constant":
         img == config.constant * torch.ones((1, 1, img_size, img_size), device=device)
+    elif mode == "polar":
+        # Create a tensor of probabilities (0.5 for each element)
+        probabilities = torch.full((1, 1, img_size, img_size), 0.5)
+        # Generate a tensor with values 0 or 1, with a 50% chance for each
+        img = torch.bernoulli(probabilities)
     else:
         raise ValueError("Invalid mode.")
     if transform:

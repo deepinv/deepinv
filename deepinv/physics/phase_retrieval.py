@@ -93,23 +93,23 @@ def generate_diagonal(
     #! all distributions should be normalized to have E[|x|^2] = 1
     if mode == "uniform_phase":
         # Generate REAL-VALUED random numbers in the interval [0, 1)
-        diag = torch.rand(shape, device=device)
+        diag = torch.rand(shape)
         diag = 2 * np.pi * diag
         diag = torch.exp(1j * diag)
     elif mode == "uniform_magnitude":
         if config.range:
-            diag = config.range * torch.rand(shape, device=device)
+            diag = config.range * torch.rand(shape)
         else:
             # ensure E[|x|^2] = 1
-            diag = torch.sqrt(torch.tensor(3.0)) * torch.rand(shape, device=device)
+            diag = torch.sqrt(torch.tensor(3.0)) * torch.rand(shape)
         diag = diag.to(dtype)
     elif mode == "gaussian":
-        diag = torch.randn(shape, dtype=dtype, device=device)
+        diag = torch.randn(shape, dtype=dtype)
     elif mode == "laplace":
         #! variance = 2*scale^2
         #! variance of complex numbers is doubled
         laplace_dist = torch.distributions.laplace.Laplace(0,0.5)
-        diag = (laplace_dist.sample(shape) + 1j*laplace_dist.sample(shape)).to(device)
+        diag = (laplace_dist.sample(shape) + 1j*laplace_dist.sample(shape))
     elif mode == "student-t":
         #! variance = df/(df-2) if df > 2
         #! variance of complex numbers is doubled
@@ -117,17 +117,22 @@ def generate_diagonal(
         scale = torch.sqrt((torch.tensor(config.degree_of_freedom)-2)/torch.tensor(config.degree_of_freedom)/2)
         diag = (scale*(student_t_dist.sample(shape) + 1j*student_t_dist.sample(shape))).to(device)
     elif mode == "marchenko-pastur":
-        diag = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(shape)).to(device).to(dtype)
+        diag = torch.from_numpy(MarchenkoPastur(config.m,config.n).sample(shape)).to(dtype)
     elif mode == "uniform":
         #! variance = 1/2a for real numbers
-        real = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32, device=device) - 0.5)
-        imag = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32, device=device) - 0.5)
+        real = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32) - 0.5)
+        imag = torch.sqrt(torch.tensor(6)) * (torch.rand(shape, dtype=torch.float32) - 0.5)
         diag = real + 1j*imag
     elif mode == "triangular":
         #! variance = a^2/6 for real numbers
         real = triangular_distribution(torch.sqrt(torch.tensor(3)),shape)
         imag = triangular_distribution(torch.sqrt(torch.tensor(3)),shape)
         diag = real + 1j*imag
+    elif mode == "polar4":
+        # generate random phase 1, -1, j, -j
+        values = torch.tensor([1, -1, 1j, -1j])
+        # Randomly select elements from the values with equal probability
+        diag = values[torch.randint(0, len(values), shape)]
     else:
         raise ValueError(f"Unsupported mode: {mode}")
     if config.unit_mag is True:
@@ -135,7 +140,7 @@ def generate_diagonal(
         assert torch.allclose(torch.abs(diag), torch.tensor(1.0)), "The magnitudes of the diagonal are not all 1s."
     if config.complex is False:
         diag = diag.real * torch.sqrt(torch.tensor(2.0)) # to ensure E[|x|^2] = 1
-    return diag
+    return diag.to(device)
 
 class PhaseRetrieval(Physics):
     r"""
@@ -264,12 +269,11 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.complex64,
         device="cpu",
-        use_haar=False,
-        test=False,
+        config:DotMap=None,
         **kwargs,
     ):
         self.m = m
-        self.img_shape = img_shape
+        self.input_shape = img_shape
         self.channelwise = channelwise
         self.dtype = dtype
         self.device = device
@@ -280,8 +284,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             channelwise=channelwise,
             dtype=dtype,
             device=device,
-            use_haar=use_haar,
-            test=test,
+            config=config,
         )
         super().__init__(B, **kwargs)
         self.name = f"RPR_m{self.m}"
@@ -368,7 +371,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.oversampling_ratio = self.m / self.n
         assert n_layers % 1 == 0.5 or n_layers % 1 == 0, "n_layers must be an integer or an integer plus 0.5"
         self.n_layers = n_layers
-        self.structure = "FD" * math.floor(self.n_layers) + "F" * (n_layers % 1 == 0.5)
+        self.structure = self.get_structure(self.n_layers)
         self.shared_weights = shared_weights
         self.distri_config = distri_config
         self.distri_config.m = self.m
@@ -449,3 +452,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             print("warning: computing the mean of the squared operator for a single Fourier transform.")
             return None
         return self.diagonals[0].var() + self.diagonals[0].mean()**2
+    
+    @staticmethod
+    def get_structure(n_layers) -> str:
+        return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)

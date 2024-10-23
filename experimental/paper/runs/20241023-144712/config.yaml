@@ -1,20 +1,20 @@
 general:
-  name: "structured_polar"
+  name: "structured"
   recon: "spec"
   save: True
 
 signal:
   img_size: 64
-  mode: "shepp-logan"
+  mode: "polar"
   config:
     noise_ratio: 0.0 # noise ratio for mix mode
     unit_mag: True
     max_scale: 40.0 # max scale for varying mag
 
 model:
-  n_layers: 2
+  n_layers: 1.5
   diagonal:
-    mode: 'polar4' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
+    mode: 'uniform_phase' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:
       degree_of_freedom: 30
       complex: True

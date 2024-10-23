@@ -12,7 +12,7 @@ signal:
     max_scale: 40.0 # max scale for varying mag
 
 model:
-  n_layers: 2
+  n_layers: 1.5
   diagonal:
     mode: 'polar4' # 'uniform_phase', 'gaussian', 'laplace', 'marchenko-pastur', 'student-t', 'uniform', 'triangular'
     config:

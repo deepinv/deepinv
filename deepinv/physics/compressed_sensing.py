@@ -1,4 +1,5 @@
 from deepinv.physics.forward import LinearPhysics
+from dotmap import DotMap
 import torch
 import numpy as np
 
@@ -96,9 +97,7 @@ class CompressedSensing(LinearPhysics):
         channelwise=False,
         dtype=torch.float,
         device="cpu",
-        compute_inverse=False,
-        use_haar=False,
-        test=False,
+        config:DotMap=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -113,10 +112,6 @@ class CompressedSensing(LinearPhysics):
         else:
             n = int(np.prod(img_shape))
 
-        if test:
-            self._A = torch.randn((m, n), device=device, dtype=dtype)
-            return
-
         if self.fast:
             self.n = n
             self.D = torch.ones(self.n, device=device)
@@ -129,17 +124,28 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            if not use_haar:
-                self._A = torch.nn.Parameter(torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m), requires_grad=False)
-            else:
+            if config.use_haar is True:
                 print("Using Haar matrix")
                 self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
                 self._A, R = torch.linalg.qr(self._A)
                 L = torch.sgn(torch.diag(R))
-                self._A = self._A * L[None, :]
+                self._A = self._A * L[None, :]      
+                self._A = torch.nn.Parameter(self._A, requires_grad=False)
+            elif config.circulant is True:
+                # generate a random row and use it to construct a circulant matrix
+                dim = m if m > n else n
+                v = torch.randn((dim,), device=device, dtype=dtype)
+                self._A = torch.stack([torch.roll(v, shifts=-i) for i in range(dim)])
+                # reshape to emulate oversampling/undersampling
+                self._A = self._A[:m,:n] / np.sqrt(m)
+            else:
+                self._A = torch.randn((m, n), device=device, dtype=dtype)
+                if config.unit_mag is True:
+                    self._A = self._A / self._A.abs()
+                self._A = self._A / np.sqrt(m)
                 self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
-            if compute_inverse == True:
+            if config.compute_inverse is True:
                 self._A_dagger = torch.linalg.pinv(self._A)
                 self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
 
