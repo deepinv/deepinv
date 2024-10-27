@@ -29,6 +29,7 @@ transforms are customisable and offer some group-theoretic properties.
 
 We demonstrate a random roto-scale combined with a random masking, and a
 constrained pixel-shift with a random colour jitter.
+Note that all our transforms can easily be inverted using the method ``transform.inverse()``.
 
 First, load a sample image.
 

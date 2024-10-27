@@ -17,6 +17,7 @@ They can also be used for equivariant imaging (EI) using the :class:`deepinv.los
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` and :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` for examples.
 
 If needed, transforms can also be made deterministic by passing in specified parameters to the forward method.
+This allows every transform to have its own deterministic inverse using ``transform.inverse()``.
 Transforms can also be seamlessly integrated with existing ``torchvision`` transforms.
 Transforms can also accept video (5D) input.
 
