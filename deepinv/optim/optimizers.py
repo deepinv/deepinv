@@ -351,7 +351,10 @@ class BaseOptim(nn.Module):
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
         if x_gt is not None:
-            psnr = [[PSNR()(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            psnr = [
+                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                for i in range(self.batch_size)
+            ]
         else:
             psnr = [[] for i in range(self.batch_size)]
         init["psnr"] = psnr
@@ -385,8 +388,8 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = PSNR()(x[i], x_gt[i])
-                    metrics["psnr"][i].append(psnr)
+                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
