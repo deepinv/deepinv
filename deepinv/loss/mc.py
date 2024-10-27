@@ -18,7 +18,7 @@ class MCLoss(Loss):
 
         \|y-\forw{\inverse{y}}\|^2
 
-    where :math:`\inverse{y}` is the reconstructed signal and :math:`A` is a forward operator.
+    where :math:`\inverse{y}` is the reconstructed signal and :math:`\forw{\cdot}` is a forward operator.
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
