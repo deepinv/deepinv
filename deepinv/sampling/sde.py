@@ -18,10 +18,13 @@ class DiffusionSDE(nn.Module):
     ):
         super().__init__()
         self.T = T
-        self.drift_forw = lambda x,t : f(x, t)
-        self.diff_forw = lambda t : g(t)
-        self.drift_back = lambda x,t,alpha : - f(x, T-t) - (1 + alpha**2) * prior.grad(x, T-t) * g(T-t)**2
-        self.diff_back = lambda t, alpha : alpha * g(T-t)
+        self.drift_forw = lambda x, t: f(x, t)
+        self.diff_forw = lambda t: g(t)
+        self.drift_back = (
+            lambda x, t, alpha: -f(x, T - t)
+            - (1 + alpha**2) * prior.grad(x, T - t) * g(T - t) ** 2
+        )
+        self.diff_back = lambda t, alpha: alpha * g(T - t)
 
         self.rng = rng
         if rng is not None:
@@ -31,7 +34,9 @@ class DiffusionSDE(nn.Module):
         stepsize = self.T / num_steps
         for k in range(num_steps):
             t = k * stepsize
-            x += stepsize * self.drift_forw(x,t) + self.diff_forw(t) * np.sqrt(stepsize) * torch.randn_like(x)
+            x += stepsize * self.drift_forw(x, t) + self.diff_forw(t) * np.sqrt(
+                stepsize
+            ) * self.randn_like(x)
         return x
 
     def backward_sde(
@@ -40,7 +45,9 @@ class DiffusionSDE(nn.Module):
         stepsize = self.T / num_steps
         for k in range(num_steps):
             t = k * stepsize
-            x += stepsize * self.drift_back(x,t,alpha) + self.diff_back(t,alpha) * np.sqrt(stepsize) * torch.randn_like(x)
+            x += stepsize * self.drift_back(x, t, alpha) + self.diff_back(
+                t, alpha
+            ) * np.sqrt(stepsize) * self.randn_like(x)
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -74,20 +81,28 @@ class DiffusionSDE(nn.Module):
         return torch.empty_like(input).normal_(generator=self.rng)
 
 
-def get_edm_default_noise_scheduler():
-    sigma_min = 0.002
-    sigma_max = 80.0
-    sigma_data = 0.5
-    rho = 0.7
-    P_mean = -1.2
-    P_std = 1.2
-    sigma = lambda t: t
-    alpha = lambda t: (2 * beta(t)) * sigma(t)
-
-
 class EDMSDE(DiffusionSDE):
-    def __init__(self, score: Callable, T: float, sigma: Callable, alpha: Callable):
-        super().__init__(score=score, T=T)
+    def __init__(
+        self,
+        prior: Callable,
+        T: float,
+        sigma: lambda t: t,
+        alpha: lambda t: np.sqrt(2) * t,
+        rng: torch.Generator = None,
+    ):
+        super().__init__(prior=prior, T=T, rng=rng)
+        self.sigma = sigma
+        self.alpha = alpha
+
+        self.drift_forw = lambda x, t: (
+            self.sigma(t) - 0.5 * self.alpha(t) ** 2
+        ) * prior.grad(x, sigma(t))
+        self.diff_forw = lambda t: alpha(t)
+
+        self.drift_back = lambda x, t: (
+            -self.sigma(t) - 0.5 * self.alpha(t) ** 2
+        ) * prior.grad(x, sigma(t))
+        self.diff_back = self.diff_forw
 
 
 if __name__ == "__main__":
@@ -99,8 +114,8 @@ if __name__ == "__main__":
     x = load_url_image(url, grayscale=False).to(device)
 
     denoiser = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
-    prior = dinv.optim.prior.ScorePrior(denoiser = denoiser)
-    
+    prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+
     OUSDE = DiffusionSDE(prior=prior, T=1.0)
     sample_noise = OUSDE.forward_sde(x)
     sample = OUSDE.backward_sde(torch.randn_like(x))
