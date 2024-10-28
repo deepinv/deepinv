@@ -49,7 +49,7 @@ class DiffusionSDE(nn.Module):
 if __name__ == "__main__":
     import deepinv as dinv
 
-    device = torch.device("cuda")
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
     score = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
     OUSDE = DiffusionSDE(score=score, T=1.0)
