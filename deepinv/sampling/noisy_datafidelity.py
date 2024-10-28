@@ -80,7 +80,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         return norm_grad
 
 
-
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
     TBD
@@ -105,8 +104,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
         :return: (torch.Tensor) TBD
         """
         raise NotImplementedError
-
-
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
