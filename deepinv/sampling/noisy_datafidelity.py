@@ -11,7 +11,7 @@ class NoisyDataFidelity(nn.Module):
     :param float sigma: TBD
     """
 
-    def __init__(self, physics=None, denoiser=None):
+    def __init__(self, physics=None, denoiser=None, data_fidelity=None):
         super(NoisyDataFidelity, self).__init__()
 
     def precond(self, x: torch.Tensor) -> torch.Tensor:
@@ -43,13 +43,12 @@ class DPSDataFidelity(NoisyDataFidelity):
     :param float sigma: TBD
     """
 
-    def __init__(self, physics=None, denoiser=None):
+    def __init__(self, physics=None, denoiser=None, data_fidelity=L2()):
         super(DPSDataFidelity, self).__init__()
 
         self.physics = physics
         self.denoiser = denoiser
-
-        self.data_fidelity = L2()
+        self.data_fidelity = data_fidelity
 
     def precond(self, x: torch.Tensor) -> torch.Tensor:
         r"""
@@ -61,23 +60,24 @@ class DPSDataFidelity(NoisyDataFidelity):
         """
         raise NotImplementedError
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
-
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         with torch.enable_grad():
             x.requires_grad_(True)
-
-            aux_x = x / 2 + 0.5
-            x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
-
-            x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
-
-            # DPS
-            l2_loss = self.data_fidelity(x0_t, y, self.physics).sqrt().sum()
+            l2_loss = self.forward(x, y, sigma)
 
         norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=x)[0]
         norm_grad = norm_grad.detach()
 
         return norm_grad
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        aux_x = x / 2 + 0.5
+        x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+        x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+
+        l2_loss = self.data_fidelity(x0_t, y, self.physics).sqrt().sum()
+
+        return l2_loss
 
 
 class DDRMDataFidelity(NoisyDataFidelity):

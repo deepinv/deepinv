@@ -256,7 +256,7 @@ sigma = (1 - at).sqrt() / at.sqrt()
 
 x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
 
-grad_ll = noisy_datafidelity(xt, y, sigma)
+grad_ll = noisy_datafidelity.grad(xt, y, sigma)
 
 imgs = [x0, xt, x0_t, grad_ll]
 plot(
@@ -296,7 +296,7 @@ for i, j in tqdm(time_pairs):
     at_next = compute_alpha(betas, next_t.long())
 
     xt = xs[-1].to(device)
-    norm_grad = noisy_datafidelity(xt, y, sigma)
+    norm_grad = noisy_datafidelity.grad(xt, y, sigma)
 
     sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
     c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
