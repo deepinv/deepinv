@@ -150,7 +150,9 @@ class CompressedSensing(LinearPhysics):
         else:
             if config.use_haar:
                 print("Using Haar matrix")
-                self._A = torch.randn((m, n), device=device, dtype=dtype, generator=self.rng) / np.sqrt(m)
+                self._A = torch.randn(
+                    (m, n), device=device, dtype=dtype, generator=self.rng
+                ) / np.sqrt(m)
                 self._A, R = torch.linalg.qr(self._A)
                 L = torch.sgn(torch.diag(R))
                 self._A = self._A * L[None, :]
