@@ -24,7 +24,7 @@ class NoisyDataFidelity(nn.Module):
         """
         return x
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
@@ -34,6 +34,17 @@ class NoisyDataFidelity(nn.Module):
         :return: (torch.Tensor) data-fidelity term.
         """
         return self.precond(self.diff(x, y))
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        r"""
+        TBD
+
+        :param torch.Tensor x: TBD
+        :param torch.Tensor y: TBD
+
+        :return: (torch.Tensor) TBD
+        """
+        return self.grad(x, y, sigma)
 
 
 class DPSDataFidelity(NoisyDataFidelity):
@@ -61,7 +72,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         """
         raise NotImplementedError
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
         with torch.enable_grad():
             x.requires_grad_(True)
@@ -78,6 +89,9 @@ class DPSDataFidelity(NoisyDataFidelity):
         norm_grad = norm_grad.detach()
 
         return norm_grad
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.grad(x, y, sigma)
 
 
 class DDRMDataFidelity(NoisyDataFidelity):
