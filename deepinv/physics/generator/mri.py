@@ -3,6 +3,7 @@ import torch
 from typing import Optional, Tuple
 import numpy as np
 from deepinv.physics.generator import PhysicsGenerator
+from deepinv.physics.functional import random_choice
 
 
 def ceildiv(a: float, b: float) -> float:
@@ -19,7 +20,7 @@ class BaseMaskGenerator(PhysicsGenerator):
     :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
     :param int acceleration: acceleration factor, defaults to 4
     :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.
-    :param np.random.Generator rng: numpy random generator, defaults to np.random.default_rng()
+    :param torch.Generator rng: torch random generator. Defaults to None.
     """
 
     def __init__(
@@ -27,14 +28,14 @@ class BaseMaskGenerator(PhysicsGenerator):
         img_size: Tuple,
         acceleration: int = 4,
         center_fraction: Optional[float] = None,
-        rng: np.random.Generator = np.random.default_rng(),
+        rng: torch.Generator = None,
+        device="cpu",
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs, rng=rng, device=device)
         self.img_size = img_size
         self.acc = acceleration
-        self.rng = rng
 
         # Set default center_fraction if not provided
         if center_fraction is not None:
@@ -77,14 +78,17 @@ class BaseMaskGenerator(PhysicsGenerator):
         """
         raise NotImplementedError()
 
-    def step(self, batch_size=1) -> dict:
+    def step(self, batch_size=1, seed: int = None, **kwargs) -> dict:
         r"""
         Create a mask of vertical lines.
 
         :param int batch_size: batch_size.
+        :param int seed: the seed for the random number generator.
+
         :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.
         :rtype: dict
         """
+        self.rng_manual_seed(seed)
         _T = self.T if self.T > 0 else 1
         mask = self.sample_mask(
             torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs)
@@ -127,7 +131,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-        return np.ones(self.W)
+        return torch.ones(self.W, device=self.device)
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         pdf = self.get_pdf()
@@ -138,12 +142,13 @@ class RandomMaskGenerator(BaseMaskGenerator):
         ] = 0
 
         # normalise distribution
-        pdf /= np.sum(pdf)
-
+        pdf = pdf / torch.sum(pdf)
         # select low-frequency lines according to pdf
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
-                idx = self.rng.choice(self.W, self.n_lines, replace=False, p=pdf)
+                idx = random_choice(
+                    self.W, self.n_lines, replace=False, p=pdf, rng=self.rng
+                )
                 mask[b, :, t, :, idx] = 1
 
         # central lines are always sampled
@@ -195,9 +200,13 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-        normal_pdf = lambda length, sensitivity: np.exp(
-            -sensitivity * (np.arange(length) - length / 2) ** 2
-        )
+
+        def normal_pdf(length, sensitivity):
+            return torch.exp(
+                -sensitivity
+                * (torch.arange(length, device=self.device) - length / 2) ** 2
+            )
+
         pdf = normal_pdf(self.W, 0.5 / (self.W / 10.0) ** 2)
         lmda = self.W / (2.0 * self.acc)
 
@@ -242,16 +251,25 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
         adjusted_accel = (self.acc * (self.n_center - self.W)) / (
             self.n_center * self.acc - self.W
         )
-        offset = self.rng.integers(0, round(adjusted_accel), size=(mask.shape[0]))
+        offset = torch.randint(
+            low=0,
+            high=round(adjusted_accel),
+            size=(mask.size(0),),
+            device=self.device,
+            generator=self.rng,
+        )
 
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
                 accel_samples = (
-                    np.arange(
-                        (t + offset[b]) % adjusted_accel, self.W - 1, adjusted_accel
+                    torch.arange(
+                        (t + offset[b]) % adjusted_accel,
+                        self.W - 1,
+                        adjusted_accel,
+                        device=self.device,
                     )
                     .round()
-                    .astype(int)
+                    .type(torch.int32)
                 )
                 mask[b, :, t, :, accel_samples] = 1
 

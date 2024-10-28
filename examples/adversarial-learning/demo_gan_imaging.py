@@ -56,7 +56,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # using :meth:`deepinv.datasets.generate_dataset`.
 #
 
-physics = dinv.physics.Blur(padding="circular")
+physics = dinv.physics.Blur(padding="circular", device=device)
 blur_generator = MotionBlurGenerator((11, 11))
 
 dataset = dinv.datasets.Urban100HR(
@@ -99,7 +99,7 @@ test_dataloader = DataLoader(
 #
 
 
-def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
+def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
     if model is None:
         model = dinv.models.UNet(
             in_channels=3,
@@ -107,10 +107,10 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4):
             scales=2,
             circular_padding=True,
             batch_norm=False,
-        )
+        ).to(device)
 
     if D is None:
-        D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False)
+        D = dinv.models.PatchGANDiscriminator(n_layers=2, batch_norm=False).to(device)
 
     optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=lr_g, weight_decay=1e-8),
@@ -163,10 +163,21 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# We are now ready to train the networks using :meth:`deepinv.training.AdversarialTrainer`. We only train for 2
-# epochs for speed, but below we also show results with a pretrained model
-# trained in the exact same way after 50 epochs.
+# We are now ready to train the networks using :meth:`deepinv.training.AdversarialTrainer`.
+# We load the pretrained models that were trained in the exact same way after 50 epochs,
+# and fine-tune the model for 1 epoch for a quick demo.
+# You can find the pretrained models on HuggingFace https://huggingface.co/deepinv/adversarial-demo.
+# To train from scratch, simply comment out the model loading code and increase the number of epochs.
 #
+
+ckpt = torch.hub.load_state_dict_from_url(
+    dinv.models.utils.get_weights_url("adversarial-demo", "deblurgan_model.pth"),
+    map_location=lambda s, _: s,
+)
+
+G.load_state_dict(ckpt["state_dict"])
+D.load_state_dict(ckpt["state_dict_D"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 trainer = dinv.training.AdversarialTrainer(
     model=G,
@@ -174,7 +185,7 @@ trainer = dinv.training.AdversarialTrainer(
     physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=2,
+    epochs=1,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -187,21 +198,12 @@ trainer = dinv.training.AdversarialTrainer(
 
 G = trainer.train()
 
-
 # %%
-# Show pretrained model results:
+# Test the trained model and plot the results. We compare to the pseudo-inverse as a baseline.
 #
 
-ckpt = torch.hub.load_state_dict_from_url(
-    dinv.models.utils.get_weights_url("deblurgan-demo", "deblurgan_model.pth"),
-    map_location=lambda s, _: s,
-)
-
-G.load_state_dict(ckpt["state_dict"])
-
-x, _ = next(iter(test_dataloader))
-y = physics(x, **blur_generator.step())
-dinv.utils.plot([x, y, G(y)], titles=["GT", "Measurement", "Reconstruction"])
+trainer.plot_images = True
+trainer.test(test_dataloader)
 
 
 # %%
@@ -234,7 +236,18 @@ loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
 
 # %%
 # We are now ready to train the networks using :meth:`deepinv.training.AdversarialTrainer`.
+# Like above, we load a pretrained model trained in the exact same way for 50 epochs,
+# and fine-tune here for a quick demo with 1 epoch.
 #
+
+ckpt = torch.hub.load_state_dict_from_url(
+    dinv.models.utils.get_weights_url("adversarial-demo", "uair_model.pth"),
+    map_location=lambda s, _: s,
+)
+
+G.load_state_dict(ckpt["state_dict"])
+D.load_state_dict(ckpt["state_dict_D"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 trainer = dinv.training.AdversarialTrainer(
     model=G,
@@ -242,7 +255,7 @@ trainer = dinv.training.AdversarialTrainer(
     physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=2,
+    epochs=1,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -253,6 +266,13 @@ trainer = dinv.training.AdversarialTrainer(
     device=device,
 )
 G = trainer.train()
+
+# %%
+# Test the trained model and plot the results:
+#
+
+trainer.plot_images = True
+trainer.test(test_dataloader)
 
 
 # %%
@@ -290,8 +310,8 @@ G = trainer.train()
 
 G = dinv.models.CSGMGenerator(
     dinv.models.DCGANGenerator(output_size=128, nz=100, ngf=32), inf_tol=1e-2
-)
-D = dinv.models.DCGANDiscriminator(ndf=32)
+).to(device)
+D = dinv.models.DCGANDiscriminator(ndf=32).to(device)
 _, _, optimizer, scheduler = get_models(
     model=G, D=D, lr_g=2e-4, lr_d=2e-4
 )  # learning rates from original paper
@@ -310,14 +330,25 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 # slow for CSGM/AmbientGAN as it requires an optimisation, we only do one
 # evaluation at the end. Note the train PSNR is meaningless as this
 # generative model is trained on random latents.
+# Like above, we load a pretrained model trained in the exact same way for 50 epochs,
+# and fine-tune here for a quick demo with 1 epoch.
 #
+
+ckpt = torch.hub.load_state_dict_from_url(
+    dinv.models.utils.get_weights_url("adversarial-demo", "csgm_model.pth"),
+    map_location=lambda s, _: s,
+)
+
+G.load_state_dict(ckpt["state_dict"])
+D.load_state_dict(ckpt["state_dict_D"])
+optimizer.load_state_dict(ckpt["optimizer"])
 
 trainer = dinv.training.AdversarialTrainer(
     model=G,
     D=D,
     physics=physics,
     train_dataloader=train_dataloader,
-    epochs=2,
+    epochs=1,
     losses=loss_g,
     losses_d=loss_d,
     optimizer=optimizer,
@@ -334,8 +365,8 @@ G = trainer.train()
 # Eventually, we run evaluation of the generative model by running test-time optimisation
 # using test measurements. Note that we do not get great results as CSGM /
 # AmbientGAN relies on large datasets of diverse samples, and we run the
-# optimisation to a relatively high tolerance for speed.
+# optimisation to a relatively high tolerance for speed. Improve the results by
+# running the optimisation for longer.
 #
 
-psnr = trainer.test(test_dataloader)[0]
-print("Test PSNR", psnr)
+trainer.test(test_dataloader)

@@ -71,8 +71,8 @@ class Pansharpen(LinearPhysics):
             padding=padding,
         )
 
-        self.noise_color = noise_color
-        self.noise_gray = noise_gray
+        self.noise_color = noise_color if noise_color is not None else lambda x: x
+        self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.colorize = Decolorize(device=device)
 
     def A(self, x, **kwargs):

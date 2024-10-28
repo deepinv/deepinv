@@ -4,6 +4,7 @@ from torch import Tensor
 from typing import List, Optional, Union
 import warnings
 from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.time import TimeMixin
 
 
 class MRI(DecomposablePhysics):
@@ -31,7 +32,7 @@ class MRI(DecomposablePhysics):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), or (B,C,H,W) where H, W are the image height and width, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using img_size, where img_size can be of any shape specified above.
+    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -139,7 +140,7 @@ class MRI(DecomposablePhysics):
         return mask
 
 
-class DynamicMRI(MRI):
+class DynamicMRI(MRI, TimeMixin):
     r"""
     Single-coil accelerated dynamic magnetic resonance imaging.
 
@@ -149,7 +150,7 @@ class DynamicMRI(MRI):
 
         y_t = S_t Fx_t
 
-    where :math:`S` applies a time-varying mask, and :math:`F` is the 2D discrete Fourier Transform.
+    where :math:`S_t` applies a time-varying mask, and :math:`F` is the 2D discrete Fourier Transform.
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
@@ -164,7 +165,7 @@ class DynamicMRI(MRI):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using img_size, where img_size can be of any shape specified above.
+    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -194,14 +195,6 @@ class DynamicMRI(MRI):
                    [-0.0000,  1.1135]]]]])
 
     """
-
-    def flatten(self, a: Tensor) -> Tensor:
-        B, C, T, H, W = a.shape
-        return a.permute(0, 2, 1, 3, 4).reshape(B * T, C, H, W)
-
-    def unflatten(self, a: Tensor, batch_size=1) -> Tensor:
-        BT, C, H, W = a.shape
-        return a.reshape(batch_size, BT // batch_size, C, H, W).permute(0, 2, 1, 3, 4)
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
         mask = self.check_mask(self.mask if mask is None else mask)
@@ -252,6 +245,87 @@ class DynamicMRI(MRI):
         :return torch.Tensor: noisy measurements
         """
         return self.noise_model(x, **kwargs) * self.mask
+
+    def to_static(self, mask: Optional[torch.Tensor] = None) -> MRI:
+        """Convert dynamic MRI to static MRI by removing time dimension.
+
+        :param torch.Tensor mask: new static MRI mask. If None, existing mask is flattened (summed) along the time dimension.
+        :return MRI: static MRI physics
+        """
+        return MRI(
+            mask=torch.clip(self.mask.sum(2), 0.0, 1.0) if mask is None else mask,
+            img_size=self.img_size,
+            device=self.device,
+        )
+
+
+class SequentialMRI(DynamicMRI):
+    r"""
+    Single-coil accelerated magnetic resonance imaging using sequential sampling.
+
+    Let :math:`S` be a subsampling mask with given acceleration.
+    :math:`S_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`S=\bigcup_t S_t`.
+    The sequential MRI operator then simulates a time sequence of k-space samples:
+
+    .. math::
+
+        y_t = S_t F x
+
+    where :math:`F` is the 2D discrete Fourier Transform, the image :math:`x` is of shape (B, 2, H, W) and measurements :math:`y` is of shape (B, 2, T, H, W)
+    where the first channel corresponds to the real part and the second channel corresponds to the imaginary part.
+
+    This operator has a simple singular value decomposition, so it inherits the structure of :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
+
+    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
+
+    .. note::
+
+        We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
+
+    :param torch.Tensor mask: binary mask :math:`S_t,t=1\ldots T`, where 1s represent sampling locations, and 0s otherwise.
+        The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
+    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param torch.device device: cpu or gpu.
+
+    |sep|
+
+    :Examples:
+
+        Single-coil accelerated sequential MRI operator:
+
+        >>> from deepinv.physics import SequentialMRI
+        >>> x = torch.randn(1, 2, 2, 2) # Define random image of shape (B,C,H,W)
+        >>> mask = torch.zeros(1, 2, 3, 2, 2) # Empty demo time-varying mask with 3 frames
+        >>> physics = SequentialMRI(mask=mask) # Physics with given mask
+        >>> physics.update_parameters(mask=mask) # Alternatively set mask on-the-fly
+        >>> physics(x).shape # MRI sequential samples
+        torch.Size([1, 2, 3, 2, 2])
+
+    """
+
+    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        return super().A(
+            self.repeat(x, self.mask if mask is None else mask), mask, **kwargs
+        )
+
+    def A_adjoint(
+        self, y: Tensor, mask: Tensor = None, keep_time_dim=False, **kwargs
+    ) -> Tensor:
+        r"""
+        Computes the adjoint of the forward operator :math:`\tilde{x} = A^{\top}y`.
+
+        :param torch.Tensor y: input tensor
+        :param torch.nn.Parameter, float mask: input mask
+        :param bool keep_time_dim: if ``True``, adjoint is calculated frame-by-frame. Used for visualisation. If ``False``, flatten the time dimension before calculating.
+        :return: (torch.Tensor) output tensor
+        """
+        if keep_time_dim:
+            return super().A_adjoint(y, mask, **kwargs)
+        else:
+            mask = mask if mask is not None else self.mask
+            return self.to_static().A_adjoint(
+                self.average(y, mask), mask=self.average(mask), **kwargs
+            )
 
 
 #
