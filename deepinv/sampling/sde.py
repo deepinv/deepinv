@@ -12,8 +12,15 @@ class DiffusionSDE(nn.Module):
         self.score = score
         self.T = T
 
-    def forward_sde(self, x: Tensor, t: Tensor) -> Tensor:
-        pass
+    def forward_sde(self, x: Tensor, num_steps: int) -> Tensor:
+        x_new = x
+        stepsize = 1.0 / num_steps
+        for t in range(num_steps):
+            dw      = torch.randn_like(x_new)
+            f_dt    = self.f(x_new, t)
+            g_dw    = self.g(t) * dw
+            x_new   = x_new + stepsize*(f_dt + g_dw)
+        return x_new
 
     def backward_sde(self, x: Tensor, t: Tensor) -> Tensor:
         pass
