@@ -25,10 +25,11 @@ class DiffusionSDE(nn.Module):
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def forward_sde(self, x: Tensor, num_steps: int) -> Tensor:
+    def forward_sde(self, x: Tensor, num_steps: int = 1000) -> Tensor:
         x_new = x
-        stepsize = 1.0 / num_steps
-        for t in range(num_steps):
+        stepsize = self.T / num_steps
+        for k in range(num_steps):
+            t = k * stepsize
             dw = self.randn_like(x_new)
             f_dt = self.f(x_new, t)
             g_dw = self.g(t) * dw
@@ -40,14 +41,13 @@ class DiffusionSDE(nn.Module):
     ) -> Tensor:
         dt = self.T / num_steps
         t = 0
-        for n in range(num_steps):
-            rt = self.T - t * n
+        for k in range(num_steps):
+            rt = self.T - t * k
             g = self.g(rt)
             drift = self.f(x, rt) - (1 + alpha**2) * g**2 * self.score(x, rt)
             diffusion = alpha * g
-            dw = self.randn_like(x) * dt
+            dw = self.randn_like(x) * (dt) ** 0.5
             x = x + drift * dt + diffusion * dw
-
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -91,13 +91,18 @@ class EDMSDE(DiffusionSDE):
 if __name__ == "__main__":
     import deepinv as dinv
 
-    device = torch.device("cuda")
+    from deepinv.utils.demo import load_url_image, get_image_url
+
+    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url, grayscale=False).to(device)
 
     score = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
     rng = torch.Generator(device=device).manual_seed(42)
     OUSDE = DiffusionSDE(score=score, T=1.0, rng=rng)
 
-    x = torch.randn((2, 1, 28, 28), device=device)
-    sample = OUSDE.backward_sde(x)
+    sample = OUSDE.forward_sde(x, num_steps=1000)
 
+    # x = torch.randn((2, 1, 28, 28), device=device)
+    # sample = OUSDE.backward_sde(x)
     dinv.utils.plot([x, sample])
