@@ -1,28 +1,100 @@
 import torch
 import deepinv.models.splines.spline_uitls as spline_autograd_func
 
+# Todo list for later:
+#   fix devices and avoid transfering variables
+#   some functions can be simplified
+#   what about copying from a repo without license?
+#   do something better if rho_wconvex is 0
+#   try to adjust noise level range to [0,1]
 
+
+class WeaklyConvexSplineActivation(torch.nn.Module):
+    def __init__(self,num_activations,scaling_knots=11,spline_knots=101,max_noise_level=30.,rho_wconvex=1.):# max_noise_level?
+        r"""
+        A Batch of Weakly Convex Activation Functions based on B-Splines
+
+        
+
+        The implementation is based on `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
+        
+        :param int num_activations: number of splines
+        :param int scaling_knots: number of knots for the scaling splines (mu and alpha)
+        :param int spline_knots: number of knots for the base splines (phi_+ and phi_-)
+        :param float max_noise_level: maximum output for sigma, here we use the noise level range [0,255]
+        :param float rho_wconvex: modulus of weak convexity (if zero: the activation function is convex, if positive weakly convex)
+        """   
+        assert rho_wconvex>=0, "Modulus of weak convexity should be non-negative"     
+        self.rho_wconvex=rho_wconvex
+        self.num_activations=num_activations
+        self.alpha_spline=LinearSpline(num_knots=scaling_knots,x_min=0,x_max=max_noise_level,num_activations=num_activations,init=5.,clamp=False)
+        self.mu_spline=LinearSpline(num_knots=scaling_knots,x_min=0,x_max=max_noise_level,num_activations=1,init=4.,clamp=False)
+        self.phi_minus=LinearSpline(num_knots=spline_knots,x_min=-0.1,x_max=0.1,slope_min=0,slope_max=1,num_activations=1,init=0.,antisymmetric=True)
+        self.phi_plus=LinearSpline(num_knots=spline_knots,x_min=-0.1,x_max=0.1,slope_min=0,slope_max=1,num_activations=1,init=0.,antisymmetric=True)
+        self.clear_cache()
+
+    def forward(self,x,sigma):
+        return self.spline_potential(x,sigma)
+
+    def cache_values(self,sigma):
+        # sigma is a tensor with one axis
+        sigma=sigma[:,None,None,None]
+        self.scaling=(torch.exp(self.alpha_spline(sigma.tile(1,self.num_activations,1,1)))/(sigma+1e-5))
+        self.mu=torch.exp(self.mu_spline(sigma))
+
+    def clear_cache(self):
+        self.scaling=None
+        self.mu=None
+
+    def get_mu_scaling(self,sigma):
+        sigma=sigma[:,None,None,None]
+        if self.scaling is None:
+            scaling=(torch.exp(self.alpha_spline(sigma.tile(1,self.num_activations,1,1)))/(sigma+1e-5))
+        else:
+            scaling=self.scaling
+        if self.mu is None:
+            mu=torch.exp(self.mu_spline(sigma))
+        else:
+            mu=self.mu
+        return mu,scaling
+
+    def spline_potential(self,x,sigma):
+        mu,scaling=self.get_mu_scaling(sigma)
+        x= x * scaling
+        return (mu*self.phi_plus.integrate(x)-self.rho_wconvex*self.phi_minus.integrate(x))/scaling**2
+
+    def derivative(self,x,sigma):
+        mu,scaling=self.get_mu_scaling(sigma)
+        x= x * scaling
+        return (mu*self.phi_plus(x)-self.rho_wconvex*self.phi_minus(x))/scaling
+        
+    
+    def second_derivative(self,x,sigma):    
+        mu,scaling=self.get_mu_scaling(sigma)
+        x=x*scaling
+        return mu*self.phi_plus.derivative(x)-self.rho_wconvex*self.phi_minus.derivative(x)
+        
 
 class LinearSpline(torch.nn.Module):
-    r"""
-    Evaluation of integrals of linear B-splines 
-
-    i.e., a quadratic B-spline, with custom autograd function. 
-    The implementation is (mainly) taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
-    
-    :param int num_activations: number of splines
-    :param int num_knots: number of knots of the spline(s)
-    :param float x_min: position of left-most knot
-    :param float x_max: position of right-most knot
-    :param float init: constant initialization with value init of the spline coefficients
-    :param float slope_min: minimum slope of the activation. None (default) for no constraint
-    :param float slope_max: maximum slope of the activation. None (default) for no constraint
-    :param bool antisymmetric: Constrain the spline to be antisymmetric, i.e., its potential is symmetric
-    :param bool clamp: if true constant extension of the spline outside [x_min,x_max], if false, linear extension
-    """
 
     def __init__(self, num_activations, num_knots, x_min, x_max, init,
                  slope_max=None, slope_min=None, antisymmetric=False, clamp=True):
+        r"""
+        Evaluation of integrals of linear B-splines 
+
+        i.e., a quadratic B-spline, with custom autograd function. 
+        The implementation is (mainly) taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
+        
+        :param int num_activations: number of splines
+        :param int num_knots: number of knots of the spline(s)
+        :param float x_min: position of left-most knot
+        :param float x_max: position of right-most knot
+        :param float init or str: constant initialization with value init of the spline coefficients if init is float. If init=="Identity", the spline coefficients are initialized as the spline knots
+        :param float slope_min: minimum slope of the activation. None (default) for no constraint
+        :param float slope_max: maximum slope of the activation. None (default) for no constraint
+        :param bool antisymmetric: Constrain the spline to be antisymmetric, i.e., its potential is symmetric
+        :param bool clamp: if true constant extension of the spline outside [x_min,x_max], if false, linear extension
+        """
 
         super().__init__()
 
@@ -62,7 +134,7 @@ class LinearSpline(torch.nn.Module):
         # at each knot (c[k] = f[k], since B1 splines are interpolators)."""
         init = self.init
         grid_tensor = torch.linspace(self.x_min.item(), self.x_max.item(), self.num_knots).expand((self.num_activations, self.num_knots))        
-        return torch.ones_like(grid_tensor)*init
+        return torch.ones_like(grid_tensor)*init if isinstance(init,float) else grid_tensor
     
     @property
     def projected_coefficients(self):
