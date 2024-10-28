@@ -29,15 +29,17 @@ class DiffusionSDE(nn.Module):
 
     def forward_sde(self, x: Tensor, num_steps: int = 1000) -> Tensor:
         stepsize = self.T / num_steps
+        x = x.clone()
         for k in range(num_steps):
             t = k * stepsize
             x += stepsize * self.drift_forw(x,t) + self.diff_forw(t) * np.sqrt(stepsize) * torch.randn_like(x)
         return x
 
     def backward_sde(
-        self, x: Tensor, num_steps: int = 100, alpha: float = 1.0
+        self, x: Tensor, num_steps: int = 500, alpha: float = 1.0
     ) -> Tensor:
         stepsize = self.T / num_steps
+        x = x.clone()
         for k in range(num_steps):
             t = k * stepsize
             x += stepsize * self.drift_back(x,t,alpha) + self.diff_back(t,alpha) * np.sqrt(stepsize) * torch.randn_like(x)
@@ -94,5 +96,6 @@ if __name__ == "__main__":
     
     OUSDE = DiffusionSDE(prior=prior, T=1.0)
     sample_noise = OUSDE.forward_sde(x)
-    sample = OUSDE.backward_sde(torch.randn_like(x))
+    noise = torch.randn_like(x)
+    sample = OUSDE.backward_sde(noise)
     dinv.utils.plot([x, sample_noise, sample])
