@@ -105,7 +105,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
         """
         raise NotImplementedError
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
         with torch.enable_grad():
             x.requires_grad_(True)
@@ -122,3 +122,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
         norm_grad = norm_grad.detach()
 
         return norm_grad
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.grad(x, y, sigma)
