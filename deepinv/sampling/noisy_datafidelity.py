@@ -24,7 +24,7 @@ class NoisyDataFidelity(nn.Module):
         """
         return x
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
@@ -34,6 +34,17 @@ class NoisyDataFidelity(nn.Module):
         :return: (torch.Tensor) data-fidelity term.
         """
         return self.precond(self.diff(x, y))
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        r"""
+        TBD
+
+        :param torch.Tensor x: TBD
+        :param torch.Tensor y: TBD
+
+        :return: (torch.Tensor) TBD
+        """
+        return self.grad(x, y, sigma)
 
 
 class DPSDataFidelity(NoisyDataFidelity):
@@ -79,6 +90,9 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         return l2_loss
 
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.grad(x, y, sigma)
+
 
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
@@ -107,21 +121,27 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
-        with torch.enable_grad():
-            x.requires_grad_(True)
+        x_bar = physics.V_adjoint(x)
 
-            aux_x = x / 2 + 0.5
-            x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+        case2 = torch.logical_and(case, (self.sigmas[t] < nsr))
+        case3 = torch.logical_and(case, (self.sigmas[t] >= nsr))
 
-            x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+        # n = np.prod(mask.shape)
+        # print(f'case: {case.sum()/n*100:.2f}, case2: {case2.sum()/n*100:.2f}, case3: {case3.sum()/n*100:.2f}')
 
-            # DPS
-            l2_loss = self.data_fidelity(x0_t, y, self.physics).sqrt().sum()
+        mean = x_bar + c * self.sigmas[t] * (x_bar_prev - x_bar) / self.sigmas[t - 1]
+        mean[case2] = (
+            x_bar[case2]
+            + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / nsr[case2]
+        )
+        mean[case3] = (1.0 - self.etab) * x_bar[case3] + self.etab * y_bar[case3]
 
-        norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=x)[0]
-        norm_grad = norm_grad.detach()
+        std = torch.ones_like(x_bar) * self.eta * self.sigmas[t]
+        std[case3] = (self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)).sqrt()
 
-        return norm_grad
+        x_bar = mean + std * torch.randn_like(x_bar)
+        x_bar_prev = x_bar.clone()
+        # denoise
+        x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
-        return self.grad(x, y, sigma)
+        return x
