@@ -12,16 +12,21 @@ class DiffusionSDE(nn.Module):
         self,
         f: Callable = lambda x, t: -x,
         g: Callable = lambda t: math.sqrt(2.0),
+        alpha: Callable = lambda t: 1,
         prior: Callable = None,
         T: float = 1.0,
         rng: torch.Generator = None,
     ):
         super().__init__()
         self.T = T
-        self.drift_forw = lambda x,t : f(x, t)
-        self.diff_forw = lambda t : g(t)
-        self.drift_back = lambda x,t,alpha : - f(x, T-t) - (1 + alpha**2) * prior.grad(x, T-t) * g(T-t)**2
-        self.diff_back = lambda t, alpha : alpha * g(T-t)
+        self.f = f
+        self.g = g
+        self.drift_forw = lambda x, t: self.f(x, t)
+        self.diff_forw = lambda t: self.g(t)
+        self.drift_back = (
+            lambda x, t: -self.f(x, T - t) - (1 + alpha(t)**2) * prior.grad(x, T - t) * self.g(T - t) ** 2
+        )
+        self.diff_back = lambda t : alpha(t) * self.g(T - t)
 
         self.rng = rng
         if rng is not None:
@@ -32,7 +37,7 @@ class DiffusionSDE(nn.Module):
         x = x.clone()
         for k in range(num_steps):
             t = k * stepsize
-            x += stepsize * self.drift_forw(x,t) + self.diff_forw(t) * np.sqrt(stepsize) * torch.randn_like(x)
+            x += stepsize * self.drift_forw(x, t) + self.diff_forw(t) * np.sqrt(stepsize) * self.randn_like(x)
         return x
 
     def backward_sde(
@@ -42,7 +47,7 @@ class DiffusionSDE(nn.Module):
         x = x.clone()
         for k in range(num_steps):
             t = k * stepsize
-            x += stepsize * self.drift_back(x,t,alpha) + self.diff_back(t,alpha) * np.sqrt(stepsize) * torch.randn_like(x)
+            x += stepsize * self.drift_back(x, t) + self.diff_back(t) * np.sqrt(stepsize) * self.randn_like(x)
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -78,9 +83,26 @@ class DiffusionSDE(nn.Module):
 
 class EDMSDE(DiffusionSDE):
     def __init__(
-        self, score: Callable, T: float, sigma_min: float = 0.002, sigma_max: float = 80
+        self,
+        prior: Callable,
+        T: float,
+        sigma: lambda t: t,
+        alpha: lambda t: np.sqrt(2) * t,
+        rng: torch.Generator = None,
     ):
-        super().__init__(score=score, T=T)
+        super().__init__(prior=prior, T=T, rng=rng)
+        self.sigma = sigma
+        self.alpha = alpha
+
+        self.drift_forw = lambda x, t: (
+            self.sigma(t) - 0.5 * self.alpha(t) ** 2
+        ) * prior.grad(x, sigma(t))
+        self.diff_forw = lambda t: alpha(t)
+
+        self.drift_back = lambda x, t: (
+            -self.sigma(t) - 0.5 * self.alpha(t) ** 2
+        ) * prior.grad(x, sigma(t))
+        self.diff_back = self.diff_forw
 
 
 if __name__ == "__main__":
