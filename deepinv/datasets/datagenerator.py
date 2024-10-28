@@ -246,7 +246,9 @@ def generate_dataset(
             if save_physics_generator_params:
                 for k, p in params0.items():
                     hf.create_dataset(
-                        f"{k}_train", (n_train_g,) + p.shape[1:], dtype=p.cpu().numpy().dtype
+                        f"{k}_train",
+                        (n_train_g,) + p.shape[1:],
+                        dtype=p.cpu().numpy().dtype,
                     )
 
             index = 0
