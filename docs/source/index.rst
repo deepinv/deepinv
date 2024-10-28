@@ -52,7 +52,7 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    :hidden:
    :caption: Contents:
 
-   deepinv.api
+   deepinv.user_guide
    auto_examples/index
    deepinv.multigpu
    deepinv.notation
