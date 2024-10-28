@@ -429,7 +429,6 @@ class Transform(torch.nn.Module, TimeMixin):
 
         return EitherTransform(self, other)
 
-
     def equivariance_error(self, f, y, params=None, metric=None):
         if isinstance(f, Physics):
             f = f.A

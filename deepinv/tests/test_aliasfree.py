@@ -25,6 +25,7 @@ def translation_equivariance_error(model, x, displacement):
     y2 = F.grid_sample(model(x), grid, **kwargs)
     return y1 - y2
 
+
 torch.manual_seed(0)
 
 # a translation-equivariant model
@@ -33,6 +34,7 @@ afc = AliasFreeDenoiser(size="tiny")
 unet = UNet(in_channels=3, out_channels=3)
 
 metric = lambda x, y: x - y
+
 
 def test_shift_equivariant():
     x = torch.randn(1, 3, 256, 256)
