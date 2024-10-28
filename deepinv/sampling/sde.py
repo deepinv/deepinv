@@ -27,7 +27,7 @@ class DiffusionSDE(nn.Module):
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def forward_sde(self, x: Tensor, num_steps: int = 1000) -> Tensor:
+    def forward_sde(self, x: Tensor, num_steps: int = 100) -> Tensor:
         stepsize = self.T / num_steps
         x = x.clone()
         for k in range(num_steps):
@@ -36,7 +36,7 @@ class DiffusionSDE(nn.Module):
         return x
 
     def backward_sde(
-        self, x: Tensor, num_steps: int = 500, alpha: float = 1.0
+        self, x: Tensor, num_steps: int = 100, alpha: float = 1.0
     ) -> Tensor:
         stepsize = self.T / num_steps
         x = x.clone()
@@ -89,13 +89,13 @@ if __name__ == "__main__":
 
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url=url, img_size=128, device=device)
-
-    denoiser = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
+    x = load_url_image(url=url, img_size=64, device=device)
+    x = x*2 - 1
+    denoiser = dinv.models.DiffUNet().to(device)
     prior = dinv.optim.prior.ScorePrior(denoiser = denoiser)
-    
     OUSDE = DiffusionSDE(prior=prior, T=1.0)
-    sample_noise = OUSDE.forward_sde(x)
-    noise = torch.randn_like(x)
-    sample = OUSDE.backward_sde(noise)
+    with torch.no_grad():
+        sample_noise = OUSDE.forward_sde(x)
+        noise = torch.randn_like(x)
+        sample = OUSDE.backward_sde(noise, num_steps = 10)
     dinv.utils.plot([x, sample_noise, sample])
