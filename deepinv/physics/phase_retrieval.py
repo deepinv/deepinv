@@ -11,89 +11,6 @@ from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.optim.phase_retrieval import compare, merge_order, spectral_methods
 
 
-def dct2(x: torch.Tensor, device):
-    r"""2D DCT
-
-    DCT is performed along the last two dimensions of the input tensor.
-    """
-    return torch.from_numpy(
-        dct(dct(x.cpu().numpy(), axis=-1, norm="ortho"), axis=-2, norm="ortho")
-    ).to(device)
-
-
-def idct2(x: torch.Tensor, device):
-    r"""2D IDCT
-
-    IDCT is performed along the last two dimensions of the input tensor.
-    """
-    return torch.from_numpy(
-        idct(idct(x.cpu().numpy(), axis=-2, norm="ortho"), axis=-1, norm="ortho")
-    ).to(device)
-
-
-def triangular_distribution(a, size):
-    u = torch.rand(size)  # Sample from uniform distribution [0, 1]
-
-    # Apply inverse transform method for triangular distribution
-    condition = u < 0.5
-    samples = torch.zeros(size)
-
-    # Left part of the triangular distribution
-    samples[condition] = -a + torch.sqrt(u[condition] * 2 * a**2)
-
-    # Right part of the triangular distribution
-    samples[~condition] = a - torch.sqrt((1 - u[~condition]) * 2 * a**2)
-
-    return samples
-
-
-class MarchenkoPastur:
-    def __init__(self, m, n, sigma=None):
-        self.m = np.array(m)
-        self.n = np.array(n)
-        # when oversampling ratio is 1, the distribution has min support at 0, leading to a very high peak near 0 and numerical issues.
-        self.gamma = np.array(n / m)
-        if sigma is not None:
-            self.sigma = np.array(sigma)
-        else:
-            # automatically set sigma to make E[|x|^2] = 1
-            self.sigma = (1 + self.gamma) ** (-0.25)
-        self.lamb = m / n
-        self.min_supp = np.array(self.sigma**2 * (1 - np.sqrt(self.gamma)) ** 2)
-        self.max_supp = np.array(self.sigma**2 * (1 + np.sqrt(self.gamma)) ** 2)
-        self.max_pdf = None
-
-    def pdf(self, x):
-        assert (x >= self.min_supp).all() and (
-            x <= self.max_supp
-        ).all(), "x is out of the support of the distribution"
-        return np.sqrt((self.max_supp - x) * (x - self.min_supp)) / (
-            2 * np.pi * self.sigma**2 * self.gamma * x
-        )
-
-    def sample(self, samples_shape):
-        """using acceptance-rejection sampling"""
-        # compute the maximum value of the pdf if not yet computed
-        if self.max_pdf is None:
-            self.max_pdf = np.max(
-                self.pdf(np.linspace(self.min_supp, self.max_supp, 10000))
-            )
-
-        samples = []
-        while len(samples) < np.prod(samples_shape):
-            x = np.random.uniform(self.min_supp, self.max_supp, size=1)
-            y = np.random.uniform(0, self.max_pdf, size=1)
-            if y < self.pdf(x):
-                samples.append(x)
-        return np.array(samples).reshape(samples_shape)
-
-    def mean(self):
-        return self.sigma**2
-
-    def var(self):
-        return self.gamma * self.sigma**4
-
-
 def generate_diagonal(
     shape,
     mode,
@@ -111,66 +28,8 @@ def generate_diagonal(
         diag = torch.rand(shape)
         diag = 2 * np.pi * diag
         diag = torch.exp(1j * diag)
-    elif mode == "uniform_magnitude":
-        if config.range:
-            diag = config.range * torch.rand(shape)
-        else:
-            # ensure E[|x|^2] = 1
-            diag = torch.sqrt(torch.tensor(3.0)) * torch.rand(shape)
-        diag = diag.to(dtype)
-    elif mode == "gaussian":
-        diag = torch.randn(shape, dtype=dtype)
-    elif mode == "laplace":
-        #! variance = 2*scale^2
-        #! variance of complex numbers is doubled
-        laplace_dist = torch.distributions.laplace.Laplace(0, 0.5)
-        diag = laplace_dist.sample(shape) + 1j * laplace_dist.sample(shape)
-    elif mode == "student-t":
-        #! variance = df/(df-2) if df > 2
-        #! variance of complex numbers is doubled
-        student_t_dist = torch.distributions.studentT.StudentT(
-            config.degree_of_freedom, 0, 1
-        )
-        scale = torch.sqrt(
-            (torch.tensor(config.degree_of_freedom) - 2)
-            / torch.tensor(config.degree_of_freedom)
-            / 2
-        )
-        diag = (
-            scale * (student_t_dist.sample(shape) + 1j * student_t_dist.sample(shape))
-        ).to(device)
-    elif mode == "marchenko-pastur":
-        diag = torch.from_numpy(MarchenkoPastur(config.m, config.n).sample(shape)).to(
-            dtype
-        )
-    elif mode == "uniform":
-        #! variance = 1/2a for real numbers
-        real = torch.sqrt(torch.tensor(6)) * (
-            torch.rand(shape, dtype=torch.float32) - 0.5
-        )
-        imag = torch.sqrt(torch.tensor(6)) * (
-            torch.rand(shape, dtype=torch.float32) - 0.5
-        )
-        diag = real + 1j * imag
-    elif mode == "triangular":
-        #! variance = a^2/6 for real numbers
-        real = triangular_distribution(torch.sqrt(torch.tensor(3)), shape)
-        imag = triangular_distribution(torch.sqrt(torch.tensor(3)), shape)
-        diag = real + 1j * imag
-    elif mode == "polar4":
-        # generate random phase 1, -1, j, -j
-        values = torch.tensor([1, -1, 1j, -1j])
-        # Randomly select elements from the values with equal probability
-        diag = values[torch.randint(0, len(values), shape)]
     else:
         raise ValueError(f"Unsupported mode: {mode}")
-    if config.unit_mag is True:
-        diag /= torch.abs(diag)
-        assert torch.allclose(
-            torch.abs(diag), torch.tensor(1.0)
-        ), "The magnitudes of the diagonal are not all 1s."
-    if config.complex is False:
-        diag = diag.real * torch.sqrt(torch.tensor(2.0))  # to ensure E[|x|^2] = 1
     return diag.to(device)
 
 
@@ -372,7 +231,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             self.mode = "equisampling"
         else:
             raise ValueError(
-                f"Does not support different sampling schemes on height and width."
+                "Does not support different sampling schemes on height and width."
             )
 
         change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
@@ -463,9 +322,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         if transform == "fft":
             transform_func = partial(torch.fft.fft2, norm="ortho")
             transform_func_inv = partial(torch.fft.ifft2, norm="ortho")
-        elif transform == "dct":
-            transform_func = partial(dct2, device=self.device)
-            transform_func_inv = partial(idct2, device=self.device)
         else:
             raise ValueError(f"Unimplemented transform: {transform}")
 

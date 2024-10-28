@@ -133,8 +133,6 @@ class CompressedSensing(LinearPhysics):
                 self._A = torch.nn.Parameter(self._A, requires_grad=False)
             else:
                 self._A = torch.randn((m, n), device=device, dtype=dtype)
-                if config.unit_mag is True:
-                    self._A = self._A / self._A.abs()
                 self._A = self._A / np.sqrt(m)
                 self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
