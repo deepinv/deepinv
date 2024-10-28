@@ -265,14 +265,14 @@ plot(
 
 # Compute metrics
 print(
-    f"GD Random reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_rand):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
+    f"GD Random reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_rand):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
 )
 print(
-    f"Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
+    f"Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
 )
 print(
-    f"GD Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
+    f"GD Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
 )
 print(
-    f"PnP reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_pnp):.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
+    f"PnP reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_pnp):.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
 )
