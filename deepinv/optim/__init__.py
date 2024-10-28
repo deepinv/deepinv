@@ -21,6 +21,7 @@ from .prior import (
     WaveletPrior,
     PatchNR,
     Zero,
+    L12Prior,
 )
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL

@@ -40,8 +40,6 @@ from deepinv.unfolded import unfolded_builder
 BASE_DIR = Path(".")
 ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
-RESULTS_DIR = BASE_DIR / "results"
-DEG_DIR = BASE_DIR / "degradations"
 CKPT_DIR = BASE_DIR / "ckpts"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -82,16 +80,16 @@ test_base_dataset = load_dataset(
 # We define an inpainting operator that randomly masks pixels with probability 0.5.
 #
 # A dataset of pairs of measurements and ground truth images is then generated using the
-# :meth:`dinv.datasets.generate_dataset` function.
+# :meth:`deepinv.datasets.generate_dataset` function.
 #
-# Once the dataset is generated, we can load it using the :class:`dinv.datasets.HDF5Dataset` class.
+# Once the dataset is generated, we can load it using the :class:`deepinv.datasets.HDF5Dataset` class.
 
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    (n_channels, img_size, img_size), mask=probability_mask, device=device
+    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 
@@ -207,10 +205,10 @@ model = unfolded_builder(
 # %%
 # Train the model
 # ---------------
-# We train the model using the :meth:`dinv.training_utils.train` function.
+# We train the model using the :meth:`deepinv.Trainer` class.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
-# :class:`dinv.loss.SupLoss` class.
+# :class:`deepinv.loss.SupLoss` class.
 #
 # .. note::
 #
@@ -225,7 +223,7 @@ verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # choose training losses
-losses = dinv.loss.SupLoss(metric=dinv.metric.mse())
+losses = dinv.loss.SupLoss(metric=dinv.metric.MSE())
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
@@ -251,7 +249,7 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-# We can now test the trained network using the :meth:`dinv.training_utils.test` function.
+# We can now test the trained network using the :meth:`deepinv.test` function.
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 

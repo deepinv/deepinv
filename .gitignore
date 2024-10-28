@@ -18,8 +18,11 @@ results/
 *.pth
 *.ckpt
 *.tar.gz
+*.gz
+*-ubyte
 *tmp
 *.tar
+*.ipynb
 
 # Folders
 /docs/build/
@@ -29,19 +32,18 @@ results/
 
 # Miscellaneous
 /experimental/
-/deepinv/datasets/reside/
+/datasets
+examples/*/datasets
 deepinv/version.py
 /saved_models/
 venv
 build
 deepinv.egg-info
 dist
-datasets
 wandb/
 kernels
 measurements/
 degradations/
-datasets/
 results/
 tmp/
 sg_execution_times.rst

@@ -2,7 +2,12 @@ r"""
 Random phase retrieval and reconstruction methods.
 ===================================================
 
-This example demonstrates how to create a random phase retrieval operator and use it to generate measurements from a given image. We then uses 4 different reconstruction methods to recover the image given theses measurements: 1. Gradient descent with random initialization; 2. Spectral methods; 3. Gradient descent with spectral methods initialization; 4. Gradient descent with PnP denoisers.
+This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:
+
+#. Gradient descent with random initialization;
+#. Spectral methods;
+#. Gradient descent with spectral methods initialization;
+#. Gradient descent with PnP denoisers.
 
 """
 
@@ -68,7 +73,7 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 # Measurements generation
 # ---------------------------------------
 # Create a random phase retrieval operator with an
-# oversampling ratio (measurements/signals) of 1.2,
+# oversampling ratio (measurements/pixels) of 5.0,
 # and generate measurements from the signal with additive Gaussian noise.
 
 # Define physics information
@@ -127,10 +132,10 @@ plt.show()
 # %%
 # Phase correction and signal reconstruction
 # -----------------------------------------------------------
-# Initially, the solution of the optimization algorithm x_est may be any phase-shifted version of the original complex signal x_phase, i.e., x_est = a * x_phase where a is an arbitrary unit norm complex number.
+# The solution of the optimization algorithm x_est may be any phase-shifted version of the original complex signal x_phase, i.e., x_est = a * x_phase where a is an arbitrary unit norm complex number.
 # Therefore, we use the function :class:`deepinv.optim.phase_retrieval.correct_global_phase` to correct the global phase shift of the estimated signal x_est to make it closer to the original signal x_phase.
 # We then use ``torch.angle`` to extract the phase information. With the range of the returned value being [-pi/2, pi/2], we further normalize it to be [0, 1].
-# This operation will be applied to all the reconstruction methods.
+# This operation will later be done for all the reconstruction methods.
 
 # correct possible global phase shifts
 x_gd_rand = correct_global_phase(x_phase_gd_rand, x_phase)
@@ -239,8 +244,6 @@ x_phase_pnp, metrics = model(y, physics, x_gt=x_phase, compute_metrics=True)
 
 # correct possible global phase shifts
 x_pnp = correct_global_phase(x_phase_pnp, x_phase)
-# now no global phase shift should exist
-# assert torch.allclose(x_est, x_phase)
 # extract phase information and normalize to the range [0, 1]
 x_pnp = torch.angle(x_pnp) / (2 * torch.pi) + 0.5
 plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
@@ -249,8 +252,8 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # Overall comparison
 # -----------------------------------------------------------
 # We visualize the original image and the reconstructed images from the four methods.
-# We further computed the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
-# In conclusion, gradient descent with ranodom intialization barely provides a reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent. Besides, the PnP framework with a deep denoiser as the prior provides the best denoising effect and overall reconstruction results.
+# We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
+# In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
 imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
 plot(

@@ -1,14 +1,15 @@
-import requests
-import shutil
 import os
+import shutil
 import zipfile
+from io import BytesIO
+
+import numpy as np
+import requests
 import torch
 import torchvision
-import numpy as np
-from torchvision import transforms
 from PIL import Image
-from io import BytesIO
 from tqdm import tqdm
+from torchvision import transforms
 
 
 class MRIData(torch.utils.data.Dataset):
@@ -136,8 +137,50 @@ def load_degradation(name, data_dir, index=0, download=True):
     return deg_torch
 
 
+def load_image(
+    path,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
+):
+    r"""
+    Load an image from a file and return a torch.Tensor.
+
+    :param str path: Path to the image file.
+    :param int, tuple[int] img_size: Size of the image to return.
+    :param bool grayscale: Whether to convert the image to grayscale.
+    :param str resize_mode: If ``img_size`` is not None, options are ``"crop"`` or ``"resize"``.
+    :param str device: Device on which to load the image (gpu or cpu).
+    :return: :class:`torch.Tensor` containing the image.
+    """
+    img = Image.open(path)
+    transform_list = []
+    if img_size is not None:
+        if resize_mode == "crop":
+            transform_list.append(transforms.CenterCrop(img_size))
+        elif resize_mode == "resize":
+            transform_list.append(transforms.Resize(img_size))
+        else:
+            raise ValueError(
+                f"resize_mode must be either 'crop' or 'resize', got {resize_mode}"
+            )
+    if grayscale:
+        transform_list.append(transforms.Grayscale())
+    transform_list.append(transforms.ToTensor())
+    transform = transforms.Compose(transform_list)
+    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
+    return x
+
+
 def load_url_image(
-    url=None, img_size=None, grayscale=False, resize_mode="crop", device="cpu"
+    url=None,
+    img_size=None,
+    grayscale=False,
+    resize_mode="crop",
+    device="cpu",
+    dtype=torch.float32,
 ):
     r"""
     Load an image from a URL and return a torch.Tensor.
@@ -166,7 +209,7 @@ def load_url_image(
         transform_list.append(transforms.Grayscale())
     transform_list.append(transforms.ToTensor())
     transform = transforms.Compose(transform_list)
-    x = transform(img).unsqueeze(0).to(device)
+    x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 
 
@@ -194,3 +237,62 @@ def load_np_url(url=None):
     response.raise_for_status()
     array = np.load(BytesIO(response.content))
     return array
+
+
+def demo_mri_model(device):
+    """Demo MRI reconstruction model for use in relevant examples.
+
+    As a reconstruction network, we use an unrolled network (half-quadratic splitting)
+    with a trainable denoising prior based on the DnCNN architecture, as an example of a
+    model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+
+    :param str, torch.device device: device
+    :return torch.nn.Module: model
+    """
+    from deepinv.optim.prior import PnP
+    from deepinv.optim import L2
+    from deepinv.models import DnCNN
+    from deepinv.unfolded import unfolded_builder
+
+    # Select the data fidelity term
+    data_fidelity = L2()
+    n_channels = 2  # real + imaginary parts
+
+    # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
+    # iteration. For fixed trained model prior across iterations, initialize with a single model.
+    prior = PnP(
+        denoiser=DnCNN(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            pretrained=None,
+            depth=7,
+        ).to(device)
+    )
+
+    # Unrolled optimization algorithm parameters
+    max_iter = 3  # number of unfolded layers
+    lamb = [1.0] * max_iter  # initialization of the regularization parameter
+    stepsize = [1.0] * max_iter  # initialization of the step sizes.
+    sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
+    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
+        "stepsize": stepsize,
+        "g_param": sigma_denoiser,
+        "lambda": lamb,
+    }
+
+    trainable_params = [
+        "lambda",
+        "stepsize",
+        "g_param",
+    ]  # define which parameters from 'params_algo' are trainable
+
+    # Define the unfolded trainable model.
+    model = unfolded_builder(
+        "HQS",
+        params_algo=params_algo,
+        trainable_params=trainable_params,
+        data_fidelity=data_fidelity,
+        max_iter=max_iter,
+        prior=prior,
+    )
+    return model

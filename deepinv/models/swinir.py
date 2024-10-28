@@ -1035,6 +1035,7 @@ class SwinIR(nn.Module):
                 else pretrained_weights
             )
             self.load_state_dict(pretrained_weights, strict=True)
+            self.eval()
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1053,7 +1054,7 @@ class SwinIR(nn.Module):
     def no_weight_decay_keywords(self):
         return {"relative_position_bias_table"}
 
-    def check_image_size(self, x):
+    def check_img_size(self, x):
         _, _, h, w = x.size()
         mod_pad_h = (self.window_size - h % self.window_size) % self.window_size
         mod_pad_w = (self.window_size - w % self.window_size) % self.window_size
@@ -1083,7 +1084,7 @@ class SwinIR(nn.Module):
         :param float sigma: noise level (not used).
         """
         H, W = x.shape[2:]
-        x = self.check_image_size(x)
+        x = self.check_img_size(x)
 
         self.mean = self.mean.type_as(x)
         x = (x - self.mean) * self.img_range

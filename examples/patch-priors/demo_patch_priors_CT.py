@@ -41,16 +41,18 @@ We consider the following two choices of :math:`h`:
 """
 
 import torch
-from deepinv.datasets import PatchDataset
 from torch.utils.data import DataLoader
+from deepinv.datasets import PatchDataset
 from deepinv import Trainer
 from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
-from deepinv.utils import cal_psnr, plot
+from deepinv.loss.metric import PSNR
+from deepinv.utils import plot
 from deepinv.utils.demo import load_torch_url
 from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = torch.float32
 
 # %%
 # Load training and test images
@@ -102,7 +104,7 @@ epll_batch_size = 10000
 #            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
 
-retrain = True
+retrain = False
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,
@@ -111,7 +113,10 @@ if retrain:
         patch_size=patch_size,
     )
     patchnr_dataloader = DataLoader(
-        train_dataset, batch_size=patchnr_batch_size, shuffle=True, drop_last=True
+        train_dataset,
+        batch_size=patchnr_batch_size,
+        shuffle=True,
+        drop_last=True,
     )
 
     class NFTrainer(Trainer):
@@ -164,7 +169,10 @@ if retrain:
         device=device,
     )
     epll_dataloader = DataLoader(
-        train_dataset, batch_size=epll_batch_size, shuffle=True, drop_last=False
+        train_dataset,
+        batch_size=epll_batch_size,
+        shuffle=True,
+        drop_last=False,
     )
     model_epll.GMM.fit(epll_dataloader, verbose=verbose, max_iters=epll_max_iter)
 else:
@@ -193,7 +201,7 @@ epll_prior = PatchPrior(model_epll.negative_log_likelihood, patch_size=patch_siz
 # Then, we generate an observation by applying the physics and compute the filtered backprojection.
 
 mu = 1 / 50.0 * (362.0 / img_size)
-N0 = 2**10
+N0 = 1024.0
 num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
@@ -215,12 +223,12 @@ lr_variational_problem = 0.02
 
 
 def minimize_variational_problem(prior, lam):
-    imgs = fbp.clone()
+    imgs = fbp.detach().clone()
     imgs.requires_grad_(True)
     optimizer = torch.optim.Adam([imgs], lr=lr_variational_problem)
     for i in (progress_bar := tqdm(range(optim_steps))):
         optimizer.zero_grad()
-        loss = data_fidelity(imgs, observation, physics) + lam * prior(imgs)
+        loss = data_fidelity(imgs, observation, physics).mean() + lam * prior(imgs)
         loss.backward()
         optimizer.step()
         progress_bar.set_description("Step {}".format(i + 1))
@@ -239,9 +247,9 @@ lam_epll = 120.0
 recon_patchnr = minimize_variational_problem(patchnr_prior, lam_patchnr)
 recon_epll = minimize_variational_problem(epll_prior, lam_epll)
 
-psnr_fbp = cal_psnr(fbp, test_imgs)
-psnr_patchnr = cal_psnr(recon_patchnr, test_imgs)
-psnr_epll = cal_psnr(recon_epll, test_imgs)
+psnr_fbp = PSNR()(fbp, test_imgs).item()
+psnr_patchnr = PSNR()(recon_patchnr, test_imgs).item()
+psnr_epll = PSNR()(recon_epll, test_imgs).item()
 
 print("PSNRs:")
 print("Filtered Backprojection: {0:.2f}".format(psnr_fbp))
@@ -249,6 +257,11 @@ print("EPLL: {0:.2f}".format(psnr_epll))
 print("PatchNR: {0:.2f}".format(psnr_patchnr))
 
 plot(
-    [test_imgs, fbp.clip(0, 1), recon_epll.clip(0, 1), recon_patchnr.clip(0, 1)],
+    [
+        test_imgs,
+        fbp.clip(0, 1),
+        recon_epll.clip(0, 1),
+        recon_patchnr.clip(0, 1),
+    ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )

@@ -18,22 +18,27 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.8"
-version = "0.1.1"
+requires-python = ">=3.9"
+version = "0.2.1"
 dependencies = [
-    "numpy",
+    "numpy<=1.26",
     "matplotlib",
     "hdf5storage",
     "tqdm",
     "torch",
     "torchvision",
+    "torchmetrics",
     "einops",
     "wandb",
     "dotmap",
+    "scipy",
 ]
 
 [tool.setuptools]
 platforms = ["any"]
+
+[tool.setuptools.packages]
+find = { where = ["."] }
 
 [project.readme]
 file = "README.rst"
@@ -57,15 +62,29 @@ doc = [
     "sphinx_rtd_theme",
     "sphinxemoji",
     "sphinx_copybutton",
+    "sphinx_autoapi"
+
 ]
 
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
+    "bm4d<4.2.4",
     "timm",
     "PyWavelets",
     "ptwt",
-    "FrEIA"
+    "FrEIA",
+    "pyiqa",
+    "kornia",
+    "torchkbnufft",
+    "libcpab @ git+https://github.com/Andrewwango/libcpab.git"
+]
+
+# optional dependencies for specific datasets
+dataset = [
+    "datasets",
+    "pandas",
+    "pydicom",
 ]
 
 

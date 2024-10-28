@@ -194,7 +194,7 @@ learning_rate = 0.01
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True
@@ -215,7 +215,7 @@ test_dataloader = DataLoader(
 # Train the network.
 # -------------------------------------------
 #
-# We train the network using the library's train function.
+# We train the network using the :meth:`deepinv.Trainer` class.
 #
 
 trainer = dinv.Trainer(
@@ -247,6 +247,22 @@ model = trainer.train()
 
 trainer.test(test_dataloader)
 
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():  # it is important to disable gradient computation during testing.
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
 
 # %%
 # Plotting the learned parameters.

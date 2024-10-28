@@ -1,0 +1,173 @@
+import torch
+import torch.nn as nn
+from typing import List, Union
+import warnings
+
+
+class PhysicsGenerator(nn.Module):
+    r"""
+    Base class for parameter generation of physics parameters.
+
+    Physics generators are used to generate the parameters :math:`\theta` of (parameter-dependent) forward operators.
+
+    Generators can be summed to create larger generators via :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`,
+    or mixed to create a generator that randomly selects them via :meth:`deepinv.physics.generator.GeneratorMixture`.
+
+    :param Callable step: a function that generates the parameters of the physics, e.g.,
+        the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
+        the corresponding key and value pairs.
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+        If ``None``, the default Generator of PyTorch will be used.
+    :param str device: cpu or cuda
+    :param torch.dtype dtype: the data type of the generated parameters
+
+    |sep|
+
+    :Examples:
+
+        Generating blur and noise levels:
+
+        >>> import torch
+        >>> from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
+        >>> # combine a PhysicsGenerator for blur and noise level parameters
+        >>> generator = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1) + SigmaGenerator()
+        >>> params_dict = generator.step(batch_size=1, seed=0) # dict_keys(['filter', 'sigma'])
+        >>> print(params_dict['filter'])
+        tensor([[[[0.0000, 0.1006, 0.0000],
+                  [0.0000, 0.8994, 0.0000],
+                  [0.0000, 0.0000, 0.0000]]]])
+        >>> print(params_dict['sigma'])
+        tensor([0.2532])
+    """
+
+    def __init__(
+        self,
+        step=lambda **kwargs: {},
+        rng: torch.Generator = None,
+        device="cpu",
+        dtype=torch.float32,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+
+        self.step_func = step
+        self.kwargs = kwargs
+        self.factory_kwargs = {"device": device, "dtype": dtype}
+        self.device = device
+        if rng is None:
+            self.rng = torch.Generator(device=device)
+        else:
+            # Make sure that the random generator is on the same device as the physics generator
+            assert rng.device == torch.device(
+                device
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {self.device}."
+            self.rng = rng
+        self.initial_random_state = self.rng.get_state()
+
+        # Set attributes
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
+        r"""
+        Generates a batch of parameters for the forward operator.
+
+        :param int batch_size: the number of samples to generate.
+        :param int seed: the seed for the random number generator.
+        :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
+        """
+        self.rng_manual_seed(seed)
+        if kwargs is not None:
+            self.kwargs = kwargs
+
+        return self.step_func(batch_size, seed, **kwargs)
+
+    def rng_manual_seed(self, seed: int = None):
+        r"""
+        Sets the seed for the random number generator.
+
+        :param int seed: the seed to set for the random number generator.
+         If not provided, the current state of the random number generator is used.
+         Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
+        """
+        if seed is not None:
+            self.rng = self.rng.manual_seed(seed)
+
+    def reset_rng(self):
+        r"""
+        Reset the random number generator to its initial state.
+        """
+        self.rng.set_state(self.initial_random_state)
+
+    def __add__(self, other):
+        r"""
+        Creates a new generator from the sum of two generators.
+
+        :param Generator other: the other generator to be added.
+        :returns: A new generator that generates a larger dictionary with parameters of the two generators.
+        """
+
+        def step(batch_size: int = 1, seed: int = None, **kwargs):
+            self.rng_manual_seed(seed)
+            other.rng_manual_seed(seed)
+            x = self.step(batch_size, seed=seed, **kwargs)
+            y = other.step(batch_size, seed=seed, **kwargs)
+            d = {k: x.get(k, 0) + y.get(k, 0) for k in set(x) | set(y)}
+            return d
+
+        return PhysicsGenerator(step=step)
+
+
+class GeneratorMixture(PhysicsGenerator):
+    r"""
+    Base class for mixing multiple :class:`PhysicsGenerator`.
+
+    The mixture randomly selects a subset of batch elements
+    to be generated by each generator according to the probabilities given in the constructor.
+
+    :param list[PhysicsGenerator] generators: the generators instantiated from :meth:`deepinv.physics.generator.PhysicsGenerator`.
+    :param list[float] probs: the probability of each generator to be used at each step
+
+    |sep|
+
+    :Examples:
+
+        Mixing two types of blur
+
+        >>> from deepinv.physics.generator import MotionBlurGenerator, DiffractionBlurGenerator
+        >>> from deepinv.physics.generator import GeneratorMixture
+        >>> _ = torch.manual_seed(0)
+        >>> g1 = MotionBlurGenerator(psf_size = (3, 3), num_channels = 1)
+        >>> g2 = DiffractionBlurGenerator(psf_size = (3, 3), num_channels = 1)
+        >>> generator = GeneratorMixture([g1, g2], [0.5, 0.5])
+        >>> params_dict = generator.step(batch_size=1)
+        >>> print(params_dict.keys())
+        dict_keys(['filter'])
+
+    """
+
+    def __init__(
+        self,
+        generators: List[PhysicsGenerator],
+        probs: List[float],
+        rng: torch.Generator = None,
+    ) -> None:
+        super().__init__(rng=rng)
+        probs = torch.tensor(probs)
+        assert torch.sum(probs) == 1, "The sum of the probabilities must be 1."
+        self.generators = generators
+        self.probs = probs
+        self.cum_probs = torch.cumsum(probs, dim=0)
+
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
+        r"""
+        Returns a new set of physics' parameters,
+        according to the probabilities given in the constructor.
+
+        :param int batch_size: the number of samples to generate.
+        :param int seed: the seed for the random number generator.
+        :returns: A dictionary with the new parameters, ie ``{param_name: param_value}``.
+        """
+        p = torch.rand(1, generator=self.rng).item()  # np.random.uniform()
+        idx = torch.searchsorted(self.cum_probs, p)
+        return self.generators[idx].step(batch_size, seed, **kwargs)

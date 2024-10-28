@@ -72,13 +72,40 @@ class BaseUnfold(BaseOptim):
             if param_key in self.init_params_algo.keys():
                 param_value = self.init_params_algo[param_key]
                 self.init_params_algo[param_key] = nn.ParameterList(
-                    [nn.Parameter(torch.tensor(el).to(device)) for el in param_value]
+                    [
+                        (
+                            nn.Parameter(torch.tensor(el).float().to(device))
+                            if not isinstance(el, torch.Tensor)
+                            else nn.Parameter(el.float().to(device))
+                        )
+                        for el in param_value
+                    ]
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
         self.params_algo = self.init_params_algo.copy()
         # The prior (list of instances of :class:`deepinv.optim.Prior`) is converted to a `nn.ModuleList` to be trainable.
         self.prior = nn.ModuleList(self.prior)
         self.data_fidelity = nn.ModuleList(self.data_fidelity)
+
+    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+        r"""
+        Runs the fixed-point iteration algorithm. This is the same forward as in the parent BaseOptim class, but without the ``torch.no_grad()`` context manager.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        """
+        X, metrics = self.fixed_point(
+            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+        )
+        x = self.get_output(X)
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def unfolded_builder(
@@ -111,8 +138,8 @@ def unfolded_builder(
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
         :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
-        Either a single instance (same prior for each iteration) or a list of instances of
-        deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
+        Either a single instance (same prior for each iteration - weight tied) or a list of instances of
+        deepinv.optim.Prior (distinct prior for each iteration - weight untied). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
     :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
@@ -136,7 +163,7 @@ def unfolded_builder(
         >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
         ...     data_fidelity=dinv.optim.L2(),
-        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1, train=True)),
+        ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1)),
         ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
         ...     trainable_params=["stepsize", "g_param"]
         ... )

@@ -73,6 +73,20 @@ def correct_global_phase(
     Corrects the global phase of the reconstructed image.
 
     Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
+    
+    The global phase shift is comptued per image and per channel as:
+
+    .. math::
+        e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
+
+    where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
+
+    The global phase shift is then applied to the reconstructed image as:
+
+    .. math::
+        \hat{x} = \hat{x} \cdot e^{-i \phi},
+
+    for the corresponding image and channel.
 
     :param torch.Tensor x_recon: Reconstructed image.
     :param torch.Tensor x: Original image.
@@ -139,6 +153,25 @@ def spectral_methods(
     r"""
     Utility function for spectral methods.
 
+    This function runs the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
+    
+    .. math::
+        \begin{equation*}
+        M = \conj{B} \text{diag}(T(y)) B + \lambda I,
+        \end{equation*}
+    
+    where :math:`B` is the linear operator of the phase retrieval class, :math:`T(\cdot)` is a preprocessing function for the measurements, and :math:`I` is the identity matrix of corresponding dimensions. Parameter :math:`\lambda` tunes the strength of regularization.
+
+    To find the principal eigenvector, the function runs power iteration which is given by
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        x_{k+1} &= M x_k \\
+        x_{k+1} &= \frac{x_{k+1}}{\|x_{k+1}\|},
+        \end{aligned}
+        \end{equation*}
+  
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
     :param torch.Tensor x: Initial guess for the signals :math:`x_0`.

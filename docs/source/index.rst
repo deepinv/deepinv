@@ -56,6 +56,8 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
    deepinv.datasets
    deepinv.utils
    deepinv.loss
+   deepinv.metric
+   deepinv.transform
    deepinv.denoisers
    deepinv.optim
    deepinv.iterative
@@ -78,7 +80,8 @@ Lead Developers
 ============================
 
 `Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
-`Samuel Hurault <https://github.com/samuro95/>`_ and `Matthieu Terris <https://matthieutrs.github.io>`_.
+`Samuel Hurault <https://github.com/samuro95/>`_, `Matthieu Terris <https://matthieutrs.github.io>`_
+and `Andrew Wang <https://andrewwango.github.io/about>`_.
 
 
 

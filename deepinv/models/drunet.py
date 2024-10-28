@@ -1,9 +1,8 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
-import numpy as np
 import torch
 import torch.nn as nn
-from .utils import get_weights_url
+from .utils import get_weights_url, test_onesplit, test_pad
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
@@ -14,7 +13,7 @@ class DRUNet(nn.Module):
     DRUNet denoiser network.
 
     The network architecture is based on the paper
-    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
+    `Plug-and-Play Image Restoration with Deep Denoiser Prior <https://arxiv.org/abs/2008.13751>`_,
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -27,7 +26,7 @@ class DRUNet(nn.Module):
     :param list nc: number of convolutional layers.
     :param int nb: number of convolutional blocks per layer.
     :param int nf: number of channels per convolutional layer.
-    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
@@ -52,7 +51,6 @@ class DRUNet(nn.Module):
         downsample_mode="strideconv",
         upsample_mode="convtranspose",
         pretrained="download",
-        train=False,
         device=None,
     ):
         super(DRUNet, self).__init__()
@@ -138,9 +136,9 @@ class DRUNet(nn.Module):
         if pretrained is not None:
             if pretrained == "download":
                 if in_channels == 4:
-                    name = "drunet_deepinv_color.pth"
+                    name = "drunet_deepinv_color_finetune_22k.pth"
                 elif in_channels == 2:
-                    name = "drunet_deepinv_gray.pth"
+                    name = "drunet_deepinv_gray_finetune_26k.pth"
                 url = get_weights_url(model_name="drunet", file_name=name)
                 ckpt_drunet = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -151,11 +149,7 @@ class DRUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
-
-        if not train:
             self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
         else:
             self.apply(weights_init_drunet)
 
@@ -184,15 +178,7 @@ class DRUNet(nn.Module):
         """
         if isinstance(sigma, torch.Tensor):
             if sigma.ndim > 0:
-                if x.get_device() > -1:
-                    sigma = sigma[
-                        int(x.get_device() * x.shape[0]) : int(
-                            (x.get_device() + 1) * x.shape[0]
-                        )
-                    ]
-                    noise_level_map = sigma.to(x.device).view(x.size(0), 1, 1, 1)
-                else:
-                    noise_level_map = sigma.view(x.size(0), 1, 1, 1).to(x.device)
+                noise_level_map = sigma.view(x.size(0), 1, 1, 1)
                 noise_level_map = noise_level_map.expand(-1, 1, x.size(2), x.size(3))
             else:
                 noise_level_map = torch.ones(
@@ -623,60 +609,6 @@ def downsample_avgpool(
         negative_slope=negative_slope,
     )
     return sequential(pool, pool_tail)
-
-
-"""
-Helpers for test time
-"""
-
-
-def test_onesplit(model, L, refield=32, sf=1):
-    """
-    Changes the size of the image to fit the model's expected image size.
-
-    :param model: model.
-    :param L: input Low-quality image.
-    :param refield: effective receptive field of the network, 32 is enough.
-    :param sf: scale factor for super-resolution, otherwise 1.
-    """
-    h, w = L.size()[-2:]
-    top = slice(0, (h // 2 // refield + 1) * refield)
-    bottom = slice(h - (h // 2 // refield + 1) * refield, h)
-    left = slice(0, (w // 2 // refield + 1) * refield)
-    right = slice(w - (w // 2 // refield + 1) * refield, w)
-    Ls = [
-        L[..., top, left],
-        L[..., top, right],
-        L[..., bottom, left],
-        L[..., bottom, right],
-    ]
-    Es = [model(Ls[i]) for i in range(4)]
-    b, c = Es[0].size()[:2]
-    E = torch.zeros(b, c, sf * h, sf * w).type_as(L)
-    E[..., : h // 2 * sf, : w // 2 * sf] = Es[0][..., : h // 2 * sf, : w // 2 * sf]
-    E[..., : h // 2 * sf, w // 2 * sf : w * sf] = Es[1][
-        ..., : h // 2 * sf, (-w + w // 2) * sf :
-    ]
-    E[..., h // 2 * sf : h * sf, : w // 2 * sf] = Es[2][
-        ..., (-h + h // 2) * sf :, : w // 2 * sf
-    ]
-    E[..., h // 2 * sf : h * sf, w // 2 * sf : w * sf] = Es[3][
-        ..., (-h + h // 2) * sf :, (-w + w // 2) * sf :
-    ]
-    return E
-
-
-def test_pad(model, L, modulo=16):
-    """
-    Pads the image to fit the model's expected image size.
-    """
-    h, w = L.size()[-2:]
-    padding_bottom = int(np.ceil(h / modulo) * modulo - h)
-    padding_right = int(np.ceil(w / modulo) * modulo - w)
-    L = torch.nn.ReplicationPad2d((0, padding_right, 0, padding_bottom))(L)
-    E = model(L)
-    E = E[..., :h, :w]
-    return E
 
 
 def weights_init_drunet(m):

@@ -21,6 +21,7 @@ from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
 from deepinv.utils.demo import load_dataset, load_degradation
 
+
 # %%
 # Setup paths for data loading and results.
 # --------------------------------------------------------
@@ -75,6 +76,7 @@ p = dinv.physics.Downsampling(
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
+
 # Generate a dataset in a HDF5 folder in "{dir}/dinv_dataset0.h5'" and load it.
 measurement_dir = DATA_DIR / dataset_name / operation
 dinv_dataset_path = dinv.datasets.generate_dataset(
@@ -105,7 +107,11 @@ batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping 
 # load specific parameters for GSPnP
 lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
 
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
+params_algo = {
+    "stepsize": stepsize,
+    "g_param": sigma_denoiser,
+    "lambda": lamb,
+}
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -135,9 +141,7 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download").to(device))
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.
@@ -158,8 +162,12 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     get_output=custom_output,
-    verbose=True,
+    verbose=False,
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem.
@@ -167,13 +175,13 @@ model = optim_builder(
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
+plot_convergence_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
+
 test(
     model=model,
     test_dataloader=dataloader,
@@ -181,8 +189,6 @@ test(
     device=device,
     plot_images=plot_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
-    wandb_vis=wandb_vis,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

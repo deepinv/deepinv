@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python 3.6+| |codecov| |Black| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |codecov| |Black| |discord| |colab|
 
 
 Introduction
@@ -48,28 +48,38 @@ You can also install the latest version of ``deepinv`` directly from github:
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
+You can also install additional dependencies needed for some modules in deepinv.datasets and deepinv.models:
+
+.. code-block:: bash
+
+    pip install deepinv[dataset,denoisers]
+
+    # or
+
+    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
+
 Getting Started
 ---------------
 Try out the following plug-and-play image inpainting example:
 
 .. code-block:: python
 
-    import deepinv as dinv
-    from deepinv.utils import load_url_image
-
-    url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
-    x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
-
-    physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
+   import deepinv as dinv
+   from deepinv.utils import load_url_image
+    
+   url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
+   x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
+   
+   physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
                                        noise_model=dinv.physics.GaussianNoise(sigma=0.01))
-
-    data_fidelity = dinv.optim.data_fidelity.L2()
-    prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-    model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
-                                     params_algo={"stepsize": 1.0, "g_param": 0.1})
-    y = physics(x)
-    x_hat = model(y, physics)
-    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
+   
+   data_fidelity = dinv.optim.data_fidelity.L2()
+   prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
+   model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
+                                    params_algo={"stepsize": 1.0, "g_param": 0.1})
+   y = physics(x)
+   x_hat = model(y, physics)
+   dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
 Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started.
@@ -100,8 +110,8 @@ If you have any questions or suggestions, please join the conversation in our
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
-   :target: https://www.python.org/downloads/release/python-360/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
+   :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat

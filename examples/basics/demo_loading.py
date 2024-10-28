@@ -65,7 +65,7 @@ data_fidelity = IndicatorL2(radius=0.0)
 # For fixed trained model prior across iterations, initialize with a single model.
 
 level = 3
-max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
+max_iter = 20  # Number of unrolled iterations
 
 prior = [
     PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))

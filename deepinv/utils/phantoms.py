@@ -57,6 +57,12 @@ class RandomPhantomDataset(torch.utils.data.Dataset):
     """
 
     def __init__(self, size=128, n_data=1, transform=None, length=np.inf):
+        if isinstance(odl, ImportError):
+            raise ImportError(
+                "odl is needed to use generate random phantoms. "
+                "It should be installed with `python3 -m pip install"
+                " https://github.com/odlgroup/odl/archive/master.zip`"
+            ) from odl
         self.space = odl.uniform_discr(
             [-64, -64], [64, 64], [size, size], dtype="float32"
         )

@@ -49,7 +49,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
 dataset_name = "set3c"
-img_size = 256 if torch.cuda.is_available() else 32
+img_size = 128 if torch.cuda.is_available() else 32
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
@@ -119,7 +119,7 @@ early_stop = False  # Do not stop algorithm with convergence criteria
 data_fidelity = L2()
 
 # Specify the denoising prior
-prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
+prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
@@ -132,6 +132,10 @@ model = optim_builder(
     params_algo=params_algo,
 )
 
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
+
 # %%
 # Evaluate the model on the problem.
 # --------------------------------------------------------------------
@@ -139,9 +143,8 @@ model = optim_builder(
 #
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
-plot_images = True  # plot images. Images are saved in save_folder.
+plot_convergence_metrics = True  # Metrics are saved in save_folder.
+plot_images = True  # Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -151,11 +154,10 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
+    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(device=device)],
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
-    wandb_vis=wandb_vis,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

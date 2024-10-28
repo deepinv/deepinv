@@ -117,9 +117,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 data_fidelity = L2()
 
 # Set up the trainable denoising prior
-denoiser = DnCNN(
-    in_channels=3, out_channels=3, depth=7, device=device, pretrained=None, train=True
-)
+denoiser = DnCNN(in_channels=3, out_channels=3, depth=7, device=device, pretrained=None)
 
 # Here the prior model is common for all iterations
 prior = PnP(denoiser=denoiser)
@@ -176,7 +174,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
 # choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True

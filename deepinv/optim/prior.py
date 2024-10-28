@@ -12,7 +12,7 @@ except:
 
 from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
-from deepinv.models.wavdict import WaveletDenoiser
+from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
 
 
@@ -330,6 +330,9 @@ class WaveletPrior(Prior):
     :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
     :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
 
+    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{c_{\text{min}, c_{\text{max}}}(x)`,
+    where :math:`\iota_{c_{\text{min}, c_{\text{max}}}(x)` is the indicator function of the interval :math:`[c_{\text{min}}, c_{\text{max}}]`.
+
     .. note::
         Following common practice in signal processing, only detail coefficients are regularized, and the approximation
         coefficients are left untouched.
@@ -344,9 +347,22 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param float clamp_min: minimum value for the clamping. Default is None.
+    :param float clamp_max: maximum value for the clamping. Default is None.
     """
 
-    def __init__(self, level=3, wv="db8", p=1, device="cpu", wvdim=2, *args, **kwargs):
+    def __init__(
+        self,
+        level=3,
+        wv="db8",
+        p=1,
+        device="cpu",
+        wvdim=2,
+        clamp_min=None,
+        clamp_max=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
         self.p = p
@@ -354,6 +370,10 @@ class WaveletPrior(Prior):
         self.wvdim = wvdim
         self.level = level
         self.device = device
+
+        self.clamp_min = clamp_min
+        self.clamp_max = clamp_max
+
         if p == 0:
             self.non_linearity = "hard"
         elif p == 1:
@@ -362,13 +382,23 @@ class WaveletPrior(Prior):
             self.non_linearity = "topk"
         else:
             raise ValueError("p should be 0, 1 or inf")
-        self.WaveletDenoiser = WaveletDenoiser(
-            level=self.level,
-            wv=self.wv,
-            device=self.device,
-            non_linearity=self.non_linearity,
-            wvdim=self.wvdim,
-        )
+
+        if type(self.wv) == str:
+            self.WaveletDenoiser = WaveletDenoiser(
+                level=self.level,
+                wv=self.wv,
+                device=self.device,
+                non_linearity=self.non_linearity,
+                wvdim=self.wvdim,
+            )
+        elif type(self.wv) == list:
+            self.WaveletDenoiser = WaveletDictDenoiser(
+                level=self.level,
+                list_wv=self.wv,
+                max_iter=10,
+                non_linearity=self.non_linearity,
+                wvdim=self.wvdim,
+            )
 
     def g(self, x, *args, reduce=True, **kwargs):
         r"""
@@ -411,13 +441,20 @@ class WaveletPrior(Prior):
         :param float gamma: stepsize of the proximity operator.
         :return: (torch.Tensor) proximity operator at :math:`x`.
         """
-        return self.WaveletDenoiser(x, ths=gamma)
+        out = self.WaveletDenoiser(x, ths=gamma)
+        if self.clamp_min is not None:
+            out = torch.clamp(out, min=self.clamp_min)
+        if self.clamp_max is not None:
+            out = torch.clamp(out, max=self.clamp_max)
+        return out
 
-    def psi(self, x):
+    def psi(self, x, wavelet="db2", level=2, dimension=2):
         r"""
         Applies the (flattening) wavelet decomposition of x.
         """
-        return self.WaveletDenoiser.psi(x, self.wv, self.level, self.wvdim)
+        return self.WaveletDenoiser.psi(
+            x, wavelet=self.wv, level=self.level, dimension=self.wvdim
+        )
 
 
 class TVPrior(Prior):
@@ -447,7 +484,8 @@ class TVPrior(Prior):
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :return: (torch.Tensor) prior :math:`g(x)`.
         """
-        return torch.sum(torch.sqrt(torch.sum(self.nabla(x) ** 2, axis=-1)))
+        y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1))
+        return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
 
     def prox(self, x, *args, gamma=1.0, **kwargs):
         r"""Compute the proximity operator of TV with the denoiser :class:`~deepinv.models.TVDenoiser`.
@@ -617,3 +655,74 @@ class PatchNR(nn.Module):
         latent_x, logdet = self.normalizing_flow(x.view(B * n_patches, -1))
         logpz = 0.5 * torch.sum(latent_x.view(B, n_patches, -1) ** 2, -1)
         return logpz - logdet.view(B, n_patches)
+
+
+class L12Prior(Prior):
+    r"""
+    :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.
+    The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
+    |sep|
+
+    :Examples:
+    >>> import torch
+    >>> from deepinv.optim import L12Prior
+    >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+    >>> x = torch.randn(2, 1, 3, 3) # Define random 3x3 image
+    >>> prior = L12Prior()
+    >>> prior.g(x)
+    tensor([5.4949, 4.3881])
+    >>> prior.prox(x)
+    tensor([[[[-0.4666, -0.4776,  0.2348],
+              [ 0.3636,  0.2744, -0.7125],
+              [-0.1655,  0.8986,  0.2270]]],
+    <BLANKLINE>
+    <BLANKLINE>
+            [[[-0.0000, -0.0000,  0.0000],
+              [ 0.7883,  0.9000,  0.5369],
+              [-0.3695,  0.4081,  0.5513]]]])
+
+    """
+
+    def __init__(self, *args, l2_axis=-1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.explicit_prior = True
+        self.l2_axis = l2_axis
+
+    def g(self, x, *args, **kwargs):
+        r"""
+        Computes the regularizer :math:`\reg{x} = \sum_i\| x_i \|_2`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
+        :return: (torch.Tensor) prior :math:`\reg{x}`.
+        """
+        x_l2 = torch.norm(x, p=2, dim=self.l2_axis)
+        return torch.norm(x_l2.reshape(x.shape[0], -1), p=1, dim=-1)
+
+    def prox(self, x, *args, gamma=1.0, **kwargs):
+        r"""
+        Calculates the proximity operator of the :math:`\ell_{1,2}` function at :math:`x`.
+
+        More precisely, it computes
+
+        .. math::
+            \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x
+
+
+        where :math:`\gamma` is a stepsize.
+
+        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
+        :param float gamma: stepsize of the proximity operator.
+        :param int l2_axis: axis in which the l2 norm is computed.
+        :return torch.Tensor: proximity operator at :math:`x`.
+        """
+
+        tau_gamma = torch.tensor(gamma)
+
+        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)
+        # Creating a mask to avoid diving by zero
+        # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
+        mask_z = z > 0
+        z[mask_z] = torch.max(z[mask_z], tau_gamma)
+        z[mask_z] = torch.tensor(1.0) - tau_gamma / z[mask_z]
+
+        return torch.multiply(z, x)

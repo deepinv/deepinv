@@ -13,7 +13,7 @@ or as a standalone denoiser. All denoisers have a ``forward`` method that takes 
     >>> import deepinv as dinv
     >>> denoiser = dinv.models.DRUNet()
     >>> sigma = 0.1
-    >>> image = torch.ones(1, 3, 32, 32)*.5
+    >>> image = torch.ones(1, 3, 32, 32) * .5
     >>> noisy_image =  image + torch.randn(1, 3, 32, 32) * sigma
     >>> denoised_image = denoiser(noisy_image, sigma)
 
@@ -56,18 +56,20 @@ Deep Denoisers
    deepinv.models.GSDRUNet
    deepinv.models.SwinIR
    deepinv.models.DiffUNet
+   deepinv.models.Restormer
+   deepinv.models.ICNN
 
 
 
 Equivariant Denoisers
 --------------------------
 The denoisers can be turned into equivariant denoisers by wrapping them with the
-:class:`deepinv.models.EquivariantDenoiser` class.
-The group of transformations available at the moment are vertical/horizontal flips, 90 degree rotations, or a
-combination of both, consisting in groups with 3, 4 or 8 elements.
+:class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser 
+with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate` or :class:`deepinv.transform.Reflect`.
+You retain full flexibility by passing in the transform of choice.
 
-The denoising can either be averaged the group of transformation (making the denoiser equivariant) or performed on a
-single transformation sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
+The denoising can either be averaged over the entire group of transformation (making the denoiser equivariant) or performed on 1 or n
+transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
 equivariant denoiser.
 
 .. autosummary::
@@ -76,6 +78,34 @@ equivariant denoiser.
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+
+.. _adversarial-networks:
+Adversarial Networks
+--------------------
+
+Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.PatchGANDiscriminator
+   deepinv.models.ESRGANDiscriminator
+   deepinv.models.DCGANGenerator
+   deepinv.models.DCGANDiscriminator
+   deepinv.models.CSGMGenerator
+
+Complex Denoisers
+--------------------------
+Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval, require processing complex-valued images.The function :class:`deepinv.models.complex.to_complex_denoiser` can convert any real-valued denoiser into a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
 
 
 
@@ -137,5 +167,10 @@ associated reference and relevant details. All pretrained weights are hosted on
      - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
    * - 
      - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo
+   * - :meth:`deepinv.models.Restormer`
+     - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_. 
+   * - 
+     - Also available on `Deepinv Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+
 
 

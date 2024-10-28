@@ -13,6 +13,9 @@ authors:
 - family-names: "Terris"
   given-names: "Matthieu"
   orcid: "https://orcid.org/0009-0009-9726-6131"
+- family-names: "Wang"
+  given-names: "Andrew"
+  orcid: "https://orcid.org/0000-0003-0838-7986"
 title: "DeepInverse: A deep learning framework for inverse problems in imaging"
 version: latest
 doi: 10.5281/zenodo.7982256

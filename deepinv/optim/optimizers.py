@@ -1,12 +1,12 @@
 import sys
 import warnings
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from collections.abc import Iterable
-from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
+from deepinv.loss.metric.distortion import PSNR
 
 
 class BaseOptim(nn.Module):
@@ -64,43 +64,46 @@ class BaseOptim(nn.Module):
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
     The same holds for the variable ``prior`` which is a list of instances of :meth:`deepinv.optim.Prior` (or a single instance).
 
-    ::
+    .. doctest::
 
-        # This minimal example shows how to use the BaseOptim class to solve the problem
-        #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
-        # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
-
-        # Create the measurement operator A
-        A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
-        A_forward = lambda v: A @ v
-        A_adjoint = lambda v: A.transpose(0, 1) @ v
-
-        # Define the physics model associated to this operator
-        physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
-
-        # Define the measurement y
-        y = torch.tensor([2, 2], dtype=torch.float64)
-
-        # Define the data fidelity term
-        data_fidelity = dinv.optim.data_fidelity.L2()
-
-        # Define the prior
-        prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
-
-        # Define the parameters of the algorithm
-        params_algo = {"stepsize": 0.5, "lambda": 1.0}
-
-        # Define the fixed-point iterator
-        iterator = dinv.optim.optim_iterators.PGDIteration()
-
-        # Define the optimization algorithm
-        optimalgo = dinv.optim.BaseOptim(iterator,
-                            data_fidelity=data_fidelity,
-                            params_algo=params_algo,
-                            prior=prior)
-
-        # Run the optimization algorithm
-        xhat = optimalgo(y, physics)
+        >>> import deepinv as dinv
+        >>> # This minimal example shows how to use the BaseOptim class to solve the problem
+        >>> #                min_x 0.5  ||Ax-y||_2^2 + \lambda ||x||_1
+        >>> # with the PGD algorithm, where A is the identity operator, lambda = 1 and y = [2, 2].
+        >>>
+        >>> # Create the measurement operator A
+        >>> A = torch.tensor([[1, 0], [0, 1]], dtype=torch.float64)
+        >>> A_forward = lambda v: A @ v
+        >>> A_adjoint = lambda v: A.transpose(0, 1) @ v
+        >>>
+        >>> # Define the physics model associated to this operator
+        >>> physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+        >>>
+        >>> # Define the measurement y
+        >>> y = torch.tensor([2, 2], dtype=torch.float64)
+        >>>
+        >>> # Define the data fidelity term
+        >>> data_fidelity = dinv.optim.data_fidelity.L2()
+        >>>
+        >>> # Define the prior
+        >>> prior = dinv.optim.Prior(g = lambda x, *args: torch.norm(x, p=1))
+        >>>
+        >>> # Define the parameters of the algorithm
+        >>> params_algo = {"stepsize": 0.5, "lambda": 1.0}
+        >>>
+        >>> # Define the fixed-point iterator
+        >>> iterator = dinv.optim.optim_iterators.PGDIteration()
+        >>>
+        >>> # Define the optimization algorithm
+        >>> optimalgo = dinv.optim.BaseOptim(iterator,
+        ...                     data_fidelity=data_fidelity,
+        ...                     params_algo=params_algo,
+        ...                     prior=prior)
+        >>>
+        >>> # Run the optimization algorithm
+        >>> with torch.no_grad(): xhat = optimalgo(y, physics)
+        >>> print(xhat)
+        tensor([1., 1.], dtype=torch.float64)
 
 
     :param deepinv.optim.optim_iterators.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
@@ -250,6 +253,7 @@ class BaseOptim(nn.Module):
             history_size=history_size,
             beta_anderson_acc=beta_anderson_acc,
             eps_anderson_acc=eps_anderson_acc,
+            verbose=verbose,
         )
 
     def update_params_fn(self, it):
@@ -347,7 +351,10 @@ class BaseOptim(nn.Module):
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
         if x_gt is not None:
-            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            psnr = [
+                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                for i in range(self.batch_size)
+            ]
         else:
             psnr = [[] for i in range(self.batch_size)]
         init["psnr"] = psnr
@@ -381,8 +388,8 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(x[i], x_gt[i])
-                    metrics["psnr"][i].append(psnr)
+                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
@@ -420,7 +427,7 @@ class BaseOptim(nn.Module):
                 self.params_algo["stepsize"] = [self.eta_backtracking * stepsize]
                 if self.verbose:
                     print(
-                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.3f}'
+                        f'Backtraking : new stepsize = {self.params_algo["stepsize"][0]:.6f}'
                     )
             else:
                 check_iteration = True
@@ -472,14 +479,15 @@ class BaseOptim(nn.Module):
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        X, metrics = self.fixed_point(
-            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
-        )
-        x = self.get_output(X)
-        if compute_metrics:
-            return x, metrics
-        else:
-            return x
+        with torch.no_grad():
+            X, metrics = self.fixed_point(
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+            )
+            x = self.get_output(X)
+            if compute_metrics:
+                return x, metrics
+            else:
+                return x
 
 
 def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
@@ -497,6 +505,9 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
     """
+    # If no prior is given, we set it to a zero prior.
+    if prior is None:
+        prior = Zero()
     # If no custom objective function F_fn is given but g is explicitly given, we have an explicit objective function.
     explicit_prior = (
         prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
@@ -575,7 +586,7 @@ def optim_builder(
         params_algo=params_algo,
         max_iter=max_iter,
         **kwargs,
-    )
+    ).eval()
 
 
 def str_to_class(classname):

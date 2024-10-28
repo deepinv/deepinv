@@ -2,6 +2,7 @@ from deepinv.physics.forward import LinearPhysics
 from dotmap import DotMap
 import torch
 import numpy as np
+from deepinv.physics.functional import random_choice
 
 
 def dst1(x):
@@ -77,6 +78,8 @@ class CompressedSensing(LinearPhysics):
 
         - ``use_haar``: Use Haar matrix instead of Gaussian matrix. Default is False.
         - ``compute_inverse``: Compute the pseudo-inverse of the forward matrix. Default is False.
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+        If ``None``, the default Generator of PyTorch will be used.
 
     |sep|
 
@@ -84,12 +87,13 @@ class CompressedSensing(LinearPhysics):
 
         Compressed sensing operator with 100 measurements for a 3x3 image:
 
+        >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(img_shape=(1, 3, 3), m=10)
+        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
-                  0.7754, -0.0479]])
+        tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
+                  0.6752, -1.5684]])
 
     """
 
@@ -102,6 +106,7 @@ class CompressedSensing(LinearPhysics):
         dtype=torch.float,
         device="cpu",
         config: DotMap = DotMap(),
+        rng: torch.Generator = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -110,6 +115,17 @@ class CompressedSensing(LinearPhysics):
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
+        self.device = device
+
+        if rng is None:
+            self.rng = torch.Generator(device=device)
+        else:
+            # Make sure that the random generator is on the same device as the physic generator
+            assert rng.device == torch.device(
+                device
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            self.rng = rng
+        self.initial_random_state = self.rng.get_state()
 
         if channelwise:
             n = int(np.prod(img_shape[1:]))
@@ -118,11 +134,15 @@ class CompressedSensing(LinearPhysics):
 
         if self.fast:
             self.n = n
-            self.D = torch.ones(self.n, device=device)
-            self.D[torch.rand_like(self.D) > 0.5] = -1.0
+            self.D = torch.where(
+                torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
+            )
+
             self.mask = torch.zeros(self.n, device=device)
-            idx = np.sort(np.random.choice(self.n, size=m, replace=False))
-            self.mask[torch.from_numpy(idx)] = 1
+            idx = torch.sort(
+                random_choice(self.n, size=m, replace=False, rng=self.rng)
+            ).values
+            self.mask[idx] = 1
             self.mask = self.mask.type(torch.bool)
 
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
@@ -130,7 +150,7 @@ class CompressedSensing(LinearPhysics):
         else:
             if config.use_haar:
                 print("Using Haar matrix")
-                self._A = torch.randn((m, n), device=device, dtype=dtype) / np.sqrt(m)
+                self._A = torch.randn((m, n), device=device, dtype=dtype, generator=self.rng) / np.sqrt(m)
                 self._A, R = torch.linalg.qr(self._A)
                 L = torch.sgn(torch.diag(R))
                 self._A = self._A * L[None, :]
@@ -150,7 +170,7 @@ class CompressedSensing(LinearPhysics):
                 .to(device)
             )
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -167,7 +187,7 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         y = y.type(self.dtype)
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
@@ -188,7 +208,7 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y):
+    def A_dagger(self, y, **kwargs):
         y = y.type(self.dtype)
         if self.fast:
             return self.A_adjoint(y)

@@ -15,8 +15,10 @@ to fit your needs.
    :nosignatures:
 
         deepinv.Trainer
+        deepinv.training.AdversarialTrainer
 
 We also provide train and test functions that can be used to train and test a model with a single call.
+
 
 .. autosummary::
    :toctree: stubs
@@ -27,9 +29,10 @@ We also provide train and test functions that can be used to train and test a mo
         deepinv.test
 
 
+
 Plotting
 --------
-We provide some basic plotting functions that are adapted to inverse problems.
+We provide some plotting functions that are adapted to inverse problems.
 
 .. autosummary::
    :toctree: stubs
@@ -40,6 +43,8 @@ We provide some basic plotting functions that are adapted to inverse problems.
         deepinv.utils.plot_curves
         deepinv.utils.plot_parameters
         deepinv.utils.plot_inset
+        deepinv.utils.plot_videos
+        deepinv.utils.plot_ortho3D
 
 
 TensorList
@@ -79,6 +84,7 @@ Other
    :template: myfunc_template.rst
    :nosignatures:
 
-        deepinv.utils.cal_psnr
         deepinv.utils.get_freer_gpu
         deepinv.utils.load_url_image
+        deepinv.utils.load_image
+        deepinv.utils.demo.demo_mri_model

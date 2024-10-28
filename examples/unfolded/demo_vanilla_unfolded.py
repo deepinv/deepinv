@@ -77,9 +77,9 @@ noise_level_img = 0.03
 
 # Generate the gaussian blur downsampling operator.
 physics = dinv.physics.Downsampling(
+    filter="gaussian",
     img_size=(n_channels, img_size, img_size),
     factor=factor,
-    mode="gauss",
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
@@ -119,12 +119,12 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 # Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None, train=True).to(device))
+prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
-stepsize = [1.0] * max_iter  # stepsize of the algorithm
+stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
-beta = 1.0  # relaxation parameter of the Douglas-Rachford splitting
+beta = 1  # relaxation parameter of the Douglas-Rachford splitting
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
     "g_param": sigma_denoiser,
@@ -167,7 +167,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
 # choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -179,7 +179,7 @@ test_dataloader = DataLoader(
 # %%
 # Train the network
 # ----------------------------------------------------------------------------------------
-# We train the network using the library's train function.
+# We train the network using the :meth:`deepinv.Trainer` class.
 
 trainer = dinv.Trainer(
     model,

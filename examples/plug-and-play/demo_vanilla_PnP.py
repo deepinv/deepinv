@@ -23,7 +23,6 @@ from deepinv.utils.plotting import plot, plot_curves
 BASE_DIR = Path(".")
 RESULTS_DIR = BASE_DIR / "results"
 
-
 # %%
 # Load image and parameters
 # ----------------------------------------------------------------------------------------
@@ -49,14 +48,18 @@ operation = "tomography"
 
 
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
+angles = 100
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.Tomography(
     img_width=img_size,
-    angles=100,
+    angles=angles,
     circle=False,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
+
+PI = 4 * torch.ones(1).atan()
+SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -74,7 +77,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-params_algo = {"stepsize": 0.01, "g_param": noise_level_img}
+params_algo = {"stepsize": 0.01 * SCALING, "g_param": noise_level_img}
 max_iter = 100
 early_stop = True
 
@@ -86,16 +89,16 @@ denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
-    train=False,
     device=device,
 )
 prior = PnP(denoiser=denoiser)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
+# initialize with the rescaled adjoint such that the initialization lives already at the correct scale
 model = optim_builder(
     iteration="PGD",
     prior=prior,
@@ -104,7 +107,14 @@ model = optim_builder(
     max_iter=max_iter,
     verbose=verbose,
     params_algo=params_algo,
+    custom_init=lambda y, physics: {
+        "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
+    },
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem and plot the results.
@@ -114,7 +124,9 @@ model = optim_builder(
 # For computing PSNR, the ground truth image ``x_gt`` must be provided.
 
 y = physics(x)
-x_lin = physics.A_adjoint(y)  # linear reconstruction with the adjoint operator
+x_lin = (
+    physics.A_adjoint(y) * SCALING
+)  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
 x_model, metrics = model(
@@ -122,8 +134,8 @@ x_model, metrics = model(
 )  # reconstruction with PnP algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
@@ -135,5 +147,5 @@ plot(
 )
 
 # plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+if plot_convergence_metrics:
     plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
