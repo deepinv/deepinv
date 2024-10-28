@@ -1,4 +1,5 @@
 import pytest
+from dotmap import DotMap
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -46,9 +47,11 @@ def find_operator(name, device):
     norm = 1
     dtype = torch.float
     if name == "CS":
+        config = DotMap()
+        config.compute_inverse = True
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, compute_inverse=True
+            m=m, img_shape=img_size, device=device, config=config
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -60,7 +63,6 @@ def find_operator(name, device):
             channelwise=True,
             img_shape=img_size,
             device=device,
-            compute_inverse=True,
         )
     elif name == "inpainting":
         p = dinv.physics.Inpainting(tensor_size=img_size, mask=0.5, device=device)

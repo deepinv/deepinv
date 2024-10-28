@@ -11,72 +11,16 @@ import yaml
 
 from deepinv.utils.demo import load_url_image, get_image_url
 
-# Load configuration from YAML file
-def load_config(config_file):
-    with open(config_file, 'r') as file:
-        config_dict = yaml.safe_load(file)
-    return DotMap(config_dict)
 
-def permute(arr: torch.tensor) -> torch.tensor:
-    # Step 1: Create a permutation for values in range [0, 255]
-    permuted_values = np.random.permutation(256)
-    
-    # Step 2: Create a mapping from original values to permuted values
-    value_mapping = {i: permuted_values[i] for i in range(256)}
-    
-    # Step 3: Apply the mapping to the original array
-    permuted_array = np.vectorize(value_mapping.get)(arr.cpu() * 255)
-    
-    return torch.from_numpy(permuted_array) / 255
+def compare(a: int, b: int):
+    r"""
+    Compare two numbers.
 
-def generate_signal(
-        img_size,
-        mode,
-        transform = None,
-        config = None,
-        dtype = torch.complex64,
-        device = "cpu",
-    ):
-    if mode == "shepp-logan":
-        url = get_image_url("SheppLogan.png")
-        img = load_url_image(
-        url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
-        )
-    elif mode == "random":
-        # random phase signal
-        img = torch.rand((1, 1, img_size, img_size), device=device)
-    elif mode == "delta":
-        img = torch.zeros((1, 1, img_size, img_size), device=device)
-        img[0, 0, img_size // 2, img_size // 2] = 1.0
-    elif mode == "constant":
-        img == config.constant * torch.ones((1, 1, img_size, img_size), device=device)
-    elif mode == "polar":
-        # Create a tensor of probabilities (0.5 for each element)
-        probabilities = torch.full((1, 1, img_size, img_size), 0.5)
-        # Generate a tensor with values 0 or 1, with a 50% chance for each
-        img = torch.bernoulli(probabilities)
-    else:
-        raise ValueError("Invalid mode.")
-    if transform:
-        if transform == 'reverse':
-            img = 1 - img
-        elif transform == 'permute':
-            img = permute(img)
-        elif transform == 'noise':
-            img = img * (1-config.noise_ratio) + torch.rand_like(img) * config.noise_ratio
-        else:
-            raise ValueError("Invalid transform.")
-    # generate phase signal
-    # the phase is computed as pi*x - 0.5pi, where x is the original image.
-    x = torch.exp(1j * img * torch.pi - 0.5j * torch.pi).to(device)
-    if config.unit_mag is True:
-        assert torch.allclose(x.abs(), torch.tensor(1.0)), "The magnitudes of the signal are not all 1s."
-    else:
-        scale = config.max_scale*torch.rand_like(x, dtype=torch.float)
-        x = x * scale
-    return x
+    :param int a: First number.
+    :param int b: Second number.
 
-def compare(a:int,b:int):
+    :return: The comparison result (>, < or =).
+    """
     if a > b:
         return ">"
     elif a < b:
@@ -84,7 +28,20 @@ def compare(a:int,b:int):
     else:
         return "="
 
-def merge_order(a:str,b:str):
+
+def merge_order(a: str, b: str):
+    r"""
+    Merge two orders.
+
+    If a and b are the same, return the same order.
+    If a and b are one ">" and one "<", return "!".
+    If a or b is "=", return the other order.
+
+    :param str a: First order.
+    :param str b: Second order.
+
+    :return: The merged order.
+    """
     if a == ">" and b == "<":
         return "!"
     elif a == "<" and b == ">":
@@ -96,7 +53,16 @@ def merge_order(a:str,b:str):
     else:
         return "="
 
+
 def default_preprocessing(y, physics):
+    r"""
+    Default preprocessing function for spectral methods.
+
+    :param torch.Tensor y: Measurements.
+    :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
+
+    :return: The preprocessing function values evaluated at y.
+    """
     return torch.max(1 - 1 / y, torch.tensor(-5.0))
 
 
@@ -192,7 +158,7 @@ def spectral_methods(
 
     if log is True:
         metrics = []
-    
+
     #! estimate the norm of x using y
     #! for the i.i.d. case, we have norm(x) = sqrt(sum(y)/A_squared_mean)
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
@@ -225,199 +191,15 @@ def spectral_methods(
 
 
 def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
+    r"""
+    Wrapper for spectral methods.
+
+    :param torch.Tensor y: Measurements.
+    :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
+    :param int n_iter: Number of iterations.
+
+    :return: The estimated signals :math:`x` and :math:`z` packed in a dictionary.
+    """
     x = spectral_methods(y, physics, n_iter=n_iter, **kwargs)
     z = x.detach().clone()
     return {"est": (x, z)}
-
-
-def plot_error_bars(
-    oversamplings,
-    datasets,
-    labels,
-    xlim=None,
-    xticks=None,
-    ylim=None,
-    yticks=None,
-    axis=1,
-    title:str=None,
-    xlabel="Oversampling Ratio",
-    ylabel="Cosine Similarity",
-    xscale="linear",
-    yscale="linear",
-    save_dir:str=None,
-    figsize=(10, 6),
-    marker=".",
-    markersize=10,
-    capsize=5,
-    font="Times New Roman",
-    fontsize=14,
-    labelsize=16,
-    ticksize=16,
-    error_bar='quantile',
-    quantiles=[0.10,0.50,0.90],
-    error_bar_linestyle='--',
-    structured_color='red',
-    iid_color='blue',
-    plot='other',
-    legend_loc='upper left',
-    transparent=True,
-    show=True,
-    bbox_inches = 'tight',
-):
-
-    # Generate a color palette
-    palette = sns.color_palette(n_colors=len(datasets))
-
-    plt.rcParams['font.family'] = font
-    plt.rcParams['font.size'] = fontsize
-    plt.rcParams['axes.labelsize'] = labelsize
-    plt.figure(figsize=figsize)
-
-    for i, (oversampling, data, label) in enumerate(
-        zip(oversamplings, datasets, labels)
-    ):
-        print(label)
-
-        if plot == 'reconstruction':
-            if 'structured' in label:
-                color = structured_color
-            elif 'iid' in label:
-                color = iid_color
-        elif plot == 'layer':
-            if '1 layer' in label:
-                color = palette[0]
-            elif '1.5 layers' in label:
-                color = palette[1]
-            elif '2 layers' in label:
-                color = palette[2]
-            elif '3 layers' in label:
-                color = palette[3]
-            elif 'haar' in label:
-                color = palette[4]
-        elif plot == 'time':
-            color = palette[i]
-        else:
-            color = palette[i]
-        
-        if 'gd rand' in label:
-            linestyle = ':'
-        elif 'gd spec' in label:
-            linestyle = '-'
-        elif 'spec' in label:
-            linestyle = '--'
-        else:
-            linestyle = '-'
-
-        print(color,label)
-        # Calculate statistics
-        if type(data) == torch.Tensor:
-            std_vals = data.std(dim=1).numpy()
-            avg_vals = data.mean(dim=1).numpy()
-            min_vals = avg_vals - std_vals
-            max_vals = avg_vals + std_vals
-        elif type(data) == pd.DataFrame:
-            if plot == 'reconstruction' or plot == 'layer':
-                for column in data.columns:
-                    if "repeat" not in column:
-                        data.drop(columns=column, inplace=True)
-            if error_bar == 'quantile':
-                min_vals = data.quantile(quantiles[0], axis=axis).values
-                avg_vals = data.quantile(quantiles[1], axis=axis).values
-                max_vals = data.quantile(quantiles[2], axis=axis).values
-            elif error_bar == 'std':
-                avg_vals = data.mean(axis=axis).values
-                std_vals = data.std(axis=axis).values
-                min_vals = avg_vals - std_vals
-                max_vals = avg_vals + std_vals
-
-        # Calculate error bars
-        yerr_lower = avg_vals - min_vals
-        yerr_upper = max_vals - avg_vals
-
-        # Prepare data for plotting
-        df = pd.DataFrame(
-            {
-                "x": oversampling,
-                "mid": avg_vals,
-                "yerr_lower": yerr_lower,
-                "yerr_upper": yerr_upper,
-            }
-        )
-
-        # Plotting
-        ax = sns.lineplot(data=df, x="x", y="mid", marker=marker, label=label, color=color, markersize=markersize, linestyle=linestyle, zorder=2)
-        if plot != 'time':
-            # Adding error bars
-            eb = ax.errorbar(
-                df["x"],
-                df["mid"],
-                yerr=[df["yerr_lower"], df["yerr_upper"]],
-                fmt=marker,
-                capsize=capsize,
-                color=color,
-                zorder=2,
-            )
-            eb[-1][0].set_linestyle(error_bar_linestyle)
-    
-    if plot == 'reconstruction':
-        legend_contents = [
-            (Patch(visible=False), r'$\bf{Model}$'),
-            (plt.Line2D([], [], linestyle='-', color=structured_color), 'structured random'),
-            (plt.Line2D([], [], linestyle='-', color=iid_color), 'i.i.d. random'),
-            #(Patch(visible=False), ''),  # spacer
-            (Patch(visible=False), r'$\bf{Algorithm}$'),
-            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
-            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'SM'),
-            (plt.Line2D([], [], linestyle=':', marker='.',color='black'), 'GD'),
-        ]
-        legend = ax.legend(*zip(*legend_contents),loc=legend_loc)
-    elif plot == 'layer':
-        legend_contents = [
-            (Patch(visible=False), '$\\bf{Structure}$'),
-            (plt.Line2D([], [], linestyle='-', color=palette[0]), 'FD'),
-            (plt.Line2D([], [], linestyle='-', color=palette[1]), 'FDF'),
-            (plt.Line2D([], [], linestyle='-', color=palette[2]), 'FDFD'),
-            (plt.Line2D([], [], linestyle='-', color=palette[3]), 'FDFDFD'),
-            (plt.Line2D([], [], linestyle='-', color=palette[4]), 'Random Unitary'),
-            #(Patch(visible=False), ''),  # spacer
-            (Patch(visible=False), '$\\bf{Algorithm}$'),
-            (plt.Line2D([], [], linestyle='-', marker='.',color='black'), 'GD + SM'),
-            (plt.Line2D([], [], linestyle='--', marker='.',color='black'), 'SM'),
-        ]
-        legend = ax.legend(*zip(*legend_contents),loc=legend_loc)
-    elif plot == 'time':
-        legend = ax.legend(loc=legend_loc)
-    else:
-        legend = ax.legend(loc=legend_loc)
-    # set legend on the bottom layer
-    legend.set_zorder(1)
-
-
-    # Adding labels and title
-    ax.set_xlabel(xlabel)
-    ax.set_xscale(xscale)
-    ax.set_ylabel(ylabel)
-    ax.set_yscale(yscale)
-    if xlim:
-        ax.set_xlim(xlim,auto=True)
-    if xticks:
-        ax.set_xticks(xticks)
-    if ylim:
-        ax.set_ylim(ylim,auto=True)
-    if yticks:
-        ax.set_yticks(yticks)
-    if title:
-        ax.set_title(title)
-
-    # Set the tick size
-    ax.tick_params(axis='both', which='major', labelsize=ticksize)
-    ax.tick_params(axis='both', which='minor', labelsize=ticksize)
-
-
-    if save_dir is not None:
-        plt.savefig(save_dir,transparent=transparent,bbox_inches=bbox_inches)
-        print(f"Figure saved to {save_dir}")
-
-    # Show plot
-    if show:
-        plt.show()
