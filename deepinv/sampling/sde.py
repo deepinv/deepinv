@@ -36,10 +36,24 @@ class DiffusionSDE(nn.Module):
         t = 0
         for n in range(num_steps):
             rt = self.T - t * n
-            g = self.g(x, rt)
+            g = self.g(rt)
             drift = self.f(x, rt) - (1 + alpha**2) * g**2 * self.score(x, rt)
             diffusion = alpha * g
             dw = torch.randn_like(x) * dt
             x = x + drift * dt + diffusion * dw
 
         return x
+
+
+if __name__ == "__main__":
+    import deepinv as dinv
+
+    device = torch.device("cuda")
+
+    score = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
+    OUSDE = DiffusionSDE(score=score, T=1.0)
+
+    x = torch.randn((2, 1, 28, 28), device=device)
+    sample = OUSDE.backward_sde(x)
+
+    dinv.utils.plot([x, sample])
