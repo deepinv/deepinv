@@ -34,6 +34,7 @@ Fixed
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
 - Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_) 
+- Fix bug when using cuda device in dinv.datasets.generate_dataset  (:gh:`334` by `Tobias Liaudat`_) 
 
 Changed
 ^^^^^^^
