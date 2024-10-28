@@ -36,7 +36,6 @@ class NoisyDataFidelity(nn.Module):
         return self.precond(self.diff(x, y))
 
 
-
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
     TBD
@@ -61,8 +60,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         :return: (torch.Tensor) TBD
         """
         raise NotImplementedError
-
-
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
