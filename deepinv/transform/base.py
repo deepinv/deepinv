@@ -2,7 +2,9 @@ from __future__ import annotations
 from itertools import product
 from typing import Tuple, Callable, Any
 import torch
+from deepinv.physics import Physics
 from deepinv.physics.time import TimeMixin
+from deepinv.loss.metric import PSNR
 
 
 class TransformParam(torch.Tensor):
@@ -426,3 +428,15 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+
+    def equivariance_error(self, f, y, params=None, metric=None):
+        if isinstance(f, Physics):
+            f = f.A
+        if params is None:
+            params = self.get_params(y)
+        if metric is None:
+            metric = PSNR()
+        x1 = self(f(y), **params)
+        x2 = f(self(y, **params))
+        return x1 - x2
