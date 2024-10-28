@@ -1,16 +1,45 @@
 import torch
+from deepinv.models.splines.spline_activation import WeaklyConvexSplineActivation
 
 class RidgeRegularizer(torch.nn.Module):
     def __init__(self,channel_sequence=[1,4,8,80],kernel_size=5,max_noise_level=30./255.,rho_wconvex=1.,spline_knots=[11,101]):
-        self.convolutions=[]
+        
+        # initialize splines
+        self.potential = WeaklyConvexSplineActivation(channel_sequence[-1],scaling_knots=spline_knots[0],spline_knots=spline_knots[1],max_noise_level=max_noise_level*255.,rho_wconvex=rho_wconvex)
+        # initialize convolutions
+        self.W = MultiConv2d(num_channels=channel_sequence, size_kernels=[kernel_size]*(len(channel_sequence-1)))
+
+    
+    def cost(self, x, sigma):
+        if isinstance(sigma, float):
+            sigma = sigma * torch.ones((x.size(0),), device=x.device) * 255
+            
+        return self.potential(self.W(x), sigma).sum(dim=tuple(range(1, len(x.shape))))
+
+
+    def grad(self, x, sigma):
+        if isinstance(sigma, float):
+            sigma = sigma * torch.ones((x.size(0),), device=x.device) * 255
+
+        return self.W.transpose(self.potential.derivative(self.W(x), sigma))
+
 
 
 
 class MultiConv2d(torch.nn.Module):
     def __init__(self, num_channels=[1, 64], size_kernels=[3], zero_mean=True, sn_size=256):
-        '''
+        r"""
+        The multiconv module for the ridge regularizer
 
-        '''
+        This module concatinates a sequence of convolutions without non-linearities in between
+
+        The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
+        
+        :param list of ints num_channels: num_channels[0]: number of input channels, num_channels[i>0]: number of output channels of the i-th convolution layer
+        :param list of ints size_kernels: kernerl sizes for each convolution layer (len(size_kernels) = len(num_channels) - 1)
+        :param bool zero_mean: the filters of convolutions are constrained to be of zero mean if true 
+        :param int sn_size: input image size for spectral normalization (required for training)
+        """   
 
         super().__init__()
         # parameters and options
@@ -21,10 +50,10 @@ class MultiConv2d(torch.nn.Module):
 
         
         # list of convolutionnal layers
-        self.conv_layers = nn.ModuleList()
+        self.conv_layers = torch.nn.ModuleList()
         
         for j in range(len(num_channels) - 1):
-            self.conv_layers.append(nn.Conv2d(in_channels=num_channels[j], out_channels=num_channels[j+1], kernel_size=size_kernels[j], padding=size_kernels[j]//2, stride=1, bias=False))
+            self.conv_layers.append(torch.nn.Conv2d(in_channels=num_channels[j], out_channels=num_channels[j+1], kernel_size=size_kernels[j], padding=size_kernels[j]//2, stride=1, bias=False))
             # enforce zero mean filter for first conv
             if zero_mean and j == 0:
                 torch.nn.utils.parametrize.register_parametrization(self.conv_layers[-1], "weight", ZeroMean())
@@ -49,7 +78,7 @@ class MultiConv2d(torch.nn.Module):
 
         for conv in self.conv_layers:
             weight = conv.weight
-            x = nn.functional.conv2d(x, weight, bias=None, dilation=conv.dilation, padding=conv.padding, groups=conv.groups, stride=conv.stride)
+            x = torch.nn.functional.conv2d(x, weight, bias=None, dilation=conv.dilation, padding=conv.padding, groups=conv.groups, stride=conv.stride)
  
         return(x)
 
@@ -60,7 +89,7 @@ class MultiConv2d(torch.nn.Module):
 
         for conv in reversed(self.conv_layers):
             weight = conv.weight
-            x = nn.functional.conv_transpose2d(x, weight, bias = None, padding=conv.padding, groups=conv.groups, dilation=conv.dilation, stride=conv.stride)
+            x = torch.nn.functional.conv_transpose2d(x, weight, bias = None, padding=conv.padding, groups=conv.groups, dilation=conv.dilation, stride=conv.stride)
 
         return(x)
     
@@ -119,7 +148,7 @@ class MultiConv2d(torch.nn.Module):
 
 
 # enforce zero mean kernels for each output channel
-class ZeroMean(nn.Module):
+class ZeroMean(torch.nn.Module):
     def forward(self, X):
         Y = X - torch.mean(X, dim=(1,2,3)).unsqueeze(1).unsqueeze(2).unsqueeze(3)
         return(Y)
