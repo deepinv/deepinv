@@ -27,14 +27,13 @@ class DiffusionSDE(nn.Module):
             self.initial_random_state = rng.get_state()
 
     def forward_sde(self, x: Tensor, num_steps: int = 1000) -> Tensor:
-        x_new = x
         stepsize = self.T / num_steps
         for k in range(num_steps):
             t = k * stepsize
-            dw = self.randn_like(x)
+            dw = self.randn_like(x) * np.sqrt(stepsize)
             drift = self.f(x, t)
             diffusion = self.g(t)
-            x = x + stepsize * drift + diffusion * np.sqrt(stepsize) * dw
+            x = x + stepsize * drift + diffusion * dw
         return x
 
     def backward_sde(
@@ -47,8 +46,8 @@ class DiffusionSDE(nn.Module):
             g = self.g(rt)
             drift = self.f(x, rt) - (1 + alpha**2) * g**2 * self.score(x, rt)
             diffusion = alpha * g
-            dw = self.randn_like(x) * (dt) ** 0.5
-            x = x + drift * dt + diffusion * dw
+            dw = self.randn_like(x) * np.sqrt(stepsize)
+            x = x + drift * stepsize + diffusion * dw
         return x
 
     def rng_manual_seed(self, seed: int = None):
