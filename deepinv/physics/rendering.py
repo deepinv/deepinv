@@ -57,5 +57,5 @@ class RenderingPhysics(Physics):
         return y
 
     def update_parameters(self, pose_R: torch.Tensor, pose_T: torch.Tensor, **kwargs):
-        self.pose_R = torch.nn.Parameter(pose_R)
-        self.pose_T = torch.nn.Parameter(pose_T)
+        self.pose_R = torch.nn.Parameter(pose_R, requires_grad=False)
+        self.pose_T = torch.nn.Parameter(pose_T, requires_grad=False)
