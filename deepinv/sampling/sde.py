@@ -81,10 +81,19 @@ class DiffusionSDE(nn.Module):
         return torch.empty_like(input).normal_(generator=self.rng)
 
 
+def get_edm_default_noise_scheduler():
+    sigma_min = 0.002
+    sigma_max = 80.0
+    sigma_data = 0.5
+    rho = 0.7
+    P_mean = -1.2
+    P_std = 1.2
+    sigma = lambda t: t
+    alpha = lambda t: (2 * beta(t)) * sigma(t)
+
+
 class EDMSDE(DiffusionSDE):
-    def __init__(
-        self, score: Callable, T: float, sigma_min: float = 0.002, sigma_max: float = 80
-    ):
+    def __init__(self, score: Callable, T: float, sigma: Callable, alpha: Callable):
         super().__init__(score=score, T=T)
 
 
