@@ -20,7 +20,7 @@ class DiffusionSDE(nn.Module):
         self.score = score
         self.T = T
 
-    def forward_sde(self, x: Tensor, num_steps: int) -> Tensor:
+    def forward_sde(self, x: Tensor, num_steps: int = 100) -> Tensor:
         x_new = x
         stepsize = self.T / num_steps
         for k in range(num_steps):
@@ -49,12 +49,17 @@ class DiffusionSDE(nn.Module):
 if __name__ == "__main__":
     import deepinv as dinv
 
+    from deepinv.utils.demo import load_url_image, get_image_url
+
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url, grayscale=False).to(device)
 
     score = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
     OUSDE = DiffusionSDE(score=score, T=1.0)
 
-    x = torch.randn((2, 1, 28, 28), device=device)
-    sample = OUSDE.backward_sde(x)
+    sample = OUSDE.forward_sde(x)
 
+    # x = torch.randn((2, 1, 28, 28), device=device)
+    # sample = OUSDE.backward_sde(x)
     dinv.utils.plot([x, sample])
