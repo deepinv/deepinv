@@ -19,12 +19,14 @@ where :math:`R` is the trainable network, :math:`y` is the noisy image with :mat
 
 
 """
+from pathlib import Path
+
+import torch
+from torch.utils.data import DataLoader
+from torchvision import transforms, datasets
 
 import deepinv as dinv
-from torch.utils.data import DataLoader
-import torch
-from pathlib import Path
-from torchvision import transforms, datasets
+from deepinv.utils.demo import get_data_home
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -35,6 +37,7 @@ from deepinv.models.utils import get_weights_url
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
+ORIGINAL_DATA_DIR = get_data_home()
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -53,10 +56,10 @@ train_dataset_name = "MNIST"
 transform = transforms.Compose([transforms.ToTensor()])
 
 train_dataset = datasets.MNIST(
-    root="../datasets/", train=True, transform=transform, download=True
+    root=ORIGINAL_DATA_DIR, train=True, transform=transform, download=True
 )
 test_dataset = datasets.MNIST(
-    root="../datasets/", train=False, transform=transform, download=True
+    root=ORIGINAL_DATA_DIR, train=False, transform=transform, download=True
 )
 
 # %%
