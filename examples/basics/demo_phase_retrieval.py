@@ -75,14 +75,12 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 oversampling_ratio = 5.0
 img_shape = x.shape[1:]
 m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
-noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
 # Create the physics
 physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
     img_shape=img_shape,
-    # noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
     device=device,
 )
 
@@ -116,7 +114,7 @@ for _ in range(num_iter):
         physics=physics,
     )
     x_phase_gd_rand = res["est"][0]
-    loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics))
+    loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics).cpu())
 
 print("initial loss:", loss_hist[0])
 print("final loss:", loss_hist[-1])
@@ -132,7 +130,7 @@ plt.show()
 # Initially, the solution of the optimization algorithm x_est may be any phase-shifted version of the original complex signal x_phase, i.e., x_est = a * x_phase where a is an arbitrary unit norm complex number.
 # Therefore, we use the function :class:`deepinv.optim.phase_retrieval.correct_global_phase` to correct the global phase shift of the estimated signal x_est to make it closer to the original signal x_phase.
 # We then use ``torch.angle`` to extract the phase information. With the range of the returned value being [-pi/2, pi/2], we further normalize it to be [0, 1].
-# This operation will later be done for all the reconstruction methods.
+# This operation will be applied to all the reconstruction methods.
 
 # correct possible global phase shifts
 x_gd_rand = correct_global_phase(x_phase_gd_rand, x_phase)
@@ -178,7 +176,7 @@ for _ in range(num_iter):
         physics=physics,
     )
     x_phase_gd_spec = res["est"][0]
-    loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics))
+    loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics).cpu())
 
 print("intial loss:", loss_hist[0])
 print("final loss:", loss_hist[-1])

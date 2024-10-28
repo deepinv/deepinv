@@ -8,6 +8,7 @@ We restrict ourselves to operators where the signal is a 2D image. The full list
 
 """
 
+from dotmap import DotMap
 import torch
 
 import deepinv as dinv
@@ -74,8 +75,16 @@ plot([x, y], titles=["signal", "measurement"])
 # The compressed sensing class :class:`deepinv.physics.CompressedSensing` is associated with a random Gaussian matrix.
 # Here we take 2048 measurements of an image of size 64x64, which corresponds to a compression ratio of 2.
 
+config = DotMap()
+config.compute_inverse = True
+
 physics = dinv.physics.CompressedSensing(
-    m=2048, fast=False, channelwise=True, img_shape=img_size, device=device
+    m=2048,
+    fast=False,
+    channelwise=True,
+    img_shape=img_size,
+    config=config,
+    device=device,
 )
 
 y = physics(x)

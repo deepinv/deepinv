@@ -73,6 +73,10 @@ class CompressedSensing(LinearPhysics):
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.type dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
+    :param DotMap config: Configuration parameters. The following parameters are available:
+
+        - ``use_haar``: Use Haar matrix instead of Gaussian matrix. Default is False.
+        - ``compute_inverse``: Compute the pseudo-inverse of the forward matrix. Default is False.
 
     |sep|
 
