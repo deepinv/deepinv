@@ -1,5 +1,6 @@
 import pytest
 
+from dotmap import DotMap
 import torch
 from torch.utils.data import DataLoader
 

@@ -160,7 +160,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.complex64,
         device="cpu",
-        config: DotMap = None,
+        config: DotMap = DotMap(),
         **kwargs,
     ):
         self.m = m
@@ -186,7 +186,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     r"""
-    Pseudo-random Phase Retrieval class corresponding to the operator
+    Structured Random Phase Retrieval class corresponding to the operator
 
     .. math::
 
@@ -196,8 +196,13 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
+    :param tuple input_shape: shape (C, H, W) of inputs.
+    :param tuple output_shape: shape (C, H, W) of outputs.
     :param int n_layers: number of layers. an extra F is at the end if there is a 0.5
-    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param str transform: structured transform to use. Default is 'fft'.
+    :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
+    :param DotMap distri_config: configuration for the diagonal distribution.
+    :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.
     :param torch.type dtype: Signals are processed in dtype. Default is torch.complex64.
     :param str device: Device for computation.
     """
@@ -209,7 +214,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         n_layers: int,
         transform="fft",
         diagonal_mode="uniform_phase",
-        distri_config: DotMap = None,
+        distri_config: DotMap = DotMap(),
         shared_weights=False,
         dtype=torch.complex64,
         device="cpu",
@@ -381,4 +386,10 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     @staticmethod
     def get_structure(n_layers) -> str:
+        r"""Returns the structure of the operator as a string.
+
+        :param float n_layers: number of layers.
+
+        :return: (str) the structure of the operator, e.g., "FDFD".
+        """
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)

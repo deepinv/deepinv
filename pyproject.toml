@@ -29,6 +29,7 @@ dependencies = [
     "torchvision",
     "einops",
     "wandb",
+    "dotmap",
 ]
 
 [tool.setuptools]

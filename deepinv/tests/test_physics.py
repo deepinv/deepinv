@@ -112,12 +112,14 @@ def find_operator(name, device):
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)
         m = 50
+        config = DotMap()
+        config.compute_inverse = True
         p = dinv.physics.CompressedSensing(
             m=m,
             img_shape=img_size,
-            dtype=torch.cfloat,
+            dtype=torch.complex64,
             device=device,
-            compute_inverse=True,
+            config=config,
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
@@ -277,10 +279,21 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
+    config = DotMap()
+    config.mode = "uniform_phase"
+    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
+        input_shape=(1, 10, 10),
+        output_shape=(1, 10, 10),
+        n_layers=2,
+        transform="fft",
+        distri_config=config,
+    )
     # nonnegativity
     assert (physics(x) >= 0).all()
+    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):
