@@ -24,7 +24,6 @@ from deepinv.models.utils import get_weights_url
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
 
@@ -51,10 +50,10 @@ img_size = 128
 transform = transforms.Compose([transforms.Resize(img_size)])
 
 train_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform, train=True
+    train_dataset_name, transform, train=True
 )
 test_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform, train=False
+    train_dataset_name, transform, train=False
 )
 
 # %%
@@ -63,7 +62,7 @@ test_dataset = load_dataset(
 #
 #
 
-mask = load_degradation("mri_mask_128x128.npy", ORIGINAL_DATA_DIR)
+mask = load_degradation("mri_mask_128x128.npy")
 
 # defined physics
 physics = dinv.physics.MRI(mask=mask, device=device)

@@ -2,8 +2,6 @@ import deepinv
 import torch
 import pytest
 
-import matplotlib.pyplot as plt
-
 
 @pytest.fixture
 def tensorlist():

@@ -48,22 +48,11 @@ Try out one of the following deblurring examples (or pick from :ref:`full list o
 .. minigallery:: deepinv.physics.BlurFFT
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :hidden:
    :caption: Contents:
 
-   deepinv.physics
-   deepinv.datasets
-   deepinv.utils
-   deepinv.loss
-   deepinv.metric
-   deepinv.transform
-   deepinv.denoisers
-   deepinv.optim
-   deepinv.iterative
-   deepinv.unfolded
-   deepinv.sampling
-   deepinv.other_models
+   deepinv.api
    auto_examples/index
    deepinv.multigpu
    deepinv.notation

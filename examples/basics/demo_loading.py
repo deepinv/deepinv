@@ -21,12 +21,11 @@ from deepinv.models.utils import get_weights_url
 
 
 # %%
-# Setup paths for data loading and results.
-# ---------------------------------------------------------------
+# Setup paths for data loading and results
+# ----------------------------------------
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -35,7 +34,7 @@ CKPT_DIR = BASE_DIR / "ckpts"
 
 # %%
 # Define a forward operator
-# --------------------------------------------
+# -------------------------
 # We define a simple inpainting operator with 50% of missing pixels.
 #
 
@@ -51,7 +50,7 @@ physics = dinv.physics.Inpainting(
 
 # %%
 # Define a model
-# --------------------------------------------
+# --------------
 # For the purpose of this example, we define a rather complex model that consists an unfolded Chambolle-Pock algorithm.
 #
 
@@ -126,7 +125,7 @@ model = unfolded_builder(
 torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 
 # %% Loading the model
-# -------------------
+# --------------------
 # Similarly, we can load our trained unfolded architecture following the standard PyTorch procedure.
 # This network was trained in the demo :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py`.
 

@@ -9,7 +9,7 @@ from .utils import get_weights_url
 # Compatibility with optional dependency on timm
 try:
     import timm
-    from timm.models.layers import trunc_normal_, DropPath
+    from timm.layers import trunc_normal_, DropPath
 except ImportError as e:
     timm = e
 

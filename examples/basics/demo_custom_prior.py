@@ -17,7 +17,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils.demo import load_dataset, get_data_home
 
 
 # %%
@@ -27,7 +27,6 @@ from deepinv.utils.demo import load_dataset
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -50,11 +49,10 @@ method = "L2_prior"
 dataset_name = "set3c"
 operation = "deblur"
 img_size = 256
-dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%

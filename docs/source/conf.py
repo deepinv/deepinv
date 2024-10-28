@@ -2,10 +2,10 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath("../.."))
+# This is necessary for now but should not be in future version of sphinx_gallery
+# as a simple list of paths will be enough.
+from sphinx_gallery.sorting import ExplicitOrder
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -35,9 +35,9 @@ extensions = [
 copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
-    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
-    "torch": ("https://docs.pytorch.org/2.0/", None),
-    "python": ("https://docs.python.org/3.4", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "torch": ("http://pytorch.org/docs/2.0/", None),
+    "python": ("https://docs.python.org/3.9/", None),
 }
 
 templates_path = ["_templates"]
@@ -47,7 +47,7 @@ sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
     "filename_pattern": "/demo_",
-    "run_stale_examples": True,
+    "run_stale_examples": False,
     "ignore_pattern": r"__init__\.py",
     "reference_url": {
         # The module you locally document uses None
@@ -62,6 +62,17 @@ sphinx_gallery_conf = {
     # is an empty set, i.e. exclude nothing.
     "exclude_implicit_doc": {},
     "nested_sections": False,
+    "subsection_order": ExplicitOrder([
+        "../../examples/basics",
+        "../../examples/optimization",
+        "../../examples/plug-and-play",
+        "../../examples/sampling",
+        "../../examples/unfolded",
+        "../../examples/patch-priors",
+        "../../examples/self-supervised-learning",
+        "../../examples/adversarial-learning",
+        "../../examples/advanced",
+    ]),
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
