@@ -3,6 +3,7 @@ import math
 from torch import Tensor
 import torch.nn as nn
 from typing import Callable
+import numpy as np
 import warnings
 
 
@@ -30,16 +31,16 @@ class DiffusionSDE(nn.Module):
         stepsize = self.T / num_steps
         for k in range(num_steps):
             t = k * stepsize
-            dw = self.randn_like(x_new)
-            f_dt = self.f(x_new, t)
-            g_dw = self.g(t) * dw
-            x_new = x_new + stepsize * (f_dt + g_dw)
-        return x_new
+            dw = self.randn_like(x)
+            drift = self.f(x, t)
+            diffusion = self.g(t)
+            x = x + stepsize * drift + diffusion * np.sqrt(stepsize) * dw
+        return x
 
     def backward_sde(
         self, x: Tensor, num_steps: int = 1000, alpha: float = 1.0
     ) -> Tensor:
-        dt = self.T / num_steps
+        stepsize = self.T / num_steps
         t = 0
         for k in range(num_steps):
             rt = self.T - t * k
