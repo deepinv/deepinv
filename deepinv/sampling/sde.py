@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url, grayscale=False).to(device)
+    x = load_url_image(url=url, img_size=128, device=device)
 
     denoiser = dinv.models.WaveletDenoiser(wv="db8", level=4, device=device)
     prior = dinv.optim.prior.ScorePrior(denoiser = denoiser)
