@@ -254,7 +254,7 @@ xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
 
 sigma = (1 - at).sqrt() / at.sqrt()
 
-x0_t = model(xt / 2 + 0.5, (1 - at).sqrt() / at.sqrt() / 2) * 2 - 1
+x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
 
 grad_ll = noisy_datafidelity(xt, y, sigma)
 

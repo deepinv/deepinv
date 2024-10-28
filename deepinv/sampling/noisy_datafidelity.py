@@ -80,7 +80,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         return norm_grad
 
 
-
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
     TBD
@@ -105,8 +104,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
         :return: (torch.Tensor) TBD
         """
         raise NotImplementedError
-
-
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
 
@@ -135,9 +132,13 @@ class DDRMDataFidelity(NoisyDataFidelity):
             self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
         ).sqrt()
 
+<<<<<<< HEAD
         x_bar = mean + std * torch.randn_like(x_bar)
         x_bar_prev = x_bar.clone()
         # denoise
         x = self.denoiser(physics.V(x_bar), self.sigmas[t])
 
         return x
+=======
+        return norm_grad
+>>>>>>> 434e609d02a64b2abe15186d5f37b2f2aa6763db
