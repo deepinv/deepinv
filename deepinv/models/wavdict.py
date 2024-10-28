@@ -2,14 +2,11 @@ import torch
 import torch.nn as nn
 
 try:
+    import ptwt
     import pywt
 except:
-    pywt = ImportError("The pywt package is not installed.")
-
-try:
-    import ptwt
-except:
     ptwt = ImportError("The ptwt package is not installed.")
+    # No need to pywt, which is a dependency of ptwt
 
 
 class WaveletDenoiser(nn.Module):
@@ -23,6 +20,7 @@ class WaveletDenoiser(nn.Module):
 
         \underset{x}{\arg\min} \;  \|x-y\|^2 + \gamma \|\Psi x\|_n
 
+
     where :math:`\Psi` is an orthonormal wavelet transform, :math:`\lambda>0` is a hyperparameter, and where
     :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``) or
     the :math:`\ell_0` norm (``non_linearity="hard"``). A variant of the :math:`\ell_0` norm is also available
@@ -30,6 +28,11 @@ class WaveletDenoiser(nn.Module):
     in each wavelet subband and setting the others to zero.
 
     The solution is available in closed-form, thus the denoiser is cheap to compute.
+
+    .. warning::
+
+        This model requires Pytorch Wavelets (``ptwt``) to be installed. It can be installed with
+        ``pip install ptwt``.
 
     :param int level: decomposition level of the wavelet transform
     :param str wv: mother wavelet (follows the `PyWavelets convention
@@ -324,6 +327,11 @@ class WaveletDictDenoiser(nn.Module):
     more details.
 
     The solution is not available in closed-form, thus the denoiser runs an optimization algorithm for each test image.
+
+    .. warning::
+
+        This model requires Pytorch Wavelets (``ptwt``) to be installed. It can be installed with
+        ``pip install ptwt``.
 
     :param int level: decomposition level of the wavelet transform.
     :param list[str] wv: list of mother wavelets. The names of the wavelets can be found in `here

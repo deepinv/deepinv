@@ -13,8 +13,6 @@ class BM3D(nn.Module):
     """
     BM3D denoiser.
 
-    This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
-
     The BM3D denoiser was introduced in "Image denoising by sparse 3D transform-domain collaborative filtering", by
     Davob et al., IEEE Transactions on Image Processing (2007).
 
@@ -23,6 +21,11 @@ class BM3D(nn.Module):
 
         Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
         (no parallelization). Furthermore, it does not support backpropagation.
+
+    .. warning::
+
+        This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
+        It can be installed with ``pip install bm3d``.
 
     """
 
