@@ -12,6 +12,7 @@ results/
 *.pyc
 
 # Files
+*.pt
 *.h5
 *.png
 *.pth
@@ -27,6 +28,7 @@ results/
 /docs/source/stubs/*
 
 # Miscellaneous
+/experimental/
 /deepinv/datasets/reside/
 deepinv/version.py
 /saved_models/
