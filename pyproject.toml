@@ -32,6 +32,7 @@ dependencies = [
     "wandb",
     "dotmap",
     "scipy",
+    "seaborn",
 ]
 
 [tool.setuptools]
