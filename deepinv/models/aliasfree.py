@@ -31,7 +31,7 @@ def ndgrid(*tensors) -> Tuple[torch.Tensor, ...]:
 
     """
     try:
-        return torch.meshgrid(*tensors, indexing='ij')
+        return torch.meshgrid(*tensors, indexing="ij")
     except TypeError:
         # old PyTorch < 1.10 will follow this path as it does not have indexing arg,
         # the old behaviour of meshgrid was 'ij'
@@ -56,7 +56,7 @@ def meshgrid(*tensors) -> Tuple[torch.Tensor, ...]:
 
     # NOTE: this will throw in PyTorch < 1.10 as meshgrid did not support indexing arg or have
     # capability of generating grid in xy order before then.
-    return torch.meshgrid(*tensors, indexing='xy')
+    return torch.meshgrid(*tensors, indexing="xy")
 
 
 # https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/drop.py
@@ -78,16 +78,17 @@ DropBlock impl inspired by two Tensorflow impl that I liked:
 Hacked together by / Copyright 2020 Ross Wightman
 """
 
+
 def drop_block_2d(
-        x,
-        drop_prob: float = 0.1,
-        block_size: int = 7,
-        gamma_scale: float = 1.0,
-        with_noise: bool = False,
-        inplace: bool = False,
-        batchwise: bool = False
+    x,
+    drop_prob: float = 0.1,
+    block_size: int = 7,
+    gamma_scale: float = 1.0,
+    with_noise: bool = False,
+    inplace: bool = False,
+    batchwise: bool = False,
 ):
-    """ DropBlock. See https://arxiv.org/pdf/1810.12890.pdf
+    """DropBlock. See https://arxiv.org/pdf/1810.12890.pdf
 
     DropBlock with an experimental gaussian noise option. This layer has been tested on a few training
     runs with success, but needs further validation and possibly optimization for lower runtime impact.
@@ -96,13 +97,21 @@ def drop_block_2d(
     total_size = W * H
     clipped_block_size = min(block_size, min(W, H))
     # seed_drop_rate, the gamma parameter
-    gamma = gamma_scale * drop_prob * total_size / clipped_block_size ** 2 / (
-            (W - block_size + 1) * (H - block_size + 1))
+    gamma = (
+        gamma_scale
+        * drop_prob
+        * total_size
+        / clipped_block_size**2
+        / ((W - block_size + 1) * (H - block_size + 1))
+    )
 
     # Forces the block to be inside the feature map.
-    w_i, h_i = ndgrid(torch.arange(W, device=x.device), torch.arange(H, device=x.device))
-    valid_block = ((w_i >= clipped_block_size // 2) & (w_i < W - (clipped_block_size - 1) // 2)) & \
-                  ((h_i >= clipped_block_size // 2) & (h_i < H - (clipped_block_size - 1) // 2))
+    w_i, h_i = ndgrid(
+        torch.arange(W, device=x.device), torch.arange(H, device=x.device)
+    )
+    valid_block = (
+        (w_i >= clipped_block_size // 2) & (w_i < W - (clipped_block_size - 1) // 2)
+    ) & ((h_i >= clipped_block_size // 2) & (h_i < H - (clipped_block_size - 1) // 2))
     valid_block = torch.reshape(valid_block, (1, 1, H, W)).to(dtype=x.dtype)
 
     if batchwise:
@@ -115,16 +124,23 @@ def drop_block_2d(
         -block_mask,
         kernel_size=clipped_block_size,  # block_size,
         stride=1,
-        padding=clipped_block_size // 2)
+        padding=clipped_block_size // 2,
+    )
 
     if with_noise:
-        normal_noise = torch.randn((1, C, H, W), dtype=x.dtype, device=x.device) if batchwise else torch.randn_like(x)
+        normal_noise = (
+            torch.randn((1, C, H, W), dtype=x.dtype, device=x.device)
+            if batchwise
+            else torch.randn_like(x)
+        )
         if inplace:
             x.mul_(block_mask).add_(normal_noise * (1 - block_mask))
         else:
             x = x * block_mask + normal_noise * (1 - block_mask)
     else:
-        normalize_scale = (block_mask.numel() / block_mask.to(dtype=torch.float32).sum().add(1e-7)).to(x.dtype)
+        normalize_scale = (
+            block_mask.numel() / block_mask.to(dtype=torch.float32).sum().add(1e-7)
+        ).to(x.dtype)
         if inplace:
             x.mul_(block_mask * normalize_scale)
         else:
@@ -133,14 +149,14 @@ def drop_block_2d(
 
 
 def drop_block_fast_2d(
-        x: torch.Tensor,
-        drop_prob: float = 0.1,
-        block_size: int = 7,
-        gamma_scale: float = 1.0,
-        with_noise: bool = False,
-        inplace: bool = False,
+    x: torch.Tensor,
+    drop_prob: float = 0.1,
+    block_size: int = 7,
+    gamma_scale: float = 1.0,
+    with_noise: bool = False,
+    inplace: bool = False,
 ):
-    """ DropBlock. See https://arxiv.org/pdf/1810.12890.pdf
+    """DropBlock. See https://arxiv.org/pdf/1810.12890.pdf
 
     DropBlock with an experimental gaussian noise option. Simplied from above without concern for valid
     block mask at edges.
@@ -148,22 +164,33 @@ def drop_block_fast_2d(
     B, C, H, W = x.shape
     total_size = W * H
     clipped_block_size = min(block_size, min(W, H))
-    gamma = gamma_scale * drop_prob * total_size / clipped_block_size ** 2 / (
-            (W - block_size + 1) * (H - block_size + 1))
+    gamma = (
+        gamma_scale
+        * drop_prob
+        * total_size
+        / clipped_block_size**2
+        / ((W - block_size + 1) * (H - block_size + 1))
+    )
 
     block_mask = torch.empty_like(x).bernoulli_(gamma)
     block_mask = F.max_pool2d(
-        block_mask.to(x.dtype), kernel_size=clipped_block_size, stride=1, padding=clipped_block_size // 2)
+        block_mask.to(x.dtype),
+        kernel_size=clipped_block_size,
+        stride=1,
+        padding=clipped_block_size // 2,
+    )
 
     if with_noise:
         normal_noise = torch.empty_like(x).normal_()
         if inplace:
-            x.mul_(1. - block_mask).add_(normal_noise * block_mask)
+            x.mul_(1.0 - block_mask).add_(normal_noise * block_mask)
         else:
-            x = x * (1. - block_mask) + normal_noise * block_mask
+            x = x * (1.0 - block_mask) + normal_noise * block_mask
     else:
         block_mask = 1 - block_mask
-        normalize_scale = (block_mask.numel() / block_mask.to(dtype=torch.float32).sum().add(1e-6)).to(dtype=x.dtype)
+        normalize_scale = (
+            block_mask.numel() / block_mask.to(dtype=torch.float32).sum().add(1e-6)
+        ).to(dtype=x.dtype)
         if inplace:
             x.mul_(block_mask * normalize_scale)
         else:
@@ -172,18 +199,18 @@ def drop_block_fast_2d(
 
 
 class DropBlock2d(nn.Module):
-    """ DropBlock. See https://arxiv.org/pdf/1810.12890.pdf
-    """
+    """DropBlock. See https://arxiv.org/pdf/1810.12890.pdf"""
 
     def __init__(
-            self,
-            drop_prob: float = 0.1,
-            block_size: int = 7,
-            gamma_scale: float = 1.0,
-            with_noise: bool = False,
-            inplace: bool = False,
-            batchwise: bool = False,
-            fast: bool = True):
+        self,
+        drop_prob: float = 0.1,
+        block_size: int = 7,
+        gamma_scale: float = 1.0,
+        with_noise: bool = False,
+        inplace: bool = False,
+        batchwise: bool = False,
+        fast: bool = True,
+    ):
         super(DropBlock2d, self).__init__()
         self.drop_prob = drop_prob
         self.gamma_scale = gamma_scale
@@ -198,13 +225,28 @@ class DropBlock2d(nn.Module):
             return x
         if self.fast:
             return drop_block_fast_2d(
-                x, self.drop_prob, self.block_size, self.gamma_scale, self.with_noise, self.inplace)
+                x,
+                self.drop_prob,
+                self.block_size,
+                self.gamma_scale,
+                self.with_noise,
+                self.inplace,
+            )
         else:
             return drop_block_2d(
-                x, self.drop_prob, self.block_size, self.gamma_scale, self.with_noise, self.inplace, self.batchwise)
+                x,
+                self.drop_prob,
+                self.block_size,
+                self.gamma_scale,
+                self.with_noise,
+                self.inplace,
+                self.batchwise,
+            )
 
 
-def drop_path(x, drop_prob: float = 0., training: bool = False, scale_by_keep: bool = True):
+def drop_path(
+    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
+):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
 
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
@@ -214,10 +256,12 @@ def drop_path(x, drop_prob: float = 0., training: bool = False, scale_by_keep: b
     'survival rate' as the argument.
 
     """
-    if drop_prob == 0. or not training:
+    if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
-    shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
+    shape = (x.shape[0],) + (1,) * (
+        x.ndim - 1
+    )  # work with diff dim tensors, not just 2D ConvNets
     random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
     if keep_prob > 0.0 and scale_by_keep:
         random_tensor.div_(keep_prob)
@@ -225,9 +269,9 @@ def drop_path(x, drop_prob: float = 0., training: bool = False, scale_by_keep: b
 
 
 class DropPath(nn.Module):
-    """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
-    """
-    def __init__(self, drop_prob: float = 0., scale_by_keep: bool = True):
+    """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks)."""
+
+    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
         self.scale_by_keep = scale_by_keep
@@ -236,21 +280,25 @@ class DropPath(nn.Module):
         return drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self):
-        return f'drop_prob={round(self.drop_prob,3):0.3f}'
+        return f"drop_prob={round(self.drop_prob,3):0.3f}"
+
 
 # https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/weight_init.py
+
 
 def _trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
     # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
     def norm_cdf(x):
         # Computes standard normal cumulative distribution function
-        return (1. + math.erf(x / math.sqrt(2.))) / 2.
+        return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
 
     if (mean < a - 2 * std) or (mean > b + 2 * std):
-        warnings.warn("mean is more than 2 std from [a, b] in nn.init.trunc_normal_. "
-                      "The distribution of values may be incorrect.",
-                      stacklevel=2)
+        warnings.warn(
+            "mean is more than 2 std from [a, b] in nn.init.trunc_normal_. "
+            "The distribution of values may be incorrect.",
+            stacklevel=2,
+        )
 
     # Values are generated by using a truncated uniform distribution and
     # then using the inverse CDF for the normal distribution.
@@ -267,7 +315,7 @@ def _trunc_normal_(tensor, mean, std, a, b):
     tensor.erfinv_()
 
     # Transform to proper mean, std
-    tensor.mul_(std * math.sqrt(2.))
+    tensor.mul_(std * math.sqrt(2.0))
     tensor.add_(mean)
 
     # Clamp to ensure it's in the proper range
@@ -275,7 +323,7 @@ def _trunc_normal_(tensor, mean, std, a, b):
     return tensor
 
 
-def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
+def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
     # type: (Tensor, float, float, float, float) -> Tensor
     r"""Fills the input Tensor with values drawn from a truncated
     normal distribution. The values are effectively drawn from the
@@ -300,7 +348,6 @@ def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
     """
     with torch.no_grad():
         return _trunc_normal_(tensor, mean, std, a, b)
-
 
 
 def create_lpf_rect(N, cutoff=0.5):
