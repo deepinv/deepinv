@@ -54,7 +54,7 @@ class PhaseRetrieval(Physics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.name = f"PR_m{self.m}"
+        self.name = "Phase Retrieval"
 
         self.B = B
 
@@ -194,7 +194,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             rng=self.rng,
         )
         super().__init__(B, **kwargs)
-        self.name = f"RPR_m{self.m}"
+        self.name = "Random Phase Retrieval"
 
     def get_A_squared_mean(self):
         return self.B._A.var() + self.B._A.mean() ** 2
