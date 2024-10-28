@@ -12,7 +12,7 @@ class DiffusionSDE(nn.Module):
         self,
         f: Callable = lambda x, t: -x,
         g: Callable = lambda t: math.sqrt(2.0),
-        alpha: Callable = lambda t: 1,
+        beta: Callable = lambda t: 1,
         prior: Callable = None,
         T: float = 1.0,
         rng: torch.Generator = None,
@@ -24,9 +24,9 @@ class DiffusionSDE(nn.Module):
         self.drift_forw = lambda x, t: self.f(x, t)
         self.diff_forw = lambda t: self.g(t)
         self.drift_back = (
-            lambda x, t: -self.f(x, T - t) - (1 + alpha(t)**2) * prior.grad(x, T - t) * self.g(T - t) ** 2
+            lambda x, t: -self.f(x, T - t) - (1 + beta(t)) * prior.grad(x, T - t) * self.g(T - t) ** 2
         )
-        self.diff_back = lambda t : alpha(t) * self.g(T - t)
+        self.diff_back = lambda t : np.sqrt(beta(t)) * self.g(T - t)
 
         self.rng = rng
         if rng is not None:
@@ -41,8 +41,7 @@ class DiffusionSDE(nn.Module):
         return x
 
     def backward_sde(
-        self, x: Tensor, num_steps: int = 100, alpha: float = 1.0
-    ) -> Tensor:
+        self, x: Tensor, num_steps: int = 100) -> Tensor:
         stepsize = self.T / num_steps
         x = x.clone()
         for k in range(num_steps):
@@ -120,4 +119,4 @@ if __name__ == "__main__":
         sample_noise = OUSDE.forward_sde(x)
         noise = torch.randn_like(x)
         sample = OUSDE.backward_sde(noise, num_steps = 10)
-    dinv.utils.plot([x, sample_noise, sample])
+    dinv.utils.plot([(x + 1/2), sample_noise, (sample + 1)/2])
