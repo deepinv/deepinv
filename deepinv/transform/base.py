@@ -438,4 +438,4 @@ class Transform(torch.nn.Module, TimeMixin):
             metric = PSNR()
         x1 = self(f(y), **params)
         x2 = f(self(y, **params))
-        return x1 - x2
+        return metric(x1, x2)

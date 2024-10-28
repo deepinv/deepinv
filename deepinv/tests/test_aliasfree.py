@@ -1,64 +1,39 @@
 from deepinv.models import UNet
 from deepinv.models.aliasfree import AliasFreeDenoiser
 from deepinv.transform import Shift
+from deepinv.transform.translate import Translate
+from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 import torch
 import torch.nn.functional as F
 
 
-def translation_equivariance_error(model, x, displacement):
-    B, C, H, W = x.shape
-    displacement_w, displacement_h = displacement
-
-    grid_y, grid_x = torch.meshgrid(
-        torch.linspace(-1, 1, H), torch.linspace(-1, 1, W), indexing="ij"
-    )
-
-    grid_x = grid_x + (displacement_w / W * 2)
-    grid_y = grid_y + (displacement_h / H * 2)
-
-    grid = torch.stack((grid_x, grid_y), dim=-1).unsqueeze(0).repeat(B, 1, 1, 1)
-
-    kwargs = {"mode": "bilinear", "padding_mode": "border", "align_corners": False}
-
-    y1 = model(F.grid_sample(x, grid, **kwargs))
-    y2 = F.grid_sample(model(x), grid, **kwargs)
-    return y1 - y2
-
-
 torch.manual_seed(0)
 
 # a translation-equivariant model
-afc = AliasFreeDenoiser(size="tiny")
+afc = AliasFreeDenoiser(in_channels=3, out_channels=3)
 # a model neither translation-equivariant nor shift-equivariant
 unet = UNet(in_channels=3, out_channels=3)
 
-metric = lambda x, y: x - y
+x = DummyCircles(1, imsize=(3, 256, 256))[0].unsqueeze(0)
+linf_metric = lambda x, y: (x - y).abs().max()
 
 
 def test_shift_equivariant():
-    x = torch.randn(1, 3, 256, 256)
-    err = Shift().equivariance_error(afc, x, metric=metric)
-    assert torch.allclose(err, torch.zeros_like(err))
+    err = Shift().equivariance_error(afc, x, metric=linf_metric)
+    assert err < 1e-5
 
 
 def test_not_shift_equivariant():
-    x = torch.randn(1, 3, 256, 256)
-    err = Shift().equivariance_error(unet, x, metric=metric)
-    assert not torch.allclose(err, torch.zeros_like(err))
+    err = Shift().equivariance_error(unet, x, metric=linf_metric)
+    assert err >= 1e0
 
 
 def test_translation_equivariant():
-    x = torch.randn(1, 3, 256, 256)
-    # for multiple displacements
-    for s in [0, 1 / (2 * 256), 0.5 + 1 / (2 * 256)]:
-        err = translation_equivariance_error(afc, x, (s, s))
-    assert torch.allclose(err, torch.zeros_like(err))
+    err = Translate().equivariance_error(afc, x, metric=linf_metric)
+    assert err < 1e-4
 
 
 def test_not_translation_equivariant():
-    x = torch.randn(1, 3, 256, 256)
-    # for multiple displacements
-    for s in [0, 1 / (2 * 256), 0.5 + 1 / (2 * 256)]:
-        err = translation_equivariance_error(unet, x, (s, s))
-    assert not torch.allclose(err, torch.zeros_like(err))
+    err = Translate().equivariance_error(unet, x, metric=linf_metric)
+    assert err >= 1e0
