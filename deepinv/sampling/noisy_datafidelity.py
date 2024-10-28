@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 
+from deepinv.optim.data_fidelity import L2
+
 
 class NoisyDataFidelity(nn.Module):
     r"""
@@ -45,6 +47,11 @@ class DPSDataFidelity(NoisyDataFidelity):
     def __init__(self, physics=None, denoiser=None):
         super(DPSDataFidelity, self).__init__()
 
+        self.physics = physics
+        self.denoiser = denoiser
+
+        self.data_fidelity = L2()
+
     def precond(self, x: torch.Tensor) -> torch.Tensor:
         r"""
         TBD
@@ -53,6 +60,24 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         :return: (torch.Tensor) TBD
         """
-        return x
+        raise NotImplementedError
 
 
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+
+        with torch.enable_grad():
+            x.requires_grad_(True)
+
+            aux_x = x / 2 + 0.5
+            x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+
+            x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+
+            # DPS
+            l2_loss = self.data_fidelity(x0_t, y, self.physics).sqrt().sum()
+
+        norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=x)[0]
+        norm_grad = norm_grad.detach()
+
+        return norm_grad
