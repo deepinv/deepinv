@@ -145,6 +145,10 @@ def spectral_methods(
     :param int n_iter: Number of iterations.
     :param function preprocessing: Function to preprocess the measurements. Default is :math:`\max(1 - 1/x, -5)`.
     :param float lamb: Regularization parameter. Default is 10.
+    :param bool log: Whether to log the metrics. Default is False.
+    :param function log_metric: Metric to log. Default is cosine similarity.
+    :param bool early_stop: Whether to early stop the iterations. Default is True.
+    :param float rtol: Relative tolerance for early stopping. Default is 1e-5.
 
     :return: The estimated signals :math:`x`.
     """
