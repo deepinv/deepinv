@@ -8,6 +8,7 @@ from timm.models.layers import trunc_normal_, DropPath
 from timm.models.registry import register_model
 from doctest import UnexpectedException
 
+
 def create_lpf_rect(N, cutoff=0.5):
     cutoff_low = int((N * cutoff) // 2)
     cutoff_high = int(N - cutoff_low)
