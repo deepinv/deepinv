@@ -2,7 +2,7 @@
 import torch
 import sys
 import torch.nn as nn
-from sde import EDMSDE, DiffusionSDE
+from sde import EDMSDE, DiffusionSDE, Euler_solver, Heun_solver
 import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
 from edm import load_model
@@ -77,14 +77,24 @@ def edm_sampler(
 #     dinv.utils.plot([latents, samples])
 
 # %%
-params = get_edm_parameters("ve")
+params = get_edm_parameters("vp")
 timesteps_fn = params["timesteps_fn"]
 sigma_fn = params["sigma_fn"]
 sigma_deriv = params["sigma_deriv"]
 beta_fn = params["beta_fn"]
 sigma_max = params["sigma_max"]
+s_fn = params["s_fn"]
+s_deriv = params["s_deriv"]
 
-sde = EDMSDE(prior=prior, beta=beta_fn, sigma=sigma_fn, sigma_prime=sigma_deriv)
+sde = EDMSDE(
+    prior=prior,
+    beta=beta_fn,
+    sigma=sigma_fn,
+    sigma_prime=sigma_deriv,
+    s=s_fn,
+    s_prime=s_deriv,
+    use_backward_ode=False,
+)
 
 # %%
 num_steps = 100
@@ -94,4 +104,20 @@ with torch.no_grad():
     # dinv.utils.plot(endpoint)
     noise = torch.randn(2, 3, 64, 64, device=device) * sigma_max
     samples = sde.backward_sde.sample(noise, timesteps=timesteps_fn(num_steps))
+dinv.utils.plot(samples)
+
+# %%
+num_steps = 100
+euler_solver = Euler_solver(drift=sde.drift_back, diffusion=sde.diff_back)
+with torch.no_grad():
+    noise = torch.randn(2, 3, 64, 64, device=device) * sigma_max
+    samples = euler_solver.sample(noise, timesteps=timesteps_fn(num_steps))
+dinv.utils.plot(samples)
+
+# %%
+num_steps = 200
+heun_solver = Heun_solver(drift=sde.drift_back, diffusion=sde.diff_back)
+with torch.no_grad():
+    noise = torch.randn(2, 3, 64, 64, device=device) * sigma_max
+    samples = heun_solver.sample(noise, timesteps=timesteps_fn(num_steps))
 dinv.utils.plot(samples)

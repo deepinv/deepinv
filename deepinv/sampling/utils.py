@@ -39,7 +39,7 @@ def projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
 def exp(input):
     if isinstance(input, torch.Tensor):
         return torch.exp(input)
-    elif isinstance(input, [float, int, np.ndarray]):
+    elif isinstance(input, (float, int, np.ndarray)):
         return np.exp(input)
     else:
         raise TypeError(f"Invalid type {type(input)} for computing exponential")
@@ -61,16 +61,13 @@ def get_edm_parameters(discretization: str = "edm"):
         vp_beta_d = 19.9
         vp_beta_min = 0.1
 
-        def sigma(t):
-            return (exp(0.5 * vp_beta_d * (t**2) + vp_beta_min * t) - 1) ** 0.5
-
         vp_sigma = (
             lambda t: (np.e ** (0.5 * vp_beta_d * (t**2) + vp_beta_min * t) - 1) ** 0.5
         )
         vp_sigma_deriv = (
-            lambda beta_d, beta_min: lambda t: 0.5
-            * (beta_min + beta_d * t)
-            * (sigma(t) + 1 / sigma(t))
+            lambda t: 0.5
+            * (vp_beta_min + vp_beta_d * t)
+            * (vp_sigma(t) + 1 / vp_sigma(t))
         )
         vp_sigma_inv = (
             lambda sigma: (
@@ -81,7 +78,7 @@ def get_edm_parameters(discretization: str = "edm"):
         )
 
         def vp_timesteps(num_steps):
-            1 + np.arange(num_steps - 1) * (1e-3 - 1) / (num_steps - 1)
+            return 1 + np.arange(num_steps - 1) * (1e-3 - 1) / (num_steps - 1)
 
         solver = "euler"
         timesteps_fn = vp_timesteps
@@ -89,6 +86,10 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_inv = vp_sigma_inv
         sigma_deriv = vp_sigma_deriv
         beta_fn = lambda t: vp_sigma_deriv(t) / vp_sigma(t)
+        s_fn = lambda t: 1 / (
+            np.e ** (0.5 * vp_beta_d * (t**2) + vp_beta_min * t) ** 0.5
+        )
+        s_deriv = lambda t: -0.5 * (vp_beta_d * t + vp_beta_min) / s_fn(t)
         sigma_max = vp_sigma(1.0)
 
     elif discretization == "ve":
@@ -109,6 +110,8 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_inv = ve_sigma_inv
         sigma_deriv = ve_sigma_deriv
         beta_fn = lambda t: 0.5 / t
+        s_fn = lambda t: 1.0
+        s_deriv = lambda t: 0.0
         sigma_max = ve_sigma_max
 
     elif discretization == "edm":
@@ -134,7 +137,9 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_fn = edm_sigma
         sigma_inv = edm_sigma_inv
         sigma_deriv = edm_sigma_deriv
-        beta_fn = lambda t: 1.0
+        beta_fn = lambda t: 0.0
+        s_fn = lambda t: 1.0
+        s_deriv = lambda t: 0.0
         sigma_max = edm_sigma_max
 
     params = {
@@ -143,7 +148,9 @@ def get_edm_parameters(discretization: str = "edm"):
         "sigma_fn": sigma_fn,
         "sigma_inv": sigma_inv,
         "sigma_deriv": sigma_deriv,
-        "beta": beta_fn,
+        "beta_fn": beta_fn,
+        "s_fn": s_fn,
+        "s_deriv": s_deriv,
         "sigma_max": sigma_max,
     }
     return params
