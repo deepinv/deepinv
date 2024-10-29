@@ -47,7 +47,13 @@ def exp(input):
 
 def get_edm_parameters(discretization: str = "edm"):
     r"""
-    :param str discretization: discretization type for solving the SDE, one of 've', 'vp', 'edm
+    :param str discretization: discretization type for solving the reverse-time SDE, one of 've', 'vp', 'edm
+
+    :return dict containing: solver (str)
+                             timesteps_fn (Callable): function to compute time step for discretization
+                             sigma_fn (Callable): function to compute sigma
+                             sigma_inv (Callable): function to compute the inverse function of sigma_fn
+                             sigma_deriv (Callable): function to compute the derivative of sigma_fn
     """
 
     # Helper functions for VP
@@ -75,21 +81,62 @@ def get_edm_parameters(discretization: str = "edm"):
         )
 
         def vp_timesteps(num_steps):
-            pass
+            1 + np.arange(num_steps - 1) * (1e-3 - 1) / (num_steps - 1)
 
-        ve_sigma = lambda t: t.sqrt()
-        ve_sigma_deriv = lambda t: 0.5 / t.sqrt()
+        solver = "euler"
+        timesteps_fn = vp_timesteps
+        sigma_fn = vp_sigma
+        sigma_inv = vp_sigma_inv
+        sigma_deriv = vp_sigma_deriv
+
+    elif discretization == "ve":
+        ve_sigma = lambda t: t**0.5
+        ve_sigma_deriv = lambda t: 0.5 / t**0.5
         ve_sigma_inv = lambda sigma: sigma**2
+        ve_sigma_max = 100
+        ve_sigma_min = 0.02
 
-    sigma_min = {"vp": vp_sigma(1e-3), "ve": 0.02, "iddpm": 0.002, "edm": 0.002}[
-        discretization
-    ]
+        def ve_timesteps(num_steps):
+            return ve_sigma_max**2 * (ve_sigma_min**2 / ve_sigma_max**2) ** (
+                np.arange(num_steps) / (num_steps - 1)
+            )
 
-    if discretization == "ve":
-        pass
-        pass
-    if discretization == "edm":
-        return {
-            "sigma_min": 0.002,
-            "sigma_max": 80,
-        }
+        solver = "euler"
+        timesteps_fn = ve_timesteps
+        sigma_fn = ve_sigma
+        sigma_inv = ve_sigma_inv
+        sigma_deriv = ve_sigma_deriv
+
+    elif discretization == "edm":
+        edm_rho = 7.0
+        edm_one_over_rho = 1.0 / edm_rho
+        edm_sigma_min = 0.002
+        edm_sigma_max = 80
+
+        edm_sigma = lambda t: t
+        edm_sigma_inv = lambda sigma: sigma
+        edm_sigma_deriv = lambda t: 1.0
+
+        def edm_timesteps(num_steps):
+            return (
+                edm_sigma_max**edm_one_over_rho
+                + np.arange(num_steps - 1)
+                * (edm_sigma_min**edm_one_over_rho - edm_sigma_max**edm_one_over_rho)
+                / (num_steps - 1)
+            ) ** edm_rho
+
+        solver = "edm_heun"
+        timesteps_fn = edm_timesteps
+        sigma_fn = edm_sigma
+        sigma_inv = edm_sigma_inv
+        sigma_deriv = edm_sigma_deriv
+
+    params = {
+        "solver": solver,
+        "timesteps_fn": timesteps_fn,
+        "sigma_fn": sigma_fn,
+        "sigma_inv": sigma_inv,
+        "sigma_deriv": sigma_deriv,
+    }
+
+    return params
