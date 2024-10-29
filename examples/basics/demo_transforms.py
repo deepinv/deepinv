@@ -1,6 +1,6 @@
 r"""
 Image transforms for equivariance & augmentations
-===============================================
+=================================================
 
 We demonstrate the use of our ``deepinv.transform`` module for use in
 solving imaging problems. These can be used for:

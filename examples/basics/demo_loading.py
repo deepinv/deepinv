@@ -1,6 +1,6 @@
 r"""
 Saving and loading models
-====================================================================================================
+=========================
 
 Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a
 model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model.
@@ -116,16 +116,18 @@ model = unfolded_builder(
     custom_init=custom_init_CP,
 )
 
-# %% Saving the model
-# -------------------
+# %%
+# Saving the model
+# ----------------
 # We can save the trained model following the standard PyTorch procedure.
 
 # Save the model
 
 torch.save(model.state_dict(), CKPT_DIR / "inpainting/model_nontrained.pth")
 
-# %% Loading the model
-# --------------------
+# %%
+# Loading the model
+# -----------------
 # Similarly, we can load our trained unfolded architecture following the standard PyTorch procedure.
 # This network was trained in the demo :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py`.
 
