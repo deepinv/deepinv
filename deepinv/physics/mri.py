@@ -258,7 +258,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             mask = torch.ones(*img_size)
 
         if coil_maps is None:
-            coil_maps = torch.ones((self.img_size[-2:] if not self.three_d else self.img_size[-3:]), dtype=torch.complex64)
+            coil_maps = torch.ones(
+                (self.img_size[-2:] if not self.three_d else self.img_size[-3:]),
+                dtype=torch.complex64,
+            )
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
 
