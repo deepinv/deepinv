@@ -72,7 +72,7 @@ class Euler_solver(SDE_solver):
         super().__init__(drift, diffusion, rng = rng)
 
     def step(self, t0, t1, x0):
-        dt = t1 - t0
+        dt = abs(t1 - t0)
         return x0 + self.drift(x,t0) * dt + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
 
 
@@ -133,11 +133,11 @@ if __name__ == "__main__":
     OUSDE = EDMSDE(prior=prior)
     with torch.no_grad():
         timesteps = torch.linspace(0.001, 1, 100)
-        sample_noise = OUSDE.forward_sde.sample(x, timesteps=timesteps)
+        # sample_noise = OUSDE.forward_sde.sample(x, timesteps=timesteps)
         noise = torch.randn_like(x)
         sample = OUSDE.backward_sde.sample(noise, timesteps=timesteps.flip(dims=[0]))
         print(torch.min(sample), torch.max(sample))
-    dinv.utils.plot([x, sample_noise, sample])
+    dinv.utils.plot([x, noise, sample])
 
     # from temp_model import UNetModelWrapper
 
