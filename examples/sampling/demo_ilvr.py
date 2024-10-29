@@ -26,6 +26,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# device = 'mps'
 
 url = get_image_url("00000.png")
 x_true = load_url_image(url=url, img_size=256).to(device)
@@ -158,11 +159,12 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 50  # choose some arbitrary timestep
+t = torch.ones(1, device=device) * 500  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
 x0 = x_true
+print('sigma_t = ', sigmat)
 xt = x0 + sigmat * torch.randn_like(x0)
 
 # apply denoiser
@@ -175,158 +177,15 @@ plot(
     titles=["ground-truth", "noisy", "posterior mean"],
 )
 
-# %%
-# DPS approximation
-# ----------------------------
-#
-# In order to perform gradient-based **posterior sampling** with diffusion models, we have to be able to compute
-# :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y})`. Applying Bayes rule, we have
-#
-# .. math::
-#
-#           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) = \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
-#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\mathbf{x}_t)
-#
-# For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
-# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_
-#
-# .. math::
-#
-#           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) \approx \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
-#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\widehat{\mathbf{x}}_{t})
-#
-# Remarkably, we can now compute the latter term when we have Gaussian noise, as
-#
-# .. math::
-#
-#       \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}) =
-#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_{t}\|_2^2}{2\sigma_y^2}.
-#
-# Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
-# Let's see how this can be done in PyTorch. Note that when we are taking the gradient w.r.t. a tensor,
-# we first have to enable the gradient computation by ``tensor.requires_grad_()``
-#
-# .. note::
-#           The diffPIR algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers
-#           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
-
-
 x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 
-data_fidelity = L2()
 
-# xt ~ q(xt|x0)
-i = 200  # choose some arbitrary timestep
-t = (torch.ones(1) * i).to(device)
-at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+# %%
+# ILVR Approximation using noisy_datafidelity
 
-noisy_datafidelity = dinv.sampling.noisy_datafidelity.DPSDataFidelity(
+noisy_datafidelity = dinv.sampling.noisy_datafidelity.ILVRDataFidelity(
     physics=physics, denoiser=model
 )
 
-grad_ll = noisy_datafidelity(xt, y, sigma)
-
-# Visualize
-imgs = [x0, xt, x0_t, grad_ll]
-# plot(
-#     imgs,
-#     titles=["groundtruth", "noisy", "posterior mean", "gradient"],
-# )
-
-# %%
-# DPS Approximation using noisy_datafidelity
-
-noisy_datafidelity = dinv.sampling.noisy_datafidelity.DPSDataFidelity(
-    physics=physics, denoiser=model
-)
-
-i = 200  # choose some arbitrary timestep
-t = (torch.ones(1) * i).to(device)
-at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
-
-sigma = (1 - at).sqrt() / at.sqrt()
-
-x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
-
-grad_ll = noisy_datafidelity(xt, y, sigma)
-
-imgs = [x0, xt, x0_t, grad_ll]
-# plot(
-#     imgs,
-#     titles=["groundtruth", "noisy", "posterior mean", "gradient"],
-# )
-
-# %%
-# DPS Algorithm using noisy_datafidelity
-
-num_steps = 10
-
-skip = num_train_timesteps // num_steps
-
-batch_size = 1
-eta = 1.0
-
-seq = range(0, num_train_timesteps, skip)
-seq_next = [-1] + list(seq[:-1])
-time_pairs = list(zip(reversed(seq), reversed(seq_next)))
-
-# measurement
-x0 = x_true * 2.0 - 1.0
-# y = physics(x0.to(device))
-
-# initial sample from x_T
-# x = torch.randn_like(x0)
-# x = y.clone()
-x = physics.A_dagger(y)
-
-xs = [x]
-x0_preds = []
-
-xt = xs[-1].clone()
-
-for i, j in tqdm(time_pairs):
-    t = (torch.ones(batch_size) * i).to(device)
-    next_t = (torch.ones(batch_size) * j).to(device)
-
-    at = compute_alpha(betas, t.long())
-    at_next = compute_alpha(betas, next_t.long())
-
-    # xt = xs[-1].to(device)
-    sigma = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
-    print(sigma)
-
-    norm_grad = noisy_datafidelity(xt, y, sigma)
-
-    x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
-
-    plot([y, x0_t, norm_grad], titles=["y", "x0_t", "norm_grad"])
-
-    sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
-    c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
-
-    # 3. noise step
-    epsilon = torch.randn_like(xt)
-
-    # 4. DDPM(IM) step
-    xt = (
-        (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
-        + sigma_tilde * epsilon
-        + c2 * xt / (1 - at).sqrt()
-        - norm_grad
-    )
-
-    # x0_preds.append(x0_t.to("cpu"))
-    # xs.append(xt_next.to("cpu"))
-
-# recon = xs[-1]
-recon = x0_t.clone()
-
-# plot the results
-x = recon / 2 + 0.5
-imgs = [y, x, x_true]
-plot(imgs, titles=["measurement", "model output", "groundtruth"])
 
 

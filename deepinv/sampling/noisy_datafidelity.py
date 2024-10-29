@@ -250,7 +250,7 @@ class ILVRDataFidelity(NoisyDataFidelity):
 
         :return: (torch.Tensor) TBD
         """
-        raise self.physics.A_dagger(x)
+        return self.physics.A_dagger(x)
 
 
     def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -262,14 +262,15 @@ class ILVRDataFidelity(NoisyDataFidelity):
 
         :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
         """
-        return self.physics.A(x) - y
+        out = self.physics.A(x) - y
+        return out
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         y = y + sigma * torch.randn_like(y)
         return self.precond(self.diff(x, y))
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
-        return -self.grad(x, y, sigma)
+        return self.grad(x, y, sigma)
 
 class ScoreSDE(NoisyDataFidelity):
     r"""
