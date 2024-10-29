@@ -7,6 +7,7 @@ import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
 from edm import load_model
 import numpy as np
+from utils import get_edm_parameters
 
 # %%
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -76,22 +77,21 @@ def edm_sampler(
 #     dinv.utils.plot([latents, samples])
 
 # %%
-ve_sigma = lambda t: t**0.5
-ve_sigma_prime = lambda t: 1 / (2 * t**0.5)
-ve_beta = lambda t: 0
-ve_sigma_max = 100
-ve_sigma_min = 0.02
-num_steps = 400
-ve_timesteps = ve_sigma_max**2 * (ve_sigma_min**2 / ve_sigma_max**2) ** (
-    np.arange(num_steps) / (num_steps - 1)
-)
-sde = EDMSDE(prior=prior, beta=ve_beta, sigma=ve_sigma, sigma_prime=ve_sigma_prime)
+params = get_edm_parameters("ve")
+timesteps_fn = params["timesteps_fn"]
+sigma_fn = params["sigma_fn"]
+sigma_deriv = params["sigma_deriv"]
+beta_fn = params["beta_fn"]
+sigma_max = params["sigma_max"]
+
+sde = EDMSDE(prior=prior, beta=beta_fn, sigma=sigma_fn, sigma_prime=sigma_deriv)
 
 # %%
+num_steps = 100
 with torch.no_grad():
     # endpoint = sde.forward_sde.sample(x, ve_timesteps[::-1])
     # print(f"End point std: {endpoint.std()}")
     # dinv.utils.plot(endpoint)
-    noise = torch.randn(2, 3, 64, 64, device=device) * ve_sigma_max
-    samples = sde.backward_sde.sample(noise, timesteps=ve_timesteps)
+    noise = torch.randn(2, 3, 64, 64, device=device) * sigma_max
+    samples = sde.backward_sde.sample(noise, timesteps=timesteps_fn(num_steps))
 dinv.utils.plot(samples)

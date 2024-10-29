@@ -88,6 +88,8 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_fn = vp_sigma
         sigma_inv = vp_sigma_inv
         sigma_deriv = vp_sigma_deriv
+        beta_fn = lambda t: vp_sigma_deriv(t) / vp_sigma(t)
+        sigma_max = vp_sigma(1.0)
 
     elif discretization == "ve":
         ve_sigma = lambda t: t**0.5
@@ -106,6 +108,8 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_fn = ve_sigma
         sigma_inv = ve_sigma_inv
         sigma_deriv = ve_sigma_deriv
+        beta_fn = lambda t: 0.5 / t
+        sigma_max = ve_sigma_max
 
     elif discretization == "edm":
         edm_rho = 7.0
@@ -130,6 +134,8 @@ def get_edm_parameters(discretization: str = "edm"):
         sigma_fn = edm_sigma
         sigma_inv = edm_sigma_inv
         sigma_deriv = edm_sigma_deriv
+        beta_fn = lambda t: 1.0
+        sigma_max = edm_sigma_max
 
     params = {
         "solver": solver,
@@ -137,6 +143,7 @@ def get_edm_parameters(discretization: str = "edm"):
         "sigma_fn": sigma_fn,
         "sigma_inv": sigma_inv,
         "sigma_deriv": sigma_deriv,
+        "beta": beta_fn,
+        "sigma_max": sigma_max,
     }
-
     return params
