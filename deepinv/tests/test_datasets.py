@@ -3,15 +3,7 @@ import shutil
 import PIL
 import pytest
 
-from deepinv.datasets import (
-    DIV2K,
-    Urban100HR,
-    Set14HR,
-    CBSD68,
-    LsdirHR,
-    FMD,
-    Kohler
-)
+from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, LsdirHR, FMD, Kohler
 
 
 @pytest.fixture
