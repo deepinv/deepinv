@@ -41,6 +41,7 @@ i.e., they can be written as :math:`\mathcal{L}(x,\inverse{y})`.
    :nosignatures:
 
     deepinv.loss.SupLoss
+    deepinv.loss.RFLoss
 
 
 Self-Supervised Learning
