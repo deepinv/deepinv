@@ -358,3 +358,57 @@ class ScoreALD(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         return self.grad(x, y, sigma)
+    
+    
+    
+    
+class DDNMDataFidelity(NoisyDataFidelity):
+    r"""
+    TBD
+
+    :param float sigma: TBD
+    """
+
+    def __init__(self, physics=None, denoiser=None):
+        super(DDNMDataFidelity, self).__init__()
+
+        self.physics = physics
+        self.denoiser = denoiser
+
+        self.data_fidelity = L2()
+
+    def diff(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        aux_x = x / 2 + 0.5
+        x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+        x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+
+        return y - self.physics.A(x0_t)
+
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma, lambda_t) -> torch.Tensor:
+        
+        meas_error = self.diff(x, y, sigma)
+                        
+        # pinverse_singular = 1.0 / self.physics.mask
+        # pinverse_singular[self.physics.mask == 0] = 0
+        
+        # if hasattr(self.physics.noise_model, "sigma"):
+        #     sigma_noise = self.physics.noise_model.sigma
+        # else:
+        #     sigma_noise = 0.01
+
+        # Lambda_t = torch.ones_like(self.physics.mask)
+        # case = sigma < a * sigma_noise * pinverse_singular
+        # Lambda_t[case] = self.physics.mask * sigma * (1 - eta ** 2) ** 0.5 / a / sigma_noise
+        
+        guidance = (-1 / sigma**2) 
+        
+        # grad_norm = guidance * self.physics.V(lambda_t * self.physics.V_adjoint(self.physics.A_dagger(meas_error)))
+    
+        # Define Sigma_t
+        # If Sigma_t is channel-wise scaling (diagonal per channel)
+        #Sigma_t = torch.tensor([lambda_t]).view(x.shape[0], x.shape[1], 1, 1)  # Shape C x 1 x 1
+                
+        grad_norm = guidance * lambda_t * self.physics.A_dagger(meas_error)
+
+        
+        return grad_norm
