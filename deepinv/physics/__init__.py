@@ -19,7 +19,7 @@ from .noise import (
     LogPoissonNoise,
     GammaNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI
+from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
