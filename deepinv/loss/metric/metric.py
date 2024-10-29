@@ -1,6 +1,6 @@
 from __future__ import annotations
 from types import ModuleType
-from typing import Optional
+from typing import Optional, Callable
 
 from torch import Tensor
 from torch.nn import Module
@@ -29,6 +29,10 @@ class Metric(Module):
     To create a new metric, inherit from this class, override the function :meth:`deepinv.metric.Metric.metric`,
     set lower_better attribute and optionally override the ``invert_metric`` method.
 
+    You can also directly use this baseclass to wrap an existing metric function, e.g. from
+    `torchmetrics <https://lightning.ai/docs/torchmetrics/stable>`_, to benefit from our preprocessing.
+
+    :param Callable metric: metric function. This is unused if the ``metric`` method is overrifden.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
@@ -38,6 +42,7 @@ class Metric(Module):
 
     def __init__(
         self,
+        metric: Callable = None,
         complex_abs: bool = False,
         train_loss: bool = False,
         reduction: Optional[str] = None,
@@ -46,6 +51,7 @@ class Metric(Module):
         super().__init__()
         self.train_loss = train_loss
         self.complex_abs = complex_abs  # NOTE assumes C in dim=1
+        self._metric = metric
         normalizer = lambda x: x
         if norm_inputs is not None:
             if not isinstance(norm_inputs, str):
@@ -95,7 +101,7 @@ class Metric(Module):
 
         :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
         """
-        raise NotImplementedError()
+        return self._metric(x_net, x, *args, **kwargs)
 
     def invert_metric(self, m: Tensor):
         """Invert metric. Used where a higher=better metric is to be used in a training loss.
