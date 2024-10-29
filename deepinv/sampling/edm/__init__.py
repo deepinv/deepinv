@@ -14,7 +14,7 @@ class ModelWrapper(nn.Module):
     def forward(self, x: torch.Tensor, t: float):
         if isinstance(t, float):
             t = torch.tensor([t] * x.size(0), device=x.device)
-        return self.edm_model.forward(x, noise_labels=t, class_labels=None)
+        return self.edm_model.forward(x, sigma=t, class_labels=None)
 
 
 current_path = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
         edm-ffhq-64x64-uncond-vp.pkl
         edm-imagenet-64x64-cond-adm.pkl
     """
-    os.chdir(current_path)
+    # os.chdir(current_path)
     sys.path.append(current_path)
     network_pkl = "https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/" + str(model_name)
     with open_url(network_pkl) as f:
@@ -45,5 +45,6 @@ def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
             sum(p.numel() for p in net.model.parameters()),
         )
 
-    os.chdir("/".join(current_path.split("/")[:-1]))
-    return ModelWrapper(net.model)
+    print(net.sigma_min, net.sigma_max)
+    # os.chdir("/".join(current_path.split("/")[:-1]))
+    return ModelWrapper(net)
