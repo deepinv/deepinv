@@ -172,8 +172,6 @@ class DDRMDataFidelity(NoisyDataFidelity):
         self.physics = physics
         self.denoiser = denoiser
 
-        self.data_fidelity = L2()
-
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         r"""
         TBD
@@ -227,6 +225,39 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
         return grad_norm
 
+
+class PGDMDataFidelity(NoisyDataFidelity):
+    r"""
+    TBD
+
+    :param float sigma: TBD
+    """
+
+    def __init__(self, physics=None, denoiser=None):
+        super(PGDMDataFidelity, self).__init__()
+
+        self.physics = physics
+        self.denoiser = denoiser
+
+    def grad(self, x, y, sigma):
+        with torch.enable_grad():
+            x.requires_grad_(True)
+            loss = self.forward(x, y, sigma)
+
+        norm_grad = torch.autograd.grad(outputs=loss, inputs=x)[0]
+        norm_grad = norm_grad.detach()
+
+        return norm_grad
+
+    def forward(self, x, y, sigma):
+        aux_x = x / 2 + 0.5
+        x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+        mat = self.physics.A_dagger(y) - self.physics.A_dagger(self.physics.A(x0_t))
+        mat_x = (mat.detach() * x0_t).sum()
+
+        return mat_x
+
+
 class ILVRDataFidelity(NoisyDataFidelity):
     r"""
     TBD
@@ -252,7 +283,6 @@ class ILVRDataFidelity(NoisyDataFidelity):
         """
         raise self.physics.A_dagger(x)
 
-
     def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         r"""
         Computes the difference between the forward operator applied to the current iterate and the input data.
@@ -270,6 +300,7 @@ class ILVRDataFidelity(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         return -self.grad(x, y, sigma)
+
 
 class ScoreSDE(NoisyDataFidelity):
     r"""
@@ -295,7 +326,6 @@ class ScoreSDE(NoisyDataFidelity):
         :return: (torch.Tensor) TBD
         """
         raise self.physics.A_adjoint(x)
-
 
     def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         r"""
@@ -340,7 +370,6 @@ class ScoreALD(NoisyDataFidelity):
         :return: (torch.Tensor) TBD
         """
         raise self.physics.A_adjoint(x)
-
 
     def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         r"""

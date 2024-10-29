@@ -27,9 +27,10 @@ from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("butterfly.png")
+url = get_image_url("00000.png")
 
-x_true = load_url_image(url=url, img_size=64).to(device)
+x_true = load_url_image(url=url, img_size=256).to(device)
+x_true = x_true[:, :3, ...]
 x = x_true.clone()
 
 # %%
@@ -157,7 +158,7 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 50  # choose some arbitrary timestep
+t = torch.ones(1, device=device) * 100  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
@@ -172,6 +173,7 @@ imgs = [x0, xt, x0_t]
 plot(
     imgs,
     titles=["ground-truth", "noisy", "posterior mean"],
+    figsize=(10, 10),
 )
 
 # %%
@@ -267,7 +269,7 @@ plot(
 # %%
 # DPS Algorithm using noisy_datafidelity
 
-num_steps = 200
+num_steps = 1000
 
 skip = num_train_timesteps // num_steps
 
@@ -312,8 +314,8 @@ for i, j in tqdm(time_pairs):
         - norm_grad
     )
 
-    x0_preds.append(x0_t.to("cpu"))
-    xs.append(xt_next.to("cpu"))
+    x0_preds.append(x0_t.detach().to("cpu"))
+    xs.append(xt_next.detach().to("cpu"))
 
 recon = xs[-1]
 
