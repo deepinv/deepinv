@@ -44,7 +44,8 @@ physics = dinv.physics.Inpainting(
     mask=0.8,
     pixelwise=True,
     device=device,
-)
+    noise_model=dinv.physics.GaussianNoise(sigma),
+    )
 
 y = physics(x_true)
 
@@ -144,7 +145,9 @@ noisy_datafidelity = dinv.sampling.noisy_datafidelity.DDNMDataFidelity(
     physics=physics, denoiser=model
 )
 
-i = 200  # choose some arbitrary timestep
+eta = 0.0
+
+i = 100 # choose some arbitrary timestep
 t = (torch.ones(1) * i).to(device)
 at = compute_alpha(betas, t.long())
 xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
@@ -153,9 +156,29 @@ sigma = (1 - at).sqrt() / at.sqrt()
 
 x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
 
-grad_ll = noisy_datafidelity.grad(xt, y, sigma, 0.01)
+#grad_ll = noisy_datafidelity.grad_simplified(xt, y, sigma, 1.0)
 
-imgs = [x0, xt, x0_t, grad_ll]
+
+
+#Lambda_t is teh projection of Sigma_t is the spectral space : Sigma_t = V Lambda_t V_T see eq (36) of DDNM paper
+Lambda_t = torch.ones_like(x)
+inverse_singulars = 1. / physics.mask #Sigma_dagger == pseudo inverse see eq (37) of DDNM paper
+inverse_singulars[physics.mask == 0] = 0 #pseudo inverse see eq (37) of DDNM paper
+
+#define sigma_noise (sigma_y in DDNM paper)
+if hasattr(physics.noise_model, "sigma"):
+    sigma_noise = physics.noise_model.sigma
+else:
+    sigma_noise = 0.01
+
+
+case = sigma < at.sqrt() * sigma_noise * inverse_singulars #see svd_operators.py Lambda from DDNM code l. 377 + eq (64) of paper 
+Lambda_t[case] = physics.mask[case] * sigma.item() * (1 - eta ** 2) ** 0.5 / at.sqrt().item() / sigma_noise #see svd_operators.py Lambda from DDNM code l. 378 + eq (64) of paper 
+
+grad_ll_full = noisy_datafidelity.grad(xt, y, sigma, Lambda_t)
+
+
+imgs = [x0, xt, x0_t, grad_ll_full]
 plot(
     imgs,
     titles=["groundtruth", "noisy", "posterior mean", "gradient"],

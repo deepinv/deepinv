@@ -413,32 +413,31 @@ class DDNMDataFidelity(NoisyDataFidelity):
         x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
         return y - self.physics.A(x0_t)
-
-    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma, lambda_t) -> torch.Tensor:
+    
+    
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma, Lambda_t) -> torch.Tensor:
         
-        meas_error = self.diff(x, y, sigma)
-                        
-        # pinverse_singular = 1.0 / self.physics.mask
-        # pinverse_singular[self.physics.mask == 0] = 0
+        residuals = self.diff(x, y, sigma)
+        A_dagger_residual = self.physics.A_dagger(residuals)
         
-        # if hasattr(self.physics.noise_model, "sigma"):
-        #     sigma_noise = self.physics.noise_model.sigma
-        # else:
-        #     sigma_noise = 0.01
-
-        # Lambda_t = torch.ones_like(self.physics.mask)
-        # case = sigma < a * sigma_noise * pinverse_singular
-        # Lambda_t[case] = self.physics.mask * sigma * (1 - eta ** 2) ** 0.5 / a / sigma_noise
+        # Project A_dagger_residual into the spectral space using V^T
+        V_T_A_dagger_residual = self.physics.V_adjoint(A_dagger_residual)
+        
+        # Scale V_T_A_dagger_residual with Sigma_t. To do this we use Lambda_t in the spectral space
+        scaled_V_T_A_dagger_residual = V_T_A_dagger_residual * Lambda_t
         
         guidance = (-1 / sigma**2) 
         
-        # grad_norm = guidance * self.physics.V(lambda_t * self.physics.V_adjoint(self.physics.A_dagger(meas_error)))
-    
-        # Define Sigma_t
-        # If Sigma_t is channel-wise scaling (diagonal per channel)
-        #Sigma_t = torch.tensor([lambda_t]).view(x.shape[0], x.shape[1], 1, 1)  # Shape C x 1 x 1
-                
-        grad_norm = guidance * lambda_t * self.physics.A_dagger(meas_error)
-
+        # Project back to the original space using U
+        norm_grad = guidance * self.physics.U(scaled_V_T_A_dagger_residual)  # Shape: (B, C, H, W)
         
+        return norm_grad
+
+    def grad_simplified(self, x: torch.Tensor, y: torch.Tensor, sigma, lambda_t) -> torch.Tensor:
+        
+        meas_error = self.diff(x, y, sigma)
+        
+        guidance = (-1 / sigma**2) 
+        grad_norm = guidance * lambda_t * self.physics.A_dagger(meas_error)
+ 
         return grad_norm
