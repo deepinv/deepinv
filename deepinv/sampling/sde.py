@@ -11,11 +11,13 @@ import warnings
 
 class SDE(nn.Module):
     def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
+        self, drift: Callable, diffusion: Callable, t_init : float = 0., t_end : float = 1., rng: torch.Generator = None
     ):
         super().__init__()
         self.drift = drift
         self.diffusion = diffusion
+        self.t_init = t_init
+        self.t_end = t_end
 
         self.rng = rng
         if rng is not None:
@@ -31,15 +33,13 @@ class SDE(nn.Module):
     def sample(
         self,
         x_init: Tensor,
-        t_init: float = 0.0,
-        t_end: float = 1.0,
         num_steps: int = 100,
         method = 'euler'
     ):
-        stepsize = (t_end - t_init) / num_steps
+        stepsize = (self.t_end - self.t_init) / num_steps
         x = x_init
         for k in range(num_steps):
-            t = t_init + k * stepsize
+            t = self.t_init + k * stepsize
             if method == 'euler':
                 x = self.euler_step(x, t, stepsize)
         return x
@@ -80,31 +80,20 @@ class DiffusionSDE(nn.Module):
         self,
         f: Callable = lambda x, t: -x,
         g: Callable = lambda t: math.sqrt(2.0),
-        beta: Callable = lambda t: 1.0,
         prior: Callable = None,
         T: float = 1.0,
         rng: torch.Generator = None,
     ):
         super().__init__()
-        self.T = T
-        self.f = f
-        self.g = g
-        self.drift_forw = lambda x, t: self.f(x, t)
-        self.diff_forw = lambda t: self.g(t)
-
-        self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
-
-        # drift_back = (
-        # lambda x, t: -self.f(x, T - t)
-        # - (1 + beta(t)) * prior.grad(x, T - t) * self.g(T - t) ** 2
-        # )
+        self.drift_forw = lambda x, t: f(x, t)
+        self.diff_forw = lambda t: g(t)
+        self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng)
 
         self.drift_back = lambda x, t: -self.f(x, T - t) - (self.g(T - t) ** 2) * prior.grad(
             x, T - t
         )
-        self.diff_back = lambda t: np.sqrt(beta(t)) * self.g(T - t)
-
-        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
+        self.diff_back = lambda t: self.g(T - t)
+        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng)
 
 
 class EDMSDE(DiffusionSDE):
