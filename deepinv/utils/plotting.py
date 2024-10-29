@@ -218,7 +218,7 @@ def plot(
         If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
         and plot at your desired location using ``fig.show()``.
 
-    :param list[torch.Tensor], dict[str -> torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[torch.Tensor], dict[str -> torch.Tensor], torch.Tensor img_list: list of images, single image, or dict of titles: images to plot.
     :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
     :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).
     :param None, str, Path save_dir: path to save the plots as individual images.
