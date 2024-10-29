@@ -229,7 +229,8 @@ deblurring networks.
    
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
+In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
+We provide physics for 2D, 3D, 2D+t dynamic, and multi-coil MRI.
 
 .. autosummary::
    :toctree: stubs
@@ -239,6 +240,8 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    deepinv.physics.MRI
    deepinv.physics.DynamicMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.MultiCoilMRI
+   deepinv.physics.MRIMixin
 
 
 We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
