@@ -3,6 +3,7 @@ from .dnnlib.util import open_url
 import pickle
 import torch.nn as nn
 import os
+import sys
 
 
 class ModelWrapper(nn.Module):
@@ -17,7 +18,6 @@ class ModelWrapper(nn.Module):
 
 
 current_path = os.path.dirname(os.path.abspath(__file__))
-print(current_path)
 
 
 def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
@@ -35,6 +35,7 @@ def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
         edm-imagenet-64x64-cond-adm.pkl
     """
     os.chdir(current_path)
+    sys.path.append(current_path)
     network_pkl = "https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/" + str(model_name)
     with open_url(network_pkl) as f:
         net = pickle.load(f)["ema"]
