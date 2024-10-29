@@ -5,4 +5,6 @@ from .noisy_datafidelity import (
     DPSDataFidelity,
     DDRMDataFidelity,
     SNIPSDataFidelity,
+    DDNMDataFidelity,
+    PGDMDataFidelity,
 )

@@ -1,5 +1,5 @@
 r"""
-Implementing DPS
+Implementing DDNM
 ====================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
@@ -27,10 +27,9 @@ from tqdm import tqdm  # to visualize progress
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("00000.png")
+url = get_image_url("butterfly.png")
 
-x_true = load_url_image(url=url, img_size=256).to(device)
-x_true = x_true[:, :3, ...]
+x_true = load_url_image(url=url, img_size=64).to(device)
 x = x_true.clone()
 
 # %%
@@ -42,7 +41,7 @@ sigma = 12.75 / 255.0  # noise level
 
 physics = dinv.physics.Inpainting(
     tensor_size=(3, x.shape[-2], x.shape[-1]),
-    mask=0.1,
+    mask=0.8,
     pixelwise=True,
     device=device,
 )
@@ -110,43 +109,6 @@ betas = get_betas()
 
 
 # %%
-# The DPS algorithm
-# ---------------------
-#
-# Now that the inverse problem is defined, we can apply the DPS algorithm to solve it. The DPS algorithm is
-# a diffusion algorithm that alternates between a denoising step, a gradient step and a reverse diffusion sampling step.
-# The algorithm writes as follows, for :math:`t` decreasing from :math:`T` to :math:`1`:
-#
-# .. math::
-#         \begin{equation*}
-#         \begin{aligned}
-#         \widehat{\mathbf{x}}_{t} &= \denoiser{\mathbf{x}_t}{\sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}}
-#         \\
-#         \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
-#         \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
-#         \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
-#         + b_t \, \, \widehat{\mathbf{x}}_t
-#         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
-#         \end{aligned}
-#         \end{equation*}
-#
-# where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
-# :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
-#
-# .. math::
-#         \begin{equation*}
-#         \begin{aligned}
-#           \tilde{\sigma}_t &= \eta \sqrt{ (1 - \frac{\overline{\alpha}_t}{\overline{\alpha}_{t-1}})
-#           \frac{1 - \overline{\alpha}_{t-1}}{1 - \overline{\alpha}_t}} \\
-#           a_t &= \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}/\sqrt{1-\overline{\alpha}_t} \\
-#           b_t &= \sqrt{\overline{\alpha}_{t-1}} - \sqrt{1 - \overline{\alpha}_{t-1} - \tilde{\sigma}_t^2}
-#           \frac{\sqrt{\overline{\alpha}_{t}}}{\sqrt{1 - \overline{\alpha}_{t}}}
-#         \end{aligned}
-#         \end{equation*}
-#
-
-
-# %%
 # Denoising step
 # ----------------------------
 #
@@ -158,7 +120,7 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 100  # choose some arbitrary timestep
+t = torch.ones(1, device=device) * 50  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
@@ -173,79 +135,12 @@ imgs = [x0, xt, x0_t]
 plot(
     imgs,
     titles=["ground-truth", "noisy", "posterior mean"],
-    figsize=(10, 10),
 )
 
 # %%
-# DPS approximation
-# ----------------------------
-#
-# In order to perform gradient-based **posterior sampling** with diffusion models, we have to be able to compute
-# :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y})`. Applying Bayes rule, we have
-#
-# .. math::
-#
-#           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) = \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
-#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\mathbf{x}_t)
-#
-# For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
-# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_
-#
-# .. math::
-#
-#           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) \approx \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
-#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\widehat{\mathbf{x}}_{t})
-#
-# Remarkably, we can now compute the latter term when we have Gaussian noise, as
-#
-# .. math::
-#
-#       \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}) =
-#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_{t}\|_2^2}{2\sigma_y^2}.
-#
-# Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
-# Let's see how this can be done in PyTorch. Note that when we are taking the gradient w.r.t. a tensor,
-# we first have to enable the gradient computation by ``tensor.requires_grad_()``
-#
-# .. note::
-#           The diffPIR algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers
-#           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
+# DDNM Approximation using noisy_datafidelity
 
-
-x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
-
-data_fidelity = L2()
-
-# xt ~ q(xt|x0)
-i = 200  # choose some arbitrary timestep
-t = (torch.ones(1) * i).to(device)
-at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
-
-# DPS
-with torch.enable_grad():
-    # Turn on gradient
-    xt.requires_grad_()
-
-    # normalize to [0,1], denoise, and rescale to [-1, 1]
-    x0_t = model(xt / 2 + 0.5, (1 - at).sqrt() / at.sqrt() / 2) * 2 - 1
-    # Log-likelihood
-    ll = data_fidelity(x0_t, y, physics).sqrt().sum()
-    # Take gradient w.r.t. xt
-    grad_ll = torch.autograd.grad(outputs=ll, inputs=xt)[0]
-
-# Visualize
-imgs = [x0, xt, x0_t, grad_ll]
-plot(
-    imgs,
-    titles=["groundtruth", "noisy", "posterior mean", "gradient"],
-)
-
-# %%
-# DPS Approximation using noisy_datafidelity
-
-noisy_datafidelity = dinv.sampling.noisy_datafidelity.DPSDataFidelity(
+noisy_datafidelity = dinv.sampling.noisy_datafidelity.DDNMDataFidelity(
     physics=physics, denoiser=model
 )
 
@@ -258,7 +153,7 @@ sigma = (1 - at).sqrt() / at.sqrt()
 
 x0_t = model(xt / 2 + 0.5, sigma / 2) * 2 - 1
 
-grad_ll = noisy_datafidelity.grad(xt, y, sigma)
+grad_ll = noisy_datafidelity.grad(xt, y, sigma, 0.01)
 
 imgs = [x0, xt, x0_t, grad_ll]
 plot(
@@ -269,7 +164,7 @@ plot(
 # %%
 # DPS Algorithm using noisy_datafidelity
 
-num_steps = 1000
+num_steps = 200
 
 skip = num_train_timesteps // num_steps
 
@@ -314,8 +209,8 @@ for i, j in tqdm(time_pairs):
         - norm_grad
     )
 
-    x0_preds.append(x0_t.detach().to("cpu"))
-    xs.append(xt_next.detach().to("cpu"))
+    x0_preds.append(x0_t.to("cpu"))
+    xs.append(xt_next.to("cpu"))
 
 recon = xs[-1]
 
