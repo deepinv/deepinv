@@ -105,13 +105,16 @@ class DiffusionSDE(nn.Module):
         self.diff_forw = lambda t: g(t)
         self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
         if self.use_backward_ode : 
-            self.drift_back = lambda x, t: f(x, t) - 0.5 * (g(t) ** 2) * (-prior.grad(x, t))
+            self.drift_back = lambda x, t: f(x, t) - 0.5 * (g(t) ** 2) * self.score(x,t)
         else :
-            self.drift_back = lambda x, t: f(x, t) - (g(t) ** 2) * (-prior.grad(x, t))
+            self.drift_back = lambda x, t: f(x, t) - (g(t) ** 2) * self.score(x,t)
         self.diff_back = lambda t: g(t)
         self.backward_sde = Euler_solver(
             drift=self.drift_back, diffusion=self.diff_back, rng=rng
         )
+
+    def score(self, x, t, *args):
+        return - self.prior.grad(x, t)
 
 
 class EDMSDE(DiffusionSDE):
@@ -126,19 +129,19 @@ class EDMSDE(DiffusionSDE):
         rng: torch.Generator = None
     ): 
         super().__init__(prior=prior, rng=rng)
-        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * self.score(x,sigma(t))
         self.diff_forw = lambda t: sigma(t) * (2 * beta(t)) ** 0.5
         if self.use_backward_ode :
             self.diff_back = lambda t: 0.
-            self.drift_back = lambda x, t:  - ((s_prime(t) / s(t)) * x  - (s(t) ** 2) * sigma_prime(t) * sigma(t) * (-prior.grad(x / s(t), sigma(t))))
+            self.drift_back = lambda x, t:  - ((s_prime(t) / s(t)) * x  - (s(t) ** 2) * sigma_prime(t) * sigma(t) * self.score(x / s(t),sigma(t)))
         else : 
-            self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+            self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * self.score(x,sigma(t))
             self.diff_back = self.diff_forw
         self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
         self.backward_sde = Heun_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
 
 
-class PosteriorSDE(EDMSDE):
+class PosteriorSDE(DiffusionSDE):
     def __init__(
         self,
         prior: Callable,
@@ -152,20 +155,30 @@ class PosteriorSDE(EDMSDE):
     ): 
         super().__init__(prior=prior, sigma = sigma, sigma_prime = sigma_prime, s = s, s_prime = s_prime, beta = beta, rng=rng)
         self.data_fidelity = data_fidelity
-        self.sigma = sigma
-        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
-        self.diff_forw = lambda t: sigma(t) * (2 * beta(t)) ** 0.5
-        if self.use_backward_ode :
-            self.diff_back = lambda t: 0.
-            self.drift_back = lambda x, y, t:  - ((s_prime(t) / s(t)) * x  - (s(t) ** 2) * sigma_prime(t) * sigma(t)) * self.score(x / s(t), y, t)
-        else : 
-            self.drift_back = lambda x, y, t: (sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * self.score(x, y, t)
-            self.diff_back = self.diff_forw
-        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
-        self.backward_sde = Heun_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
-
+    
     def score(self,x,y,t):
-        return -self.prior.grad(x, self.sigma(t)) - self.data_fidelity.grad(x, y, self.sigma(t))
+        return - self.prior.grad(x, t) - self.data_fidelity.grad(x, y, t)
+    
+
+class PosteriorEDMSDE(EDMSDE):
+    def __init__(
+        self,
+        prior: Callable,
+        data_fidelity: Callable,
+        sigma: Callable = lambda t: t,
+        sigma_prime: Callable = lambda t: 1.0,
+        s: Callable = lambda t: 1.0,
+        s_prime: Callable = lambda t: 0.0,
+        beta: Callable = lambda t: 1.0 / t,
+        rng: torch.Generator = None
+    ): 
+        super().__init__(prior=prior, sigma = sigma, sigma_prime = sigma_prime, s = s, s_prime = s_prime, beta = beta, rng=rng)
+        self.data_fidelity = data_fidelity
+    
+    def score(self,x,y,t):
+        return - self.prior.grad(x, t) - self.data_fidelity.grad(x, y, t)
+
+
 
 
 if __name__ == '__main__' :
