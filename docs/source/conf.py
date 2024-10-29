@@ -36,7 +36,7 @@ copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "torch": ("http://pytorch.org/docs/2.0/", None),
+    "torch": ("https://pytorch.org/docs/2.0/", None),
     "python": ("https://docs.python.org/3.9/", None),
 }
 
