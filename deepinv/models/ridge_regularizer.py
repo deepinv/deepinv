@@ -4,6 +4,24 @@ import numpy as np
 
 
 class RidgeRegularizer(torch.nn.Module):
+    r"""
+    Weakly Convex Ridge Regularizer
+
+    Implementation of the `weakly convex ridge regularizer <https://epubs.siam.org/doi/10.1137/23M1565243>`_ based on the `official code <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_. The regularizer is defined as
+
+    .. math::
+
+        R(x)=\sum_{i=1}^N \psi_i(W_i x)
+
+    where :math:`W_i` are some convolutions and :math:`\psi_i` are some weakly convex activation functions parameterized by splines as defined. In practice, the :math:`W_i` are realized by a concatenation of several convolutions without non-linearities, where the number of channels of these convolutions can be specified in the constructor.
+
+
+    :param list of int channel_sequence: number of channels for the convolutions
+    :param int kernel_size: kernel sizes for the convolutions
+    :param float max_noise_level: maximum noise level where the model can be trained
+    :param float rho_convex: modulus of weak convexity
+    :param list of int spline_knots: spline_knots[0] is the number of knots of the scaling splines and spline_knots[1] is the number of knots for the potentials
+    """
     def __init__(
         self,
         channel_sequence=[1, 4, 8, 80],
@@ -12,24 +30,6 @@ class RidgeRegularizer(torch.nn.Module):
         rho_wconvex=1.0,
         spline_knots=[11, 101],
     ):
-        r"""
-        Weakly Convex Ridge Regularizer
-
-        Implementation of the `weakly convex ridge regularizer <https://epubs.siam.org/doi/10.1137/23M1565243>`_ based on the `official code <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_. The regularizer is defined as
-
-        .. math::
-
-            R(x)=\sum_{i=1}^N \psi_i(W_i)
-
-        where :math:`W_i` are some convolutions and :math:`\psi_i` are some weakly convex activation functions parameterized by splines. In practice, the :math:`W_i` are realized by a concatenation of several convolutions without non-linearities, where the number of channels of these convolutions can be specified in the constructor.
-
-
-        :param list of ints channel_sequence: number of channels for the convolutions
-        :param int kernel size: kernel sizes for the convolutions
-        :param float max_noise_level: maximum noise level where the model can be trained
-        :param float rho_convex: modulus of weak convexity
-        :param list of int spline_knots: spline_knots[0] is the number of knots of the scaling splines and spline_knots[1] is the number of knots for the potentials
-        """
         super().__init__()
         # initialize splines
         self.potential = WeaklyConvexSplineActivation(
@@ -84,6 +84,44 @@ class RidgeRegularizer(torch.nn.Module):
             if res < tol:
                 break
         return x
+    
+    def reconstruction(self,physics,y,sigma,lmbd,tol=1e-4, max_iter=500,physics_norm=None):
+        adj=physics.A_adjoint(y)
+        if physics_norm is None:
+            physics_norm=physics.compute_norm(adj)
+        x_noisy = torch.zeros_like(adj)
+        # initial value: noisy image
+        z = torch.clone(x)
+        t = 1
+        # the index of the images that have not converged yet
+        # relative change in the estimate
+        res = 100000
+
+        mu = torch.exp(
+            self.potential.mu_spline(torch.tensor([[[[sigma * 255]]]], device=x.device))
+        )
+        step_size = 1 / (physics_norm + lmbd*mu)
+        for i in range(max_iter):
+            x_old = torch.clone(x)
+            grad = lmbd*self.grad(z, sigma) + physics.A_adjoint(physics.A(z) - y)
+            grad = grad * step_size
+
+            x = z - grad
+            x=x.clamp(0,1)
+            t_old = t
+            t = 0.5 * (1 + np.sqrt(1 + 4 * t**2))
+            z = x + (t_old - 1) / t * (x - x_old)
+
+            if i > 0:
+                res_vec = torch.sqrt(
+                    torch.sum((x - x_old).view(x.shape[0], -1) ** 2)
+                    / torch.sum(x.view(x.shape[0], -1) ** 2)
+                )
+                res = torch.max(res_vec)
+
+            if res < tol:
+                break
+        return x
 
     def cost(self, x, sigma):
         r"""
@@ -106,6 +144,9 @@ class RidgeRegularizer(torch.nn.Module):
         return self.W.transpose(self.potential.derivative(self.W(x), sigma))
 
     def load_state_dict(self, state_dict, **kwargs):
+        r"""
+        The load_state_dict method is overloaded to handle some internal parameters.
+        """
         super().load_state_dict(state_dict, **kwargs)
         self.potential.phi_plus.hyper_param_to_device()
         self.potential.phi_minus.hyper_param_to_device()
@@ -113,22 +154,21 @@ class RidgeRegularizer(torch.nn.Module):
 
 
 class MultiConv2d(torch.nn.Module):
+    r"""
+    The multiconv module for the ridge regularizer
+
+    This module concatinates a sequence of convolutions without non-linearities in between
+
+    The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
+
+    :param list of ints num_channels: num_channels[0]: number of input channels, num_channels[i>0]: number of output channels of the i-th convolution layer
+    :param list of ints size_kernels: kernerl sizes for each convolution layer (len(size_kernels) = len(num_channels) - 1)
+    :param bool zero_mean: the filters of convolutions are constrained to be of zero mean if true
+    :param int sn_size: input image size for spectral normalization (required for training)
+    """
     def __init__(
         self, num_channels=[1, 64], size_kernels=[3], zero_mean=True, sn_size=256
     ):
-        r"""
-        The multiconv module for the ridge regularizer
-
-        This module concatinates a sequence of convolutions without non-linearities in between
-
-        The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
-
-        :param list of ints num_channels: num_channels[0]: number of input channels, num_channels[i>0]: number of output channels of the i-th convolution layer
-        :param list of ints size_kernels: kernerl sizes for each convolution layer (len(size_kernels) = len(num_channels) - 1)
-        :param bool zero_mean: the filters of convolutions are constrained to be of zero mean if true
-        :param int sn_size: input image size for spectral normalization (required for training)
-        """
-
         super().__init__()
         # parameters and options
         self.size_kernels = size_kernels

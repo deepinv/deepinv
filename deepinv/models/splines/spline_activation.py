@@ -8,6 +8,25 @@ import deepinv.models.splines.spline_utils as spline_autograd_func
 
 
 class WeaklyConvexSplineActivation(torch.nn.Module):
+    r"""
+    A Batch of Weakly Convex Activation Functions based on B-Splines
+
+    The activation is defined by
+
+    .. math::
+
+        \psi_i(x,\sigma)=\frac{1}{\alpha_i(\sigma)^2} \left(\exp(\mu(\sigma))\psi_+-\psi_-\right)
+
+    where :math:`\alpha_i`, :math:`\mu` and the derivatives of :math:`\psi_+` and :math:`\psi_-` are paremeterized by splines. The resulting activation is weakly convex with modulus rho_wconvex.
+
+    The implementation is based on `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
+
+    :param int num_activations: number of splines
+    :param int scaling_knots: number of knots for the scaling splines (mu and alpha)
+    :param int spline_knots: number of knots for the base splines 
+    :param float max_noise_level: maximum output for sigma, here we use the noise level range [0,255]
+    :param float rho_wconvex: modulus of weak convexity (if zero: the activation function is convex, if positive weakly convex)
+    """
     def __init__(
         self,
         num_activations,
@@ -16,25 +35,6 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         max_noise_level=30.0,
         rho_wconvex=1.0,
     ):
-        r"""
-        A Batch of Weakly Convex Activation Functions based on B-Splines
-
-        The activation is defined by
-
-        .. math::
-
-            \psi_i(x,\sigma)=\frac{1}{\alpha_i(\sigma)^2} \left(\exp(\mu(\sigma))\psi_+-\psi_-\right)
-
-        where :math:`\alpha_i`, :math:`\mu` and the derivatives of :math:`\psi_+` and :math:`\psi_-` are paremeterized by splines. The resulting activation is weakly convex with modulus rho_wconvex.
-
-        The implementation is based on `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
-
-        :param int num_activations: number of splines
-        :param int scaling_knots: number of knots for the scaling splines (mu and alpha)
-        :param int spline_knots: number of knots for the base splines (phi_+ and phi_-)
-        :param float max_noise_level: maximum output for sigma, here we use the noise level range [0,255]
-        :param float rho_wconvex: modulus of weak convexity (if zero: the activation function is convex, if positive weakly convex)
-        """
         super().__init__()
         assert rho_wconvex >= 0, "Modulus of weak convexity should be non-negative"
         self.rho_wconvex = rho_wconvex

@@ -11,10 +11,25 @@ import torch
 from deepinv.utils.demo import load_url_image, get_image_url
 import numpy as np
 from deepinv.utils.plotting import plot
+from deepinv.physics import Inpainting
 
 device = "cuda"
 
+url = get_image_url("CBSD_0010.png")
+x = load_url_image(url, grayscale=True).to(device)
+physics = Inpainting(.5).to(device)
+noise_level = 0.01
+
+y=physics(x)
+
+noisy = y + noise_level * torch.randn_like(y)
+
 model = RidgeRegularizer().to(device)
+
+with torch.no_grad():
+    recon=model.reconstruct(physics,y,0.05,1.)
+plot([x,y,recon], titles=["ground truth","observation","reconstruction"])
+exit()
 
 """
 multiconv_dict=torch.load('../../deepinv/saved_model/saved_model_WCRR/multiconv.pt',map_location='cpu')
@@ -41,10 +56,6 @@ mu_dict = torch.load(
 # print(model.potential.mu_spline.coefficients)
 # exit()
 
-url = get_image_url("CBSD_0010.png")
-x = load_url_image(url, grayscale=True).to(device)
-noise_level = 0.1
-noisy = x + noise_level * torch.randn_like(x)
 grad = model.grad(noisy, noise_level)
 
 with torch.no_grad():
