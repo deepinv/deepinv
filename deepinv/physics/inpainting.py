@@ -165,6 +165,28 @@ class Inpainting(DecomposablePhysics):
         else:
             return super().__mul__(other)
 
+    def downsample_measurement(self, y, coarse_physics):
+        r"""
+        Downsamples the measurement by directly using the downsampling operator.
+        This is possible since the range of inpainting is part of the signal space.
+
+        :param torch.Tensor y: measurement to be downsampled.
+        :param deepinv.physics.Physics coarse_physics: physics to use the coarse space
+        :return: torch.Tensor downsampled measurement.
+        """
+        return self.downsample_signal(y)
+
+    def to_coarse(self):
+        r"""
+        Applies the downsampling operator on the mask, defining the coarse inpainting's mask.
+
+        :return: deepinv.physics.Inpainting: coarse inpainting physics.
+        """
+        coarse_data = self.downsample_signal(self.mask.data)
+        return Inpainting(
+            tensor_size=coarse_data.shape[1:], mask=coarse_data, device=self.mask.device
+        )
+
 
 class Demosaicing(Inpainting):
     r"""

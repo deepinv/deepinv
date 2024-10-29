@@ -5,6 +5,7 @@ import copy
 import inspect
 import collections.abc
 
+import deepinv
 import torch
 from torch import Tensor
 import torch.nn as nn
@@ -40,6 +41,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
     :param str solver: least squares solver to use. Only gradient descent is available for non-linear operators.
+    :param deepinv.physics.Downsampling downsampling_operator: downsampling operator to apply in the image space.
     """
 
     def __init__(
@@ -50,6 +52,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         solver="gradient_descent",
         max_iter=50,
         tol=1e-4,
+        downsampling_operator=None,
         **kwargs,
     ):
         super().__init__()
@@ -60,6 +63,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.max_iter = max_iter
         self.tol = tol
         self.solver = solver
+        self.downsampling_operator = downsampling_operator
 
         if len(kwargs) > 0:
             warnings.warn(
@@ -312,6 +316,55 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     traversal_queue.append(neighbor)
 
         return copy.deepcopy(self, memo=memo)
+
+    def downsample_signal(self, x):
+        r"""
+        Downsamples the signal using an antialiasing filter.
+
+        :param torch.Tensor x: signal to be downsampled.
+        :return: torch.Tensor downsampled signal.
+        """
+        if self.downsampling_operator is None:
+            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
+            self.downsampling_operator = deepinv.physics.Downsampling(
+                img_size=x.shape[1:], filter=filter, device=x.device
+            )
+        return self.downsampling_operator(x)
+
+    def upsample_signal(self, x):
+        r"""
+        """
+        factor = self.downsampling_operator.factor
+        return (factor**2) * self.downsampling_operator.A_adjoint(x)
+
+    def downsample_measurement(self, y, coarse_physics):
+        r"""
+        Downsamples a measurement according to the following formalism
+
+        .. math::
+
+            A_c \downarrow ( A_f^{\dagger} y)
+
+        where :math: `y` is the provided measurement to be downsampled,
+        :math:`A_f^{\dagger}` is this physics pseudo-inverse,
+        :math:`A_c` is the provided coarse-space physics,
+        :math: `\downarrow` is this physics' downsampling_operator applied in the signal space.
+
+        :param torch.Tensor y: measurement to be downsampled.
+        :param deepinv.physics.Physics coarse_physics: physics to use the coarse space
+        :return: torch.Tensor downsampled measurement.
+        """
+
+        x_coarse = self.downsample_signal(self.A_dagger(y))
+        return coarse_physics(x_coarse)
+
+    def to_coarse(self):
+        r"""
+        Returns a coarse version of the current physics.
+        """
+        raise NotImplementedError(
+            "Method to_coarse not implemented for this physics operator"
+        )
 
 
 class LinearPhysics(Physics):
