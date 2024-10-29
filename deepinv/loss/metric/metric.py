@@ -2,7 +2,7 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Optional, Callable
 
-from torch import Tensor
+from torch import Tensor, ones
 from torch.nn import Module
 
 from deepinv.loss.metric.functional import complex_abs, norm
@@ -31,13 +31,30 @@ class Metric(Module):
 
     You can also directly use this baseclass to wrap an existing metric function, e.g. from
     `torchmetrics <https://lightning.ai/docs/torchmetrics/stable>`_, to benefit from our preprocessing.
+    The metric function must reduce over all dims except the batch dim (see example).
 
-    :param Callable metric: metric function. This is unused if the ``metric`` method is overrifden.
+    :param Callable metric: metric function, it must reduce over all dims except batch dim. It must not reduce over batch dim.
+        This is unused if the ``metric`` method is overrifden.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+
+    |sep|
+
+    Examples:
+
+        Use ``Metric`` to wrap functional metrics such as from torchmetrics:
+
+        >>> from functools import partial
+        >>> from torchmetrics.functional.image import structural_similarity_index_measure
+        >>> from deepinv.loss.metric import Metric
+        >>> m = Metric(metric=partial(structural_similarity_index_measure, reduction='none'))
+        >>> x = x_net = ones(2, 3, 64, 64) # B,C,H,W
+        >>> m(x_net - 0.1, x)
+        tensor([0., 0.])
+
     """
 
     def __init__(
