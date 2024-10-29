@@ -360,7 +360,7 @@ class LinearPhysics(Physics):
         """
         new_A = lambda x: self.A(x) + other.A(x)
         new_A_adj = lambda x: self.A_adj(x) + other.A_adj(x)
-        new_noise_model = lambda x: self.noise_model(x) + other.noise_model(x)
+        new_noise_model = self.noise_model + other.noise_model
         new_sensor_model = lambda x: self.sensor_model(x) + other.sensor_model(x)
 
         return LinearPhysics(
