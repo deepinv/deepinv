@@ -73,7 +73,8 @@ class Euler_solver(SDE_solver):
 
     def step(self, t0, t1, x0):
         dt = abs(t1 - t0)
-        return x0 + self.drift(x0,t0) * dt + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
+        dW = self.randn_like(x0) * dt**0.5
+        return x0 + self.drift(x0,t0) * dt + self.diffusion(t0) * dW
 
 class Heun_solver(SDE_solver):
     def __init__(
@@ -83,7 +84,13 @@ class Heun_solver(SDE_solver):
 
     def step(self, t0, t1, x0):
         dt = abs(t1 - t0)
-        return x0 + self.drift(x0,t0) * dt + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
+        dW = self.randn_like(x0) * dt**0.5
+        diff_x0 = self.diffusion(t0)
+        drift_x0 = self.drift(x0,t0)
+        x_euler = x0 + drift_x0 * dt + diff_x0 * dW
+        diff_x1 = self.diffusion(t1)
+        drift_x1 = self.drift(x_euler,t1)
+        return x0 + 0.5*(drift_x0 + drift_x1) * dt + 0.5*(diff_x0 + diff_x1) * dW
 
 
 class DiffusionSDE(nn.Module):
