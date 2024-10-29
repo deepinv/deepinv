@@ -243,7 +243,7 @@ fig.colorbar(
 )
 
 axes[1].set_title("Best threshold for each noise level")
-axes[1].loglog(best_th["sigma"], best_th["th"], marker="o")
+axes[1].loglog(best_th_psnr["sigma"], best_th_psnr["th"], marker="o")
 axes[1].set_xlabel(r"$\sigma$")
 axes[1].set_ylabel(r"Best threshold")
 
