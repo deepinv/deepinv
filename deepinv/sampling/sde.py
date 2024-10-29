@@ -221,5 +221,5 @@ if __name__ == "__main__":
     posterior_sample = posterior_sde(y, physics, max_iter = 20)
 
     # Plotting the samples
-    dinv.utils.plot(posterior_sample)
+    dinv.utils.plot([y, posterior_sample], titles = ['y', 'posterior_sample'])
 
