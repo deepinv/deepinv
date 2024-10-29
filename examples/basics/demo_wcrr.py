@@ -27,7 +27,7 @@ model = RidgeRegularizer(pretrained="../../deepinv/saved_model/weights.pt").to(d
 # %%
 # Denoising
 # ---------------
-# We create a noisy observation. The forward method of the ridge regularizer 
+# We create a noisy observation. The forward method of the ridge regularizer
 # solves the variational problem :math:`\frac{1}{2} \|x-y\|^2+\lambda R(x,\sigma)` with :math:`\lambda=1` and noise level :math:`\sigma`.
 # Since the problem is solved iteratively, we use torch.no_grad() to avoid extensive memory usage.
 
@@ -36,7 +36,7 @@ noisy = x + noise_level * torch.randn_like(x)
 with torch.no_grad():
     recon = model(noisy, noise_level)
 
-plot([x,noisy,recon], titles=["ground truth", "observation", "reconstruction"])
+plot([x, noisy, recon], titles=["ground truth", "observation", "reconstruction"])
 
 
 # %%
@@ -46,9 +46,10 @@ plot([x,noisy,recon], titles=["ground truth", "observation", "reconstruction"])
 # Again the problem is solved iteratively, so we use torch.no_grad() to avoid extensive memory usage.
 
 
-physics = Inpainting(tensor_size=x.shape[1:], mask=0.5, noise_model=GaussianNoise(0.01)).to(device)
+physics = Inpainting(
+    tensor_size=x.shape[1:], mask=0.5, noise_model=GaussianNoise(0.01)
+).to(device)
 y = physics(x)
 with torch.no_grad():
     recon = model.reconstruct(physics, y, 0.05, 1.0)
 plot([x, y, recon], titles=["ground truth", "observation", "reconstruction"])
-
