@@ -388,10 +388,8 @@ class ScoreALD(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         return self.grad(x, y, sigma)
-    
-    
-    
-    
+
+
 class DDNMDataFidelity(NoisyDataFidelity):
     r"""
     TBD
