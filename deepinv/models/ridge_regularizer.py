@@ -40,7 +40,7 @@ class RidgeRegularizer(torch.nn.Module):
             channel_sequence[-1],
             scaling_knots=spline_knots[0],
             spline_knots=spline_knots[1],
-            max_noise_level=max_noise_level * 255.0,
+            max_noise_level=max_noise_level,
             rho_wconvex=rho_wconvex,
         )
         # initialize convolutions
@@ -102,7 +102,7 @@ class RidgeRegularizer(torch.nn.Module):
         res = 100000
 
         mu = torch.exp(
-            self.potential.mu_spline(torch.tensor([[[[sigma * 255]]]], device=z.device))
+            self.potential.mu_spline(torch.tensor([[[[sigma]]]], device=z.device))
         )
         step_size = 1 / (physics_norm + lmbd * mu)
         for i in range(max_iter):
@@ -133,7 +133,7 @@ class RidgeRegularizer(torch.nn.Module):
         It is not efficient to use autograd on this function. Use the grad function instead.
         """
         if isinstance(sigma, float):
-            sigma = sigma * torch.ones((x.size(0),), device=x.device) * 255
+            sigma = sigma * torch.ones((x.size(0),), device=x.device)
 
         return self.potential(self.W(x), sigma).sum(dim=tuple(range(1, len(x.shape))))
 
@@ -142,7 +142,7 @@ class RidgeRegularizer(torch.nn.Module):
         Evaluates the gradient of the regularizer
         """
         if isinstance(sigma, float):
-            sigma = sigma * torch.ones((x.size(0),), device=x.device) * 255
+            sigma = sigma * torch.ones((x.size(0),), device=x.device)
 
         return self.W.transpose(self.potential.derivative(self.W(x), sigma))
 

@@ -1,11 +1,6 @@
 import torch
 import deepinv.models.splines.spline_utils as spline_autograd_func
 
-# Todo list for later:
-#   what about copying from a repo without license?
-#   do something better if rho_wconvex is 0
-#   try to adjust noise level range to [0,1]
-
 
 class WeaklyConvexSplineActivation(torch.nn.Module):
     r"""
@@ -33,7 +28,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         num_activations,
         scaling_knots=11,
         spline_knots=101,
-        max_noise_level=30.0,
+        max_noise_level=30.0 / 255.0,
         rho_wconvex=1.0,
     ):
         super().__init__()
@@ -43,7 +38,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         self.alpha_spline = LinearSpline(
             num_knots=scaling_knots,
             x_min=0,
-            x_max=max_noise_level,
+            x_max=max_noise_level * 255.0,
             num_activations=num_activations,
             init=5.0,
             clamp=False,
@@ -51,7 +46,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         self.mu_spline = LinearSpline(
             num_knots=scaling_knots,
             x_min=0,
-            x_max=max_noise_level,
+            x_max=max_noise_level * 255.0,
             num_activations=1,
             init=4.0,
             clamp=False,
@@ -83,7 +78,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
 
     def cache_values(self, sigma):
         # sigma is a tensor with one axis
-        sigma = sigma[:, None, None, None]
+        sigma = 255.0 * sigma[:, None, None, None]
         self.scaling = torch.exp(
             self.alpha_spline(sigma.tile(1, self.num_activations, 1, 1))
         ) / (sigma + 1e-5)
@@ -94,7 +89,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         self.mu = None
 
     def get_mu_scaling(self, sigma):
-        sigma = sigma[:, None, None, None]
+        sigma = 255.0 * sigma[:, None, None, None]
         if self.scaling is None:
             scaling = torch.exp(
                 self.alpha_spline(sigma.tile(1, self.num_activations, 1, 1))
