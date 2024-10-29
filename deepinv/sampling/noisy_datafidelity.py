@@ -84,7 +84,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
         x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
-        l2_loss = self.data_fidelity(x0_t, y, physics, sigma).sqrt().sum()
+        l2_loss = self.d(y, physics.A(x0_t))
 
         return l2_loss
 
