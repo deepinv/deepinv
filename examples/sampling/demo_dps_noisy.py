@@ -297,7 +297,7 @@ for i, j in tqdm(time_pairs):
 
     xt = xs[-1].to(device)
     norm_grad = noisy_datafidelity.grad(xt, y, sigma)
-
+    x0_t = model(xt / 2 + 0.5, (1 - at).sqrt() / at.sqrt() / 2) * 2 - 1
     sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
     c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
 
