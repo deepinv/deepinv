@@ -13,6 +13,7 @@ from .measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
+from .rf_loss import RFLoss
 from .loss import Loss
 from .scheduler import (
     BaseLossScheduler,
