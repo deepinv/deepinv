@@ -139,3 +139,136 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
         return self.grad(x, y, sigma)
+
+
+class ILVRDataFidelity(NoisyDataFidelity):
+    r"""
+    TBD
+
+    :param float sigma: TBD
+    """
+
+    def __init__(self, physics=None, denoiser=None):
+        super(ILVRDataFidelity, self).__init__()
+
+        self.physics = physics
+        self.denoiser = denoiser
+
+        self.data_fidelity = L2()
+
+    def precond(self, x: torch.Tensor) -> torch.Tensor:
+        r"""
+        TBD
+
+        :param torch.Tensor x: TBD
+
+        :return: (torch.Tensor) TBD
+        """
+        raise self.physics.A_dagger(x)
+
+
+    def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        r"""
+        Computes the difference between the forward operator applied to the current iterate and the input data.
+
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+
+        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
+        """
+        return self.physics.A(x) - y
+
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        y = y + sigma * torch.randn_like(y)
+        return self.precond(self.diff(x, y))
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return -self.grad(x, y, sigma)
+
+class ScoreSDE(NoisyDataFidelity):
+    r"""
+    TBD
+
+    :param float sigma: TBD
+    """
+
+    def __init__(self, physics=None, denoiser=None):
+        super(ScoreSDE, self).__init__()
+
+        self.physics = physics
+        self.denoiser = denoiser
+
+        self.data_fidelity = L2()
+
+    def precond(self, x: torch.Tensor) -> torch.Tensor:
+        r"""
+        TBD
+
+        :param torch.Tensor x: TBD
+
+        :return: (torch.Tensor) TBD
+        """
+        raise self.physics.A_adjoint(x)
+
+
+    def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        r"""
+        Computes the difference between the forward operator applied to the current iterate and the input data.
+
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+
+        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
+        """
+        return self.physics.A(x) - y
+
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        y = y + sigma * torch.randn_like(y)
+        return self.precond(self.diff(x, y))
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.grad(x, y, sigma)
+
+
+class ScoreALD(NoisyDataFidelity):
+    r"""
+    TBD
+
+    :param float sigma: TBD
+    """
+
+    def __init__(self, physics=None, denoiser=None):
+        super(ILVRDataFidelity, self).__init__()
+
+        self.physics = physics
+        self.denoiser = denoiser
+
+        self.data_fidelity = L2()
+
+    def precond(self, x: torch.Tensor) -> torch.Tensor:
+        r"""
+        TBD
+
+        :param torch.Tensor x: TBD
+
+        :return: (torch.Tensor) TBD
+        """
+        raise self.physics.A_adjoint(x)
+
+
+    def diff(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        r"""
+        Computes the difference between the forward operator applied to the current iterate and the input data.
+
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+
+        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
+        """
+        return self.physics.A(x) - y
+
+    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.precond(self.diff(x, y))
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+        return self.grad(x, y, sigma)
