@@ -1,6 +1,8 @@
 import torch
 from deepinv.models.splines.spline_activation import WeaklyConvexSplineActivation
 import numpy as np
+from deepinv.physics import Denoising
+from .utils import get_weights_url
 
 
 class RidgeRegularizer(torch.nn.Module):
@@ -22,6 +24,7 @@ class RidgeRegularizer(torch.nn.Module):
     :param float rho_convex: modulus of weak convexity
     :param list of int spline_knots: spline_knots[0] is the number of knots of the scaling splines and spline_knots[1] is the number of knots for the potentials
     """
+
     def __init__(
         self,
         channel_sequence=[1, 4, 8, 80],
@@ -29,6 +32,7 @@ class RidgeRegularizer(torch.nn.Module):
         max_noise_level=30.0 / 255.0,
         rho_wconvex=1.0,
         spline_knots=[11, 101],
+        pretrained="download",
     ):
         super().__init__()
         # initialize splines
@@ -44,6 +48,15 @@ class RidgeRegularizer(torch.nn.Module):
             num_channels=channel_sequence,
             size_kernels=[kernel_size] * (len(channel_sequence) - 1),
         )
+        if pretrained is not None:
+            if pretrained == "download":
+                url = get_weights_url(model_name="wcrr", file_name="wcrr_gray.pth")
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt)
 
     def forward(self, x, sigma, tol=1e-4, max_iter=500):
         r"""
@@ -51,63 +64,54 @@ class RidgeRegularizer(torch.nn.Module):
 
         via an accelerated gradient descent. When called without torch.no_grad() this might require a large amount of memory.
         """
-        x_noisy = x.clone()
-        # initial value: noisy image
-        z = torch.clone(x)
-        t = 1
-        # the index of the images that have not converged yet
-        # relative change in the estimate
-        res = 100000
 
-        mu = torch.exp(
-            self.potential.mu_spline(torch.tensor([[[[sigma * 255]]]], device=x.device))
+        return self.reconstruct(
+            Denoising(),
+            x,
+            sigma,
+            1.0,
+            tol=tol,
+            max_iter=max_iter,
+            physics_norm=1,
+            init=x,
         )
-        step_size = 1 / (1 + mu)
-        for i in range(max_iter):
-            x_old = torch.clone(x)
-            grad = self.grad(z, sigma) + (z - x_noisy)
-            grad = grad * step_size
 
-            x = z - grad
-
-            t_old = t
-            t = 0.5 * (1 + np.sqrt(1 + 4 * t**2))
-            z = x + (t_old - 1) / t * (x - x_old)
-
-            if i > 0:
-                res_vec = torch.sqrt(
-                    torch.sum((x - x_old).view(x.shape[0], -1) ** 2)
-                    / torch.sum(x.view(x.shape[0], -1) ** 2)
-                )
-                res = torch.max(res_vec)
-
-            if res < tol:
-                break
-        return x
-    
-    def reconstruct(self,physics,y,sigma,lmbd,tol=1e-4, max_iter=500,physics_norm=None):
-        adj=physics.A_adjoint(y)
+    def reconstruct(
+        self,
+        physics,
+        y,
+        sigma,
+        lmbd,
+        tol=1e-4,
+        max_iter=500,
+        physics_norm=None,
+        init=None,
+    ):
+        adj = physics.A_adjoint(y)
         if physics_norm is None:
-            physics_norm=physics.compute_norm(adj)
-        x_noisy = torch.zeros_like(adj)
+            physics_norm = physics.compute_norm(adj)
         # initial value: noisy image
-        z = torch.clone(x)
+        if init is None:
+            z = torch.zeros_like(adj)
+        else:
+            z = init.clone()
+        x = z.clone()
         t = 1
         # the index of the images that have not converged yet
         # relative change in the estimate
         res = 100000
 
         mu = torch.exp(
-            self.potential.mu_spline(torch.tensor([[[[sigma * 255]]]], device=x.device))
+            self.potential.mu_spline(torch.tensor([[[[sigma * 255]]]], device=z.device))
         )
-        step_size = 1 / (physics_norm + lmbd*mu)
+        step_size = 1 / (physics_norm + lmbd * mu)
         for i in range(max_iter):
             x_old = torch.clone(x)
-            grad = lmbd*self.grad(z, sigma) + physics.A_adjoint(physics.A(z) - y)
+            grad = lmbd * self.grad(z, sigma) + physics.A_adjoint(physics.A(z) - y)
             grad = grad * step_size
 
             x = z - grad
-            x=x.clamp(0,1)
+            x = x.clamp(0, 1)
             t_old = t
             t = 0.5 * (1 + np.sqrt(1 + 4 * t**2))
             z = x + (t_old - 1) / t * (x - x_old)
@@ -118,7 +122,6 @@ class RidgeRegularizer(torch.nn.Module):
                     / torch.sum(x.view(x.shape[0], -1) ** 2)
                 )
                 res = torch.max(res_vec)
-
             if res < tol:
                 break
         return x
@@ -166,6 +169,7 @@ class MultiConv2d(torch.nn.Module):
     :param bool zero_mean: the filters of convolutions are constrained to be of zero mean if true
     :param int sn_size: input image size for spectral normalization (required for training)
     """
+
     def __init__(
         self, num_channels=[1, 64], size_kernels=[3], zero_mean=True, sn_size=256
     ):

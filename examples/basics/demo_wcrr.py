@@ -11,24 +11,31 @@ import torch
 from deepinv.utils.demo import load_url_image, get_image_url
 import numpy as np
 from deepinv.utils.plotting import plot
-from deepinv.physics import Inpainting
+from deepinv.physics import Inpainting, Denoising, GaussianNoise
 
-device = "cuda"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url, grayscale=True).to(device)
-physics = Inpainting(.5).to(device)
+physics = Inpainting(tensor_size=x.shape[1:], mask=0.5).to(device)
+# physics =Denoising(noise_model=GaussianNoise(0.))
 noise_level = 0.01
 
-y=physics(x)
+y = physics(x)
 
 noisy = y + noise_level * torch.randn_like(y)
 
-model = RidgeRegularizer().to(device)
+model = RidgeRegularizer(pretrained="../../deepinv/saved_model/weights.pt").to(device)
 
 with torch.no_grad():
-    recon=model.reconstruct(physics,y,0.05,1.)
-plot([x,y,recon], titles=["ground truth","observation","reconstruction"])
+    recon = model.reconstruct(physics, noisy, 0.05, 1.0)
+plot([x, noisy, recon], titles=["ground truth", "observation", "reconstruction"])
+
+noise_level = 0.1
+noisy = x + noise_level * torch.randn_like(x)
+with torch.no_grad():
+    recon = model(noisy, noise_level)
+plot([recon], titles=["reconstruction"])
 exit()
 
 """

@@ -23,10 +23,11 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
 
     :param int num_activations: number of splines
     :param int scaling_knots: number of knots for the scaling splines (mu and alpha)
-    :param int spline_knots: number of knots for the base splines 
+    :param int spline_knots: number of knots for the base splines
     :param float max_noise_level: maximum output for sigma, here we use the noise level range [0,255]
     :param float rho_wconvex: modulus of weak convexity (if zero: the activation function is convex, if positive weakly convex)
     """
+
     def __init__(
         self,
         num_activations,
