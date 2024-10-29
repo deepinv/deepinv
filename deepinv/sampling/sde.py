@@ -113,7 +113,7 @@ class EDMSDE(DiffusionSDE):
         self.beta = beta
         self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
         self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
-        self.drift_back = lambda x, t: -(sigma_prime(T-t) * sigma(T-t) + beta(T-t) * self.sigma(T-t) ** 2) * (-prior.grad(x, sigma(T-t)))
+        self.drift_back = lambda x, t: (sigma_prime(T-t) * sigma(T-t) + beta(T-t) * self.sigma(T-t) ** 2) * (-prior.grad(x, sigma(T-t)))
         self.diff_back = self.diff_forw
         self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng,  t_init = 0.001)
         self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng, t_init = 0.001)
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
     denoiser = dinv.models.DRUNet(device = device)
-    # denoiser = dinv.models.DiffUNet().to(device)
+    denoiser = dinv.models.DiffUNet().to(device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     OUSDE = EDMSDE(prior=prior, T=1.0)
@@ -137,6 +137,7 @@ if __name__ == "__main__":
         sample_noise = OUSDE.forward_sde.sample(x, num_steps = 100)
         noise = torch.randn_like(x)
         sample = OUSDE.backward_sde.sample(noise, num_steps = 100)
+        print(torch.min(sample), torch.max(sample))
     dinv.utils.plot([x, sample_noise, sample])
 
     # from temp_model import UNetModelWrapper
