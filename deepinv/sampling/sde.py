@@ -93,7 +93,7 @@ class DiffusionSDE(nn.Module):
             x, T - t
         )
         self.diff_back = lambda t: g(T - t)
-        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng)
+        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng,  t_init = 0.001)
 
 
 class EDMSDE(DiffusionSDE):
@@ -102,19 +102,22 @@ class EDMSDE(DiffusionSDE):
         prior: Callable,
         T: float,
         sigma: Callable =  lambda t: t,
-        sigma_prime: Callable =  lambda t: 1,
-        s: Callable =  lambda t: 1,
-        s_prime: Callable = lambda t : 0,
+        sigma_prime: Callable =  lambda t: 1.,
+        s: Callable =  lambda t: 1.,
+        s_prime: Callable = lambda t : 0.,
         beta: Callable = lambda t: 1.0 / t,
         rng: torch.Generator = None,
     ): 
+        super().__init__(prior=prior, T=T, rng=rng)
         self.sigma = sigma
         self.beta = beta
         self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
         self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
         self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
         self.diff_back = self.diff_forw
-        super().__init__(prior=prior, T=T, rng=rng)
+        self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng,  t_init = 0.001)
+        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng, t_init = 0.001)
+        
 
 
 # %%
@@ -125,8 +128,8 @@ if __name__ == "__main__":
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
-    #denoiser = dinv.models.DRUNet(device = device)
-    denoiser = dinv.models.DiffUNet().to(device)
+    denoiser = dinv.models.DRUNet(device = device)
+    #denoiser = dinv.models.DiffUNet().to(device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     OUSDE = EDMSDE(prior=prior, T=1.0)
