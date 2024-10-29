@@ -14,7 +14,6 @@ New Features
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
-- Add the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_)
 
 
 - Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
@@ -25,6 +24,7 @@ New Features
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
 - generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+- Add the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -35,6 +35,7 @@ Fixed
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
 - Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_)
+- Fix bug when using cuda device in dinv.datasets.generate_dataset  (:gh:`334` by `Tobias Liaudat`_)
 
 Changed
 ^^^^^^^
