@@ -207,7 +207,11 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`.
         If mask or coil maps are not passed, blank ones are created.
-        You can also simulate birdcage coil sensitivity maps by passing instead an integer to ``coil_maps`` (note this requires ``sigpy``).
+
+    .. note::
+
+        You can also simulate birdcage coil sensitivity maps by passing instead an integer to ``coil_maps``
+        using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires ``sigpy``).
 
     :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate blank mask with ``img_size``.
     :param torch.Tensor, str coil_maps: complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
@@ -226,11 +230,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         >>> from deepinv.physics import MultiCoilMRI
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 2, 2, 2) # Define random 2x2 image B,C,H,W
+        >>> physics = MultiCoilMRI(img_size=x.shape) # Define blank coil map
+        >>> physics(x).shape # B,C,N,H,W
+        torch.Size([1, 2, 1, 2, 2])
         >>> coil_maps = torch.randn(1, 5, 2, 2, dtype=torch.complex64) # Define 5-coil sensitivity maps
-        >>> physics = MultiCoilMRI(coil_maps=coil_maps) # Define coil maps at initialisation
-        >>> physics = MultiCoilMRI(coil_maps=5, img_size=x.shape) # Simulate birdcage coil maps
-        >>> physics(x).shape
-        torch.Size([1, 2, 5, 2, 2]) # B,C,N,H,W
         >>> physics.update_parameters(coil_maps=coil_maps) # Update coil maps on the fly
         >>> physics(x).shape
         torch.Size([1, 2, 5, 2, 2])
@@ -255,7 +258,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             mask = torch.ones(*img_size)
 
         if coil_maps is None:
-            coil_maps = torch.ones(*img_size)
+            coil_maps = torch.ones((self.img_size[-2:] if not self.three_d else self.img_size[-3:]), dtype=torch.complex64)
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
 
