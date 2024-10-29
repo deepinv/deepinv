@@ -3,11 +3,11 @@ from deepinv.models.splines.spline_activation import WeaklyConvexSplineActivatio
 
 class RidgeRegularizer(torch.nn.Module):
     def __init__(self,channel_sequence=[1,4,8,80],kernel_size=5,max_noise_level=30./255.,rho_wconvex=1.,spline_knots=[11,101]):
-        
+        super().__init__()
         # initialize splines
         self.potential = WeaklyConvexSplineActivation(channel_sequence[-1],scaling_knots=spline_knots[0],spline_knots=spline_knots[1],max_noise_level=max_noise_level*255.,rho_wconvex=rho_wconvex)
         # initialize convolutions
-        self.W = MultiConv2d(num_channels=channel_sequence, size_kernels=[kernel_size]*(len(channel_sequence-1)))
+        self.W = MultiConv2d(num_channels=channel_sequence, size_kernels=[kernel_size]*(len(channel_sequence)-1))
 
     
     def cost(self, x, sigma):

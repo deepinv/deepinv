@@ -1,5 +1,5 @@
 import torch
-import deepinv.models.splines.spline_uitls as spline_autograd_func
+import deepinv.models.splines.spline_utils as spline_autograd_func
 
 # Todo list for later:
 #   fix devices and avoid transfering variables
@@ -14,7 +14,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         r"""
         A Batch of Weakly Convex Activation Functions based on B-Splines
 
-        
+        TODO write formula
 
         The implementation is based on `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
         
@@ -24,6 +24,7 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         :param float max_noise_level: maximum output for sigma, here we use the noise level range [0,255]
         :param float rho_wconvex: modulus of weak convexity (if zero: the activation function is convex, if positive weakly convex)
         """   
+        super().__init__()
         assert rho_wconvex>=0, "Modulus of weak convexity should be non-negative"     
         self.rho_wconvex=rho_wconvex
         self.num_activations=num_activations
@@ -114,7 +115,7 @@ class LinearSpline(torch.nn.Module):
         
         # parameters
         coefficients = self.initialize_coeffs()  # spline coefficients
-        self.coefficients = nn.Parameter(coefficients)
+        self.coefficients = torch.nn.Parameter(coefficients)
 
         self.projected_coefficients_cached = None
 
