@@ -69,11 +69,24 @@ class Euler_solver(SDE_solver):
 
     def step(self, t0, t1, x0):
         dt = abs(t1 - t0)
-        return (
-            x0
-            + self.drift(x, t0) * dt
-            + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
-        )
+        dW = self.randn_like(x0) * dt**0.5
+        return x0 + self.drift(x0,t0) * dt + self.diffusion(t0) * dW
+
+class Heun_solver(SDE_solver):
+    def __init__(
+        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
+    ):
+        super().__init__(drift, diffusion, rng = rng)
+
+    def step(self, t0, t1, x0):
+        dt = abs(t1 - t0)
+        dW = self.randn_like(x0) * dt**0.5
+        diff_x0 = self.diffusion(t0)
+        drift_x0 = self.drift(x0,t0)
+        x_euler = x0 + drift_x0 * dt + diff_x0 * dW
+        diff_x1 = self.diffusion(t1)
+        drift_x1 = self.drift(x_euler,t1)
+        return x0 + 0.5*(drift_x0 + drift_x1) * dt + 0.5*(diff_x0 + diff_x1) * dW
 
 
 class DiffusionSDE(nn.Module):
@@ -83,15 +96,17 @@ class DiffusionSDE(nn.Module):
         g: Callable = lambda t: math.sqrt(2.0),
         prior: Callable = None,
         rng: torch.Generator = None,
+        use_backward_ode = False
     ):
         super().__init__()
+        self.use_backward_ode = use_backward_ode
         self.drift_forw = lambda x, t: f(x, t)
         self.diff_forw = lambda t: g(t)
-        self.forward_sde = Euler_solver(
-            drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
-        )
-
-        self.drift_back = lambda x, t: f(x, t) + (g(t) ** 2) * prior.grad(x, t)
+        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
+        if self.use_backward_ode : 
+            self.drift_back = lambda x, t: f(x, t) - 0.5 * (g(t) ** 2) * (-prior.grad(x, t))
+        else :
+            self.drift_back = lambda x, t: f(x, t) - (g(t) ** 2) * (-prior.grad(x, t))
         self.diff_back = lambda t: g(t)
         self.backward_sde = Euler_solver(
             drift=self.drift_back, diffusion=self.diff_back, rng=rng
@@ -107,115 +122,47 @@ class EDMSDE(DiffusionSDE):
         s: Callable = lambda t: 1.0,
         s_prime: Callable = lambda t: 0.0,
         beta: Callable = lambda t: 1.0 / t,
-        rng: torch.Generator = None,
-    ):
+        rng: torch.Generator = None
+    ): 
         super().__init__(prior=prior, rng=rng)
-        self.sigma = sigma
-        self.beta = beta
-        self.drift_forw = lambda x, t: (
-            -sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2
-        ) * (-prior.grad(x, sigma(t)))
-        self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
-        self.drift_back = lambda x, t: -(
-            sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2
-        ) * (-prior.grad(x, sigma(t)))
-        self.diff_back = self.diff_forw
-        self.forward_sde = Euler_solver(
-            drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
-        )
-        self.backward_sde = Euler_solver(
-            drift=self.drift_back, diffusion=self.diff_back, rng=rng
-        )
+        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+        self.diff_forw = lambda t: sigma(t) * (2 * beta(t)) ** 0.5
+        if self.use_backward_ode :
+            self.diff_back = lambda t: 0.
+            self.drift_back = lambda x, t:  - ((s_prime(t) / s(t)) * x  - (s(t) ** 2) * sigma_prime(t) * sigma(t) * (-prior.grad(x / s(t), sigma(t))))
+        else : 
+            self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+            self.diff_back = self.diff_forw
+        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
+        self.backward_sde = Heun_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
 
 
-# %%
-if __name__ == "__main__":
-    import deepinv as dinv
+if __name__ == '__main__' :
+    from edm import load_model
+    import numpy as np
     from deepinv.utils.demo import load_url_image, get_image_url
+    import deepinv as dinv 
 
-    device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url=url, img_size=64, device=device)
-    denoiser = dinv.models.DRUNet(device=device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+    denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+    # url = get_image_url("CBSD_0010.png")
+    # x = load_url_image(url=url, img_size=64, device=device)
 
-    OUSDE = EDMSDE(prior=prior)
+    ve_sigma = lambda t: t**0.5
+    ve_sigma_prime = lambda t: 1 / (2 * t**0.5)
+    ve_beta = lambda t: 0
+    ve_sigma_max = 100
+    ve_sigma_min = 0.02
+    num_steps = 20
+    ve_timesteps = ve_sigma_max**2 * (ve_sigma_min**2 / ve_sigma_max**2) ** (
+        np.arange(num_steps) / (num_steps - 1)
+    )
+    sde = EDMSDE(prior=prior, beta=ve_beta, sigma=ve_sigma, sigma_prime=ve_sigma_prime)
+
     with torch.no_grad():
-        timesteps = torch.linspace(0.001, 1, 100)
-        # sample_noise = OUSDE.forward_sde.sample(x, timesteps=timesteps)
-        noise = torch.randn_like(x)
-        sample = OUSDE.backward_sde.sample(noise, timesteps=timesteps.flip(dims=[0]))
-        print(torch.min(sample), torch.max(sample))
-    dinv.utils.plot([x, noise, sample])
+        noise = torch.randn(2, 3, 64, 64, device=device) * ve_sigma_max
+        samples = sde.backward_sde.sample(noise, timesteps=ve_timesteps)
+    dinv.utils.plot(samples)
 
-    # from temp_model import UNetModelWrapper
-
-    # class EDMDenoiser(nn.Module):
-    #     def __init__(
-    #         self,
-    #         image_size=(3, 32, 32),
-    #         sigma_data: float = 0.5,
-    #     ):
-    #         super().__init__()
-
-    #         # Any U-Net network
-    #         self.model = UNetModelWrapper(
-    #             dim=image_size,
-    #             num_channels=64,
-    #             num_res_blocks=4,
-    #             attention_resolutions="32, 16",
-    #         )
-    #         self.sigma_data = sigma_data
-
-    #     def forward(self, input: Tensor, sigma: float):
-    #         if isinstance(sigma, float):
-    #             sigma = torch.tensor([sigma], device=input.device)
-    #         skip_scaling, output_scaling, input_scaling, noise_condition = (
-    #             self.get_scaling_coefficients(sigma)
-    #         )
-    #         if isinstance(noise_condition, Tensor):
-    #             if noise_condition.ndim == 4:
-    #                 t = noise_condition.squeeze((1, 2, 3)).to(input.dtype)
-    #             else:
-    #                 t = noise_condition.to(input.dtype)
-    #         return skip_scaling * input + output_scaling * self.model(
-    #             x=input_scaling * input, t=t
-    #         )
-
-    #     def get_scaling_coefficients(self, sigma: Tensor):
-    #         r"""
-    #         Get scaling coefficients for the input and output of the denoiser
-    #         """
-
-    #         sum_of_square = (self.sigma_data**2 + sigma**2) ** 0.5
-    #         skip_scaling = self.sigma_data**2 / sum_of_square**2
-    #         output_scaling = sigma * self.sigma_data / sum_of_square
-    #         input_scaling = 1.0 / sum_of_square
-    #         noise_condition = 0.25 * torch.log(sigma)
-
-    #         return skip_scaling, output_scaling, input_scaling, noise_condition
-
-    # score_model = EDMDenoiser()
-    # score_model.load_state_dict(
-    #     torch.load("/home/minhhai/Works/dev/deepinv_folk/weights/cifar10_27M.pth")[
-    #         "model_state_dict"
-    #     ]
-    # )
-    # # score_model.to(device)
-
-    # print(
-    #     "Number of parameters: ",
-    #     sum(p.numel() for p in score_model.parameters() if p.requires_grad),
-    # )
-
-    # x = load_url_image(url=url, img_size=32, device=device)
-    # # x = x * 2 - 1
-    # # denoiser = dinv.models.DiffUNet().to(device)
-    # prior = dinv.optim.prior.ScorePrior(denoiser=score_model)
-
-    # OUSDE = EDMSDE(prior=prior, T=1.0)
-    # with torch.no_grad():
-    #     sample_noise = OUSDE.forward_sde.sample(x, 0, 1.0, 100)
-    #     noise = torch.randn_like(x)
-    #     sample = OUSDE.backward_sde.sample(noise, 1e-4, 1.0, num_steps=10000)
-    # dinv.utils.plot([x, sample_noise, sample])

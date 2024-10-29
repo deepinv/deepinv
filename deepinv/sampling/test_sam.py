@@ -8,7 +8,6 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 x = x * 2 - 1 
-
 class my_drunet(dinv.models.DRUNet):
     def __init__(self):
         super().__init__(pretrained = 'download', device = device)
@@ -18,7 +17,6 @@ class my_drunet(dinv.models.DRUNet):
         out = super().forward(x, 0.5 * sigma)
         out = out * 2 - 1
         return out
-    
 denoiser = my_drunet()
 prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 

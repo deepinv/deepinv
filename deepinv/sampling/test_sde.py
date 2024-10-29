@@ -69,11 +69,11 @@ def edm_sampler(
     return x_next
 
 
-# %%
-with torch.no_grad():
-    latents = torch.randn(2, 3, 64, 64, device=device)
-    samples = edm_sampler(model, latents=latents, num_steps=100)
-    dinv.utils.plot([latents, samples])
+# # %%
+# with torch.no_grad():
+#     latents = torch.randn(2, 3, 64, 64, device=device)
+#     samples = edm_sampler(model, latents=latents, num_steps=100)
+#     dinv.utils.plot([latents, samples])
 
 # %%
 ve_sigma = lambda t: t**0.5
@@ -87,18 +87,11 @@ ve_timesteps = ve_sigma_max**2 * (ve_sigma_min**2 / ve_sigma_max**2) ** (
 )
 sde = EDMSDE(prior=prior, beta=ve_beta, sigma=ve_sigma, sigma_prime=ve_sigma_prime)
 
-
-with torch.no_grad():
-    x_noisy = x + torch.randn_like(x) * 10.0
-    x_denoised = denoiser(x_noisy, 10.0)
-dinv.utils.plot([x, x_noisy, x_denoised])
-
-
 # %%
 with torch.no_grad():
-    endpoint = sde.forward_sde.sample(x, ve_timesteps[::-1])
-    print(f"End point std: {endpoint.std()}")
-    dinv.utils.plot(endpoint)
+    # endpoint = sde.forward_sde.sample(x, ve_timesteps[::-1])
+    # print(f"End point std: {endpoint.std()}")
+    # dinv.utils.plot(endpoint)
     noise = torch.randn(2, 3, 64, 64, device=device) * ve_sigma_max
     samples = sde.backward_sde.sample(noise, timesteps=ve_timesteps)
 dinv.utils.plot(samples)
