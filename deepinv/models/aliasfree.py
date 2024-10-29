@@ -136,130 +136,6 @@ def ConvBlock(in_channels, out_channels, mode="relu", bias=False):
     return seq
 
 
-class AliasFreeDenoiser(nn.Module):
-    def __init__(
-        self,
-        in_channels=1,
-        out_channels=1,
-        residual=True,
-        cat=True,
-        mode="up_poly_per_channel",
-        bias=False,
-        scales=4,
-        block_kind="ConvNextBlock",
-    ):
-        super().__init__()
-        self.name = "unet"
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-
-        self.residual = residual
-        self.cat = cat
-        self.scales = scales
-
-        self.hidden_channels = 64
-
-        if block_kind == "ConvBlock":
-            main_block = ConvBlock
-        elif block_kind == "ConvNextBlock":
-            main_block = ConvNextBlock
-        else:
-            raise NotImplementedError()
-
-        out_ch = self.hidden_channels
-
-        self.ConvIn = ConvBlock(
-            in_channels=in_channels, out_channels=out_ch, bias=bias, mode=mode
-        )
-
-        for i in range(1, scales):
-            in_ch = out_ch
-            out_ch = in_ch * 2
-            setattr(self, f"Downsample{i}", BlurPool(channels=in_ch))
-            setattr(
-                self,
-                f"DownBlock{i}",
-                main_block(
-                    in_channels=in_ch, out_channels=out_ch, bias=bias, mode=mode
-                ),
-            )
-
-        for i in range(scales - 1, 0, -1):
-            in_ch = out_ch
-            out_ch = in_ch // 2
-            setattr(
-                self,
-                f"Upsample{i}",
-                UpsampleRFFT(),
-            )
-            setattr(
-                self,
-                f"UpBlock{i}",
-                main_block(
-                    in_channels=in_ch, out_channels=out_ch, bias=bias, mode=mode
-                ),
-            )
-            setattr(
-                self,
-                f"CatBlock{i}",
-                ConvBlock(in_channels=in_ch, out_channels=out_ch, bias=bias, mode=mode),
-            )
-
-        self.ConvOut = nn.Conv2d(
-            in_channels=self.hidden_channels,
-            out_channels=out_channels,
-            bias=bias,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-        )
-
-    def forward(self, x, sigma=None):
-        r"""
-        Run the denoiser on noisy image. The noise level is not used in this denoiser.
-
-        :param torch.Tensor x: noisy image.
-        :param float sigma: noise level (not used).
-        """
-        factor = 2 ** (self.scales - 1)
-        if x.size(2) % factor == 0 and x.size(3) % factor == 0:
-            return self._forward(x)
-        else:
-            return test_pad(self._forward, x, modulo=factor)
-
-    def _forward(self, x):
-        cat_list = []
-
-        m = torch.mean(x, dim=(1, 2, 3), keepdim=True)
-        x = x - m
-
-        out = self.ConvIn(x)
-
-        cat_list.append(out)
-        for i in range(1, self.scales):
-            out = getattr(self, f"Downsample{i}")(out)
-            out = getattr(self, f"DownBlock{i}")(out)
-            if self.cat and i < self.scales - 1:
-                cat_list.append(out)
-
-        for i in range(self.scales - 1, 0, -1):
-            out = getattr(self, f"Upsample{i}")(out)
-            out = getattr(self, f"UpBlock{i}")(out)
-            if self.cat:
-                out = torch.cat((cat_list.pop(), out), dim=1)
-                out = getattr(self, f"CatBlock{i}")(out)
-
-        out = self.ConvOut(out)
-
-        if self.residual and self.in_channels == self.out_channels:
-            out = out + x
-
-        out = out + m
-
-        return out
-
-
 # https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/weight_init.py
 
 
@@ -468,7 +344,6 @@ class PolyActPerChannel(nn.Module):
         )
 
     def calc_polynomial(self, x):
-
         if self.deg == 2:
             # maybe this is faster?
             res = self.coef[:, 0] + self.coef[:, 1] * x + self.coef[:, 2] * (x**2)
@@ -520,7 +395,6 @@ class circular_pad(nn.Module):
         self.pad_sizes = padding
 
     def forward(self, x):
-
         return F.pad(x, pad=self.pad_sizes, mode="circular")
 
 
@@ -661,3 +535,140 @@ def get_pad_layer(pad_type):
     else:
         print("Pad type [%s] not recognized" % pad_type)
     return PadLayer
+
+
+class AliasFreeDenoiser(nn.Module):
+    def __init__(
+        self,
+        in_channels=3,
+        out_channels=3,
+        residual=True,
+        cat=True,
+        bias=False,
+        scales=4,
+        block_kind="ConvNextBlock",
+    ):
+        super().__init__()
+        mode = "up_poly_per_channel"
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        self.residual = residual
+        self.cat = cat
+        self.scales = scales
+
+        self.hidden_channels = 64
+
+        if block_kind == "ConvBlock":
+            main_block = ConvBlock
+        elif block_kind == "ConvNextBlock":
+            main_block = ConvNextBlock
+        else:
+            raise NotImplementedError()
+
+        out_ch = self.hidden_channels
+
+        self.conv_in = ConvBlock(
+            in_channels=in_channels,
+            out_channels=out_ch,
+            bias=bias,
+            mode="up_poly_per_channel",
+        )
+
+        for i in range(1, scales):
+            in_ch = out_ch
+            out_ch = in_ch * 2
+            setattr(self, f"Downsample{i}", BlurPool(channels=in_ch))
+            setattr(
+                self,
+                f"DownBlock{i}",
+                main_block(
+                    in_channels=in_ch,
+                    out_channels=out_ch,
+                    bias=bias,
+                    mode="up_poly_per_channel",
+                ),
+            )
+
+        for i in range(scales - 1, 0, -1):
+            in_ch = out_ch
+            out_ch = in_ch // 2
+            setattr(
+                self,
+                f"Upsample{i}",
+                UpsampleRFFT(),
+            )
+            setattr(
+                self,
+                f"UpBlock{i}",
+                main_block(
+                    in_channels=in_ch,
+                    out_channels=out_ch,
+                    bias=bias,
+                    mode="up_poly_per_channel",
+                ),
+            )
+            setattr(
+                self,
+                f"CatBlock{i}",
+                ConvBlock(
+                    in_channels=in_ch,
+                    out_channels=out_ch,
+                    bias=bias,
+                    mode="up_poly_per_channel",
+                ),
+            )
+
+        self.conv_out = nn.Conv2d(
+            in_channels=self.hidden_channels,
+            out_channels=out_channels,
+            bias=bias,
+            kernel_size=1,
+            stride=1,
+            padding=0,
+        )
+
+    def forward(self, x, sigma=None):
+        r"""
+        Run the denoiser on noisy image. The noise level is not used in this denoiser.
+
+        :param torch.Tensor x: noisy image.
+        :param float sigma: noise level (not used).
+        """
+        factor = 2 ** (self.scales - 1)
+        if x.size(2) % factor == 0 and x.size(3) % factor == 0:
+            return self._forward(x)
+        else:
+            return test_pad(self._forward, x, modulo=factor)
+
+    def _forward(self, x):
+        cat_list = []
+
+        m = torch.mean(x, dim=(1, 2, 3), keepdim=True)
+        x = x - m
+
+        out = self.conv_in(x)
+
+        cat_list.append(out)
+        for i in range(1, self.scales):
+            out = getattr(self, f"Downsample{i}")(out)
+            out = getattr(self, f"DownBlock{i}")(out)
+            if self.cat and i < self.scales - 1:
+                cat_list.append(out)
+
+        for i in range(self.scales - 1, 0, -1):
+            out = getattr(self, f"Upsample{i}")(out)
+            out = getattr(self, f"UpBlock{i}")(out)
+            if self.cat:
+                out = torch.cat((cat_list.pop(), out), dim=1)
+                out = getattr(self, f"CatBlock{i}")(out)
+
+        out = self.conv_out(out)
+
+        if self.residual and self.in_channels == self.out_channels:
+            out = out + x
+
+        out = out + m
+
+        return out

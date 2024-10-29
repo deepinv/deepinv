@@ -1,7 +1,5 @@
-from deepinv.models import UNet
-from deepinv.models.aliasfree import AliasFreeDenoiser
-from deepinv.transform import Shift
-from deepinv.transform.translate import Translate
+from deepinv.models import AliasFreeDenoiser, UNet
+from deepinv.transform import Translate, Shift
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 import torch
