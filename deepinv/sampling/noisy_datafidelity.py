@@ -72,7 +72,7 @@ class DPSDataFidelity(NoisyDataFidelity):
     def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         with torch.enable_grad():
             x.requires_grad_(True)
-            l2_loss = self.forward(x, y, sigma)
+            l2_loss = self.forward(x, y, physics, sigma)
 
         norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=x)[0]
         norm_grad = norm_grad.detach()
