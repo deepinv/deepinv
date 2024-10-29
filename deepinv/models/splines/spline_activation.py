@@ -19,7 +19,13 @@ class WeaklyConvexSplineActivation(torch.nn.Module):
         r"""
         A Batch of Weakly Convex Activation Functions based on B-Splines
 
-        TODO write formula
+        The activation is defined by
+
+        .. math::
+
+            \psi_i(x,\sigma)=\frac{1}{\alpha_i(\sigma)^2} \left(\exp(\mu(\sigma))\psi_+-\psi_-\right)
+
+        where :math:`\alpha_i`, :math:`\mu` and the derivatives of :math:`\psi_+` and :math:`\psi_-` are paremeterized by splines. The resulting activation is weakly convex with modulus rho_wconvex.
 
         The implementation is based on `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
 
