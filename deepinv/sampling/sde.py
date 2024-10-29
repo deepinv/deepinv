@@ -132,12 +132,14 @@ class EDMSDE(DiffusionSDE):
         s_prime: Callable = lambda t: 0.0,
         beta: Callable = lambda t: 1.0 / t,
         rng: torch.Generator = None,
+        use_backward_ode=True,
     ):
         super().__init__(prior=prior, rng=rng)
         self.drift_forw = lambda x, t: (
             -sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2
         ) * (-prior.grad(x, sigma(t)))
         self.diff_forw = lambda t: sigma(t) * (2 * beta(t)) ** 0.5
+        self.use_backward_ode = use_backward_ode
         if self.use_backward_ode:
             self.diff_back = lambda t: 0.0
             self.drift_back = lambda x, t: -(
@@ -158,6 +160,7 @@ class EDMSDE(DiffusionSDE):
         self.backward_sde = Heun_solver(
             drift=self.drift_back, diffusion=self.diff_back, rng=rng
         )
+
 
 class PosteriorSDE(DiffusionSDE):
     def __init__(
