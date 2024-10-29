@@ -15,6 +15,7 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "wcrr",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -25,7 +26,6 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "unet",
     "waveletdict_hard",
     "waveletdict_topk",
-    "wcrr",
 ]
 
 
@@ -85,7 +85,9 @@ def choose_denoiser(name, imsize):
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "wcrr":
-        out = dinv.models.RidgeRegularizer(pretrained=None)
+        out = dinv.models.RidgeRegularizer(
+            channel_sequence=[imsize[0], 4, 8, 80], pretrained=None
+        )
     else:
         raise Exception("Unknown denoiser")
 
