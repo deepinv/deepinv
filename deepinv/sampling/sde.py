@@ -218,7 +218,7 @@ if __name__ == "__main__":
     noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
     y = physics(x)
     posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
-    posterior_sample = posterior_sde(y, physics, max_iter = 20)
+    posterior_sample = posterior_sde(y, physics, max_iter = 2)
 
     # Plotting the samples
     dinv.utils.plot([y, posterior_sample], titles = ['y', 'posterior_sample'])
