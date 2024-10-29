@@ -136,4 +136,35 @@ class EDMSDE(DiffusionSDE):
             self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
             self.diff_back = self.diff_forw
         self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
-        self.backward_sde = Euler_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
+        self.backward_sde = Heun_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
+
+
+if __name__ == '__main__' :
+    from edm import load_model
+    import numpy as np
+    from deepinv.utils.demo import load_url_image, get_image_url
+    import deepinv as dinv 
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+    denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
+    prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+    # url = get_image_url("CBSD_0010.png")
+    # x = load_url_image(url=url, img_size=64, device=device)
+
+    ve_sigma = lambda t: t**0.5
+    ve_sigma_prime = lambda t: 1 / (2 * t**0.5)
+    ve_beta = lambda t: 0
+    ve_sigma_max = 100
+    ve_sigma_min = 0.02
+    num_steps = 20
+    ve_timesteps = ve_sigma_max**2 * (ve_sigma_min**2 / ve_sigma_max**2) ** (
+        np.arange(num_steps) / (num_steps - 1)
+    )
+    sde = EDMSDE(prior=prior, beta=ve_beta, sigma=ve_sigma, sigma_prime=ve_sigma_prime)
+
+    with torch.no_grad():
+        noise = torch.randn(2, 3, 64, 64, device=device) * ve_sigma_max
+        samples = sde.backward_sde.sample(noise, timesteps=ve_timesteps)
+    dinv.utils.plot(samples)
+
