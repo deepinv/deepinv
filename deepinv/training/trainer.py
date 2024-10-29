@@ -490,7 +490,8 @@ class Trainer:
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
         else:
-            x_net = self.model(y, physics, x_gt=x, **kwargs)
+            kwargs["x_gt"] = x # some models may need x_gt for the forward
+            x_net = self.model(y, physics, **kwargs)
 
         return x_net
 
