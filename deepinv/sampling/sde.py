@@ -108,9 +108,7 @@ class DiffusionSDE(nn.Module):
             drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
         )
         if self.use_backward_ode:
-            self.drift_back = lambda x, t: f(x, t) - 0.5 * (g(t) ** 2) * self.score(
-                x, t
-            )
+            self.drift_back = lambda x, t: f(x, t) - 0.5 * (g(t) ** 2) * self.score(x, t)
         else:
             self.drift_back = lambda x, t: f(x, t) - (g(t) ** 2) * self.score(x, t)
         self.diff_back = lambda t: g(t)
@@ -120,20 +118,20 @@ class DiffusionSDE(nn.Module):
 
     def score(self, x, sigma):
         return -self.prior.grad(x, sigma)
-
+    
+    def forward(self):
+        noise = torch.randn(2, 3, 64, 64, device=device) * ve_sigma_max
+        return sde.backward_sde.sample(noise, timesteps=ve_timesteps)
 
 class EDMSDE(DiffusionSDE):
     def __init__(
         self,
         prior: Callable,
-        sigma: Callable = lambda t: t,
-        sigma_prime: Callable = lambda t: 1.0,
-        s: Callable = lambda t: 1.0,
-        s_prime: Callable = lambda t: 0.0,
-        beta: Callable = lambda t: 1.0 / t,
+        name: str  = 'VE',
         rng: torch.Generator = None,
     ):
         super().__init__(prior=prior, rng=rng)
+        self.name = name
         self.drift_forw = lambda x, t: (
             -sigma_prime(t) * sigma(t) + beta(t) * sigma(t) ** 2
         ) * (-prior.grad(x, sigma(t)))
