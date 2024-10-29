@@ -3,11 +3,41 @@ import torch.fft
 from torch import Tensor
 from typing import List, Optional, Union
 import warnings
-from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
 from deepinv.physics.time import TimeMixin
 
 
-class MRI(DecomposablePhysics):
+class MRIMixin:
+    def update_parameters(self, mask=None, check_mask=True, **kwargs):
+        """Update MRI subsampling mask.
+
+        :param torch.nn.Parameter, torch.Tensor mask: MRI mask
+        :param bool check_mask: check mask dimensions before updating
+        """
+        if mask is not None and hasattr(self, mask):
+            self.mask = torch.nn.Parameter(
+                self.check_mask(mask=mask) if check_mask else mask,
+                requires_grad=False
+            )
+
+    def check_mask(self, mask: Tensor = None) -> None:
+        r"""
+        Updates MRI mask and verifies mask shape to be B,C,H,W where C=2.
+
+        :param torch.nn.Parameter, torch.Tensor mask: MRI subsampling mask.
+        """
+        if mask is not None:
+            mask = mask.to(self.device)
+
+            while len(mask.shape) < 4:  # to B,C,H,W
+                mask = mask.unsqueeze(0)
+
+            if mask.shape[1] == 1:  # make complex if real
+                mask = torch.cat([mask, mask], dim=1)
+
+        return mask
+
+class MRI(MRIMixin, DecomposablePhysics):
     r"""
     Single-coil accelerated magnetic resonance imaging.
 
@@ -83,61 +113,88 @@ class MRI(DecomposablePhysics):
         if mask is None:
             mask = torch.ones(*img_size)
 
+        # Check and update mask
         self.update_parameters(mask=mask.to(self.device))
 
-    # def U(self, x):
-    #     if self.mask.size(0) == 1:
-    #         return x[:, self.mask[0, ...] > 0]
-    #     elif x.size(0) == self.mask.size(0):
-    #         return x[self.mask > 0]
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #
-    # def U_adjoint(self, x):
-    #     _, c, h, w = self.mask.shape
-    #     out = torch.zeros((x.shape[0], c, h, w), device=x.device)
-    #
-    #     if self.mask.size(0) == 1:
-    #         out[:, self.mask[0, ...] > 0] = x
-    #     elif x.size(0) == self.mask.size(0):
-    #         out[self.mask > 0] = x
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #     return out
-
-    def V_adjoint(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
+    def V_adjoint(self, x: Tensor) -> Tensor:
+        # (B, 2, H, W) -> (B, H, W, 2)
         y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
         return y
 
-    def V(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
-        x = x.permute(0, 2, 3, 1)
+    def V(self, x: Tensor) -> Tensor:
+        x = x.permute(0, 2, 3, 1) # (B, 2, H, W) -> (B, H, W, 2)
         return ifft2c_new(x).permute(0, 3, 1, 2)
 
-    def update_parameters(self, mask=None, check_mask=True, **kwargs):
-        return super().update_parameters(
-            mask=self.check_mask(mask=mask) if check_mask else mask, **kwargs
-        )
 
-    def check_mask(self, mask: Tensor = None) -> None:
+
+class MultiCoilMRI(LinearPhysics):
+    r"""
+    Multi-coil MRI operator.
+
+    The linear operator is defined as:
+    .. math::
+
+        y_c = \text{diag}(p) F \text{diag}(s_c) x
+
+        for c=1,\dots,C coils, where y_c are the measurements from the cth coil, \text{diag}(p) is the acceleration mask, F is the Fourier transform and \diag(s_c) is the cth coil sensitivity.
+    
+    :param torch.Tensor mask: binary sampling mask which should have shape [B,1,N,H,W].
+    :param torch.Tensor coil_maps: complex valued coil sensitvity maps which should have shape [B,C,N,H,W].
+    :param device: specify which device you want to use (i.e, cpu or gpu).
+    """
+
+    def __init__(
+        self,
+        mask,
+        coil_maps,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.mask = mask.to(device)
+        self.coil_maps = coil_maps.to(device)
+
+    def A(self, x, **kwargs):
         r"""
-        Updates MRI mask and verifies mask shape to be B,C,H,W.
-
-        :param torch.nn.Parameter, float MRI subsampling mask.
+        Applies linear operator.  
+        
+        :param torch.Tensor x: image with shape [B,2,N,H,W].  
+        :returns: (torch.Tensor) multi-coil kspace measurements with shape [B,2,C,N,H,W].
         """
-        if mask is not None:
-            mask = mask.to(self.device)
+        x_cplx = torch.view_as_complex(x.permute(0,-3,-2,-1,1))[:,None,...] # outputs [B,N,H,W]
+        coil_imgs = self.coil_maps*x_cplx # outputs [B,C,N,H,W]
+        coil_ksp = fft(coil_imgs)
+        output = self.mask*coil_ksp # outputs [B,C,N,H,W]
+        return torch.view_as_real(output).permute(0,-1,-5,-4,-3,-2) # outputs [B,2,C,N,H,W]
 
-            while len(mask.shape) < 4:  # to B,C,H,W
-                mask = mask.unsqueeze(0)
+    def A_adjoint(self, y, **kwargs):
+        r"""  
+        Applies adjoint linear operator.  
+        
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,C,N,H,W].
+        :returns: (torch.Tensor) image with shape [B,2,N,H,W]
+        """ 
+        sampled_ksp = self.mask* torch.view_as_complex(y.permute(0,-4,-3,-2,-1,1)) # outputs [B,C,N,H,W]
+        coil_imgs = ifft(sampled_ksp)
+        img_out = torch.sum(torch.conj(self.coil_maps)*coil_imgs,dim=1)
+        img_out_2ch = torch.view_as_real(img_out).permute(0,-1,-4,-3,-2) # outputs [B,2,N,H,W]
+        return img_out_2ch
+    
 
-            if mask.shape[1] == 1:  # make complex if real
-                mask = torch.cat([mask, mask], dim=1)
+# Centered, orthogonal ifft 
+def ifft(x):
+    x = torch.fft.ifftshift(x, dim=(-3, -2, -1))
+    x = torch.fft.ifftn(x, dim=(-3, -2, -1), norm='ortho')
+    x = torch.fft.fftshift(x, dim=(-3, -2, -1))
+    return x
 
-        return mask
+# Centered, orthogonal fft
+def fft(x):
+    x = torch.fft.fftshift(x, dim=(-3, -2, -1))
+    x = torch.fft.fftn(x, dim=(-3, -2, -1), norm='ortho')
+    x = torch.fft.ifftshift(x, dim=(-3, -2, -1))
+    return x
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -257,7 +314,6 @@ class DynamicMRI(MRI, TimeMixin):
             img_size=self.img_size,
             device=self.device,
         )
-
 
 class SequentialMRI(DynamicMRI):
     r"""
