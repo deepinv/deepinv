@@ -59,12 +59,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = load_dataset(
-    train_dataset_name, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, transform=test_transform
-)
+train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
+test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.

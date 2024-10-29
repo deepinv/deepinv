@@ -49,12 +49,8 @@ img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
 
-train_dataset = load_dataset(
-    train_dataset_name, transform, train=True
-)
-test_dataset = load_dataset(
-    train_dataset_name, transform, train=False
-)
+train_dataset = load_dataset(train_dataset_name, transform, train=True)
+test_dataset = load_dataset(train_dataset_name, transform, train=False)
 
 # %%
 # Generate a dataset of knee images and load it.

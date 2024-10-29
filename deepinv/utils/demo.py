@@ -78,6 +78,7 @@ def get_image_url(file_name):
         + "?download=true"
     )
 
+
 def get_data_home():
     """Return folder to store data in.
 
@@ -87,13 +88,11 @@ def get_data_home():
     if data_home is not None:
         return Path(data_home)
 
-
     data_home = os.environ.get("XDG_DATA_HOME", None)
     if data_home is not None:
         return Path(data_home) / "deepinv"
 
     return Path(".") / "datasets"
-
 
 
 def load_dataset(

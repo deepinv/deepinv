@@ -55,12 +55,8 @@ H = 128
 
 transform = transforms.Compose([transforms.Resize(H)])
 
-train_dataset = load_dataset(
-    "fastmri_knee_singlecoil", transform, train=True
-)
-test_dataset = load_dataset(
-    "fastmri_knee_singlecoil", transform, train=False
-)
+train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True)
+test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False)
 
 train_dataset = Subset(train_dataset, torch.arange(5))
 test_dataset = Subset(test_dataset, torch.arange(30))

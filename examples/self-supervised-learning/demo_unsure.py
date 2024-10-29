@@ -17,6 +17,7 @@ where :math:`R` is the trainable network, :math:`y` is the noisy image with :mat
 :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
 """
+
 from pathlib import Path
 
 import torch

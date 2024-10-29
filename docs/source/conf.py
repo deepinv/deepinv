@@ -62,17 +62,19 @@ sphinx_gallery_conf = {
     # is an empty set, i.e. exclude nothing.
     "exclude_implicit_doc": {},
     "nested_sections": False,
-    "subsection_order": ExplicitOrder([
-        "../../examples/basics",
-        "../../examples/optimization",
-        "../../examples/plug-and-play",
-        "../../examples/sampling",
-        "../../examples/unfolded",
-        "../../examples/patch-priors",
-        "../../examples/self-supervised-learning",
-        "../../examples/adversarial-learning",
-        "../../examples/advanced",
-    ]),
+    "subsection_order": ExplicitOrder(
+        [
+            "../../examples/basics",
+            "../../examples/optimization",
+            "../../examples/plug-and-play",
+            "../../examples/sampling",
+            "../../examples/unfolded",
+            "../../examples/patch-priors",
+            "../../examples/self-supervised-learning",
+            "../../examples/adversarial-learning",
+            "../../examples/advanced",
+        ]
+    ),
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
