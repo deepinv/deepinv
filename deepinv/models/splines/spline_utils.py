@@ -1,23 +1,24 @@
 import torch
 
+
 class LinearSpline_Func(torch.autograd.Function):
     r"""
-    Evaluation of a (batch of) linear B-spline(s) 
+    Evaluation of a (batch of) linear B-spline(s)
 
-    with custom autograd function. 
+    with custom autograd function.
     The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
     The inputs are specified in :class:`deepinv.models.splines.spline_activation.LinearSpline`
     """
+
     @staticmethod
     def forward(ctx, x, coefficients, x_min, x_max, num_knots, zero_knot_indexes):
 
-        # The value of the spline at any x is a combination 
+        # The value of the spline at any x is a combination
         # of at most two coefficients
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
 
-
-        floored_x = torch.floor((x_clamped - x_min) / step_size)  #left coefficient
+        floored_x = torch.floor((x_clamped - x_min) / step_size)  # left coefficient
 
         fracs = (x - x_min) / step_size - floored_x  # distance to left coefficient
 
@@ -29,8 +30,9 @@ class LinearSpline_Func(torch.autograd.Function):
 
         # Only two B-spline basis functions are required to compute the output
         # (through linear interpolation) for each input in the B-spline range.
-        activation_output = coefficients_vect[indexes + 1] * fracs + \
-            coefficients_vect[indexes] * (1 - fracs)
+        activation_output = coefficients_vect[indexes + 1] * fracs + coefficients_vect[
+            indexes
+        ] * (1 - fracs)
 
         ctx.save_for_backward(fracs, coefficients, indexes, step_size)
         # ctx.results = (fracs, coefficients_vect, indexes, grid)
@@ -43,46 +45,51 @@ class LinearSpline_Func(torch.autograd.Function):
 
         coefficients_vect = coefficients.view(-1)
 
-        grad_x = (coefficients_vect[indexes + 1] -
-                  coefficients_vect[indexes]) / step_size * grad_out
+        grad_x = (
+            (coefficients_vect[indexes + 1] - coefficients_vect[indexes])
+            / step_size
+            * grad_out
+        )
 
         # Next, add the gradients with respect to each coefficient, such that,
         # for each data point, only the gradients wrt to the two closest
         # coefficients are added (since only these can be nonzero).
-        grad_coefficients_vect = torch.zeros_like(coefficients_vect, dtype=coefficients_vect.dtype)
+        grad_coefficients_vect = torch.zeros_like(
+            coefficients_vect, dtype=coefficients_vect.dtype
+        )
         # right coefficients gradients
-   
 
-        grad_coefficients_vect.scatter_add_(0,
-                                            indexes.view(-1) + 1,
-                                            (fracs * grad_out).view(-1))
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1) + 1, (fracs * grad_out).view(-1)
+        )
         # left coefficients gradients
-        grad_coefficients_vect.scatter_add_(0, indexes.view(-1),
-                                            ((1 - fracs) * grad_out).view(-1))
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1), ((1 - fracs) * grad_out).view(-1)
+        )
 
         grad_coefficients = grad_coefficients_vect.view(coefficients.shape)
 
         return grad_x, grad_coefficients, None, None, None, None
 
 
-
 class LinearSplineDerivative_Func(torch.autograd.Function):
     r"""
     Evaluation of the derivative of linear B-splines
 
-    i.e., a piece-wise constant function, with custom autograd function. 
+    i.e., a piece-wise constant function, with custom autograd function.
     The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
     The inputs are specified in :class:`deepinv.models.splines.spline_activation.LinearSpline`
     """
+
     @staticmethod
     def forward(ctx, x, coefficients, x_min, x_max, num_knots, zero_knot_indexes):
 
-        # The value of the spline at any x is a combination 
+        # The value of the spline at any x is a combination
         # of at most two coefficients
         step_size = (x_max - x_min) / (num_knots - 1)
         x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - step_size.item())
 
-        floored_x = torch.floor((x_clamped - x_min) / step_size)  #left coefficient
+        floored_x = torch.floor((x_clamped - x_min) / step_size)  # left coefficient
 
         fracs = (x - x_min) / step_size - floored_x  # distance to left coefficient
 
@@ -93,7 +100,9 @@ class LinearSplineDerivative_Func(torch.autograd.Function):
         coefficients_vect = coefficients.view(-1)
         # Only two B-spline basis functions are required to compute the output
         # (through linear interpolation) for each input in the B-spline range.
-        activation_output = (coefficients_vect[indexes + 1] - coefficients_vect[indexes]) / step_size
+        activation_output = (
+            coefficients_vect[indexes + 1] - coefficients_vect[indexes]
+        ) / step_size
 
         ctx.save_for_backward(fracs, coefficients, indexes, step_size)
         return activation_output
@@ -109,35 +118,33 @@ class LinearSplineDerivative_Func(torch.autograd.Function):
         # coefficients are added (since only these can be nonzero).
         grad_coefficients_vect = torch.zeros_like(coefficients.view(-1))
         # right coefficients gradients
-        grad_coefficients_vect.scatter_add_(0,
-                                           indexes.view(-1) + 1,
-                                           torch.ones_like(fracs).view(-1) / step_size)
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1) + 1, torch.ones_like(fracs).view(-1) / step_size
+        )
         # left coefficients gradients
-        grad_coefficients_vect.scatter_add_(0, indexes.view(-1),
-                                            -torch.ones_like(fracs).view(-1) / step_size)
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1), -torch.ones_like(fracs).view(-1) / step_size
+        )
 
         return grad_x, grad_coefficients_vect, None, None, None, None
 
 
 class Quadratic_Spline_Func(torch.autograd.Function):
     r"""
-    Evaluation of integrals of linear B-splines 
+    Evaluation of integrals of linear B-splines
 
-    i.e., a quadratic B-spline, with custom autograd function. 
+    i.e., a quadratic B-spline, with custom autograd function.
     The implementation is taken from `this paper <https://epubs.siam.org/doi/10.1137/23M1565243>`_ and can be found `here <https://github.com/axgoujon/weakly_convex_ridge_regularizer>`_.
     The inputs are specified in :class:`deepinv.models.splines.spline_activation.LinearSpline`
     """
+
     @staticmethod
-    
     def forward(ctx, x, coefficients, x_min, x_max, num_knots, zero_knot_indexes):
 
         step_size = (x_max - x_min) / (num_knots - 1)
-        x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - 2*step_size.item())
+        x_clamped = x.clamp(min=x_min.item(), max=x_max.item() - 2 * step_size.item())
 
-
-        floored_x = torch.floor((x_clamped - x_min) / step_size)  #left 
-
-    
+        floored_x = torch.floor((x_clamped - x_min) / step_size)  # left
 
         # This gives the indexes (in coefficients_vect) of the left
         # coefficients
@@ -146,26 +153,30 @@ class Quadratic_Spline_Func(torch.autograd.Function):
         # B-Splines evaluation
         shift1 = (x - x_min) / step_size - floored_x
 
-
-        frac1 = ((shift1 - 1)**2)/2
-        frac2 = (-2*(shift1)**2 + 2*shift1 + 1)/2 
-        frac3 = (shift1)**2/2
+        frac1 = ((shift1 - 1) ** 2) / 2
+        frac2 = (-2 * (shift1) ** 2 + 2 * shift1 + 1) / 2
+        frac3 = (shift1) ** 2 / 2
 
         coefficients_vect = coefficients.view(-1)
 
-        activation_output = coefficients_vect[indexes + 2] * frac3 + \
-            coefficients_vect[indexes + 1] * frac2 + \
-            coefficients_vect[indexes] * frac1
+        activation_output = (
+            coefficients_vect[indexes + 2] * frac3
+            + coefficients_vect[indexes + 1] * frac2
+            + coefficients_vect[indexes] * frac1
+        )
 
-
-        grad_x = coefficients_vect[indexes + 2] * (shift1) + \
-            coefficients_vect[indexes + 1] * (1 - 2*shift1) + \
-            coefficients_vect[indexes] * ((shift1 - 1))
+        grad_x = (
+            coefficients_vect[indexes + 2] * (shift1)
+            + coefficients_vect[indexes + 1] * (1 - 2 * shift1)
+            + coefficients_vect[indexes] * ((shift1 - 1))
+        )
 
         grad_x = grad_x / step_size
 
-        ctx.save_for_backward(grad_x, frac1, frac2, frac3, coefficients, indexes, step_size)
-        
+        ctx.save_for_backward(
+            grad_x, frac1, frac2, frac3, coefficients, indexes, step_size
+        )
+
         return activation_output
 
     @staticmethod
@@ -183,19 +194,18 @@ class Quadratic_Spline_Func(torch.autograd.Function):
 
         grad_coefficients_vect = torch.zeros_like(coefficients_vect)
         # coefficients gradients
-        grad_coefficients_vect.scatter_add_(0,
-                                            indexes.view(-1) + 2,
-                                            (frac3 * grad_out).view(-1))
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1) + 2, (frac3 * grad_out).view(-1)
+        )
 
-        grad_coefficients_vect.scatter_add_(0,
-                                            indexes.view(-1) + 1,
-                                            (frac2 * grad_out).view(-1))
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1) + 1, (frac2 * grad_out).view(-1)
+        )
 
-        grad_coefficients_vect.scatter_add_(0,
-                                            indexes.view(-1),
-                                            (frac1 * grad_out).view(-1))
-        
+        grad_coefficients_vect.scatter_add_(
+            0, indexes.view(-1), (frac1 * grad_out).view(-1)
+        )
+
         grad_coefficients = grad_coefficients_vect.view(coefficients.shape)
-       
 
         return grad_x, grad_coefficients, None, None, None, None
