@@ -9,7 +9,7 @@ import numpy as np
 import warnings
 
 
-class SDE(nn.Module):
+class SDE_solver(nn.Module):
     def __init__(
         self, drift: Callable, diffusion: Callable, t_init : float = 0., t_end : float = 1., rng: torch.Generator = None
     ):
@@ -23,25 +23,20 @@ class SDE(nn.Module):
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def euler_step(self, x, t, stepsize):
-        return (
-            x
-            + stepsize * self.drift(x, t)
-            + self.diffusion(t) * self.randn_like(x) * stepsize**0.5
-        )
+    def step(self, t0, t1, x0):
+        pass
 
     def sample(
         self,
         x_init: Tensor,
-        num_steps: int = 100,
-        method = 'euler'
+        timesteps: Tensor = None,
+        num_steps : int = 100,
     ):
-        stepsize = (self.t_end - self.t_init) / num_steps
         x = x_init
-        for k in range(num_steps):
-            t = self.t_init + k * stepsize
-            if method == 'euler':
-                x = self.euler_step(x, t, stepsize)
+        if timesteps is None : 
+            timesteps = torch.linspace(self.t_init, self.t_end, num_steps)
+        for i,t in enumerate(timesteps[:-1]) :
+            x = self.step(t, timesteps[i+1], x)
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -75,6 +70,17 @@ class SDE(nn.Module):
         return torch.empty_like(input).normal_(generator=self.rng)
 
 
+class Euler_solver(SDE_solver):
+    def __init__(
+        self, drift: Callable, diffusion: Callable, t_init : float = 0., t_end : float = 1., rng: torch.Generator = None
+    ):
+        super().__init__(drift, diffusion, t_init = t_init, t_end = t_end, rng = rng)
+
+    def step(self, t0, t1, x0):
+        dt = t1 - t0
+        return x0 + self.drift(x,t0) * dt + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
+
+
 class DiffusionSDE(nn.Module):
     def __init__(
         self,
@@ -87,13 +93,13 @@ class DiffusionSDE(nn.Module):
         super().__init__()
         self.drift_forw = lambda x, t: f(x, t)
         self.diff_forw = lambda t: g(t)
-        self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng)
+        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng)
 
         self.drift_back = lambda x, t: -f(x, T - t) - (g(T - t) ** 2) * prior.grad(
             x, T - t
         )
         self.diff_back = lambda t: g(T - t)
-        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng,  t_init = 0.001)
+        self.backward_sde = Euler_solver(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng,  t_init = 0.001)
 
 
 class EDMSDE(DiffusionSDE):
@@ -115,8 +121,8 @@ class EDMSDE(DiffusionSDE):
         self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
         self.drift_back = lambda x, t: (sigma_prime(T-t) * sigma(T-t) + beta(T-t) * self.sigma(T-t) ** 2) * (-prior.grad(x, sigma(T-t)))
         self.diff_back = self.diff_forw
-        self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng,  t_init = 0.001)
-        self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng, t_init = 0.001)
+        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng,  t_init = 0.001)
+        self.backward_sde = Euler_solver(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng, t_init = 0.001)
         
 
 
@@ -131,6 +137,11 @@ if __name__ == "__main__":
     denoiser = dinv.models.DRUNet(device = device)
     denoiser = dinv.models.DiffUNet().to(device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+
+    model = dinv.sampling.DiffPIR(denoiser,
+                          data_fidelity = dinv.optim.data_fidelity.L2(),
+                          device = device,
+                          verbose=True)
 
     OUSDE = EDMSDE(prior=prior, T=1.0)
     with torch.no_grad():
