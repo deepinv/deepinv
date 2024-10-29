@@ -85,7 +85,7 @@ class RidgeRegularizer(torch.nn.Module):
                 break
         return x
     
-    def reconstruction(self,physics,y,sigma,lmbd,tol=1e-4, max_iter=500,physics_norm=None):
+    def reconstruct(self,physics,y,sigma,lmbd,tol=1e-4, max_iter=500,physics_norm=None):
         adj=physics.A_adjoint(y)
         if physics_norm is None:
             physics_norm=physics.compute_norm(adj)
