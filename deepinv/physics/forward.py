@@ -55,7 +55,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.Physics) concantenated operator
+        :return: (deepinv.physics.Physics) concatenated operator
 
         """
         A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
@@ -329,6 +329,49 @@ class LinearPhysics(Physics):
         )
         self.A_adj = A_adjoint
 
+    def get_transpose_physics(self):
+        r"""
+        Transpose of linear forward operators :math:`A^T(x)`.
+
+        TODO !!!
+        """
+        new_A = self.A_adj
+        new_A_adj = self.A
+
+        return LinearPhysics(
+            A=new_A,
+            A_adj=new_A_adj,
+            noise_model=self.noise_model,
+            sensor_model=self.sensor_model,
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
+    def __add__(self, other):
+        r"""
+        Add two linear forward operators :math:`A(x) = \begin{bmatrix} A_1(x) + A_2(x) \end{bmatrix}`
+        via the add operation.
+
+        TODO !!!
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.Physics) New operator with the sum of the linears operators.
+
+        """
+        new_A = lambda x: self.A(x) + other.A(x)
+        new_A_adj = lambda x: self.A_adj(x) + other.A_adj(x)
+        new_noise_model = lambda x: self.noise_model(x) + other.noise_model(x)
+        new_sensor_model = lambda x: self.sensor_model(x) + other.sensor_model(x)
+
+        return LinearPhysics(
+            A=new_A,
+            A_adj=new_A_adj,
+            noise_model=new_noise_model,
+            sensor_model=new_sensor_model,
+            max_iter=self.max_iter,
+            tol=self.tol,
+        )
+
     def A_adjoint(self, y, **kwargs):
         r"""
         Computes transpose of the forward operator :math:`\tilde{x} = A^{\top}y`.
@@ -395,22 +438,32 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) concatenated operator
 
         """
-        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(
-            self.A_adjoint(x, **kwargs), **kwargs
-        )
-        noise = self.noise_model
-        sensor = self.sensor_model
+        if isinstance(other, LinearPhysics):
+            new_A = lambda x, **kwargs: self.A(
+                other.A(x, **kwargs), **kwargs
+            )  # (A' = A_1 A_2)
+            new_A_adj = lambda x, **kwargs: other.A_adjoint(
+                self.A_adjoint(x, **kwargs), **kwargs
+            )
+            new_noise_model = self.noise_model
+        else:  # should be a scalar or a torch.tensor
+            new_A = lambda x: other * self.A(x)
+            new_A_adj = lambda x: other * self.A_adj(x)
+            new_noise_model = other * self.noise_model
+
         return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
-            noise_model=noise,
-            sensor_model=sensor,
+            A=new_A,
+            A_adjoint=new_A_adj,
+            noise_model=new_noise_model,
+            sensor_model=self.sensor_model,
             max_iter=self.max_iter,
             tol=self.tol,
         )
 
-    def __add__(self, other):
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def stack(self, other):
         r"""
         Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}` via the add operation.
 

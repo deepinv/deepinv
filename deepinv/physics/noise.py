@@ -114,6 +114,21 @@ class GaussianNoise(NoiseModel):
         super().__init__(rng=rng)
         self.update_parameters(sigma=sigma)
 
+    def __add__(self, other):
+        """Sum of 2 gaussian noises via + operator."""
+        if not isinstance(other, GaussianNoise):
+            return self
+        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
+
+    def __mul__(self, other):
+        """Multiply the gaussian noise with a scalar."""
+        # TODO: type check other
+        return GaussianNoise(sigma=self.sigma * other)
+
+    def __rmul__(self, other):
+        """Commutativity of the __mul__ operator."""
+        return self.__mul__(other)
+
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""
         Adds the noise to measurements x
