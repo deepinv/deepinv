@@ -1,3 +1,4 @@
+from math import sqrt
 import pytest
 import torch
 import numpy as np
@@ -38,6 +39,8 @@ OPERATORS = [
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
+    "3DMRI",
+    "3DMultiCoilMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -109,16 +112,34 @@ def find_operator(name, device):
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
     elif name == "MRI":
-        img_size = (2, 16, 8)
+        img_size = (2, 16, 8)  # C,H,W
         p = dinv.physics.MRI(img_size=img_size, device=device)
+    elif name == "3DMRI":
+        img_size = (2, 4, 16, 8)  # C,D,H,W where D is depth
+        p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
         img_size = (2, 3, 16, 8)
         p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
     elif name == "MultiCoilMRI":
-        img_size = (32, 32, 2)
-        maps = torch.randn((1, 15, 32, 32), dtype=torch.complex64,device=device)
-        mask = torch.randint(0, 2, (1,1,32,32), device=device)
-        p = dinv.physics.MultiCoilMRI(coil_maps=maps, mask=mask, device=device)
+        img_size = (2, 32, 32)  # C,H,W
+        n_coils = 15
+        maps = torch.ones(
+            (1, n_coils, 32, 32), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,H,W
+        p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+    elif name == "3DMultiCoilMRI":
+        img_size = (2, 4, 32, 32)  # C,D,H,W where D is depth
+        n_coils = 15
+        maps = torch.ones(
+            (1, n_coils, 4, 32, 32), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,H,W
+        p = dinv.physics.MultiCoilMRI(
+            coil_maps=maps, img_size=img_size, three_d=True, device=device
+        )
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -347,6 +368,8 @@ def test_operators_norm(name, device):
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
+    if name == "MultiCoilMRI":
+        print("norm", norm, norm_ref)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
     if (
