@@ -8,6 +8,7 @@ from typing import Callable
 import numpy as np
 import warnings
 from utils import get_edm_parameters
+from noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 
 class SDE_solver(nn.Module):
     def __init__(
@@ -176,21 +177,13 @@ class PosteriorEDMSDE(EDMSDE):
         self,
         prior: Callable,
         data_fidelity: Callable,
-        sigma: Callable = lambda t: t,
-        sigma_prime: Callable = lambda t: 1.0,
-        s: Callable = lambda t: 1.0,
-        s_prime: Callable = lambda t: 0.0,
-        beta: Callable = lambda t: 1.0 / t,
-        rng: torch.Generator = None,
+        *args,
+        **kwargs
     ):
         super().__init__(
             prior=prior,
-            sigma=sigma,
-            sigma_prime=sigma_prime,
-            s=s,
-            s_prime=s_prime,
-            beta=beta,
-            rng=rng,
+            *args,
+            **kwargs
         )
         self.data_fidelity = data_fidelity
 
@@ -214,6 +207,19 @@ if __name__ == "__main__":
     denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
+    # EDM generation
     sde = EDMSDE(name = 've', prior=prior, use_backward_ode=True, solver_name = 'Heun')
     sample = sde((1, 3, 64, 64), max_iter = 20)
+
+    # Posterior EDM generation
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url=url, img_size=64, device=device) 
+    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
+    noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
+    y = physics(sample)
+    posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
+    posterior_sample = posterior_sde(y, physics, max_iter = 20)
+
+    # Plotting the samples
     dinv.utils.plot(sample)
+
