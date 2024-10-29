@@ -1,3 +1,11 @@
+r"""
+Weakly Convex Ridge Regularizer
+===================================================
+
+...
+
+"""
+
 from deepinv.models import RidgeRegularizer
 import torch
 from deepinv.utils.demo import load_url_image, get_image_url
