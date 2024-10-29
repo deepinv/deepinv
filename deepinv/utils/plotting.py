@@ -249,6 +249,10 @@ def plot(
         assert titles is None, "titles should be None when img_list is a dictionary"
         titles, img_list = list(img_list.keys()), list(img_list.values())
 
+    assert isinstance(
+        img_list, list
+    ), "img_list must be a list of torch.Tensor, a dictionary of str->torch.Tensor, or a single torch.Tensor."
+
     for i, img in enumerate(img_list):
         if len(img.shape) == 3:
             img_list[i] = img.unsqueeze(0)
