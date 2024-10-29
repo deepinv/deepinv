@@ -118,3 +118,4 @@ Ready-made datasets available in the `deepinv.datasets` module.
     deepinv.datasets.Flickr2kHR
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
+    deepinv.datasets.Kohler

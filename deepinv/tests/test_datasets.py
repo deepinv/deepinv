@@ -138,6 +138,7 @@ def download_Kohler():
     shutil.rmtree(root)
 
 
+@pytest.mark.skip(reason="Downloading Kohler dataset is unreliable for testing.")
 def test_load_Kohler_dataset(download_Kohler):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler

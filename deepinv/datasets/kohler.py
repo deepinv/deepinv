@@ -16,7 +16,7 @@ def url_basename(url: str) -> str:
 
 
 class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake: Benchmarking Blind Deconvolution with a Real-World Database <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
 
     :param Union[int, str] frame_specifier: Frame specifier. Can be the frame number, "first", "middle", or "last".
     :param str ordering: Ordering of the dataset. Can be "printout_first" or "trajectory_first".
@@ -28,17 +28,17 @@ class Kohler(Dataset):
 
     :Examples:
 
-        Download the dataset and load one of its elements.
+        Download the dataset and load one of its elements ::
 
-        >>> from deepinv.datasets import Kohler
-        >>> dataset = Kohler(root="datasets/Kohler",
-        >>>                  frame_specifier="middle",
-        >>>                  ordering="printout_first",
-        >>>                  download=True)
-        >>> # Usual interface
-        >>> sharp_frame, blurry_shot = dataset[0]
-        >>> # Convenience method
-        >>> sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
+            from deepinv.datasets import Kohler
+            dataset = Kohler(root="datasets/Kohler",
+                             frame_specifier="middle",
+                             ordering="printout_first",
+                             download=True)
+            # Usual interface
+            sharp_frame, blurry_shot = dataset[0]
+            # Convenience method
+            sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
     """
 
     # The Köhler dataset is split into multiple archives available online.
@@ -100,10 +100,10 @@ class Kohler(Dataset):
 
         :Examples:
 
-            Download the dataset.
+            Download the dataset ::
 
-            >>> from deepinv.datasets import Kohler
-            >>> Kohler.download("datasets/Kohler")
+                from deepinv.datasets import Kohler
+                Kohler.download("datasets/Kohler")
         """
         for url in cls.archive_urls:
             archive_name = url_basename(url)
