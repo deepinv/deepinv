@@ -30,9 +30,7 @@ dependencies = [
     "torchmetrics",
     "einops",
     "wandb",
-    "dotmap",
     "scipy",
-    "seaborn",
 ]
 
 [tool.setuptools]

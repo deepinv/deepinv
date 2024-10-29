@@ -1,57 +1,4 @@
-import os
-
-from dotmap import DotMap
-from matplotlib.patches import Patch
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 import torch
-import yaml
-
-from deepinv.utils.demo import load_url_image, get_image_url
-
-
-def compare(a: int, b: int):
-    r"""
-    Compare two numbers.
-
-    :param int a: First number.
-    :param int b: Second number.
-
-    :return: The comparison result (>, < or =).
-    """
-    if a > b:
-        return ">"
-    elif a < b:
-        return "<"
-    else:
-        return "="
-
-
-def merge_order(a: str, b: str):
-    r"""
-    Merge two orders.
-
-    If a and b are the same, return the same order.
-    If a and b are one ">" and one "<", return "!".
-    If a or b is "=", return the other order.
-
-    :param str a: First order.
-    :param str b: Second order.
-
-    :return: The merged order.
-    """
-    if a == ">" and b == "<":
-        return "!"
-    elif a == "<" and b == ">":
-        return "!"
-    elif a == ">" or b == ">":
-        return ">"
-    elif a == "<" or b == "<":
-        return "<"
-    else:
-        return "="
 
 
 def default_preprocessing(y, physics):
@@ -201,11 +148,11 @@ def spectral_methods(
     #! for the structured case, when the mean of the squared diagonal elements is 1, we have norm(x) = sqrt(sum(y)), otherwise y gets scaled by the mean to the power of number of layers
     norm_x = torch.sqrt(y.sum())
 
-    x = x.to(torch.complex64)
+    x = x.to(torch.cfloat)
     # y should have mean 1
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
-    diag_T = diag_T.to(torch.complex64)
+    diag_T = diag_T.to(torch.cfloat)
     for i in range(n_iter):
         x_new = physics.B(x)
         x_new = diag_T * x_new
@@ -230,6 +177,8 @@ def spectral_methods(
 def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
     r"""
     Wrapper for spectral methods.
+
+    This function wrapper can be used as the custom_init option when buliding optimizers.
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.

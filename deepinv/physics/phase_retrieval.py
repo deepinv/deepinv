@@ -1,22 +1,109 @@
 from functools import partial
 import math
 
-from dotmap import DotMap
 import numpy as np
-from scipy.fft import dct, idct
 import torch
 
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
-from deepinv.optim.phase_retrieval import compare, merge_order, spectral_methods
+from deepinv.optim.phase_retrieval import spectral_methods
+
+
+def compare(a: int, b: int):
+    r"""
+    Compare two numbers.
+
+    :param int a: First number.
+    :param int b: Second number.
+
+    :return: The comparison result (>, < or =).
+    """
+    if a > b:
+        return ">"
+    elif a < b:
+        return "<"
+    else:
+        return "="
+
+
+def merge_order(a: str, b: str):
+    r"""
+    Merge two orders.
+
+    If a and b are the same, return the same order.
+    If a and b are one ">" and one "<", return "!".
+    If a or b is "=", return the other order.
+
+    :param str a: First order.
+    :param str b: Second order.
+
+    :return: The merged order.
+    """
+    if a == ">" and b == "<":
+        return "!"
+    elif a == "<" and b == ">":
+        return "!"
+    elif a == ">" or b == ">":
+        return ">"
+    elif a == "<" or b == "<":
+        return "<"
+    else:
+        return "="
+
+
+def padding(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
+    r"""
+    Zero padding function for oversampling in structured random phase retrieval.
+
+    :param torch.Tensor tensor: input tensor.
+    :param tuple input_shape: shape of the input tensor.
+    :param tuple output_shape: shape of the output tensor.
+
+    :return: (torch.Tensor) the zero-padded tensor.
+    """
+    change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
+    change_bottom = math.floor(abs(input_shape[1] - output_shape[1]) / 2)
+    change_left = math.ceil(abs(input_shape[2] - output_shape[2]) / 2)
+    change_right = math.floor(abs(input_shape[2] - output_shape[2]) / 2)
+    assert change_top + change_bottom == abs(input_shape[1] - output_shape[1])
+    assert change_left + change_right == abs(input_shape[2] - output_shape[2])
+    return torch.nn.ZeroPad2d((change_left, change_right, change_top, change_bottom))(
+        tensor
+    )
+
+
+def trimming(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
+    r"""
+    Trimming function for undersampling in structured random phase retrieval.
+
+    :param torch.Tensor tensor: input tensor.
+    :param tuple input_shape: shape of the input tensor.
+    :param tuple output_shape: shape of the output tensor.
+
+    :return: (torch.Tensor) the trimmed tensor.
+    """
+    change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
+    change_bottom = math.floor(abs(input_shape[1] - output_shape[1]) / 2)
+    change_left = math.ceil(abs(input_shape[2] - output_shape[2]) / 2)
+    change_right = math.floor(abs(input_shape[2] - output_shape[2]) / 2)
+    assert change_top + change_bottom == abs(input_shape[1] - output_shape[1])
+    assert change_left + change_right == abs(input_shape[2] - output_shape[2])
+    if change_bottom == 0:
+        tensor = tensor[..., change_top:, :]
+    else:
+        tensor = tensor[..., change_top:-change_bottom, :]
+    if change_right == 0:
+        tensor = tensor[..., change_left:]
+    else:
+        tensor = tensor[..., change_left:-change_right]
+    return tensor
 
 
 def generate_diagonal(
     shape,
     mode,
-    dtype=torch.complex64,
+    dtype=torch.cfloat,
     device="cpu",
-    config: DotMap = None,
 ):
     r"""
     Generate a random tensor as the diagonal matrix.
@@ -138,7 +225,9 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.complex64.
+    :param bool use_haar: Use Haar matrix instead of Gaussian matrix. Default is False.
+    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
+    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
@@ -150,7 +239,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         Random phase retrieval operator with 10 measurements for a 3x3 image:
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn((1, 1, 3, 3),dtype=torch.complex64) # Define random 3x3 image
+        >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
         >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
         tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597, 1.7768,
@@ -162,9 +251,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         m,
         img_shape,
         channelwise=False,
-        dtype=torch.complex64,
+        dtype=torch.cfloat,
         device="cpu",
-        config: DotMap = DotMap(),
+        use_haar=False,
+        compute_inverse=False,
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -188,9 +278,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             img_shape=img_shape,
             fast=False,
             channelwise=channelwise,
+            use_haar=use_haar,
+            compute_inverse=compute_inverse,
             dtype=dtype,
             device=device,
-            config=config,
             rng=self.rng,
         )
         super().__init__(B, **kwargs)
@@ -200,15 +291,83 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         return self.B._A.var() + self.B._A.mean() ** 2
 
 
+class StructuredRandomLinearOperator(LinearPhysics):
+    r"""
+    Linear operator for structured random phase retrieval.
+
+    :param tuple input_shape: shape (C, H, W) of inputs.
+    :param tuple output_shape: shape (C, H, W) of outputs.
+    :param str mode: sampling mode.
+    :param float n_layers: number of layers.
+    :param function transform_func: structured transform function.
+    :param function transform_func_inv: structured inverse transform function.
+    :param list diagonals: list of diagonal matrices.
+    """
+
+    def __init__(
+        self,
+        input_shape,
+        output_shape,
+        mode,
+        n_layers,
+        transform_func,
+        transform_func_inv,
+        diagonals,
+        **kwargs,
+    ):
+
+        def A(x):
+            assert (
+                x.shape[1:] == input_shape
+            ), f"x doesn't have the correct shape {x.shape[1:]} != {input_shape}"
+
+            if mode == "oversampling":
+                x = padding(x, input_shape, output_shape)
+
+            if n_layers - math.floor(n_layers) == 0.5:
+                x = transform_func(x)
+            for i in range(math.floor(n_layers)):
+                diagonal = diagonals[i]
+                x = diagonal * x
+                x = transform_func(x)
+
+            if mode == "undersampling":
+                x = trimming(x, input_shape, output_shape)
+
+            return x
+
+        def A_adjoint(y):
+            assert (
+                y.shape[1:] == output_shape
+            ), f"y doesn't have the correct shape {y.shape[1:]} != {self.output_shape}"
+
+            if mode == "undersampling":
+                y = padding(y, input_shape, output_shape)
+
+            for i in range(math.floor(n_layers)):
+                diagonal = diagonals[-i - 1]
+                y = transform_func_inv(y)
+                y = torch.conj(diagonal) * y
+            if n_layers - math.floor(n_layers) == 0.5:
+                y = transform_func_inv(y)
+
+            if mode == "oversampling":
+                y = trimming(y, input_shape, output_shape)
+
+            return y
+
+        super().__init__(A=A, A_adjoint=A_adjoint, **kwargs)
+
+
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     r"""
-    Structured Random Phase Retrieval class corresponding to the operator
+    Structured random phase retrieval model corresponding to the operator
 
     .. math::
 
-        A(x) = |F \prod_{i=1}^N (D_i F) x|^2,
+        A(x) = |\prod_{i=1}^N (F D_i) x|^2,
 
-    where :math:`F` is the Discrete Fourier Transform (DFT) matrix, and :math:`D_i` are diagonal matrices with elements of unit norm and random phases, and :math:`N` is the number of layers.
+    where :math:`F` is the Discrete Fourier Transform (DFT) matrix, and :math:`D_i` are diagonal matrices with elements of unit norm and random phases, and :math:`N` refers to the number of layers. It is also possible to replace :math:`x` with :math:`Fx` as an additional 0.5 layer.
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
@@ -217,10 +376,9 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param int n_layers: number of layers. an extra F is at the end if there is a 0.5
     :param str transform: structured transform to use. Default is 'fft'.
     :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
-    :param DotMap distri_config: configuration for the diagonal distribution.
     :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.
-    :param torch.type dtype: Signals are processed in dtype. Default is torch.complex64.
-    :param str device: Device for computation.
+    :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
+    :param str device: Device for computation. Default is 'cpu'.
     """
 
     def __init__(
@@ -230,15 +388,30 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         n_layers: int,
         transform="fft",
         diagonal_mode="uniform_phase",
-        distri_config: DotMap = DotMap(),
         shared_weights=False,
-        dtype=torch.complex64,
+        dtype=torch.cfloat,
         device="cpu",
         **kwargs,
     ):
         if output_shape is None:
             output_shape = input_shape
 
+        self.input_shape = input_shape
+        self.output_shape = output_shape
+        self.n = torch.prod(torch.tensor(self.input_shape))
+        self.m = torch.prod(torch.tensor(self.output_shape))
+        self.oversampling_ratio = self.m / self.n
+        assert (
+            n_layers % 1 == 0.5 or n_layers % 1 == 0
+        ), "n_layers must be an integer or an integer plus 0.5"
+        self.n_layers = n_layers
+        self.structure = self.get_structure(self.n_layers)
+        self.shared_weights = shared_weights
+
+        self.dtype = dtype
+        self.device = device
+
+        # determine the sampling mode
         height_order = compare(input_shape[1], output_shape[1])
         width_order = compare(input_shape[2], output_shape[2])
 
@@ -255,139 +428,63 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                 "Does not support different sampling schemes on height and width."
             )
 
-        change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
-        change_bottom = math.floor(abs(input_shape[1] - output_shape[1]) / 2)
-        change_left = math.ceil(abs(input_shape[2] - output_shape[2]) / 2)
-        change_right = math.floor(abs(input_shape[2] - output_shape[2]) / 2)
-        assert change_top + change_bottom == abs(input_shape[1] - output_shape[1])
-        assert change_left + change_right == abs(input_shape[2] - output_shape[2])
-
-        def padding(tensor: torch.Tensor):
-            return torch.nn.ZeroPad2d(
-                (change_left, change_right, change_top, change_bottom)
-            )(tensor)
-
-        self.padding = padding
-
-        def trimming(tensor: torch.Tensor):
-            if change_bottom == 0:
-                tensor = tensor[..., change_top:, :]
-            else:
-                tensor = tensor[..., change_top:-change_bottom, :]
-            if change_right == 0:
-                tensor = tensor[..., change_left:]
-            else:
-                tensor = tensor[..., change_left:-change_right]
-            return tensor
-
-        self.trimming = trimming
-
-        self.input_shape = input_shape
-        self.output_shape = output_shape
-        self.n = torch.prod(torch.tensor(self.input_shape))
-        self.m = torch.prod(torch.tensor(self.output_shape))
-        self.oversampling_ratio = self.m / self.n
-        assert (
-            n_layers % 1 == 0.5 or n_layers % 1 == 0
-        ), "n_layers must be an integer or an integer plus 0.5"
-        self.n_layers = n_layers
-        self.structure = self.get_structure(self.n_layers)
-        self.shared_weights = shared_weights
-        self.distri_config = distri_config
-        self.distri_config.m = self.m
-        self.distri_config.n = self.n
-
-        self.dtype = dtype
-        self.device = device
-
+        # generate diagonal matrices
         self.diagonals = []
 
         if not shared_weights:
             for _ in range(math.floor(self.n_layers)):
                 if self.mode == "oversampling":
                     diagonal = generate_diagonal(
-                        self.output_shape,
+                        shape=self.output_shape,
                         mode=diagonal_mode,
                         dtype=self.dtype,
                         device=self.device,
-                        config=self.distri_config,
                     )
                 else:
                     diagonal = generate_diagonal(
-                        self.input_shape,
+                        shape=self.input_shape,
                         mode=diagonal_mode,
                         dtype=self.dtype,
                         device=self.device,
-                        config=self.distri_config,
                     )
                 self.diagonals.append(diagonal)
         else:
             if self.mode == "oversampling":
                 diagonal = generate_diagonal(
-                    self.output_shape,
+                    shape=self.output_shape,
                     mode=diagonal_mode,
                     dtype=self.dtype,
                     device=self.device,
-                    config=self.distri_config,
                 )
             else:
                 diagonal = generate_diagonal(
-                    self.input_shape,
+                    shape=self.input_shape,
                     mode=diagonal_mode,
                     dtype=self.dtype,
                     device=self.device,
-                    config=self.distri_config,
                 )
             self.diagonals = self.diagonals + [diagonal] * math.floor(self.n_layers)
 
+        # determine transform functions
         if transform == "fft":
             transform_func = partial(torch.fft.fft2, norm="ortho")
             transform_func_inv = partial(torch.fft.ifft2, norm="ortho")
         else:
             raise ValueError(f"Unimplemented transform: {transform}")
 
-        def A(x):
-            assert (
-                x.shape[1:] == self.input_shape
-            ), f"x doesn't have the correct shape {x.shape[1:]} != {self.input_shape}"
+        B = StructuredRandomLinearOperator(
+            input_shape=self.input_shape,
+            output_shape=self.output_shape,
+            mode=self.mode,
+            n_layers=self.n_layers,
+            transform_func=transform_func,
+            transform_func_inv=transform_func_inv,
+            diagonals=self.diagonals,
+            **kwargs,
+        )
 
-            if self.mode == "oversampling":
-                x = self.padding(x)
-
-            if self.n_layers - math.floor(self.n_layers) == 0.5:
-                x = transform_func(x)
-            for i in range(math.floor(self.n_layers)):
-                diagonal = self.diagonals[i]
-                x = diagonal * x
-                x = transform_func(x)
-
-            if self.mode == "undersampling":
-                x = self.trimming(x)
-
-            return x
-
-        def A_adjoint(y):
-            assert (
-                y.shape[1:] == self.output_shape
-            ), f"y doesn't have the correct shape {y.shape[1:]} != {self.output_shape}"
-
-            if self.mode == "undersampling":
-                y = self.padding(y)
-
-            for i in range(math.floor(self.n_layers)):
-                diagonal = self.diagonals[-i - 1]
-                y = transform_func_inv(y)
-                y = torch.conj(diagonal) * y
-            if self.n_layers - math.floor(self.n_layers) == 0.5:
-                y = transform_func_inv(y)
-
-            if self.mode == "oversampling":
-                y = self.trimming(y)
-
-            return y
-
-        super().__init__(LinearPhysics(A=A, A_adjoint=A_adjoint), **kwargs)
-        self.name = f"PRPR_m{self.m}"
+        super().__init__(B, **kwargs)
+        self.name = "Structured Random Phase Retrieval"
 
     def B_dagger(self, y):
         return self.B.A_adjoint(y)

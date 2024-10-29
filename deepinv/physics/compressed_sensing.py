@@ -1,7 +1,7 @@
-from deepinv.physics.forward import LinearPhysics
-from dotmap import DotMap
-import torch
 import numpy as np
+import torch
+
+from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.functional import random_choice
 
 
@@ -72,12 +72,10 @@ class CompressedSensing(LinearPhysics):
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
+    :param bool use_haar: Use Haar matrix instead of Gaussian matrix. Default is False.
+    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.type dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
-    :param DotMap config: Configuration parameters. The following parameters are available:
-
-        - ``use_haar``: Use Haar matrix instead of Gaussian matrix. Default is False.
-        - ``compute_inverse``: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
@@ -103,9 +101,10 @@ class CompressedSensing(LinearPhysics):
         img_shape,
         fast=False,
         channelwise=False,
+        use_haar=False,
+        compute_inverse=False,
         dtype=torch.float,
         device="cpu",
-        config: DotMap = DotMap(),
         rng: torch.Generator = None,
         **kwargs,
     ):
@@ -114,6 +113,8 @@ class CompressedSensing(LinearPhysics):
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
+        self.use_haar = use_haar
+        self.compute_inverse = compute_inverse
         self.dtype = dtype
         self.device = device
 
@@ -148,7 +149,13 @@ class CompressedSensing(LinearPhysics):
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            if config.use_haar:
+            if self.use_haar is False:
+                # generate A as an iid Gaussian matrix
+                self._A = torch.randn((m, n), device=device, dtype=dtype)
+                self._A = self._A / np.sqrt(m)
+                self._A = torch.nn.Parameter(self._A, requires_grad=False)
+            else:
+                # generate A as a random unitary matrix
                 print("Using Haar matrix")
                 self._A = torch.randn(
                     (m, n), device=device, dtype=dtype, generator=self.rng
@@ -157,12 +164,8 @@ class CompressedSensing(LinearPhysics):
                 L = torch.sgn(torch.diag(R))
                 self._A = self._A * L[None, :]
                 self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            else:
-                self._A = torch.randn((m, n), device=device, dtype=dtype)
-                self._A = self._A / np.sqrt(m)
-                self._A = torch.nn.Parameter(self._A, requires_grad=False)
 
-            if config.compute_inverse:
+            if self.compute_inverse is True:
                 self._A_dagger = torch.linalg.pinv(self._A)
                 self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
 

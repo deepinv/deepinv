@@ -1,5 +1,4 @@
 import pytest
-from dotmap import DotMap
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -82,11 +81,9 @@ def find_operator(name, device):
 
     rng = torch.Generator(device).manual_seed(0)
     if name == "CS":
-        config = DotMap()
-        config.compute_inverse = True
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, config=config, rng=rng
+            m=m, img_shape=img_size, device=device, compute_inverse=True, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -215,20 +212,18 @@ def find_operator(name, device):
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)
         m = 50
-        config = DotMap()
-        config.compute_inverse = True
         p = dinv.physics.CompressedSensing(
             m=m,
             img_shape=img_size,
-            dtype=torch.complex64,
+            dtype=torch.cfloat,
             device=device,
-            config=config,
+            compute_inverse=True,
             rng=rng,
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
     elif "radio" in name:
-        dtype = torch.complex64
+        dtype = torch.cfloat
         img_size = (1, 64, 64)
         pytest.importorskip(
             "torchkbnufft",
@@ -312,7 +307,7 @@ def test_operators_adjointness(name, device):
     physics, imsize, _, dtype = find_operator(name, device)
 
     if name == "radio":
-        dtype = torch.complex64
+        dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
@@ -507,14 +502,12 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
-    config = DotMap()
-    config.mode = "uniform_phase"
     physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
         input_shape=(1, 10, 10),
         output_shape=(1, 10, 10),
         n_layers=2,
         transform="fft",
-        distri_config=config,
+        diagonal_mode="uniform_phase",
     )
     # nonnegativity
     assert (physics(x) >= 0).all()

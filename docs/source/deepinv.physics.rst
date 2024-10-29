@@ -52,13 +52,10 @@ Composition and linear combinations of linear operators is still a linear operat
 
 .. doctest::
 
-    >>> from dotmap import DotMap
     >>> import torch
     >>> import deepinv as dinv
     >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> config = DotMap()
-    >>> config.compute_inverse = True
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), config=config)
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), compute_inverse=True)
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
