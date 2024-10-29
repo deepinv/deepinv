@@ -24,6 +24,7 @@ New Features
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
 - generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+- Multi-coil MRI, 3D MRI, MRI Mixin (:gh:`287` by `Andrew Wang`_, Brett Levac)
 
 Fixed
 ^^^^^
@@ -39,7 +40,6 @@ Changed
 ^^^^^^^
 
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
-
 
 v0.2.1
 ----------------
