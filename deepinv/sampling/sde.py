@@ -89,10 +89,10 @@ class DiffusionSDE(nn.Module):
         self.diff_forw = lambda t: g(t)
         self.forward_sde = SDE(drift=self.drift_forw, diffusion=self.diff_forw, t_end = T, rng=rng)
 
-        self.drift_back = lambda x, t: -self.f(x, T - t) - (self.g(T - t) ** 2) * prior.grad(
+        self.drift_back = lambda x, t: -f(x, T - t) - (g(T - t) ** 2) * prior.grad(
             x, T - t
         )
-        self.diff_back = lambda t: self.g(T - t)
+        self.diff_back = lambda t: g(T - t)
         self.backward_sde = SDE(drift=self.drift_back, diffusion=self.diff_back, t_end = T, rng=rng)
 
 
@@ -102,18 +102,17 @@ class EDMSDE(DiffusionSDE):
         prior: Callable,
         T: float,
         sigma: Callable =  lambda t: t,
+        sigma_prime: Callable =  lambda t: 1,
+        s: Callable =  lambda t: 1,
+        s_prime: Callable = lambda t : 0,
         beta: Callable = lambda t: 1.0 / t,
         rng: torch.Generator = None,
     ): 
         self.sigma = sigma
         self.beta = beta
-        self.drift_forw = lambda x, t: (
-            self.sigma(t) - beta(t) * self.sigma(t) ** 2
-        ) * prior.grad(x, sigma(t))
+        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
         self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
-        self.drift_back = lambda x, t: (
-            -self.sigma(t) - beta(t) * self.sigma(t) ** 2
-        ) * prior.grad(x, sigma(t))
+        self.drift_back = lambda x, t: (sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
         self.diff_back = self.diff_forw
         super().__init__(prior=prior, T=T, rng=rng)
 
@@ -126,16 +125,15 @@ if __name__ == "__main__":
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
-    # x = x * 2 - 1
-    # denoiser = dinv.models.DiffUNet().to(device)
-    denoiser = dinv.models.DRUNet(device = device)
+    #denoiser = dinv.models.DRUNet(device = device)
+    denoiser = dinv.models.DiffUNet().to(device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     OUSDE = EDMSDE(prior=prior, T=1.0)
     with torch.no_grad():
-        sample_noise = OUSDE.forward_sde.sample(x, 0, 1.0, 100)
+        sample_noise = OUSDE.forward_sde.sample(x, num_steps = 100)
         noise = torch.randn_like(x)
-        sample = OUSDE.backward_sde.sample(noise, 0, 1.0, num_steps=100)
+        sample = OUSDE.backward_sde.sample(noise, num_steps = 100)
     dinv.utils.plot([x, sample_noise, sample])
 
     # from temp_model import UNetModelWrapper
