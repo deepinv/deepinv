@@ -3,6 +3,9 @@ import torch
 
 from deepinv.optim.data_fidelity import L2
 
+# Sam comments:
+# NoisyDatafidelity inherit from DataFidelity
+# but can use other d functions (default is l2) so NOT inherit from L2()
 
 class NoisyDataFidelity(nn.Module):
     r"""
@@ -24,7 +27,19 @@ class NoisyDataFidelity(nn.Module):
         """
         return x
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+
+    def diff(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
+        r"""
+        Computes the difference between the forward operator applied to the current iterate and the input data.
+
+        :param torch.Tensor x: Current iterate.
+        :param torch.Tensor y: Input data.
+
+        :return: (torch.Tensor) difference between the forward operator applied to the current iterate and the input data.
+        """
+        return physics.A(x) - y
+
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics,  sigma) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
@@ -35,7 +50,7 @@ class NoisyDataFidelity(nn.Module):
         """
         return self.precond(self.diff(x, y))
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
         TBD
 
@@ -44,7 +59,7 @@ class NoisyDataFidelity(nn.Module):
 
         :return: (torch.Tensor) TBD
         """
-        return self.grad(x, y, sigma)
+        return self.grad(x, y, physics, sigma)
 
 
 class DPSDataFidelity(NoisyDataFidelity):
@@ -54,12 +69,11 @@ class DPSDataFidelity(NoisyDataFidelity):
     :param float sigma: TBD
     """
 
-    def __init__(self, physics=None, denoiser=None, data_fidelity=L2()):
+    def __init__(self, physics=None, denoiser=None):
         super(DPSDataFidelity, self).__init__()
 
         self.physics = physics
         self.denoiser = denoiser
-        self.data_fidelity = data_fidelity
 
     def precond(self, x: torch.Tensor) -> torch.Tensor:
         r"""
@@ -71,7 +85,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         """
         raise NotImplementedError
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, sigma) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         with torch.enable_grad():
             x.requires_grad_(True)
             l2_loss = self.forward(x, y, sigma)
@@ -86,7 +100,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
         x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
-        l2_loss = self.data_fidelity(x0_t, y, self.physics).sqrt().sum()
+        l2_loss = self.data_fidelity(x0_t, y, physics, sigma).sqrt().sum()
 
         return l2_loss
 

@@ -91,6 +91,9 @@ class Heun_solver(SDE_solver):
 
 
 class DiffusionSDE(nn.Module):
+    r"""
+    Default values OU process
+    """
     def __init__(
         self,
         f: Callable = lambda x, t: -x,
