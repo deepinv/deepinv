@@ -24,14 +24,10 @@ class SDE_solver(nn.Module):
     def step(self, t0, t1, x0):
         pass
 
-    def sample(
-        self,
-        x_init: Tensor,
-        timesteps: Tensor = None
-    ):
+    def sample(self, x_init: Tensor, timesteps: Tensor = None):
         x = x_init
-        for i,t in enumerate(timesteps[:-1]) :
-            x = self.step(t, timesteps[i+1], x)
+        for i, t in enumerate(timesteps[:-1]):
+            x = self.step(t, timesteps[i + 1], x)
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -69,11 +65,15 @@ class Euler_solver(SDE_solver):
     def __init__(
         self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
     ):
-        super().__init__(drift, diffusion, rng = rng)
+        super().__init__(drift, diffusion, rng=rng)
 
     def step(self, t0, t1, x0):
         dt = abs(t1 - t0)
-        return x0 + self.drift(x,t0) * dt + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
+        return (
+            x0
+            + self.drift(x, t0) * dt
+            + self.diffusion(t0) * self.randn_like(x0) * dt**0.5
+        )
 
 
 class DiffusionSDE(nn.Module):
@@ -87,36 +87,45 @@ class DiffusionSDE(nn.Module):
         super().__init__()
         self.drift_forw = lambda x, t: f(x, t)
         self.diff_forw = lambda t: g(t)
-        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
-
-        self.drift_back = lambda x, t: f(x, t) + (g(t) ** 2) * prior.grad(
-            x, t
+        self.forward_sde = Euler_solver(
+            drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
         )
+
+        self.drift_back = lambda x, t: f(x, t) + (g(t) ** 2) * prior.grad(x, t)
         self.diff_back = lambda t: g(t)
-        self.backward_sde = Euler_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
+        self.backward_sde = Euler_solver(
+            drift=self.drift_back, diffusion=self.diff_back, rng=rng
+        )
 
 
 class EDMSDE(DiffusionSDE):
     def __init__(
         self,
         prior: Callable,
-        sigma: Callable =  lambda t: t,
-        sigma_prime: Callable =  lambda t: 1.,
-        s: Callable =  lambda t: 1.,
-        s_prime: Callable = lambda t : 0.,
+        sigma: Callable = lambda t: t,
+        sigma_prime: Callable = lambda t: 1.0,
+        s: Callable = lambda t: 1.0,
+        s_prime: Callable = lambda t: 0.0,
         beta: Callable = lambda t: 1.0 / t,
         rng: torch.Generator = None,
-    ): 
+    ):
         super().__init__(prior=prior, rng=rng)
         self.sigma = sigma
         self.beta = beta
-        self.drift_forw = lambda x, t: (- sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+        self.drift_forw = lambda x, t: (
+            -sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2
+        ) * (-prior.grad(x, sigma(t)))
         self.diff_forw = lambda t: self.sigma(t) * (2 * beta(t)) ** 0.5
-        self.drift_back = lambda x, t: -(sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2) * (-prior.grad(x, sigma(t)))
+        self.drift_back = lambda x, t: -(
+            sigma_prime(t) * sigma(t) + beta(t) * self.sigma(t) ** 2
+        ) * (-prior.grad(x, sigma(t)))
         self.diff_back = self.diff_forw
-        self.forward_sde = Euler_solver(drift=self.drift_forw, diffusion=self.diff_forw, rng=rng)
-        self.backward_sde = Euler_solver(drift=self.drift_back, diffusion=self.diff_back, rng=rng)
-        
+        self.forward_sde = Euler_solver(
+            drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
+        )
+        self.backward_sde = Euler_solver(
+            drift=self.drift_back, diffusion=self.diff_back, rng=rng
+        )
 
 
 # %%
@@ -127,7 +136,7 @@ if __name__ == "__main__":
     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
-    denoiser = dinv.models.DRUNet(device = device)
+    denoiser = dinv.models.DRUNet(device=device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     OUSDE = EDMSDE(prior=prior)
