@@ -41,7 +41,11 @@ def spectral_methods(
     :return: The estimated signals :math:`x`.
     """
     if x is None:
-        x = torch.randn((y.shape[0],) + physics.img_shape, dtype=physics.dtype)
+        x = torch.randn(
+            (y.shape[0],) + physics.img_shape,
+            dtype=physics.dtype,
+            device=physics.device,
+        )
     x = x.to(torch.cfloat)
     # normalize every image in x
     x = torch.stack([subtensor / subtensor.norm() for subtensor in x])

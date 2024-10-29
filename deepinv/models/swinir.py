@@ -1035,6 +1035,7 @@ class SwinIR(nn.Module):
                 else pretrained_weights
             )
             self.load_state_dict(pretrained_weights, strict=True)
+            self.eval()
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):

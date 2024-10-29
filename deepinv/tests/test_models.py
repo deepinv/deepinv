@@ -86,7 +86,7 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
-    return out
+    return out.eval()
 
 
 def test_TVs_adjoint():
@@ -255,7 +255,6 @@ def test_TV_models_identity():
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     model = choose_denoiser(denoiser, imsize).to(device)
-
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
@@ -281,18 +280,21 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
         assert x_hat.shape == x.shape
 
 
-def test_equivariant(imsize, device):
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_equivariant(imsize, device, batch_size):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
-    model = dinv.models.EquivariantDenoiser(
-        model, transform="rotoflips", random=True
-    ).to(device)
+    model = (
+        dinv.models.EquivariantDenoiser(model, random=True)  # Roto-reflections
+        .to(device)
+        .eval()
+    )
 
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     x_hat = model(y, sigma)
 
@@ -308,19 +310,32 @@ def test_equivariant(imsize, device):
 
     model_id = DummyIdentity()
 
-    list_transforms = ["rotations", "flips", "rotoflips"]
+    list_transforms = [
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=4, constant_shape=False
+        ),  # full group
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=1, constant_shape=False
+        ),  # subsampled
+        dinv.transform.Reflect(dim=[-1], n_trans=2),  # full group
+        dinv.transform.Reflect(dim=[-1], n_trans=2)
+        * dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=3, constant_shape=False
+        ),  # compound group
+    ]
+
+    # constant_shape False as imsize is rectangular. For square images, ignore constant_shape.
 
     for transform in list_transforms:
-        for random in [True, False]:
-            model = dinv.models.EquivariantDenoiser(
-                model_id, transform=transform, random=random
-            ).to(device)
+        model = dinv.models.EquivariantDenoiser(model_id, transform=transform).to(
+            device
+        )
 
-            x = torch.ones(imsize, device=device).unsqueeze(0)
-            y = physics(x)
-            y_hat = model(y, sigma)
+        x = torch.ones((batch_size, *imsize), device=device)
+        y = physics(x)
+        y_hat = model(y, sigma)
 
-            assert torch.allclose(y, y_hat)
+        assert torch.allclose(y, y_hat)
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
@@ -341,7 +356,7 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 def test_drunet_inputs(imsize_1_channel, device):
     f = dinv.models.DRUNet(
         in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
-    )
+    ).eval()
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -541,6 +556,19 @@ def test_optional_dependencies(denoiser, dep):
         klass()
 
 
+def test_icnn(device):
+    from deepinv.models import ICNN
+
+    model = ICNN(in_channels=3, device=device)
+    torch.manual_seed(0)
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1))
+    x = torch.ones((1, 3, 128, 128), device=device)
+    y = physics(x)
+    potential = model(y)
+    grad = model.grad(y)
+    assert grad.shape == x.shape
+
+
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
 #     channels = 64
@@ -559,3 +587,11 @@ def test_optional_dependencies(denoiser, dep):
 #     mse_out = (x_net - x).pow(2).mean()
 #
 #     assert mse_out < mse_in
+
+
+def test_time_agnostic_net():
+    backbone_net = dinv.models.UNet(scales=2)
+    net = dinv.models.TimeAgnosticNet(backbone_net)
+    y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
+    x_net = net(y, None)
+    assert x_net.shape == y.shape

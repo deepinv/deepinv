@@ -1,12 +1,12 @@
 import sys
 import warnings
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from collections.abc import Iterable
-from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
+from deepinv.loss.metric.distortion import PSNR
 
 
 class BaseOptim(nn.Module):
@@ -351,7 +351,10 @@ class BaseOptim(nn.Module):
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
         if x_gt is not None:
-            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            psnr = [
+                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                for i in range(self.batch_size)
+            ]
         else:
             psnr = [[] for i in range(self.batch_size)]
         init["psnr"] = psnr
@@ -385,8 +388,8 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(x[i], x_gt[i])
-                    metrics["psnr"][i].append(psnr)
+                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
@@ -476,14 +479,15 @@ class BaseOptim(nn.Module):
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        X, metrics = self.fixed_point(
-            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
-        )
-        x = self.get_output(X)
-        if compute_metrics:
-            return x, metrics
-        else:
-            return x
+        with torch.no_grad():
+            X, metrics = self.fixed_point(
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+            )
+            x = self.get_output(X)
+            if compute_metrics:
+                return x, metrics
+            else:
+                return x
 
 
 def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
@@ -582,7 +586,7 @@ def optim_builder(
         params_algo=params_algo,
         max_iter=max_iter,
         **kwargs,
-    )
+    ).eval()
 
 
 def str_to_class(classname):

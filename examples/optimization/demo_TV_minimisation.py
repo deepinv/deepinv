@@ -91,12 +91,12 @@ y = physics(x)
 prior = dinv.optim.prior.TVPrior(n_it_max=2000)
 
 # Compute the total variation prior cost
-cost_tv = prior(y)
+cost_tv = prior(y).item()
 print(f"Cost TV: g(y) = {cost_tv:.2f}")
 
 # Apply the proximal operator of the TV prior
 x_tv = prior.prox(y, gamma=0.1)
-cost_tv_prox = prior(x_tv)
+cost_tv_prox = prior(x_tv).item()
 
 # %%
 # .. note::
@@ -138,7 +138,9 @@ prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0
@@ -174,8 +176,8 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
@@ -184,6 +186,6 @@ plot(
     titles=["Input", "GT", "Linear", "Recons."],
 )
 
-# plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+# plot convergence curves
+if plot_convergence_metrics:
     plot_curves(metrics)

@@ -20,6 +20,8 @@ for self-supervised learning:
 -  PanTiltRotate: pure 3D camera rotation i.e pan, tilt and 2D image
    rotation.
 
+See :ref:`docs <transform>` for full list.
+
 These were proposed in the papers:
 
 -  ``Shift``, ``Rotate``: `Chen et al., Equivariant Imaging: Learning
@@ -150,6 +152,7 @@ ckpt = torch.hub.load_state_dict_from_url(
 model.load_state_dict(ckpt["state_dict"])
 
 x = next(iter(train_dataloader))
+x = x.to(device)
 y = physics(x)
 x_hat = model(y)
 

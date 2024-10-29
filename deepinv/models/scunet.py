@@ -300,7 +300,6 @@ class SCUNet(nn.Module):
         drop_path_rate=0.0,
         input_resolution=256,
         pretrained="download",
-        train=False,
         device="cpu",
     ):
         super(SCUNet, self).__init__()
@@ -429,20 +428,14 @@ class SCUNet(nn.Module):
             if pretrained == "download":
                 name = "scunet_color_real_psnr.pth"
                 url = get_weights_url(model_name="scunet", file_name=name)
-                ckpt_drunet = torch.hub.load_state_dict_from_url(
+                ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
             else:
-                ckpt_drunet = torch.load(
-                    pretrained, map_location=lambda storage, loc: storage
-                )
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
 
-            self.load_state_dict(ckpt_drunet, strict=True)
-
-        if not train:
+            self.load_state_dict(ckpt, strict=True)
             self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
 
         if device is not None:
             self.to(device)
@@ -467,7 +460,7 @@ class SCUNet(nn.Module):
 
         return x
 
-    def forward(self, x, sigma):  # This is a blind model: sigma is not used
+    def forward(self, x, sigma=None):  # This is a blind model: sigma is not used
         den = self.forward_scunet(x)
         return den
 
@@ -483,7 +476,7 @@ class SCUNet(nn.Module):
 
 # if __name__ == '__main__':
 #     # torch.cuda.empty_cache()
-#     net = SCUNet(pretrained='download', device='cpu', train=False)
+#     net = SCUNet(pretrained='download', device='cpu')
 #
 #     x = torch.randn((2, 3, 64, 128))
 #     x = net(x)

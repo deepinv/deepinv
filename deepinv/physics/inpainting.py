@@ -1,5 +1,6 @@
 from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.mri import MRI
+from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 import torch
 
 
@@ -22,13 +23,16 @@ class Inpainting(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to ``torch.nn.Module``.
 
+    Masks can also be created on-the-fly using mask generators such as :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator`, see example below.
+
     :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
         distribution with probability equal to ``mask``. If the input is a ``torch.tensor`` matching tensor_size,
         the mask will be set to this tensor. If ``mask`` is ``torch.Tensor``, it must be shape that is broadcastable to input shape and will be broadcast during forward call.
-    :param tuple tensor_size: size of the input images (C, H, W) or (B, C, H, W).
+        If None, it must be set during forward pass or using ``update_parameters`` method.
+    :param tuple tensor_size: size of the input images without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param torch.device device: gpu or cpu
-    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
-
+    :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously. If existing mask passed (i.e. mask is Tensor), this has no effect.
+    :param torch.Generator rng: a pseudorandom random number generator for the mask generation. Default to None.
     |sep|
 
     :Examples:
@@ -40,7 +44,7 @@ class Inpainting(DecomposablePhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> mask = torch.zeros(1, 3, 3) # Define empty mask
         >>> mask[:, 2, :] = 1 # Keeping last line only
-        >>> physics = Inpainting(mask=mask, tensor_size=(1, 1, 3, 3))
+        >>> physics = Inpainting(mask=mask, tensor_size=x.shape[1:])
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0000, -0.0000],
                   [ 0.0000, -0.0000, -0.0000],
@@ -50,33 +54,67 @@ class Inpainting(DecomposablePhysics):
 
         >>> from deepinv.physics import Inpainting
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> x = torch.randn(1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(mask=0.7, tensor_size=(1, 1, 3, 3))
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> physics = Inpainting(mask=0.7, tensor_size=x.shape[1:])
         >>> physics(x)
-        tensor([[[[[ 1.5410, -0.0000, -2.1788],
-                   [ 0.0000, -1.0845, -1.3986],
-                   [ 0.0000,  0.8380, -0.7193]]]]])
+        tensor([[[[ 1.5410, -0.0000, -2.1788],
+                  [ 0.5684, -0.0000, -1.3986],
+                  [ 0.4033,  0.0000, -0.0000]]]])
+
+        Generate random masks on-the-fly using mask generators:
+
+        >>> from deepinv.physics import Inpainting
+        >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+        >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
+        >>> physics = Inpainting(tensor_size=x.shape[1:])
+        >>> gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)
+        >>> params = gen.step(batch_size=1, seed = 0) # Generate random mask
+        >>> physics(x, **params) # Set mask on-the-fly
+        tensor([[[[-0.4033, -0.0000,  0.1820],
+                  [-0.8567,  1.1006, -1.0712],
+                  [ 0.1227, -0.0000,  0.3731]]]])
+        >>> physics.update_parameters(**params) # Alternatively update mask before forward call
+        >>> physics(x)
+        tensor([[[[-0.4033, -0.0000,  0.1820],
+                  [-0.8567,  1.1006, -1.0712],
+                  [ 0.1227, -0.0000,  0.3731]]]])
 
     """
 
-    def __init__(self, tensor_size, mask, pixelwise=True, device="cpu", **kwargs):
+    def __init__(
+        self,
+        tensor_size,
+        mask=None,
+        pixelwise=True,
+        device="cpu",
+        rng: torch.Generator = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
+
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
             mask = mask.to(device)
-        elif type(mask) == float:
-            mask_rate = mask
-            mask = torch.ones(tensor_size, device=device)
-            aux = torch.rand_like(mask)
-            if not pixelwise:
-                mask[aux > mask_rate] = 0
-            else:
-                mask[:, aux[0, :, :] > mask_rate] = 0
+        elif isinstance(mask, float):
+            gen = BernoulliSplittingMaskGenerator(
+                tensor_size=tensor_size,
+                split_ratio=mask,
+                pixelwise=pixelwise,
+                device=device,
+                rng=rng,
+            )
+            mask = gen.step(batch_size=None)["mask"]
+        elif mask is None:
+            pass
+        else:
+            raise ValueError(
+                "mask should either be torch.nn.Parameter, torch.Tensor, float or None."
+            )
 
-        if len(mask.shape) == len(tensor_size):
+        if mask is not None and len(mask.shape) == len(tensor_size):
             mask = mask.unsqueeze(0)
 
         self.tensor_size = tensor_size
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.update_parameters(mask=mask)
 
     def noise(self, x, **kwargs):
         r"""
@@ -123,34 +161,33 @@ class Inpainting(DecomposablePhysics):
 
 
 class Demosaicing(Inpainting):
+    r"""
+    Demosaicing operator.
+
+    The operator chooses one color per pixel according to the pattern specified.
+
+    :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
+    :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
+    :param torch.device device: ``gpu`` or ``cpu``
+
+    |sep|
+
+    :Examples:
+
+        Demosaicing operator using Bayer pattern for a 4x4 image:
+
+        >>> from deepinv.physics import Demosaicing
+        >>> x = torch.ones(1, 3, 4, 4)
+        >>> physics = Demosaicing(img_size=(4, 4))
+        >>> physics(x)[0, 1, :, :] # Green channel
+        tensor([[0., 1., 0., 1.],
+                [1., 0., 1., 0.],
+                [0., 1., 0., 1.],
+                [1., 0., 1., 0.]])
+
+    """
+
     def __init__(self, img_size, pattern="bayer", device="cpu", **kwargs):
-        r"""
-        Demosaicing operator.
-
-        The operator chooses one color per pixel according to the pattern specified.
-
-        :param tuple img_size: size of the input images, e.g. (H, W) or (C, H, W).
-        :param str pattern: ``bayer`` (see https://en.wikipedia.org/wiki/Bayer_filter) or other patterns.
-        :param torch.device device: ``gpu`` or ``cpu``
-
-        |sep|
-
-        :Examples:
-
-            Demosaicing operator using Bayer pattern for a 4x4 image:
-
-            >>> from deepinv.physics import Demosaicing
-            >>> x = torch.ones(1, 3, 4, 4)
-            >>> physics = Demosaicing(img_size=(4, 4))
-            >>> physics(x)[0, 1, :, :] # Green channel
-            tensor([[0., 1., 0., 1.],
-                    [1., 0., 1., 0.],
-                    [0., 1., 0., 1.],
-                    [1., 0., 1., 0.]])
-
-
-
-        """
         if pattern == "bayer":
             if len(img_size) == 2:
                 img_size = (3, img_size[0], img_size[1])

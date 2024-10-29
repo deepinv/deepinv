@@ -8,9 +8,52 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+
 New Features
 ^^^^^^^^^^^^
-- Added the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_) - 01/07/2024
+- Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+- Add the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_)
+
+
+- Add wrapper classes for adapting models to take time-sequence 2D+t input (:gh:`296` by `Andrew Wang`_)
+- Add sequential MRI operator (:gh:`296` by `Andrew Wang`_)
+- Add multi-operator equivariant imaging loss (:gh:`296` by `Andrew Wang`_)
+- Add loss schedulers (:gh:`296` by `Andrew Wang`_)
+- Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
+- New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+- Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
+- generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+
+Fixed
+^^^^^
+- Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
+- Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
+
+- Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
+- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
+- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
+- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+
+- Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
+
+
+v0.2.1
+----------------
+
+New Features
+^^^^^^^^^^^^
+- Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
+- Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
+- Add sinc filter (:gh:`280` by `Julian Tachella`_)
+- Add Noise2Score method (:gh:`280` by `Julian Tachella`_)
+- Add Gamma Noise (:gh:`280` by `Julian Tachella`_)
+- Add 3D Blur physics operator, with 3D diffraction microscope blur generators (:gh: `277` by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
+- Add ICNN model (:gh:`281` by `Samuel Hurault`_)
 - Dynamic MRI physics operator (:gh:`242` by `Andrew Wang`_)
 - Add support for adversarial losses and models (GANs) (:gh:`183` by `Andrew Wang`_)
 - Base transform class for transform arithmetic (:gh:`240` by `Andrew Wang`_) - 26/06/2024.
@@ -20,15 +63,27 @@ New Features
 - Added a new `Physics` class for the Radio Interferometry problem (:gh:`230` by `Chao Tang`_, `Tobias Liaudat`_) - 07/06/2024
 - Add projective and affine transformations for EI or data augmentation (:gh:`173` by `Andrew Wang`_)
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
+- Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
+- Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
+- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
+- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
+- Added stride, shape in `PatchDataset` (:gh:`308` by apolychronou)
 
 Fixed
 ^^^^^
+- Disable unecessary gradient computation to prevent memory explosion (:gh:`301` by `Dylan Sechet`, `Samuel Hurault`)
+- Wandb logging (:gh:`280` by `Julian Tachella`_)
+- SURE improvements (:gh:`280` by `Julian Tachella`_)
+- Fixed padding in conv_transpose2d and made conv_2d a true convolution (by `Florian Sarron`_, `Pierre Weiss`_, `Paul Escande`_, `Minh Hai Nguyen`_) - 12/07/2024
 - Fixed the gradient stopping in EILoss (:gh:`263` by `Jérémy Scanvic`_) - 27/06/2024
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
+- Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
+- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
 
 Changed
 ^^^^^^^
+- Changed to Python 3.9+ (:gh:`280` by `Julian Tachella`_)
 - Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
 
@@ -44,7 +99,7 @@ New Features
 - Added a parameterization of the operators and noiselevels for the physics class
 - Added a physics.functional submodule
 - Modified the Blur class to handle color, grayscale, single and multi-batch images
-- Added a PhyisicsGenerator class to synthetize parameters for the forward operators
+- Added a PhysicsGenerator class to synthetize parameters for the forward operators
 - Added the possibility to sum generators
 - Added a MotionBlur generator
 - Added a DiffractionBlur generator
@@ -67,7 +122,7 @@ New Features
 - Added Restormer model (:gh:`185` by Antoine Regnier and Maxime SONG) - 18/04/2024
 - Added DIV2K built-in dataset (:gh:`203` by Maxime SONG) - 03/05/2024
 - Added Urban100 built-in dataset (:gh:`237` by Maxime SONG) - 07/06/2024
-- Added Set14 / CBSD68 / fastMRI buit-in datasets (:gh:`248` :gh:`249` :gh:`229` by Maxime SONG) - 25/06/2024 
+- Added Set14 / CBSD68 / fastMRI buit-in datasets (:gh:`248` :gh:`249` :gh:`229` by Maxime SONG) - 25/06/2024
 
 Fixed
 ^^^^^
@@ -183,3 +238,4 @@ Authors
 .. _Chao Tang: https://github.com/ChaoTang0330
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
+.. _Pierre-Antoine Comby: https://github.com/paquiteau

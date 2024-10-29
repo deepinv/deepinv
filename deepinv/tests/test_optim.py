@@ -410,6 +410,8 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 def get_prior(prior_name, device="cpu"):
     if prior_name == "L1Prior":
         prior = dinv.optim.prior.L1Prior()
+    elif prior_name == "L12Prior":
+        prior = dinv.optim.prior.L12Prior(l2_axis=1)  # l2 on channels
     elif prior_name == "Tikhonov":
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
@@ -434,6 +436,7 @@ def get_prior(prior_name, device="cpu"):
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
         "L1Prior",
+        "L12Prior",
         "Tikhonov",
         "TVPrior",
         "WaveletPrior",
@@ -565,8 +568,8 @@ def test_dpir(imsize, dummy_dataset, device):
     model = dinv.optim.DPIR(0.1, device=device)
     out = model(y, physics)
 
-    in_psnr = dinv.utils.cal_psnr(test_sample, y)
-    out_psnr = dinv.utils.cal_psnr(out, test_sample)
+    in_psnr = dinv.metric.PSNR()(test_sample, y)
+    out_psnr = dinv.metric.PSNR()(out, test_sample)
 
     assert out_psnr > in_psnr
 

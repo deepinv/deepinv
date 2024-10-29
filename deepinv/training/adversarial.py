@@ -1,9 +1,12 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+    from torch.optim.lr_scheduler import LRScheduler
 
 import torch
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
 
 from deepinv.training.trainer import Trainer
@@ -141,11 +144,11 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self):
+    def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train()
+        super().setup_train(**kwargs)
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
@@ -169,7 +172,7 @@ class AdversarialTrainer(Trainer):
                 "Gradient norm for discriminator", ":.2e"
             )
 
-    def compute_loss(self, physics, x, y, train=True):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
@@ -177,6 +180,7 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
@@ -202,6 +206,7 @@ class AdversarialTrainer(Trainer):
                     physics=physics,
                     model=self.model,
                     D=self.D,
+                    epoch=epoch,
                 )
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
@@ -244,6 +249,7 @@ class AdversarialTrainer(Trainer):
                         physics=physics,
                         model=self.model,
                         D=self.D,
+                        epoch=epoch,
                     )
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:

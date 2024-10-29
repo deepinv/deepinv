@@ -59,7 +59,7 @@ physics = dinv.physics.Tomography(
 )
 
 PI = 4 * torch.ones(1).atan()
-SCALING = PI / (2 * angles)  # approximate operator norm of A^T A
+SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -89,17 +89,16 @@ denoiser = DnCNN(
     in_channels=n_channels,
     out_channels=n_channels,
     pretrained="download",  # automatically downloads the pretrained weights, set to a path to use custom weights.
-    train=False,
     device=device,
 )
 prior = PnP(denoiser=denoiser)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 # instantiate the algorithm class to solve the IP problem.
-# intialize with the rescaled adjoint such that the initialization lives already at the correct scale
+# initialize with the rescaled adjoint such that the initialization lives already at the correct scale
 model = optim_builder(
     iteration="PGD",
     prior=prior,
@@ -112,6 +111,10 @@ model = optim_builder(
         "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
     },
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem and plot the results.
@@ -131,8 +134,8 @@ x_model, metrics = model(
 )  # reconstruction with PnP algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PnP reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
@@ -144,5 +147,5 @@ plot(
 )
 
 # plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+if plot_convergence_metrics:
     plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)

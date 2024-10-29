@@ -194,7 +194,7 @@ learning_rate = 0.01
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 # Choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # Logging parameters
 verbose = True
@@ -249,10 +249,12 @@ trainer.test(test_dataloader)
 
 test_sample, _ = next(iter(test_dataloader))
 model.eval()
+test_sample = test_sample.to(device)
 
 # Get the measurements and the ground truth
 y = physics(test_sample)
-rec = model(y, physics=physics)
+with torch.no_grad():  # it is important to disable gradient computation during testing.
+    rec = model(y, physics=physics)
 
 backprojected = physics.A_adjoint(y)
 

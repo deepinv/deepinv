@@ -15,7 +15,7 @@ class DiscriminatorMetric:
 
     This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
-    See `Are GANs Created Equal?<https://arxiv.org/abs/1711.10337>`_ for a comparison.
+    See `Are GANs Created Equal? <https://arxiv.org/abs/1711.10337>`_ for a comparison.
 
     :param nn.Module metric: loss with which to compare outputs, defaults to nn.MSELoss()
     :param float real_label: value for ideal real image, defaults to 1.

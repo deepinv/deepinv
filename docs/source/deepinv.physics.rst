@@ -175,6 +175,18 @@ Pixelwise operators operate in the pixel domain and are used for denoising, inpa
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
 
+For random inpainting we also provide generators to create random masks on-the-fly. These can also be used as splitting masks for :class:`deepinv.loss.SplittingLoss` and its variations.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.BernoulliSplittingMaskGenerator
+   deepinv.physics.generator.GaussianSplittingMaskGenerator
+   deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
+   deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+
 Blur & Super-Resolution
 ^^^^^^^^^^^^^^^^^^^^^^^^
 Different types of blur operators are available, from simple stationary kernels to space-varying ones.
@@ -199,6 +211,7 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    deepinv.physics.blur.gaussian_blur
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
+   deepinv.physics.blur.sinc_filter
 
 
 We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
@@ -211,7 +224,9 @@ deblurring networks.
 
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
-
+   deepinv.physics.generator.DiffractionBlurGenerator3D
+   deepinv.physics.generator.ProductConvolutionBlurGenerator
+   
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
@@ -223,6 +238,7 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
 
    deepinv.physics.MRI
    deepinv.physics.DynamicMRI
+   deepinv.physics.SequentialMRI
 
 
 We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
@@ -232,6 +248,7 @@ We provide generators for creating random and non-random acceleration masks usin
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
@@ -350,6 +367,7 @@ or simply as
    deepinv.physics.PoissonGaussianNoise
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
+   deepinv.physics.GammaNoise
 
 
 The parameters of noise distributions can also be created from a :meth:`deepinv.physics.generator.PhysicsGenerator`,
@@ -372,6 +390,15 @@ physics class, that is :meth:`deepinv.physics.Physics` for non-linear operators,
 for linear operators with a closed-form singular value decomposition. The only requirement is to define
 a :class:`deepinv.physics.Physics.A` method that computes the forward operator. See the
 example :ref:`sphx_glr_auto_examples_basics_demo_physics.py` for more details.
+
+You can also inherit from mixin classes to provide useful methods for your physics:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.physics.TimeMixin
 
 Defining a new linear operator requires the definition of :class:`deepinv.physics.LinearPhysics.A_adjoint`,
 you can define the adjoint automatically using autograd with
@@ -401,8 +428,8 @@ Similar to the PyTorch structure, they are available within :py:mod:`deepinv.phy
    deepinv.physics.functional.conv_transpose2d
    deepinv.physics.functional.conv2d_fft
    deepinv.physics.functional.conv_transpose2d_fft
-   deepinv.physics.functional.conv3d
-   deepinv.physics.functional.conv_transpose3d
+   deepinv.physics.functional.conv3d_fft
+   deepinv.physics.functional.conv_transpose3d_fft
    deepinv.physics.functional.product_convolution2d
    deepinv.physics.functional.multiplier
    deepinv.physics.functional.multiplier_adjoint

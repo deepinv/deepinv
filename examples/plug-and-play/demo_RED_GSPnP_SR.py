@@ -141,9 +141,7 @@ class GSPnP(RED):
 method = "GSPnP"
 denoiser_name = "gsdrunet"
 # Specify the Denoising prior
-prior = GSPnP(
-    denoiser=dinv.models.GSDRUNet(pretrained="download", train=False).to(device)
-)
+prior = GSPnP(denoiser=dinv.models.GSDRUNet(pretrained="download").to(device))
 
 
 # we want to output the intermediate PGD update to finish with a denoising step.
@@ -164,8 +162,12 @@ model = optim_builder(
     thres_conv=thres_conv,
     backtracking=backtracking,
     get_output=custom_output,
-    verbose=True,
+    verbose=False,
 )
+
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
 
 # %%
 # Evaluate the model on the problem.
@@ -173,23 +175,20 @@ model = optim_builder(
 # We evaluate the PnP algorithm on the test dataset, compute the PSNR metrics and plot reconstruction results.
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
+plot_convergence_metrics = True  # plot metrics. Metrics are saved in save_folder.
 plot_images = True  # plot images. Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
-with torch.no_grad():
-    test(
-        model=model,
-        test_dataloader=dataloader,
-        physics=p,
-        device=device,
-        plot_images=plot_images,
-        save_folder=RESULTS_DIR / method / operation / dataset_name,
-        plot_metrics=plot_metrics,
-        verbose=True,
-        wandb_vis=wandb_vis,
-        plot_only_first_batch=False,  # By default only the first batch is plotted.
-    )
+
+test(
+    model=model,
+    test_dataloader=dataloader,
+    physics=p,
+    device=device,
+    plot_images=plot_images,
+    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    plot_convergence_metrics=plot_convergence_metrics,
+    verbose=True,
+)

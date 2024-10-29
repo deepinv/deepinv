@@ -8,9 +8,16 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
+from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
-LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
+LIST_SURE = [
+    "Gaussian",
+    "Poisson",
+    "PoissonGaussian",
+    "GaussianUnknown",
+    "PoissonGaussianUnknown",
+]
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -54,7 +61,7 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
-        loss.append(dinv.loss.ScoreLoss(1.0))
+        loss.append(dinv.loss.ScoreLoss(dinv.physics.GaussianNoise(0.1), 100))
     elif loss_name == "sup":
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
@@ -71,14 +78,17 @@ def choose_sure(noise_type):
     if noise_type == "PoissonGaussian":
         loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain)
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    elif noise_type == "PoissonGaussianUnknown":
+        loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain, unsure=True)
+        noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
         noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "GaussianUnknown":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma, unsure=True)
+        noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
-        noise_model = dinv.physics.PoissonNoise(gain)
-    elif noise_type == "Neighbor2Neighbor":
-        loss = dinv.loss.Neighbor2Neighbor()
         noise_model = dinv.physics.PoissonNoise(gain)
     else:
         raise Exception("The SURE loss doesnt exist")
@@ -107,7 +117,7 @@ def test_sure(noise_type, device):
     y = physics(x)
 
     x_net = f(y, physics)
-    mse = deepinv.metric.mse()(x, x_net)
+    mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
 
     rel_error = (sure - mse).abs() / mse
@@ -183,7 +193,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
     # test the untrained model
-    initial_psnr = dinv.test(
+    initial_test = dinv.test(
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
@@ -207,7 +217,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         verbose=False,
     )
 
-    final_psnr = dinv.test(
+    final_test = dinv.test(
         model=model,
         test_dataloader=test_dataloader,
         physics=physics,
@@ -215,7 +225,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         device=device,
     )
 
-    assert final_psnr[0] > initial_psnr[0]
+    assert final_test["PSNR"] > initial_test["PSNR"]
 
 
 def test_sure_losses(device):
@@ -277,3 +287,39 @@ def test_measplit(device):
     x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0
+
+
+LOSS_SCHEDULERS = ["random", "interleaved"]
+
+
+@pytest.mark.parametrize("scheduler_name", LOSS_SCHEDULERS)
+def test_loss_scheduler(scheduler_name):
+    # Skeleton loss function
+    class TestLoss(dinv.loss.Loss):
+        def __init__(self, a=1):
+            super().__init__()
+            self.adapted = False
+            self.a = a
+
+        def forward(self, x_net, x, y, physics, model, epoch, **kwargs):
+            return self.a
+
+        def adapt_model(self, model, **kwargs):
+            self.adapted = True
+
+    rng = torch.Generator().manual_seed(0)
+
+    if scheduler_name == "random":
+        l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+    elif scheduler_name == "interleaved":
+        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+
+    # Loss scheduler adapts all inside losses
+    l.adapt_model(None)
+    assert l.losses[0].adapted == True
+
+    # Scheduler calls both losses eventually
+    loss_total = 0
+    for _ in range(20):
+        loss_total += l(None, None, None, None, None, None)
+    assert loss_total > 20

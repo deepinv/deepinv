@@ -224,7 +224,7 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
 )
 
 # choose supervised training loss
-losses = [dinv.loss.SupLoss(metric=dinv.metric.mse())]
+losses = [dinv.loss.SupLoss(metric=dinv.metric.MSE())]
 
 # %%
 # Training dataset of random phantoms.
@@ -252,8 +252,10 @@ test_dataloader = DataLoader(
 
 method = "learned primal-dual"
 save_folder = RESULTS_DIR / method / operation
-plot_images = True  # plot images. Images are saved in save_folder.
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR and shown in wandb.
+plot_images = True  # Images are saved in save_folder.
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 
 trainer = dinv.Trainer(
@@ -266,6 +268,7 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
     device=device,
+    plot_convergence_metrics=plot_convergence_metrics,
     online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
