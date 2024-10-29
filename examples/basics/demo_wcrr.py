@@ -1,8 +1,10 @@
 from deepinv.models import RidgeRegularizer
 import torch
+from deepinv.utils.demo import load_url_image, get_image_url
 
+device="cpu"
 
-model=RidgeRegularizer()
+model=RidgeRegularizer().to(device)
 
 """
 multiconv_dict=torch.load('../../deepinv/saved_model/saved_model_WCRR/multiconv.pt',map_location='cpu')
@@ -21,3 +23,9 @@ torch.save(all_weights,'../../deepinv/saved_model/weights.pt')
 """
 
 model.load_state_dict(torch.load('../../deepinv/saved_model/weights.pt'))
+
+url = get_image_url("CBSD_0010.png")
+x = load_url_image(url, grayscale=True).to(device)
+
+model.cost(x,.1)
+model.grad(x,.1)
