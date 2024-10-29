@@ -168,10 +168,6 @@ class LinearSpline(torch.nn.Module):
         device = self.device
         self.x_min, self.x_max, self.step_size, self.zero_knot_indexes = self.x_min.to(device), self.x_max.to(device), self.step_size.to(device), self.zero_knot_indexes.to(device)
 
-    def load_state_dict(self, **args, **kwargs):
-        super().load_state_dict(**args,**kwargs)
-        self.yper_param_to_device()
-
     def forward(self, x):
         """
         Args:

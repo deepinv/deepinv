@@ -23,6 +23,10 @@ class RidgeRegularizer(torch.nn.Module):
 
         return self.W.transpose(self.potential.derivative(self.W(x), sigma))
 
+    def load_state_dict(self, state_dict, **kwargs):
+        super().load_state_dict(state_dict,**kwargs)
+        self.potential.phi_plus.hyper_param_to_device()
+        self.potential.phi_minus.hyper_param_to_device()
 
 
 
