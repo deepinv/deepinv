@@ -61,8 +61,8 @@ doc = [
     "sphinx_rtd_theme",
     "sphinxemoji",
     "sphinx_copybutton",
-    "sphinx_autoapi"
-
+    "sphinx_autoapi",
+    "sphinx-design",
 ]
 
 # optional dependencies for specific denoisers

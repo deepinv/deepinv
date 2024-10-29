@@ -30,6 +30,7 @@ extensions = [
     "sphinx_gallery.gen_gallery",
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
+    "sphinx_design",
 ]
 
 copybutton_exclude = ".linenos, .gp"
@@ -113,25 +114,25 @@ numfig_secnum_depth = 3
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = []
 html_favicon = "figures/logo.ico"
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
     "analytics_id": "G-NSEKFKYSGR",  # Provided by Google in your dashboard G-
     "analytics_anonymize_ip": False,
     "logo_only": True,
-    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",
     "style_nav_header_background": "white",
     # Toc options
-    "collapse_navigation": True,
+    "collapse_navigation": False,
     "sticky_navigation": True,
     "navigation_depth": 4,
     "includehidden": True,
     "titles_only": False,
 }
+html_static_path = ["_static"]
+html_js_files = ["js/custom.js"]
 
 # Separator substition : Writing |sep| in the rst file will display a horizontal line.
 rst_prolog = """
