@@ -26,6 +26,7 @@ class Translate(Transform):
     :param bool flatten_video_input: ignored, kept for compatibility with other transforms, defaults to True
 
     """
+
     def _get_params(self, x):
         N = x.shape[0] * self.n_trans
         H, W = x.shape[-2:]

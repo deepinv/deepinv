@@ -550,6 +550,7 @@ class AliasFreeDenoiser(nn.Module):
     :param int scales: number of scales in the network.
     :param str block_kind: type of block to use in the network. Options are ``ConvBlock`` and ``ConvNextBlock``.
     """
+
     def __init__(
         self,
         in_channels=3,
