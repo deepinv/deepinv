@@ -1,5 +1,5 @@
 import torch
-import deepinv.models.splines.spline_utils as spline_autograd_func
+import deepinv.optim.splines.spline_utils as spline_autograd_func
 
 
 class WeaklyConvexSplineActivation(torch.nn.Module):

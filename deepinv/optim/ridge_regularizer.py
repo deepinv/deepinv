@@ -1,11 +1,12 @@
 import torch
-from deepinv.models.splines.spline_activation import WeaklyConvexSplineActivation
+from deepinv.optim.splines.spline_activation import WeaklyConvexSplineActivation
 import numpy as np
-from deepinv.physics import Denoising
-from .utils import get_weights_url
+import deepinv
+from deepinv.optim import Prior
+from deepinv.models.utils import get_weights_url
 
 
-class RidgeRegularizer(torch.nn.Module):
+class RidgeRegularizer(Prior):
     r"""
     Weakly Convex Ridge Regularizer
 
@@ -13,9 +14,9 @@ class RidgeRegularizer(torch.nn.Module):
 
     .. math::
 
-        R(x)=\sum_{i=1}^N \psi_i(W_i x)
+        g_\sigma(x)=\sum_{i=1}^N \psi_{i,\sigma}(W_i x)
 
-    where :math:`W_i` are some convolutions and :math:`\psi_i` are some weakly convex activation functions parameterized by splines as defined. In practice, the :math:`W_i` are realized by a concatenation of several convolutions without non-linearities, where the number of channels of these convolutions can be specified in the constructor.
+    where :math:`W_i` are some convolutions and :math:`\psi_{i,\sigma}` are some weakly convex activation functions parameterized by splines as defined. In practice, the :math:`W_i` are realized by a concatenation of several convolutions without non-linearities, where the number of channels of these convolutions can be specified in the constructor.
 
 
     :param list of int channel_sequence: number of channels for the convolutions
@@ -58,18 +59,16 @@ class RidgeRegularizer(torch.nn.Module):
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt)
 
-    def forward(self, x, sigma, tol=1e-4, max_iter=500):
+    def prox(self, x, gamma=1.0, sigma=0.1, tol=1e-4, max_iter=500):
         r"""
-        Solve the denoising problem for the Weakly Convex Ridge Regularizer
-
-        via an accelerated gradient descent. When called without torch.no_grad() this might require a large amount of memory.
+        Solve the denoising problem for the Weakly Convex Ridge Regularizer via an accelerated gradient descent. When called without torch.no_grad() this might require a large amount of memory.
         """
 
         return self.reconstruct(
-            Denoising(),
+            deepinv.physics.Denoising(),
             x,
             sigma,
-            1.0,
+            gamma,
             tol=tol,
             max_iter=max_iter,
             physics_norm=1,
@@ -87,6 +86,22 @@ class RidgeRegularizer(torch.nn.Module):
         physics_norm=None,
         init=None,
     ):
+        r"""
+        Reconstruction with the weakly convex ridge regularizer.
+
+        Minimizes :math:`\frac{1}{2}\|Ax-y\|^2+\lambda R(x,\sigma)` via an accelerated gradient descent wrt :math:`x` with :math:`A` given by the physics argument.
+        The step size is chosen accordingly to the norm of the forward operator and the regularization parameter to ensure convergence.
+        When called without torch.no_grad() this might require a large amount of memory.
+
+        :param deepinv.physics.LinearPhysics physics: Physics, which must implement the forward operator and the adjoint
+        :param torch.Tensor y: observation
+        :param float or torch.Tensor sigma: noise level for the regularizer. If it is a tensor it must have shape (batch_size,)
+        :param float lmbd: :math:`\lambda` from the variational problem
+        :param float tol: tolerance for stopping criterion
+        :param max_iter: maximum number of iterations
+        :param float physics_norm: norm of :math:`A^TA`. If None is passed, it will be estimated by the power method
+        :param torch.Tensor init: Initialization. None for zero-initialization.
+        """
         adj = physics.A_adjoint(y)
         if physics_norm is None:
             physics_norm = physics.compute_norm(adj)
@@ -126,20 +141,18 @@ class RidgeRegularizer(torch.nn.Module):
                 break
         return x
 
-    def cost(self, x, sigma):
+    def g(self, x, sigma=0.05):
         r"""
-        Evaluates the regularizer itself.
-
-        It is not efficient to use autograd on this function. Use the grad function instead.
+        Evaluates the regularizer :math:`g_\sigma(x)` itself depending on the noise level :math:`\sigma`. It is not efficient to use autograd on this function. Use the grad function instead.
         """
         if isinstance(sigma, float):
             sigma = sigma * torch.ones((x.size(0),), device=x.device)
 
         return self.potential(self.W(x), sigma).sum(dim=tuple(range(1, len(x.shape))))
 
-    def grad(self, x, sigma):
+    def grad(self, x, sigma=0.05):
         r"""
-        Evaluates the gradient of the regularizer
+        Evaluates the gradient :math:`\nabla g_\sigma(x)`
         """
         if isinstance(sigma, float):
             sigma = sigma * torch.ones((x.size(0),), device=x.device)

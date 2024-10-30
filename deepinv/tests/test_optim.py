@@ -785,3 +785,23 @@ def test_patch_prior(imsize, dummy_dataset, device):
             x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)
+
+
+def test_ridge_regularizer(imsize, dummy_dataset, device):
+    torch.manual_seed(0)
+
+    dataloader = DataLoader(
+        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
+    )  # 1. Generate a dummy dataset
+    # gray-valued
+    test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
+    wcrr = torch.optim.RidgeRegularizer().to(device)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.GaussianNoise(0.1)
+    )  # 2. Set a physical experiment (here, denoising)
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    with torch.no_grad():
+        assert wcrr(test_sample) < wcrr(y)
+        x = wcrr.prox(y, gamma=1.0, sigma=0.1)
+        assert torch.sum((x - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)

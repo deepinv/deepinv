@@ -6,7 +6,7 @@ In this example we use weakly convex ridge regularizers from `this paper <https:
 
 """
 
-from deepinv.models import RidgeRegularizer
+from deepinv.optim import RidgeRegularizer
 import torch
 from deepinv.utils.demo import load_url_image, get_image_url
 import numpy as np
@@ -22,6 +22,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url, grayscale=True).to(device)
+if not torch.cuda.is_available():  # use a smaller image if no gpu is available
+    x = x[:, :, 100:164, 100:164]
 model = RidgeRegularizer(pretrained="../../deepinv/saved_model/weights.pt").to(device)
 
 # %%
@@ -34,7 +36,7 @@ model = RidgeRegularizer(pretrained="../../deepinv/saved_model/weights.pt").to(d
 noise_level = 0.1
 noisy = x + noise_level * torch.randn_like(x)
 with torch.no_grad():
-    recon = model(noisy, noise_level)
+    recon = model.prox(noisy, gamma=1.0, sigma=noise_level)
 
 plot([x, noisy, recon], titles=["ground truth", "observation", "reconstruction"])
 
