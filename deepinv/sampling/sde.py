@@ -110,9 +110,9 @@ class DiffusionSDE(nn.Module):
             drift=self.drift_forw, diffusion=self.diff_forw, rng=rng
         )
         if self.use_backward_ode:
-            self.drift_back = lambda x, t, *args, **kwargs: f(x, t) - 0.5 * (g(t) ** 2) * self.score(x, t, *args, **kwargs)
+            self.drift_back = lambda x, t, *args, **kwargs: - f(x, t) + 0.5 * (g(t) ** 2) * self.score(x, t, *args, **kwargs)
         else:
-            self.drift_back = lambda x, t, *args, **kwargs: f(x, t) - (g(t) ** 2) * self.score(x, t, *args, **kwargs)
+            self.drift_back = lambda x, t, *args, **kwargs: - f(x, t) + (g(t) ** 2) * self.score(x, t, *args, **kwargs)
         self.diff_back = lambda t: g(t)
         self.solver_name = solver_name
         self.rng = rng
@@ -131,11 +131,15 @@ class DiffusionSDE(nn.Module):
     def score(self, x, sigma):
         return -self.prior.grad(x, sigma)
 
+    def forward(self, init, timesteps):
+        with torch.no_grad():
+            return self.backward_sde.sample(init, timesteps=timesteps)
+
 class EDMSDE(DiffusionSDE):
     def __init__(
         self,
         *args,
-        name: str  = 'VE',
+        name: str  = 've',
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -196,6 +200,7 @@ class PosteriorEDMSDE(EDMSDE):
             return self.backward_sde.sample(noise, y, physics, timesteps=self.timesteps_fn(max_iter))
 
 
+
 if __name__ == "__main__":
     from edm import load_model
     import numpy as np
@@ -208,18 +213,17 @@ if __name__ == "__main__":
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     # EDM generation
-    # sde = EDMSDE(name = 've', prior=prior, use_backward_ode=True, solver_name = 'Heun')
-    # sample = sde((1, 3, 64, 64), max_iter = 20)
+    sde = DiffusionSDE(prior=prior, use_backward_ode=True, solver_name = 'Euler')
+    sample = sde((1, 3, 64, 64), max_iter = 20)
 
     # Posterior EDM generation
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url=url, img_size=64, device=device) 
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
-    noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
-    y = physics(x)
-    posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
-    posterior_sample = posterior_sde(y, physics, max_iter = 20)
+    # url = get_image_url("CBSD_0010.png")
+    # x = load_url_image(url=url, img_size=64, device=device) 
+    # physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
+    # noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
+    # y = physics(x)
+    # posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
+    # posterior_sample = posterior_sde(y, physics, max_iter = 20)
 
     # Plotting the samples
-    dinv.utils.plot([y, posterior_sample], titles = ['y', 'posterior_sample'])
-
+    dinv.utils.plot([sample], titles = ['sample'])
