@@ -193,7 +193,7 @@ def load_url_image(
     """
 
     response = requests.get(url)
-    img = Image.open(BytesIO(response.content)).convert('RGB')
+    img = Image.open(BytesIO(response.content))
     transform_list = []
     if img_size is not None:
         if resize_mode == "crop":
