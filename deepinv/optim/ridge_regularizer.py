@@ -164,8 +164,6 @@ class RidgeRegularizer(Prior):
         The load_state_dict method is overloaded to handle some internal parameters.
         """
         super().load_state_dict(state_dict, **kwargs)
-        self.potential.phi_plus.hyper_param_to_device()
-        self.potential.phi_minus.hyper_param_to_device()
         self.W.spectral_norm(mode="power_method", n_steps=100)
 
 

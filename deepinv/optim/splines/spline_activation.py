@@ -168,12 +168,14 @@ class LinearSpline(torch.nn.Module):
         self.num_knots = int(num_knots)
         self.num_activations = int(num_activations)
         self.init = init
-        self.x_min = torch.tensor([x_min])
-        self.x_max = torch.tensor([x_max])
+        self.register_buffer("x_min", torch.tensor([x_min]), persistent=False)
+        self.register_buffer("x_max", torch.tensor([x_max]), persistent=False)
         self.slope_min = slope_min
         self.slope_max = slope_max
 
-        self.step_size = (self.x_max - self.x_min) / (self.num_knots - 1)
+        step_size = (self.x_max - self.x_min) / (self.num_knots - 1)
+        self.register_buffer("step_size", step_size, persistent=False)
+
         self.antisymmetric = antisymmetric
         self.clamp = clamp
         self.no_constraints = (
@@ -189,15 +191,11 @@ class LinearSpline(torch.nn.Module):
         self.coefficients = torch.nn.Parameter(coefficients)
 
         self.projected_coefficients_cached = None
-
-        self.init_zero_knot_indexes()
-
-    def init_zero_knot_indexes(self):
-        """Initialize indexes of zero knots of each activation."""
-        # self.zero_knot_indexes[i] gives index of knot 0 for filter/neuron_i.
-        # size: (num_activations,)
-        activation_arange = torch.arange(0, self.num_activations)
-        self.zero_knot_indexes = activation_arange * self.num_knots
+        self.register_buffer(
+            "zero_knot_indexes",
+            torch.arange(0, self.num_activations) * self.num_knots,
+            persistent=False,
+        )
 
     def initialize_coeffs(self):
         """The coefficients are initialized with the value of the activation
@@ -237,15 +235,6 @@ class LinearSpline(torch.nn.Module):
     def device(self):
         return self.coefficients.device
 
-    def hyper_param_to_device(self):
-        device = self.device
-        self.x_min, self.x_max, self.step_size, self.zero_knot_indexes = (
-            self.x_min.to(device),
-            self.x_max.to(device),
-            self.step_size.to(device),
-            self.zero_knot_indexes.to(device),
-        )
-
     def forward(self, x):
         """
         Args:
@@ -256,7 +245,6 @@ class LinearSpline(torch.nn.Module):
         Returns:
             output (torch.Tensor)
         """
-        self.hyper_param_to_device()
 
         in_shape = x.shape
         in_channels = in_shape[1]
@@ -296,8 +284,6 @@ class LinearSpline(torch.nn.Module):
         Returns:
             output (torch.Tensor)
         """
-
-        self.hyper_param_to_device()
 
         in_shape = x.shape
         in_channels = in_shape[1]
