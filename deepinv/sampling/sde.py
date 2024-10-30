@@ -213,17 +213,17 @@ if __name__ == "__main__":
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 
     # EDM generation
-    sde = DiffusionSDE(prior=prior, use_backward_ode=True, solver_name = 'Euler')
+    sde = EDMSDE(prior=prior, use_backward_ode=True)
     sample = sde((1, 3, 64, 64), max_iter = 20)
 
     # Posterior EDM generation
-    # url = get_image_url("CBSD_0010.png")
-    # x = load_url_image(url=url, img_size=64, device=device) 
-    # physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
-    # noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
-    # y = physics(x)
-    # posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
-    # posterior_sample = posterior_sde(y, physics, max_iter = 20)
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url=url, img_size=64, device=device) 
+    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
+    noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
+    y = physics(x)
+    posterior_sde = PosteriorEDMSDE(prior=prior, data_fidelity = noisy_data_fidelity, name = 've', use_backward_ode=True, solver_name = 'Heun')
+    posterior_sample = posterior_sde(y, physics, max_iter = 20)
 
     # Plotting the samples
     dinv.utils.plot([sample], titles = ['sample'])
