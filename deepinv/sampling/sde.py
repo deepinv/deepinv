@@ -9,87 +9,7 @@ import numpy as np
 import warnings
 from utils import get_edm_parameters
 from noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
-
-class SDE_solver(nn.Module):
-    def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
-    ):
-        super().__init__()
-        self.drift = drift
-        self.diffusion = diffusion
-
-        self.rng = rng
-        if rng is not None:
-            self.initial_random_state = rng.get_state()
-
-    def step(self, t0, t1, x0):
-        pass
-
-    def sample(self, x_init: Tensor, *args, timesteps: Tensor = None, **kwargs) -> Tensor:
-        x = x_init
-        for i, t in enumerate(timesteps[:-1]):
-            x = self.step(t, timesteps[i + 1], x, *args, **kwargs)
-        return x
-
-    def rng_manual_seed(self, seed: int = None):
-        r"""
-        Sets the seed for the random number generator.
-
-        :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
-            Note: it will be ignored if the random number generator is not initialized.
-        """
-        if seed is not None:
-            if self.rng is not None:
-                self.rng = self.rng.manual_seed(seed)
-            else:
-                warnings.warn(
-                    "Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored."
-                )
-
-    def reset_rng(self):
-        r"""
-        Reset the random number generator to its initial state.
-        """
-        self.rng.set_state(self.initial_random_state)
-
-    def randn_like(self, input: torch.Tensor, seed: int = None):
-        r"""
-        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
-
-        """
-        self.rng_manual_seed(seed)
-        return torch.empty_like(input).normal_(generator=self.rng)
-
-
-class Euler_solver(SDE_solver):
-    def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
-    ):
-        super().__init__(drift, diffusion, rng=rng)
-
-    def step(self, t0, t1, x0, *args, **kwargs):
-        dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5
-        return x0 + self.drift(x0, t0, *args, **kwargs) * dt + self.diffusion(t0) * dW
-
-
-class Heun_solver(SDE_solver):
-    def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
-    ):
-        super().__init__(drift, diffusion, rng=rng)
-
-    def step(self, t0, t1, x0, *args, **kwargs):
-        dt = abs(t1 - t0)
-        dW = self.randn_like(x0) * dt**0.5
-        diff_x0 = self.diffusion(t0)
-        drift_x0 = self.drift(x0, t0, *args, **kwargs)
-        x_euler = x0 + drift_x0 * dt + diff_x0 * dW
-        diff_x1 = self.diffusion(t1)
-        drift_x1 = self.drift(x_euler, t1, *args, **kwargs)
-        return x0 + 0.5 * (drift_x0 + drift_x1) * dt + 0.5 * (diff_x0 + diff_x1) * dW
-
+from SDE_solver import Euler_solver, Heun_solver
 
 class DiffusionSDE(nn.Module):
     def __init__(
@@ -214,11 +134,9 @@ if __name__ == "__main__":
 
     # EDM generation
     sde = EDMSDE(prior=prior, use_backward_ode=True)
-    sample = sde((1, 3, 64, 64), max_iter = 20)
+    x = sde((1, 3, 64, 64), max_iter = 20)
 
     # Posterior EDM generation
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url=url, img_size=64, device=device) 
     physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=.5, device=device) 
     noisy_data_fidelity = DPSDataFidelity(denoiser = denoiser)
     y = physics(x)
@@ -226,4 +144,4 @@ if __name__ == "__main__":
     posterior_sample = posterior_sde(y, physics, max_iter = 20)
 
     # Plotting the samples
-    dinv.utils.plot([sample], titles = ['sample'])
+    dinv.utils.plot([x, y, posterior_sample], titles = ['sample', 'y', 'posterior_sample'])
