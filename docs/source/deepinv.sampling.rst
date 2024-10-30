@@ -45,7 +45,7 @@ which is typically set to a low value.
 
     deepinv.sampling.MonteCarlo
 
-Diffusion
+Diffusion (to remove?)
 ---------
 We provide various sota diffusion methods for sampling from the posterior distribution.
 Diffusion methods produce a sample from the posterior ``x`` given a
@@ -72,6 +72,21 @@ obtains multiple samples to compute posterior statistics such as the mean or var
    :nosignatures:
 
     deepinv.sampling.DiffusionSampler
+
+
+Noisy Data Fidelity
+-------------------
+
+We provide various data fidelity terms for the negative log-likelihood term of the posterior distribution
+:math:`- \log p(y|x)` following the nomenclature from `Daras et al. (2024) <https://arxiv.org/abs/2410.00083>`_.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.NoisyDataFidelity
+
 
 Markov Chain Monte Carlo Langevin
 -------------------------------------

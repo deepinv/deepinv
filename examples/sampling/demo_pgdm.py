@@ -1,3 +1,11 @@
+r"""
+PGDM implementation.
+========================================
+
+TODO
+
+"""
+
 # %%
 # Load image and physics
 

@@ -15,11 +15,11 @@ class NoisyDataFidelity(L2):
     It comes with a `.grad` method computing the score
 
     .. math::
-    \begin{equation}
-    \begin{aligned}
-        \nabla_x \datafid{x}{y} &= P(\forw{x'}-y'),
-    \end{aligned}
-    \end{equation}
+
+        \begin{equation*}
+            \nabla_x \log p(y|x) = P(\forw{x'}-y'),
+        \end{equation*}
+
 
     where :math:`P` is a preconditioner. By default, :math:`P` is defined as :math:`A^\top` and this class matches the
     :class:`deepinv.optim.DataFidelity` class.
