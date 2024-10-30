@@ -31,7 +31,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 url = get_image_url("00000.png")
 x_true = load_url_image(url=url, img_size=128).to(device)
 x = x_true.clone()
-
+x = x[:,:3,...]
 # %%
 # In this tutorial we consider Gaussian deblurring as the inverse problem, where the forward operator is implemented
 # in :meth:`deepinv.physics.Blur`. The kernel is generated using :meth:`deepinv.physics.blur.gaussian_blur``.
