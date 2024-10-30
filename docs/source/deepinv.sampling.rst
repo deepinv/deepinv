@@ -104,7 +104,19 @@ The gradient of the posterior can be computed with the :meth:`deepinv.sampling.N
     In its most simple approximation form, one can consider that :math:`P=A^\top` and :math:`x'=x` and :math:`y'=y`,
     matching the l2 data fidelity gradient in optimization.
 
-Several data fidelity terms approximation are available
+Several data fidelity terms approximation are available.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.NoisyDataFidelity
+    deepinv.sampling.DPSDataFidelity
+    deepinv.sampling.DDRMDataFidelity
+    deepinv.sampling.SNIPSDataFidelity
+    deepinv.sampling.DDNMDataFidelity
+    deepinv.sampling.PGDMDataFidelity
 
 
 
