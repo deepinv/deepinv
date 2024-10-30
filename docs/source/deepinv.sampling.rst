@@ -79,6 +79,15 @@ Noisy Data Fidelity
 
 We provide various data fidelity terms for the negative log-likelihood term of the posterior distribution
 :math:`- \log p(y|x)` following the nomenclature from `Daras et al. (2024) <https://arxiv.org/abs/2410.00083>`_.
+In its most general form, the score can be written as
+
+.. math::
+
+    \nabla_x \log p(y|x) = -P(\forw{x'} - y'),
+
+where :math:`P` is a preconditioner, :math:`A` is a linear operator, and :math:`x'` and :math:`y'` are modified
+versions of the image and the measurements, respectively. The data fidelity term can be set using the
+:class:`deepinv.sampling.NoisyDataFidelity` class.
 
 .. autosummary::
    :toctree: stubs
@@ -86,6 +95,30 @@ We provide various data fidelity terms for the negative log-likelihood term of t
    :nosignatures:
 
     deepinv.sampling.NoisyDataFidelity
+
+
+The gradient of the posterior can be computed with the :meth:`deepinv.sampling.NoisyDataFidelity.grad` method.
+
+.. note::
+
+    In its most simple approximation form, one can consider that :math:`P=A^\top` and :math:`x'=x` and :math:`y'=y`,
+    matching the l2 data fidelity gradient in optimization.
+
+Several data fidelity terms approximation are available.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.NoisyDataFidelity
+    deepinv.sampling.DPSDataFidelity
+    deepinv.sampling.DDRMDataFidelity
+    deepinv.sampling.SNIPSDataFidelity
+    deepinv.sampling.DDNMDataFidelity
+    deepinv.sampling.PGDMDataFidelity
+
+
 
 
 Markov Chain Monte Carlo Langevin
