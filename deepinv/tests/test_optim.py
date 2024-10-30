@@ -795,7 +795,9 @@ def test_ridge_regularizer(imsize, dummy_dataset, device):
     )  # 1. Generate a dummy dataset
     # gray-valued
     test_sample = next(iter(dataloader)).mean(1, keepdim=True).to(device)
-    wcrr = torch.optim.RidgeRegularizer().to(device)
+    wcrr = dinv.optim.RidgeRegularizer(
+        pretrained="../../deepinv/saved_model/weights.pt"
+    ).to(device)
     physics = dinv.physics.Denoising(
         noise_model=dinv.physics.GaussianNoise(0.1)
     )  # 2. Set a physical experiment (here, denoising)
