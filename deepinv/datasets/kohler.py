@@ -132,7 +132,9 @@ class Kohler(Dataset):
 
         :Examples:
 
-            >>> sharp_frame, blurry_shot = dataset[0]
+            Get the first sharp frame and blurry shot ::
+
+                sharp_frame, blurry_shot = dataset[0]
         """
         if self.ordering == "printout_first":
             printout_index = index // 12 + 1
@@ -170,7 +172,9 @@ class Kohler(Dataset):
 
         :Examples:
 
-            >>> sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
+            Get the first (middle) sharp frame and blurry shot ::
+
+                sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
         """
         frame_index = self.select_frame(printout_index, trajectory_index, frame=frame)
 
