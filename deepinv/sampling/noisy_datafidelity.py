@@ -49,7 +49,7 @@ class NoisyDataFidelity(L2):
         """
         return physics.A(x) - y
 
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics,  sigma) -> torch.Tensor:
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
         Computes the gradient of the data-fidelity term.
 
@@ -61,7 +61,7 @@ class NoisyDataFidelity(L2):
         """
         return self.precond(self.diff(x, y, physics, sigma))
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics: dinv.physics.Physics, sigma, **kwargs) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, **kwargs) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
@@ -95,11 +95,8 @@ class DPSDataFidelity(NoisyDataFidelity):
         As explained in `Daras et al. <https://arxiv.org/abs/2410.00083>`_, the score is defined as
 
         .. math::
-        \begin{equation}
-        \begin{aligned}
-            \nabla_x \log p(y|x) &= \left(\operatorname{Id}+\nabla_x^2\right)^\top A^\top \left(y-\forw{D(x)}\right)
-        \end{aligned}
-        \end{equation}
+
+                \nabla_x \log p(y|x) = \left(\operatorname{Id}+\nabla_x D(x)\right)^\top A^\top \left(y-\forw{D(x)}\right)
 
         .. note::
             The preconditioning term is computed with autodiff.
@@ -146,11 +143,15 @@ class DPSDataFidelity(NoisyDataFidelity):
 
 class SNIPSDataFidelity(NoisyDataFidelity):
     r"""
-    TBD
+    The SNIPS data-fidelity term.
 
-    :param float sigma: TBD
+    This corresponds to the :math:`p(y|x)` prior as proposed in `SNIPS: Solving Noisy Inverse Problems Stochastically <https://arxiv.org/abs/2105.14951>`_.
+
+    .. warning::
+        This loss assumes that the Physics admits a SVD decomposition.
+
+    :param denoiser: Denoiser network. # TODO: type?
     """
-
     def __init__(self, denoiser=None):
         super(SNIPSDataFidelity, self).__init__()
 
@@ -158,9 +159,9 @@ class SNIPSDataFidelity(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
-        TBD
+        Returns the loss term :math:`\|\Delta (y-\forw{x})\|_2^2`.
 
-        :param torch.Tensor x: TBD
+        TODO: check. does it make sense to incorporate P in the loss?
 
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
@@ -177,12 +178,22 @@ class SNIPSDataFidelity(NoisyDataFidelity):
         case = self.physics.mask > sigma_noise
         y_bar[case] = y_bar[case] / self.physics.mask[case]
 
-        loss = y_bar - self.physics.mask * x_bar
+        loss = self.d(y_bar - self.physics.mask * x_bar)
 
         return loss
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
+        r"""
+        Score function of the SNIPS data-fidelity term, assuming an SVD decomposition of the forward operator
+        :math:`A = U \Sigma V^\top`. As explained in `Daras et al. <https://arxiv.org/abs/2410.00083>`_, the score
+        is defined as
 
+        .. math::
+            \nabla_x \log p(y|x) = \Sigma^\top \left|\sigma_{y}^2 I_m - \sigma_t^2\Sigma\Sigma^\top\right|^\dagger (\bar y - \Sigma\bar x_t),
+
+        where :math:`\Sigma` is the mask, :math:`\sigma_{y}` is the noise level of the measurements, and :math:`\sigma_t` is the noise level of the denoiser.
+
+        """
         Sigma = physics.mask
         Sigma_T = torch.transpose(Sigma, -2, -1)
 
@@ -205,11 +216,16 @@ class SNIPSDataFidelity(NoisyDataFidelity):
 
 class DDRMDataFidelity(NoisyDataFidelity):
     r"""
-    TBD
+    The DDRM data-fidelity term.
 
-    :param float sigma: TBD
+    This corresponds to the :math:`p(y|x)` prior as proposed in `Denoising Diffusion Restoration Models <https://arxiv.org/abs/2201.11793>`_.
+
+    .. warning::
+
+        This loss assumes that the Physics admits a SVD decomposition.
+
+    :param denoiser: Denoiser network. # TODO: type?
     """
-
     def __init__(self, denoiser=None):
         super(DDRMDataFidelity, self).__init__()
 
@@ -217,11 +233,12 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
-        TBD
+        Returns the loss term :math:`\|\Delta (y-\forw{D(x)})\|_2^2`.
 
-        :param torch.Tensor x: TBD
-
-        :return: (torch.Tensor) TBD
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :param float sigma: standard deviation of the noise.
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma_noise = physics.noise_model.sigma
@@ -239,7 +256,17 @@ class DDRMDataFidelity(NoisyDataFidelity):
         return loss
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
+        r"""
+        Score function of the DDRM data-fidelity term, assuming an SVD decomposition of the forward operator.
 
+        .. math::
+            (\Sigma^\top \left|\sigma_{y}^2 I_m - \sigma_t^2\Sigma\Sigma^\top\right|^\dagger)(\bar y - \Sigma\bar x_{0|t})
+
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :param float sigma: standard deviation of the noise
+        """
         Sigma = physics.mask
         Sigma_T = torch.transpose(Sigma, -2, -1)
 
@@ -262,17 +289,32 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
 class PGDMDataFidelity(NoisyDataFidelity):
     r"""
-    TBD
+    The PGDM data-fidelity term.
+
+    This corresponds to the :math:`p(y|x)` prior as proposed in `Pseudoinverse-Guided Diffusion Models for Inverse Problems <https://openreview.net/pdf?id=9_gsMA8MRKQ>`_.
 
     :param float sigma: TBD
     """
-
     def __init__(self, denoiser=None):
         super(PGDMDataFidelity, self).__init__()
 
         self.denoiser = denoiser
 
     def grad(self, x, y, physics, sigma):
+        r"""
+        Score function of the PGDM data-fidelity term.
+
+        As explained in `Daras et al. <https://arxiv.org/abs/2410.00083>`_, the score is defined as
+
+        .. math::
+            \frac{\partial \mathbb{E}[X_0|X_t = x_t]}{\partial x_t} (r_t^2 AA^\top + \sigma_{\vy}^2 I)^{-1} A^\top y - A \E[X_0|X_t = x_t])
+
+
+        :param torch.Tensor x: input image.
+        :param torch.Tensor y: measurements.
+        :param physics: physics model.
+        :param float sigma: standard deviation of the noise.
+        """
         with torch.enable_grad():
             x.requires_grad_(True)
             loss = self.forward(x, y, sigma)
@@ -284,8 +326,10 @@ class PGDMDataFidelity(NoisyDataFidelity):
 
     def forward(self, x, y, physics, sigma):
         # TODO: why normalization here?
-        aux_x = x / 2 + 0.5
-        x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+        # aux_x = x / 2 + 0.5
+        # x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
+
+        x0_t = self.denoiser(x, sigma)
 
         return physics.d(physics.A_dagger(y), physics.A_dagger(physics.A(x0_t)))
 
@@ -440,6 +484,12 @@ class DDNMDataFidelity(NoisyDataFidelity):
     
     
     def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, lambda_t=None) -> torch.Tensor:
+        r"""
+
+        .. math::
+            \Sigma_t A^\dagger (y - A\mathbb{E}[X_0 | X_t=x_t, y])
+
+        """
         # TODO: DDNM needs the scaled residual
         
         residuals = self.diff(x, y, physics, sigma)
