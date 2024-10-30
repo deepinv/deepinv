@@ -18,20 +18,20 @@ linf_metric = lambda x, y: (x - y).abs().max()
 
 
 def test_shift_equivariant():
-    err = Shift().equivariance_error(afc, x, metric=linf_metric)
+    err = Shift().equivariance_test(afc, x, metric=linf_metric)
     assert err < 1e-5
 
 
 def test_not_shift_equivariant():
-    err = Shift().equivariance_error(unet, x, metric=linf_metric)
+    err = Shift().equivariance_test(unet, x, metric=linf_metric)
     assert err >= 1e0
 
 
 def test_translation_equivariant():
-    err = Translate().equivariance_error(afc, x, metric=linf_metric)
+    err = Translate().equivariance_test(afc, x, metric=linf_metric)
     assert err < 1e-4
 
 
 def test_not_translation_equivariant():
-    err = Translate().equivariance_error(unet, x, metric=linf_metric)
+    err = Translate().equivariance_test(unet, x, metric=linf_metric)
     assert err >= 1e0

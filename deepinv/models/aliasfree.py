@@ -538,6 +538,18 @@ def get_pad_layer(pad_type):
 
 
 class AliasFreeDenoiser(nn.Module):
+    r"""
+    An efficient translation-equivariant UNet denoiser
+
+    The network is implemented using circular convolutions, filtered polynomial nonlinearities and ideal up and downsampling operators as suggested by `Karras et al. (2021) <https://doi.org/10.48550/arXiv.2106.12423>`_ and `Michaeli et al. (2023) <https://doi.org/10.1109/CVPR52729.2023.01567>`_.
+
+    :param int in_channels: number of input channels.
+    :param int out_channels: number of output channels.
+    :param bool residual: if True, the output is the sum of the input and the denoised image.
+    :param bool cat: if True, the network uses skip connections.
+    :param int scales: number of scales in the network.
+    :param str block_kind: type of block to use in the network. Options are ``ConvBlock`` and ``ConvNextBlock``.
+    """
     def __init__(
         self,
         in_channels=3,

@@ -64,7 +64,7 @@ Deep Denoisers
 Equivariant Denoisers
 --------------------------
 The denoisers can be turned into equivariant denoisers by wrapping them with the
-:class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser 
+:class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser
 with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate` or :class:`deepinv.transform.Reflect`.
 You retain full flexibility by passing in the transform of choice.
 
@@ -72,12 +72,17 @@ The denoising can either be averaged over the entire group of transformation (ma
 transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
 equivariant denoiser.
 
+The library also features :class:`deepinv.models.AliasFreeDenoiser`, an
+efficient translation-equivariant denoiser using blocks introduced by Karras et al.
+(2021) and Michaeli et al. (2023).
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+   deepinv.models.AliasFreeDenoiser
 
 .. _adversarial-networks:
 Adversarial Networks
@@ -152,12 +157,9 @@ associated reference and relevant details. All pretrained weights are hosted on
        `weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
    * - :meth:`deepinv.models.EPLL`
      - Default: parameters estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
-   * - 
+   * -
      - Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo
    * - :meth:`deepinv.models.Restormer`
-     - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_. 
-   * - 
+     - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_.
+   * -
      - Also available on `Deepinv Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
-
-
-

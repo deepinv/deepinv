@@ -12,7 +12,7 @@ We implement various geometric transforms, ranging from Euclidean to homography 
 Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via ``|`` to randomly select.
 There are numerous other parameters e.g to randomly transform multiple times at once, to constrain the parameters to a range etc.
 
-Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``. 
+Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``.
 They can also be used for equivariant imaging (EI) using the :class:`deepinv.loss.EILoss` loss.
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` and :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` for examples.
 
@@ -68,6 +68,7 @@ Simple transforms
 
     deepinv.transform.Rotate
     deepinv.transform.Shift
+    deepinv.transform.Translate
     deepinv.transform.Scale
     deepinv.transform.Reflect
 
@@ -75,7 +76,7 @@ Advanced transforms
 -------------------
 
 We implement the following further geometric transforms.
-The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. 
+The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived.
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` for a demonstration. Note these require ``kornia`` installed.
 
 .. autosummary::
