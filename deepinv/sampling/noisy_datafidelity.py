@@ -24,12 +24,16 @@ class NoisyDataFidelity(L2):
     where :math:`P` is a preconditioner. By default, :math:`P` is defined as :math:`A^\top` and this class matches the
     :class:`deepinv.optim.DataFidelity` class.
     """
-    def __init__(self, physics=None, denoiser=None, data_fidelity=None):
+    def __init__(self):
         super(NoisyDataFidelity, self).__init__()
 
     def precond(self, u: torch.Tensor, physics) -> torch.Tensor:
         r"""
         The preconditioner :math:`P = A^\top` for the data fidelity term.
+
+        :param torch.Tensor u: input tensor.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (torch.FloatTensor) preconditionned tensor :math:`P(u)`.
         """
         return physics.A_adjoint(u)
 
@@ -57,14 +61,15 @@ class NoisyDataFidelity(L2):
         """
         return self.precond(self.diff(x, y, physics, sigma))
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, physics: dinv.physics.Physics, sigma, **kwargs) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
-        :param torch.Tensor x: Current iterate.
-        :param torch.Tensor y: Input data.
-
-        :return: (torch.Tensor) data-fidelity term.
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :param float sigma: standard deviation of the noise.
+        :return: (torch.Tensor) loss term.
         """
         return self.d(physics.A(x), y)
 
@@ -75,7 +80,7 @@ class DPSDataFidelity(NoisyDataFidelity):
 
     This corresponds to the :math:`p(y|x)` prior as proposed in `Diffusion Probabilistic Models <https://arxiv.org/abs/2209.14687>`_.
 
-    :param denoiser: Denoiser network.
+    :param denoiser: Denoiser network. # TODO: type?
     """
     def __init__(self, denoiser=None):
         super(DPSDataFidelity, self).__init__()
@@ -87,7 +92,6 @@ class DPSDataFidelity(NoisyDataFidelity):
 
     def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
-
         As explained in `Daras et al. <https://arxiv.org/abs/2410.00083>`_, the score is defined as
 
         .. math::
@@ -115,15 +119,25 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         return norm_grad
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, clip=True) -> torch.Tensor:
         r"""
         Returns the loss term :math:`\distance{\forw{D(x)}}{y}`.
 
-
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :param float sigma: standard deviation of the noise.
+        :param bool clip: whether to clip the output of the denoiser to the range [-1, 1].
+        :return: (torch.Tensor) loss term.
         """
-        aux_x = x / 2 + 0.5
-        x0_t = 2 * self.denoiser(aux_x, sigma / 2) - 1
-        x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+        # TODO: check that the following does not belong to the grad method but to the denoiser method itself.
+        # aux_x = x / 2 + 0.5
+        # x0_t = 2 * self.denoiser(x, sigma / 2) - 1
+
+        x0_t = self.denoiser(x, sigma)
+
+        if clip:
+            x0_t = torch.clip(x0_t, 0., 1.0)  # optional
 
         l2_loss = self.d(physics.A(x0_t), y)
 
@@ -148,7 +162,10 @@ class SNIPSDataFidelity(NoisyDataFidelity):
 
         :param torch.Tensor x: TBD
 
-        :return: (torch.Tensor) TBD
+        :param torch.Tensor x: input image
+        :param torch.Tensor y: measurements
+        :param deepinv.physics.Physics physics: forward operator
+        :param float sigma: standard deviation of the noise.
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma_noise = physics.noise_model.sigma
