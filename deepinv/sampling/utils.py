@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 import numpy as np
 
 
@@ -27,17 +28,17 @@ class Welford:
         return self.S / (self.k - 1)
 
 
-def refl_projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+def refl_projbox(x, lower: Tensor, upper: Tensor) -> Tensor:
     x = torch.abs(x)
     return torch.clamp(x, min=lower, max=upper)
 
 
-def projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+def projbox(x, lower: Tensor, upper: Tensor) -> Tensor:
     return torch.clamp(x, min=lower, max=upper)
 
 
 def exp(input):
-    if isinstance(input, torch.Tensor):
+    if isinstance(input, Tensor):
         return torch.exp(input)
     elif isinstance(input, (float, int, np.ndarray)):
         return np.exp(input)
@@ -52,8 +53,8 @@ def get_edm_parameters(discretization: str = "edm"):
     :return dict containing: solver (str)
                              timesteps_fn (Callable): function to compute time step for discretization
                              sigma_fn (Callable): function to compute sigma
-                             sigma_inv (Callable): function to compute the inverse function of sigma_fn
-                             sigma_deriv (Callable): function to compute the derivative of sigma_fn
+                             sigma_inv_fn (Callable): function to compute the inverse function of sigma_fn
+                             sigma_deriv_fn (Callable): function to compute the derivative of sigma_fn
     """
 
     # Helper functions for VP
@@ -83,13 +84,13 @@ def get_edm_parameters(discretization: str = "edm"):
         solver = "euler"
         timesteps_fn = vp_timesteps
         sigma_fn = vp_sigma
-        sigma_inv = vp_sigma_inv
-        sigma_deriv = vp_sigma_deriv
+        sigma_inv_fn = vp_sigma_inv
+        sigma_deriv_fn = vp_sigma_deriv
         beta_fn = lambda t: vp_sigma_deriv(t) / vp_sigma(t)
         s_fn = lambda t: 1 / (
             np.e ** (0.5 * vp_beta_d * (t**2) + vp_beta_min * t) ** 0.5
         )
-        s_deriv = lambda t: -0.5 * (vp_beta_d * t + vp_beta_min) / s_fn(t)
+        s_deriv_fn = lambda t: -0.5 * (vp_beta_d * t + vp_beta_min) / s_fn(t)
         sigma_max = vp_sigma(1.0)
 
     elif discretization == "ve":
@@ -107,11 +108,11 @@ def get_edm_parameters(discretization: str = "edm"):
         solver = "euler"
         timesteps_fn = ve_timesteps
         sigma_fn = ve_sigma
-        sigma_inv = ve_sigma_inv
-        sigma_deriv = ve_sigma_deriv
+        sigma_inv_fn = ve_sigma_inv
+        sigma_deriv_fn = ve_sigma_deriv
         beta_fn = lambda t: 0.5 / t
         s_fn = lambda t: 1.0
-        s_deriv = lambda t: 0.0
+        s_deriv_fn = lambda t: 0.0
         sigma_max = ve_sigma_max
 
     elif discretization == "edm":
@@ -135,22 +136,39 @@ def get_edm_parameters(discretization: str = "edm"):
         solver = "edm_heun"
         timesteps_fn = edm_timesteps
         sigma_fn = edm_sigma
-        sigma_inv = edm_sigma_inv
-        sigma_deriv = edm_sigma_deriv
+        sigma_inv_fn = edm_sigma_inv
+        sigma_deriv_fn = edm_sigma_deriv
         beta_fn = lambda t: 0.0
         s_fn = lambda t: 1.0
-        s_deriv = lambda t: 0.0
+        s_deriv_fn = lambda t: 0.0
         sigma_max = edm_sigma_max
 
     params = {
         "solver": solver,
         "timesteps_fn": timesteps_fn,
         "sigma_fn": sigma_fn,
-        "sigma_inv": sigma_inv,
-        "sigma_deriv": sigma_deriv,
+        "sigma_inv_fn": sigma_inv_fn,
+        "sigma_deriv_fn": sigma_deriv_fn,
         "beta_fn": beta_fn,
         "s_fn": s_fn,
-        "s_deriv": s_deriv,
+        "s_deriv_fn": s_deriv_fn,
         "sigma_max": sigma_max,
     }
     return params
+
+
+def stable_division(a: Tensor, b: Tensor, epsilon: float = 1e-7):
+    b = torch.where(
+        b.abs().detach() > epsilon, b, torch.full_like(b, fill_value=epsilon) * b.sign()
+    )
+    return a / b
+
+
+def to_zeros_and_ones(a: Tensor):
+    if a.ndim == 3:
+        a -= a.min()
+        a /= a.max()
+    elif a.ndim == 4:
+        a -= a.min(dim=(1, 2, 3), keepdim=True)
+        a /= a.max(dim=(1, 2, 3), keepdim=True)
+    return a

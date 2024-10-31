@@ -1,29 +1,36 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Optional, Union
+from numpy import ndarray
 import warnings
 
 
-class SDE_solver(nn.Module):
+class BaseSDESolver(nn.Module):
     def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
+        self,
+        drift: Callable,
+        diffusion: Callable,
+        rng: Optional[torch.Generator] = None,
+        **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.drift = drift
         self.diffusion = diffusion
-
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def step(self, t0, t1, x0):
+    def step(self, t0, t1, x0: Tensor):
         pass
 
-    def sample(self, x_init: Tensor, *args, timesteps: Tensor = None, **kwargs) -> Tensor:
+    @torch.no_grad()
+    def sample(
+        self, x_init: Tensor, *args, timesteps: Union[Tensor, ndarray] = None, **kwargs
+    ) -> Tensor:
         x = x_init
-        for i, t in enumerate(timesteps[:-1]):
-            x = self.step(t, timesteps[i + 1], x, *args, **kwargs)
+        for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
+            x = self.step(t_cur, t_next, x, *args, **kwargs)
         return x
 
     def rng_manual_seed(self, seed: int = None):
@@ -57,7 +64,7 @@ class SDE_solver(nn.Module):
         return torch.empty_like(input).normal_(generator=self.rng)
 
 
-class Euler_solver(SDE_solver):
+class EulerSolver(BaseSDESolver):
     def __init__(
         self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
     ):
@@ -69,7 +76,7 @@ class Euler_solver(SDE_solver):
         return x0 + self.drift(x0, t0, *args, **kwargs) * dt + self.diffusion(t0) * dW
 
 
-class Heun_solver(SDE_solver):
+class HeunSolver(BaseSDESolver):
     def __init__(
         self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
     ):
@@ -84,4 +91,3 @@ class Heun_solver(SDE_solver):
         diff_x1 = self.diffusion(t1)
         drift_x1 = self.drift(x_euler, t1, *args, **kwargs)
         return x0 + 0.5 * (drift_x0 + drift_x1) * dt + 0.5 * (diff_x0 + diff_x1) * dW
-

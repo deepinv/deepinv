@@ -34,7 +34,6 @@ def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
         edm-ffhq-64x64-uncond-vp.pkl
         edm-imagenet-64x64-cond-adm.pkl
     """
-    # os.chdir(current_path)
     sys.path.append(current_path)
     network_pkl = "https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/" + str(model_name)
     with open_url(network_pkl) as f:
@@ -44,7 +43,4 @@ def load_model(model_name: str = "edm-afhqv2-64x64-uncond-ve.pkl") -> nn.Module:
             "Number of parameters: ",
             sum(p.numel() for p in net.model.parameters()),
         )
-
-    print(net.sigma_min, net.sigma_max)
-    # os.chdir("/".join(current_path.split("/")[:-1]))
     return ModelWrapper(net)
