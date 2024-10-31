@@ -4,6 +4,7 @@ from deepinv.optim.data_fidelity import L2
 
 # This file implements the p(y|x) terms as proposed in the `review paper <https://arxiv.org/pdf/2410.00083>`_ by Daras et al.
 
+
 class NoisyDataFidelity(L2):
     r"""
     Preconditioned data fidelity term for noisy data :math:`\datafid{x}{y}=\distance{\forw{x'}}{y'}`.
@@ -24,6 +25,7 @@ class NoisyDataFidelity(L2):
     where :math:`P` is a preconditioner. By default, :math:`P` is defined as :math:`A^\top` and this class matches the
     :class:`deepinv.optim.DataFidelity` class.
     """
+
     def __init__(self):
         super(NoisyDataFidelity, self).__init__()
 
@@ -36,7 +38,6 @@ class NoisyDataFidelity(L2):
         :return: (torch.FloatTensor) preconditionned tensor :math:`P(u)`.
         """
         return physics.A_adjoint(u)
-
 
     def diff(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         r"""
@@ -61,7 +62,9 @@ class NoisyDataFidelity(L2):
         """
         return self.precond(self.diff(x, y, physics, sigma))
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, **kwargs) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor, physics, sigma, **kwargs
+    ) -> torch.Tensor:
         r"""
         Computes the data-fidelity term.
 
@@ -82,6 +85,7 @@ class DPSDataFidelity(NoisyDataFidelity):
 
     :param denoiser: Denoiser network. # TODO: type?
     """
+
     def __init__(self, denoiser=None):
         super(DPSDataFidelity, self).__init__()
 
@@ -116,7 +120,9 @@ class DPSDataFidelity(NoisyDataFidelity):
 
         return norm_grad
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, clip=True) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor, physics, sigma, clip=True
+    ) -> torch.Tensor:
         r"""
         Returns the loss term :math:`\distance{\forw{D(x)}}{y}`.
 
@@ -134,7 +140,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         x0_t = self.denoiser(x, sigma)
 
         if clip:
-            x0_t = torch.clip(x0_t, 0., 1.0)  # optional
+            x0_t = torch.clip(x0_t, 0.0, 1.0)  # optional
 
         l2_loss = self.d(physics.A(x0_t), y)
 
@@ -152,6 +158,7 @@ class SNIPSDataFidelity(NoisyDataFidelity):
 
     :param denoiser: Denoiser network. # TODO: type?
     """
+
     def __init__(self, denoiser=None):
         super(SNIPSDataFidelity, self).__init__()
 
@@ -226,6 +233,7 @@ class DDRMDataFidelity(NoisyDataFidelity):
 
     :param denoiser: Denoiser network. # TODO: type?
     """
+
     def __init__(self, denoiser=None):
         super(DDRMDataFidelity, self).__init__()
 
@@ -295,6 +303,7 @@ class PGDMDataFidelity(NoisyDataFidelity):
 
     :param float sigma: TBD
     """
+
     def __init__(self, denoiser=None):
         super(PGDMDataFidelity, self).__init__()
 
@@ -376,7 +385,6 @@ class ILVRDataFidelity(NoisyDataFidelity):
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, physics, sigma) -> torch.Tensor:
         return self.d(physics(x), y + sigma * torch.randn_like(y))
-
 
 
 class ScoreSDE(NoisyDataFidelity):
@@ -481,9 +489,10 @@ class DDNMDataFidelity(NoisyDataFidelity):
         # x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
         return y - physics.A(x0_t)
-    
-    
-    def grad(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, lambda_t=None) -> torch.Tensor:
+
+    def grad(
+        self, x: torch.Tensor, y: torch.Tensor, physics, sigma, lambda_t=None
+    ) -> torch.Tensor:
         r"""
 
         .. math::
@@ -491,28 +500,32 @@ class DDNMDataFidelity(NoisyDataFidelity):
 
         """
         # TODO: DDNM needs the scaled residual
-        
+
         residuals = self.diff(x, y, physics, sigma)
         A_dagger_residual = physics.A_dagger(residuals)
-        
+
         # Project A_dagger_residual into the spectral space using V^T
         V_T_A_dagger_residual = physics.V_adjoint(A_dagger_residual)
-        
+
         # Scale V_T_A_dagger_residual with Sigma_t. To do this we use Lambda_t in the spectral space
         scaled_V_T_A_dagger_residual = V_T_A_dagger_residual * lambda_t
-        
-        guidance = (-1 / sigma**2) 
-        
+
+        guidance = -1 / sigma**2
+
         # Project back to the original space using U
-        norm_grad = guidance * self.physics.U(V_T_A_dagger_residual)  # Shape: (B, C, H, W)
-        
+        norm_grad = guidance * self.physics.U(
+            V_T_A_dagger_residual
+        )  # Shape: (B, C, H, W)
+
         return norm_grad
 
-    def grad_simplified(self, x: torch.Tensor, y: torch.Tensor, physics, sigma, lambda_t=None) -> torch.Tensor:
-        
+    def grad_simplified(
+        self, x: torch.Tensor, y: torch.Tensor, physics, sigma, lambda_t=None
+    ) -> torch.Tensor:
+
         meas_error = self.diff(x, y, physics, sigma)
-        
-        guidance = (-1 / sigma**2) 
+
+        guidance = -1 / sigma**2
         grad_norm = guidance * lambda_t * self.physics.A_dagger(meas_error)
- 
+
         return grad_norm

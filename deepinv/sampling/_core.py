@@ -79,10 +79,10 @@ class BaseSDESolver(nn.Module):
         r"""
         Defaults to Euler step
         """
-        drift, diffusion = self.sde.discretize(x0, t0)
+        drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
         dt = t1 - t0
         dW = self.randn_like(x0) * abs(dt) ** 0.5
-        return x0 + drift(x0, t0, *args, **kwargs) * dt + diffusion(t0) * dW
+        return x0 + drift * dt + diffusion * dW
 
     @torch.no_grad()
     def sample(

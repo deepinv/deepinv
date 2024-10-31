@@ -42,7 +42,7 @@ sigma = 12.75 / 255.0  # noise level
 
 physics = dinv.physics.Downsampling(
     img_size=(3, x.shape[-2], x.shape[-1]),
-    filter='bicubic',
+    filter="bicubic",
     factor=16,
     device=device,
     noise_level=sigma,
@@ -164,7 +164,7 @@ at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
 x0 = x_true
-print('sigma_t = ', sigmat)
+print("sigma_t = ", sigmat)
 xt = x0 + sigmat * torch.randn_like(x0)
 
 # apply denoiser
@@ -186,6 +186,3 @@ x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 noisy_datafidelity = dinv.sampling.noisy_datafidelity.ILVRDataFidelity(
     physics=physics, denoiser=model
 )
-
-
-
