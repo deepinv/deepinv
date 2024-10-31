@@ -216,7 +216,7 @@ class UNet(nn.Module):
         if self.compact == 2:
             self._forward = self.forward_compact2
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
