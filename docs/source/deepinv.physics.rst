@@ -291,6 +291,7 @@ Compressive operators are implemented in the following classes:
 
    deepinv.physics.CompressedSensing
    deepinv.physics.SinglePixelCamera
+   deepinv.physics.StructuredRandom
 
 
 Radio interferometric imaging

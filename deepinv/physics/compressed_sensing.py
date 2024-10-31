@@ -3,7 +3,7 @@ import torch
 
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.functional import random_choice
-from deepinv.physics.phase_retrieval import StructuredRandom, generate_diagonal
+from deepinv.physics.structured_random import StructuredRandom, generate_diagonal
 
 
 def dst1(x):
