@@ -58,7 +58,6 @@ from deepinv.diffunet.guided_diffusion.gaussian_diffusion import (
 
 model_name = "diffusion_ffhq_10m"
 model_path = "./ffhq_10m.pt"
-
 model_config = (
     dict(
         model_path=model_path,
@@ -149,7 +148,9 @@ def compute_alpha(beta, t):
 
 betas = get_betas()
 
+# for time_step_int in [900, 800, 500, 100, 50]:
 time_step_int = 500
+print(time_step_int)
 
 t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long()).to(device)
@@ -160,8 +161,37 @@ x0 = 2 * x0 - 1
 print(x0.min(), x0.max())
 xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
 
+noise_est_sample_var = model.forward_diffusion(xt, timesteps=t, y=None)
+noise_est = noise_est_sample_var[:, :3, ...]
+
+x0 = (xt - noise_est * sigmat) / at.sqrt()
+imgs = [x_true, xt, x0]
+plot(
+    imgs,
+    titles=["ground-truth", "noisy", "posterior mean with model.forward_diffusion"],
+    figsize=(10, 5),
+)
+
+
+
+time_step_int = 500
+
+t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
+at = compute_alpha(betas, t.long()).to(device)
+sigmat = (1 - at).sqrt()
+
+x0 = x_true.to(device)
+
+x0 = 2 * x0 - 1
+print(x0.min(), x0.max())
+print('sigmat = ' , sigmat)
+xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
+
+x_in = xt / 2 + 0.5
+
+print('Input : ', x_in.min(), x_in.max())
 # apply denoiser
-x0_t = model(xt / 2 + 0.5, sigmat)
+x0_t = model.forward_denoise(x_in, sigmat/2.)
 
 # Visualize
 imgs = [x0, xt, x0_t]
@@ -173,17 +203,5 @@ plot(
 
 print(x0_t.min(), x0_t.max())
 
-# %%
 
-t = 500
-timesteps = torch.tensor([t]).to(xt.device)
-noise_est_sample_var = model.forward_diffusion(xt, timesteps=timesteps, y=None)
-noise_est = noise_est_sample_var[:, :3, ...]
 
-x0 = (xt - noise_est * sigmat) / at.sqrt()
-imgs = [x_true, xt, x0]
-plot(
-    imgs,
-    titles=["ground-truth", "noisy", "posterior mean with model.forward_diffusion"],
-    figsize=(10, 5),
-)
