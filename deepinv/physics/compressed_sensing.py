@@ -3,6 +3,7 @@ import torch
 
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.functional import random_choice
+from deepinv.physics.phase_retrieval import StructuredRandom, generate_diagonal
 
 
 def dst1(x):
@@ -51,6 +52,8 @@ class CompressedSensing(LinearPhysics):
 
     It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
+
+    .. warning:: The ``fast`` option is deprecated and might be removed in futrue versions.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
@@ -134,20 +137,36 @@ class CompressedSensing(LinearPhysics):
             n = int(np.prod(img_shape))
 
         if self.fast:
+            # generate random subsampling matrix
             self.n = n
-            self.D = torch.where(
-                torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
-            )
-
             self.mask = torch.zeros(self.n, device=device)
             idx = torch.sort(
                 random_choice(self.n, size=m, replace=False, rng=self.rng)
             ).values
             self.mask[idx] = 1
             self.mask = self.mask.type(torch.bool)
-
-            self.D = torch.nn.Parameter(self.D, requires_grad=False)
             self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+
+            # generate random sign matrix
+            self.D = generate_diagonal(
+                shape=(n,),
+                mode="rademacher",
+                dtype=torch.float,
+                device=device,
+                generator=self.rng,
+            )
+            self.D = torch.nn.Parameter(self.D, requires_grad=False)
+
+            self.FD = StructuredRandom(
+                input_shape=(n,),
+                output_shape=(n,),
+                n_layers=1,
+                transform_func=dst1,
+                transform_func_inv=dst1,
+                device=device,
+                diagonals=[self.D],
+            )
+
         else:
             if self.use_haar is False:
                 # generate A as an iid Gaussian matrix
@@ -183,7 +202,7 @@ class CompressedSensing(LinearPhysics):
             x = x.reshape(N, -1)
 
         if self.fast:
-            y = dst1(x * self.D)[:, self.mask]
+            y = self.FD(x)[:, self.mask]
         else:
             y = torch.einsum("in, mn->im", x, self._A)
 
@@ -206,7 +225,7 @@ class CompressedSensing(LinearPhysics):
         if self.fast:
             y2 = torch.zeros((N2, self.n), device=y.device)
             y2[:, self.mask] = y.type(y2.dtype)
-            x = dst1(y2) * self.D
+            x = self.FD.A_adjoint(y2)
         else:
             x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)
 

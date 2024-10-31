@@ -14,7 +14,10 @@ def default_preprocessing(y, physics):
 
 
 def correct_global_phase(
-    x_recon: torch.Tensor, x: torch.Tensor, threshold=1e-5
+    x_recon: torch.Tensor,
+    x: torch.Tensor,
+    threshold: float = 1e-5,
+    verbose: bool = False,
 ) -> torch.Tensor:
     r"""
     Corrects the global phase of the reconstructed image.
@@ -37,6 +40,8 @@ def correct_global_phase(
 
     :param torch.Tensor x_recon: Reconstructed image.
     :param torch.Tensor x: Original image.
+    :param float threshold: Threshold to determine if the global phase shift is constant. Default is 1e-5.
+    :param bool verbose: If True, prints information about the global phase shift. Default is False.
 
     :return: The corrected image.
     """
@@ -52,9 +57,11 @@ def correct_global_phase(
         for j in range(n_channels):
             e_minus_phi = (x_recon[i, j].conj() * x[i, j]) / (x[i, j].abs() ** 2)
             if e_minus_phi.var() < threshold:
-                print(f"Image {i}, channel {j} has a constant global phase shift.")
+                if verbose:
+                    print(f"Image {i}, channel {j} has a constant global phase shift.")
             else:
-                print(f"Image {i}, channel {j} does not have a global phase shift.")
+                if verbose:
+                    print(f"Image {i}, channel {j} does not have a global phase shift.")
             e_minus_phi = e_minus_phi.mean()
             x_recon[i, j] = x_recon[i, j] * e_minus_phi
 
@@ -96,6 +103,7 @@ def spectral_methods(
     log_metric=cosine_similarity,
     early_stop: bool = True,
     rtol: float = 1e-5,
+    verbose: bool = False,
 ):
     r"""
     Utility function for spectral methods.
@@ -129,6 +137,7 @@ def spectral_methods(
     :param function log_metric: Metric to log. Default is cosine similarity.
     :param bool early_stop: Whether to early stop the iterations. Default is True.
     :param float rtol: Relative tolerance for early stopping. Default is 1e-5.
+    :param bool verbose: If True, prints information in case of an early stop. Default is False.
 
     :return: The estimated signals :math:`x`.
     """
@@ -163,7 +172,8 @@ def spectral_methods(
             metrics.append(log_metric(x_new, x_true))
         if early_stop:
             if torch.linalg.norm(x_new - x) / torch.linalg.norm(x) < rtol:
-                print(f"Power iteration early stopped at iteration {i}.")
+                if verbose:
+                    print(f"Power iteration early stopped at iteration {i}.")
                 break
         x = x_new
     #! change the norm of x so that it matches the norm of true x

@@ -9,46 +9,25 @@ from deepinv.physics.forward import Physics, LinearPhysics
 from deepinv.optim.phase_retrieval import spectral_methods
 
 
-def compare(a: int, b: int):
+def compare(input_shape: tuple, output_shape: tuple) -> str:
     r"""
-    Compare two numbers.
+    Compare input and output shape to determine the sampling mode.
 
-    :param int a: First number.
-    :param int b: Second number.
+    :param tuple input_shape: Input shape (C, H, W).
+    :param tuple output_shape: Output shape (C, H, W).
 
-    :return: The comparison result (>, < or =).
+    :return: The sampling mode in ["oversampling","undersampling","equisampling].
     """
-    if a > b:
-        return ">"
-    elif a < b:
-        return "<"
+    if input_shape[1] == output_shape[1] and input_shape[2] == output_shape[2]:
+        return "equisampling"
+    elif input_shape[1] <= output_shape[1] and input_shape[2] <= output_shape[2]:
+        return "oversampling"
+    elif input_shape[1] >= output_shape[1] and input_shape[2] >= output_shape[2]:
+        return "undersampling"
     else:
-        return "="
-
-
-def merge_order(a: str, b: str):
-    r"""
-    Merge two orders.
-
-    If a and b are the same, return the same order.
-    If a and b are one ">" and one "<", return "!".
-    If a or b is "=", return the other order.
-
-    :param str a: First order.
-    :param str b: Second order.
-
-    :return: The merged order.
-    """
-    if a == ">" and b == "<":
-        return "!"
-    elif a == "<" and b == ">":
-        return "!"
-    elif a == ">" or b == ">":
-        return ">"
-    elif a == "<" or b == "<":
-        return "<"
-    else:
-        return "="
+        raise ValueError(
+            "Does not support different sampling schemes on height and width."
+        )
 
 
 def padding(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
@@ -100,21 +79,24 @@ def trimming(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
 
 
 def generate_diagonal(
-    shape,
-    mode,
+    shape: tuple,
+    mode: str,
     dtype=torch.cfloat,
     device="cpu",
+    generator=torch.Generator("cpu"),
 ):
     r"""
     Generate a random tensor as the diagonal matrix.
     """
 
-    #! all distributions should be normalized to have E[|x|^2] = 1
     if mode == "uniform_phase":
-        # Generate REAL-VALUED random numbers in the interval [0, 1)
         diag = torch.rand(shape)
         diag = 2 * np.pi * diag
         diag = torch.exp(1j * diag)
+    elif mode == "rademacher":
+        diag = torch.where(
+            torch.rand(shape, device=device, generator=generator) > 0.5, -1.0, 1.0
+        )
     else:
         raise ValueError(f"Unsupported mode: {mode}")
     return diag.to(device)
@@ -291,14 +273,19 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         return self.B._A.var() + self.B._A.mean() ** 2
 
 
-class StructuredRandomLinearOperator(LinearPhysics):
+class StructuredRandom(LinearPhysics):
     r"""
-    Linear operator for structured random phase retrieval.
+    Structured random linear operator model corresponding to the operator
 
-    :param tuple input_shape: shape (C, H, W) of inputs.
-    :param tuple output_shape: shape (C, H, W) of outputs.
-    :param str mode: sampling mode.
-    :param float n_layers: number of layers.
+    .. math::
+
+        A(x) = \prod_{i=1}^N (F D_i) x,
+
+    where :math:`F` is a matrix representing a structured transform, :math:`D_i` are diagonal matrices, and :math:`N` refers to the number of layers. It is also possible to replace :math:`x` with :math:`Fx` as an additional 0.5 layer.
+
+    :param tuple input_shape: input shape. If (C, H, W), i.e., the input is a 2D signal with C channels, then zero-padding will be used for oversampling and cropping will be used for undersampling.
+    :param tuple output_shape: shape of outputs.
+    :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`.
     :param function transform_func: structured transform function.
     :param function transform_func_inv: structured inverse transform function.
     :param list diagonals: list of diagonal matrices.
@@ -308,7 +295,6 @@ class StructuredRandomLinearOperator(LinearPhysics):
         self,
         input_shape,
         output_shape,
-        mode,
         n_layers,
         transform_func,
         transform_func_inv,
@@ -316,11 +302,12 @@ class StructuredRandomLinearOperator(LinearPhysics):
         **kwargs,
     ):
 
-        def A(x):
-            assert (
-                x.shape[1:] == input_shape
-            ), f"x doesn't have the correct shape {x.shape[1:]} != {input_shape}"
+        if len(input_shape) == 3:
+            mode = compare(input_shape, output_shape)
+        else:
+            mode = None
 
+        def A(x):
             if mode == "oversampling":
                 x = padding(x, input_shape, output_shape)
 
@@ -337,10 +324,6 @@ class StructuredRandomLinearOperator(LinearPhysics):
             return x
 
         def A_adjoint(y):
-            assert (
-                y.shape[1:] == output_shape
-            ), f"y doesn't have the correct shape {y.shape[1:]} != {self.output_shape}"
-
             if mode == "undersampling":
                 y = padding(y, input_shape, output_shape)
 
@@ -368,6 +351,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         A(x) = |\prod_{i=1}^N (F D_i) x|^2,
 
     where :math:`F` is the Discrete Fourier Transform (DFT) matrix, and :math:`D_i` are diagonal matrices with elements of unit norm and random phases, and :math:`N` refers to the number of layers. It is also possible to replace :math:`x` with :math:`Fx` as an additional 0.5 layer.
+
+    For oversampling, we first pad the input signal with zeros to match the output shape and pass it to :math:`A(x)`. For undersampling, we first pass the signal in its original shape to :math:`A(x)` and trim the output signal to match the output shape.
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
@@ -411,22 +396,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.dtype = dtype
         self.device = device
 
-        # determine the sampling mode
-        height_order = compare(input_shape[1], output_shape[1])
-        width_order = compare(input_shape[2], output_shape[2])
-
-        order = merge_order(height_order, width_order)
-
-        if order == "<":
-            self.mode = "oversampling"
-        elif order == ">":
-            self.mode = "undersampling"
-        elif order == "=":
-            self.mode = "equisampling"
-        else:
-            raise ValueError(
-                "Does not support different sampling schemes on height and width."
-            )
+        self.mode = compare(input_shape, output_shape)
 
         # generate diagonal matrices
         self.diagonals = []
@@ -472,7 +442,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         else:
             raise ValueError(f"Unimplemented transform: {transform}")
 
-        B = StructuredRandomLinearOperator(
+        B = StructuredRandom(
             input_shape=self.input_shape,
             output_shape=self.output_shape,
             mode=self.mode,
