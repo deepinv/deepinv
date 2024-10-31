@@ -73,7 +73,7 @@ class CompressedSensing(LinearPhysics):
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param bool use_haar: Use Haar matrix instead of Gaussian matrix. Default is False.
-    :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
+    :param bool compute_inverse: Precompute the pseudo-inverse of the forward matrix (only for ``fast=False`` option). Precomputing the pseudoinverse can be slow if the matrix is large. Default is ``False``.
     :param torch.type dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
