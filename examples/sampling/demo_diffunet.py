@@ -173,7 +173,7 @@ plot(
 )
 
 
-for time_step_int in [900, 600, 200]:
+for time_step_int in [500, 200, 50, 10, 5]:
     # time_step_int = 500
 
     print(time_step_int)
@@ -186,7 +186,7 @@ for time_step_int in [900, 600, 200]:
 
     x0 = 2 * x0 - 1
     print(x0.min(), x0.max())
-    print('sigmat = ' , sigmat)
+    print('sigmat = ' , sigmat, 'at.sqrt() = ', at.sqrt())
     xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
 
     x_in = xt / 2 + 0.5
@@ -204,6 +204,24 @@ for time_step_int in [900, 600, 200]:
     )
 
     print(x0_t.min(), x0_t.max())
+
+
+    xt = x0 + sigmat * torch.randn_like(x0)
+
+    x_in = xt / 2 + 0.5
+
+    print('Input : ', x_in.min(), x_in.max())
+    # apply denoiser
+    x0_t = model.forward_denoise_old(x_in, sigmat/2.)
+
+    # Visualize
+    imgs = [x0, xt, x0_t]
+    plot(
+        imgs,
+        titles=["ground-truth", "noisy", "posterior mean with model.forward_denoise_old"],
+        figsize=(10, 5),
+    )
+
 
 
 
