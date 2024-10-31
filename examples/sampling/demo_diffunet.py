@@ -99,7 +99,7 @@ log_one_minus_alphas_cumprod = np.log(1.0 - alphas_cumprod)
 sqrt_recip_alphas_cumprod = np.sqrt(1.0 / alphas_cumprod)
 sqrt_recipm1_alphas_cumprod = np.sqrt(1.0 / alphas_cumprod - 1)
 
-t_i = 400
+t_i = 500
 sigmat = torch.from_numpy(sqrt_one_minus_alphas_cumprod).to(device)[t_i].float()
 sqrt_alpha_t = torch.from_numpy(sqrt_alphas_cumprod).to(device)[t_i].float()
 
@@ -119,7 +119,7 @@ x0 = utils_model.model_fn(
 
 plot(
     [x_true, xt, x0],
-    titles=["ground-truth", "noisy", "posterior mean"],
+    titles=["ground-truth", "noisy", "posterior mean with utils_model.model_fn"],
     figsize=(10, 5),
 )
 print(xt.min(), xt.max())
@@ -167,7 +167,7 @@ x0_t = model(xt / 2 + 0.5, sigmat)
 imgs = [x0, xt, x0_t]
 plot(
     imgs,
-    titles=["ground-truth", "noisy", "posterior mean"],
+    titles=["ground-truth", "noisy", "posterior mean with model.forward"],
     figsize=(10, 5),
 )
 
@@ -184,6 +184,6 @@ x0 = (xt - noise_est * sigmat) / at.sqrt()
 imgs = [x_true, xt, x0]
 plot(
     imgs,
-    titles=["ground-truth", "noisy", "posterior mean"],
+    titles=["ground-truth", "noisy", "posterior mean with model.forward_diffusion"],
     figsize=(10, 5),
 )
