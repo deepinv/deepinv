@@ -26,3 +26,4 @@ from .prior import (
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL
 from .dpir import DPIR
+from .ridge_regularizer import RidgeRegularizer

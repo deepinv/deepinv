@@ -11,6 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added Weakly Convex Ridge Regularziers (:gh:`313` by `Mehrsa Pourya_`, `Johannes Hertrich`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
@@ -239,3 +240,4 @@ Authors
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
+.. _Mehrsa Pourya: https://mehrsapo.github.io

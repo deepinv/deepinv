@@ -163,6 +163,7 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+   deepinv.optim.RidgeRegularizer
 
 
 .. _optim-params:
