@@ -173,35 +173,37 @@ plot(
 )
 
 
+for time_step_int in [900, 600, 200]:
+    # time_step_int = 500
 
-time_step_int = 500
+    print(time_step_int)
 
-t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
-at = compute_alpha(betas, t.long()).to(device)
-sigmat = (1 - at).sqrt()
+    t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
+    at = compute_alpha(betas, t.long()).to(device)
+    sigmat = (1 - at).sqrt()
 
-x0 = x_true.to(device)
+    x0 = x_true.to(device)
 
-x0 = 2 * x0 - 1
-print(x0.min(), x0.max())
-print('sigmat = ' , sigmat)
-xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
+    x0 = 2 * x0 - 1
+    print(x0.min(), x0.max())
+    print('sigmat = ' , sigmat)
+    xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
 
-x_in = xt / 2 + 0.5
+    x_in = xt / 2 + 0.5
 
-print('Input : ', x_in.min(), x_in.max())
-# apply denoiser
-x0_t = model.forward_denoise(x_in, sigmat/2.)
+    print('Input : ', x_in.min(), x_in.max())
+    # apply denoiser
+    x0_t = model.forward_denoise(x_in, sigmat/2.)
 
-# Visualize
-imgs = [x0, xt, x0_t]
-plot(
-    imgs,
-    titles=["ground-truth", "noisy", "posterior mean with model.forward"],
-    figsize=(10, 5),
-)
+    # Visualize
+    imgs = [x0, xt, x0_t]
+    plot(
+        imgs,
+        titles=["ground-truth", "noisy", "posterior mean with model.forward"],
+        figsize=(10, 5),
+    )
 
-print(x0_t.min(), x0_t.max())
+    print(x0_t.min(), x0_t.max())
 
 
 

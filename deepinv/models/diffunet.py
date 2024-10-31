@@ -366,6 +366,7 @@ class DiffUNet(nn.Module):
             reduced_alpha_cumprod,
             sqrt_recip_alphas_cumprod,
             sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
         )
 
     def find_nearest(self, array, value):
@@ -397,24 +398,19 @@ class DiffUNet(nn.Module):
             reduced_alpha_cumprod,
             sqrt_recip_alphas_cumprod,
             sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
         ) = self.get_alpha_prod()
-        print('sigma unnorm = ', sigma*2)
+
         timesteps = self.find_nearest(
-            reduced_alpha_cumprod, sigma * 2
+            sqrt_1m_alphas_cumprod, sigma * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
-        print('Found timesteps = ', timesteps, ' SHOULD BE 500')
-        timesteps = 500 # debug
+        print('FOUND TIMESTEP : ', timesteps)
 
         noise_est_sample_var = self.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y
         )
         noise_est = noise_est_sample_var[:, :3, ...]
-        # denoised = (
-        #     sqrt_recip_alphas_cumprod[timesteps] * x
-        #     - sqrt_recipm1_alphas_cumprod[timesteps] * noise_est
-        # )
-        # print('timesteps found = ', timesteps)
         denoised = (x - noise_est * sigma * 2) / reduced_alpha_cumprod[timesteps].sqrt()
         denoised = denoised.clamp(-1, 1)
         return denoised / 2.0 + 0.5
