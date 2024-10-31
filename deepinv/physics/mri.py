@@ -126,7 +126,7 @@ class MRI(DecomposablePhysics):
         r"""
         Updates MRI mask and verifies mask shape to be B,C,H,W.
 
-        :param torch.nn.Parameter, float MRI subsampling mask.
+        :param torch.nn.Parameter, float mask: MRI subsampling mask.
         """
         if mask is not None:
             mask = mask.to(self.device)

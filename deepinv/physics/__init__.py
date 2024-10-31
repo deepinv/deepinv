@@ -30,6 +30,7 @@ from .phase_retrieval import (
 )
 from .radio import RadioInterferometry
 from .time import TimeMixin
+from .rendering import RenderingPhysics
 
 from . import generator
 from . import functional

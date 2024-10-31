@@ -21,6 +21,7 @@ from .scheduler import (
     StepLossScheduler,
     InterleavedEpochLossScheduler,
 )
+from .depth import ViewConsistencyLoss
 
 from . import metric
 
