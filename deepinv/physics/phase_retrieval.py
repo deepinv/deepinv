@@ -373,7 +373,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     :param tuple input_shape: shape (C, H, W) of inputs.
     :param tuple output_shape: shape (C, H, W) of outputs.
-    :param int n_layers: number of layers. an extra F is at the end if there is a 0.5
+    :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`
     :param str transform: structured transform to use. Default is 'fft'.
     :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
     :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.
