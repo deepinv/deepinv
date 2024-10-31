@@ -57,7 +57,7 @@ from deepinv.diffunet.guided_diffusion.gaussian_diffusion import (
 )
 
 model_name = "diffusion_ffhq_10m"
-model_path = "./ffhq_10m.pt"
+model_path = "diffusion_ffhq_10m.pt"
 model_config = (
     dict(
         model_path=model_path,
@@ -106,22 +106,22 @@ xt = sqrt_alpha_t * x_true + sigmat * torch.randn_like(x_true)
 
 curr_noise_level = sigmat.item()
 
-x0 = utils_model.model_fn(
-    xt,
-    noise_level=curr_noise_level * 255,
-    model_out_type="pred_xstart",
-    model_diffusion=model,
-    diffusion=diffusion,
-    ddim_sample=False,
-    alphas_cumprod=torch.from_numpy(alphas_cumprod),
-)
+# x0 = utils_model.model_fn(
+#     xt,
+#     noise_level=curr_noise_level * 255,
+#     model_out_type="pred_xstart",
+#     model_diffusion=model,
+#     diffusion=diffusion,
+#     ddim_sample=False,
+#     alphas_cumprod=torch.from_numpy(alphas_cumprod),
+# )
 
-plot(
-    [x_true, xt, x0],
-    titles=["ground-truth", "noisy", "posterior mean with utils_model.model_fn"],
-    figsize=(10, 5),
-)
-print(xt.min(), xt.max())
+# plot(
+#     [x_true, xt, x0],
+#     titles=["ground-truth", "noisy", "posterior mean with utils_model.model_fn"],
+#     figsize=(10, 5),
+# )
+# print(xt.min(), xt.max())
 
 # %%
 
@@ -156,66 +156,179 @@ t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timest
 at = compute_alpha(betas, t.long()).to(device)
 sigmat = (1 - at).sqrt()
 
-x0 = x_true.to(device)
-x0 = 2 * x0 - 1
-print(x0.min(), x0.max())
-xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
+# x0 = x_true.to(device)
+# x0 = 2 * x0 - 1
+# print(x0.min(), x0.max())
+# xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
 
-noise_est_sample_var = model.forward_diffusion(xt, timesteps=t, y=None)
-noise_est = noise_est_sample_var[:, :3, ...]
+# noise_est_sample_var = model.forward_diffusion(xt, timesteps=t, y=None)
+# noise_est = noise_est_sample_var[:, :3, ...]
 
-x0 = (xt - noise_est * sigmat) / at.sqrt()
-imgs = [x_true, xt, x0]
-plot(
-    imgs,
-    titles=["ground-truth", "noisy", "posterior mean with model.forward_diffusion"],
-    figsize=(10, 5),
-)
+# x0 = (xt - noise_est * sigmat) / at.sqrt()
+# imgs = [x_true, xt, x0]
+# plot(
+#     imgs,
+#     titles=["ground-truth", "noisy", "posterior mean with model.forward_diffusion"],
+#     figsize=(10, 5),
+# )
 
 
-for time_step_int in [500, 200, 50, 10, 5]:
+for time_step_int in [500]:
     # time_step_int = 500
 
-    print(time_step_int)
 
+
+    def forward_denoise_old(model, x, sigma, y=None):
+        r"""
+        Apply the denoising model to an input batch.
+
+        This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
+        underlying image in the input image.
+        The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
+        divisible by a power of 2.
+
+        :param x: an [N x C x ...] Tensor of inputs.
+        :param sigma: a 1-D batch of noise levels.
+        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
+        :return: an [N x C x ...] Tensor of outputs.
+        """
+        x = 2.0 * x - 1.0
+        (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
+            sqrt_alphas_cumprod,
+        ) = model.get_alpha_prod()
+        alpha_est = (1/(1 + 4 * sigma ** 2)).sqrt()
+        timesteps = model.find_nearest(
+            sqrt_1m_alphas_cumprod, sigma * 2 * alpha_est.sqrt()
+        )  # Factor 2 because image rescaled in [-1, 1]
+
+        print('FOUND TIMESTEP OLD : ', timesteps)
+
+        noise_est_sample_var = model.forward_diffusion(
+            alpha_est.sqrt() * x, torch.tensor([timesteps]).to(x.device), y=y
+        )
+        noise_est = noise_est_sample_var[:, :3, ...]
+        # denoised = (
+        #     sqrt_recip_alphas_cumprod[timesteps] * x
+        #     - sqrt_recipm1_alphas_cumprod[timesteps] * noise_est
+        # )
+        denoised = (x - noise_est * (1-alpha_est.sqrt())/alpha_est.sqrt()) / sqrt_alphas_cumprod[timesteps]
+        denoised = denoised.clamp(-1, 1)
+        return denoised / 2.0 + 0.5
+    
+    def forward_denoise(model, x, sigma, y=None):
+        r"""
+        Apply the denoising model to an input batch.
+
+        This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
+        underlying image in the input image.
+        The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
+        divisible by a power of 2.
+
+        :param x: an [N x C x ...] Tensor of inputs.
+        :param sigma: a 1-D batch of noise levels.
+        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
+        :return: an [N x C x ...] Tensor of outputs.
+        """
+        # alpha depend du timestep t
+        # hyp: x = sqrt(alpha_t) * x_true + sqrt(1-alpha_t) * torch.randn_like(x_true)
+        # alpha_t = 1/(1 + 4 * sigma^2)
+        # estimate t from alpha_t
+
+        x = 2.0 * x - 1.0
+        (
+            reduced_alpha_cumprod,
+            sqrt_recip_alphas_cumprod,
+            sqrt_recipm1_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
+            sqrt_alphas_cumprod,
+        ) = model.get_alpha_prod()
+
+        timesteps = model.find_nearest(
+            sqrt_1m_alphas_cumprod, sigma * 2
+        )  # Factor 2 because image rescaled in [-1, 1]
+
+        print('FOUND TIMESTEP : ', timesteps)
+
+        noise_est_sample_var = model.forward_diffusion(
+            x, torch.tensor([timesteps]).to(x.device), y=y
+        )
+        noise_est = noise_est_sample_var[:, :3, ...]
+        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps].sqrt()
+        denoised = denoised.clamp(-1, 1)
+        
+        return (denoised + 1)*2
+
+    
+    
+    # print('sigmat = ' , sigmat, 'at.sqrt() = ', at.sqrt())
+    # xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
+
+    # x_in = xt / 2 + 0.5
+
+    # print('Input : ', x_in.min(), x_in.max())
+    # # apply denoiser
+    # x0_t = model.forward_denoise(x_in, sigmat/2.)
+
+    # # Visualize
+    # imgs = [x0, xt, x0_t]
+    # plot(
+    #     imgs,
+    #     titles=["ground-truth", "noisy", "posterior mean with model.forward"],
+    #     figsize=(10, 5),
+    # )
+
+    # print(x0_t.min(), x0_t.max())
+    # time_step_int = 0
+    # t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
+    # at = compute_alpha(betas, t.long()).to(device)
+    # sigmat = (1 - at).sqrt()
+    # print(at.sqrt())
+
+    time_step_int = 100
     t = torch.ones(1, device=device) * time_step_int  # choose some arbitrary timestep
     at = compute_alpha(betas, t.long()).to(device)
     sigmat = (1 - at).sqrt()
+    print(at.sqrt())
+
 
     x0 = x_true.to(device)
 
-    x0 = 2 * x0 - 1
-    print(x0.min(), x0.max())
-    print('sigmat = ' , sigmat, 'at.sqrt() = ', at.sqrt())
-    xt = at.sqrt() * x0 + sigmat * torch.randn_like(x0)
+    # x0 = 2 * x0 - 1
 
-    x_in = xt / 2 + 0.5
+    # print(x0.min(), x0.max())
 
-    print('Input : ', x_in.min(), x_in.max())
-    # apply denoiser
-    x0_t = model.forward_denoise(x_in, sigmat/2.)
+    # xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+
+    # x_in = xt / 2 + 0.5
+
+    # print('Input : ', xt.min(), xt.max())
+
+    sigma = 0.8
+    x_in = x0 + sigma * torch.randn_like(x0)
+    alpha = 1 / (1 + 4 * sigma ** 2)
+    x_in = 2*x_in - 1
+    x_in = np.sqrt(alpha)*x_in
+    x_in = (x_in + 1)*0.5
+    print(alpha)
+    print(np.sqrt(alpha)*sigma - np.sqrt(1-alpha))
+
+    
+    # x0 = 2*x0 - 1
+    # x_in = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+    # x_in = (x_in + 1)*0.5
+    # sigma = (1 - at).sqrt()
+    # sigma /= 2
+    # # apply denoiser
+
+    xest = forward_denoise(model, x_in, np.sqrt(alpha)*sigma) 
+    print(xest.min(), xest.max())
 
     # Visualize
-    imgs = [x0, xt, x0_t]
-    plot(
-        imgs,
-        titles=["ground-truth", "noisy", "posterior mean with model.forward"],
-        figsize=(10, 5),
-    )
-
-    print(x0_t.min(), x0_t.max())
-
-
-    xt = x0 + sigmat * torch.randn_like(x0)
-
-    x_in = xt / 2 + 0.5
-
-    print('Input : ', x_in.min(), x_in.max())
-    # apply denoiser
-    x0_t = model.forward_denoise_old(x_in, sigmat/2.)
-
-    # Visualize
-    imgs = [x0, xt, x0_t]
+    imgs = [x0, x_in, xest]
     plot(
         imgs,
         titles=["ground-truth", "noisy", "posterior mean with model.forward_denoise_old"],
