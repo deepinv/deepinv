@@ -137,6 +137,9 @@ class CompressedSensing(LinearPhysics):
             n = int(np.prod(img_shape))
 
         if self.fast:
+            print(
+                "Warning: fast option is deprecated and might be removed in future versions."
+            )
             # generate random subsampling matrix
             self.n = n
             self.mask = torch.zeros(self.n, device=device)
