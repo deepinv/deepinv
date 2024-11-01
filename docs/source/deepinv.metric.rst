@@ -79,6 +79,7 @@ for an explanation of distortion vs perceptual metrics):
         deepinv.loss.metric.QNR
         deepinv.loss.metric.L1L2
 
+
 Perceptual metrics
 ------------------
 

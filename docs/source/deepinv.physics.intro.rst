@@ -1,0 +1,141 @@
+.. _physics_intro:
+
+Introduction
+---------------
+
+All forward operators inherit the structure of the :meth:`Physics` class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Physics
+
+They are :class:`torch.nn.Module` which can be called with the ``forward`` method.
+
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> # load an inpainting operator that masks 50% of the pixels and adds Gaussian noise
+    >>> physics = dinv.physics.Inpainting(mask=.5, tensor_size=(1, 28, 28),
+    ...                    noise_model=dinv.physics.GaussianNoise(sigma=.05))
+    >>> x = torch.rand(1, 1, 28, 28) # create a random image
+    >>> y = physics(x) # compute noisy measurements
+    >>> y2 = physics.A(x) # compute the A operator (no noise)
+
+Linear operators
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :meth:`deepinv.physics.LinearPhysics` class.
+They have important specific properties such as the existence of an adjoint :math:`A^*:\yset\mapsto \xset`.
+Linear operators with a closed-form singular value decomposition are defined via :meth:`deepinv.physics.DecomposablePhysics`,
+which enables the efficient computation of their pseudo-inverse and regularized inverse.
+Composition and linear combinations of linear operators is still a linear operator.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    >>> x = torch.rand(1, 1, 28, 28) # create a random image
+    >>> y = physics(x) # compute noisy measurements
+    >>> y2 = physics.A(x) # compute the linear operator (no noise)
+    >>> x_adj = physics.A_adjoint(y) # compute the adjoint operator
+    >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
+    >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
+
+More details can be found in the doc of each class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.LinearPhysics
+   deepinv.physics.DecomposablePhysics
+
+
+Parameter-dependent operators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, ie
+:math:`y = \noise{\forw{x, \theta}}` where
+the ``forward`` method can be called with a dictionary of parameters as an extra input. The explicit dependency on
+:math:`\theta` is often useful for blind inverse problems, model identification, imaging system optimization, etc.
+The following example shows how operators and their parameter can be instantiated and called as:
+
+.. doctest::
+
+   >>> import torch
+   >>> from deepinv.physics import Blur
+   >>> x = torch.rand((1, 1, 16, 16))
+   >>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+   >>> # default usage
+   >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
+   >>> y = physics(x)
+   >>> theta2 = torch.randn((1, 1, 2, 2)) # a random 2x2 filter
+   >>> physics.update_parameters(filter=theta2)
+   >>> y2 = physics(x)
+   >>>
+   >>> # A second possibility
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> y = physics(x, filter=theta) # we define the blur by specifying its filter
+   >>> y = physics(x) # now, the filter is well-defined and this line does the same as above
+   >>>
+   >>> # The same can be done by passing in a dictionary including 'filter' as a key
+   >>> physics = Blur() # a blur operator without convolution filter
+   >>> dict_params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
+
+
+
+Physics Generators
+^^^^^^^^^^^^^^^^^^^
+We provide some parameters generation methods to sample random parameters' :math:`\theta`.
+Physics generators inherit from the :meth:`PhysicsGenerator` class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.PhysicsGenerator
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>>
+    >>> x = torch.rand((1, 1, 8, 8))
+    >>> physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> y = physics(x) # compute with Gaussian blur
+    >>> generator = dinv.physics.generator.MotionBlurGenerator(psf_size=(3, 3))
+    >>> params = generator.step(x.size(0)) # params = {'filter': torch.tensor(...)}
+    >>> y1 = physics(x, **params) # compute with motion blur
+    >>> assert not torch.allclose(y, y1) # different blurs, different outputs
+    >>> y2 = physics(x) # motion kernel is stored in the physics object as default kernel
+    >>> assert torch.allclose(y1, y2) # same blur, same output
+
+If we want to generate both a new physics and noise parameters,
+it is possible to sum generators as follows:
+
+.. doctest::
+
+    >>> mask_generator = dinv.physics.generator.SigmaGenerator() \
+    ...    + dinv.physics.generator.RandomMaskGenerator((32, 32))
+    >>> params = mask_generator.step(batch_size=4)
+    >>> print(sorted(params.keys()))
+    ['mask', 'sigma']
+
+It is also possible to mix generators of physics parameters through the :meth:`GeneratorMixture` class:
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.GeneratorMixture

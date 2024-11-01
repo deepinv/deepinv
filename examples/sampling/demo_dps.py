@@ -11,10 +11,11 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 # Installing dependencies
 # -----------------------
 # Let us ``import`` the relevant packages, and load a sample
-# image of size 64x64. This will be used as our ground truth image.
+# image of size 64 x 64. This will be used as our ground truth image.
+#
 # .. note::
-#           We work with an image of size 64x64 to reduce the computational time of this example.
-#           The algorithm works best with images of size 256x256.
+#           We work with an image of size 64 x 64 to reduce the computational time of this example.
+#           The algorithm works best with images of size 256 x 256.
 #
 
 import numpy as np
@@ -189,7 +190,7 @@ plot(
 #
 # For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
 # is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_
+# `Chung et al. <https://arxiv.org/abs/2209.14687>`_)
 #
 # .. math::
 #

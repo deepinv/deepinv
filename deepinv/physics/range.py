@@ -12,6 +12,7 @@ class Decolorize(DecomposablePhysics):
     The measurements are grayscale images.
 
     :param str device: device to use.
+
     |sep|
 
     :Examples:

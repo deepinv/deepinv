@@ -8,7 +8,7 @@ which are especially designed for inverse problems.
 
 Introduction
 --------------------
-All losses inherit from the base class :meth:`deepinv.loss.Loss`, which is a meth:`torch.nn.Module`.
+All losses inherit from the base class :meth:`deepinv.loss.Loss`, which is a :meth:`torch.nn.Module`.
 
 .. autosummary::
    :toctree: stubs
@@ -71,6 +71,7 @@ about the forward measurement process.
 
 
 .. _adversarial-losses:
+
 Adversarial Learning
 --------------------
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game. 

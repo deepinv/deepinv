@@ -6,6 +6,14 @@ DeepInverse is a community-driven project and welcomes contributions of all form
 We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
+Make sure that you download all the required dependencies for testing
+by running in the root directory of the repository:
+
+.. code-block:: bash
+
+    pip install .[test,dataset,denoisers,doc]
+
+
 We will acknowledge all contributors in the documentation and in the source code. Significant contributions
 will also be taken into account when deciding on the authorship of future publications.
 
@@ -19,7 +27,8 @@ check the following points:
   making the desired changes.
 - The automatic tests pass on your local machine. This can be done by running ``python -m pytest deepinv/tests``
   in the root directory of the repository after making the desired changes.
-- The documentation is updated if necessary. After making the desired changes, this can be done in the directory
+- The documentation is updated if necessary.
+  After making the desired changes, this can be done in the directory
   ``docs`` by running one of the commands in the table below.
 
 .. list-table::
@@ -31,7 +40,7 @@ check the following points:
    * - ``make html``
      - Generates all the documentation
    * - ``make html-noplot``
-     - Generates documentation faster but without plots
+     - Generates documentation faster but without running the examples
    * - ``PATTERN=/path/to/file make html-pattern``
      - Generates documentation for files matching ``$(PATTERN)``
 

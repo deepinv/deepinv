@@ -63,6 +63,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
+    "furo",
 ]
 
 # optional dependencies for specific denoisers

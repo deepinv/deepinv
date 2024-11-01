@@ -65,7 +65,7 @@ class CompressedSensing(LinearPhysics):
 
     .. math::
 
-        A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m}) \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
+        A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m} \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.

@@ -58,7 +58,7 @@ You can also install additional dependencies needed for some modules in deepinv.
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
 
-Getting Started
+Quickstart
 ---------------
 Try out the following plug-and-play image inpainting example:
 

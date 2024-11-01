@@ -9,7 +9,8 @@ class ArtifactRemoval(nn.Module):
     The architecture is inspired by the FBPConvNet approach of https://arxiv.org/pdf/1611.03679
     where a deep network :math:`\phi` is used to improve the linear reconstruction :math:`A^{\top}y`.
 
-    :param torch.nn.Module backbone_net: Base network :math:`\phi`, can be pretrained or not.
+    :param torch.nn.Module backbone_net: Base denoiser network :math:`\phi`
+        (see :ref:`denoisers` for available architectures).
     :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
     :param torch.device device: cpu or gpu.
     """

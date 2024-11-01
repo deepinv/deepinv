@@ -50,7 +50,7 @@ def test(
     :param bool show_progress_bar: Show progress bar.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``,
         ``'A_adjoint'``, ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can modify the no-learning method
-         by overwriting the :meth:`deepinv.Trainer.no_learning_inferece` method
+        by overwriting the :meth:`deepinv.Trainer.no_learning_inferece` method
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """

@@ -176,7 +176,7 @@ class DataFidelity(nn.Module):
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`f`
+        :param float lamb: :math:`\lambda` parameter in front of :math:`f`
         :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \datafidname)^*}(x)`,
             computed in :math:`x`.
         """
@@ -196,7 +196,7 @@ class DataFidelity(nn.Module):
         :param torch.Tensor u: Variable :math:`u` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`\distancename`
+        :param float lamb: :math:`\lambda` parameter in front of :math:`\distancename`
         :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma (\lambda \distancename)^*}(x)`,
             computed in :math:`x`.
         """

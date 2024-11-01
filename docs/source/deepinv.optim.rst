@@ -1,7 +1,7 @@
 .. _optim:
 
-Optim
-=====
+Optimization
+============
 
 This package contains a collection of routines that optimize
 

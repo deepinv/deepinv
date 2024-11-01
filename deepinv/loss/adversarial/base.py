@@ -7,21 +7,23 @@ from deepinv.loss.loss import Loss
 
 
 class DiscriminatorMetric:
-    r"""Generic GAN discriminator metric building block.
+    r"""
+    Generic GAN discriminator metric building block.
 
     Compares discriminator output with labels depending on if the image should be real or not.
 
-    The loss function is composed following LSGAN: `Least Squares Generative Adversarial Networks <https://arxiv.org/abs/1611.04076v3>`_
+    The loss function is composed following LSGAN:
+    `Least Squares Generative Adversarial Networks <https://arxiv.org/abs/1611.04076v3>`_
 
     This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
     See `Are GANs Created Equal? <https://arxiv.org/abs/1711.10337>`_ for a comparison.
 
-    :param nn.Module metric: loss with which to compare outputs, defaults to nn.MSELoss()
+    :param torch.nn.Module metric: loss with which to compare outputs, defaults to :meth:`torch.nn.MSELoss()`
     :param float real_label: value for ideal real image, defaults to 1.
     :param float fake_label: value for ideal fake image, defaults to 0.
-    :param bool no_grad: whether to no_grad the metric computation, defaults to False
-    :param str device: torch device, defaults to "cpu"
+    :param bool no_grad: whether to no_grad the metric computation, defaults to ``False``
+    :param str device: torch device, defaults to ``"cpu"``
     """
 
     def __init__(
@@ -89,14 +91,20 @@ class GeneratorLoss(Loss):
 
 
 class DiscriminatorLoss(Loss):
-    r"""Base discriminator adversarial loss. Override the forward function to
-    call `adversarial_loss` with quantities depending on your specific GAN model.
-    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
+    r"""
+    Base discriminator adversarial loss.
+
+    Override the forward function to
+    call ``adversarial_loss`` with quantities depending on your specific GAN model.
+
+    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`,
+    :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formulae.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
+    :param torch.nn.Module D: discriminator network.
+        If not specified, ``D`` must be provided in ``forward``, defaults to ``None``.
     :param str device: torch device, defaults to "cpu"
     """
 

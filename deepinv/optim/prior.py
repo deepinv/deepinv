@@ -112,7 +112,7 @@ class Prior(nn.Module):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :param float lamb: math:`\lambda` parameter in front of :math:`f`
+        :param float lamb: :math:`\lambda` parameter in front of :math:`f`
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma \lambda g)^*}(x)`, computed in :math:`x`.
         """
         return x - gamma * self.prox(x / gamma, lamb / gamma, *args, **kwargs)
@@ -216,7 +216,7 @@ class ScorePrior(Prior):
 
     .. note::
 
-        If math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
+        If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
         `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
 
 
@@ -663,10 +663,15 @@ class PatchNR(nn.Module):
 class L12Prior(Prior):
     r"""
     :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.
+
     The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
+
+    :param int l2_axis: dimension in which the :math:`\ell_2` norm is computed.
+
     |sep|
 
     :Examples:
+
     >>> import torch
     >>> from deepinv.optim import L12Prior
     >>> seed = torch.manual_seed(0) # Random seed for reproducibility

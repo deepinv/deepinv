@@ -1,15 +1,14 @@
 DeepInverse: a Pytorch library for imaging with deep learning
 ==================================================================
 
-|Test Status| |Docs Status| |Python 3.6+| |codecov| |Black|
+|Test Status| |Docs Status| |Python Version| |codecov| |Black| |discord|
 
 Deep Inverse is a Pytorch based library for solving imaging inverse problems with deep learning.
 
 Github repository: `<https://github.com/deepinv/deepinv>`_.
 
 
-Featuring
-==================
+**Featuring**
 
 * |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <physics>` (MRI, CT, deblurring, inpainting, etc.)
 * |:book:| :ref:`Training losses <loss>` for inverse problems (self-supervised learning, regularization, etc.).
@@ -25,48 +24,19 @@ Featuring
    :align: center
 
 
-Installation
-==================
-
-Install the latest version of ``deepinv`` via pip:
-
-.. code-block:: bash
-
-    pip install deepinv
-
-You can also install the latest version of ``deepinv`` directly from github:
-
-.. code-block:: bash
-
-    pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
-
-Getting Started
-==================
-
-Try out one of the following deblurring examples (or pick from :ref:`full list of examples <examples>`):
-
-.. minigallery:: deepinv.physics.BlurFFT
-
 .. toctree::
    :maxdepth: 3
    :hidden:
    :caption: Contents:
 
-   user_guide
+   quickstart
    auto_examples/index
-   deepinv.multigpu
-   deepinv.notation
-   deepinv.contributing
-
-Finding Help
-==================
-If you have any questions or suggestions, please join the conversation in our
-`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers is to open an issue on the
-`issue tracker <https://github.com/deepinv/deepinv/issues>`_.
+   user_guide
+   finding_help
+   contributing
 
 
-Lead Developers
-============================
+**Lead Developers**
 
 `Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
 `Samuel Hurault <https://github.com/samuro95/>`_, `Matthieu Terris <https://matthieutrs.github.io>`_
@@ -80,7 +50,9 @@ and `Andrew Wang <https://andrewwango.github.io/about>`_.
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python 3.6+| image:: https://img.shields.io/badge/python-3.6%2B-blue
-   :target: https://www.python.org/downloads/release/python-360/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
+   :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
+.. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
+   :target: https://discord.gg/qBqY5jKw3p

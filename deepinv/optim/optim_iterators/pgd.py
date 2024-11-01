@@ -52,7 +52,9 @@ class FISTAIteration(OptimIterator):
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (k + a - 1) / (k + a) `.
+    :math:`\alpha_k = (k+a-1)/(k+a)`.
+
+    :param float a: Parameter :math:`a` in the FISTA algorithm.
     """
 
     def __init__(self, a=3, **kwargs):
