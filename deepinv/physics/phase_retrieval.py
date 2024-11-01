@@ -118,7 +118,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool use_haar: Use Haar matrix instead of Gaussian matrix. Default is False.
+    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
     :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
     :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
@@ -146,7 +146,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
-        use_haar=False,
+        unitary=False,
         compute_inverse=False,
         rng: torch.Generator = None,
         **kwargs,
@@ -171,7 +171,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             img_shape=img_shape,
             fast=False,
             channelwise=channelwise,
-            use_haar=use_haar,
+            unitary=unitary,
             compute_inverse=compute_inverse,
             dtype=dtype,
             device=device,

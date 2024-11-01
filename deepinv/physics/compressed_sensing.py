@@ -75,7 +75,7 @@ class CompressedSensing(LinearPhysics):
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool use_haar: Use Haar matrix instead of Gaussian matrix. Default is False.
+    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
     :param bool compute_inverse: Precompute the pseudo-inverse of the forward matrix (only for ``fast=False`` option). Precomputing the pseudoinverse can be slow if the matrix is large. Default is ``False``.
     :param torch.type dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
@@ -104,7 +104,7 @@ class CompressedSensing(LinearPhysics):
         img_shape,
         fast=False,
         channelwise=False,
-        use_haar=False,
+        unitary=False,
         compute_inverse=False,
         dtype=torch.float,
         device="cpu",
@@ -116,7 +116,7 @@ class CompressedSensing(LinearPhysics):
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
-        self.use_haar = use_haar
+        self.use_haar = unitary
         self.compute_inverse = compute_inverse
         self.dtype = dtype
         self.device = device
