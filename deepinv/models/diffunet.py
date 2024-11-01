@@ -382,12 +382,16 @@ class DiffUNet(nn.Module):
 
     def forward_denoise(model, x, sigma, y=None):
         r"""
-        Apply the denoising model to an input batch.
+        Applies the denoising model to an input batch.
 
         This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
         underlying image in the input image.
         The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
         divisible by a power of 2.
+
+        .. note::
+            The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) n`
+            thus an additional rescaling by :math:`\sqrt{\alpha_t}` is performed within this function.
 
         :param x: an [N x C x ...] Tensor of inputs.
         :param sigma: a 1-D batch of noise levels.
@@ -410,8 +414,6 @@ class DiffUNet(nn.Module):
         timesteps = model.find_nearest(
             sqrt_1m_alphas_cumprod, sigma * 2
         )  # Factor 2 because image rescaled in [-1, 1]
-
-        print("FOUND TIMESTEP : ", timesteps)
 
         noise_est_sample_var = model.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y

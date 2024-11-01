@@ -279,14 +279,14 @@ x = 2 * y - 1
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
         # Current and next noise levels
-        curr_sigma = sigmas[T - 1 - seq[i]].cpu().numpy()
+        curr_sigma = sigmas[T - 1 - seq[i]]
 
         # 1. Denoising step
         x0 = model(x, curr_sigma)
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
-            t_i = find_nearest(sigmas.cpu(), curr_sigma)
+            t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
 
             x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
 
