@@ -380,7 +380,7 @@ class DiffUNet(nn.Module):
         idx = (np.abs(array - value)).argmin()
         return idx
 
-    def forward_denoise(self, x, sigma, y=None):
+    def forward_denoise(model, x, sigma, y=None):
         r"""
         Apply the denoising model to an input batch.
 
@@ -394,11 +394,10 @@ class DiffUNet(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        # alpha depend du timestep t
-        # hyp: x = sqrt(alpha_t) * x_true + sqrt(1-alpha_t) * torch.randn_like(x_true)
-        # alpha_t = 1/(1 + 4 * sigma^2)
-        # estimate t from alpha_t
-
+        alpha = 1 / (1 + 4 * sigma ** 2)
+        x = alpha.sqrt()*x
+        x += 0.5 - alpha.sqrt()*0.5
+        sigma = sigma * alpha.sqrt()
         x = 2.0 * x - 1.0
         (
             reduced_alpha_cumprod,
@@ -406,63 +405,22 @@ class DiffUNet(nn.Module):
             sqrt_recipm1_alphas_cumprod,
             sqrt_1m_alphas_cumprod,
             sqrt_alphas_cumprod,
-        ) = self.get_alpha_prod()
+        ) = model.get_alpha_prod()
 
-        timesteps = self.find_nearest(
+        timesteps = model.find_nearest(
             sqrt_1m_alphas_cumprod, sigma * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
         print('FOUND TIMESTEP : ', timesteps)
 
-        noise_est_sample_var = self.forward_diffusion(
+        noise_est_sample_var = model.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y
         )
         noise_est = noise_est_sample_var[:, :3, ...]
         denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps].sqrt()
         denoised = denoised.clamp(-1, 1)
-        return denoised / 2.0 + 0.5
-
-    def forward_denoise_old(self, x, sigma, y=None):
-        r"""
-        Apply the denoising model to an input batch.
-
-        This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
-        underlying image in the input image.
-        The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
-        divisible by a power of 2.
-
-        :param x: an [N x C x ...] Tensor of inputs.
-        :param sigma: a 1-D batch of noise levels.
-        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an [N x C x ...] Tensor of outputs.
-        """
-        x = 2.0 * x - 1.0
-        (
-            reduced_alpha_cumprod,
-            sqrt_recip_alphas_cumprod,
-            sqrt_recipm1_alphas_cumprod,
-            sqrt_1m_alphas_cumprod,
-            sqrt_alphas_cumprod,
-        ) = self.get_alpha_prod()
-        alpha_est = (1/(1 + 4 * sigma ** 2)).sqrt()
-        timesteps = self.find_nearest(
-            sqrt_1m_alphas_cumprod, sigma * 2 * alpha_est.sqrt()
-        )  # Factor 2 because image rescaled in [-1, 1]
-
-        print('FOUND TIMESTEP OLD : ', timesteps)
-
-        noise_est_sample_var = self.forward_diffusion(
-            alpha_est.sqrt() * x, torch.tensor([timesteps]).to(x.device), y=y
-        )
-        noise_est = noise_est_sample_var[:, :3, ...]
-        # denoised = (
-        #     sqrt_recip_alphas_cumprod[timesteps] * x
-        #     - sqrt_recipm1_alphas_cumprod[timesteps] * noise_est
-        # )
-        denoised = (x - noise_est * (1-alpha_est.sqrt())/alpha_est.sqrt()) / sqrt_alphas_cumprod[timesteps]
-        denoised = denoised.clamp(-1, 1)
-        return denoised / 2.0 + 0.5
-
+        
+        return (denoised + 1) / 2
 
 class AttentionPool2d(nn.Module):
     """
