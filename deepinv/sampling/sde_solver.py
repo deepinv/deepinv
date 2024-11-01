@@ -1,28 +1,33 @@
 import torch
-from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Optional, Union
-from numpy import ndarray
+from torch import Tensor
 import warnings
+from typing import Optional, Union
+from numpy import ndarray
 
 
 class BaseSDESolver(nn.Module):
     def __init__(
         self,
-        drift: Callable,
-        diffusion: Callable,
+        sde,
         rng: Optional[torch.Generator] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.drift = drift
-        self.diffusion = diffusion
+        self.sde = sde
+
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def step(self, t0, t1, x0: Tensor):
-        pass
+    def step(self, t0, t1, x0: Tensor, *args, **kwargs) -> Tensor:
+        r"""
+        Defaults to Euler step
+        """
+        drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
+        dt = t1 - t0
+        dW = self.randn_like(x0) * abs(dt) ** 0.5
+        return x0 + drift * dt + diffusion * dW
 
     @torch.no_grad()
     def sample(
@@ -65,29 +70,36 @@ class BaseSDESolver(nn.Module):
 
 
 class EulerSolver(BaseSDESolver):
-    def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
-    ):
-        super().__init__(drift, diffusion, rng=rng)
+    def __init__(self, sde, rng: torch.Generator = None, *args, **kwargs):
+        super().__init__(sde, rng=rng, *args, **kwargs)
 
-    def step(self, t0, t1, x0, *args, **kwargs):
+    def step(self, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
-        return x0 + self.drift(x0, t0, *args, **kwargs) * dt + self.diffusion(t0) * dW
+        drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
+        return x0 + drift * dt + diffusion * dW
 
 
 class HeunSolver(BaseSDESolver):
-    def __init__(
-        self, drift: Callable, diffusion: Callable, rng: torch.Generator = None
-    ):
-        super().__init__(drift, diffusion, rng=rng)
+    def __init__(self, sde, rng: torch.Generator = None, *args, **kwargs):
+        super().__init__(sde, rng=rng, *args, **kwargs)
 
-    def step(self, t0, t1, x0, *args, **kwargs):
+    def step(self, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
-        diff_x0 = self.diffusion(t0)
-        drift_x0 = self.drift(x0, t0, *args, **kwargs)
-        x_euler = x0 + drift_x0 * dt + diff_x0 * dW
-        diff_x1 = self.diffusion(t1)
-        drift_x1 = self.drift(x_euler, t1, *args, **kwargs)
-        return x0 + 0.5 * (drift_x0 + drift_x1) * dt + 0.5 * (diff_x0 + diff_x1) * dW
+        drift_0, diffusion_0 = self.sde.discretize(x0, t0, *args, **kwargs)
+        x_euler = x0 + drift_0 * dt + diffusion_0 * dW
+        drift_1, diffusion_1 = self.sde.discretize(x_euler, t1, *args, **kwargs)
+
+        return (
+            x0 + 0.5 * (drift_0 + drift_1) * dt + 0.5 * (diffusion_0 + diffusion_1) * dW
+        )
+
+
+def select_sde_solver(name: str = "euler") -> BaseSDESolver:
+    if name.lower() == "euler":
+        return EulerSolver
+    elif name.lower() == "heun":
+        return HeunSolver
+    else:
+        raise ValueError("Invalid SDE solver name.")
