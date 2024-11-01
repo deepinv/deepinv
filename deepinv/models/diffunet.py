@@ -394,9 +394,9 @@ class DiffUNet(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        alpha = 1 / (1 + 4 * sigma ** 2)
-        x = alpha.sqrt()*x
-        x += 0.5 - alpha.sqrt()*0.5
+        alpha = 1 / (1 + 4 * sigma**2)
+        x = alpha.sqrt() * x
+        x += 0.5 - alpha.sqrt() * 0.5
         sigma = sigma * alpha.sqrt()
         x = 2.0 * x - 1.0
         (
@@ -411,7 +411,7 @@ class DiffUNet(nn.Module):
             sqrt_1m_alphas_cumprod, sigma * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
-        print('FOUND TIMESTEP : ', timesteps)
+        print("FOUND TIMESTEP : ", timesteps)
 
         noise_est_sample_var = model.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y
@@ -419,8 +419,9 @@ class DiffUNet(nn.Module):
         noise_est = noise_est_sample_var[:, :3, ...]
         denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps].sqrt()
         denoised = denoised.clamp(-1, 1)
-        
+
         return (denoised + 1) / 2
+
 
 class AttentionPool2d(nn.Module):
     """
