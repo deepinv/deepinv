@@ -380,7 +380,7 @@ class DiffUNet(nn.Module):
         idx = (np.abs(array - value)).argmin()
         return idx
 
-    def forward_denoise(model, x, sigma, y=None):
+    def forward_denoise(self, x, sigma, y=None):
         r"""
         Applies the denoising model to an input batch.
 
@@ -398,6 +398,9 @@ class DiffUNet(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
         :return: an [N x C x ...] Tensor of outputs.
         """
+        if type(sigma) == float:
+            sigma = torch.tensor(sigma).to(x.device)
+
         alpha = 1 / (1 + 4 * sigma**2)
         x = alpha.sqrt() * x
         x += 0.5 - alpha.sqrt() * 0.5
@@ -409,13 +412,13 @@ class DiffUNet(nn.Module):
             sqrt_recipm1_alphas_cumprod,
             sqrt_1m_alphas_cumprod,
             sqrt_alphas_cumprod,
-        ) = model.get_alpha_prod()
+        ) = self.get_alpha_prod()
 
-        timesteps = model.find_nearest(
+        timesteps = self.find_nearest(
             sqrt_1m_alphas_cumprod, sigma * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
-        noise_est_sample_var = model.forward_diffusion(
+        noise_est_sample_var = self.forward_diffusion(
             x, torch.tensor([timesteps]).to(x.device), y=y
         )
         noise_est = noise_est_sample_var[:, :3, ...]
