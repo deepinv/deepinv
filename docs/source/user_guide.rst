@@ -99,11 +99,11 @@ Training, Testing and Utilities
 
 Reconstruction models :math:`R` can be trained on datasets to improve their performance:
 
-.. doctest::
+::
 
-    >>> trainer = Trainer(model, loss, metric, train_dataset, ...)
-    >>> trainer.train()
-    >>> trainer.test(test_dataset)
+    trainer = Trainer(model, loss, metric, train_dataset, ...)
+    trainer.train()
+    trainer.test(test_dataset)
 
 
 .. grid:: 3
