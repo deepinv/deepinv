@@ -64,6 +64,7 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "furo",
+    "sphinxcontrib-googleanalytics @ git+https://github.com/sphinx-contrib/googleanalytics.git",
 ]
 
 # optional dependencies for specific denoisers
