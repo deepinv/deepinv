@@ -171,7 +171,7 @@ class Inpainting(DecomposablePhysics):
         This is possible since the range of inpainting is part of the signal space.
 
         :param torch.Tensor y: measurement to be downsampled.
-        :param deepinv.physics.Physics coarse_physics: physics to use the coarse space
+        :param deepinv.physics.Physics coarse_physics: physics to use the coarse space.
         :return: torch.Tensor downsampled measurement.
         """
         return self.downsample_signal(y)

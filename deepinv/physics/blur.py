@@ -359,6 +359,37 @@ class Blur(LinearPhysics):
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
 
+    def downsample_measurement(self, y, coarse_physics):
+        r"""
+        Downsamples the measurement by directly using the downsampling operator.
+        This is possible since the range of blur is part of the signal space.
+
+        :param torch.Tensor y: measurement to be downsampled.
+        :param deepinv.physics.Physics coarse_physics: physics to use in the coarse space.
+        :return: torch.Tensor downsampled measurement.
+        """
+        return self.downsample_signal(y)
+
+    def to_coarse(self):
+        r"""
+        Applies the downsampling operator on the blur filter, defining the coarse blur filter.
+
+        :return: deepinv.physics.Blur: coarse blur physics.
+        """
+
+        df = self.downsampling_operator.filter
+
+        # left, right, top, bottom padding to perform valid convolution
+        pad_size = (df.shape[-2] // 2,) * 2 + (df.shape[-1] // 2,) * 2
+        pf = torch.nn.functional.pad(self.filter, pad_size)
+
+        # downsample the blur filter
+        filt = torch.nn.functional.conv2d(pf, df, groups=pf.shape[1], padding="valid")
+        filt = filt[:, :, ::2, ::2]
+        filt = filt / torch.sum(filt)
+
+        return Blur(filter=filt, padding=self.padding, device=self.filter.device)
+
 
 class BlurFFT(DecomposablePhysics):
     """

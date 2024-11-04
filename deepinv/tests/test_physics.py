@@ -1905,3 +1905,39 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_coarse_scale_similarity(name, device):
+    r"""
+    Tests the similarity between a linear physics and its coarse version.
+
+    :param name: operator name (see find_operator)
+    :param device: (torch.device) cpu or cuda:x
+    """
+    physics, imsize, _, dtype = find_operator(name, device)
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        return
+
+    x = torch.rand(imsize, device=device).unsqueeze(0)
+    physics.downsample_signal(x)
+
+    try:
+        p_coarse = physics.to_coarse()
+    except NotImplementedError:
+        return
+
+    # linear case with to_carse implemented
+    D = physics.downsampling_operator.A
+    D_adj = physics.downsampling_operator.A_adjoint
+    A = physics.A
+    A_adj = physics.A_adjoint
+    Ac = p_coarse.A
+    Ac_adj = p_coarse.A_adjoint
+
+    op_cmp = lambda x: D(A_adj(A(x))) - Ac_adj(Ac(D(x)))
+    op_adj = lambda x: A_adj(A(D_adj(x))) - D_adj(Ac_adj(Ac(x)))
+    cmp = dinv.physics.LinearPhysics(A=op_cmp, A_adjoint=op_adj)
+    error = cmp.compute_norm(x)
+
+    assert error < 0.2
