@@ -1,7 +1,7 @@
 .. _artifact:
 
 Artifact Removal
-==============================
+================
 This module provides alternative methods for reconstructing images from measurements, which are not well described
 by other modules in the library.
 
