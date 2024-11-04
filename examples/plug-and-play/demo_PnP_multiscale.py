@@ -10,6 +10,8 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
+import deepinv.physics.blur
+from deepinv.physics.blur import gaussian_blur
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
@@ -18,7 +20,7 @@ from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
-from deepinv.physics import Inpainting, GaussianNoise
+from deepinv.physics import Inpainting, GaussianNoise, Blur
 
 from deepinv.optim.optim_iterators import PGDIteration
 
@@ -35,8 +37,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Define the PnP setting.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -49,22 +50,27 @@ dataset_name = "set3c"
 dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 dataloader = DataLoader(dataset, batch_size=3, num_workers=1, shuffle=False)
 
+# set the data-fidelity and the prior
 data_fidelity = L2()
-prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
-
-max_iter = 200
-
 noise_level = 0.1
 noise_model = GaussianNoise(sigma=noise_level)
 set3c_img_size = (3, 256, 256)  # set3c contains 256x256 rgb images
-physics = Inpainting(tensor_size=set3c_img_size, mask=0.5, noise_model=noise_model, device=device)
+physics = Inpainting(
+    tensor_size=set3c_img_size, mask=0.5, noise_model=noise_model, device=device
+)
 
-params_algo = {'stepsize': 1.0, 'g_param': 0.05}
+prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
+
+# set values of the PnP parameters
+max_iter = 200
+params_algo = {"stepsize": 1.0, "g_param": 0.05}
+
 
 # %%
 # Classical case : single scale PnP.
 # ----------------------------------------------------------------------------------------
 
+# create the iterative algorithm model
 model = optim_builder(
     iteration=PGDIteration(),
     prior=prior,
@@ -74,6 +80,10 @@ model = optim_builder(
     params_algo=params_algo,
 )
 
+# Set the model to evaluation mode since we do not require training.
+model.eval()
+
+# run the model on chosen dataset
 test(
     model=model,
     test_dataloader=dataloader,
@@ -93,10 +103,12 @@ test(
 # This estimate is then upsampled and used as initialization in the fine scale.
 # As shown in the result, the reconstruction quality significantly improves.
 
+
+# define the function which will be used to initialize the fine setting.
 def custom_init(y, physics, F_fn=None):
     p_coarse = physics.to_coarse()
     y_coarse = physics.downsample_measurement(y, p_coarse)
-    params_algo = {'stepsize': 1.0, 'g_param': 0.05}
+    params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
     model = optim_builder(
         iteration=PGDIteration(),
@@ -111,8 +123,10 @@ def custom_init(y, physics, F_fn=None):
 
     # upsample coarse estimation
     x_up = physics.upsample_signal(x_coarse)
-    return {'est': [x_up]}
+    return {"est": [x_up]}
 
+
+# define the multiscale model by setting the "custom_init" field
 model = optim_builder(
     iteration=PGDIteration(),
     prior=prior,
@@ -123,6 +137,10 @@ model = optim_builder(
     custom_init=custom_init,
 )
 
+# Set the model to evaluation mode since we do not require training.
+model.eval()
+
+# run the multiscale algorithm exactly as any other algorithms
 test(
     model=model,
     test_dataloader=dataloader,

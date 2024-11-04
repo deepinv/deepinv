@@ -33,7 +33,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
-    :param deepinv.physics.Downsampling downsampling_operator: downsampling operator to apply in the image space.
+    :param deepinv.physics.Downsampling downsampling_operator: downsampling operator to apply in the signal space.
 
     """
 
@@ -229,6 +229,12 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def upsample_signal(self, x):
         r"""
+        Upsamples the signal using an antialiasing filter.
+        It computes the transpose of the downsampling operator
+        and multiply such that the operator norm is one.
+
+        :param torch.Tensor x: signal to be upsampled.
+        :return: torch.Tensor upsampled signal.
         """
         factor = self.downsampling_operator.factor
         return (factor**2) * self.downsampling_operator.A_adjoint(x)
