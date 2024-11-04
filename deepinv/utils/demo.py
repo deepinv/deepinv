@@ -82,7 +82,8 @@ def get_image_url(file_name):
 def get_data_home():
     """Return folder to store data in.
 
-    This folder can be set by setting
+    This folder can be set by setting the environment variable``DEEPINV_DATA``,
+    or ``XDG_DATA_HOME``. By default, it will be set in ``./datasets``.
     """
     data_home = os.environ.get("DEEPINV_DATA", None)
     if data_home is not None:
