@@ -28,6 +28,7 @@ class BM3D(nn.Module):
         It can be installed with ``pip install bm3d``.
 
     """
+
     def __init__(self):
         super().__init__()
         if isinstance(bm3d, ImportError):
