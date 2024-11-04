@@ -39,6 +39,7 @@ def test_not_translation_equivariant():
     err = Translate().equivariance_test(unet, x, metric=linf_metric)
     assert err >= 1e0
 
+
 def test_forward_operator_equivariance():
     physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])
 
@@ -49,7 +50,7 @@ def test_forward_operator_equivariance():
     assert err < 1e-6
 
     gen = BernoulliSplittingMaskGenerator(x.shape[-3:], split_ratio=0.7)
-    params = gen.step(batch_size=1, seed = 0)
+    params = gen.step(batch_size=1, seed=0)
     physics = Inpainting(tensor_size=x.shape[-3:])
     physics.update_parameters(**params)
 
