@@ -129,10 +129,8 @@ def get_SR_physics(train_patch_size, device='cpu', factor=2):
 
     return generator, physics
 
-def get_drunet_dataset(train_patch_size, device='cpu', pth='/pth/to/train', sigma_min=0.01, sigma_max=0.5):
-
+def get_drunet_dataset(train_patch_size, device='cpu', pth='/pth/to/train', max_num_images = None):
     target_size = (train_patch_size, train_patch_size)
-
     # Define the transform pipeline
     transform = transforms.Compose([
         transforms.RandomCrop(train_patch_size, pad_if_needed=True),
@@ -141,11 +139,11 @@ def get_drunet_dataset(train_patch_size, device='cpu', pth='/pth/to/train', sigm
         transforms.ToTensor(),
     ])
     dataset = torchvision.datasets.ImageFolder(root=pth, transform=transform)
-    physics = dinv.physics.DecomposablePhysics(device=device,
-                                               noise_model=GaussianNoise(sigma=0.1))
-    generator = SigmaGenerator(sigma_min=sigma_min, sigma_max=sigma_max, device=device)
-
-    return dataset, generator, physics
+    if max_num_images is not None and max_num_images < len(dataset):
+        subset_indices = list(range(num_images))
+        # Create a subset of the dataset
+        subset_dataset = Subset(dataset, subset_indices)
+    return dataset
 
 
 def get_BSD68(train_patch_size, device='cpu'):

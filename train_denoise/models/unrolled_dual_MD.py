@@ -4,37 +4,18 @@ from deepinv.optim.prior import RED
 from deepinv.unfolded import unfolded_builder
 from deepinv.optim import Bregman
 from deepinv.models.icnn import ICNN
-from deepinv.optim.optim_iterators import MDIteration
+from deepinv.optim.optim_iterators import MDIteration, OptimIterator
 from deepinv.loss.loss import Loss
 
-class MDIteration(OptimIterator):
-    r"""
-    Iterator for Mirror Descent.
+class DualMDIteration(MDIteration):
 
-    Class for a single iteration of the mirror descent (GD) algorithm for minimising :math:`f(x) + \lambda g(x)`.
-
-    For a given convex potential :math:`h`, the iteration is given by
-
-
-    .. math::
-        \begin{equation*}
-        \begin{aligned}
-        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
-        x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
-        \end{aligned}
-        \end{equation*}
-
-
-   where :math:`\gamma` is a stepsize.
-   The potential :math:`h` should be specified in the cur_params dictionary.
-    """
-
-    def __init__(self, bregman_potential=BregmanL2(), **kwargs):
+    def __init__(self, bregman_potential=dinv.optim.bregman.BregmanL2(), **kwargs):
         super(MDIteration, self).__init__(**kwargs)
-        self.g_step = gStepGD(**kwargs)
-        self.f_step = fStepGD(**kwargs)
+        self.g_step = dinv.optim.optim_iterators.gradient_descent.gStepGD(**kwargs)
+        self.f_step = dinv.optim.optim_iterators.gradient_descent.fStepGD(**kwargs)
         self.requires_grad_g = True
         self.bregman_potential = bregman_potential
+
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -51,58 +32,14 @@ class MDIteration(OptimIterator):
         :param deepinv.physics.Physics physics: Instance of the `Physics` class defining the current physics.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
-        x_prev = X["est"][0]
+        y_prev = X["est"][0]
+        x_prev = self.bregman_potential.grad_conj(y_prev)
         grad = cur_params["stepsize"] * (
             self.g_step(x_prev, cur_prior, cur_params)
             + self.f_step(x_prev, cur_data_fidelity, cur_params, y, physics)
         )
-        x = self.bregman_potential.grad_conj(self.bregman_potential.grad(x_prev) - grad)
-        F = (
-            self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
-            else None
-        )
-        return {"est": (x,), "cost": F}
-
-
-class fStepGD(fStep):
-    r"""
-    GD fStep module.
-    """
-
-    def __init__(self, **kwargs):
-        super(fStepGD, self).__init__(**kwargs)
-
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
-        r"""
-        Single gradient descent iteration on the data fit term :math:`f`.
-
-        :param torch.Tensor x: current iterate :math:`x_k`.
-        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
-        """
-        return cur_data_fidelity.grad(x, y, physics)
-
-
-class gStepGD(gStep):
-    r"""
-    GD gStep module.
-    """
-
-    def __init__(self, **kwargs):
-        super(gStepGD, self).__init__(**kwargs)
-
-    def forward(self, x, cur_prior, cur_params):
-        r"""
-        Single iteration step on the prior term :math:`\lambda g`.
-
-        :param torch.Tensor x: Current iterate :math:`x_k`.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        """
-        return cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
+        y = y_prev - grad
+        return {"est": (y,)}
 
 
 class DeepBregman(Bregman):
@@ -145,7 +82,7 @@ class MirrorLoss(Loss):
         self.metric = metric
 
     def forward(self, x, x_net, y, physics, model, *args, **kwargs):
-        bregman_potential = model.params_algo.bregman_potential[0]
+        bregman_potential = model.fixed_point.iterator.bregman_potential
         return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x_net)), x_net)
 
 
@@ -174,6 +111,8 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
                             strong_convexity=strong_convexity_forward,
                             pos_weights=True,
                             device="cpu").to(device)
+    else:
+        forw_bregman = None
     back_bregman = ICNN(in_channels=3,
                             num_filters=64,
                             kernel_dim=5,
@@ -191,6 +130,13 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
         "stepsize",
     ]  # define which parameters from 'params_algo' are trainable
 
+    bregman_potential = DeepBregman(forw_model = forw_bregman, conj_model = back_bregman)
+
+    if use_dual_iterations:
+        iteration = DualMDIteration(bregman_potential = bregman_potential)
+    else:
+        iteration = MDIteration(bregman_potential = bregman_potential)
+
     # Define the unfolded trainable model.
     model = unfolded_builder(
         iteration = MDIteration(F_fn=None, has_cost=False),
@@ -198,9 +144,7 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        prior=prior,
-        bregman_potential = DeepBregman(forw_model = forw_bregman, conj_model = back_bregman)
+        prior=prior
     )
-
 
     return model.to(device)

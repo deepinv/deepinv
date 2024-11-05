@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 from models.unrolled_dual_MD import get_unrolled_architecture, MirrorLoss
 from utils.distributed_setup import setup_distributed
-from utils.dataloaders import get_gaussian_noise_dataset
+from utils.dataloaders import get_drunet_dataset
 from utils.utils import rescale_img, get_wandb_setup
 from deepinv.physics.generator import SigmaGenerator, MotionBlurGenerator
 
@@ -175,7 +175,7 @@ def load_denoising_data(
     :return: training and validation dataloaders
     """
     pin_memory = True if torch.cuda.is_available() else False
-    dataset = get_gaussian_noise_dataset(
+    dataset = get_drunet_dataset(
         patch_size,
         device=device,
         pth=TRAIN_DATASET_PATH,
@@ -415,7 +415,6 @@ if __name__ == "__main__":
     parser.add_argument("--gpu_num", type=int, default=1)
     parser.add_argument("--ckpt_resume", type=str, default="")
     parser.add_argument("--model_name", type=str, default="dual_DDMD")
-    parser.add_argument("--ICNN_name", type=str, default="ICNN_DDMD")
     parser.add_argument("--use_mirror_loss", type=int, default=0)
     parser.add_argument("--denoiser_name", type=str, default="DRUNET")
     parser.add_argument("--prior_name", type=str, default="wavelet")
@@ -451,7 +450,6 @@ if __name__ == "__main__":
         data_fidelity=args.data_fidelity,
         noise_model=args.noise_model,
         model_name=args.model_name,
-        ICNN_name=args.ICNN_name,
         prior_name=args.prior_name,
         denoiser_name=args.denoiser_name,
         stepsize_init=args.stepsize_init,
