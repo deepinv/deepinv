@@ -37,8 +37,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Define the PnP setting.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

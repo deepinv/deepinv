@@ -917,7 +917,6 @@ def test_coarse_scale_similarity(name, device):
     if not isinstance(physics, dinv.physics.LinearPhysics):
         return
 
-
     x = torch.rand(imsize, device=device).unsqueeze(0)
     physics.downsample_signal(x)
 
