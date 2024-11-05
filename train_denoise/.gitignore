@@ -1,0 +1,48 @@
+# Mac
+.DS_Store
+
+# PyCharm
+.idea/
+
+results/
+*__pycache__*
+*.pyc
+
+# Files
+*.pt
+*.h5
+*.png
+*.pth
+*.ckpt
+*.tar.gz
+*tmp
+*.tar
+
+# Folders
+.ipynb_checkpoints/
+config/
+/docs/build/
+/docs/source/auto_examples/
+/docs/source/gen_modules/
+/docs/source/stubs/*
+
+# Miscellaneous
+/experimental/
+/deepinv/datasets/reside/
+deepinv/version.py
+/saved_models/
+venv
+build
+deepinv.egg-info
+dist
+datasets
+wandb/
+kernels
+measurements/
+degradations/
+datasets/
+results/
+tmp/
+sg_execution_times.rst
+
+tmp*
