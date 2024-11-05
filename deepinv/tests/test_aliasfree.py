@@ -13,32 +13,48 @@ torch.manual_seed(0)
 
 # a translation-equivariant model
 afc = AliasFreeDenoiser(in_channels=3, out_channels=3)
+# a translation- and rotation-equivariant model
+afc_rotation_equivariant = AliasFreeDenoiser(in_channels=3, out_channels=3, rotation_equivariant=True)
 # a model neither translation-equivariant nor shift-equivariant
 unet = UNet(in_channels=3, out_channels=3)
 
 x = DummyCircles(1, imsize=(3, 256, 256))[0].unsqueeze(0)
 linf_metric = lambda x, y: (x - y).abs().max()
 
+rotate_params = {"theta": [15]}
 
 def test_shift_equivariant():
     err = Shift().equivariance_test(afc, x, metric=linf_metric)
-    assert err < 1e-5
+    assert err < 1e-6
 
+    err = Shift().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
+    assert err < 1e-14
 
 def test_not_shift_equivariant():
     err = Shift().equivariance_test(unet, x, metric=linf_metric)
     assert err >= 1e0
 
-
 def test_translation_equivariant():
     err = Translate().equivariance_test(afc, x, metric=linf_metric)
-    assert err < 1e-4
+    assert err < 1e-5
 
+    err = Translate().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
+    assert err < 1e-6
 
 def test_not_translation_equivariant():
     err = Translate().equivariance_test(unet, x, metric=linf_metric)
     assert err >= 1e0
 
+def test_rotation_equivariant():
+    err = Rotate().equivariance_test(afc_rotation_equivariant, x, params=rotate_params, metric=linf_metric)
+    assert err < 1e-6
+
+def test_not_rotation_equivariant():
+    err = Rotate().equivariance_test(unet, x, params=rotate_params, metric=linf_metric)
+    assert err >= 1e0
+
+    err = Rotate().equivariance_test(afc, x, params=rotate_params, metric=linf_metric)
+    assert err >= 1e-2
 
 def test_forward_operator_equivariance():
     physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])

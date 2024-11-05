@@ -26,8 +26,12 @@ class ConvNextBlock(nn.Module):
         ksize=7,
         padding_mode="circular",
         batch_norm=False,
+        rotation_equivariant=False,
     ):
         super().__init__()
+
+        if rotation_equivariant:
+            ksize = 1
 
         self.conv1 = nn.Conv2d(
             in_channels,
@@ -60,7 +64,9 @@ class ConvNextBlock(nn.Module):
 
         if mode == "up_poly_per_channel":
             self.nonlin = UpPolyActPerChannel(
-                4 * in_channels, data_format="channels_first"
+                4 * in_channels,
+                data_format="channels_first",
+                rotation_equivariant=rotation_equivariant,
             )
         else:
             self.nonlin = nn.ReLU(inplace=True)
@@ -92,8 +98,11 @@ class ConvNextBlock(nn.Module):
         return out
 
 
-def ConvBlock(in_channels, out_channels, mode="relu", bias=False):
-    ksize = 3
+def ConvBlock(in_channels, out_channels, mode="relu", bias=False, rotation_equivariant=False):
+    if rotation_equivariant:
+        ksize = 1
+    else:
+        ksize = 3
 
     seq = nn.Sequential()
     seq.append(
@@ -110,7 +119,9 @@ def ConvBlock(in_channels, out_channels, mode="relu", bias=False):
     )
 
     if mode == "up_poly_per_channel":
-        seq.append(UpPolyActPerChannel(out_channels, data_format="channels_first"))
+        seq.append(UpPolyActPerChannel(out_channels,
+                                       data_format="channels_first",
+                                       rotation_equivariant=rotation_equivariant))
     elif mode == "relu":
         seq.append(nn.ReLU(inplace=True))
     else:
@@ -129,7 +140,9 @@ def ConvBlock(in_channels, out_channels, mode="relu", bias=False):
     )
 
     if mode == "up_poly_per_channel":
-        seq.append(UpPolyActPerChannel(out_channels, data_format="channels_first"))
+        seq.append(UpPolyActPerChannel(out_channels,
+                                       data_format="channels_first",
+                                       rotation_equivariant=rotation_equivariant))
     else:
         seq.append(nn.ReLU(inplace=True))
 
@@ -153,6 +166,11 @@ def create_lpf_rect(N, cutoff=0.5):
     rect_2d = rect_1d[:, None] * rect_1d[None, :]
     return rect_2d
 
+def create_lpf_disk(N, cutoff=0.5):
+    u = torch.linspace(-1, 1, N)
+    v = torch.linspace(-1, 1, N)
+    U, V = torch.meshgrid(u, v, indexing="ij")
+    return (U**2 + V**2) < cutoff**2
 
 def create_fixed_lpf_rect(N, size):
     rect_1d = torch.ones(N)
@@ -184,7 +202,7 @@ class LPF_RFFT(nn.Module):
     saves rect in first use
     """
 
-    def __init__(self, cutoff=0.5, transform_mode="rfft", fixed_size=None):
+    def __init__(self, cutoff=0.5, transform_mode="rfft", fixed_size=None, rotation_equivariant=False):
         super(LPF_RFFT, self).__init__()
         self.cutoff = cutoff
         self.fixed_size = fixed_size
@@ -199,20 +217,24 @@ class LPF_RFFT(nn.Module):
             if transform_mode == "fft"
             else torch.fft.irfft2
         )
+        self.rotation_equivariant = rotation_equivariant
 
     def forward(self, x):
         x_fft = self.transform(x)
-        if not hasattr(self, "rect"):
+        if not hasattr(self, "mask"):
             N = x.shape[-1]
-            rect = (
-                create_lpf_rect(N, self.cutoff)
-                if not self.fixed_size
-                else create_fixed_lpf_rect(N, self.fixed_size)
-            )
-            rect = rect[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else rect
-            self.register_buffer("rect", rect)
+            if not self.rotation_equivariant:
+                mask = (
+                    create_lpf_rect(N, self.cutoff)
+                    if not self.fixed_size
+                    else create_fixed_lpf_rect(N, self.fixed_size)
+                )
+            else:
+                mask = create_lpf_disk(N, self.cutoff)
+            mask = mask[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else mask
+            self.register_buffer("mask", mask)
             self.to(x.device)
-        x_fft *= self.rect
+        x_fft *= self.mask
         # out = self.itransform(x_fft) # support odd inputs - need to specify signal size (irfft default is even)
         out = self.itransform(x_fft, s=(x.shape[-2], x.shape[-1]))
 
@@ -362,11 +384,13 @@ class UpPolyActPerChannel(nn.Module):
         up=2,
         data_format="channels_first",
         transform_mode="rfft",
+        rotation_equivariant=False,
         **kwargs,
     ):
         super(UpPolyActPerChannel, self).__init__()
         self.up = up
-        self.lpf = LPF_RFFT(cutoff=1 / up, transform_mode=transform_mode)
+        self.lpf = LPF_RFFT(cutoff=1 / up, transform_mode=transform_mode,
+                            rotation_equivariant=rotation_equivariant)
         self.upsample = UpsampleRFFT(up, transform_mode=transform_mode)
         self.data_format = data_format
 
@@ -411,11 +435,12 @@ class BlurPool(nn.Module):
         filt_size=1,
         stride=2,
         pad_off=0,
-        filter_type="basic",
+        filter_type="ideal",
         cutoff=0.5,
         scale_l2=False,
         eps=1e-6,
         transform_mode="rfft",
+        rotation_equivariant=False,
     ):
         super(BlurPool, self).__init__()
         self.filt_size = filt_size
@@ -436,7 +461,9 @@ class BlurPool(nn.Module):
         self.eps = eps
 
         if filter_type == "ideal":
-            self.filt = LPF_RFFT(cutoff=cutoff, transform_mode=transform_mode)
+            self.filt = LPF_RFFT(cutoff=cutoff,
+                                 transform_mode=transform_mode,
+                                 rotation_equivariant=rotation_equivariant)
 
         elif filter_type == "basic":
             a = self.get_rect(self.filt_size)
@@ -543,12 +570,17 @@ class AliasFreeDenoiser(nn.Module):
 
     The network is implemented using circular convolutions, filtered polynomial nonlinearities and ideal up and downsampling operators as suggested by `Karras et al. (2021) <https://doi.org/10.48550/arXiv.2106.12423>`_ and `Michaeli et al. (2023) <https://doi.org/10.1109/CVPR52729.2023.01567>`_.
 
+    A rotation-equivariant version is also available where all convolutions are
+    made with 1x1 filters, and where square-shaped masks used for anti-aliasing
+    are replaced by disk-shaped masks.
+
     :param int in_channels: number of input channels.
     :param int out_channels: number of output channels.
     :param bool residual: if True, the output is the sum of the input and the denoised image.
     :param bool cat: if True, the network uses skip connections.
     :param int scales: number of scales in the network.
     :param str block_kind: type of block to use in the network. Options are ``ConvBlock`` and ``ConvNextBlock``.
+    :param bool rotation_equivariant: if True, the network is rotation-equivariant.
     """
 
     def __init__(
@@ -560,6 +592,7 @@ class AliasFreeDenoiser(nn.Module):
         bias=False,
         scales=4,
         block_kind="ConvNextBlock",
+        rotation_equivariant=False,
     ):
         super().__init__()
         mode = "up_poly_per_channel"
@@ -587,12 +620,14 @@ class AliasFreeDenoiser(nn.Module):
             out_channels=out_ch,
             bias=bias,
             mode="up_poly_per_channel",
+            rotation_equivariant=rotation_equivariant,
         )
 
         for i in range(1, scales):
             in_ch = out_ch
             out_ch = in_ch * 2
-            setattr(self, f"Downsample{i}", BlurPool(channels=in_ch))
+            setattr(self, f"Downsample{i}", BlurPool(channels=in_ch,
+                                                     rotation_equivariant=rotation_equivariant))
             setattr(
                 self,
                 f"DownBlock{i}",
@@ -601,6 +636,7 @@ class AliasFreeDenoiser(nn.Module):
                     out_channels=out_ch,
                     bias=bias,
                     mode="up_poly_per_channel",
+                    rotation_equivariant=rotation_equivariant,
                 ),
             )
 
@@ -620,6 +656,7 @@ class AliasFreeDenoiser(nn.Module):
                     out_channels=out_ch,
                     bias=bias,
                     mode="up_poly_per_channel",
+                    rotation_equivariant=rotation_equivariant,
                 ),
             )
             setattr(
@@ -630,6 +667,7 @@ class AliasFreeDenoiser(nn.Module):
                     out_channels=out_ch,
                     bias=bias,
                     mode="up_poly_per_channel",
+                    rotation_equivariant=rotation_equivariant,
                 ),
             )
 
