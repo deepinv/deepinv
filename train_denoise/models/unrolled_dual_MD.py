@@ -93,7 +93,7 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
     if data_fidelity == 'L2':
         data_fidelity = dinv.optim.data_fidelity.L2()
     elif data_fidelity == 'KL':
-        data_fidelity = dinv.optim.data_fidelity.KL()
+        data_fidelity = dinv.optim.data_fidelity.PoissonLikelihood()
         
     # Set up the prior
     if prior_name == 'wavelet':

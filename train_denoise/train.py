@@ -283,7 +283,7 @@ def train_model(
     patch_size=64,
     lr=1e-4,
     distribute=False,
-    num_workers=8 if torch.cuda.is_available() else 0,
+    num_workers=16 if torch.cuda.is_available() else 0,
     max_num_images=1e6,
     use_mirror_loss=False,
     data_fidelity="L2",
