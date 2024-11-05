@@ -6,6 +6,7 @@ from deepinv.optim import Bregman
 from deepinv.models.icnn import ICNN
 from deepinv.optim.optim_iterators import MDIteration, OptimIterator
 from deepinv.loss.loss import Loss
+from deepinv.optim.utils import gradient_descent
 
 class DualMDIteration(MDIteration):
 
@@ -47,21 +48,30 @@ class DeepBregman(Bregman):
     Module for the using a deep NN as Bregman potential.
     """
 
-    def __init__(self, forw_model, conj_model = None):
+    def __init__(self, forw_model = None, conj_model = None):
         super().__init__()
         self.forw_model = forw_model
         self.conj_model = conj_model
 
-    def fn(self, x):
+    def fn(self, x, *args, init = None, **kwargs):
         r"""
         Computes the Bregman potential.
 
         :param torch.Tensor x: Variable :math:`x` at which the potential is computed.
         :return: (torch.tensor) potential :math:`\phi(x)`.
         """
-        return self.forw_model(x)
+        if self.forw_model is not None:
+            return self.forw_model(x, *args, **kwargs)
+        else:
+            return self.conjugate_conjugate(x, *args, init = init, **kwargs)
 
-    def conjugate(self, x):
+    def grad(self, x, *args, init = None, **kwargs):
+        if self.forw_model is not None:
+            return super().grad(x, *args, **kwargs)
+        else:
+            return self.grad_conj_conj(x, *args, init = init, **kwargs)
+
+    def conjugate(self, x, *args, **kwargs):
         r"""
         Computes the convex conjugate potential.
 
@@ -69,11 +79,37 @@ class DeepBregman(Bregman):
         :return: (torch.tensor) conjugate potential :math:`\phi^*(y)`.
         """
         if self.conj_model is not None:
-            return self.conj_model(x)
+            return self.conj_model(x, *args, **kwargs)
         else:
-            super().conjugate(x)
+            super().conjugate(x, *args, **kwargs)
         return
-    
+
+    def conjugate_conjugate(self, x, *args, init = None, **kwargs)
+        grad = lambda z: self.grad_conj(z, *args, **kwargs) - x
+        init = x if init is None else init
+        z = gradient_descent(-grad, init)
+        return self.conjugate(z, *args, **kwargs) - torch.sum(
+            x.reshape(x.shape[0], -1) * z.reshape(z.shape[0], -1), dim=-1
+        ).view(x.shape[0], 1)
+
+    def grad_conj_conj(self, x, *args, method = 'fixed-point', init = None, **kwargs):
+        if method == 'backprop':
+            with torch.enable_grad():
+                x = x.requires_grad_()
+                h = self.conjugate_conjugate(x, *args, init = init, **kwargs)
+                grad = torch.autograd.grad(
+                    h,
+                    x,
+                    torch.ones_like(h),
+                    create_graph=True,
+                    only_inputs=True,
+                )[0]
+            return grad
+        else: 
+            init = x if init is None else init
+            grad = lambda z: self.grad_conj(z, *args, **kwargs) - x
+            return gradient_descent(grad, init)
+            
 
 class MirrorLoss(Loss):
     def __init__(self, metric=torch.nn.MSELoss()):
@@ -134,8 +170,12 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
 
     if use_dual_iterations:
         iteration = DualMDIteration(bregman_potential = bregman_potential)
+        custom_init = lambda y, physics : {'est' : bregman_potential(physics.A_adjoint(y))}
+        custom_output = lambda X : bregman_potential.grad_conj(X["est"][0])
     else:
         iteration = MDIteration(bregman_potential = bregman_potential)
+        custom_init = lambda y, physics : {'est' : physics.A_adjoint(y)}
+        custom_output = lambda X: X["est"][0]
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
@@ -144,7 +184,9 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
-        prior=prior
+        prior=prior,
+        custom_init=custom_init,
+        get_output = custom_output
     )
 
     return model.to(device)
