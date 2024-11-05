@@ -98,7 +98,9 @@ class ConvNextBlock(nn.Module):
         return out
 
 
-def ConvBlock(in_channels, out_channels, mode="relu", bias=False, rotation_equivariant=False):
+def ConvBlock(
+    in_channels, out_channels, mode="relu", bias=False, rotation_equivariant=False
+):
     if rotation_equivariant:
         ksize = 1
     else:
@@ -119,9 +121,13 @@ def ConvBlock(in_channels, out_channels, mode="relu", bias=False, rotation_equiv
     )
 
     if mode == "up_poly_per_channel":
-        seq.append(UpPolyActPerChannel(out_channels,
-                                       data_format="channels_first",
-                                       rotation_equivariant=rotation_equivariant))
+        seq.append(
+            UpPolyActPerChannel(
+                out_channels,
+                data_format="channels_first",
+                rotation_equivariant=rotation_equivariant,
+            )
+        )
     elif mode == "relu":
         seq.append(nn.ReLU(inplace=True))
     else:
@@ -140,9 +146,13 @@ def ConvBlock(in_channels, out_channels, mode="relu", bias=False, rotation_equiv
     )
 
     if mode == "up_poly_per_channel":
-        seq.append(UpPolyActPerChannel(out_channels,
-                                       data_format="channels_first",
-                                       rotation_equivariant=rotation_equivariant))
+        seq.append(
+            UpPolyActPerChannel(
+                out_channels,
+                data_format="channels_first",
+                rotation_equivariant=rotation_equivariant,
+            )
+        )
     else:
         seq.append(nn.ReLU(inplace=True))
 
@@ -166,11 +176,13 @@ def create_lpf_rect(N, cutoff=0.5):
     rect_2d = rect_1d[:, None] * rect_1d[None, :]
     return rect_2d
 
+
 def create_lpf_disk(N, cutoff=0.5):
     u = torch.linspace(-1, 1, N)
     v = torch.linspace(-1, 1, N)
     U, V = torch.meshgrid(u, v, indexing="ij")
     return (U**2 + V**2) < cutoff**2
+
 
 def create_fixed_lpf_rect(N, size):
     rect_1d = torch.ones(N)
@@ -202,7 +214,13 @@ class LPF_RFFT(nn.Module):
     saves rect in first use
     """
 
-    def __init__(self, cutoff=0.5, transform_mode="rfft", fixed_size=None, rotation_equivariant=False):
+    def __init__(
+        self,
+        cutoff=0.5,
+        transform_mode="rfft",
+        fixed_size=None,
+        rotation_equivariant=False,
+    ):
         super(LPF_RFFT, self).__init__()
         self.cutoff = cutoff
         self.fixed_size = fixed_size
@@ -389,8 +407,11 @@ class UpPolyActPerChannel(nn.Module):
     ):
         super(UpPolyActPerChannel, self).__init__()
         self.up = up
-        self.lpf = LPF_RFFT(cutoff=1 / up, transform_mode=transform_mode,
-                            rotation_equivariant=rotation_equivariant)
+        self.lpf = LPF_RFFT(
+            cutoff=1 / up,
+            transform_mode=transform_mode,
+            rotation_equivariant=rotation_equivariant,
+        )
         self.upsample = UpsampleRFFT(up, transform_mode=transform_mode)
         self.data_format = data_format
 
@@ -461,9 +482,11 @@ class BlurPool(nn.Module):
         self.eps = eps
 
         if filter_type == "ideal":
-            self.filt = LPF_RFFT(cutoff=cutoff,
-                                 transform_mode=transform_mode,
-                                 rotation_equivariant=rotation_equivariant)
+            self.filt = LPF_RFFT(
+                cutoff=cutoff,
+                transform_mode=transform_mode,
+                rotation_equivariant=rotation_equivariant,
+            )
 
         elif filter_type == "basic":
             a = self.get_rect(self.filt_size)
@@ -626,8 +649,11 @@ class AliasFreeDenoiser(nn.Module):
         for i in range(1, scales):
             in_ch = out_ch
             out_ch = in_ch * 2
-            setattr(self, f"Downsample{i}", BlurPool(channels=in_ch,
-                                                     rotation_equivariant=rotation_equivariant))
+            setattr(
+                self,
+                f"Downsample{i}",
+                BlurPool(channels=in_ch, rotation_equivariant=rotation_equivariant),
+            )
             setattr(
                 self,
                 f"DownBlock{i}",
