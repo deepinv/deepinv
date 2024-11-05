@@ -17,7 +17,9 @@ torch.cuda.manual_seed(0)
 numpy.random.seed(0)
 random.seed(0)
 
-gen = dinv.physics.generator.BernoulliSplittingMaskGenerator((3, 128, 128), split_ratio=0.7)
+gen = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+    (3, 128, 128), split_ratio=0.7
+)
 params = gen.step(batch_size=1, seed=0)
 physics = dinv.physics.Inpainting(tensor_size=(3, 128, 128))
 physics.update_parameters(**params)
@@ -96,7 +98,17 @@ x, y = next(iter(test_dataloader))
 x = x.to(device)
 y = y.to(device)
 params = {"x_shift": [64], "y_shift": [64]}
-dinv.utils.plot([ x, y, model(y), transform(x, **params), transform(y, **params), transform(model(y), **params) ], [ "GT", "Noisy", "Denoised", "Shifted GT", "Shifted Noisy", "Shifted Denoised" ])
+dinv.utils.plot(
+    [
+        x,
+        y,
+        model(y),
+        transform(x, **params),
+        transform(y, **params),
+        transform(model(y), **params),
+    ],
+    ["GT", "Noisy", "Denoised", "Shifted GT", "Shifted Noisy", "Shifted Denoised"],
+)
 
 equiv_psnr = transform.equivariance_test(model, y, metric=dinv.loss.metric.PSNR())
 print(f"Equivariance test (Shift, PSNR): {equiv_psnr.item():.1f} dB")
