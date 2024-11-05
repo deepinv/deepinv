@@ -19,7 +19,11 @@ HD5Dataset
 
 
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
-using a base dataset (in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
+using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
+
+.. note::
+
+    We support all data types supported by ``h5py``, including complex numbers.
 
 .. doctest::
 
@@ -55,6 +59,7 @@ and ``is_valid_file`` arguments of :meth:`torchvision.datasets.ImageFolder``):
     >>> dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
     >>>                                physics=physics, device=dinv.device, save_dir=save_dir)
 
+
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
 :class:`torch.utils.data.DataLoader`:
 
@@ -64,6 +69,23 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
     >>>
     >>> dataset = dinv.datasets.HDF5Dataset(path=generated_dataset_path, train=True)
     >>> dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+
+We can also use physics generators to randomly generate physics params for data,
+and save and load the physics params into the dataset:
+
+.. doctest::
+
+    >>> physics_generator = dinv.physics.generator.SigmaGenerator()
+    >>> pth = dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
+    >>>                                      physics=physics, physics_generator=physics_generator,
+    >>>                                      device=dinv.device, save_dir=save_dir)
+    >>> dataset = dinv.datasets.HDF5Dataset(path=pth, load_physics_generator_params=True, train=True)
+    >>> dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+    >>> x, y, params = next(iter(dataloader))
+    >>> print(params['sigma'].shape)
+    torch.Size([4])
+
+
 
 PatchDataset
 ------------

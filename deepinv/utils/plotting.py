@@ -212,6 +212,12 @@ def plot(
         img = torch.rand(4, 3, 256, 256)
         plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
 
+    .. note::
+
+        Using ``show=True`` calls ``plt.show()`` with blocking (outside notebook environments).
+        If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
+        and plot at your desired location using ``fig.show()``.
+
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).

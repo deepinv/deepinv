@@ -139,6 +139,7 @@ def download_lsdir():
     shutil.rmtree(tmp_data_dir)
 
 
+@pytest.mark.skip(reason="Skipping this test for now, url links are not working")
 def test_load_lsdir_dataset(download_lsdir):
     """Check that dataset contains 250 PIL images."""
     dataset = LsdirHR(download_lsdir, mode="val", download=False)

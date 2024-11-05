@@ -195,7 +195,7 @@ operators useful for Bregman optimization algorithms such as Mirror Descent: the
    deepinv.optim.bregman.BregmanL2
    deepinv.optim.bregman.BurgEntropy
    deepinv.optim.bregman.NegEntropy
-   deepinv.optim.bregman.ICNN
+   deepinv.optim.bregman.Bregman_ICNN
 
 
 .. _optim-params:
