@@ -186,7 +186,7 @@ class PoissonLikelihoodDistance(Distance):
     :param bool denormalize: if True, the measurement is divided by the gain. By default in the class :class:`physics.noise.PoissonNoise`, the measurements are multiplied by the gain after being sampled by the Poisson distribution . Default: True.
     """
 
-    def __init__(self, gain=1.0, bkg=0, denormalize=True):
+    def __init__(self, gain=1.0, bkg=0, denormalize=False):
         super().__init__()
         self.bkg = bkg
         self.gain = gain
