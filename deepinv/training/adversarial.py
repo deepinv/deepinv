@@ -133,7 +133,7 @@ class AdversarialTrainer(Trainer):
         >>> generator = trainer.train()
 
 
-    Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times,
+    Note that this forward pass also computes ``y_hat`` ahead of time to avoid having to compute it multiple times,
     but this is completely optional.
 
     See :class:`deepinv.Trainer` for additional parameters.
