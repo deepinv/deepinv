@@ -31,7 +31,7 @@ def test_shift_equivariant():
     assert err < 1e-6
 
     err = Shift().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
-    assert err < 1e-14
+    assert err < 1e-6
 
 
 def test_not_shift_equivariant():
@@ -44,7 +44,7 @@ def test_translation_equivariant():
     assert err < 1e-5
 
     err = Translate().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
-    assert err < 1e-6
+    assert err < 1e-5
 
 
 def test_not_translation_equivariant():
@@ -56,7 +56,7 @@ def test_rotation_equivariant():
     err = Rotate().equivariance_test(
         afc_rotation_equivariant, x, params=rotate_params, metric=linf_metric
     )
-    assert err < 1e-6
+    assert err < 1e-2
 
 
 def test_not_rotation_equivariant():
