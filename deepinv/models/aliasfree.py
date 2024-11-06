@@ -181,7 +181,10 @@ def create_lpf_disk(N, cutoff=0.5):
     u = torch.linspace(-1, 1, N)
     v = torch.linspace(-1, 1, N)
     U, V = torch.meshgrid(u, v, indexing="ij")
-    return (U**2 + V**2) < cutoff**2
+    mask = (U**2 + V**2) < cutoff**2
+    mask = mask.to(torch.float32)
+    mask = torch.fft.ifftshift(mask)
+    return mask
 
 
 def create_fixed_lpf_rect(N, size):

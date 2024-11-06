@@ -61,7 +61,7 @@ test_dataloader = DataLoader(
 model = dinv.models.AliasFreeDenoiser(
     in_channels=3,
     out_channels=3,
-    scales=5,
+    scales=2,
     rotation_equivariant=True,
 ).to(device)
 
