@@ -1,8 +1,7 @@
 import torch
 import torch.fft
 from torch import Tensor
-from typing import List, Optional, Union
-import warnings
+from typing import List, Optional
 from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.time import TimeMixin
 
@@ -84,30 +83,6 @@ class MRI(DecomposablePhysics):
             mask = torch.ones(*img_size)
 
         self.update_parameters(mask=mask.to(self.device))
-
-    # def U(self, x):
-    #     if self.mask.size(0) == 1:
-    #         return x[:, self.mask[0, ...] > 0]
-    #     elif x.size(0) == self.mask.size(0):
-    #         return x[self.mask > 0]
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #
-    # def U_adjoint(self, x):
-    #     _, c, h, w = self.mask.shape
-    #     out = torch.zeros((x.shape[0], c, h, w), device=x.device)
-    #
-    #     if self.mask.size(0) == 1:
-    #         out[:, self.mask[0, ...] > 0] = x
-    #     elif x.size(0) == self.mask.size(0):
-    #         out[self.mask > 0] = x
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #     return out
 
     def V_adjoint(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
         y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)

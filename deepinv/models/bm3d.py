@@ -10,11 +10,11 @@ except:
 
 
 class BM3D(nn.Module):
-    """
+    r"""
     BM3D denoiser.
 
     The BM3D denoiser was introduced in "Image denoising by sparse 3D transform-domain collaborative filtering", by
-    Davob et al., IEEE Transactions on Image Processing (2007).
+    Dabov et al., IEEE Transactions on Image Processing (2007).
 
 
     .. note::
@@ -41,7 +41,7 @@ class BM3D(nn.Module):
         Run the denoiser on image with noise level :math:`\sigma`.
 
         :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
+        :param float sigma: noise level
         """
 
         out = torch.zeros_like(x)

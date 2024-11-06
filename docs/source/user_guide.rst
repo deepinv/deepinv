@@ -33,7 +33,7 @@ Reconstruction
 ~~~~~~~~~~~~~~
 
 In order to recover an image from its measurements, the library provides many
-reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge of the acquisition ``physics``:
+reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge of the acquisition ``physics``. Given a restoration model ``model``, the reconstruction is therefore provided as
 
 ::
 
