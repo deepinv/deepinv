@@ -398,7 +398,7 @@ class DiffUNet(nn.Module):
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        if type(sigma) == float:
+        if sigma is not torch.tensor:
             sigma = torch.tensor(sigma).to(x.device)
 
         alpha = 1 / (1 + 4 * sigma**2)
