@@ -1,5 +1,5 @@
 Quickstart
-==================
+==========
 
 Install the latest stable version of ``deepinv`` via pip:
 

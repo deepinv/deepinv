@@ -97,7 +97,9 @@ reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge o
 Training, Testing and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Reconstruction models :math:`R` can be trained on datasets to improve their performance:
+All the tools from the library, from measurement operator to restoration methods,
+are implemented as :meth:`torch.nn.Module` and therefore natively support backpropagation.
+Reconstruction networks ``model`` can be trained on datasets to improve their performance:
 
 ::
 
