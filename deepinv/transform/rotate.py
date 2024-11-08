@@ -25,6 +25,8 @@ class Rotate(Transform):
     :param bool positive: if True, only consider positive angles.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param InterpolationMode interpolation_mode: interpolation mode for rotation, defaults to ``InterpolationMode.NEAREST``
+    :param str padding: padding mode for rotation, defaults to ``None``
     """
 
     def __init__(
@@ -34,7 +36,7 @@ class Rotate(Transform):
         multiples: float = 1.0,
         positive: bool = False,
         interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
-        padding: Union[None, str] = None,
+        padding: str = "zeros",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -73,7 +75,7 @@ class Rotate(Transform):
         if self.padding == "circular":
             x = F.pad(x, (H, H, W, W), mode="circular")
             crop_offsets = (H, -H, W, -W)
-        elif self.padding is None:
+        elif self.padding == "zeros":
             crop_offsets = None
         else:
             raise ValueError(f"Unknown padding mode: {padding}")

@@ -65,7 +65,6 @@ class ConvNextBlock(nn.Module):
         if mode == "up_poly_per_channel":
             self.nonlin = UpPolyActPerChannel(
                 4 * in_channels,
-                data_format="channels_first",
                 rotation_equivariant=rotation_equivariant,
             )
         else:
@@ -124,7 +123,6 @@ def ConvBlock(
         seq.append(
             UpPolyActPerChannel(
                 out_channels,
-                data_format="channels_first",
                 rotation_equivariant=rotation_equivariant,
             )
         )
@@ -234,7 +232,7 @@ class LPF_RFFT(nn.Module):
         self.transform_mode = transform_mode
         self.transform = torch.fft.fft2 if transform_mode == "fft" else torch.fft.rfft2
         self.itransform = (
-            (lambda x: torch.real(torch.fft.ifft2(x)))
+            (lambda x, **kwargs: torch.real(torch.fft.ifft2(x)))
             if transform_mode == "fft"
             else torch.fft.irfft2
         )
@@ -256,7 +254,6 @@ class LPF_RFFT(nn.Module):
             self.register_buffer("mask", mask)
             self.to(x.device)
         x_fft *= self.mask
-        # out = self.itransform(x_fft) # support odd inputs - need to specify signal size (irfft default is even)
         out = self.itransform(x_fft, s=(x.shape[-2], x.shape[-1]))
 
         return out
@@ -403,7 +400,6 @@ class UpPolyActPerChannel(nn.Module):
         self,
         channels,
         up=2,
-        data_format="channels_first",
         transform_mode="rfft",
         rotation_equivariant=False,
         **kwargs,
@@ -416,24 +412,14 @@ class UpPolyActPerChannel(nn.Module):
             rotation_equivariant=rotation_equivariant,
         )
         self.upsample = UpsampleRFFT(up, transform_mode=transform_mode)
-        self.data_format = data_format
 
         self.pact = PolyActPerChannel(channels, **kwargs)
 
     def forward(self, x):
-        if self.data_format == "channels_last":
-            x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
-
         out = self.upsample(x)
-        # print("[UpPolyActPerChannel] up: ", out)
         out = self.pact(out)
-        # print("[UpPolyActPerChannel] pact: ", out)
         out = self.lpf(out)
         out = out[:, :, :: self.up, :: self.up]
-
-        if self.data_format == "channels_last":
-            out = out.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
-
         return out
 
 
