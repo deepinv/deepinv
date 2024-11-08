@@ -1,4 +1,4 @@
-import pytest
+ok pimport pytest
 import torch
 import numpy as np
 from deepinv.physics.forward import adjoint_function
@@ -43,6 +43,21 @@ def choose_noise(noise_type, device):
         raise Exception("Noise model not found")
 
     return noise_model
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_scalar_mult_gaussian_noise(device, dtype):
+    imsize = (1, 3, 28, 28)
+    x = torch.rand(imsize, device=device, dtype=dtype)
+
+    t = 0.3
+    gaussian_noise_model = choose_noise("Gaussian", device)
+    new_noise_model = t * gaussian_noise_model
+    assert isinstance(new_noise_model, dinv.physics.GaussianNoise), f"Expected to have a GaussianNoise, instead got {type(noise_model)}"
+
+    y = new_noise_model(x)
+    assert y.shape == torch.Size(imsize)
 
 
 @pytest.mark.parametrize("device", DEVICES)
