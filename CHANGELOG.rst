@@ -11,6 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added HyperSpectral Unmixing operator (:gh:`` by `Dongdong Chen`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
@@ -27,6 +28,7 @@ New Features
 
 Fixed
 ^^^^^
+- doc fixes (:gh:`` by `Dongdong Chen`_) - 04/11/2024
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
@@ -217,6 +219,7 @@ Authors
 ^^^^^^^
 
 .. _Julian Tachella: https://github.com/tachella
+.. _Dongdong Chen: https://www.dongdongchen.com
 .. _Jérémy Scanvic: https://github.com/jscanvic
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs

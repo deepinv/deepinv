@@ -26,6 +26,7 @@ OPERATORS = [
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "hyper_spectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
     "super_resolution_valid",
@@ -175,6 +176,10 @@ def find_operator(name, device):
             * 0.5,
             padding=padding,
         )
+    elif name == "hyper_spectral_unmixing":
+        img_size = (4, 15, 128, 128)
+        p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, H=128, W=128, device=device)
+
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)
         h_size = (1, 1, 4, 3, 5)
@@ -393,6 +398,7 @@ def test_pseudo_inverse(name, device):
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    print(f'sunscone, error={error:.4e}')
     assert error < 0.01
 
 
