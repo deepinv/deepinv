@@ -191,7 +191,7 @@ def spectral_methods_wrapper(y, physics, n_iter=5000, **kwargs):
     r"""
     Wrapper for spectral methods.
 
-    This function wrapper can be used as the custom_init option when buliding optimizers.
+    This function wrapper can be used as the custom_init option when building optimizers.
 
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
