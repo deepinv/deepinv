@@ -21,6 +21,9 @@ METRICS = [
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
 
+def test_Tati():
+    assert 1 == 1
+
 def choose_metric(metric_name, **kwargs) -> metric.Metric:
     if metric_name in ("LPIPS", "NIQE"):
         pytest.importorskip(
