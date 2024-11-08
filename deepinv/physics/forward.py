@@ -280,32 +280,40 @@ class LinearPhysics(Physics):
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
         >>> stacked_physics = LinearPhysics.stack(physics1, physics2)
         >>> y = stacked_physics(x)
-        >>> assert y[0].shape == [1, 1, 30, 30], "Wrong output shape of the Blue op"
+        >>> assert y[0].shape == [1, 1, 30, 30], "Wrong output shape of the Blur op"
         >>> assert y[1].shape == [1, 1, 8, 8], "Wrong output shape of the Downsampling op"
 
         Linear operators can also be composed by multiplying them:
 
         >>> composed_physics = physics1 * physics2
-        >>> y = physics(x)
+        >>> y = composed_physics(x)
 
-        A linear operator can also be amplified by a scalar, 
-        beware that it works only with LinearPhysics operator with GaussianNoise for now:
+        A linear operator can also be amplified by a scalar:
 
         >>> from deepinv.physics.noise import GaussianNoise
-        >>> physics_with_gauss_noise = Blue(filter=w, noise_level=GaussianNoise())
-        >>> physics = 3.0 * physics_with_gauss_noise
-        >>> y = physics(x)
+        >>> physics_with_gauss_noise = Blur(filter=w, noise_level=GaussianNoise())
+        >>> scaled_physics = 3.0 * physics_with_gauss_noise
+        >>> y = scaled_physics(x)
+        
+        .. warning::
 
-        A linear operator can also be used to create a batch o:
+            Beware that it works only with LinearPhysics operator with GaussianNoise for now.
 
-        >>> torch.
-        >>> physics = 
-        >>>
+        A linear operator can also be used to create a batch of LinearPhysics:
+        :math:`batch\_physics(x) = [\lambda_1 \times physics(x), ..., \lambda_b \times physics(x)]`
+
+        >>> t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)
+        >>> batch_physics = t * physics_with_gauss_noise
+        >>> y = batch_physics(x)
+
+        .. warning::
+    
+            Beware that it works only with LinearPhysics operator with GaussianNoise for now.
 
         Linear operator can also be transposed as a new LinearPhysic object:
 
-        >>> physics = physics1.get_transpose()
-        >>> y = physics(x)
+        >>> transposed_physics = physics1.get_transpose()
+        >>> y = transposed_physics(x)
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
