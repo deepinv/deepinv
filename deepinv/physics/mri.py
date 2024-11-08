@@ -20,7 +20,7 @@ class MRIMixin:
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
         :param torch.nn.Parameter, torch.Tensor mask: MRI subsampling mask.
-        :param bool three_d: whether the mask should be min 4 dims (for 2D data) or 5 dims (for 3D data)
+        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
         :param torch.device, str device: mask intended device.
         """
         if mask is not None:
@@ -98,7 +98,7 @@ class MRI(MRIMixin, DecomposablePhysics):
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), (B,C,H,W), (B,C,...,H,W) where H, W are the image height and width, C is channels (which should be 2) and B is batch size.
     :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
-    :param bool three_d: if True, calculate Fourier transform in 3D for 3D data (i.e. data of shape [B,C,D,H,W] where D is depth).
+    :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -201,7 +201,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     for :math:`n=1,\dots,N` coils, where :math:`y_n` are the measurements from the cth coil, :math:`\text{diag}(p)` is the acceleration mask, :math:`F` is the Fourier transform and :math:`\text{diag}(s_n)` is the nth coil sensitivity.
 
-    The data ``x`` should be of shape [B,C,H,W] or [B,C,D,H,W] where C=2 is the channels (real and imaginary) and D is optional dimension for 3D MRI.
+    The data ``x`` should be of shape (B,C,H,W) or (B,C,D,H,W) where C=2 is the channels (real and imaginary) and D is optional dimension for 3D MRI.
 
     .. note::
 
@@ -218,8 +218,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         If None, generate blank coil maps with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
     :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, blank ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
         where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
-    :param bool three_d: if True, calculate Fourier transform in 3D for 3D data (i.e. data of shape [B,C,D,H,W] where D is depth).
-    :param torch.device device: specify which device you want to use (i.e, cpu or gpu).
+    :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
+    :param torch.device, str device: specify which device you want to use (i.e, cpu or gpu).
 
     |sep|
 
@@ -336,7 +336,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             )
 
     def simulate_birdcage_csm(self, n_coils: int):
-        """Simulate birdcage coil sensitivity maps. Requires ``sigpy``.
+        """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
 
         :param int n_coils: number of coils N
         :return torch.Tensor: coil maps of complex dtype of shape (N,H,W)
@@ -551,7 +551,7 @@ if __name__ == "__main__":
         :param torch.Tensor data: Complex valued input data containing at least 3 dimensions:
             dimensions -3 & -2 are spatial dimensions and dimension -1 has size
             2. All other dimensions are assumed to be batch dimensions.
-        :param bool norm: Normalization mode. See ``torch.fft.fft``.
+        :param bool norm: Normalization mode. See :meth:`torch.fft.fft`.
         :return: (torch.tensor) the FFT of the input.
         """
         if not data.shape[-1] == 2:
