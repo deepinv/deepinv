@@ -272,18 +272,39 @@ class LinearPhysics(Physics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
-        Linear operators can also be added. The measurements produced by the resulting
+        Linear operators can also be stacked. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator:
 
         >>> physics1 = Blur(filter=w)
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
-        >>> physics = physics1 + physics2
-        >>> y = physics(x)
+        >>> stacked_physics = LinearPhysics.stack(physics1, physics2)
+        >>> y = stacked_physics(x)
+        >>> assert y[0].shape == [1, 1, 30, 30], "Wrong output shape of the Blue op"
+        >>> assert y[1].shape == [1, 1, 8, 8], "Wrong output shape of the Downsampling op"
 
         Linear operators can also be composed by multiplying them:
 
-        >>> physics = physics1 * physics2
+        >>> composed_physics = physics1 * physics2
+        >>> y = physics(x)
+
+        A linear operator can also be amplified by a scalar, 
+        beware that it works only with LinearPhysics operator with GaussianNoise for now:
+
+        >>> from deepinv.physics.noise import GaussianNoise
+        >>> physics_with_gauss_noise = Blue(filter=w, noise_level=GaussianNoise())
+        >>> physics = 3.0 * physics_with_gauss_noise
+        >>> y = physics(x)
+
+        A linear operator can also be used to create a batch o:
+
+        >>> torch.
+        >>> physics = 
+        >>>
+
+        Linear operator can also be transposed as a new LinearPhysic object:
+
+        >>> physics = physics1.get_transpose()
         >>> y = physics(x)
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
@@ -447,9 +468,9 @@ class LinearPhysics(Physics):
             )
             new_noise_model = self.noise_model
         else:  # should be a scalar or a torch.tensor
-            new_A = lambda x: other * self.A(x)
-            new_A_adj = lambda x: other * self.A_adj(x)
-            new_noise_model = other * self.noise_model
+            new_A = lambda x: other * self.A(x)         # self.A is a function
+            new_A_adj = lambda x: other * self.A_adj(x) # self.A_adj is a function
+            new_noise_model = other * self.noise_model  # create a new object from the same class as self.noise_model
 
         return LinearPhysics(
             A=new_A,
@@ -463,61 +484,63 @@ class LinearPhysics(Physics):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    def stack(self, other):
+    @classmethod
+    def stack(cls, linearphysics1, linearphysics2):
         r"""
-        Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}` via the add operation.
+        Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
 
         .. note::
 
-            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            When using this method on two noise objects, the operation will retain only the second
             noise.
 
-        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
+        :param deepinv.physics.LinearPhysics linearphysics1: Physics operator :math!`A_1`
+        :param deepinv.physics.LinearPhysics linearphysics2: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x, **kwargs: TensorList(self.A(x, **kwargs)).append(
-            TensorList(other.A(x, **kwargs))
+        A = lambda x, **kwargs: TensorList(linearphysics1.A(x, **kwargs)).append(
+            TensorList(linearphysics2.A(x, **kwargs))
         )
 
         def A_adjoint(y, **kwargs):
             at1 = (
-                self.A_adjoint(y[:-1], **kwargs)
+                linearphysics1.A_adjoint(y[:-1], **kwargs)
                 if len(y) > 2
-                else self.A_adjoint(y[0], **kwargs)
+                else linearphysics1.A_adjoint(y[0], **kwargs)
             )
-            return at1 + other.A_adjoint(y[-1], **kwargs)
+            return at1 + linearphysics2.A_adjoint(y[-1], **kwargs)
 
         class noise(torch.nn.Module):
-            def __init__(self, noise1, noise2):
+            def __init__(linearphysics1, noise1, noise2):
                 super().__init__()
-                self.noise1 = noise1
-                self.noise2 = noise2
+                linearphysics1.noise1 = noise1
+                linearphysics1.noise2 = noise2
 
-            def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(
-                    self.noise2(x[-1], **kwargs)
+            def forward(linearphysics1, x, **kwargs):
+                return TensorList(linearphysics1.noise1(x[:-1], **kwargs)).append(
+                    linearphysics1.noise2(x[-1], **kwargs)
                 )
 
         class sensor(torch.nn.Module):
-            def __init__(self, sensor1, sensor2):
+            def __init__(linearphysics1, sensor1, sensor2):
                 super().__init__()
-                self.sensor1 = sensor1
-                self.sensor2 = sensor2
+                linearphysics1.sensor1 = sensor1
+                linearphysics1.sensor2 = sensor2
 
-            def forward(self, x):
-                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
+            def forward(linearphysics1, x):
+                return TensorList(linearphysics1.sensor1(x[:-1])).append(linearphysics1.sensor2(x[-1]))
 
         return LinearPhysics(
             A=A,
             A_adjoint=A_adjoint,
-            noise_model=noise(self.noise_model, other.noise_model),
-            sensor_model=sensor(self.sensor_model, other.sensor_model),
-            max_iter=self.max_iter,
-            tol=self.tol,
+            noise_model=noise(linearphysics1.noise_model, linearphysics2.noise_model),
+            sensor_model=sensor(linearphysics1.sensor_model, linearphysics2.sensor_model),
+            max_iter=linearphysics1.max_iter,
+            tol=linearphysics1.tol,
         )
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
