@@ -103,8 +103,30 @@ class GaussianNoise(NoiseModel):
         >>> import torch
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise()
-        >>> x = torch.rand(1, 1, 2, 2)
+        >>> x = torch.rand(3, 1, 2, 2)
         >>> y = physics(x)
+
+        We can sum 2 GaussianNoise instance:
+        
+        >>> gaussian_noise_1 = GaussianNoise(sigma=3.0)
+        >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
+        >>> gaussian_noise = gaussian_noise_1 + gaussian_noise_2
+        >>> y = gaussian_noise(x)
+        >>> assert gaussian_noise.sigma == 5.0, "Wrong standard deviation value for the sum."
+        
+        We can also mulitply a GaussianNoise and a scalar:
+
+        >>> scaled_gaussian_noise = 3.0 * gaussian_noise
+        >>> y = scaled_gaussian_noise(x)
+        >>> assert scaled_gaussian_noise.sigma == 15.0, "Wrong standard deviation value for the multiplication."
+
+        We can also create a batch of GaussianNoise with different standard deviations:
+        :math:`batch\_gaussian(x) = [\lambda_1 \times gaussian(x), ..., \lambda_b \times gaussian(x)]`
+
+        >>> t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)
+        >>> batch_gaussian_noise = t * gaussian_noise
+        >>> y = batch_gaussian_noise(x)
+        >>> assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), "Wrong standard deviation value for the first GaussianNoise."
 
     :param float sigma: Standard deviation of the noise.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
