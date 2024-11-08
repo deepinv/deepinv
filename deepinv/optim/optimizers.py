@@ -261,7 +261,7 @@ class BaseOptim(nn.Module):
         (if this parameter depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the parameters of iteration ``it``.
+        :return: a dictionary containing the parameters at iteration ``it``.
         """
         cur_params_dict = {
             key: value[it] if len(value) > 1 else value[0]
@@ -275,7 +275,7 @@ class BaseOptim(nn.Module):
         (if this prior depends on the iteration number).
 
         :param int it: iteration number.
-        :return: the prior of iteration ``it``.
+        :return: the prior at iteration ``it``.
         """
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior

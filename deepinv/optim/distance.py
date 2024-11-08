@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 from deepinv.optim.potential import Potential
 
 
@@ -46,6 +45,7 @@ class L2Distance(Distance):
 
     .. math::
         f(x) = \frac{1}{2\sigma^2}\|x-y\|^2
+
     """
 
     def __init__(self):
@@ -120,7 +120,6 @@ class IndicatorL2Distance(Distance):
 
 
     :param float radius: radius of the ball. Default: None.
-
     """
 
     def __init__(self, radius=None):
@@ -183,7 +182,7 @@ class PoissonLikelihoodDistance(Distance):
 
     :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
-    :param bool denormalize: if True, the measurement is divided by the gain. By default in the class :class:`physics.noise.PoissonNoise`, the measurements are multiplied by the gain after being sampled by the Poisson distribution . Default: True.
+    :param bool denormalize: if True, the measurement is divided by the gain. By default, in the class :class:`physics.noise.PoissonNoise`, the measurements are multiplied by the gain after being sampled by the Poisson distribution. Default: True.
     """
 
     def __init__(self, gain=1.0, bkg=0, denormalize=False):
