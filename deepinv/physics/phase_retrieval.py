@@ -165,7 +165,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
 class PtychographyLinearOperator(LinearPhysics):
     r"""
-        Forward linear operator for phase recovery in ptychography, modelling multiple applications of the shifted probe and Fourier transform on an input image.
+        Forward linear operator for phase retrieval in ptychography. Modelling multiple applications of the shifted probe and Fourier transform on an input image.
 
         This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.
         The probe function is applied element by element to the input image.
@@ -177,7 +177,7 @@ class PtychographyLinearOperator(LinearPhysics):
 
         where :math:`F` is the 2D Fourier transform, and :math:`P` is the probe function and :math:`T_l` the shift by :math:`l`.
 
-        :param tuple in_shape: Shape of the input image (height, width).
+        :param tuple img_size: Shape of the input image (height, width).
         :param probe: A 2D tensor representing the probe function.
         :param str probe_type: Type of probe (e.g., "disk"), used if `probe` is not provided.
         :param int probe_radius: Radius of the probe, used if `probe` is not provided.
@@ -188,7 +188,7 @@ class PtychographyLinearOperator(LinearPhysics):
         """
     def __init__(
         self,
-        in_shape=None,
+        img_size=None,
         probe=None,
         shifts=None,
         probe_type=None,
@@ -204,9 +204,9 @@ class PtychographyLinearOperator(LinearPhysics):
 
         if probe is not None:
             self.probe = probe
-            self.in_shape = in_shape if in_shape is not None else probe.shape
+            self.img_size = img_size if img_size is not None else probe.shape
         else:
-            self.in_shape = in_shape
+            self.img_size = img_size
             self.probe_type = probe_type
             self.probe_radius = probe_radius
             self.probe = self.construct_probe(
@@ -219,10 +219,7 @@ class PtychographyLinearOperator(LinearPhysics):
         else:
             self.n_img = n_img
             self.fov = fov
-            probe_radius = 0
-            self.shifts = self.generate_shifts(
-                size=in_shape, n_img=n_img, probe_radius=probe_radius, fov=fov
-            )
+            self.shifts = self.generate_shifts(n_img=n_img, fov=fov)
 
         self.probe = self.probe / self.get_overlap_img(self.probe, self.shifts).mean().sqrt()
 
@@ -267,13 +264,13 @@ class PtychographyLinearOperator(LinearPhysics):
             :return: Tensor representing the constructed probe.
         """
         if type == "disk" or type is None:
-            x = torch.arange(self.in_shape[0], dtype=torch.float64)
-            y = torch.arange(self.in_shape[1], dtype=torch.float64)
+            x = torch.arange(self.img_size[0], dtype=torch.float64)
+            y = torch.arange(self.img_size[1], dtype=torch.float64)
             X, Y = torch.meshgrid(x, y, indexing="ij")
-            probe = torch.zeros(self.in_shape, device=self.device)
+            probe = torch.zeros(self.img_size, device=self.device)
             probe[
                 torch.sqrt(
-                    (X - self.in_shape[0] // 2) ** 2 + (Y - self.in_shape[1] // 2) ** 2
+                    (X - self.img_size[0] // 2) ** 2 + (Y - self.img_size[1] // 2) ** 2
                 )
                 < probe_radius
             ] = 1
@@ -281,7 +278,7 @@ class PtychographyLinearOperator(LinearPhysics):
             raise NotImplementedError(f"Probe type {type} not implemented")
         return probe
 
-    def generate_shifts(self, size, n_img, probe_radius=10, fov=None):
+    def generate_shifts(self, n_img, fov=None):
         """
             Generates the array of probe shifts across the image, based on probe radius and field of view.
 
@@ -292,11 +289,9 @@ class PtychographyLinearOperator(LinearPhysics):
             :return: Array of (x, y) shifts.
         """
         if fov is None:
-            start_shift = -(size // 2 - probe_radius)
-            end_shift = size // 2 - probe_radius
-        else:
-            start_shift = -fov // 2
-            end_shift = fov // 2
+            fov = self.img_size[-1]
+        start_shift = -fov // 2
+        end_shift = fov // 2
 
         assert int(np.sqrt(n_img)) ** 2 == n_img, "n_img needs to be a perfect square"
         side_n_img = int(np.sqrt(n_img))
@@ -345,8 +340,8 @@ class PtychographyLinearOperator(LinearPhysics):
 
 class Ptychography(PhaseRetrieval):
     r"""
-        Ptychography forward operator, corresponding to the operator
-
+        Ptychography forward operator. Corresponding to the operator
+        
         .. math::
 
              \forw{x} = \left| Bx \right|^2
@@ -375,16 +370,8 @@ class Ptychography(PhaseRetrieval):
         device="cpu",
         **kwargs,
     ):
-        B = PtychographyLinearOperator(
-            in_shape=in_shape,
-            probe=probe,
-            shifts=shifts,
-            probe_type=probe_type,
-            probe_radius=probe_radius,
-            fov=fov,
-            n_img=n_img,
-            device=device,
-        )
+        B = PtychographyLinearOperator(img_size=in_shape, probe=probe, shifts=shifts, probe_type=probe_type,
+                                       probe_radius=probe_radius, fov=fov, n_img=n_img, device=device)
         self.probe = B.probe
         self.shifts = B.shifts
         self.device = device
