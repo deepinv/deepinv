@@ -22,7 +22,10 @@ def correct_global_phase(
     r"""
     Corrects the global phase of the reconstructed image.
 
+.. warning:
+
     Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
+
 
     The global phase shift is comptued per image and per channel as:
 
