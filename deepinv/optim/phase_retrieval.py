@@ -20,33 +20,33 @@ def correct_global_phase(
     verbose: bool = False,
 ) -> torch.Tensor:
     r"""
-    Corrects the global phase of the reconstructed image.
+        Corrects the global phase of the reconstructed image.
 
-.. warning:
+    .. warning:
 
-    Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
+        Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
 
 
-    The global phase shift is comptued per image and per channel as:
+        The global phase shift is comptued per image and per channel as:
 
-    .. math::
-        e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
+        .. math::
+            e^{-i \phi} = \frac{\conj{\hat{x}} \cdot x}{|x|^2},
 
-    where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
+        where :math:`\conj{\hat{x}}` is the complex conjugate of the reconstructed image, :math:`x` is the reference image, and :math:`|x|^2` is the squared magnitude of the reference image.
 
-    The global phase shift is then applied to the reconstructed image as:
+        The global phase shift is then applied to the reconstructed image as:
 
-    .. math::
-        \hat{x} = \hat{x} \cdot e^{-i \phi},
+        .. math::
+            \hat{x} = \hat{x} \cdot e^{-i \phi},
 
-    for the corresponding image and channel.
+        for the corresponding image and channel.
 
-    :param torch.Tensor x_recon: Reconstructed image.
-    :param torch.Tensor x: Original image.
-    :param float threshold: Threshold to determine if the global phase shift is constant. Default is 1e-5.
-    :param bool verbose: If True, prints information about the global phase shift. Default is False.
+        :param torch.Tensor x_recon: Reconstructed image.
+        :param torch.Tensor x: Original image.
+        :param float threshold: Threshold to determine if the global phase shift is constant. Default is 1e-5.
+        :param bool verbose: If True, prints information about the global phase shift. Default is False.
 
-    :return: The corrected image.
+        :return: The corrected image.
     """
     assert x_recon.shape == x.shape, "The shapes of the images should be the same."
     assert (

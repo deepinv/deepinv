@@ -54,7 +54,7 @@ class CompressedSensing(LinearPhysics):
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
     .. deprecated::
-    
+
                          The ``fast`` option is deprecated and might be removed in future versions.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
@@ -118,7 +118,7 @@ class CompressedSensing(LinearPhysics):
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
-        self.use_haar = unitary
+        self.unitary = unitary
         self.compute_inverse = compute_inverse
         self.dtype = dtype
         self.device = device
@@ -173,7 +173,7 @@ class CompressedSensing(LinearPhysics):
             )
 
         else:
-            if self.use_haar is False:
+            if self.unitary is False:
                 # generate A as an iid Gaussian matrix
                 self._A = torch.randn((m, n), device=device, dtype=dtype)
                 self._A = self._A / np.sqrt(m)
