@@ -49,7 +49,7 @@ class HyperSpectralUnmixing(LinearPhysics):
 
     :Examples:
 
-        hsu operator using defined mask, removing the second column of a 3x3 image:
+        HSU operator using defined mask, removing the second column of a 3x3 image:
 
         >>> from deepinv.physics import HyperSpectralUnmixing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
@@ -148,8 +148,6 @@ if __name__ == "__main__":
     #     ],
     #     ["C1", "C2", "C3", "C4", "C5"],
     # )
-
-    import torch
 
     # Device configuration
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
