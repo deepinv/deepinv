@@ -107,13 +107,13 @@ class GaussianNoise(NoiseModel):
         >>> y = physics(x)
 
         We can sum 2 GaussianNoise instance:
-        
+
         >>> gaussian_noise_1 = GaussianNoise(sigma=3.0)
         >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
         >>> gaussian_noise = gaussian_noise_1 + gaussian_noise_2
         >>> y = gaussian_noise(x)
         >>> assert gaussian_noise.sigma == 5.0, "Wrong standard deviation value for the sum."
-        
+
         We can also mulitply a GaussianNoise and a scalar:
 
         >>> scaled_gaussian_noise = 3.0 * gaussian_noise

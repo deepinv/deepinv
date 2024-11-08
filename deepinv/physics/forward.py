@@ -294,7 +294,7 @@ class LinearPhysics(Physics):
         >>> physics_with_gauss_noise = Blur(filter=w, noise_level=GaussianNoise())
         >>> scaled_physics = 3.0 * physics_with_gauss_noise
         >>> y = scaled_physics(x)
-        
+
         .. warning::
 
             Beware that it works only with LinearPhysics operator with GaussianNoise for now.
@@ -307,7 +307,7 @@ class LinearPhysics(Physics):
         >>> y = batch_physics(x)
 
         .. warning::
-    
+
             Beware that it works only with LinearPhysics operator with GaussianNoise for now.
 
         Linear operator can also be transposed as a new LinearPhysic object:
@@ -476,9 +476,11 @@ class LinearPhysics(Physics):
             )
             new_noise_model = self.noise_model
         else:  # should be a scalar or a torch.tensor
-            new_A = lambda x: other * self.A(x)         # self.A is a function
-            new_A_adj = lambda x: other * self.A_adj(x) # self.A_adj is a function
-            new_noise_model = other * self.noise_model  # create a new object from the same class as self.noise_model
+            new_A = lambda x: other * self.A(x)  # self.A is a function
+            new_A_adj = lambda x: other * self.A_adj(x)  # self.A_adj is a function
+            new_noise_model = (
+                other * self.noise_model
+            )  # create a new object from the same class as self.noise_model
 
         return LinearPhysics(
             A=new_A,
@@ -540,13 +542,17 @@ class LinearPhysics(Physics):
                 linearphysics1.sensor2 = sensor2
 
             def forward(linearphysics1, x):
-                return TensorList(linearphysics1.sensor1(x[:-1])).append(linearphysics1.sensor2(x[-1]))
+                return TensorList(linearphysics1.sensor1(x[:-1])).append(
+                    linearphysics1.sensor2(x[-1])
+                )
 
         return LinearPhysics(
             A=A,
             A_adjoint=A_adjoint,
             noise_model=noise(linearphysics1.noise_model, linearphysics2.noise_model),
-            sensor_model=sensor(linearphysics1.sensor_model, linearphysics2.sensor_model),
+            sensor_model=sensor(
+                linearphysics1.sensor_model, linearphysics2.sensor_model
+            ),
             max_iter=linearphysics1.max_iter,
             tol=linearphysics1.tol,
         )
