@@ -53,7 +53,9 @@ class CompressedSensing(LinearPhysics):
     It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
     ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
 
-    .. warning:: The ``fast`` option is deprecated and might be removed in futrue versions.
+    .. deprecated::
+    
+                         The ``fast`` option is deprecated and might be removed in future versions.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
