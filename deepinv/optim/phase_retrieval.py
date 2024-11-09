@@ -5,6 +5,11 @@ def default_preprocessing(y, physics):
     r"""
     Default preprocessing function for spectral methods.
 
+    The output of the preprocessing function is given by:
+
+    .. math::
+        \max(1 - 1/y, -5).
+
     :param torch.Tensor y: Measurements.
     :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
 
@@ -22,7 +27,7 @@ def correct_global_phase(
     r"""
         Corrects the global phase of the reconstructed image.
 
-    .. warning:
+    .. warning::
 
         Do not mix the order of the reconstructed and original images since this function modifies x_recon in place.
 

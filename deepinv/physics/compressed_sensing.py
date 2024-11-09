@@ -50,8 +50,7 @@ class CompressedSensing(LinearPhysics):
     :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
     :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
 
-    It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
-    ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
+    For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity. In this case, we recommend using :meth:`deepinv.physics.StructuredRandom` instead.
 
     .. deprecated::
 
