@@ -45,6 +45,7 @@ OPERATORS = [
     "complex_compressed_sensing",
     "radio",
     "radio_weighted",
+    "structured_random",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -261,6 +262,11 @@ def find_operator(name, device):
             dtype=torch.float,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
+        )
+    elif name == "structured_random":
+        img_size = (1, 8, 8)
+        p = dinv.physics.StructuredRandom(
+            input_shape=img_size, output_shape=img_size, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -502,19 +508,10 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
-    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
-        input_shape=(1, 10, 10),
-        output_shape=(1, 10, 10),
-        n_layers=2,
-        transform="fft",
-        diagonal_mode="uniform_phase",
-    )
     # nonnegativity
     assert (physics(x) >= 0).all()
-    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
-    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):

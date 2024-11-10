@@ -6,29 +6,6 @@ from deepinv.physics.functional import random_choice
 from deepinv.physics.structured_random import StructuredRandom, generate_diagonal
 
 
-def dst1(x):
-    r"""
-    Orthogonal Discrete Sine Transform, Type I
-    The transform is performed across the last dimension of the input signal
-    Due to orthogonality we have ``dst1(dst1(x)) = x``.
-
-    :param torch.Tensor x: the input signal
-    :return: (torch.tensor) the DST-I of the signal over the last dimension
-
-    """
-    x_shape = x.shape
-
-    b = int(np.prod(x_shape[:-1]))
-    n = x_shape[-1]
-    x = x.view(-1, n)
-
-    z = torch.zeros(b, 1, device=x.device)
-    x = torch.cat([z, x, z, -x.flip([1])], dim=1)
-    x = torch.view_as_real(torch.fft.rfft(x, norm="ortho"))
-    x = x[:, 1:-1, 1]
-    return x.view(*x_shape)
-
-
 class CompressedSensing(LinearPhysics):
     r"""
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
@@ -52,7 +29,7 @@ class CompressedSensing(LinearPhysics):
 
     For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity. In this case, we recommend using :meth:`deepinv.physics.StructuredRandom` instead.
 
-    .. deprecated::
+    .. deprecated:: 0.2.2
 
                          The ``fast`` option is deprecated and might be removed in future versions.
 
@@ -164,9 +141,6 @@ class CompressedSensing(LinearPhysics):
             self.FD = StructuredRandom(
                 input_shape=(n,),
                 output_shape=(n,),
-                n_layers=1,
-                transform_func=dst1,
-                transform_func_inv=dst1,
                 device=device,
                 diagonals=[self.D],
             )
