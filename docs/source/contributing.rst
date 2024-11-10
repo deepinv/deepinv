@@ -39,7 +39,7 @@ check the following points:
      - Description of command
    * - ``make html``
      - Generates all the documentation
-   * - ``make html-noplot``
+   * - ``make html-fast``
      - Generates documentation faster but without running the examples
    * - ``PATTERN=/path/to/file make html-pattern``
      - Generates documentation for files matching ``$(PATTERN)``

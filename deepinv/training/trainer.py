@@ -247,7 +247,6 @@ class Trainer:
             )
 
         self.epoch_start = 0
-        self.load_model()
 
         self.conv_metrics = None
         # wandb initialization
@@ -320,13 +319,15 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
+        self.load_model()
+
     def load_model(self):
         if self.ckpt_pretrained is not None:
             checkpoint = torch.load(self.ckpt_pretrained)
             self.model.load_state_dict(checkpoint["state_dict"])
-            if "optimizer" in checkpoint:
+            if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
-            if "wandb_id" in checkpoint:
+            if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
             if "epoch" in checkpoint:

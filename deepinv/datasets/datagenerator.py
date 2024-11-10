@@ -237,16 +237,16 @@ def generate_dataset(
 
         if train_dataset is not None:
             hf.create_dataset(
-                "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.numpy().dtype
+                "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.cpu().numpy().dtype
             )
             if supervised:
                 hf.create_dataset(
-                    "x_train", (n_train_g,) + x0.shape[1:], dtype=x0.numpy().dtype
+                    "x_train", (n_train_g,) + x0.shape[1:], dtype=x0.cpu().numpy().dtype
                 )
             if save_physics_generator_params:
                 for k, p in params0.items():
                     hf.create_dataset(
-                        f"{k}_train", (n_train_g,) + p.shape[1:], dtype=p.numpy().dtype
+                        f"{k}_train", (n_train_g,) + p.shape[1:], dtype=p.cpu().numpy().dtype
                     )
 
             index = 0

@@ -27,11 +27,11 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
 .. toctree::
    :maxdepth: 3
    :hidden:
-   :caption: Contents:
 
    quickstart
    auto_examples/index
    user_guide
+   API
    finding_help
    contributing
 

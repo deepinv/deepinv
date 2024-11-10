@@ -29,6 +29,14 @@ which can simulate the observation process:
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Define forward operators and noise models.
 
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   deepinv.physics
+
+
 Reconstruction
 ~~~~~~~~~~~~~~
 
@@ -93,6 +101,19 @@ reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge o
         :octicon:`flame` **Sampling**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Diffusion and Langevin algorithms.
+
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   deepinv.denoisers
+   deepinv.optim
+   deepinv.iterative
+   deepinv.unfolded
+   deepinv.sampling
+   deepinv.other_models
+
 
 Training, Testing and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -167,15 +188,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
 .. toctree::
    :maxdepth: 2
    :hidden:
-   :caption: Contents:
 
-   deepinv.physics
-   deepinv.denoisers
-   deepinv.optim
-   deepinv.iterative
-   deepinv.unfolded
-   deepinv.sampling
-   deepinv.other_models
    deepinv.datasets
    deepinv.training
    deepinv.loss
