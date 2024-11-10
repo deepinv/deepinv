@@ -509,7 +509,7 @@ def test_phase_retrieval(device):
         m=500, img_shape=(1, 10, 10), device=device
     )
     physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
-        input_shpae=(1, 10, 10),
+        input_shape=(1, 10, 10),
         output_shape=(1, 10, 10),
         n_layers=2,
         device=device,
