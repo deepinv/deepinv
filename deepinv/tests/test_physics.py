@@ -508,10 +508,18 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
+    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
+        input_shpae=(1, 10, 10),
+        output_shape=(1, 10, 10),
+        n_layers=2,
+        device=device,
+    )
     # nonnegativity
     assert (physics(x) >= 0).all()
+    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):
