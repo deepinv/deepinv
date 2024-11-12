@@ -80,14 +80,6 @@ We also provide pre-implemented iterative optimization algorithms,
 which can be loaded in a single line of code, and used
 to solve any inverse problem. The following algorithms are available:
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.DPIR
-   deepinv.optim.EPLL
-
 
 
 Deep Image Prior
@@ -96,21 +88,5 @@ Deep Image Prior
 The `deep image prior <https://arxiv.org/abs/1711.10925>`_ can be interpreted as
 using an indicator function :math:`g(x) = \mathbf {1} _{x=d_{\theta}(z)}` which forces the reconstruction image
 to be the output of a convolutional decoder network :math:`d_{\theta}` applied to a random input :math:`z`.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.DeepImagePrior
-
 The choice of the architecture of :math:`d_{\theta}` is crucial for the success of the method. The
 following architecture is available, which is based on a convolutional decoder network:
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.ConvDecoder
-

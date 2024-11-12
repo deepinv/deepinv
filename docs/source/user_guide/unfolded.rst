@@ -29,21 +29,8 @@ a trainable reconstruction network using a either pre-existing optimizer (e.g., 
 an iterator defined by the user. The user can choose which parameters (e.g., prior denoiser, step size, regularization
 parameter, etc.) are learnable and which are not.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-   deepinv.unfolded.unfolded_builder
-
 The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseUnfold`.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.unfolded.BaseUnfold
 
 
 In the following example, we create an unfolded architecture of 5 proximal gradient steps
@@ -88,31 +75,13 @@ See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/
 
 The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building Deep Equilibrium (DEQ) architectures.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-    deepinv.unfolded.DEQ_builder
 
 The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseDEQ`.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
 
-    deepinv.unfolded.BaseDEQ
-
-
-Utils
-----------------
+Custom Unfolded Architectures
+-------------------------------
 Some more specific unfolded architectures are also available.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.PDNet_PrimalBlock
-   deepinv.models.PDNet_DualBlock
+The Primal-Dual Network (PDNet) uses :class:`deepinv.models.PDNet_PrimalBlock` and
+:class:`deepinv.models.PDNet_DualBlock` as building blocks for the primal and dual steps respectively.

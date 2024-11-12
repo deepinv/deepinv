@@ -1,7 +1,7 @@
 .. _transform:
 
 Transforms
-============
+=================
 
 This package contains different transforms which can be used for data augmentation or together with the equivariant losses.
 
@@ -12,7 +12,7 @@ We implement various geometric transforms, ranging from Euclidean to homography 
 Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via ``|`` to randomly select.
 There are numerous other parameters e.g to randomly transform multiple times at once, to constrain the parameters to a range etc.
 
-Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``. 
+Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``.
 They can also be used for equivariant imaging (EI) using the :class:`deepinv.loss.EILoss` loss.
 See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` and :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` for examples.
 
@@ -21,12 +21,6 @@ This allows every transform to have its own deterministic inverse using ``transf
 Transforms can also be seamlessly integrated with existing ``torchvision`` transforms.
 Transforms can also accept video (5D) input.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.transform.Transform
 
 For example, random transforms can be used as follows:
 
@@ -61,34 +55,63 @@ For example, random transforms can be used as follows:
 Simple transforms
 -----------------
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Simple Transformations
+   :header-rows: 1
 
-    deepinv.transform.Rotate
-    deepinv.transform.Shift
-    deepinv.transform.Scale
-    deepinv.transform.Reflect
+   * - **Transform**
+     - **Uses Interpolation**
+     - **Invertible**
+
+   * - :class:`deepinv.transform.Rotate`
+     - Yes
+     - No (border effects)
+
+   * - :class:`deepinv.transform.Shift`
+     - Yes
+     - Yes
+
+   * - :class:`deepinv.transform.Scale`
+     - Yes
+     - No
+
+   * - :class:`deepinv.transform.Reflect`
+     - No
+     - Yes
+
 
 Advanced transforms
 -------------------
 
 We implement the following further geometric transforms.
-The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. 
-See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` for a demonstration. Note these require ``kornia`` installed.
+The projective transformations formulate the image transformations using the pinhole camera model,
+from which various transformation subgroups can be derived.
+See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` for a demonstration.
+Note these require installing the library ``kornia``.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Advanced Transformations
+   :header-rows: 1
 
-    deepinv.transform.Homography
-    deepinv.transform.projective.Euclidean
-    deepinv.transform.projective.Similarity
-    deepinv.transform.projective.Affine
-    deepinv.transform.projective.PanTiltRotate
-    deepinv.transform.CPABDiffeomorphism
+   * - **Transform**
+     - **Description**
+
+   * - :class:`deepinv.transform.Homography`
+     - A general projective transformation allowing perspective distortion and transformation between different planes.
+
+   * - :class:`deepinv.transform.projective.Euclidean`
+     - A rigid transformation that preserves angles and distances, allowing only rotation and translation.
+
+   * - :class:`deepinv.transform.projective.Similarity`
+     - A transformation that preserves shapes through scaling, rotation, and translation, maintaining proportions.
+
+   * - :class:`deepinv.transform.projective.Affine`
+     - A transformation preserving parallel lines, allowing scaling, rotation, translation, and shearing.
+
+   * - :class:`deepinv.transform.projective.PanTiltRotate`
+     - A specialized transformation that simulates pan, tilt, and rotation effects in imaging.
+
+   * - :class:`deepinv.transform.CPABDiffeomorphism`
+     - A continuous piecewise affine transformation allowing for smooth and invertible deformations across an image.
+
 
 Video transforms
 ----------------
@@ -96,9 +119,11 @@ Video transforms
 While all geometric transforms accept video input, the following transforms work specifically in the time dimension.
 These can be easily compounded with geometric transformations using the ``*`` operation.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Time Transforms
+   :header-rows: 1
 
-    deepinv.transform.ShiftTime
+   * - **Transform**
+     - **Description**
+
+   * - :class:`deepinv.transform.ShiftTime`
+     - A temporal shift in the time dimension.

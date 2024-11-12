@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 DeepInverse: a Pytorch library for imaging with deep learning
 ==================================================================
 

@@ -9,14 +9,6 @@ This subpackage can be used for generating reconstruction datasets from other ba
 HD5Dataset
 ----------
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.datasets.HDF5Dataset
-    deepinv.datasets.generate_dataset
-
 
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
@@ -48,7 +40,7 @@ using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MN
 
 
 Similarly, we can generate a dataset from a local folder of images (other types of data can be loaded using the ``loader``
-and ``is_valid_file`` arguments of :meth:`torchvision.datasets.ImageFolder``):
+and ``is_valid_file`` arguments of :class:`torchvision.datasets.ImageFolder`):
 
 .. doctest::
 
@@ -87,34 +79,60 @@ and save and load the physics params into the dataset:
 
 
 
-PatchDataset
-------------
-
-Generate a dataset of all patches out of a tensor of images.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.datasets.PatchDataset
-
 Image Datasets
 --------------
+Multiple popular easy-to-download datasets are available:
 
-Ready-made datasets available in the `deepinv.datasets` module.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Datasets Overview
+   :header-rows: 1
 
-    deepinv.datasets.DIV2K
-    deepinv.datasets.Urban100HR
-    deepinv.datasets.Set14HR
-    deepinv.datasets.CBSD68
-    deepinv.datasets.FastMRISliceDataset
-    deepinv.datasets.LidcIdriSliceDataset
-    deepinv.datasets.Flickr2kHR
-    deepinv.datasets.LsdirHR
-    deepinv.datasets.FMD
+   * - **Dataset**
+     - **Dataset Size**
+     - **Tensor Sizes**
+     - **Description**
+
+   * - :class:`deepinv.datasets.DIV2K`
+     - 800 (train) + 100 (val) images
+     - RGB, up to 2000x2000 pixels (variable)
+     - A widely-used dataset for natural image restoration.
+
+   * - :class:`deepinv.datasets.Urban100HR`
+     - 100 images
+     - ?? pixels
+     - Contains diverse high-resolution urban scenes, typically used for testing super-resolution algorithms.
+
+   * - :class:`deepinv.datasets.Set14HR`
+     - 14 high-resolution images
+     - ??? pixels
+     - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
+
+   * - :class:`deepinv.datasets.CBSD68`
+     - 68 images
+     - RGB, 481x321 pixels
+     - A subset of the Berkeley Segmentation Dataset, often used for evaluating image denoising algorithms.
+
+   * - :class:`deepinv.datasets.FastMRISliceDataset`
+     - Over 100,000 MRI slices
+     - Complex numbers, ??x320x320 voxels
+     - A large-scale dataset of MRI brain and knee scans for training and evaluating MRI reconstruction methods.
+
+   * - :class:`deepinv.datasets.LidcIdriSliceDataset`
+     - Over 100,000 CT scan slices
+     - ??x512x512 voxels
+     - A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.
+
+   * - :class:`deepinv.datasets.Flickr2kHR`
+     - 2,650 images
+     - RGB, up to 2000x2000 pixels (variable)
+     - A dataset from Flickr containing high-resolution images for tasks like super-resolution and image restoration.
+
+   * - :class:`deepinv.datasets.LsdirHR`
+     - 300 high-resolution landscape images
+     - RGB, up to 2000x2000 pixels (variable)
+     - A dataset with high-resolution landscape images, often used for benchmarking super-resolution methods.
+
+   * - :class:`deepinv.datasets.FMD`
+     - ??
+     - ?? pixels
+     - The Fluorescence Microscopy Dataset (FMD) is a dataset of fluorescence microscopy images for evaluating image restoration and super-resolution methods.

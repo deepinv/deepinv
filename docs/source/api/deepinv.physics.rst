@@ -1,13 +1,33 @@
-.. _forward_operators:
+deepinv.physics
+================
 
-Forward operators
---------------------
 
-Various popular forward operators are provided with efficient implementations.
+Base Classes
+------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.Physics
+   deepinv.physics.LinearPhysics
+   deepinv.physics.DecomposablePhysics
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.generator.PhysicsGenerator
+   deepinv.physics.generator.GeneratorMixture
+
+
+Operators
+---------------
 
 Pixelwise operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Pixelwise operators operate in the pixel domain and are used for denoising, inpainting, decolorization, etc.
 
 .. autosummary::
    :toctree: stubs
@@ -19,7 +39,7 @@ Pixelwise operators operate in the pixel domain and are used for denoising, inpa
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
 
-For random inpainting we also provide generators to create random masks on-the-fly. These can also be used as splitting masks for :class:`deepinv.loss.SplittingLoss` and its variations.
+For random inpainting we also provide masks generators:
 
 .. autosummary::
    :toctree: stubs
@@ -58,8 +78,7 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    deepinv.physics.blur.sinc_filter
 
 
-We also provide a set of generators to simulate various types of blur, which can be used to train blind or semi-blind
-deblurring networks.
+We also provide a set of generators to simulate various types of blur:
 
 .. autosummary::
    :toctree: stubs
@@ -73,7 +92,7 @@ deblurring networks.
 
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
+In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
 
 .. autosummary::
    :toctree: stubs
@@ -100,8 +119,6 @@ We provide generators for creating random and non-random acceleration masks usin
 Tomography
 ^^^^^^^^^^
 
-Tomography is based on the Radon-transform which computes line-integrals.
-
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -113,7 +130,6 @@ Tomography is based on the Radon-transform which computes line-integrals.
 
 Remote Sensing
 ^^^^^^^^^^^^^^^^
-Remote sensing operators are used to simulate the acquisition of satellite data.
 
 .. autosummary::
    :toctree: stubs
@@ -125,8 +141,6 @@ Remote sensing operators are used to simulate the acquisition of satellite data.
 
 Compressive operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Compressive operators are implemented in the following classes:
 
 .. autosummary::
    :toctree: stubs
@@ -140,8 +154,6 @@ Compressive operators are implemented in the following classes:
 Radio interferometric imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The radio interferometric imaging operator is implemented in the following class:
-
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -152,7 +164,6 @@ The radio interferometric imaging operator is implemented in the following class
 
 Single-photon lidar
 ^^^^^^^^^^^^^^^^^^^^^^^
-Single-photon lidar is a popular technique for depth ranging and imaging.
 
 .. autosummary::
    :toctree: stubs
@@ -164,7 +175,6 @@ Single-photon lidar is a popular technique for depth ranging and imaging.
 
 Dehazing
 ^^^^^^^^^^^^^
-Haze operators are used to capture the physics of light scattering in the atmosphere.
 
 .. autosummary::
    :toctree: stubs
@@ -184,3 +194,52 @@ Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2
 
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+
+Noise distributions
+--------------------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.GaussianNoise
+   deepinv.physics.LogPoissonNoise
+   deepinv.physics.PoissonNoise
+   deepinv.physics.PoissonGaussianNoise
+   deepinv.physics.UniformNoise
+   deepinv.physics.UniformGaussianNoise
+   deepinv.physics.GammaNoise
+   deepinv.physics.generator.SigmaGenerator
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.physics.TimeMixin
+    deepinv.physics.adjoint_function
+
+
+Functional
+--------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.conv2d
+   deepinv.physics.functional.conv_transpose2d
+   deepinv.physics.functional.conv2d_fft
+   deepinv.physics.functional.conv_transpose2d_fft
+   deepinv.physics.functional.conv3d_fft
+   deepinv.physics.functional.conv_transpose3d_fft
+   deepinv.physics.functional.product_convolution2d
+   deepinv.physics.functional.multiplier
+   deepinv.physics.functional.multiplier_adjoint
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon
+   deepinv.physics.functional.histogramdd
+   deepinv.physics.functional.histogram

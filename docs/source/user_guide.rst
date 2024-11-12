@@ -22,19 +22,50 @@ which can simulate the observation process:
     :gutter: 1
 
     .. grid-item-card::
+        :link: physics_intro
+        :link-type: ref
+
+        :octicon:`telescope-fill` **Introduction**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Introduction to the physics package.
+
+    .. grid-item-card::
         :link: physics
         :link-type: ref
 
-        :octicon:`device-camera-video` **Physics**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Define forward operators and noise models.
+        :octicon:`device-camera-video` **Operators**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Forward operators and noise distributions.
+
+    .. grid-item-card::
+        :link: physics_defining
+        :link-type: ref
+
+        :octicon:`tools` **Defining your operator**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        How to define your own forward operator,
+        if the existing ones are not enough.
+
+    .. grid-item-card::
+        :link: physics_functional
+        :link-type: ref
+
+        :octicon:`package` **Functional**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Various utilities for forward
+        operators.
 
 
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Forward Operators
 
-   deepinv.physics
+   user_guide/operators/intro
+   user_guide/operators/physics
+   user_guide/operators/defining
+   user_guide/operators/functional
+
 
 
 Reconstruction
@@ -106,20 +137,22 @@ reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge o
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Reconstruction Methods
 
-   deepinv.denoisers
-   deepinv.optim
-   deepinv.iterative
-   deepinv.unfolded
-   deepinv.sampling
-   deepinv.other_models
+   user_guide/denoisers
+   user_guide/other_models
+   user_guide/optimization
+   user_guide/iterative
+   user_guide/sampling
+   user_guide/unfolded
+   user_guide/weights
 
 
 Training, Testing and Utilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All the tools from the library, from measurement operator to restoration methods,
-are implemented as :meth:`torch.nn.Module` and therefore natively support backpropagation.
+are implemented as :class:`torch.nn.Module` and therefore natively support backpropagation.
 Reconstruction networks ``model`` can be trained on datasets to improve their performance:
 
 ::
@@ -188,12 +221,18 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
 .. toctree::
    :maxdepth: 2
    :hidden:
+   :caption: Training and Testing
 
-   deepinv.datasets
-   deepinv.training
-   deepinv.loss
-   deepinv.metric
-   deepinv.transform
-   deepinv.utils
-   deepinv.multigpu
-   deepinv.notation
+   user_guide/datasets
+   user_guide/loss
+   user_guide/metric
+   user_guide/transforms
+   user_guide/multigpu
+
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Other
+
+   user_guide/utils
+   user_guide/notation

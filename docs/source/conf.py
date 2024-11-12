@@ -33,7 +33,6 @@ extensions = [
     "sphinx_design",
     "sphinxcontrib.googleanalytics",
 ]
-autosummary_generate = True  # Automatically generate stub files for autosummary
 copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
@@ -44,6 +43,8 @@ intersphinx_mapping = {
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+add_module_names = True # include the module path in the function name
+
 
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
@@ -63,7 +64,7 @@ sphinx_gallery_conf = {
     # objects to exclude from implicit backreferences. The default option
     # is an empty set, i.e. exclude nothing.
     "exclude_implicit_doc": {},
-    "nested_sections": False,
+    "nested_sections": True,
     "subsection_order": ExplicitOrder(
         [
             "../../examples/basics",
@@ -114,25 +115,21 @@ numfig_secnum_depth = 3
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinx_rtd_theme"
+html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
-    "analytics_id": "G-NSEKFKYSGR",  # Provided by Google in your dashboard G-
-    "analytics_anonymize_ip": False,
-    "logo_only": True,
-    "display_version": True,
-    "prev_next_buttons_location": "bottom",
-    "style_external_links": False,
-    "vcs_pageview_mode": "",
-    "style_nav_header_background": "white",
-    # Toc options
-    "collapse_navigation": True,
-    "sticky_navigation": True,
-    "navigation_depth": 4,
-    "includehidden": True,
-    "titles_only": False,
+    "secondary_sidebar_items": {
+        "**": [
+            "page-toc",
+            "sourcelink",
+            # Sphinx-Gallery-specific sidebar components
+            # https://sphinx-gallery.github.io/stable/advanced.html#using-sphinx-gallery-sidebar-components
+            "sg_download_links",
+            "sg_launcher_links",
+        ],
+    },
 }
 
 html_js_files = ["js/custom.js"]

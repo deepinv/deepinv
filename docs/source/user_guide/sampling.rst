@@ -22,25 +22,29 @@ measurement ``y`` as ``x = model(y, physics)``,
 where ``model`` is the diffusion algorithm and ``physics`` is the forward operator.
 
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.sampling.DDRM
-    deepinv.sampling.DiffPIR
-    deepinv.sampling.DPS
-
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
 obtains multiple samples to compute posterior statistics such as the mean or variance.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Diffusion methods
+   :header-rows: 1
 
-    deepinv.sampling.DiffusionSampler
+   * - **Method**
+     - **Description**
+     - **Limitations**
+
+   * - :class:`deepinv.sampling.DDRM`
+     - Diffusion Denoising Restoration Models
+     - Only for :class:`SVD decomposable operators <deepinv.physics.DecomposablePhysics>`.
+
+   * - :class:`deepinv.sampling.DiffPIR`
+     - Diffusion PnP Image Restoration
+     - Only for :class:`linear operators <deepinv.physics.LinearPhysics>`.
+
+   * - :class:`deepinv.sampling.DPS`
+     - Diffusion Posterior Sampling
+     - Can be slow, requires backpropagation through the denoiser.
+
 
 Markov Chain Monte Carlo Langevin
 -------------------------------------
@@ -69,20 +73,18 @@ which is typically set to a low value.
         p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.sampling.MonteCarlo
-
+All MCMC methods inherit from :class:`deepinv.sampling.MCMC`.
 We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
 
-    deepinv.sampling.ULA
-    deepinv.sampling.SKRock
+.. list-table:: MCMC methods
+   :header-rows: 1
 
+   * - **Method**
+     - **Description**
+
+   * - :class:`deepinv.sampling.ULA`
+     - Unadjusted Langevin algorithm.
+
+   * - :class:`deepinv.sampling.SKRock`
+     - Runge-Kutta-Chebyshev stochastic approximation to accelerate the standard Unadjusted Langevin Algorithm.

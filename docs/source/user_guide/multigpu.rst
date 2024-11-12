@@ -1,6 +1,6 @@
 .. _multigpu:
 
-Using multiple GPUs
+Using Multiple GPUs
 ===================
 
 Since all deepinv building blocks inherit from :class:`torch.nn.Module` , they are compatible with torch data parallel

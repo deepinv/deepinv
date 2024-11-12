@@ -92,23 +92,11 @@ The function :meth:`deepinv.optim.optim_builder` returns an instance of :meth:`d
 optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
 or with a user-defined one.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
-   :nosignatures:
-
-   deepinv.optim.optim_builder
 
 
 Optimization algorithm inherit from the base class :meth:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all optimization algorithms.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.BaseOptim
 
 .. _data-fidelity:
 
@@ -120,18 +108,24 @@ This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` whe
 This class comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
 :math:`\nabla (\distancename \circ A)` (among others), on which optimization algorithms rely.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. list-table:: Data Fidelity Overview
+   :widths: 25 30
+   :header-rows: 1
 
-   deepinv.optim.DataFidelity
-   deepinv.optim.L1
-   deepinv.optim.L2
-   deepinv.optim.IndicatorL2
-   deepinv.optim.PoissonLikelihood
-   deepinv.optim.LogPoissonLikelihood
-   deepinv.optim.AmplitudeLoss
+   * - Data Fidelity
+     - :math:`d(A(x), y)`
+   * - :class:`deepinv.optim.L1`
+     - :math:`\|A(x) - y\|_1`
+   * - :class:`deepinv.optim.L2`
+     - :math:`\|A(x) - y\|_2^2`
+   * - :class:`deepinv.optim.IndicatorL2`
+     - Indicator function of :math:`\|A(x) - y\|_2 \leq \epsilon`
+   * - :class:`deepinv.optim.PoissonLikelihood`
+     - Poisson negative log-likelihood: :math:`A(x) - y \log(A(x))`
+   * - :class:`deepinv.optim.LogPoissonLikelihood`
+     - Log-Poisson negative log-likelihood: :math:`N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)`
+   * - :class:`deepinv.optim.AmplitudeLoss`
+     - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
 
 
 .. _priors:
@@ -146,23 +140,43 @@ Similarly to the :meth:`deepinv.optim.DataFidelity` class, this class comes with
 priors, such as the Tikhonov regularisation, but also implicit priors. For instance, in PnP methods, the method
 computing the proximity operator is overwritten by a method performing denoising.
 
+.. list-table:: Priors Overview
+   :widths: 25 20 15
+   :header-rows: 1
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.Prior
-   deepinv.optim.PnP
-   deepinv.optim.RED
-   deepinv.optim.ScorePrior
-   deepinv.optim.Tikhonov
-   deepinv.optim.L1Prior
-   deepinv.optim.WaveletPrior
-   deepinv.optim.TVPrior
-   deepinv.optim.PatchPrior
-   deepinv.optim.PatchNR
-   deepinv.optim.L12Prior
+   * - Prior
+     - :math:`\reg{x}`
+     - Explicit :math:`\regname`
+   * - :class:`deepinv.optim.PnP`
+     - :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`
+     - No
+   * - :class:`deepinv.optim.RED`
+     - :math:`\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)`
+     - No
+   * - :class:`deepinv.optim.ScorePrior`
+     - :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma}(x)\right)/\sigma^2`
+     - No
+   * - :class:`deepinv.optim.Tikhonov`
+     - :math:`\reg{x}=\|x\|_2^2`
+     - Yes
+   * - :class:`deepinv.optim.L1Prior`
+     - :math:`\reg{x}=\|x\|_1`
+     - Yes
+   * - :class:`deepinv.optim.WaveletPrior`
+     - :math:`\reg{x} = \|\Psi x\|_{p}` where :math:`\Psi` is a wavelet transform
+     - Yes
+   * - :class:`deepinv.optim.TVPrior`
+     - :math:`\reg{x}=\|Dx\|_{1,2}` where :math:`D` is a finite difference operator
+     - Yes
+   * - :class:`deepinv.optim.PatchPrior`
+     - :math:`\reg{x} = \sum_i h(P_i x)` for some prior :math:`h(x)` on the space of patches
+     - Yes
+   * - :class:`deepinv.optim.PatchNR`
+     - Patch prior via normalizing flows.
+     - Yes
+   * - :class:`deepinv.optim.L12Prior`
+     - :math:`\reg{x} = \sum_i\| x_i \|_2`
+     - Yes
 
 
 .. _optim-params:
@@ -207,6 +221,8 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
 Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
 a single float (same value for each iteration).
 
+.. _optim-iterators:
+
 Iterators
 ---------
 An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
@@ -219,12 +235,6 @@ by an instance of physics and :math:`\regname` is a regularizer. The fixed point
 where :math:`x` is a variable converging to the solution of the minimization problem, and
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.optim.FixedPoint
 
 The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
 following standard optimization theory, is split in two steps:
@@ -239,37 +249,62 @@ relaxation parameters, etc...
 
 The fStep and gStep classes precisely implement these steps.
 
+Some generic optimizer iterators are provided:
 
-Generic Optimizers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. list-table::
+   :widths: 25 30 30
+   :header-rows: 1
 
-The following files contain the base classes for implementing generic optimizers:
+   * - Algorithm
+     - Iteration
+     - Parameters
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+   * - :class:`Gradient Descent (GD) <deepinv.optim.optim_iterators.GDIteration>`
+     - | :math:`v_{k} = \nabla f(x_k) + \nabla \reg{x_k}`
+       | :math:`x_{k+1} = x_k-\gamma v_{k}`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
-   deepinv.optim.OptimIterator
-   deepinv.optim.optim_iterators.GDIteration
-   deepinv.optim.optim_iterators.PGDIteration
-   deepinv.optim.optim_iterators.FISTAIteration
-   deepinv.optim.optim_iterators.CPIteration
-   deepinv.optim.optim_iterators.ADMMIteration
-   deepinv.optim.optim_iterators.DRSIteration
-   deepinv.optim.optim_iterators.HQSIteration
-   deepinv.optim.optim_iterators.SMIteration
+   * - :class:`Proximal Gradient Descent (PGD) <deepinv.optim.optim_iterators.PGDIteration>`
+     - | :math:`u_{k} = x_k - \gamma \nabla f(x_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
+   * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.optim_iterators.FISTAIteration>`
+     - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(u_k)`
+       | :math:`z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
+
+   * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.optim_iterators.HQSIteration>`
+     - | :math:`u_{k} = \operatorname{prox}_{\gamma f}(x_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda g}(u_k)`
+     - ``"gamma"``, ``"lambda"``, ``"g_param"``
+
+   * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.optim_iterators.ADMMIteration>`
+     - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(u_{k+1} + z_k)`
+       | :math:`z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})`
+     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``
+
+   * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.optim_iterators.DRSIteration>`
+     - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(2*u_{k+1}-z_k)`
+       | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, ``"beta"``
+
+   * - :class:`Chambolle-Pock (CP) <deepinv.optim.optim_iterators.CPIteration>`
+     - | :math:`u_{k+1} = \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1})`
+       | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
+     - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``, ``"stepsize_dual"``
+
+   * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
+     - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
+     - (phase-retrieval only)
 
 Utils
--------------
-We provide some useful utilities for optimization algorithms.
+-----
+We provide some useful routines for optimization algorithms.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.optim.utils.conjugate_gradient
-    deepinv.optim.utils.gradient_descent
-    deepinv.optim.utils.GaussianMixtureModel
+- :class:`deepinv.optim.utils.conjugate_gradient` implements the conjugate gradient algorithm for solving linear systems.
+- :class:`deepinv.optim.utils.gradient_descent` implements the gradient descent algorithm.

@@ -43,4 +43,4 @@ clean:
 	rm -rf source/auto_examples/
 	rm -rf source/generated/
 	rm -rf source/gen_modules/
-	rm -rf source/stubs/
+	rm -rf source/api/stubs/

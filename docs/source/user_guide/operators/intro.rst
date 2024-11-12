@@ -3,14 +3,18 @@
 Introduction
 ---------------
 
-All forward operators inherit the structure of the :meth:`Physics` class:
+This package contains a large collection of forward operators appearing in imaging applications.
+The acquisition models are of the form
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
+.. math::
 
-   deepinv.physics.Physics
+    y = \noise{\forw{x}}
+
+where :math:`x\in\xset` is an image, :math:`y\in\yset` are the measurements, :math:`A:\xset\mapsto \yset` is a
+deterministic (linear or non-linear) operator capturing the physics of the acquisition and
+:math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
+
+All forward operators inherit the structure of the :class:`deepinv.physics.Physics` class:
 
 They are :class:`torch.nn.Module` which can be called with the ``forward`` method.
 
@@ -50,13 +54,6 @@ Composition and linear combinations of linear operators is still a linear operat
 
 More details can be found in the doc of each class:
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.LinearPhysics
-   deepinv.physics.DecomposablePhysics
 
 
 Parameter-dependent operators
@@ -98,12 +95,6 @@ Physics Generators
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
 Physics generators inherit from the :meth:`PhysicsGenerator` class:
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.PhysicsGenerator
 
 .. doctest::
 
@@ -133,9 +124,3 @@ it is possible to sum generators as follows:
 
 It is also possible to mix generators of physics parameters through the :meth:`GeneratorMixture` class:
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.GeneratorMixture

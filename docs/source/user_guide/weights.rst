@@ -1,47 +1,3 @@
-.. _deep-denoisers:
-
-Deep Denoisers
--------------------
-All denoisers in this section are implemented as :meth:`torch.nn.Module` instances and can be used in the same way as any other PyTorch
-module to build new models. We include both CNN-based and transformer-based denoisers architectures.
-
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.AutoEncoder
-   deepinv.models.UNet
-   deepinv.models.DnCNN
-   deepinv.models.DRUNet
-   deepinv.models.SCUNet
-   deepinv.models.GSDRUNet
-   deepinv.models.SwinIR
-   deepinv.models.DiffUNet
-   deepinv.models.Restormer
-   deepinv.models.ICNN
-
-
-.. _adversarial-networks:
-
-Adversarial Networks
---------------------
-
-Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.PatchGANDiscriminator
-   deepinv.models.ESRGANDiscriminator
-   deepinv.models.DCGANGenerator
-   deepinv.models.DCGANDiscriminator
-   deepinv.models.CSGMGenerator
-
-
 .. _pretrained-weights:
 
 Pretrained Weights
@@ -93,6 +49,3 @@ associated reference and relevant details. All pretrained weights are hosted on
      - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_.
    * -
      - Also available on the `deepinverse Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
-
-
-
