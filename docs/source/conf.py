@@ -43,7 +43,7 @@ intersphinx_mapping = {
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-add_module_names = True # include the module path in the function name
+add_module_names = True  # include the module path in the function name
 
 
 sphinx_gallery_conf = {
