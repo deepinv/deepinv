@@ -18,7 +18,12 @@ def url_basename(url: str) -> str:
 class Kohler(Dataset):
     """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
 
-    :param Union[int, str] frame_specifier: Frame specifier. Can be the frame number, "first", "middle", or "last".
+    The dataset consists of blurry shots and sharp frames, each blurry shot
+    being associated with about 200 sharp frames. There are 48 blurry shots in
+    total, each associated to one of 4 printed out images, and to one of 12
+    camera trajectories inducing motion blur.
+
+    :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames.
     :param str ordering: Ordering of the dataset. Can be "printout_first" or "trajectory_first".
     :param Union[str, Path] root: Root directory of the dataset.
     :param callable, optional transform: A function used to transform both the blurry shots and the sharp frames.
@@ -32,13 +37,13 @@ class Kohler(Dataset):
 
             from deepinv.datasets import Kohler
             dataset = Kohler(root="datasets/Kohler",
-                             frame_specifier="middle",
+                             frames="middle",
                              ordering="printout_first",
                              download=True)
             # Usual interface
             sharp_frame, blurry_shot = dataset[0]
             # Convenience method
-            sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
+            sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
     """
 
     # The Köhler dataset is split into multiple archives available online.
@@ -76,13 +81,13 @@ class Kohler(Dataset):
     def __init__(
         self,
         root: Union[str, Path],
-        frame_specifier: Union[int, str] = "middle",
+        frames: Union[int, str, list[Union[int, str]]] = "middle",
         ordering: str = "printout_first",
         transform: Callable = None,
         download: bool = False,
     ) -> None:
         self.root = root
-        self.frame_specifier = frame_specifier
+        self.frames = frames
         self.ordering = ordering
         self.transform = transform
 
@@ -144,9 +149,7 @@ class Kohler(Dataset):
             trajectory_index = index // 12 + 1
         else:
             raise ValueError(f"Unsupported ordering: {self.ordering}")
-
-        frame = self.frame_specifier
-        return self.get_item(printout_index, trajectory_index, frame)
+        return self.get_item(printout_index, trajectory_index, frames=self.frames)
 
     # While users might sometimes want to thoroughly compare their own
     # deblurred images to all the sharp frames (about 200 per blurry shot),
@@ -158,15 +161,15 @@ class Kohler(Dataset):
         self,
         printout_index: int,
         trajectory_index: int,
-        frame: Union[int, str] = "middle",
+        frames: Union[int, str, list[Union[int, str]]] = "middle",
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get a sharp frame and a blurry shot from the dataset.
 
         :param int printout_index: Index of the printout.
         :param int trajectory_index: Index of the trajectory.
-        :param Union[int, str] frame: Frame specifier. Can be the frame number, "first", "middle", or "last".
+        :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames.
 
-        :return: (torch.Tensor, torch.Tensor) The sharp frame and the blurry shot.
+        :return: (torch.Tensor, Union[torch.Tensor, list[torch.Tensor]]) The sharp frame(s) and the blurry shot.
 
         |sep|
 
@@ -175,34 +178,49 @@ class Kohler(Dataset):
             Get the first (middle) sharp frame and blurry shot ::
 
                 sharp_frame, blurry_shot = dataset.get_item(1, 1, frame="middle")
+
+            Get the list of all sharp frames and the blurry shot ::
+
+                sharp_frames, blurry_shot = dataset.get_item(1, 1, frame="all")
+
+            Query a list of specific frames and the blurry shot ::
+
+                sharp_frames, blurry_shot = dataset.get_item(1, 1, frame=[1, "middle", 199])
         """
-        frame_index = self.select_frame(printout_index, trajectory_index, frame=frame)
+        blurry_shot = self.get_blurry_shot(printout_index, trajectory_index)
 
-        sharp_frame = self.open_sharp_frame(
-            self.root, printout_index, trajectory_index, frame_index
-        )
-        blurry_shot = self.open_blurry_shot(self.root, printout_index, trajectory_index)
+        if frames == "all" or isinstance(frames, list):
+            if frames == "all":
+                frames = range(1, self.get_frame_count(printout_index, trajectory_index) + 1)
+            sharp_frames = [
+                self.get_sharp_frame(printout_index, trajectory_index, frame_index)
+                for frame_index in frames
+            ]
+            return sharp_frames, blurry_shot
+        else:
+            frame_index = self.select_frame(printout_index, trajectory_index, frame=frames)
+            sharp_frame = self.get_sharp_frame(printout_index, trajectory_index,
+                                                frame_index)
+            return sharp_frame, blurry_shot
 
-        if self.transform is not None:
-            sharp_frame = self.transform(sharp_frame)
-            blurry_shot = self.transform(blurry_shot)
-
-        return sharp_frame, blurry_shot
-
-    @staticmethod
-    def open_sharp_frame(root, printout_index, trajectory_index, frame_index):
+    def get_sharp_frame(printout_index: int, trajectory_index: int, frame_index: int) -> Union[torch.Tensor, Image.Image, any]:
         path = join(
-            root,
+            self.root,
             f"Image{printout_index}",
             f"Kernel{trajectory_index}",
             f"GroundTruth{printout_index}_{trajectory_index}_{frame_index}.png",
         )
-        return Image.open(path)
+        sharp_frame = Image.open(path)
+        if self.transform is not None:
+            sharp_frame = self.transform(sharp_frame)
+        return sharp_frame
 
-    @staticmethod
-    def open_blurry_shot(root, printout_index, trajectory_index):
-        path = join(root, f"Blurry{printout_index}_{trajectory_index}.png")
-        return Image.open(path)
+    def get_blurry_shot(printout_index: int, trajectory_index: int) -> Union[torch.Tensor, Image.Image, any]:
+        path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
+        blurry_shot = Image.open(path)
+        if self.transform is not None:
+            blurry_shot = self.transform(blurry_shot)
+        return blurry_shot
 
     @classmethod
     def select_frame(
@@ -220,7 +238,7 @@ class Kohler(Dataset):
             elif frame == "last":
                 frame_index = frame_count
             else:
-                raise ValueError(f"Unsupported frame specifier: {frame}")
+                raise ValueError(f"Unsupported frame selection: {frame}")
 
         return frame_index
 

@@ -136,7 +136,7 @@ def test_load_Kohler_dataset(download_Kohler):
     root = download_Kohler
 
     dataset = Kohler(
-        root=root, frame_specifier="middle", ordering="printout_first", download=False
+        root=root, frames="middle", ordering="printout_first", download=False
     )
     x1, y1 = dataset.get_item(1, 1, "middle")
     x2, y2 = dataset[0]
