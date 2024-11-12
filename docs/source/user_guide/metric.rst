@@ -29,6 +29,8 @@ Metrics can be classified as distortion or perceptual,
 see `the Perception-Distortion Tradeoff <https://openaccess.thecvf.com/content_cvpr_2018/papers/Blau_The_Perception-Distortion_Tradeoff_CVPR_2018_paper.pdf>`_
 for an explanation of distortion vs perceptual metrics.
 
+Finally, you can also wrap existing metric functions using ``Metric(metric=f)``, see :class:`deepinv.loss.metric.Metric` for an example.
+
 .. note::
 
     For some metrics, higher is better; for these, you must also set ``train_loss=True``.
