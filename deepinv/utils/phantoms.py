@@ -1,10 +1,9 @@
 import numpy as np
-import torch
 from torch.utils.data import Dataset
 
 
 def random_shapes(interior=False):
-    """
+    r"""
     Generate random shape parameters for an ellipse.
     """
     if interior:
@@ -41,7 +40,7 @@ def generate_random_phantom(size, n_ellipse=50, interior=False):
 
 
 class RandomPhantomDataset(Dataset):
-    """
+    r"""
     Dataset of random ellipsoid phantoms generated on the fly.
     :param int size: Size of the phantom (square) image.
     :param int n_data: Number of phantoms to generate per sample.
@@ -93,6 +92,7 @@ def generate_shepp_logan(size):
         y_rot = -(x - x_0) * np.sin(theta) + (y - y_0) * np.cos(theta)
         mask = ((x_rot / b) ** 2 + (y_rot / c) ** 2) <= 1
         phantom += a * mask.float()
+    phantom = phantom.transpose(-2, -1).flip(-2)
     return phantom.clamp(0, 1)
 
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
     # Create datasets
     random_phantom_dataset = RandomPhantomDataset(size=128, n_data=1, length=10)
-    shepp_logan_dataset = SheppLoganDataset(size=128, n_data=1)
+    shepp_logan_dataset = SheppLoganDataset(size=512, n_data=1)
 
     # Create data loaders
     random_phantom_loader = DataLoader(random_phantom_dataset, batch_size=1, shuffle=True)
