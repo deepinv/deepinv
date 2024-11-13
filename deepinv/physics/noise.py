@@ -143,7 +143,7 @@ class GaussianNoise(NoiseModel):
         return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
 
     def __mul__(self, other):
-        """Multiply the gaussian noise by a scalar or tensor."""
+        """Element-wise multiplication of a GaussianNoise with a float or a tensor of shape (b,1,1,...)."""
         if isinstance(other, NoiseModel):
             return super().__mul__(other)
         return GaussianNoise(sigma=self.sigma * other)

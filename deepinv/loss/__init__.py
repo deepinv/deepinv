@@ -27,5 +27,20 @@ from .scheduler import (
 )
 
 # Metrics
-from .metric import *  # Can access metrics with deepinv.loss.MSE
+from .metric import (
+    Metric,
+    MSE,
+    NMSE,
+    PSNR,
+    SSIM,
+    LpNorm,
+    L1L2,
+    MAE,
+    NIQE,
+    LPIPS,
+    QNR,
+    cal_mse,
+    cal_psnr,
+    cal_mae,
+)  # Can access metrics with deepinv.loss.MSE
 from . import metric  # Can access metrics with deepinv.loss.metric.MSE

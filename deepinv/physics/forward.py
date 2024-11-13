@@ -362,7 +362,9 @@ class LinearPhysics(Physics):
         r"""
         Transpose of linear forward operators :math:`A^T(x)`.
 
-        TODO !!!
+        It keeps the same `noise_model` and `sensor_model`.
+
+        :return: (deepinv.physics.LinearPhysics) Transposed linear physics.
         """
         new_A = self.A_adj
         new_A_adj = self.A
@@ -381,10 +383,11 @@ class LinearPhysics(Physics):
         Add two linear forward operators :math:`A(x) = \begin{bmatrix} A_1(x) + A_2(x) \end{bmatrix}`
         via the add operation.
 
-        TODO !!!
+        The 2 linears operators A_1 and A_2 should be of same shape.
+        `noise_model` and `sensor_model` are added as well.
 
-        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.Physics) New operator with the sum of the linears operators.
+        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.LinearPhysics) New operator with the sum of the linears operators.
 
         """
         new_A = lambda x: self.A(x) + other.A(x)
@@ -459,13 +462,13 @@ class LinearPhysics(Physics):
 
     def __mul__(self, other):
         r"""
-        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
+        Compose two linear forward operators :math:`A = A_1\circ A_2` via the * operation
 
-        The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
+        We have `new_sensor_model` = `self.sensor_model`.
+        If the composition is done with another `deepinv.physics.LinearPhysics`, `new_noise_model` = `self.noise_model`.
 
-        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.LinearPhysics) concatenated operator
-
+        :param deepinv.physics.LinearPhysics or float other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.LinearPhysics) New physics operator given by the composition.
         """
         if isinstance(other, LinearPhysics):
             new_A = lambda x, **kwargs: self.A(
