@@ -120,6 +120,13 @@ The base class for implementing potential scalar functions :math:`h : \xset \to 
 This class comes with methods for computing operators useful for optimization, such as its proximal operator :math:`\operatorname{prox}_{h}`, its gradient :math:`\nabla h`,
 its convex conjugate :math:`h^*`, ect ...
 
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.Potential
+
 .. _data-fidelity:
 
 Data Fidelity

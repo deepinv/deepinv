@@ -140,7 +140,7 @@ class Potential(nn.Module):
 
         .. math::
 
-            \operatorname{prox^h}_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}\h + D_\phi(u,x)
+            \operatorname{prox}^h_{\gamma \regname}(x) = \underset{u}{\text{argmin}} \frac{\gamma}{2}h(u) + D_\phi(u,x)
 
         where :math:`D_\phi(x,y)` stands for the Bregman divergence with potential :math:`\phi`.
 
@@ -152,7 +152,7 @@ class Potential(nn.Module):
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
-        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}_{\gamma h}(x)`, computed in :math:`x`.
+        :return: (torch.tensor) proximity operator :math:`\operatorname{prox}^h_{\gamma \regname}(x)`, computed in :math:`x`.
         """
         grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
             bregman_potential.grad(u) - bregman_potential.grad(x)
