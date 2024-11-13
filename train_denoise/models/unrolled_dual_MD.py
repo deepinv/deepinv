@@ -6,7 +6,9 @@ from deepinv.optim import Bregman
 from deepinv.models.icnn import ICNN
 from deepinv.optim.optim_iterators import MDIteration, OptimIterator
 from deepinv.loss.loss import Loss
+from deepinv.loss.metric import Metric
 from deepinv.optim.utils import gradient_descent
+from collections.abc import Iterable
 
 class DualMDIteration(MDIteration):
 
@@ -122,9 +124,23 @@ class MirrorLoss(Loss):
         return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x_net)), x_net)
 
 
+class FunctionalMetric(Metric):
+    def __init__(self):
+        super(FunctionalMetric, self).__init__()
+        self.name = "F_value"
+
+    def forward(self, x, x_net, y, physics, model, *args, **kwargs):
+        it = 0
+        params = model.params_algo
+        data_fidelity = model.data_fidelity[it] if isinstance(model.data_fidelity, Iterable) else model.data_fidelity
+        prior = model.prior[it] if isinstance(model.prior, Iterable) else model.prior
+        return data_fidelity.fn(x_net, y, physics) + params["lambda"][it] * prior(x_net, params["g_param"][it])
+
+
 class NoLipLoss(Loss):
     def __init__(self, L = 1., eps_jacobian_loss = 0.05, jacobian_loss_weight = 1e-2, max_iter_power_it=10, tol_power_it=1e-3, verbose=False, eval_mode=False, use_interpolation=False):
         super(NoLipLoss, self).__init__()
+        self.name = "NoLip"
         self.spectral_norm_module = dinv.loss.JacobianSpectralNorm(
             max_iter=max_iter_power_it, tol=tol_power_it, verbose=verbose, eval_mode=eval_mode
         )
@@ -147,10 +163,10 @@ class NoLipLoss(Loss):
         x = bregman_potential.grad_conj(x)
         # We need to apply to the loss at each iteration.For now we assume the model is fixed along iterations
         it = 0
-        cur_params = model.update_params_fn(it)
-        cur_data_fidelity = model.update_data_fidelity_fn(it)
-        cur_prior = model.update_prior_fn(it)
-        nabla_F = cur_data_fidelity.grad(x, y, physics) # + cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
+        params = model.params_algo
+        data_fidelity = model.data_fidelity[it] if isinstance(model.data_fidelity, Iterable) else model.data_fidelity
+        prior = model.prior[it] if isinstance(model.prior, Iterable) else model.prior
+        nabla_F = data_fidelity.grad(x, y, physics) + params["lambda"][it] * prior.grad(x, params["g_param"][it])
         jacobian_norm = (1 / self.L) * self.spectral_norm_module(nabla_F, x)
         jacobian_loss = self.jacobian_loss_weight * torch.maximum(jacobian_norm, torch.ones_like(jacobian_norm)-self.eps_jacobian_loss)
         return jacobian_loss

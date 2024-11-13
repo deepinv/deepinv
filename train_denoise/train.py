@@ -10,11 +10,12 @@ from argparse import ArgumentParser
 import wandb
 import json
 from pathlib import Path
-from models.unrolled_dual_MD import get_unrolled_architecture, MirrorLoss, NoLipLoss
+from models.unrolled_dual_MD import get_unrolled_architecture, MirrorLoss, NoLipLoss, FunctionalMetric
 from utils.distributed_setup import setup_distributed
 from utils.dataloaders import get_drunet_dataset
 from utils.utils import rescale_img, get_wandb_setup
 from deepinv.physics.generator import SigmaGenerator, MotionBlurGenerator
+import numpy as np 
 
 torch.backends.cudnn.benchmark = True
 
@@ -47,6 +48,37 @@ class MyTrainer(dinv.training.Trainer):
         else:
             out = x
         return out
+
+    def compute_metrics(
+        self, x, x_net, y, physics, logs, train=True, epoch: int = None
+    ):
+        # Compute the metrics over the batch
+        with torch.no_grad():
+            for k, l in enumerate(self.metrics):
+                metric = l(
+                    x_net=x_net,
+                    x=x,
+                    y=y,
+                    physics=physics,
+                    model=self.model,
+                    epoch=epoch,
+                )
+
+                current_log = (
+                    self.logs_metrics_train[k] if train else self.logs_metrics_eval[k]
+                )
+                current_log.update(metric.detach().cpu().numpy())
+                logs[l.__class__.__name__] = current_log.avg
+
+                if not train and self.compare_no_learning:
+                    x_lin = self.no_learning_inference(y, physics)
+                    metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
+                    self.logs_metrics_linear[k].update(metric.detach().cpu().numpy())
+                    logs[f"{l.__class__.__name__} no learning"] = (
+                        self.logs_metrics_linear[k].avg
+                    )
+        return logs
+
 
     def prepare_images(self, physics_cur, x, y, x_net):
         r"""
@@ -349,6 +381,10 @@ def train_model(
     if use_NoLip_loss:
         losses.append(NoLipLoss(eps_jacobian_loss = eps_jacobian_loss, jacobian_loss_weight = jacobian_loss_weight, max_iter_power_it=max_iter_power_it, tol_power_it=tol_power_it))
 
+    metrics = [dinv.loss.metric.PSNR()]
+    metrics.append(FunctionalMetric())
+
+
     if dist.is_initialized() and distribute:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device])
 
@@ -408,6 +444,7 @@ def train_model(
         freq_plot=1,
         show_progress_bar=show_progress_bar,
         display_losses_eval=True,
+        metrics=metrics
     )
 
     trainer.test(val_dataloader)
