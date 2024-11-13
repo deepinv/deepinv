@@ -47,6 +47,7 @@ v0.2.1
 
 New Features
 ^^^^^^^^^^^^
+- Mirror Descent algorithm with Bregman potentials (:gh:`282` by `Samuel Hurault`_)
 - Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
 - Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
 - Add sinc filter (:gh:`280` by `Julian Tachella`_)
@@ -83,6 +84,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Redefine Prior, DataFidelity and Bregman with a common parent class Potential (:gh:`282` by `Samuel Hurault`_)
 - Changed to Python 3.9+ (:gh:`280` by `Julian Tachella`_)
 - Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024
