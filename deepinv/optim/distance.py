@@ -119,10 +119,6 @@ class IndicatorL2Distance(Distance):
 
 
     :param float radius: radius of the ball. Default: None.
-<<<<<<< HEAD
-
-=======
->>>>>>> 98ff6c5c50fb9d3ec09292fbc49108fca97867dc
     """
 
     def __init__(self, radius=None):
