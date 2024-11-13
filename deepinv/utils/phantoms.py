@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 
 
@@ -96,7 +97,6 @@ def generate_shepp_logan(size):
     return phantom.clamp(0, 1)
 
 
-
 class SheppLoganDataset(Dataset):
     """
     Dataset for the single Shepp-Logan phantom. The dataset has length 1.
@@ -117,38 +117,3 @@ class SheppLoganDataset(Dataset):
         if self.transform is not None:
             phantom_np = self.transform(phantom_np)
         return phantom_np, 0
-
-if __name__ == "__main__":
-
-    import torch
-    from torch.utils.data import DataLoader
-    import matplotlib.pyplot as plt
-
-    # Create datasets
-    random_phantom_dataset = RandomPhantomDataset(size=128, n_data=1, length=10)
-    shepp_logan_dataset = SheppLoganDataset(size=512, n_data=1)
-
-    # Create data loaders
-    random_phantom_loader = DataLoader(random_phantom_dataset, batch_size=1, shuffle=True)
-    shepp_logan_loader = DataLoader(shepp_logan_dataset, batch_size=1)
-
-
-    # Function to visualize a batch of images
-    def visualize_batch(data_loader, title="Phantom Sample"):
-        plt.figure(figsize=(10, 5))
-        for i, (phantoms, _) in enumerate(data_loader):
-            if i >= 5:  # Display only the first 5 samples
-                break
-            plt.subplot(1, 5, i + 1)
-            plt.imshow(phantoms[0, 0], cmap="gray")
-            plt.axis("off")
-            plt.title(f"{title} {i + 1}")
-        plt.tight_layout()
-        plt.show()
-
-
-    # Visualize samples from random phantom dataset
-    visualize_batch(random_phantom_loader, title="Random Phantom")
-
-    # Visualize the Shepp-Logan phantom
-    visualize_batch(shepp_logan_loader, title="Shepp-Logan Phantom")
