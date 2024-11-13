@@ -280,8 +280,8 @@ class LinearPhysics(Physics):
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
         >>> stacked_physics = LinearPhysics.stack(physics1, physics2)
         >>> y = stacked_physics(x)
-        >>> assert y[0].shape == [1, 1, 30, 30], "Wrong output shape of the Blur op"
-        >>> assert y[1].shape == [1, 1, 8, 8], "Wrong output shape of the Downsampling op"
+        >>> assert y[0].shape == (1, 1, 30, 30), "Wrong output shape of the Blur op"
+        >>> assert y[1].shape == (1, 1, 8, 8), "Wrong output shape of the Downsampling op"
 
         Linear operators can also be composed by multiplying them:
 
@@ -291,7 +291,7 @@ class LinearPhysics(Physics):
         A linear operator can also be amplified by a scalar:
 
         >>> from deepinv.physics.noise import GaussianNoise
-        >>> physics_with_gauss_noise = Blur(filter=w, noise_level=GaussianNoise())
+        >>> physics_with_gauss_noise = Blur(filter=w, noise_model=GaussianNoise())
         >>> scaled_physics = 3.0 * physics_with_gauss_noise
         >>> y = scaled_physics(x)
 
@@ -312,7 +312,7 @@ class LinearPhysics(Physics):
 
         Linear operator can also be transposed as a new LinearPhysic object:
 
-        >>> transposed_physics = physics1.get_transpose()
+        >>> transposed_physics = physics1.get_transpose_physics()
         >>> y = transposed_physics(x)
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
