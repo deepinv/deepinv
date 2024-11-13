@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 import wandb
 import json
 from pathlib import Path
-from models.unrolled_dual_MD import get_unrolled_architecture, MirrorLoss
+from models.unrolled_dual_MD import get_unrolled_architecture, MirrorLoss, NoLipLoss
 from utils.distributed_setup import setup_distributed
 from utils.dataloaders import get_drunet_dataset
 from utils.utils import rescale_img, get_wandb_setup
@@ -181,7 +181,6 @@ def load_denoising_data(
         pth=TRAIN_DATASET_PATH,
         max_num_images=max_num_images,
     )
-
     # Calculate lengths for training and datasets (80% and 20%)
     train_size = int(split_val * len(dataset))
     val_size = len(dataset) - train_size
@@ -231,7 +230,7 @@ def load_denoising_data(
             drop_last=True,
         )
         val_dataloader = DataLoader(
-            train_dataset,
+            val_dataset,
             batch_size=val_batch_size,
             num_workers=num_workers,
             shuffle=False,
@@ -273,6 +272,7 @@ def train_model(
     denoiser_name="DRUNET",
     stepsize_init=1.0,
     lamb_init=1.0,
+    sigma_denoiser_init = 0.03,
     ckpt_resume=None,
     wandb_resume_id=None,
     seed=0,
@@ -292,7 +292,13 @@ def train_model(
     noise_level_max=0.2,
     strong_convexity_backward=0.5,
     strong_convexity_forward=0.1,
-    strong_convexity_potential='L2'
+    strong_convexity_potential='L2',
+    use_NoLip_loss=False,
+    eps_jacobian_loss = 0.05, 
+    jacobian_loss_weight = 1e-2, 
+    max_iter_power_it=10, 
+    tol_power_it=1e-3,
+    args=None
 ):
 
     if distribute:
@@ -327,6 +333,7 @@ def train_model(
         prior_name=prior_name,
         denoiser_name=denoiser_name,
         stepsize_init=stepsize_init,
+        sigma_denoiser_init=sigma_denoiser_init,
         lamb_init=lamb_init,
         device=device,
         use_mirror_loss=use_mirror_loss,
@@ -339,6 +346,8 @@ def train_model(
     losses = [dinv.loss.SupLoss()]
     if use_mirror_loss:
         losses.append(MirrorLoss())
+    if use_NoLip_loss:
+        losses.append(NoLipLoss(eps_jacobian_loss = eps_jacobian_loss, jacobian_loss_weight = jacobian_loss_weight, max_iter_power_it=max_iter_power_it, tol_power_it=tol_power_it))
 
     if dist.is_initialized() and distribute:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[device])
@@ -351,7 +360,7 @@ def train_model(
     )
 
     wandb_setup = get_wandb_setup(
-        WANDB_LOGS_PATH, WANDB_PROJ_NAME, mode="online", wandb_resume_id=wandb_resume_id
+        WANDB_LOGS_PATH, args, WANDB_PROJ_NAME, mode="online", wandb_resume_id=wandb_resume_id
     )
 
     if distribute:
@@ -428,14 +437,19 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--stepsize_init", type=float, default=0.01)
     parser.add_argument("--lamb_init", type=float, default=1.0)
+    parser.add_argument("--sigma_denoiser_init", type=float, default=0.03)
     parser.add_argument("--distribute", type=int, default=0)
     parser.add_argument("--max_num_images", type=int, default=1e6)
     parser.add_argument("--noise_level_min", type=float, default=0.)
-    parser.add_argument("--noise_level_max", type=float, default=0.2)
+    parser.add_argument("--noise_level_max", type=float)
     parser.add_argument("--strong_convexity_backward", type=float, default=1.)
     parser.add_argument("--strong_convexity_forward", type=float, default=1.)
     parser.add_argument("--strong_convexity_potential", type=str, default='L2')
-
+    parser.add_argument("--use_NoLip_loss", type=int, default=0)
+    parser.add_argument("--eps_jacobian_loss", type=float, default=0.05)
+    parser.add_argument("--jacobian_loss_weight", type=float, default=0.01)
+    parser.add_argument("--max_iter_power_it", type=int, default = 10)
+    parser.add_argument("--tol_power_it", type=float, default = 1e-3)
     args = parser.parse_args()
 
     grayscale = False if args.grayscale == 0 else True
@@ -445,6 +459,13 @@ if __name__ == "__main__":
     wanddb_resume_id = None if args.wandb_resume_id == "" else args.wandb_resume_id
     lr_scheduler = None if args.lr_scheduler == "" else args.lr_scheduler
     epochs = None if args.epochs == 0 else args.epochs
+    use_NoLip_loss = False if args.use_NoLip_loss == 0 else True
+
+    if args.noise_level_max is None:
+        if args.noise_model == 'Gaussian':
+            args.noise_level_max = 0.2
+        elif args.noise_model == 'Poisson':
+            args.noise_level_max = 0.05
 
     train_model(
         data_fidelity=args.data_fidelity,
@@ -454,6 +475,7 @@ if __name__ == "__main__":
         denoiser_name=args.denoiser_name,
         stepsize_init=args.stepsize_init,
         lamb_init=args.lamb_init,
+        sigma_denoiser_init=args.sigma_denoiser_init,
         distribute=distribute,
         epochs=epochs,
         train_batch_size=args.train_batch_size,
@@ -468,5 +490,11 @@ if __name__ == "__main__":
         noise_level_max=args.noise_level_max,
         strong_convexity_backward=args.strong_convexity_backward,
         strong_convexity_forward=args.strong_convexity_forward,
-        strong_convexity_potential=args.strong_convexity_potential
+        strong_convexity_potential=args.strong_convexity_potential,
+        use_NoLip_loss = args.use_NoLip_loss,
+        eps_jacobian_loss = args.eps_jacobian_loss, 
+        jacobian_loss_weight = args.jacobian_loss_weight, 
+        max_iter_power_it = args.max_iter_power_it, 
+        tol_power_it=args.tol_power_it,
+        args = args
     )

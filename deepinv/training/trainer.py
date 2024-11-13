@@ -345,7 +345,7 @@ class Trainer:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
-            wandb.log(logs, step=epoch)
+            wandb.log(logs)
 
     def check_clip_grad(self):
         r"""
@@ -733,7 +733,7 @@ class Trainer:
                 )
                 log_dict_post_epoch[post_str + " samples"] = images
                 log_dict_post_epoch["step"] = epoch
-                wandb.log(log_dict_post_epoch, step=epoch)
+                wandb.log(log_dict_post_epoch)
 
         if save_images:
             # save images

@@ -3,7 +3,8 @@ from deepinv.models import ArtifactRemoval
 import torch.nn
 from torchvision import transforms
 
-def get_wandb_setup(wandb_logs_path, WANDB_PROJ_NAME, mode='offline', wandb_resume_id=None):
+
+def get_wandb_setup(wandb_logs_path, config, WANDB_PROJ_NAME, mode='offline', wandb_resume_id=None):
     """
     Set up the wandb configuration.
 
@@ -17,18 +18,18 @@ def get_wandb_setup(wandb_logs_path, WANDB_PROJ_NAME, mode='offline', wandb_resu
                        'mode': mode,
                        'project': WANDB_PROJ_NAME,
                        'id': wandb_resume_id,
-                       'resume': 'must'}
+                       'resume': 'must',
+                       'config' : config}
     else:
         wandb_setup = {'dir': wandb_logs_path,
                        'mode': mode,
-                       'project': WANDB_PROJ_NAME}
+                       'project': WANDB_PROJ_NAME,
+                       'config' : config}
 
     return wandb_setup
 
 def rescale_img(img, rescale_mode="min_max"):
     if rescale_mode == "min_max":
-        print('Max : ', img.max())
-        print('Min : ', img.min())
         if img.max() != img.min():
             img = img - img.min()
             img = img / img.max()

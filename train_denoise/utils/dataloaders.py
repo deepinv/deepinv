@@ -11,9 +11,7 @@ from deepinv.datasets import DIV2K
 
 from physics.blur_generator import GaussianBlurGenerator
 from physics.inpainting_generator import InpaintingMaskGenerator
-
-
-train_patch_size = 128
+from torch.utils.data import Subset
 
 
 def to_nn_parameter(x):
@@ -140,9 +138,9 @@ def get_drunet_dataset(train_patch_size, device='cpu', pth='/pth/to/train', max_
     ])
     dataset = torchvision.datasets.ImageFolder(root=pth, transform=transform)
     if max_num_images is not None and max_num_images < len(dataset):
-        subset_indices = list(range(num_images))
+        subset_indices = list(range(max_num_images))
         # Create a subset of the dataset
-        subset_dataset = Subset(dataset, subset_indices)
+        dataset = Subset(dataset, subset_indices)
     return dataset
 
 

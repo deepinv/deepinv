@@ -20,19 +20,7 @@ class DualMDIteration(MDIteration):
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
-        r"""
-        Single mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
-        The Bregman potential, which is an intance of the deepinv.optim.Bregman class, is used to compute the mirror descent step.
-
-        :param dict X: Dictionary containing the current iterate :math:`x_k`.
-        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        :param torch.Tensor y: Input data.
-        :param deepinv.physics.Physics physics: Instance of the `Physics` class defining the current physics.
-        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
-        """
+    ):  
         y_prev = X["est"][0]
         x_prev = self.bregman_potential.grad_conj(y_prev)
         grad = cur_params["stepsize"] * (
@@ -81,10 +69,22 @@ class DeepBregman(Bregman):
         if self.conj_model is not None:
             return self.conj_model(x, *args, **kwargs)
         else:
-            super().conjugate(x, *args, **kwargs)
-        return
+            return super().conjugate(x, *args, **kwargs)
 
-    def conjugate_conjugate(self, x, *args, init = None, **kwargs)
+    def grad_conj(self, x, *args, **kwargs):
+        with torch.enable_grad():
+            x = x.requires_grad_()
+            h = self.conjugate(x, *args, **kwargs)
+            grad = torch.autograd.grad(
+                h,
+                x,
+                torch.ones_like(h),
+                create_graph=True,
+                only_inputs=True,
+            )[0]
+        return grad
+        
+    def conjugate_conjugate(self, x, *args, init = None, **kwargs):
         grad = lambda z: self.grad_conj(z, *args, **kwargs) - x
         init = x if init is None else init
         z = gradient_descent(-grad, init)
@@ -122,37 +122,85 @@ class MirrorLoss(Loss):
         return self.metric(bregman_potential.grad_conj(bregman_potential.grad(x_net)), x_net)
 
 
-def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wavelet", denoiser_name="DRUNET", stepsize_init=1.0, lamb_init=1.0, device = "cpu", 
+class NoLipLoss(Loss):
+    def __init__(self, L = 1., eps_jacobian_loss = 0.05, jacobian_loss_weight = 1e-2, max_iter_power_it=10, tol_power_it=1e-3, verbose=False, eval_mode=False, use_interpolation=False):
+        super(NoLipLoss, self).__init__()
+        self.spectral_norm_module = dinv.loss.JacobianSpectralNorm(
+            max_iter=max_iter_power_it, tol=tol_power_it, verbose=verbose, eval_mode=eval_mode
+        )
+        self.L = L
+        self.use_interpolation = use_interpolation
+        self.eps_jacobian_loss = eps_jacobian_loss
+        self.jacobian_loss_weight = jacobian_loss_weight
+
+    def forward(self, x, x_net, y, physics, model, *args, **kwargs):
+
+        if self.use_interpolation:
+            eta = torch.rand(y_in.size(0), 1, 1, 1, requires_grad=True).to(y_in.device)
+            x = eta * x.detach() + (1 - eta) * x_net.detach()
+        else:
+            x = x
+        
+        bregman_potential = model.fixed_point.iterator.bregman_potential
+    
+        x.requires_grad_()
+        x = bregman_potential.grad_conj(x)
+        # We need to apply to the loss at each iteration.For now we assume the model is fixed along iterations
+        it = 0
+        cur_params = model.update_params_fn(it)
+        cur_data_fidelity = model.update_data_fidelity_fn(it)
+        cur_prior = model.update_prior_fn(it)
+        nabla_F = cur_data_fidelity.grad(x, y, physics) # + cur_params["lambda"] * cur_prior.grad(x, cur_params["g_param"])
+        jacobian_norm = (1 / self.L) * self.spectral_norm_module(nabla_F, x)
+        jacobian_loss = self.jacobian_loss_weight * torch.maximum(jacobian_norm, torch.ones_like(jacobian_norm)-self.eps_jacobian_loss)
+        return jacobian_loss
+
+
+
+
+def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wavelet", denoiser_name="DRUNET", stepsize_init=1.0, lamb_init=1.0, sigma_denoiser_init = 0.03, device = "cpu", 
                                 use_mirror_loss=False, use_dual_iterations = False, strong_convexity_backward=0.5, strong_convexity_forward=0.1, strong_convexity_potential='L2'):
 
     # Select the data fidelity term
-    if data_fidelity == 'L2':
+    if data_fidelity.lower() == 'l2':
         data_fidelity = dinv.optim.data_fidelity.L2()
-    elif data_fidelity == 'KL':
+    elif data_fidelity.lower() == 'kl':
         data_fidelity = dinv.optim.data_fidelity.PoissonLikelihood()
         
     # Set up the prior
-    if prior_name == 'wavelet':
+    if prior_name.lower() == 'wavelet':
         prior = dinv.optim.WaveletPrior(wv="db8", level=3, device=device)
+    elif prior_name.lower() == 'red':
+        if denoiser_name.lower() == 'drunet':
+            denoiser = dinv.models.DRUNet(pretrained="ckpts/drunet_deepinv_color.pth", device=device)
+        if denoiser_name.lower() == 'dncnn':
+            denoiser = dinv.models.DnCNN(pretrained="ckpts/dncnn_sigma2_color.pth", device=device)
+            sigma_denoiser_init = 2/255.
+        prior = dinv.optim.prior.RED(denoiser = denoiser)
+        sigma_denoiser = [sigma_denoiser_init] # only one sigma
+
+    # Freeze prior for now
+    for param in prior.parameters():
+        param.requires_grad = False
 
     # Unrolled optimization algorithm parameters
-    stepsize = [stepsize_init] * max_iter  # stepsize of the algorithm
-    lamb = [lamb_init] * max_iter
-
+    stepsize = [stepsize_init]  # stepsize of the algorithm, only one stepsize.
+    lamb = [lamb_init] # only one lambda.
+    
     if use_mirror_loss: 
         forw_bregman = ICNN(in_channels=3,
-                            num_filters=64,
-                            kernel_dim=5,
-                            num_layers=10,
+                            num_filters=32,
+                            kernel_dim=3,
+                            num_layers=5,
                             strong_convexity=strong_convexity_forward,
-                            pos_weights=True,
+                            pos_weights=False,
                             device="cpu").to(device)
     else:
         forw_bregman = None
     back_bregman = ICNN(in_channels=3,
-                            num_filters=64,
-                            kernel_dim=5,
-                            num_layers=10,
+                            num_filters=32,
+                            kernel_dim=3,
+                            num_layers=5,
                             strong_convexity=strong_convexity_backward,
                             pos_weights=True,
                             device="cpu").to(device)
@@ -160,6 +208,7 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "lambda": lamb,
+        "g_param": sigma_denoiser if prior_name == 'RED' else None
     }
     trainable_params = [
         "lambda",
@@ -170,16 +219,21 @@ def get_unrolled_architecture(max_iter = 10, data_fidelity="L2", prior_name="wav
 
     if use_dual_iterations:
         iteration = DualMDIteration(bregman_potential = bregman_potential)
-        custom_init = lambda y, physics : {'est' : bregman_potential(physics.A_adjoint(y))}
+        def custom_init(y, physics, stop_grad = True):
+            if stop_grad:
+                with torch.no_grad():
+                    return {'est' : [bregman_potential.grad(physics.A_adjoint(y))]}
+            else:
+                return {'est' : [bregman_potential.grad(physics.A_adjoint(y))]}
         custom_output = lambda X : bregman_potential.grad_conj(X["est"][0])
     else:
         iteration = MDIteration(bregman_potential = bregman_potential)
-        custom_init = lambda y, physics : {'est' : physics.A_adjoint(y)}
+        custom_init = lambda y, physics : {'est' : [physics.A_adjoint(y)]}
         custom_output = lambda X: X["est"][0]
 
     # Define the unfolded trainable model.
     model = unfolded_builder(
-        iteration = MDIteration(F_fn=None, has_cost=False),
+        iteration=iteration,
         params_algo=params_algo.copy(),
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,

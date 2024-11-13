@@ -33,6 +33,7 @@ class DataFidelity(Potential):
         :param deepinv.physics.Physics physics: physics model.
         :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}`.
         """
+        print(x.mean(), y.mean())
         return self.d(physics.A(x), y, *args, **kwargs)
 
     def grad(self, x, y, physics, *args, **kwargs):
