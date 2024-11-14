@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 from torchvision.datasets.utils import download_and_extract_archive
+from torchvision.transforms import InterpolationMode
 
 import numpy
 import random
@@ -112,3 +113,26 @@ dinv.utils.plot(
 
 equiv_psnr = transform.equivariance_test(model, y, metric=dinv.loss.metric.PSNR())
 print(f"Equivariance test (Shift, PSNR): {equiv_psnr.item():.1f} dB")
+
+transform = dinv.transform.Rotate(
+    interpolation_mode=InterpolationMode.BILINEAR, padding="circular"
+)
+
+x, y = next(iter(test_dataloader))
+x = x.to(device)
+y = y.to(device)
+params = {"theta": [15]}
+dinv.utils.plot(
+    [
+        x,
+        y,
+        model(y),
+        transform(x, **params),
+        transform(y, **params),
+        transform(model(y), **params),
+    ],
+    ["GT", "Noisy", "Denoised", "Rotated GT", "Rotated Noisy", "Rotated Denoised"],
+)
+
+equiv_psnr = transform.equivariance_test(model, y, metric=dinv.loss.metric.PSNR())
+print(f"Equivariance test (Rotation, PSNR): {equiv_psnr.item():.1f} dB")
