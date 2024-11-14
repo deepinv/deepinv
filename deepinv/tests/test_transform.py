@@ -39,7 +39,6 @@ TRANSFORMS = [
 
 
 def choose_transform(transform_name):
-
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
         if "*" in transform_name:

@@ -71,8 +71,14 @@ physics = Ptychography(
 # Calculates and displays the overlap of probe regions in the image, helping visualize the ptychography pattern.
 
 overlap_img = physics.B.get_overlap_img(physics.B.probe, physics.B.shifts).cpu()
-overlap2probe = physics.B.get_overlap_img(physics.B.probe, physics.B.shifts[55:57]).cpu()
-plot([overlap2probe.unsqueeze(0), overlap_img.unsqueeze(0)], titles=["Overlap 2 probe", "Overlap images"], figsize=(10, 10))
+overlap2probe = physics.B.get_overlap_img(
+    physics.B.probe, physics.B.shifts[55:57]
+).cpu()
+plot(
+    [overlap2probe.unsqueeze(0), overlap_img.unsqueeze(0)],
+    titles=["Overlap 2 probe", "Overlap images"],
+    figsize=(10, 10),
+)
 
 
 # %%
@@ -82,8 +88,12 @@ plot([overlap2probe.unsqueeze(0), overlap_img.unsqueeze(0)], titles=["Overlap 2 
 
 probe = physics.probe.cpu()
 y = physics(input)
-plot([torch.abs(probe.unsqueeze(0)), y[0].sum(dim=0).log().unsqueeze(0)], titles=["Probe", "y"], figsize=(20, 10), fontsize=10) #
-
+plot(
+    [torch.abs(probe.unsqueeze(0)), y[0].sum(dim=0).log().unsqueeze(0)],
+    titles=["Probe", "y"],
+    figsize=(20, 10),
+    fontsize=10,
+)  #
 
 
 # %%

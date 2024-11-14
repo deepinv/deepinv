@@ -45,7 +45,7 @@ OPERATORS = [
     "complex_compressed_sensing",
     "radio",
     "radio_weighted",
-   "ptychography_linear",
+    "ptychography_linear",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -264,8 +264,16 @@ def find_operator(name, device):
         img_size = (1, 32, 32)
         dtype = torch.complex64
         norm = 1.3917
-        p = dinv.physics.PtychographyLinearOperator(img_size=img_size, probe=None, shifts=None, probe_type="disk",
-                                                    probe_radius=15, fov=50, n_img=25, device=device)
+        p = dinv.physics.PtychographyLinearOperator(
+            img_size=img_size,
+            probe=None,
+            shifts=None,
+            probe_type="disk",
+            probe_radius=15,
+            fov=50,
+            n_img=25,
+            device=device,
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -296,6 +304,7 @@ def find_nonlinear_operator(name, device):
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
 
+
 def find_phase_retrieval_operator(name, device):
     r"""
     Chooses operator
@@ -306,11 +315,9 @@ def find_phase_retrieval_operator(name, device):
     """
     if name == "random_phase_retrieval":
         img_size = (1, 10, 10)
-        p = dinv.physics.RandomPhaseRetrieval(
-            m=500, img_shape=img_size, device=device
-        )
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
     elif name == "ptychography":
-        img_size = (1 , 32, 32)
+        img_size = (1, 32, 32)
         p = dinv.physics.Ptychography(
             in_shape=img_size,
             shifts=None,
@@ -324,6 +331,7 @@ def find_phase_retrieval_operator(name, device):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device):
@@ -521,6 +529,7 @@ def test_concatenation(name, device):
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     assert error < 0.01
+
 
 @pytest.mark.parametrize("name", PHASE_RETRIEVAL_OPERATORS)
 def test_phase_retrieval(name, device):
