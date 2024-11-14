@@ -55,12 +55,36 @@ def test_scalar_mult_gaussian_noise(device, dtype):
     t = 0.3
     gaussian_noise_model = choose_noise("Gaussian", device)
     new_noise_model = t * gaussian_noise_model
+
+    # check return type
     assert isinstance(
         new_noise_model, dinv.physics.GaussianNoise
     ), f"Expected to have a GaussianNoise, instead got {type(noise_model)}"
 
+    # check that output shape is correct
     y = new_noise_model(x)
-    assert y.shape == torch.Size(imsize)
+    assert y.shape == imsize, f"Wrong output shape, should be of shape {imsize}"
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_tensor_mult_gaussian_noise(device, dtype):
+    b = 2
+    imsize = (b, 3, 28, 28)
+    x = torch.rand(imsize, device=device, dtype=dtype)
+
+    t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1))
+    gaussian_noise_model = choose_noise("Gaussian", device)
+    new_noise_model = t * gaussian_noise_model
+    # check return type
+    assert isinstance(
+        new_noise_model, dinv.physics.GaussianNoise
+    ), f"Expected to have a GaussianNoise, instead got {type(noise_model)}"
+
+    # check that multiplication was done correctly
+    assert (t[0] * gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[
+        0
+    ].item(), "Wrong standard deviation value for the first GaussianNoise."
 
 
 @pytest.mark.parametrize("device", DEVICES)
