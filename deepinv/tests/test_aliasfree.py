@@ -4,6 +4,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.physics import BlurFFT, Inpainting
 from deepinv.physics.blur import gaussian_blur
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+from deepinv.loss.metric import PSNR
 
 import torch
 import torch.nn.functional as F
@@ -23,6 +24,7 @@ unet = UNet(in_channels=3, out_channels=3)
 
 x = DummyCircles(1, imsize=(3, 256, 256))[0].unsqueeze(0)
 linf_metric = lambda x, y: (x - y).abs().max()
+psnr_metric = PSNR()
 
 rotate_kwargs = {
     "interpolation_mode": InterpolationMode.BILINEAR,
@@ -59,22 +61,23 @@ def test_not_translation_equivariant():
 
 
 def test_rotation_equivariant():
-    err = Rotate(**rotate_kwargs).equivariance_test(
-        afc_rotation_equivariant, x, params=rotate_params, metric=linf_metric
+    psnr_base = Rotate(**rotate_kwargs).equivariance_test(
+        afc, x, params=rotate_params, metric=psnr_metric
     )
-    assert err < 1e-3
+
+    psnr_equiv = Rotate(**rotate_kwargs).equivariance_test(
+        afc_rotation_equivariant, x, params=rotate_params, metric=psnr_metric
+    )
+    assert psnr_equiv >= 75
+    print(psnr_equiv / psnr_base)
+    assert psnr_equiv > 1.04 * psnr_base
 
 
 def test_not_rotation_equivariant():
-    err = Rotate(**rotate_kwargs).equivariance_test(
-        unet, x, params=rotate_params, metric=linf_metric
+    psnr = Rotate(**rotate_kwargs).equivariance_test(
+        unet, x, params=rotate_params, metric=psnr_metric
     )
-    assert err >= 1e0
-
-    err = Rotate(**rotate_kwargs).equivariance_test(
-        afc, x, params=rotate_params, metric=linf_metric
-    )
-    assert err >= 1e-3
+    assert psnr <= 10
 
 
 def test_forward_operator_equivariance():
@@ -97,5 +100,5 @@ def test_forward_operator_equivariance():
     err = Translate().equivariance_test(physics, x, metric=linf_metric)
     assert err >= 1e0
 
-    err = Rotate(**rotate_kwargs).equivariance_test(physics, x, metric=linf_metric)
-    assert err >= 1e-1
+    psnr = Rotate(**rotate_kwargs).equivariance_test(physics, x, metric=psnr_metric)
+    assert psnr <= 15
