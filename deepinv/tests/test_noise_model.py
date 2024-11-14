@@ -75,14 +75,14 @@ def test_tensor_mult_gaussian_noise(device, dtype):
 
     t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1))
     gaussian_noise_model = choose_noise("Gaussian", device)
-    new_noise_model = t * gaussian_noise_model
+    batch_gaussian_noise = t * gaussian_noise_model
     # check return type
     assert isinstance(
-        new_noise_model, dinv.physics.GaussianNoise
+        batch_gaussian_noise, dinv.physics.GaussianNoise
     ), f"Expected to have a GaussianNoise, instead got {type(noise_model)}"
 
     # check that multiplication was done correctly
-    assert (t[0] * gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[
+    assert (t[0] * gaussian_noise_model).sigma.item() == batch_gaussian_noise.sigma[
         0
     ].item(), "Wrong standard deviation value for the first GaussianNoise."
 
