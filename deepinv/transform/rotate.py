@@ -95,7 +95,7 @@ class Rotate(Transform):
         if crop_offsets is not None:
             h1, h2, w1, w2 = crop_offsets
             x = x[..., h1:h2, w1:w2]
-        elif padding is not None:
+        elif self.padding is not None:
             raise ValueError(f"Unknown padding mode: {padding}")
 
         return x
