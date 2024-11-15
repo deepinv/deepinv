@@ -177,8 +177,8 @@ def find_operator(name, device):
             padding=padding,
         )
     elif name == "hyperspectral_unmixing":
-        img_size = (4, 15, 128, 128)
-        p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, H=128, W=128, device=device)
+        img_size = (15, 32, 32)  # x (E, H, W)
+        p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
 
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)

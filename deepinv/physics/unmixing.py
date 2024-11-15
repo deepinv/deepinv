@@ -1,117 +1,127 @@
-from deepinv.physics.forward import LinearPhysics
-from deepinv.physics import adjoint_function
 import torch
-import numpy as np
+
+from deepinv.physics.forward import LinearPhysics, adjoint_function
 from deepinv.physics.functional import random_choice
 
 
 class HyperSpectralUnmixing(LinearPhysics):
     r"""
-    Hyperspectral Unmixing.
+    Hyperspectral Unmixing operator.
 
-    Hyperspectral Unmixing (HU) is a process that analyzes data captured by a special type of camera called a hyperspectral sensor.
-    Imagine a regular camera capturing light in three bands (red, green, blue) to form a color image. A hyperspectral sensor captures light across hundreds of narrow bands, providing a much richer spectral signature for each pixel in the image.
-
-    Analogy: Unmixing Paint. Imagine a painting as a pixel in a hyperspectral image. The paint at that pixel is likely a mixture of various basic colors.
+    Hyperspectral Unmixing (HU) analyzes data captured by a hyperspectral sensor,
+    which captures light acorss a high number of bands (vs. a regular camera which captures light in three bands (RGB)).
+    As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 
-    Please see the survey at https://core.ac.uk/download/pdf/12043173.pdf#page=4.52. for more details.
+    Please see the survey at https://core.ac.uk/download/pdf/12043173.pdf for more details.
 
-    We can model a hyperspectral image mathematically using a Linear Mixing Model (LMM). LMM assumes each pixel's spectrum (denoted by :math:`\mathbf{y}` )
-    is a linear combination of the spectra of pure materials (endmembers) in the scene, represented by a matrix :math:`\mathbf{M}`,
-    weighted by their fractional abundances in the pixel (represented by a vector :math:`\alpha`) as above where :math:`\epsilon` represents noise in the measurement :math:`\mathbf{y}`.
-
-    HSU inverse problems aim to recover the endmember matrix M and the abundance vector :math:`\mathbf{\alpha}` for each pixel in the image, essentially separating the mixed signals.
-    Then, the HU problem is defined as:
+    Hyperspectral mixing is modelled using a Linear Mixing Model (LMM).
 
     .. math::
 
-        \mathbf{Y}= \mathbf{M}\cdot\mathbf{\alpha} + \mathbf{\epsilon}
+        \mathbf{y}= \mathbf{M}\cdot\mathbf{\alpha} + \mathbf{\epsilon}
 
-    where :math:`\mathbf{Y}` is a collected hyperspectral image,
-    :math:`\mathbf{M}` is a matrix of endmember spectra,
-    :math:`\mathbf{\alpha}` is a matrix of abundances
+    where :math:`\mathbf{y}` is the resulting image of shape `(B, C, H, W)`. LMM assumes each pixel :math:`\mathbf{y}_i`'s spectrum
+    is a linear combination of the spectra of pure materials (endmembers) in the scene, represented by a matrix :math:`\mathbf{M}` of shape :math:`(E,C)`,
+    weighted by their fractional abundances in the pixel :math:`\alpha_i` of shape :math:`(B, E, H, W)` where :math:`\epsilon` represents measurement noise.
 
+    The HU inverse problem aims to recover the abundance vector :math:`\mathbf{\alpha}` for each pixel in the image, essentially separating the mixed signals.
+    If the endmember matrix :math:`\mathbf{M}` is unknown, then this must be estimated too.
 
-    The size of the endmember matrix :math:`\mathbf{M}` is :math:`(E,C)`, where :math:`E` is the number of endmembers (materials, e.g. water, rock, wood, etc.)
-    and :math:`C` is the number of channels (bands) in the hyperspectral image.
-    The hyperspectral image :math:`\mathbf{y}` is of size :math:`(B, C, H, W)`,
-    where :math:`B` is the batch size, :math:`H` is the height and :math:`W` is the width of the image.
-    The abundance vector :math:`\mathbf{\alpha}` is of size :math:`(B, E, H, W)`.
-    By default, we set :math:`E=15`, :math:`C=64`, :math:`H=W=128`.
+    .. note::
 
-    :param float M: Matrix of endmembers.  Default: ``None``.
-    :param float E: Number of endmembers.  Default: ``15``.
-    :param float C: Number of bands. Default: ``64``.
-    :param float H: Height of the image. Default: ``128``.
-    :param float W: Width of the image. Default: ``64``.
+        We use :math:`\alpha` and :math:`x` interchangeably to refer to the abundances.
 
+    :param torch.Tensor M: Matrix of endmembers of shape :math:`(E,C)`. Overrides ``E`` and ``C`` parameters. If ``None``, then a random matrix created, default ``None``.
+    :param int E: Number of endmembers (e.g. number of materials). Ignored if ``M`` is set.  Default: ``15``.
+    :param int C: Number of hyperspectral bands. Ignored if ``M`` is set. Default: ``64``.
+    :param torch.device, str device: torch device, cpu or gpu.
+
+    |sep|
 
     :Examples:
 
-        HSU operator using defined mask, removing the second column of a 3x3 image:
+        Hyperspectral mixing of a 128x128 image with 64 channels and 15 endmembers:
 
         >>> from deepinv.physics import HyperSpectralUnmixing
-        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
-        >>> E, C = 15, 64
-        >>> B, H, W = 4, 128, 128
-        >>> alpha = torch.rand((B, E, H, W))
-        >>> y = physics.A(alpha)
-        >>> print(physics.M.shape, alpha.shape, y.shape)
-        torch.Size([15, 64]) torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128])
+        >>> E, C = 15, 64 # n. endmembers and n. channels
+        >>> B, H, W = 4, 128, 128 # batch size and image size
+        >>> physics = HyperSpectralUnmixing(E=E, C=C)
+        >>> x = torch.rand((B, E, H, W)) # sample set of abundances
+        >>> y = physics(x) # resulting mixed image
+        >>> print(x.shape, y.shape, physics.M.shape)
+        torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
 
     """
 
     def __init__(
-        self, M=None, E=15, C=64, H=128, W=128, device=torch.device("cpu"), **kwargs
+        self, M: torch.Tensor = None, E: int = 15, C: int = 64, device="cpu", **kwargs
     ):
         super(HyperSpectralUnmixing, self).__init__()
-
         self.device = device
+
         if M is None:
             M = torch.rand((E, C), dtype=torch.float32)
-            self.M = torch.nn.Parameter(M).to(device)
+            self.E, self.C = E, C
         else:
-            self.M = M
-
-        self.M = self.M.to(device)
-        self.E = E
-        self.C = C
-        self.H = H
-        self.W = W
-        self.update_parameters(M=self.M, **kwargs)
-        self.pinv = self.get_pinv()
-
-    def A(self, Alpha, M=None, **kwargs):
-        # r"""
-        # Applies the endmembers matrix to the input abundances Alpha.
-        #
-        # :param torch.Tensor A: input abundances.
-        # :param torch.Tensor M: endmembers matrix :math:`\mathbf{M}` to be applied to the input image.
-        # """
+            self.E, self.C = M.shape
 
         self.update_parameters(M=M, **kwargs)
+        self.M_pinv = torch.linalg.pinv(self.M)
 
-        assert Alpha.shape[1:] == (self.E, self.H, self.W)
+    def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
+        r"""
+        Applies the endmembers matrix to the input abundances x.
 
-        return torch.einsum("ec,behw->bchw", self.M, Alpha)
+        :param torch.Tensor x: input abundances.
+        :param torch.Tensor M: optional new endmembers matrix :math:`\mathbf{M}` to be applied to the input abundances.
+        """
+        self.update_parameters(M=M, **kwargs)
 
-    def get_pinv(self):
-        return torch.linalg.pinv(self.M)
+        if x.shape[1] != self.E:
+            raise ValueError("Number of endmembers in x should be as defined.")
 
-    def A_dagger(self, y):
-        return torch.einsum("ce,bchw->behw", self.pinv, y)
+        return torch.einsum("ec,behw->bchw", self.M, x)
 
-    def A_adjoint(self, y, **kwargs):
+    def A_dagger(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+        r"""
+        Applies the pseudoinverse endmember matrix to the image y.
+
+        :param torch.Tensor y: input image.
+        :param torch.Tensor M: optional new endmembers matrix :math:`\mathbf{M}` to be applied to the input image.
+        """
+        self.update_parameters(M=M, **kwargs)
+
+        if y.shape[1] != self.C:
+            raise ValueError("Number of channels in y should be as defined.")
+
+        return torch.einsum("ce,bchw->behw", self.M_pinv, y)
+
+    def A_adjoint(self, y: torch.Tensor, M: torch.Tensor = None, **kwargs):
+        r"""
+        Applies the transpose endmember matrix to the image y.
+
+        :param torch.Tensor y: input image.
+        :param torch.Tensor M: optional new endmembers matrix :math:`\mathbf{M}` to be applied to the input image.
+        """
+        self.update_parameters(M=M, **kwargs)
+
+        if y.shape[1] != self.C:
+            raise ValueError("Number of channels in y should be as defined.")
+
         return torch.einsum("ce,bchw->behw", self.M.t(), y)
 
-    def update_parameters(self, M=None, **kwargs):
+    def update_parameters(self, M: torch.Tensor = None, **kwargs):
         r"""
         Updates the current endmembers matrix.
 
         :param torch.Tensor M: New endmembers matrix to be applied to the input abundances.
         """
         if M is not None:
+            if M.shape != (self.E, self.C):
+                raise ValueError(
+                    "Number of endmembers and bands should be same as before."
+                )
             self.M = torch.nn.Parameter(M.to(self.device), requires_grad=False)
 
         if hasattr(self.noise_model, "update_parameters"):
