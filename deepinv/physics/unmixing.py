@@ -98,6 +98,7 @@ class HyperSpectralUnmixing(LinearPhysics):
 
     def get_pinv(self):
         return torch.linalg.pinv(self.M)
+
     def A_dagger(self, y):
         return torch.einsum("ce,bchw->behw", self.pinv, y)
 
@@ -115,6 +116,7 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
+
 
 if __name__ == "__main__":
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -150,7 +152,7 @@ if __name__ == "__main__":
     # )
 
     # Device configuration
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float32
 
     # Define image size and physics
@@ -166,5 +168,5 @@ if __name__ == "__main__":
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    print(f'Error: {error.item()}') # Error: 3.477338239576966e-08
+    print(f"Error: {error.item()}")  # Error: 3.477338239576966e-08
     assert error < 0.01
