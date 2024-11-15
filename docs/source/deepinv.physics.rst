@@ -269,7 +269,8 @@ Tomography is based on the Radon-transform which computes line-integrals.
 
 Remote Sensing
 ^^^^^^^^^^^^^^^^
-Remote sensing operators are used to simulate the acquisition of satellite data.
+Remote sensing operators are used to simulate the acquisition of satellite data,
+especially multispectral and hyperspectral data.
 
 .. autosummary::
    :toctree: stubs
@@ -277,6 +278,7 @@ Remote sensing operators are used to simulate the acquisition of satellite data.
    :nosignatures:
 
    deepinv.physics.Pansharpen
+   deepinv.physics.HyperSpectralUnmixing
 
 
 Compressive operators

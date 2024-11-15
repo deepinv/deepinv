@@ -28,10 +28,8 @@ New Features
 
 Fixed
 ^^^^^
-- doc fixes (:gh:`` by `Dongdong Chen`_) - 04/11/2024
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
-
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
