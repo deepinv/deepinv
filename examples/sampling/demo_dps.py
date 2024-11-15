@@ -220,7 +220,7 @@ i = 200  # choose some arbitrary timestep
 t = (torch.ones(1) * i).to(device)
 at = compute_alpha(betas, t.long())
 sigma_cur = (1 - at).sqrt() / at.sqrt()
-xt =  x0 + sigma_cur * torch.randn_like(x0)
+xt = x0 + sigma_cur * torch.randn_like(x0)
 
 # DPS
 with torch.enable_grad():
@@ -308,7 +308,7 @@ for i, j in tqdm(time_pairs):
 
     xt = xs[-1].to(device)
 
-    with ((torch.enable_grad())):
+    with torch.enable_grad():
         xt.requires_grad_()
 
         # 1. denoising step
