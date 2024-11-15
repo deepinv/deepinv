@@ -106,6 +106,8 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
+    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+        If ``None``, the default Generator of PyTorch will be used.
 
     |sep|
 
@@ -115,10 +117,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
-        >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3))
+        >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597, 1.7768,
-                 0.3864]])
+        tensor([[2.3043, 1.3553, 0.0087, 1.8518, 1.0845, 1.1561, 0.8668, 2.2031, 0.4542,
+                 0.0225]])
     """
 
     def __init__(
@@ -128,6 +130,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
+        rng: torch.Generator = None,
         **kwargs,
     ):
         self.m = m
@@ -135,6 +138,16 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         self.channelwise = channelwise
         self.dtype = dtype
         self.device = device
+        if rng is None:
+            self.rng = torch.Generator(device=device)
+        else:
+            # Make sure that the random generator is on the same device as the physic generator
+            assert rng.device == torch.device(
+                device
+            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
+            self.rng = rng
+        self.initial_random_state = self.rng.get_state()
+
         B = CompressedSensing(
             m=m,
             img_shape=img_shape,
@@ -142,6 +155,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             channelwise=channelwise,
             dtype=dtype,
             device=device,
+            rng=self.rng,
         )
         super().__init__(B)
         self.name = f"RPR_m{self.m}"

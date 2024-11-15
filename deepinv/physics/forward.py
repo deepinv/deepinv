@@ -1,7 +1,7 @@
 import torch
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
+from deepinv.optim.utils import conjugate_gradient
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -288,20 +288,19 @@ class LinearPhysics(Physics):
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
-        >>> from deepinv.utils import cal_psnr
+        >>> from deepinv.loss.metric import PSNR
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
         >>> physics = Blur(filter=w, padding='circular')
         >>> y = physics(x) # Compute measurements
         >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
         >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
-        >>> cal_psnr(x, x_dagger) > cal_psnr(x, y) # Should be closer to the orginal
-        True
+        >>> PSNR()(x, x_dagger) > PSNR()(x, y) # Should be closer to the orginal
+        tensor([True])
 
         The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
 
         >>> from deepinv.physics import LinearPhysics, adjoint_function
-        >>> from deepinv.utils import cal_psnr
         >>> A = lambda x: torch.roll(x, shifts=(1,1), dims=(2,3)) # Shift image by one pixel
         >>> physics = LinearPhysics(A=A, A_adjoint=adjoint_function(A, (4, 1, 5, 5)))
         >>> x = torch.randn((4, 1, 5, 5))
@@ -728,8 +727,8 @@ class DecomposablePhysics(LinearPhysics):
         Computes proximal operator of :math:`f(x)=\frac{\gamma}{2}\|Ax-y\|^2`
         in an efficient manner leveraging the singular vector decomposition.
 
-        :param torch.Tensor y: measurements tensor
         :param torch.Tensor, float z: signal tensor
+        :param torch.Tensor y: measurements tensor
         :param float gamma: hyperparameter :math:`\gamma` of the proximal operator
         :return: (torch.Tensor) estimated signal tensor
 

@@ -8,9 +8,16 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
+from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
-LIST_SURE = ["Gaussian", "Poisson", "PoissonGaussian"]
+LIST_SURE = [
+    "Gaussian",
+    "Poisson",
+    "PoissonGaussian",
+    "GaussianUnknown",
+    "PoissonGaussianUnknown",
+]
 
 
 def test_jacobian_spectral_values(toymatrix):
@@ -71,14 +78,17 @@ def choose_sure(noise_type):
     if noise_type == "PoissonGaussian":
         loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain)
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
+    elif noise_type == "PoissonGaussianUnknown":
+        loss = dinv.loss.SurePGLoss(sigma=sigma, gain=gain, unsure=True)
+        noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
         loss = dinv.loss.SureGaussianLoss(sigma=sigma)
         noise_model = dinv.physics.GaussianNoise(sigma)
+    elif noise_type == "GaussianUnknown":
+        loss = dinv.loss.SureGaussianLoss(sigma=sigma, unsure=True)
+        noise_model = dinv.physics.GaussianNoise(sigma)
     elif noise_type == "Poisson":
         loss = dinv.loss.SurePoissonLoss(gain=gain)
-        noise_model = dinv.physics.PoissonNoise(gain)
-    elif noise_type == "Neighbor2Neighbor":
-        loss = dinv.loss.Neighbor2Neighbor()
         noise_model = dinv.physics.PoissonNoise(gain)
     else:
         raise Exception("The SURE loss doesnt exist")
@@ -107,7 +117,7 @@ def test_sure(noise_type, device):
     y = physics(x)
 
     x_net = f(y, physics)
-    mse = deepinv.metric.mse()(x, x_net)
+    mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
 
     rel_error = (sure - mse).abs() / mse
@@ -277,3 +287,39 @@ def test_measplit(device):
     x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0
+
+
+LOSS_SCHEDULERS = ["random", "interleaved"]
+
+
+@pytest.mark.parametrize("scheduler_name", LOSS_SCHEDULERS)
+def test_loss_scheduler(scheduler_name):
+    # Skeleton loss function
+    class TestLoss(dinv.loss.Loss):
+        def __init__(self, a=1):
+            super().__init__()
+            self.adapted = False
+            self.a = a
+
+        def forward(self, x_net, x, y, physics, model, epoch, **kwargs):
+            return self.a
+
+        def adapt_model(self, model, **kwargs):
+            self.adapted = True
+
+    rng = torch.Generator().manual_seed(0)
+
+    if scheduler_name == "random":
+        l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
+    elif scheduler_name == "interleaved":
+        l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+
+    # Loss scheduler adapts all inside losses
+    l.adapt_model(None)
+    assert l.losses[0].adapted == True
+
+    # Scheduler calls both losses eventually
+    loss_total = 0
+    for _ in range(20):
+        loss_total += l(None, None, None, None, None, None)
+    assert loss_total > 20

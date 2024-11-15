@@ -57,6 +57,7 @@ about the forward measurement process.
     deepinv.loss.MCLoss
     deepinv.loss.EILoss
     deepinv.loss.MOILoss
+    deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
     deepinv.loss.SplittingLoss
     deepinv.loss.Phase2PhaseLoss
@@ -90,59 +91,6 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
     deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UAIRGeneratorLoss
 
-Metrics
---------
-Metrics are generally used to evaluate the performance of a model. Some of them can be used as training losses as well.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-        deepinv.loss.PSNR
-        deepinv.loss.SSIM
-        deepinv.loss.LPIPS
-        deepinv.loss.NIQE
-
-
-Transforms
-^^^^^^^^^^
-
-This submodule contains different transforms which can be used for data augmentation or together with the equivariant losses. 
-The projective transformations formulate the image transformations using the pinhole camera model, from which various transformation subgroups can be derived. See the self-supervised example for a demonstration. Note these require ``kornia`` installed.
-
-Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, and chained by multiplying them (i.e. product group). For example, random transforms can be used as follows:
-
-.. doctest::
-
-    >>> import torch
-    >>> from deepinv.transform import Shift, Rotate
-    >>> x = torch.rand((1, 1, 2, 2)) # Define random image (B,C,H,W)
-    >>> transform = Shift() # Define random shift transform
-    >>> transform(x).shape
-    torch.Size([1, 1, 2, 2])
-    >>> transform = Rotate() + Shift() # Stack rotate and shift transforms
-    >>> transform(x).shape
-    torch.Size([2, 1, 2, 2])
-    >>> rotoshift = Rotate() * Shift() # Chain rotate and shift transforms
-    >>> rotoshift(x).shape
-    torch.Size([1, 1, 2, 2])
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.transform.Transform
-    deepinv.transform.Rotate
-    deepinv.transform.Shift
-    deepinv.transform.Scale
-    deepinv.transform.Homography
-    deepinv.transform.projective.Euclidean
-    deepinv.transform.projective.Similarity
-    deepinv.transform.projective.Affine
-    deepinv.transform.projective.PanTiltRotate
-
 Network Regularization
 ----------------------
 These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
@@ -156,6 +104,22 @@ These losses can be used to regularize the learned function, e.g., controlling i
     deepinv.loss.FNEJacobianSpectralNorm
 
 
+Loss schedulers
+---------------
+Loss schedulers can be used to control which losses are used when during more advanced training.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.BaseLossScheduler
+    deepinv.loss.RandomLossScheduler
+    deepinv.loss.InterleavedLossScheduler
+    deepinv.loss.InterleavedEpochLossScheduler
+    deepinv.loss.StepLossScheduler
+
+
 Utils
 -------
 A set of popular distances that can be used by the supervised and self-supervised losses.
@@ -165,4 +129,4 @@ A set of popular distances that can be used by the supervised and self-supervise
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.loss.LpNorm
+    deepinv.loss.metric.LpNorm

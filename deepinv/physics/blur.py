@@ -232,7 +232,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
-        self.update_parameters(filter)
+        self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -243,7 +243,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter)
+        self.update_parameters(filter=filter, **kwargs)
 
         if x.dim() == 4:
             return conv2d(x, filter=self.filter, padding=self.padding)
@@ -259,7 +259,7 @@ class Blur(LinearPhysics):
             If not ``None``, it uses this filter instead of the one defined in the class, and
             the provided filter is stored as the current filter.
         """
-        self.update_parameters(filter)
+        self.update_parameters(filter=filter, **kwargs)
 
         if y.dim() == 4:
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
@@ -329,11 +329,11 @@ class BlurFFT(DecomposablePhysics):
         self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
-        self.update_parameters(filter)
+        self.update_parameters(filter, **kwargs)
         return super().A(x)
 
     def A_adjoint(self, x, filter=None, **kwargs):
-        self.update_parameters(filter)
+        self.update_parameters(filter, **kwargs)
         return super().A_adjoint(x)
 
     def V_adjoint(self, x):
@@ -393,8 +393,8 @@ class SpaceVaryingBlur(LinearPhysics):
 
     where :math:`\star` is a convolution, :math:`\odot` is a Hadamard product,  :math:`w_k` are multipliers :math:`h_k` are filters.
 
-    :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
+    :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
+    :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W.
     :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         If ``padding = 'valid'`` the blurred output is smaller than the image (no padding),
         otherwise the blurred output has the same size as the image.
@@ -427,7 +427,7 @@ class SpaceVaryingBlur(LinearPhysics):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding)
+            self.update_parameters(filters, multipliers, padding, **kwargs)
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
@@ -438,15 +438,15 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters  :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding)
+            self.update_parameters(filters, multipliers, padding, **kwargs)
 
             return product_convolution2d(
                 x, self.multipliers, self.filters, self.padding
@@ -463,15 +463,17 @@ class SpaceVaryingBlur(LinearPhysics):
         It can receive new parameters :math:`w_k`, :math:`h_k` and padding to be used in the forward operator, and stored
         as the current parameters.
 
-        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
-        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor h: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor w: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
             If `padding = 'valid'` the blurred output is smaller than the image (no padding),
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
         if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding)
+            self.update_parameters(
+                filters=filters, multipliers=multipliers, padding=padding, **kwargs
+            )
 
             return product_convolution2d_adjoint(
                 y, self.multipliers, self.filters, self.padding
@@ -483,8 +485,8 @@ class SpaceVaryingBlur(LinearPhysics):
         r"""
         Updates the current parameters.
 
-        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (K, b, c, H, W). b in {1, B} and c in {1, C}
-        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (K, b, c, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
+        :param torch.Tensor filters: Multipliers :math:`w_k`. Tensor of size (b, c, K, H, W). b in {1, B} and c in {1, C}
+        :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if filters is not None:

@@ -61,7 +61,7 @@ torch.manual_seed(0)
 #   -\log p(y|x) \propto \frac{1}{2\sigma^2} \|y-Ax\|^2
 
 # load Gaussian Likelihood
-likelihood = dinv.optim.L2(sigma=sigma)
+likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
 # %%
 # Define the prior
@@ -132,8 +132,8 @@ mean, var = f(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"Posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, mean):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Posterior mean PSNR: {dinv.metric.PSNR()(x, mean).item():.2f} dB")
 
 # plot results
 error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error

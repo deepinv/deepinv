@@ -93,7 +93,7 @@ y = physics(x_phase)
 # %%
 # Reconstruction with gradient descent and random initialization
 # ---------------------------------------------------------------
-# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
+# First, we use the function :class:`deepinv.optim.data_fidelity.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
 
 data_fidelity = L2()
 # Step size for the gradient descent
@@ -252,14 +252,14 @@ plot(
 
 # Compute metrics
 print(
-    f"GD Random reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_rand):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
+    f"GD Random reconstruction, PSNR: {dinv.metric.PSNR()(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
 )
 print(
-    f"Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
+    f"Spectral reconstruction, PSNR: {dinv.metric.PSNR()(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
 )
 print(
-    f"GD Spectral reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_gd_spec):.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
+    f"GD Spectral reconstruction, PSNR: {dinv.metric.PSNR()(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
 )
 print(
-    f"PnP reconstruction, PSNR: {dinv.utils.metric.cal_psnr(x, x_pnp):.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
+    f"PnP reconstruction, PSNR: {dinv.metric.PSNR()(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
 )

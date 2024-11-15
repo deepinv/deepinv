@@ -26,4 +26,4 @@ from .gan import (
     DCGANDiscriminator,
 )
 from .complex import to_complex_denoiser
-from .dynamic import TimeAgnosticNet
+from .dynamic import TimeAgnosticNet, TimeAveragingNet

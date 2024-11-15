@@ -114,7 +114,7 @@ class fStepCV(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.prox_d_conjugate(u, y, gamma=cur_params["sigma"])
+        return cur_data_fidelity.d.prox_conjugate(u, y, gamma=cur_params["sigma"])
 
 
 class gStepCV(gStep):
@@ -248,8 +248,8 @@ x_lin = physics.A_adjoint(y)
 x_model, metrics = model(y, physics, x_gt=x, compute_metrics=True)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"Model reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Model reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot results
 imgs = [x, x_lin, x_model]

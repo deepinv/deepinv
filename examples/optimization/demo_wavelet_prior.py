@@ -33,8 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset
 #
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -49,12 +48,6 @@ val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
 
-# Generate a motion blur operator.
-kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
-kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
-kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
-    0
-)  # add batch and channel dimensions
 dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
 
 
@@ -193,8 +186,8 @@ x_model, metrics = model(
 x_model = x_model.clamp(0, 1)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]

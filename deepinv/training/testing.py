@@ -1,5 +1,5 @@
 import torch
-from deepinv.loss import PSNR
+from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
 
 
@@ -72,5 +72,4 @@ def test(
         show_progress_bar=show_progress_bar,
         **kwargs,
     )
-
     return trainer.test(test_dataloader, save_path=save_folder)

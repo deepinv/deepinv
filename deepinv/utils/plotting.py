@@ -170,6 +170,7 @@ def rescale_img(im, rescale_mode="min_max"):
 def plot(
     img_list,
     titles=None,
+    save_fn=None,
     save_dir=None,
     tight=True,
     max_imgs=4,
@@ -181,6 +182,7 @@ def plot(
     fontsize=17,
     interpolation="none",
     cbar=False,
+    dpi=1200,
     fig=None,
     axs=None,
     return_fig=False,
@@ -199,6 +201,8 @@ def plot(
         If the number of channels is 2, the magnitude of the complex images is plotted.
         If the number of channels is bigger than 3, only the first 3 channels are plotted.
 
+    We provide flexibility to save plots either side-by-side using ``save_fn`` or as individual images using ``save_dir``.
+
     Example usage:
 
     .. doctest::
@@ -208,17 +212,25 @@ def plot(
         img = torch.rand(4, 3, 256, 256)
         plot([img, img, img], titles=["img1", "img2", "img3"], save_dir="test.png")
 
-    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
-    :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    .. note::
+
+        Using ``show=True`` calls ``plt.show()`` with blocking (outside notebook environments).
+        If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
+        and plot at your desired location using ``fig.show()``.
+
+    :param list[torch.Tensor], dict[str -> torch.Tensor], torch.Tensor img_list: list of images, single image, or dict of titles: images to plot.
+    :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
-    :param tuple[int] figsize: size of the figure.
+    :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param int dpi: DPI to save images.
     :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
     :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
@@ -233,6 +245,9 @@ def plot(
 
     if isinstance(img_list, torch.Tensor):
         img_list = [img_list]
+    elif isinstance(img_list, dict):
+        assert titles is None, "titles should be None when img_list is a dictionary"
+        titles, img_list = list(img_list.keys()), list(img_list.values())
 
     for i, img in enumerate(img_list):
         if len(img.shape) == 3:
@@ -277,13 +292,18 @@ def plot(
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], size=9)
             axs[r, i].axis("off")
+
     if tight:
         if cbar:
             plt.subplots_adjust(hspace=0.2, wspace=0.2)
         else:
             plt.subplots_adjust(hspace=0.01, wspace=0.05)
+
+    if save_fn:
+        plt.savefig(save_fn, dpi=dpi)
+
     if save_dir:
-        plt.savefig(save_dir / "images.svg", dpi=1200)
+        plt.savefig(save_dir / "images.svg", dpi=dpi)
         save_dir_i = Path(save_dir) / Path(titles[i])
         save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
@@ -378,7 +398,6 @@ def scatter_plot(
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
     if save_dir:
-
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
             save_dir_i = Path(save_dir) / Path(titles[i])
@@ -547,7 +566,9 @@ def plot_inset(
     extract_size: float = 0.2,
     inset_loc: Union[Tuple, List] = (0.0, 0.5),
     inset_size: float = 0.4,
+    figsize: Tuple[int] = None,
     save_fn: str = None,
+    dpi: int = 1200,
     show: bool = True,
     return_fig: bool = False,
     cmap: str = "gray",
@@ -568,12 +589,16 @@ def plot_inset(
     :param float extract_size: size of extract to be taken from image, defaults to 0.2
     :param list, tuple inset_loc: location or locations for inset to be plotted on image, defaults to (0., 0.5)
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
+    :param tuple[int] figsize: size of the figure.
     :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
+    :param int dpi: DPI to save images.
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     """
 
-    fig = plot(img_list, titles, show=False, return_fig=True, cmap=cmap)
+    fig = plot(
+        img_list, titles, show=False, return_fig=True, cmap=cmap, figsize=figsize
+    )
     axs = fig.axes
     batch_size = img_list[0].shape[0]
 
@@ -651,7 +676,7 @@ def plot_inset(
             )
 
     if save_fn:
-        plt.savefig(save_fn, dpi=1200)
+        plt.savefig(save_fn, dpi=dpi)
 
     if show:
         plt.show()
@@ -666,11 +691,13 @@ def plot_videos(
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
+    figsize: Tuple[int] = None,
+    dpi: int = None,
     save_fn: str = None,
     return_anim: bool = False,
-    figsize=None,
     anim_writer: str = None,
-    **anim_kwargs,
+    anim_kwargs: dict = {},
+    **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
 
@@ -700,11 +727,13 @@ def plot_videos(
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
     :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
+    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
     :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
-    :param tuple[int] figsize: size of the figure.
-    :param \**anim_kwargs: keyword args for matplotlib FuncAnimation init
+    :param int dpi: DPI of saved videos.
+    :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
+    :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -723,6 +752,7 @@ def plot_videos(
             fig=fig,
             axs=axs,
             figsize=figsize,
+            **plot_kwargs,
         )
 
     fig, axs = animate(0)
@@ -738,6 +768,7 @@ def plot_videos(
         anim.save(
             save_fn.with_suffix(".gif") if save_fn.suffix == "" else save_fn,
             writer=anim_writer,
+            dpi=dpi,
         )
 
     if return_anim:
@@ -870,7 +901,6 @@ def plot_ortho3D(
 
     for i, row_imgs in enumerate(imgs):
         for r, img in enumerate(row_imgs):
-
             img = img**0.5
 
             ax_XY = axs[r, i]

@@ -1,12 +1,12 @@
 import sys
 import warnings
+from collections.abc import Iterable
 import torch
 import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
-from collections.abc import Iterable
-from deepinv.utils import cal_psnr
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
+from deepinv.loss.metric.distortion import PSNR
 
 
 class BaseOptim(nn.Module):
@@ -114,7 +114,7 @@ class BaseOptim(nn.Module):
                             Default: `{"stepsize": 1.0, "lambda": 1.0}`. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
                             :meth:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
@@ -128,9 +128,8 @@ class BaseOptim(nn.Module):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``.
+    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^Ty` when the adjoint is defined, and with the observation `y` if the adjoint is not defined. Default: ``None``.
     :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
-        If ``None`` (default value) algorithm is initialized with :math:`A^Ty`. Default: ``None``.
     :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
@@ -230,7 +229,7 @@ class BaseOptim(nn.Module):
         else:
             self.prior = prior
 
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the prior to change at each iteration.
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
         if not isinstance(data_fidelity, Iterable):
             self.data_fidelity = [data_fidelity]
         else:
@@ -262,7 +261,7 @@ class BaseOptim(nn.Module):
         (if this parameter depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the parameters of iteration ``it``.
+        :return: a dictionary containing the parameters at iteration ``it``.
         """
         cur_params_dict = {
             key: value[it] if len(value) > 1 else value[0]
@@ -276,7 +275,7 @@ class BaseOptim(nn.Module):
         (if this prior depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the prior of iteration ``it``.
+        :return: the prior at iteration ``it``.
         """
         cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
         return cur_prior
@@ -287,7 +286,7 @@ class BaseOptim(nn.Module):
         (if this data_fidelity depends on the iteration number).
 
         :param int it: iteration number.
-        :return: a dictionary containing the data_fidelity of iteration ``it``.
+        :return: the data_fidelity at iteration ``it``.
         """
         cur_data_fidelity = (
             self.data_fidelity[it]
@@ -351,7 +350,10 @@ class BaseOptim(nn.Module):
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
         if x_gt is not None:
-            psnr = [[cal_psnr(x_init[i], x_gt[i])] for i in range(self.batch_size)]
+            psnr = [
+                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                for i in range(self.batch_size)
+            ]
         else:
             psnr = [[] for i in range(self.batch_size)]
         init["psnr"] = psnr
@@ -385,8 +387,8 @@ class BaseOptim(nn.Module):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = cal_psnr(x[i], x_gt[i])
-                    metrics["psnr"][i].append(psnr)
+                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
@@ -465,7 +467,7 @@ class BaseOptim(nn.Module):
         else:
             return False
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
 
@@ -473,20 +475,24 @@ class BaseOptim(nn.Module):
         :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :param kwargs: optional keyword arguments for the optimization iterator (see :meth:`deepinv.optim.optim_iterators.OptimIterator`)
         :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        X, metrics = self.fixed_point(
-            y, physics, x_gt=x_gt, compute_metrics=compute_metrics
-        )
-        x = self.get_output(X)
-        if compute_metrics:
-            return x, metrics
-        else:
-            return x
+        with torch.no_grad():
+            X, metrics = self.fixed_point(
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
+            )
+            x = self.get_output(X)
+            if compute_metrics:
+                return x, metrics
+            else:
+                return x
 
 
-def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
+def create_iterator(
+    iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
+):
     r"""
     Helper function for creating an iterator, instance of the :meth:`deepinv.optim.optim_iterators.OptimIterator` class,
     corresponding to the chosen minimization algorithm.
@@ -497,9 +503,10 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param list, deepinv.optim.Prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
     """
     # If no prior is given, we set it to a zero prior.
     if prior is None:
@@ -519,7 +526,8 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
                     reg_value = (cur_params["lambda"] * prior_value).sum()
                 else:
                     reg_value = (
-                        cur_params["lambda"].flatten() * prior_value.flatten()
+                        cur_params["lambda"].flatten().to(prior_value.device)
+                        * prior_value.flatten()
                     ).sum()
             return data_fidelity(x, y, physics) + reg_value
 
@@ -531,7 +539,12 @@ def create_iterator(iteration, prior=None, F_fn=None, g_first=False):
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
-        return iterator_fn(g_first=g_first, F_fn=F_fn, has_cost=has_cost)
+        return iterator_fn(
+            g_first=g_first,
+            F_fn=F_fn,
+            has_cost=has_cost,
+            bregman_potential=bregman_potential,
+        )
     else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
@@ -545,6 +558,7 @@ def optim_builder(
     prior=None,
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
@@ -563,17 +577,24 @@ def optim_builder(
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
-    :param callable F_fn: Custom user input cost function. default: `None`.
-    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: `False`
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
+    :param callable F_fn: Custom user input cost function. default: ``None``.
+    :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an instance of the :meth:`BaseOptim` class.
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseOptim(
         iterator,
         has_cost=iterator.has_cost,

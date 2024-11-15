@@ -224,8 +224,8 @@ def test_wavelet_models_identity():
         )
         level = 3
         prior = dinv.optim.prior.WaveletPrior(wvdim=wvdim, p=1, level=level)
-        g_nonflat = prior.g(x, reduce=False)
-        g_flat = prior.g(x, reduce=True)
+        g_nonflat = prior(x, reduce=False)
+        g_flat = prior(x, reduce=True)
         assert g_nonflat.dim() > 0
         assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
         assert g_flat.dim() == 0
@@ -280,12 +280,13 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
         assert x_hat.shape == x.shape
 
 
-def test_equivariant(imsize, device):
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_equivariant(imsize, device, batch_size):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
     model = (
-        dinv.models.EquivariantDenoiser(model, transform="rotoflips", random=True)
+        dinv.models.EquivariantDenoiser(model, random=True)  # Roto-reflections
         .to(device)
         .eval()
     )
@@ -293,7 +294,7 @@ def test_equivariant(imsize, device):
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     x_hat = model(y, sigma)
 
@@ -309,19 +310,32 @@ def test_equivariant(imsize, device):
 
     model_id = DummyIdentity()
 
-    list_transforms = ["rotations", "flips", "rotoflips"]
+    list_transforms = [
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=4, constant_shape=False
+        ),  # full group
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=1, constant_shape=False
+        ),  # subsampled
+        dinv.transform.Reflect(dim=[-1], n_trans=2),  # full group
+        dinv.transform.Reflect(dim=[-1], n_trans=2)
+        * dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=3, constant_shape=False
+        ),  # compound group
+    ]
+
+    # constant_shape False as imsize is rectangular. For square images, ignore constant_shape.
 
     for transform in list_transforms:
-        for random in [True, False]:
-            model = dinv.models.EquivariantDenoiser(
-                model_id, transform=transform, random=random
-            ).to(device)
+        model = dinv.models.EquivariantDenoiser(model_id, transform=transform).to(
+            device
+        )
 
-            x = torch.ones(imsize, device=device).unsqueeze(0)
-            y = physics(x)
-            y_hat = model(y, sigma)
+        x = torch.ones((batch_size, *imsize), device=device)
+        y = physics(x)
+        y_hat = model(y, sigma)
 
-            assert torch.allclose(y, y_hat)
+        assert torch.allclose(y, y_hat)
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)

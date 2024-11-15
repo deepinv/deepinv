@@ -12,6 +12,7 @@ import random
 from pathlib import Path
 from typing import Any, Callable, NamedTuple, Optional, Union, Tuple
 import pickle
+import warnings
 import os
 import h5py
 import torch
@@ -151,13 +152,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         # should contain all the information to load a slice from the storage
         self.sample_identifiers = []
-        if load_metadata_from_cache:  # from a cache file
-            metadata_cache_file = Path(metadata_cache_file)
-            if not metadata_cache_file.exists():
-                raise ValueError(
-                    "`metadata_cache_file` doesn't exist. Please either deactivate"
-                    + "`load_dataset_from_cache` OR set `metadata_cache_file` properly."
-                )
+
+        if load_metadata_from_cache and os.path.exists(metadata_cache_file):
             with open(metadata_cache_file, "rb") as f:
                 dataset_cache = pickle.load(f)
                 if dataset_cache.get(root) is None:
@@ -168,6 +164,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 print(f"Using dataset cache from {metadata_cache_file}.")
                 self.sample_identifiers = dataset_cache[root]
         else:
+            if load_metadata_from_cache and not os.path.exists(metadata_cache_file):
+                warnings.warn(
+                    f"Couldn't find dataset cache at {metadata_cache_file}. Loading dataset from scratch."
+                )
             files = sorted(list(Path(root).iterdir()))
             for fname in files:
                 with h5py.File(fname, "r") as hf:
@@ -223,7 +223,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
-            kspace = hf["kspace"][dataslice]
+            kspace = torch.from_numpy(hf["kspace"][dataslice])
             if not self.test:
                 target = hf[self.recons_key][dataslice]
 

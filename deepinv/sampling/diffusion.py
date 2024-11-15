@@ -100,8 +100,8 @@ class DDRM(nn.Module):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> dinv.utils.cal_psnr(xhat, x) > dinv.utils.cal_psnr(y, x) # Should be closer to the original
-        True
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
+        tensor([True])
 
     """
 
@@ -264,11 +264,11 @@ class DiffPIR(nn.Module):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = DiffPIR(
         ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.L2()
+        ...   data_fidelity=dinv.optim.data_fidelity.L2()
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> dinv.utils.cal_psnr(xhat, x) > dinv.utils.cal_psnr(y, x) # Should be closer to the original
-        True
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
+        tensor([True])
         
     """
 
@@ -929,7 +929,7 @@ class BlindDPS(nn.Module):
 #     import deepinv as dinv
 #     from deepinv.models.denoiser import Denoiser
 #     import torchvision
-#     from deepinv.utils.metric import cal_psnr
+#     from deepinv.loss.metric import PSNR
 #
 #     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #
@@ -969,8 +969,8 @@ class BlindDPS(nn.Module):
 #         [physics.A_adjoint(y), x, xhat], titles=["meas.", "ground-truth", "xhat"]
 #     )
 #
-#     print(f"PSNR 1 sample: {cal_psnr(x, xhat):.2f} dB")
-#     # print(f'mean PSNR sample: {cal_psnr(x, denoiser(y, sigma_noise)):.2f} dB')
+#     print(f"PSNR 1 sample: {PSNR()(x, xhat):.2f} dB")
+#     # print(f'mean PSNR sample: {PSNR()(x, denoiser(y, sigma_noise)):.2f} dB')
 #
 #     # sampler = dinv.sampling.DiffusionSampler(f, max_iter=10, save_chain=True, verbose=True)
 #     # xmean, xvar = sampler(y, physics)
@@ -997,5 +997,5 @@ class BlindDPS(nn.Module):
 #     #    [physics.A_adjoint(y), x, xmean, xstdn_plot, error_plot], titles=["meas.", "ground-truth", "mean", "std", "error"]
 #     # )
 #
-#     # print(f'PSNR 1 sample: {cal_psnr(x, chain[0]):.2f} dB')
-#     # print(f'mean PSNR sample: {cal_psnr(x, xmean):.2f} dB')
+#     # print(f'PSNR 1 sample: {PSNR()(x, chain[0]):.2f} dB')
+#     # print(f'mean PSNR sample: {PSNR()(x, xmean):.2f} dB')

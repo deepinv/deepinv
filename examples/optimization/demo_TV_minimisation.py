@@ -91,12 +91,12 @@ y = physics(x)
 prior = dinv.optim.prior.TVPrior(n_it_max=2000)
 
 # Compute the total variation prior cost
-cost_tv = prior(y)
+cost_tv = prior(y).item()
 print(f"Cost TV: g(y) = {cost_tv:.2f}")
 
 # Apply the proximal operator of the TV prior
 x_tv = prior.prox(y, gamma=0.1)
-cost_tv_prox = prior(x_tv)
+cost_tv_prox = prior(x_tv).item()
 
 # %%
 # .. note::
@@ -176,8 +176,8 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]

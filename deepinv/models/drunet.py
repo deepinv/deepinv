@@ -13,7 +13,7 @@ class DRUNet(nn.Module):
     DRUNet denoiser network.
 
     The network architecture is based on the paper
-    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
+    `Plug-and-Play Image Restoration with Deep Denoiser Prior <https://arxiv.org/abs/2008.13751>`_,
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -190,14 +190,14 @@ class DRUNet(nn.Module):
                 * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
-        if self.training or (
+        if (
             x.size(2) % 8 == 0
             and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 or x.size(3) < 32:
+        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)

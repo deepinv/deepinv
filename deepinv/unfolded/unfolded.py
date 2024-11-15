@@ -83,9 +83,31 @@ class BaseUnfold(BaseOptim):
                 )
         self.init_params_algo = nn.ParameterDict(self.init_params_algo)
         self.params_algo = self.init_params_algo.copy()
-        # The prior (list of instances of :class:`deepinv.optim.Prior`) is converted to a `nn.ModuleList` to be trainable.
-        self.prior = nn.ModuleList(self.prior)
-        self.data_fidelity = nn.ModuleList(self.data_fidelity)
+        # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
+        self.prior = nn.ModuleList(self.prior) if self.prior else None
+        self.data_fidelity = (
+            nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+        )
+
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
+        r"""
+        Runs the fixed-point iteration algorithm. This is the same forward as in the parent BaseOptim class, but without the ``torch.no_grad()`` context manager.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
+        :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
+        :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
+                Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
+        """
+        X, metrics = self.fixed_point(
+            y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
+        )
+        x = self.get_output(X)
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def unfolded_builder(
@@ -98,6 +120,7 @@ def unfolded_builder(
     device=torch.device("cpu"),
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
@@ -127,6 +150,7 @@ def unfolded_builder(
     :param callable F_fn: Custom user input cost function. default: None.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseOptim` class.
     :return: an unfolded architecture (instance of :meth:`BaseUnfold`).
 
@@ -142,7 +166,7 @@ def unfolded_builder(
         >>> # Create a trainable unfolded architecture
         >>> model = dinv.unfolded.unfolded_builder(
         ...     iteration="PGD",
-        ...     data_fidelity=dinv.optim.L2(),
+        ...     data_fidelity=dinv.optim.data_fidelity.L2(),
         ...     prior=dinv.optim.PnP(dinv.models.DnCNN(in_channels=1, out_channels=1)),
         ...     params_algo={"stepsize": 1.0, "g_param": 1.0},
         ...     trainable_params=["stepsize", "g_param"]
@@ -155,7 +179,13 @@ def unfolded_builder(
 
 
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseUnfold(
         iterator,
         max_iter=max_iter,

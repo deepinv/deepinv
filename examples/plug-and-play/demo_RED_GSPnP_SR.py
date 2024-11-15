@@ -128,7 +128,7 @@ class GSPnP(RED):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, *args, **kwargs):
+    def forward(self, x, *args, **kwargs):
         r"""
         Computes the prior :math:`g(x)`.
 
@@ -181,14 +181,14 @@ plot_images = True  # plot images. Images are saved in save_folder.
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
-with torch.no_grad():
-    test(
-        model=model,
-        test_dataloader=dataloader,
-        physics=p,
-        device=device,
-        plot_images=plot_images,
-        save_folder=RESULTS_DIR / method / operation / dataset_name,
-        plot_convergence_metrics=plot_convergence_metrics,
-        verbose=True,
-    )
+
+test(
+    model=model,
+    test_dataloader=dataloader,
+    physics=p,
+    device=device,
+    plot_images=plot_images,
+    save_folder=RESULTS_DIR / method / operation / dataset_name,
+    plot_convergence_metrics=plot_convergence_metrics,
+    verbose=True,
+)

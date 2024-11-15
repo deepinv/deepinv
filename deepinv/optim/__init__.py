@@ -21,7 +21,18 @@ from .prior import (
     WaveletPrior,
     PatchNR,
     Zero,
+    L12Prior,
 )
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL
 from .dpir import DPIR
+from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
+from .potential import Potential
+from .distance import (
+    L2Distance,
+    IndicatorL2Distance,
+    PoissonLikelihoodDistance,
+    L1Distance,
+    AmplitudeLossDistance,
+    LogPoissonLikelihoodDistance,
+)
