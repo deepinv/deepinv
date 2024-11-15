@@ -11,7 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Added HyperSpectral Unmixing operator (:gh:`**` by `Dongdong Chen`_)
+- Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
