@@ -157,7 +157,7 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 50  # choose some arbitrary timestep
+t = torch.ones(1, device=device) * 200  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
@@ -219,7 +219,8 @@ data_fidelity = L2()
 i = 200  # choose some arbitrary timestep
 t = (torch.ones(1) * i).to(device)
 at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+sigma_cur = (1 - at).sqrt() / at.sqrt()
+xt = x0 + sigma_cur * torch.randn_like(x0)
 
 # DPS
 with torch.enable_grad():
@@ -227,7 +228,7 @@ with torch.enable_grad():
     xt.requires_grad_()
 
     # normalize to [0,1], denoise, and rescale to [-1, 1]
-    x0_t = model(xt / 2 + 0.5, (1 - at).sqrt() / at.sqrt() / 2) * 2 - 1
+    x0_t = model(xt / 2 + 0.5, sigma_cur / 2) * 2 - 1
     # Log-likelihood
     ll = data_fidelity(x0_t, y, physics).sqrt().sum()
     # Take gradient w.r.t. xt
@@ -289,6 +290,7 @@ time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 
 # measurement
 x0 = x_true * 2.0 - 1.0
+# x0 = x_true.clone()
 y = physics(x0.to(device))
 
 # initial sample from x_T
@@ -310,9 +312,10 @@ for i, j in tqdm(time_pairs):
         xt.requires_grad_()
 
         # 1. denoising step
-        # we call the denoiser using standard deviation instead of the time step.
-        aux_x = xt / 2 + 0.5
-        x0_t = 2 * model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+        aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+        sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
+
+        x0_t = 2 * model(aux_x, sigma_cur / 2) - 1
         x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
         # 2. likelihood gradient approximation
@@ -334,7 +337,6 @@ for i, j in tqdm(time_pairs):
         + c2 * xt / (1 - at).sqrt()
         - norm_grad
     )
-
     x0_preds.append(x0_t.to("cpu"))
     xs.append(xt_next.to("cpu"))
 

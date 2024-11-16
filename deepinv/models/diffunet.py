@@ -32,6 +32,13 @@ class DiffUNet(nn.Module):
         * ``forward_diffuse``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
         * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.
 
+    .. warning::
+
+        This model has 2 forward modes:
+
+        * ``forward_diffuse``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
+        * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.
+
 
     :param int in_channels: channels in the input Tensor.
     :param int out_channels: channels in the output Tensor.
@@ -385,6 +392,8 @@ class DiffUNet(nn.Module):
             sqrt_recipm1_alphas_cumprod,
             sqrt_1m_alphas_cumprod,
             sqrt_alphas_cumprod,
+            sqrt_1m_alphas_cumprod,
+            sqrt_alphas_cumprod,
         )
 
     def find_nearest(self, array, value):
@@ -400,11 +409,17 @@ class DiffUNet(nn.Module):
     def forward_denoise(self, x, sigma, y=None):
         r"""
         Applies the denoising model to an input batch.
+        Applies the denoising model to an input batch.
 
         This function takes a noisy image and a noise level as input (and not a timestep) and estimates the noiseless
         underlying image in the input image.
         The input image is assumed to be in range [0, 1] (up to noise) and to have dimensions with width and height
         divisible by a power of 2.
+
+        .. note::
+            The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) n`
+            thus an additional rescaling by :math:`\sqrt{\alpha_t}` is performed within this function, along with
+            a mean shift by correction by :math:`0.5 - \sqrt{\alpha_t} 0.5`.
 
         .. note::
             The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) n`
@@ -424,6 +439,12 @@ class DiffUNet(nn.Module):
         x += 0.5 - alpha.sqrt() * 0.5
         sigma = sigma * alpha.sqrt()
         x = 2.0 * x - 1.0
+        if sigma is not torch.tensor:
+            sigma = torch.tensor(sigma).to(x.device)
+
+        alpha = 1 / (1 + 4 * sigma**2)
+        x = alpha.sqrt() * (2 * x - 1)
+        sigma = sigma * alpha.sqrt()
         (
             reduced_alpha_cumprod,
             sqrt_recip_alphas_cumprod,
@@ -447,6 +468,8 @@ class DiffUNet(nn.Module):
         noise_est = noise_est_sample_var[:, :3, ...]
         denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps].sqrt()
         denoised = denoised.clamp(-1, 1)
+
+        return (denoised + 1) / 2
 
         return (denoised + 1) / 2
 
