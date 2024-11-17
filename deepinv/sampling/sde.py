@@ -76,6 +76,8 @@ class BaseSDE(nn.Module):
             dtype = self.dtype
         if device is None:
             device = self.device
+        if torch.device(device) != self.rng.device:
+            self.rng = torch.Generator(device).set_state(self.initial_random_state)
 
         def apply_fn(module):
             module.to(device=device, dtype=dtype)
@@ -313,7 +315,11 @@ if __name__ == "__main__":
 
     # EDM generation
     sde = EDMSDE(name="ve", prior=prior, use_backward_ode=False)
-    x = sde(shape=(1, 3, 64, 64), max_iter=100, method="heun")
+    sde.to("cpu")
+    x_cpu = sde(shape=(1, 3, 64, 64), max_iter=10, method="heun")
+    sde.to("cuda")
+    x = sde(shape=(1, 3, 64, 64), max_iter=10, method="heun")
+    dinv.utils.plot([x_cpu, x], titles=["cpu", "cuda"])
 
     # Posterior EDM generation
     physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
