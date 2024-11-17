@@ -54,6 +54,15 @@ class DataFidelity(Potential):
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
 
+    def grad_d(self, x, y, *args, **kwargs):
+        return self.d.grad(x, y, *args, **kwargs)
+
+    def prox_d(self, x, y, *args, **kwargs):
+        return self.d.prox(x, y, *args, **kwargs)
+
+    def prox_d_conjugate(self, x, y, *args, **kwargs):
+        return self.d.prox_conjugate(x, y, *args, **kwargs)
+
 
 class L2(DataFidelity):
     r"""
