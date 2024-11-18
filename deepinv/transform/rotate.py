@@ -78,7 +78,7 @@ class Rotate(Transform):
         elif self.padding == "zeros":
             crop_offsets = None
         else:
-            raise ValueError(f"Unknown padding mode: {padding}")
+            raise ValueError(f"Unknown padding mode: {self.padding}")
 
         x = torch.cat(
             [
@@ -96,6 +96,6 @@ class Rotate(Transform):
             h1, h2, w1, w2 = crop_offsets
             x = x[..., h1:h2, w1:w2]
         elif self.padding is not None:
-            raise ValueError(f"Unknown padding mode: {padding}")
+            raise ValueError(f"Unknown padding mode: {self.padding}")
 
         return x
