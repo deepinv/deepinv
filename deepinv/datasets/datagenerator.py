@@ -246,7 +246,9 @@ def generate_dataset(
             if save_physics_generator_params:
                 for k, p in params0.items():
                     hf.create_dataset(
-                        f"{k}_train", (n_train_g,) + p.shape[1:], dtype=p.cpu().numpy().dtype
+                        f"{k}_train",
+                        (n_train_g,) + p.shape[1:],
+                        dtype=p.cpu().numpy().dtype,
                     )
 
             index = 0
@@ -335,17 +337,17 @@ def generate_dataset(
 
                 if i == 0:  # create dict
                     hf.create_dataset(
-                        "x_test", (n_test_g,) + x.shape[1:], dtype=x.numpy().dtype
+                        "x_test", (n_test_g,) + x.shape[1:], dtype=x.cpu().numpy().dtype
                     )
                     hf.create_dataset(
-                        "y_test", (n_test_g,) + y.shape[1:], dtype=y.numpy().dtype
+                        "y_test", (n_test_g,) + y.shape[1:], dtype=y.cpu().numpy().dtype
                     )
                     if save_physics_generator_params:
                         for k, p in params.items():
                             hf.create_dataset(
                                 f"{k}_test",
                                 (n_test_g,) + p.shape[1:],
-                                dtype=p.numpy().dtype,
+                                dtype=p.cpu().numpy().dtype,
                             )
 
                 hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
