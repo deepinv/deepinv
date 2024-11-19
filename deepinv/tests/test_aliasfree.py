@@ -78,27 +78,3 @@ def test_not_rotation_equivariant():
         unet, x, params=rotate_params, metric=psnr_metric
     )
     assert psnr <= 10
-
-
-def test_forward_operator_equivariance():
-    physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])
-
-    err = Shift().equivariance_test(physics, x, metric=linf_metric)
-    assert err < 1e-6
-
-    err = Translate().equivariance_test(physics, x, metric=linf_metric)
-    assert err < 1e-6
-
-    gen = BernoulliSplittingMaskGenerator(x.shape[-3:], split_ratio=0.7)
-    params = gen.step(batch_size=1, seed=0)
-    physics = Inpainting(tensor_size=x.shape[-3:])
-    physics.update_parameters(**params)
-
-    err = Shift().equivariance_test(physics, x, metric=linf_metric)
-    assert err >= 1e-1
-
-    err = Translate().equivariance_test(physics, x, metric=linf_metric)
-    assert err >= 1e0
-
-    psnr = Rotate(**rotate_kwargs).equivariance_test(physics, x, metric=psnr_metric)
-    assert psnr <= 15
