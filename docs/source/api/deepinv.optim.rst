@@ -70,6 +70,21 @@ Predefined models
    deepinv.optim.EPLL
 
 
+Bregman
+-------
+.. userguide:: bregman
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.bregman.Bregman
+   deepinv.optim.bregman.BregmanL2
+   deepinv.optim.bregman.BurgEntropy
+   deepinv.optim.bregman.NegEntropy
+   deepinv.optim.bregman.Bregman_ICNN
+
 Iterators
 ---------
 .. userguide:: optim-iterators

@@ -49,12 +49,14 @@ Operators
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
    deepinv.physics.CompressedSensing
+   deepinv.physics.StructuredRandom
    deepinv.physics.SinglePixelCamera
    deepinv.physics.RadioInterferometry
    deepinv.physics.SinglePhotonLidar
    deepinv.physics.Haze
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.StructuredRandomPhaseRetrieval
 
 
 .. autosummary::

@@ -18,7 +18,11 @@ operating on complex numbers, normalisation and reduction. See :class:`deepinv.l
 .. note::
 
     By default, metrics do not reduce over the batch dimension, as the usual usage is to average the metrics over a dataset yourself.
-    However, you can use the ``reduction`` argument to perform reduction, e.g. if the metric is to be used as a training loss.
+    This discourages averaging over metrics which might in turn have averaged over uneven batch sizes.
+    Note we provide :class:`deepinv.utils.AverageMeter` to easily keep track of the average of metrics.
+    For example, we use this in our trainer :class:`deepinv.training.Trainer`.
+
+    However, you can use the ``reduction`` argument to perform reduction, e.g. if you want a single metric calculation rather than over a dataset.
 
 All metrics can either be used directly as metrics, or as the backbone for training losses.
 To do this, wrap the metric in a suitable loss such as :class:`deepinv.loss.SupLoss` or :class:`deepinv.loss.MCLoss`.

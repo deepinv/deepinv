@@ -48,7 +48,7 @@ description of their reconstruction performance and speed.
      - +
      - -
      - No
-   * - :ref:`Unrolled Networks <unrolled>`
+   * - :ref:`Unfolded Networks <unfolded>`
      - Constructs a trainable architecture by unrolling a PnP algorithm.
      - Yes
      - ++

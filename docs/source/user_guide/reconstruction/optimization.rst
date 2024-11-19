@@ -185,21 +185,26 @@ computing the proximity operator is overwritten by a method performing denoising
 Bregman
 ------
 This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
-where :math:`\phi` is a convex scalar function.
+where :math:`\phi` is a convex scalar function. All Bregman potentials inherit from
 
 This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
 operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient :math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^T y`.
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
 
-   deepinv.optim.bregman.Bregman
-   deepinv.optim.bregman.BregmanL2
-   deepinv.optim.bregman.BurgEntropy
-   deepinv.optim.bregman.NegEntropy
-   deepinv.optim.bregman.Bregman_ICNN
+.. list-table:: Priors Overview
+   :widths: 25 20 15
+   :header-rows: 1
+
+    * - Class
+      - Bregman Potential :math:`\phi(x)`
+    * - :class:`deepinv.optim.bregman.BregmanL2`
+      - :math:`\|x\|_2^2`
+    * - :class:`deepinv.optim.bregman.BurgEntropy`
+      - :math:`\sum_i x_i \log(x_i)`
+    * - :class:`deepinv.optim.bregman.NegEntropy`
+      - :math:`-\sum_i x_i \log(x_i)`
+    * - :class:`deepinv.optim.bregman.Bregman_ICNN`
+      - :math:`\sum_i x_i \log(x_i) - x_i`
 
 
 .. _optim-params:

@@ -55,6 +55,7 @@ Operators describe the forward model :math:`z = A(x,\theta)`.
 
    * - Compressive
      - | :class:`deepinv.physics.CompressedSensing`
+       | :class:`deepinv.physics.StructuredRandom`
        | :class:`deepinv.physics.SinglePixelCamera`
      -
 
@@ -73,6 +74,7 @@ Operators describe the forward model :math:`z = A(x,\theta)`.
    * - Phase Retrieval
      - | :class:`deepinv.physics.PhaseRetrieval`
        | :class:`deepinv.physics.RandomPhaseRetrieval`
+       | :class:`deepinv.physics.StructuredRandomPhaseRetrieval`
      -
 
 
