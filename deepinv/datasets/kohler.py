@@ -227,19 +227,26 @@ class Kohler(Dataset):
 
         if frames == "all" or isinstance(frames, list):
             if frames == "all":
-                frames = range(1, self.get_frame_count(printout_index, trajectory_index) + 1)
+                frames = range(
+                    1, self.get_frame_count(printout_index, trajectory_index) + 1
+                )
             sharp_frames = [
                 self.get_sharp_frame(printout_index, trajectory_index, frame_index)
                 for frame_index in frames
             ]
             return sharp_frames, blurry_shot
         else:
-            frame_index = self.select_frame(printout_index, trajectory_index, frame=frames)
-            sharp_frame = self.get_sharp_frame(printout_index, trajectory_index,
-                                                frame_index)
+            frame_index = self.select_frame(
+                printout_index, trajectory_index, frame=frames
+            )
+            sharp_frame = self.get_sharp_frame(
+                printout_index, trajectory_index, frame_index
+            )
             return sharp_frame, blurry_shot
 
-    def get_sharp_frame(printout_index: int, trajectory_index: int, frame_index: int) -> Union[torch.Tensor, Image.Image, any]:
+    def get_sharp_frame(
+        printout_index: int, trajectory_index: int, frame_index: int
+    ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(
             self.root,
             f"Image{printout_index}",
@@ -251,7 +258,9 @@ class Kohler(Dataset):
             sharp_frame = self.transform(sharp_frame)
         return sharp_frame
 
-    def get_blurry_shot(printout_index: int, trajectory_index: int) -> Union[torch.Tensor, Image.Image, any]:
+    def get_blurry_shot(
+        printout_index: int, trajectory_index: int
+    ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)
         if self.transform is not None:
