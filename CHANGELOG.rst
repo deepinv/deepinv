@@ -24,6 +24,8 @@ New Features
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
 - generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+- Add a denoiser architecture supporting translation and rotation-equivariance (:gh:`330` by `Jérémy Scanvic`_)
+- Add continuous translations with sinc interpolation (:gh:`330` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -31,9 +33,9 @@ Fixed
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
-- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
-- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
-- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_) 
+- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
+- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
+- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -121,7 +123,7 @@ New Features
 - Added Restormer model (:gh:`185` by Antoine Regnier and Maxime SONG) - 18/04/2024
 - Added DIV2K built-in dataset (:gh:`203` by Maxime SONG) - 03/05/2024
 - Added Urban100 built-in dataset (:gh:`237` by Maxime SONG) - 07/06/2024
-- Added Set14 / CBSD68 / fastMRI buit-in datasets (:gh:`248` :gh:`249` :gh:`229` by Maxime SONG) - 25/06/2024 
+- Added Set14 / CBSD68 / fastMRI buit-in datasets (:gh:`248` :gh:`249` :gh:`229` by Maxime SONG) - 25/06/2024
 
 Fixed
 ^^^^^
