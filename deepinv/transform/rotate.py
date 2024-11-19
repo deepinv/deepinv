@@ -26,7 +26,7 @@ class Rotate(Transform):
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
     :param InterpolationMode interpolation_mode: interpolation mode for rotation, defaults to ``InterpolationMode.NEAREST``
-    :param str padding: padding mode for rotation, defaults to ``None``
+    :param str padding: padding mode for rotation, choose from ``zeros`` (default) or ``circular``
     """
 
     def __init__(
