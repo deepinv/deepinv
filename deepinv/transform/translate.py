@@ -24,7 +24,7 @@ class Translate(Transform):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _get_params(self, x):
+    def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate translation parameters.
 
         :param torch.Tensor x: input image
@@ -32,19 +32,25 @@ class Translate(Transform):
         """
         N = x.shape[0] * self.n_trans
         H, W = x.shape[-2:]
-        displacement_h = torch.rand((N,), device=x.device, generator=self.rng) * H
-        displacement_w = torch.rand((N,), device=x.device, generator=self.rng) * W
-        return {"displacement": (displacement_h, displacement_w)}
+        displacement_h = H * torch.rand((N,), device=x.device, generator=self.rng)
+        displacement_w = W * torch.rand((N,), device=x.device, generator=self.rng)
+        return {"delta_h": displacement_h, "delta_w": displacement_w}
 
-    def _transform(self, x, displacement, **kwargs):
+    def _transform(
+        self,
+        x: torch.Tensor,
+        delta_h: torch.Tensor,
+        delta_w: torch.Tensor,
+        **kwargs,
+    ) -> torch.Tensor:
         """Translate image given translation parameters.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param torch.Tensor, tuple displacement: translation displacement
+        :param torch.Tensor delta_h: vertical displacement
+        :param torch.Tensor delta_w: horizontal displacement
         :return: torch.Tensor: transformed image.
         """
         H, W = x.shape[-2:]
-        delta_h, delta_w = displacement
         s = x.shape[-2:]
         x = torch.fft.rfft2(x)
         h_freqs, w_freqs = torch.meshgrid(
