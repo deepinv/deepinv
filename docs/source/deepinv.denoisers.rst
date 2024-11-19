@@ -72,9 +72,9 @@ The denoising can either be averaged over the entire group of transformation (ma
 transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo estimator of the exact
 equivariant denoiser.
 
-The library also features :class:`deepinv.models.AliasFreeDenoiser`, an
-efficient translation-equivariant denoiser using blocks introduced by Karras et al.
-(2021) and Michaeli et al. (2023).
+The library also features :class:`deepinv.models.AliasFreeUNet`, an
+efficient translation-equivariant UNet using blocks introduced by `Karras et al. (2021) <https://doi.org/10.48550/arXiv.2106.12423>`_
+and `Michaeli et al. (2023) <https://doi.org/10.48550/arXiv.2303.08085>`_.
 
 .. autosummary::
    :toctree: stubs
