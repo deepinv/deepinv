@@ -25,6 +25,11 @@ class Translate(Transform):
         super().__init__(*args, **kwargs)
 
     def _get_params(self, x):
+        """Randomly generate translation parameters.
+
+        :param torch.Tensor x: input image
+        :return dict: keyword args of translation parameters
+        """
         N = x.shape[0] * self.n_trans
         H, W = x.shape[-2:]
         displacement_h = torch.rand((N,), device=x.device, generator=self.rng) * H
@@ -32,6 +37,12 @@ class Translate(Transform):
         return {"displacement": (displacement_h, displacement_w)}
 
     def _transform(self, x, displacement, **kwargs):
+        """Translate image given translation parameters.
+
+        :param torch.Tensor x: input image of shape (B,C,H,W)
+        :param torch.Tensor, tuple displacement: translation displacement
+        :return: torch.Tensor: transformed image.
+        """
         H, W = x.shape[-2:]
         delta_h, delta_w = displacement
         s = x.shape[-2:]
