@@ -19,13 +19,10 @@ class Translate(Transform):
     For efficient whole pixel translations, see :class:`deepinv.transform.Shift`.
 
     See :class:`deepinv.transform.Transform` for further details and examples.
-
-    :param int n_trans: number of transformed versions generated per input image.
-    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
-    :param bool constant_shape: ignored, kept for compatibility with other transforms, defaults to True
-    :param bool flatten_video_input: ignored, kept for compatibility with other transforms, defaults to True
-
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def _get_params(self, x):
         N = x.shape[0] * self.n_trans
