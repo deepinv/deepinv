@@ -59,7 +59,7 @@ test_dataloader = DataLoader(
     dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
 )
 
-model = dinv.models.AliasFreeDenoiser(
+model = dinv.models.AliasFreeUNet(
     in_channels=3,
     out_channels=3,
     scales=2,

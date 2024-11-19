@@ -1,4 +1,4 @@
-from deepinv.models import AliasFreeDenoiser, UNet
+from deepinv.models import AliasFreeUNet, UNet
 from deepinv.transform import Translate, Shift, Rotate
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.physics import BlurFFT, Inpainting
@@ -14,9 +14,9 @@ from torchvision.transforms import InterpolationMode
 torch.manual_seed(0)
 
 # a translation-equivariant model
-afc = AliasFreeDenoiser(in_channels=3, out_channels=3)
+afc = AliasFreeUNet(in_channels=3, out_channels=3)
 # a translation- and rotation-equivariant model
-afc_rotation_equivariant = AliasFreeDenoiser(
+afc_rotation_equivariant = AliasFreeUNet(
     in_channels=3, out_channels=3, rotation_equivariant=True
 )
 # a model neither translation-equivariant nor shift-equivariant

@@ -576,7 +576,7 @@ def get_pad_layer(pad_type):
     return PadLayer
 
 
-class AliasFreeDenoiser(nn.Module):
+class AliasFreeUNet(nn.Module):
     r"""
     An efficient translation-equivariant UNet denoiser
 
