@@ -174,9 +174,9 @@ class Trainer:
     optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
-    losses: Union[Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]] = (
-        SupLoss()
-    )
+    losses: Union[
+        Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]
+    ] = SupLoss()
     eval_dataloader: torch.utils.data.DataLoader = None
     scheduler: torch.optim.lr_scheduler = None
     metrics: Union[Metric, List[Metric]] = PSNR()
@@ -589,9 +589,9 @@ class Trainer:
                     x_lin = self.no_learning_inference(y, physics)
                     metric = l(x=x, x_net=x_lin, y=y, physics=physics, model=self.model)
                     self.logs_metrics_linear[k].update(metric.detach().cpu().numpy())
-                    logs[f"{l.__class__.__name__} no learning"] = (
-                        self.logs_metrics_linear[k].avg
-                    )
+                    logs[
+                        f"{l.__class__.__name__} no learning"
+                    ] = self.logs_metrics_linear[k].avg
         return logs
 
     def no_learning_inference(self, y, physics):

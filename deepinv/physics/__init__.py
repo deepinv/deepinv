@@ -27,6 +27,8 @@ from .remote_sensing import Pansharpen
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
+    PtychographyLinearOperator,
+    Ptychography,
 )
 from .radio import RadioInterferometry
 from .time import TimeMixin
