@@ -183,7 +183,7 @@ computing the proximity operator is overwritten by a method performing denoising
 .. _bregman:
 
 Bregman
-------
+-------
 This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
 where :math:`\phi` is a convex scalar function. All Bregman potentials inherit from
 
@@ -192,7 +192,7 @@ operators useful for Bregman optimization algorithms such as Mirror Descent: the
 
 
 .. list-table:: Priors Overview
-   :widths: 25 20 15
+   :widths: 35 20
    :header-rows: 1
 
     * - Class

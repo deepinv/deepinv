@@ -27,9 +27,11 @@ from .remote_sensing import Pansharpen
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
+    StructuredRandomPhaseRetrieval,
 )
 from .radio import RadioInterferometry
 from .time import TimeMixin
+from .structured_random import StructuredRandom
 
 from . import generator
 from . import functional

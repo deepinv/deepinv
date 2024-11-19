@@ -32,7 +32,7 @@ We provide the following list of deep denoising architectures,
 which are based on CNN, Transformer or hybrid CNN-Transformer modules.
 
 .. list-table:: Deep denoisers
-   :widths: 15 25 15 15
+   :widths: 15 25 15 15 10
    :header-rows: 1
 
    * - Model
@@ -100,13 +100,12 @@ All denoisers in this list are non-learned (except for EPLL)
 and rely on hand-crafted priors.
 
 .. list-table:: Non-Learned Denoisers Overview
-   :widths: 20 20 20 15
+   :widths: 30 30 30
    :header-rows: 1
 
    * - Model
      - Info
      - Tensor Size (C, H, W)
-     - Channels
    * - :class:`deepinv.models.BM3D`
      - Patch-based denoiser
      - C=1 or C=3, any H, W.
