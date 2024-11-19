@@ -397,6 +397,7 @@ def scatter_plot(
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
+
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
