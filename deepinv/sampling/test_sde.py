@@ -8,18 +8,49 @@ from deepinv.utils.demo import load_url_image, get_image_url
 from edm import load_model
 import numpy as np
 from utils import get_edm_parameters
+from deepinv.models.edm import EDMPrecond, SongUNet
 
 # %%
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+unet = SongUNet(
+    img_resolution=64,
+    in_channels=3,
+    out_channels=3,
+    augment_dim=9,
+    model_channels=128,
+    channel_mult=[1, 2, 2, 2],
+    channel_mult_noise=2,
+    embedding_type="fourier",
+    encoder_type="residual",
+    decoder_type="standard",
+    resample_filter=[1, 3, 3, 1],
+)
+unet.load_state_dict(
+    torch.load(
+        "/home/minhhai/Works/dev/deepinv_folk/weights/edm/edm-ffhq-64x64-uncond-ve.pt"
+    ),
+    strict=True,
+)
+print(unet)
+print(sum(p.numel() for p in unet.parameters()))
+for p in unet.parameters():
+    p.requires_grad_(False)
+# %%
+# model = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+# print(model.edm_model.model)
+model = EDMPrecond(model=unet, 
+                   sigma_min=0.002,
+                   sigma_max=80,
+                   sigma_data=0.5).to(device)
 
-model = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+# %%
 denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
 prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 
-x_noisy = x + torch.randn_like(x) * 0.75
-dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 0.75)])
+x_noisy = x + torch.randn_like(x) * 7.5
+dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 7.5)])
 
 
 # %%

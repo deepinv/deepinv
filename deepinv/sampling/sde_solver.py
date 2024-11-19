@@ -7,6 +7,19 @@ from numpy import ndarray
 
 
 class BaseSDESolver(nn.Module):
+    r"""
+    Base class for solving Stochastic Differential Equations (SDEs) from :class:`deepinv.sampling.BaseSDE` of the form:
+
+    ..math:
+
+        d\, x_t = f(x_t, t) d\,t  + g(t) d\,w_t
+
+    where :math:`f` is the drift term, :math:`g` is the diffusion coefficient, and :math:`w_t` is a standard Brownian process.
+
+    :param deepinv.sampling.BaseSDE sde: the SDE to solve.
+    :param torch.Generator rng: a random number generator for reproducibility, optional.
+    """
+
     def __init__(
         self,
         sde,
@@ -22,12 +35,19 @@ class BaseSDESolver(nn.Module):
 
     def step(self, t0, t1, x0: Tensor, *args, **kwargs) -> Tensor:
         r"""
-        Defaults to Euler step
+        Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
+
+        Args:
+            t0: float or Tensor of size (,).
+            t1: float or Tensor of size (,).
+            y0: Tensor of size (batch_size, d).
+            extra0: Any extra state for the solver.
+
+        Returns:
+            y1, where y1 is a Tensor of size (batch_size, d).
+            extra1: Modified extra state for the solver.
         """
-        drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
-        dt = t1 - t0
-        dW = self.randn_like(x0) * abs(dt) ** 0.5
-        return x0 + drift * dt + diffusion * dW
+        raise NotImplementedError
 
     @torch.no_grad()
     def sample(
