@@ -130,6 +130,7 @@ class Trainer:
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+        Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
     :param None, torch.optim.lr_scheduler scheduler: Torch scheduler for changing the learning rate across iterations.
@@ -141,7 +142,8 @@ class Trainer:
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
-        :ref:`See the libraries' evaluation metrics <loss>`.
+        They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
+        :ref:`See the libraries' evaluation metrics <metric>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs.
     :param int eval_interval: Number of epochs between each evaluation of the model on the evaluation set.

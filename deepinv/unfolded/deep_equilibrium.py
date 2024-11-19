@@ -25,7 +25,9 @@ class BaseDEQ(BaseUnfold):
 
     See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
 
-    For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    .. note::
+
+        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -51,7 +53,7 @@ class BaseDEQ(BaseUnfold):
         self.beta_anderson_acc = beta_anderson_acc_backward
         self.eps_anderson_acc = eps_anderson_acc_backward
 
-    def forward(self, y, physics, x_gt=None, compute_metrics=False):
+    def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         The forward pass of the DEQ algorithm. Compared to :class:`deepinv.unfolded.BaseUnfold`, the backward algorithm is performed using fixed point iterations.
 
@@ -64,19 +66,33 @@ class BaseDEQ(BaseUnfold):
         """
         with torch.no_grad():  # Perform the forward pass without gradient tracking
             X, metrics = self.fixed_point(
-                y, physics, x_gt=x_gt, compute_metrics=compute_metrics
+                y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
-        cur_data_fidelity = self.update_data_fidelity_fn(self.max_iter - 1)
-        cur_prior = self.update_prior_fn(self.max_iter - 1)
-        cur_params = self.update_params_fn(self.max_iter - 1)
+        cur_data_fidelity = (
+            self.update_data_fidelity_fn(self.max_iter - 1)
+            if self.update_data_fidelity_fn
+            else None
+        )
+        cur_prior = (
+            self.update_prior_fn(self.max_iter - 1) if self.update_prior_fn else None
+        )
+        cur_params = (
+            self.update_params_fn(self.max_iter - 1) if self.update_params_fn else None
+        )
         x = self.fixed_point.iterator(
-            X, cur_data_fidelity, cur_prior, cur_params, y, physics
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
         # Another iteration for jacobian computation via automatic differentiation.
         x0 = x.clone().detach().requires_grad_()
         f0 = self.fixed_point.iterator(
-            {"est": (x0,)}, cur_data_fidelity, cur_prior, cur_params, y, physics
+            {"est": (x0,)},
+            cur_data_fidelity,
+            cur_prior,
+            cur_params,
+            y,
+            physics,
+            **kwargs,
         )["est"][0]
 
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
@@ -128,10 +144,15 @@ def DEQ_builder(
     prior=None,
     F_fn=None,
     g_first=False,
+    bregman_potential=None,
     **kwargs,
 ):
     r"""
     Helper function for building an instance of the :meth:`BaseDEQ` class.
+
+    .. note::
+
+        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
@@ -144,15 +165,22 @@ def DEQ_builder(
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
                             Either a single instance (same data-fidelity for each iteration) or a list of instances of
-                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: `None`.
+                            :meth:`deepinv.optim.DataFidelity` (distinct data-fidelity for each iteration). Default: ``None``.
     :param list, deepinv.optim.Prior prior: regularization prior.
                             Either a single instance (same prior for each iteration) or a list of instances of
-                            deepinv.optim.Prior (distinct prior for each iteration). Default: `None`.
+                            deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :meth:`BaseUnfold` class.
     """
-    iterator = create_iterator(iteration, prior=prior, F_fn=F_fn, g_first=g_first)
+    iterator = create_iterator(
+        iteration,
+        prior=prior,
+        F_fn=F_fn,
+        g_first=g_first,
+        bregman_potential=bregman_potential,
+    )
     return BaseDEQ(
         iterator,
         has_cost=iterator.has_cost,

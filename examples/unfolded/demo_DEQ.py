@@ -20,7 +20,8 @@ from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
 from deepinv.training import train, test
 from torchvision import transforms
-from deepinv.utils.demo import load_dataset
+from deepinv.utils.demo import load_dataset, load_degradation
+
 
 # %%
 # Setup paths for data loading and results.
@@ -31,6 +32,7 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
+DEG_DIR = BASE_DIR / "degradations"
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -73,13 +75,21 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Degradation parameters
 noise_level_img = 0.03
 
+# Generate a motion blur operator.
+kernel_index = 1  # which kernel to chose among the 8 motion kernels from 'Levin09.mat'
+kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel_index)
+kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
+    0
+)  # add batch and channel dimensions
+
 # Generate the gaussian blur downsampling operator.
 physics = dinv.physics.BlurFFT(
     img_size=(n_channels, img_size, img_size),
-    filter=dinv.physics.blur.gaussian_blur(),
+    filter=kernel_torch,
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
+
 my_dataset_name = "demo_DEQ"
 n_images_max = (
     1000 if torch.cuda.is_available() else 10
@@ -111,23 +121,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Set up the trainable denoising prior
-denoiser = DnCNN(in_channels=3, out_channels=3, depth=7, device=device, pretrained=None)
-
-# Here the prior model is common for all iterations
-prior = PnP(denoiser=denoiser)
+# Set up the trainable denoising prior. Here the prior model is common for all iterations. We use here a pretrained denoiser.
+prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # Unrolled optimization algorithm parameters
 max_iter = 20 if torch.cuda.is_available() else 10
-stepsize = 1.0  # Initial value for the stepsize. A single stepsize is common for each iterations.
-sigma_denoiser = 0.03  # Initial value for the denoiser parameter. A single value is common for each iterations.
-anderson_acceleration_forward = True  # use Anderson acceleration for the forward pass.
-anderson_acceleration_backward = (
-    True  # use Anderson acceleration for the backward pass.
-)
-anderson_history_size = (
-    5 if torch.cuda.is_available() else 3
-)  # history size for Anderson acceleration.
+stepsize = [1.0]  # stepsize of the algorithm
+sigma_denoiser = [0.03]  # noise level parameter of the denoiser
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -140,16 +140,17 @@ trainable_params = [
 
 # Define the unfolded trainable model.
 model = DEQ_builder(
-    iteration="HQS",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+    iteration="PGD",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
-    anderson_acceleration=anderson_acceleration_forward,
-    anderson_acceleration_backward=anderson_acceleration_backward,
-    history_size_backward=anderson_history_size,
-    history_size=anderson_history_size,
+    anderson_acceleration=True,
+    anderson_acceleration_backward=True,
+    history_size_backward=3,
+    history_size=3,
+    max_iter_backward=20,
 )
 
 # %%
@@ -159,10 +160,11 @@ model = DEQ_builder(
 
 
 # training parameters
-epochs = 10
-learning_rate = 5e-4
+epochs = 10 if torch.cuda.is_available() else 2
+learning_rate = 1e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
+
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
@@ -212,3 +214,20 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)

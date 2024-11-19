@@ -177,7 +177,7 @@ iterations = int(1e2) if torch.cuda.is_available() else 10
 g_param = 0.1
 
 # load Gaussian Likelihood
-likelihood = dinv.optim.L2(sigma=sigma)
+likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
 pula = PreconULA(
     prior=prior,

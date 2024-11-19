@@ -45,6 +45,7 @@ OPERATORS = [
     "complex_compressed_sensing",
     "radio",
     "radio_weighted",
+    "structured_random",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -83,7 +84,7 @@ def find_operator(name, device):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, rng=rng
+            m=m, img_shape=img_size, device=device, compute_inverse=True, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -213,12 +214,17 @@ def find_operator(name, device):
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, dtype=torch.cfloat, device=device, rng=rng
+            m=m,
+            img_shape=img_size,
+            dtype=torch.cfloat,
+            device=device,
+            compute_inverse=True,
+            rng=rng,
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
     elif "radio" in name:
-        dtype = torch.complex64
+        dtype = torch.cfloat
         img_size = (1, 64, 64)
         pytest.importorskip(
             "torchkbnufft",
@@ -256,6 +262,11 @@ def find_operator(name, device):
             dtype=torch.float,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
+        )
+    elif name == "structured_random":
+        img_size = (1, 8, 8)
+        p = dinv.physics.StructuredRandom(
+            input_shape=img_size, output_shape=img_size, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -302,7 +313,7 @@ def test_operators_adjointness(name, device):
     physics, imsize, _, dtype = find_operator(name, device)
 
     if name == "radio":
-        dtype = torch.complex64
+        dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
@@ -497,10 +508,18 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
+    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
+        input_shape=(1, 10, 10),
+        output_shape=(1, 10, 10),
+        n_layers=2,
+        device=device,
+    )
     # nonnegativity
     assert (physics(x) >= 0).all()
+    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):

@@ -200,13 +200,34 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-
 trainer.test(test_dataloader)
 
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
+
+
 # %%
-# Plotting the trained parameters.
+# Plotting the weights of the network.
 # ------------------------------------
+#
+# We now plot the weights of the network that were learned and check that they are different from their initialization
+# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
+#
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_drs" / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )
