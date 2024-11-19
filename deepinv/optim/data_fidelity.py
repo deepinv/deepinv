@@ -1,3 +1,13 @@
+from deepinv.optim.distance import (
+    Distance,
+    L2Distance,
+    L1Distance,
+    IndicatorL2Distance,
+    AmplitudeLossDistance,
+    PoissonLikelihoodDistance,
+    LogPoissonLikelihoodDistance,
+)
+from deepinv.optim.potential import Potential
 import torch
 
 
@@ -164,46 +174,6 @@ class IndicatorL2(DataFidelity):
         super().__init__()
         self.d = IndicatorL2Distance(radius=radius)
         self.radius = radius
-
-    def d(self, u, y, radius=None):
-        r"""
-        Computes the batched indicator of :math:`\ell_2` ball with radius `radius`, i.e. :math:`\iota_{\mathcal{B}(y,r)}(u)`.
-
-        :param torch.Tensor u: Variable :math:`u` at which the indicator is computed. :math:`u` is assumed to be of shape (B, ...) where B is the batch size.
-        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
-        :return: (torch.Tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
-        """
-        diff = u - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
-        radius = self.radius if radius is None else radius
-        loss = (dist > radius) * 1e16
-        return loss
-
-    def prox_d(self, x, y, radius=None, gamma=None):
-        r"""
-        Proximal operator of the indicator of :math:`\ell_2` ball with radius `radius`, i.e.
-
-        .. math::
-
-            \operatorname{prox}_{\iota_{\mathcal{B}_2(y,r)}}(x) = \operatorname{proj}_{\mathcal{B}_2(y, r)}(x)
-
-
-        where :math:`\operatorname{proj}_{C}(x)` denotes the projection on the closed convex set :math:`C`.
-
-
-        :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`x`.
-        :param float gamma: step-size. Note that this parameter is not used in this function.
-        :param float radius: radius of the :math:`\ell_2` ball.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
-        """
-        radius = self.radius if radius is None else radius
-        diff = x - y
-        dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
-        return y + diff * (
-            torch.min(torch.tensor([radius]).to(x.device), dist) / (dist + 1e-12)
-        ).view(-1, 1, 1, 1)
 
     def prox(
         self,
