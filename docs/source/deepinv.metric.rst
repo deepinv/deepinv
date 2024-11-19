@@ -43,6 +43,8 @@ and you can use these in a loss like ``SupLoss(metric=MSE())``.
 
     For convenience, you can also import metrics directly from ``deepinv.metric`` or ``deepinv.loss``.
 
+Finally, you can also wrap existing metric functions using ``Metric(metric=f)``, see :class:`deepinv.loss.metric.Metric` for an example.
+
 Example:
 
 .. doctest::
