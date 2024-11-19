@@ -32,7 +32,9 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
         self.requires_prox_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the DRS algorithm.
 
