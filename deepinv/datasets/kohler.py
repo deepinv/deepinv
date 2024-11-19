@@ -20,8 +20,39 @@ class Kohler(Dataset):
 
     The dataset consists of blurry shots and sharp frames, each blurry shot
     being associated with about 200 sharp frames. There are 48 blurry shots in
-    total, each associated to one of 4 printed out images, and to one of 12
-    camera trajectories inducing motion blur.
+    total, each associated to one of 4 printouts, and to one of 12 camera
+    trajectories inducing motion blur. Unlike certain deblurring datasets (e.g.
+    GOPRO) where the blurry images are synthesized from sharp images, the
+    blurry shots in the Köhler dataset are acquired with a real camera. It is
+    the movement of the camera during exposition that causes the blur. What we
+    call printouts are the 4 images that were printed out on paper and fixed to
+    a screen to serve as photographed subjects — all images in the dataset show
+    one of these 4 printouts.
+
+    The ground truth images are **not** the 4 images that were printed out.
+    Instead, they are the frames of videos taken in the same condition as for
+    the blurry shots. The reason behind this choice is to ensure the same
+    lightness for better comparison. In total, there are about 200 frames per
+    video, and equivalently by blurry shot. There is a lot of redundancy
+    between the frames as the camera barely moves between consecutive frames,
+    for this reason the implementation allows selecting a single frame as the
+    priviledged ground truth. This enables using the tooling provided by
+    deepinv such as `deepinv.test` and which gives approximately the same
+    performance as comparing to all the frames. It is the parameter `frames`
+    that controls this behavior, when it is set to either `"first"`,
+    `"middle"`, `"last"`, or to a specific frame index (between 1 and 198). If
+    the user wants to compare against all the frames, e.g. to reproduce the
+    benchmarks of the original paper, they can do so by setting the parameter
+    `frames` to `"all"` or to a list of frame indices.
+
+    The dataset does not have a priviledged ordering and this implementation
+    uses lexicographic ordering on the printout index (1 to 4) and the
+    trajectory index (1 to 12). The parameter `ordering` controls whether to
+    order by printout first `"printout_first"` or by trajectory first
+    `"trajectory_first"`. This enables accessing the 48 items using the standard
+    method `__getitem__` using an index between 0 and 47. The nonstandard
+    method `get_item` allows selecting one of them by printout and trajectory
+    index directly if needed.
 
     :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames.
     :param str ordering: Ordering of the dataset. Can be "printout_first" or "trajectory_first".
@@ -42,8 +73,10 @@ class Kohler(Dataset):
                              download=True)
             # Usual interface
             sharp_frame, blurry_shot = dataset[0]
+            print(sharp_frame.shape, blurry_shot.shape)
             # Convenience method
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
+            print(sharp_frame.shape, blurry_shot.shape)
     """
 
     # The Köhler dataset is split into multiple archives available online.
@@ -161,13 +194,13 @@ class Kohler(Dataset):
         self,
         printout_index: int,
         trajectory_index: int,
-        frames: Union[int, str, list[Union[int, str]]] = "middle",
+        frames: Union[None, int, str, list[Union[int, str]]] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Get a sharp frame and a blurry shot from the dataset.
 
         :param int printout_index: Index of the printout.
         :param int trajectory_index: Index of the trajectory.
-        :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames.
+        :param Union[None, int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames. By default, it uses the value provided in the constructor.
 
         :return: (torch.Tensor, Union[torch.Tensor, list[torch.Tensor]]) The sharp frame(s) and the blurry shot.
 
@@ -188,6 +221,9 @@ class Kohler(Dataset):
                 sharp_frames, blurry_shot = dataset.get_item(1, 1, frame=[1, "middle", 199])
         """
         blurry_shot = self.get_blurry_shot(printout_index, trajectory_index)
+
+        if frames is None:
+            frames = self.frames
 
         if frames == "all" or isinstance(frames, list):
             if frames == "all":
