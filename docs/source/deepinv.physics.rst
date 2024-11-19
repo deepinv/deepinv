@@ -55,7 +55,7 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> import torch
     >>> import deepinv as dinv
     >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), compute_inverse=True)
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
@@ -291,6 +291,7 @@ Compressive operators are implemented in the following classes:
 
    deepinv.physics.CompressedSensing
    deepinv.physics.SinglePixelCamera
+   deepinv.physics.StructuredRandom
 
 
 Radio interferometric imaging
@@ -340,6 +341,7 @@ Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2
 
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.StructuredRandomPhaseRetrieval
 
 Noise distributions
 --------------------------------
