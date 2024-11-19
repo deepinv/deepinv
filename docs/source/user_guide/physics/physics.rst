@@ -4,6 +4,8 @@ Operators & Noise
 =================
 
 
+.. _physics_list:
+
 Operators
 ~~~~~~~~~
 Operators describe the forward model :math:`z = A(x,\theta)`.
@@ -73,6 +75,8 @@ Operators describe the forward model :math:`z = A(x,\theta)`.
        | :class:`deepinv.physics.RandomPhaseRetrieval`
      -
 
+
+.. _noise_list:
 
 Noise distributions
 ~~~~~~~~~~~~~~~~~~~

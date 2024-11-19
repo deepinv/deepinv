@@ -23,6 +23,9 @@ All losses inherit from the base class :class:`deepinv.loss.Loss`, which is a :c
     >>> x_net = model(y)
     >>> l = loss(x_net=x_net, y=y, physics=physics, model=model) # self-supervised loss, doesn't require ground truth x
 
+
+.. _supervised-losses:
+
 Supervised Learning
 --------------------
 Use a dataset of pairs of signals and measurements (and possibly information about the forward operator),
@@ -37,7 +40,11 @@ Use a dataset of measurement data alone (and possibly information about the forw
 i.e., they can be written as :math:`\mathcal{L}(y,\inverse{y})` and take into account information
 about the forward measurement process.
 
-.. list-table:: Self-Supervised Losses Overview
+Self-supervised losses can be roughly classified according to whether they are
+designed to take care of the noise in the measurements, or take care of the ill-posedness
+of the forward operator (e.g., incomplete operators with less measurements than pixels in the image)
+
+.. list-table:: Denoising Losses
    :widths: 25 35
    :header-rows: 1
 
@@ -64,8 +71,9 @@ about the forward measurement process.
    * - :class:`deepinv.loss.ScoreLoss`
      - Assumes score-based or noise-injected data for training
 
+In order to learn from incomplete data, TODO
 
-.. list-table:: Losses Overview
+.. list-table:: Other losses
    :widths: 25 35
    :header-rows: 1
 
@@ -80,6 +88,7 @@ about the forward measurement process.
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation (TV) regularization
 
+.. _regularization-losses:
 
 Network Regularization
 ----------------------
@@ -104,12 +113,12 @@ Adversarial losses train a generator network by jointly training with an additio
 We implement various popular (supervised and unsupervised) adversarial training frameworks below. These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN. Generator and discriminator networks are provided in :ref:`adversarial models <adversarial-networks>`.
 Training is implemented using :class:`deepinv.training.AdversarialTrainer` which overrides the standard :class:`deepinv.Trainer`. See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
 
-:class:`deepinv.loss.adversarial.GeneratorLoss`
-:class:`deepinv.loss.adversarial.DiscriminatorLoss`
-:class:`deepinv.loss.adversarial.DiscriminatorMetric`
+- :class:`deepinv.loss.adversarial.GeneratorLoss`
+- :class:`deepinv.loss.adversarial.DiscriminatorLoss`
+- :class:`deepinv.loss.adversarial.DiscriminatorMetric`
 
 .. list-table:: Adversarial Losses Overview
-   :widths: 35 35
+   :widths: 35 35 30
    :header-rows: 1
 
    * - Generator Loss
@@ -125,7 +134,7 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
      -
      - Unsupervised Adversarial Image Reconstruction loss.
 
-
+.. _loss-schedulers:
 
 Loss schedulers
 ---------------

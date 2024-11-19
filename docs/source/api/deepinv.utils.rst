@@ -1,9 +1,12 @@
 deepinv.utils
 =============
 
+This module provides various plotting and utility functions.
+Please refer to the :ref:`user guide <utils>` for more information.
+
 Plotting
 --------
-We provide some plotting functions that are adapted to inverse problems.
+.. userguide:: plotting
 
 .. autosummary::
    :toctree: stubs
@@ -20,7 +23,7 @@ We provide some plotting functions that are adapted to inverse problems.
 
 TensorList
 ----------
-The TensorList class is a wrapper around a list of tensors.
+.. userguide:: tensorlist
 
 .. autosummary::
    :toctree: stubs
@@ -36,6 +39,7 @@ The TensorList class is a wrapper around a list of tensors.
 
 Other
 -----
+.. userguide:: other-utils
 
 .. autosummary::
    :toctree: stubs

@@ -1,11 +1,13 @@
 deepinv.datasets
 ================
 
-This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).
+This subpackage can be used for generating reconstruction datasets from other base datasets.
+Please refer to the :ref:`user guide <datasets>` for more information.
 
 
 HD5Dataset
 ----------
+.. userguide:: hd5dataset
 
 .. autosummary::
    :toctree: stubs
@@ -19,8 +21,6 @@ HD5Dataset
 PatchDataset
 ------------
 
-Generate a dataset of all patches out of a tensor of images.
-
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -30,8 +30,7 @@ Generate a dataset of all patches out of a tensor of images.
 
 Image Datasets
 --------------
-
-Ready-made datasets available in the `deepinv.datasets` module.
+.. userguide:: predefined-datasets
 
 .. autosummary::
    :toctree: stubs

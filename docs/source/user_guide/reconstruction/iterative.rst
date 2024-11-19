@@ -3,7 +3,6 @@
 Iterative Reconstruction (PnP, RED, etc.)
 ==================================================
 
-
 Many image reconstruction algorithms can be shown to be solving
 minimization problems of the form
 
@@ -73,17 +72,23 @@ and the prior is implicitly defined by a median filter denoiser, can be implemen
     :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_custom_optim.py` for more details.
 
 
+.. _predefined-iterative:
+
 Predefined Iterative Algorithms
-----------------------------------------
+-------------------------------
 
 We also provide pre-implemented iterative optimization algorithms,
 which can be loaded in a single line of code, and used
 to solve any inverse problem. The following algorithms are available:
 
+- :class:`dinv.optim.DPIR`
+- :class:`dinv.optim.EPLL`
 
+
+.. _deep-image-prior:
 
 Deep Image Prior
-------------------
+----------------
 
 The `deep image prior <https://arxiv.org/abs/1711.10925>`_ can be interpreted as
 using an indicator function :math:`g(x) = \mathbf {1} _{x=d_{\theta}(z)}` which forces the reconstruction image

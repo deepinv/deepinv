@@ -1,10 +1,12 @@
-
 deepinv.unfolded
 ===================
 
+This module provides networks architectures based on unfolding optimization algorithms.
+Please refer to :ref:`user guide <unfolded>` for more details.
 
 Unfolded
 --------
+.. userguide:: unfolded
 
 .. autosummary::
    :toctree: stubs
@@ -17,6 +19,7 @@ Unfolded
 
 Deep Equilibrium
 ----------------
+.. userguide:: deep-equilibrium
 
 .. autosummary::
    :toctree: stubs
@@ -27,9 +30,9 @@ Deep Equilibrium
     deepinv.unfolded.BaseDEQ
 
 
-Utils
-----------------
-Some more specific unfolded architectures are also available.
+Custom Unfolded Blocks
+----------------------
+.. userguide:: custom-unfolded-blocks
 
 .. autosummary::
    :toctree: stubs

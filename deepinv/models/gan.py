@@ -7,6 +7,7 @@ from torch import rand
 from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
+from .base import Reconstructor
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -258,7 +259,7 @@ class DCGANGenerator(nn.Module):
         return self.model(input, *args, **kwargs)
 
 
-class CSGMGenerator(nn.Module):
+class CSGMGenerator(Reconstructor):
     r"""
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 

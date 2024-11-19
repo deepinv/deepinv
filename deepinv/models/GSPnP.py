@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .utils import get_weights_url
-
+from .base import Denoiser
 
 class StudentGrad(nn.Module):
     def __init__(self, denoiser):
@@ -12,7 +12,7 @@ class StudentGrad(nn.Module):
         return self.model(x, sigma)
 
 
-class GSPnP(nn.Module):
+class GSPnP(Denoiser):
     r"""
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
     See https://arxiv.org/pdf/2110.03220.pdf.

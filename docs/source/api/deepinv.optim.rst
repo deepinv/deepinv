@@ -1,6 +1,14 @@
 deepinv.optim
 =============
 
+This module provides optimization utils for constructing reconstruction models based on optimization algorithms.
+Please refer to the :ref:`user guide <optim>` for more details.
+
+
+Base Class
+----------
+.. userguide:: optim
+
 .. autosummary::
    :toctree: stubs
    :template: myfunc_template.rst
@@ -12,6 +20,7 @@ deepinv.optim
 
 Data Fidelity
 -------------
+.. userguide:: data-fidelity
 
 .. autosummary::
    :toctree: stubs
@@ -29,6 +38,7 @@ Data Fidelity
 
 Priors
 ------
+.. userguide:: priors
 
 .. autosummary::
    :toctree: stubs
@@ -49,6 +59,7 @@ Priors
 
 Predefined models
 -----------------
+.. userguide:: predefined-iterative
 
 .. autosummary::
    :toctree: stubs
@@ -61,6 +72,7 @@ Predefined models
 
 Iterators
 ---------
+.. userguide:: optim-iterators
 
 .. autosummary::
    :toctree: stubs
@@ -80,8 +92,8 @@ Iterators
 
 
 Utils
--------------
-We provide some useful utilities for optimization algorithms.
+-----
+.. userguide:: optim-utils
 
 .. autosummary::
    :toctree: stubs

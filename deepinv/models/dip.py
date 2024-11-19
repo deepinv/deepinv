@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from deepinv.loss import MCLoss
 from tqdm import tqdm
+from .base import Reconstructor
 
 
 def add_module(self, module):
@@ -85,7 +86,7 @@ class ConvDecoder(nn.Module):
         return self.net(x) * scale_out
 
 
-class DeepImagePrior(torch.nn.Module):
+class DeepImagePrior(Reconstructor):
     r"""
 
     Deep Image Prior reconstruction.

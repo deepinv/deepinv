@@ -1,11 +1,12 @@
 deepinv.metric
 ===============
 
-This package contains popular metrics for inverse problems.
 Metrics are generally used to evaluate the performance of a model, or as the distance function inside a loss function.
+Please refer to the :ref:`user guide <metric>` for more information.
 
 Base class
------------
+----------
+.. userguide:: metric
 
 .. autosummary::
    :toctree: stubs
@@ -17,6 +18,7 @@ Base class
 
 Distortion metrics
 ------------------
+.. userguide:: distortion-metrics
 
 .. autosummary::
    :toctree: stubs
@@ -35,6 +37,7 @@ Distortion metrics
 
 Perceptual metrics
 ------------------
+.. userguide:: perceptual-metrics
 
 .. autosummary::
    :toctree: stubs

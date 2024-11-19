@@ -1,8 +1,12 @@
 deepinv.transform
 =================
 
-This package contains different transforms which can be used for data augmentation or together with the equivariant losses.
+This module contains different transforms which can be used for data augmentation or together with the equivariant losses.
+Please refer to the :ref:`user guide <transform>` for more information.
 
+Base class
+----------
+.. userguide:: transform
 
 .. autosummary::
    :toctree: stubs

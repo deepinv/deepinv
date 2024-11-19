@@ -2,14 +2,13 @@ import sys
 import warnings
 from collections.abc import Iterable
 import torch
-import torch.nn as nn
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
 from deepinv.loss.metric.distortion import PSNR
+from deepinv.models import Reconstructor
 
-
-class BaseOptim(nn.Module):
+class BaseOptim(Reconstructor):
     r"""
     Class for optimization algorithms, consists in iterating a fixed-point operator.
 

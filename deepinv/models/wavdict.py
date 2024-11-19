@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from .base import Denoiser
 
 try:
     import ptwt
@@ -9,7 +10,7 @@ except:
     # No need to pywt, which is a dependency of ptwt
 
 
-class WaveletDenoiser(nn.Module):
+class WaveletDenoiser(Denoiser):
     r"""
     Orthogonal Wavelet denoising with the :math:`\ell_1` norm.
 
@@ -277,7 +278,7 @@ class WaveletDenoiser(nn.Module):
 
         return ths_cur
 
-    def forward(self, x, ths=0.1):
+    def forward(self, x, ths=0.1, **kwargs):
         r"""
         Run the model on a noisy image.
 
@@ -309,7 +310,7 @@ class WaveletDenoiser(nn.Module):
         return y
 
 
-class WaveletDictDenoiser(nn.Module):
+class WaveletDictDenoiser(Denoiser):
     r"""
     Overcomplete Wavelet denoising with the :math:`\ell_1` norm.
 
@@ -367,7 +368,7 @@ class WaveletDictDenoiser(nn.Module):
         )
         self.max_iter = max_iter
 
-    def forward(self, y, ths=0.1):
+    def forward(self, y, ths=0.1, **kwargs):
         r"""
         Run the model on a noisy image.
 

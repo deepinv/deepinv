@@ -53,6 +53,8 @@ Example:
     tensor(1.9999)
     >>> l = dinv.loss.MCLoss(metric=dinv.metric.SSIM(train_loss=True, reduction="mean")) # Use SSIM for training
 
+.. _distortion-metrics:
+
 Distortion metrics
 ------------------
 Distortion metrics are used to measure the difference between the original ``x`` and the reconstructed image ``x_net``.
@@ -86,6 +88,9 @@ Distortion metrics are used to measure the difference between the original ``x``
 
    * - :class:`deepinv.loss.metric.LpNorm`
      - :math:`\text{LpNorm}(x, \hat{x}) = \|x - \hat{x}\|_p^p`
+
+
+.. _perceptual-metrics:
 
 Perceptual metrics
 ------------------

@@ -221,6 +221,7 @@ are stored in a dictionary ``"params_algo"``, whose typical entries are:
 Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
 a single float (same value for each iteration).
 
+
 .. _optim-iterators:
 
 Iterators
@@ -301,6 +302,9 @@ Some generic optimizer iterators are provided:
    * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
      - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
      - (phase-retrieval only)
+
+
+.. _optim-utils:
 
 Utils
 -----

@@ -3,6 +3,8 @@
 Utils
 =====
 
+.. _plotting:
+
 Plotting
 --------
 We provide some plotting functions that are adapted to inverse problems.
@@ -37,6 +39,8 @@ We provide other plotting functions that are useful for inverse problems:
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
 
 
+.. _other-utils:
+
 Other
 -----
 We provide some useful utility functions:
@@ -57,6 +61,8 @@ We provide some useful utility functions:
    * - :func:`deepinv.utils.demo.demo_mri_model`
      - Runs a demonstration of an MRI reconstruction model, showcasing its capabilities.
 
+
+.. _tensorlist:
 
 TensorList
 ----------

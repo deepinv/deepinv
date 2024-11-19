@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from tqdm import tqdm
+from deepinv.models import Reconstructor
 
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
@@ -62,7 +63,7 @@ class DiffusionSampler(MonteCarlo):
         )
 
 
-class DDRM(nn.Module):
+class DDRM(Reconstructor):
     r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
     Denoising Diffusion Restoration Models (DDRM).
 
@@ -202,7 +203,7 @@ class DDRM(nn.Module):
         return x
 
 
-class DiffPIR(nn.Module):
+class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
@@ -473,7 +474,7 @@ class DiffPIR(nn.Module):
         return out
 
 
-class DPS(nn.Module):
+class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 

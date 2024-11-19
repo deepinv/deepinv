@@ -3,9 +3,8 @@
 deepinv.training
 ====================
 
-
-Training a reconstruction model can be done using the Trainer class, which can be easily customized
-to fit your needs.
+This module contains the training and testing functions.
+Please refer to the :ref:`user guide <trainer>` for more information.
 
 .. autosummary::
    :toctree: stubs

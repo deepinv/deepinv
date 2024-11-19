@@ -1,6 +1,14 @@
 deepinv.loss
 ============
 
+This package provides a collection of supervised and self-supervised loss functions for training reconstruction networks.
+Refer to the :ref:`user guide <loss>` for more information.
+
+
+Base class
+-----------
+.. userguide:: loss
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
@@ -11,6 +19,7 @@ deepinv.loss
 
 Supervised Learning
 --------------------
+.. userguide:: supervised-losses
 
 .. autosummary::
    :toctree: stubs
@@ -22,6 +31,7 @@ Supervised Learning
 
 Self-Supervised Learning
 ------------------------
+.. userguide:: self-supervised-losses
 
 .. autosummary::
    :toctree: stubs
@@ -46,6 +56,7 @@ Self-Supervised Learning
 
 Adversarial Learning
 --------------------
+.. userguide:: adversarial-losses
 
 .. autosummary::
    :toctree: stubs
@@ -63,7 +74,7 @@ Adversarial Learning
 
 Network Regularization
 ----------------------
-These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
+.. userguide:: regularization-losses
 
 .. autosummary::
    :toctree: stubs
@@ -76,7 +87,7 @@ These losses can be used to regularize the learned function, e.g., controlling i
 
 Loss schedulers
 ---------------
-Loss schedulers can be used to control which losses are used when during more advanced training.
+.. userguide:: loss-schedulers
 
 .. autosummary::
    :toctree: stubs

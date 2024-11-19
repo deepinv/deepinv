@@ -1,3 +1,5 @@
+.. _user_guide:
+
 User Guide
 ==========
 
@@ -61,10 +63,10 @@ which can simulate the observation process:
    :hidden:
    :caption: Forward Operators
 
-   user_guide/operators/intro
-   user_guide/operators/physics
-   user_guide/operators/defining
-   user_guide/operators/functional
+   user_guide/physics/intro
+   user_guide/physics/physics
+   user_guide/physics/defining
+   user_guide/physics/functional
 
 
 
@@ -72,7 +74,8 @@ Reconstruction
 ~~~~~~~~~~~~~~
 
 In order to recover an image from its measurements, the library provides many
-reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge of the acquisition ``physics``. Given a restoration model ``model``, the reconstruction is therefore provided as
+reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge of the acquisition ``physics``.
+Given a restoration model ``model``, the reconstruction is therefore provided as
 
 ::
 
@@ -81,6 +84,14 @@ reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge o
 
 .. grid:: 3
     :gutter: 1
+
+    .. grid-item-card::
+        :link: reconstructors
+        :link-type: ref
+
+        :octicon:`telescope-fill` **Introduction**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
         :link: denoisers
@@ -139,13 +150,14 @@ reconstruction methods :math:`\hat{x}=R(y, A)`, which often leverage knowledge o
    :hidden:
    :caption: Reconstruction Methods
 
-   user_guide/denoisers
-   user_guide/other_models
-   user_guide/optimization
-   user_guide/iterative
-   user_guide/sampling
-   user_guide/unfolded
-   user_guide/weights
+   user_guide/reconstruction/introduction
+   user_guide/reconstruction/denoisers
+   user_guide/reconstruction/artifact
+   user_guide/reconstruction/optimization
+   user_guide/reconstruction/iterative
+   user_guide/reconstruction/sampling
+   user_guide/reconstruction/unfolded
+   user_guide/reconstruction/weights
 
 
 Training, Testing and Utilities
@@ -223,16 +235,17 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
    :hidden:
    :caption: Training and Testing
 
-   user_guide/datasets
-   user_guide/loss
-   user_guide/metric
-   user_guide/transforms
-   user_guide/multigpu
+   user_guide/training/trainer
+   user_guide/training/datasets
+   user_guide/training/loss
+   user_guide/training/metric
+   user_guide/training/transforms
+   user_guide/training/multigpu
 
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: Other
 
-   user_guide/utils
-   user_guide/notation
+   user_guide/other/utils
+   user_guide/other/notation

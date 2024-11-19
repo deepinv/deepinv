@@ -11,7 +11,7 @@ The :class:`deepinv.models.ArtifactRemoval` class implements networks as
 
 .. math::
 
-    R(x,A) = \phi(A^{\dagger}y)
+    \inversef{x,A} = \phi(A^{\dagger}y)
 
 where :math:`A^{\dagger}` is a non-learned pseudo-inverse of the forward operator (e.g., adjoint operator
 if :math:`A` is linear, the identity if :math:`y` already lies in the image domain, etc.)

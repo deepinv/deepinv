@@ -1,8 +1,25 @@
 deepinv.models
 ===============
 
+This module contains a collection of models for denoising and reconstruction.
+Please refer to the :ref:`user guide <user_guide>` for more information.
+
+Base Classes
+------------
+.. userguide:: _reconstructors
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.Denoiser
+   deepinv.models.Reconstructor
+
+
 Classical Denoisers
 -------------------
+.. userguide:: non-learned-denoisers
 
 .. autosummary::
    :toctree: stubs
@@ -19,7 +36,8 @@ Classical Denoisers
 
 
 Deep Denoisers
--------------------
+--------------
+.. userguide:: deep-architectures
 
 .. autosummary::
    :toctree: stubs
@@ -40,7 +58,8 @@ Deep Denoisers
 
 
 Denoisers Utils
---------------------------
+---------------
+.. userguide:: denoiser-utils
 
 .. autosummary::
    :toctree: stubs
@@ -53,9 +72,9 @@ Denoisers Utils
    deepinv.models.TimeAveragingNet
 
 
-
 Artifact Removal
---------------------------
+----------------
+.. userguide:: artifact-removal
 
 .. autosummary::
    :toctree: stubs
@@ -65,7 +84,8 @@ Artifact Removal
    deepinv.models.ArtifactRemoval
 
 Deep Image Prior
---------------------------
+----------------
+.. userguide:: deep-image-prior
 
 .. autosummary::
    :toctree: stubs
@@ -78,7 +98,7 @@ Deep Image Prior
 
 Adversarial Networks
 --------------------
-Discriminator networks used in networks trained with adversarial learning using :ref:`adversarial losses <adversarial-losses>`.
+.. userguide:: adversarial-networks
 
 .. autosummary::
    :toctree: stubs

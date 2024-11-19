@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.nn as nn
+from .base import Denoiser
 
 # Compat for optional dependency on BM3D
 try:
@@ -9,7 +9,7 @@ except:
     bm3d = ImportError("The bm3d package is not installed.")
 
 
-class BM3D(nn.Module):
+class BM3D(Denoiser):
     r"""
     BM3D denoiser.
 
@@ -36,7 +36,7 @@ class BM3D(nn.Module):
                 "BM3D denoiser not available. Please install the bm3d package with `pip install bm3d`."
             ) from bm3d
 
-    def forward(self, x, sigma):
+    def forward(self, x, sigma, **kwargs):
         r"""
         Run the denoiser on image with noise level :math:`\sigma`.
 

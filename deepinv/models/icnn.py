@@ -2,9 +2,9 @@
 import numpy as np
 import torch
 from torch import nn
+from .base import Denoiser
 
-
-class ICNN(nn.Module):
+class ICNN(Denoiser):
     r"""
     Input Convex Neural Network.
 
@@ -79,7 +79,7 @@ class ICNN(nn.Module):
         if device is not None:
             self.to(device)
 
-    def forward(self, x):
+    def forward(self, x, **kwargs):
         bsize = x.shape[0]
         # assert x.shape[-1] == x.shape[-2]
         image_size = np.array([x.shape[-2], x.shape[-1]])
@@ -129,7 +129,7 @@ class ICNN(nn.Module):
             for core in self.lin[1:]:
                 core.weight.data.clamp_(0)
 
-    def grad(self, x):
+    def grad(self, x): # TODO: this should be the forward
         with torch.enable_grad():
             if not x.requires_grad:
                 x.requires_grad = True

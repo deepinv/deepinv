@@ -57,6 +57,7 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>> x_hat = model(y, physics)
 
 
+.. _deep-equilibrium:
 
 Deep Equilibrium
 ----------------
@@ -78,6 +79,7 @@ The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building 
 
 The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseDEQ`.
 
+.. _custom-unfolded-blocks:
 
 Custom Unfolded Architectures
 -------------------------------

@@ -1,14 +1,14 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
 import torch
-import torch.nn as nn
 from .utils import get_weights_url, test_onesplit, test_pad
+from .base import Denoiser
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class DRUNet(nn.Module):
+class DRUNet(Denoiser):
     r"""
     DRUNet denoiser network.
 

@@ -1,9 +1,12 @@
 deepinv.physics
 ================
 
+This module provides a set of forward operators for various imaging modalities.
+Please refer to the :ref:`physics` section for more details.
 
 Base Classes
 ------------
+.. userguide:: physics_intro
 
 .. autosummary::
    :toctree: stubs
@@ -24,10 +27,8 @@ Base Classes
 
 
 Operators
----------------
-
-Pixelwise operators
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------
+.. userguide:: physics_list
 
 .. autosummary::
    :toctree: stubs
@@ -38,8 +39,23 @@ Pixelwise operators
    deepinv.physics.Inpainting
    deepinv.physics.Decolorize
    deepinv.physics.Demosaicing
+   deepinv.physics.Blur
+   deepinv.physics.BlurFFT
+   deepinv.physics.SpaceVaryingBlur
+   deepinv.physics.Downsampling
+   deepinv.physics.MRI
+   deepinv.physics.DynamicMRI
+   deepinv.physics.SequentialMRI
+   deepinv.physics.Tomography
+   deepinv.physics.Pansharpen
+   deepinv.physics.CompressedSensing
+   deepinv.physics.SinglePixelCamera
+   deepinv.physics.RadioInterferometry
+   deepinv.physics.SinglePhotonLidar
+   deepinv.physics.Haze
+   deepinv.physics.PhaseRetrieval
+   deepinv.physics.RandomPhaseRetrieval
 
-For random inpainting we also provide masks generators:
 
 .. autosummary::
    :toctree: stubs
@@ -50,26 +66,19 @@ For random inpainting we also provide masks generators:
    deepinv.physics.generator.GaussianSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+   deepinv.physics.generator.MotionBlurGenerator
+   deepinv.physics.generator.DiffractionBlurGenerator
+   deepinv.physics.generator.DiffractionBlurGenerator3D
+   deepinv.physics.generator.ProductConvolutionBlurGenerator
+   deepinv.physics.generator.BaseMaskGenerator
+   deepinv.physics.generator.GaussianMaskGenerator
+   deepinv.physics.generator.RandomMaskGenerator
+   deepinv.physics.generator.EquispacedMaskGenerator
 
-Blur & Super-Resolution
-^^^^^^^^^^^^^^^^^^^^^^^^
-Different types of blur operators are available, from simple stationary kernels to space-varying ones.
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.Blur
-   deepinv.physics.BlurFFT
-   deepinv.physics.SpaceVaryingBlur
-   deepinv.physics.Downsampling
-
-We provide the implementation of typical blur kernels such as Gaussian, bilinear, bicubic, etc.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myfunc_template.rst
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
@@ -77,126 +86,9 @@ We provide the implementation of typical blur kernels such as Gaussian, bilinear
    deepinv.physics.blur.bicubic_filter
    deepinv.physics.blur.sinc_filter
 
-
-We also provide a set of generators to simulate various types of blur:
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.MotionBlurGenerator
-   deepinv.physics.generator.DiffractionBlurGenerator
-   deepinv.physics.generator.DiffractionBlurGenerator3D
-   deepinv.physics.generator.ProductConvolutionBlurGenerator
-
-Magnetic Resonance Imaging
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.MRI
-   deepinv.physics.DynamicMRI
-   deepinv.physics.SequentialMRI
-
-
-We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.BaseMaskGenerator
-   deepinv.physics.generator.GaussianMaskGenerator
-   deepinv.physics.generator.RandomMaskGenerator
-   deepinv.physics.generator.EquispacedMaskGenerator
-
-Tomography
-^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.Tomography
-
-
-
-Remote Sensing
-^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.Pansharpen
-
-
-Compressive operators
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.CompressedSensing
-   deepinv.physics.SinglePixelCamera
-
-
-Radio interferometric imaging
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.RadioInterferometry
-
-
-Single-photon lidar
-^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.SinglePhotonLidar
-
-
-Dehazing
-^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.Haze
-
-Phase retrieval
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2` with :math:`B` a linear operator.
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.PhaseRetrieval
-   deepinv.physics.RandomPhaseRetrieval
-
 Noise distributions
---------------------------------
+-------------------
+.. userguide:: noise_list
 
 .. autosummary::
    :toctree: stubs
@@ -223,7 +115,8 @@ Noise distributions
 
 
 Functional
---------------------
+----------
+.. userguide:: physics_functional
 
 .. autosummary::
    :toctree: stubs

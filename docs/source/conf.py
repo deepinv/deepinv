@@ -41,6 +41,46 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3.9/", None),
 }
 
+####  userguide directive ###
+from docutils import nodes
+from docutils.parsers.rst import Directive
+from sphinx.addnodes import pending_xref
+
+class UserGuideMacro(Directive):
+    required_arguments = 1  # The reference name (ref_name)
+    has_content = False
+
+    def run(self):
+        ref_name = self.arguments[0]
+
+        # Create the paragraph node
+        paragraph_node = nodes.paragraph()
+
+        # Add "**User Guide**: refer to " text
+        paragraph_node += nodes.strong(text="User Guide: ")
+        paragraph_node += nodes.Text("refer to ")
+
+        # Create a pending_xref node to resolve the title dynamically
+        xref_node = pending_xref(
+            '',  # No initial text
+            refdomain='std',  # Standard domain (used for :ref:)
+            reftype='ref',  # Reference type
+            reftarget=ref_name,  # Target reference
+            refexplicit=False  # Let Sphinx insert the title automatically
+        )
+        xref_node += nodes.Text("")  # Placeholder; Sphinx replaces this with the title
+        paragraph_node += xref_node
+
+        # Add the final " for more information." text
+        paragraph_node += nodes.Text(" for more information.")
+
+        return [paragraph_node]
+
+def setup(app):
+    app.add_directive("userguide", UserGuideMacro)
+
+#############################
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 add_module_names = True # include the module path in the function name
@@ -89,6 +129,7 @@ mathjax3_config = {
             "noise": [r"{N\left({#1}\right)}", 1],
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
+            "inversename":  r"R",
             "reg": [r"{g_\sigma\left({#1}\right)}", 1],
             "regname": r"g_\sigma",
             "sensor": [r"{\eta\left({#1}\right)}", 1],

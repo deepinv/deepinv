@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .drunet import test_pad
-
+from .base import Denoiser
 
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
@@ -52,7 +52,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         return y.view(return_shape).transpose(0, 1)
 
 
-class UNet(nn.Module):
+class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
@@ -216,7 +216,7 @@ class UNet(nn.Module):
         if self.compact == 2:
             self._forward = self.forward_compact2
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 

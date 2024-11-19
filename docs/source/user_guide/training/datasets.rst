@@ -6,10 +6,10 @@ Datasets
 This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).
 
 
+.. _hd5dataset:
+
 HD5Dataset
 ----------
-
-
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MNIST). For example, here we generate a compressed sensing MNIST dataset:
 
@@ -78,9 +78,10 @@ and save and load the physics params into the dataset:
     torch.Size([4])
 
 
+.. _predefined-datasets:
 
-Image Datasets
---------------
+Predefined Datasets
+-------------------
 Multiple popular easy-to-download datasets are available:
 
 

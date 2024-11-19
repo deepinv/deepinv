@@ -2,9 +2,9 @@ import torch.nn as nn
 import torch
 from .utils import get_weights_url
 import math
+from .base import Denoiser
 
-
-class DnCNN(nn.Module):
+class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.
 

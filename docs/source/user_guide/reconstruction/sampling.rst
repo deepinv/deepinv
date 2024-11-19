@@ -13,6 +13,7 @@ where :math:`x` is the image to be reconstructed, :math:`y` are the measurements
 :math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
 is the negative log-prior.
 
+.. _diffusion:
 
 Diffusion
 ---------
@@ -46,6 +47,8 @@ obtains multiple samples to compute posterior statistics such as the mean or var
      - Can be slow, requires backpropagation through the denoiser.
 
 
+.. _mcmc:
+
 Markov Chain Monte Carlo Langevin
 -------------------------------------
 
@@ -73,7 +76,7 @@ which is typically set to a low value.
         p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-All MCMC methods inherit from :class:`deepinv.sampling.MCMC`.
+All MCMC methods inherit from :class:`deepinv.sampling.MonteCarlo`.
 We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.
 
 
