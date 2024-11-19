@@ -74,7 +74,7 @@ class Kohler(Dataset):
             # Usual interface
             sharp_frame, blurry_shot = dataset[0]
             print(sharp_frame.shape, blurry_shot.shape)
-            # Convenience method
+            # Convenience method to directly index the printouts and trajectories
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
             print(sharp_frame.shape, blurry_shot.shape)
     """
