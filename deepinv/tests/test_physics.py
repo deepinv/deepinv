@@ -113,31 +113,31 @@ def find_operator(name, device):
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
     elif name == "MRI":
-        img_size = (2, 16, 8)  # C,H,W
+        img_size = (2, 17, 11)  # C,H,W
         p = dinv.physics.MRI(img_size=img_size, device=device)
     elif name == "3DMRI":
-        img_size = (2, 4, 16, 8)  # C,D,H,W where D is depth
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
-        img_size = (2, 3, 16, 8)
+        img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
         p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
     elif name == "MultiCoilMRI":
-        img_size = (2, 32, 32)  # C,H,W
-        n_coils = 15
+        img_size = (2, 17, 11)  # C,H,W
+        n_coils = 7
         maps = torch.ones(
-            (1, n_coils, 32, 32), dtype=torch.complex64, device=device
+            (1, n_coils, 17, 11), dtype=torch.complex64, device=device
         ) / sqrt(
             n_coils
-        )  # B,N,H,W
+        )  # B,N,H,W where N is coil dimension
         p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
     elif name == "3DMultiCoilMRI":
-        img_size = (2, 4, 32, 32)  # C,D,H,W where D is depth
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         n_coils = 15
         maps = torch.ones(
-            (1, n_coils, 4, 32, 32), dtype=torch.complex64, device=device
+            (1, n_coils, 5, 17, 11), dtype=torch.complex64, device=device
         ) / sqrt(
             n_coils
-        )  # B,N,H,W
+        )  # B,N,D,H,W where N is coils and D is depth
         p = dinv.physics.MultiCoilMRI(
             coil_maps=maps, img_size=img_size, three_d=True, device=device
         )
