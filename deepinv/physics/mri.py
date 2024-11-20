@@ -93,11 +93,11 @@ class MRI(MRIMixin, DecomposablePhysics):
     .. note::
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
-        If mask is not passed, a blank one is used.
+        If mask is not passed, a mask full of ones is used (i.e. no acceleration).
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), (B,C,H,W), (B,C,...,H,W) where H, W are the image height and width, C is channels (which should be 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
     :param torch.device device: cpu or gpu.
 
@@ -206,17 +206,17 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     .. note::
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`.
-        If mask or coil maps are not passed, blank ones are created.
+        If mask or coil maps are not passed, a mask and maps full of ones is used (i.e. no acceleration).
 
     .. note::
 
         You can also simulate basic `birdcage coil sensitivity maps <https://mriquestions.com/birdcage-coil.html>` by passing instead an integer to ``coil_maps``
         using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires ``sigpy``).
 
-    :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate blank mask with ``img_size``.
+    :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
     :param torch.Tensor, str coil_maps: complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
-        If None, generate blank coil maps with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
-    :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, blank ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
+        If None, generate flat coil maps of ones with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
+    :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, flat ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
         where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
     :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
     :param torch.device, str device: specify which device you want to use (i.e, cpu or gpu).
@@ -230,7 +230,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         >>> from deepinv.physics import MultiCoilMRI
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 2, 2, 2) # Define random 2x2 image B,C,H,W
-        >>> physics = MultiCoilMRI(img_size=x.shape) # Define blank coil map
+        >>> physics = MultiCoilMRI(img_size=x.shape) # Define coil map of ones
         >>> physics(x).shape # B,C,N,H,W
         torch.Size([1, 2, 1, 2, 2])
         >>> coil_maps = torch.randn(1, 5, 2, 2, dtype=torch.complex64) # Define 5-coil sensitivity maps
@@ -380,7 +380,7 @@ class DynamicMRI(MRI, TimeMixin):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -496,7 +496,7 @@ class SequentialMRI(DynamicMRI):
 
     :param torch.Tensor mask: binary mask :math:`S_t,t=1\ldots T`, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
