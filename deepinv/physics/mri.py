@@ -212,7 +212,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     .. note::
 
         You can also simulate basic `birdcage coil sensitivity maps <https://mriquestions.com/birdcage-coil.html>` by passing instead an integer to ``coil_maps``
-        using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires ``sigpy``).
+        using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires installing the ``sigpy`` library).
 
     :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
     :param torch.Tensor, str coil_maps: complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
