@@ -1,3 +1,5 @@
+from math import sqrt
+from typing import Optional, List
 import pytest
 import torch
 import numpy as np
@@ -37,6 +39,9 @@ OPERATORS = [
     "fast_singlepixel",
     "MRI",
     "DynamicMRI",
+    "MultiCoilMRI",
+    "3DMRI",
+    "3DMultiCoilMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -109,11 +114,34 @@ def find_operator(name, device):
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
     elif name == "MRI":
-        img_size = (2, 16, 8)
+        img_size = (2, 17, 11)  # C,H,W
         p = dinv.physics.MRI(img_size=img_size, device=device)
+    elif name == "3DMRI":
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
-        img_size = (2, 3, 16, 8)
+        img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
         p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+    elif name == "MultiCoilMRI":
+        img_size = (2, 17, 11)  # C,H,W
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, 17, 11), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,H,W where N is coil dimension
+        p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+    elif name == "3DMultiCoilMRI":
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        n_coils = 15
+        maps = torch.ones(
+            (1, n_coils, 5, 17, 11), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,D,H,W where N is coils and D is depth
+        p = dinv.physics.MultiCoilMRI(
+            coil_maps=maps, img_size=img_size, three_d=True, device=device
+        )
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -795,3 +823,84 @@ def test_downsampling_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+def test_mri_fft():
+    """
+    Test that our torch FFT is the same as FastMRI FFT implementation.
+    The following 5 functions are taken from
+    from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
+    """
+
+    def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
+        if not data.shape[-1] == 2:
+            raise ValueError("Tensor does not have separate complex dim.")
+
+        data = ifftshift(data, dim=[-3, -2])
+        data = torch.view_as_real(
+            torch.fft.fftn(  # type: ignore
+                torch.view_as_complex(data), dim=(-2, -1), norm=norm
+            )
+        )
+        data = fftshift(data, dim=[-3, -2])
+
+        return data
+
+    def roll_one_dim(x: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
+        shift = shift % x.size(dim)
+        if shift == 0:
+            return x
+
+        left = x.narrow(dim, 0, x.size(dim) - shift)
+        right = x.narrow(dim, x.size(dim) - shift, shift)
+
+        return torch.cat((right, left), dim=dim)
+
+    def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
+        if len(shift) != len(dim):
+            raise ValueError("len(shift) must match len(dim)")
+
+        for s, d in zip(shift, dim):
+            x = roll_one_dim(x, s, d)
+
+        return x
+
+    def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+        if dim is None:
+            # this weird code is necessary for toch.jit.script typing
+            dim = [0] * (x.dim())
+            for i in range(1, x.dim()):
+                dim[i] = i
+
+        # also necessary for torch.jit.script
+        shift = [0] * len(dim)
+        for i, dim_num in enumerate(dim):
+            shift[i] = x.shape[dim_num] // 2
+
+        return roll(x, shift, dim)
+
+    def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+        if dim is None:
+            # this weird code is necessary for toch.jit.script typing
+            dim = [0] * (x.dim())
+            for i in range(1, x.dim()):
+                dim[i] = i
+
+        # also necessary for torch.jit.script
+        shift = [0] * len(dim)
+        for i, dim_num in enumerate(dim):
+            shift[i] = (x.shape[dim_num] + 1) // 2
+
+        return roll(x, shift, dim)
+
+    x = torch.randn(4, 2, 16, 8)  # B,C,H,W
+
+    # Our FFT
+    xf1 = dinv.physics.MRIMixin.from_torch_complex(
+        dinv.physics.MRIMixin.fft(dinv.physics.MRIMixin.to_torch_complex(x))
+    )
+
+    # FastMRI FFT
+    xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)
+
+    assert torch.all(xf1 == xf2)
