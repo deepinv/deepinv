@@ -159,13 +159,14 @@ class FNEJacobianSpectralNorm(Loss):
     :param float tol: tolerance for the convergence of the power method.
     :param bool eval_mode: set to `False` if one does not want to backpropagate through the spectral norm (default), set to `True` otherwise.
     :param bool verbose: whether to print computation details or not.
+    :param str reduction: one of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If None, a vector of length batch_size will be returned.
 
     """
 
-    def __init__(self, max_iter=10, tol=1e-3, verbose=False, eval_mode=False):
+    def __init__(self, max_iter=10, tol=1e-3, verbose=False, eval_mode=False, reduction='max'):
         super(FNEJacobianSpectralNorm, self).__init__()
         self.spectral_norm_module = JacobianSpectralNorm(
-            max_iter=max_iter, tol=tol, verbose=verbose, eval_mode=eval_mode
+            max_iter=max_iter, tol=tol, verbose=verbose, eval_mode=eval_mode, reduction=reduction
         )
 
     def forward(

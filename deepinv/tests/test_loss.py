@@ -40,6 +40,72 @@ def test_jacobian_spectral_values(toymatrix):
     assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
     assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
 
+    ### Test reduction types on batches of images
+    B, C, H, W = 5, 3, 8, 8
+    toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
+
+    x_detached = torch.randn(B, C, H, W).requires_grad_()
+    out = toy_operators * x_detached
+
+    def model(x):
+        return toy_operators * x
+
+    # Nonec -> return all spectral norms
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction=None
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction=None
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    assert torch.allclose(regl2, toy_operators.squeeze(), rtol=1e-3)
+    assert torch.allclose(regfnel2, 2 * toy_operators.squeeze() - 1, rtol=1e-3)
+
+    # Max
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="max"
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="max"
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    assert math.isclose(regl2.item(), toy_operators.max(), rel_tol=1e-3)
+    assert math.isclose(regfnel2.item(), 2 * toy_operators.max() - 1, rel_tol=1e-3)
+
+    # Sum
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="sum"
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="sum"
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    assert math.isclose(regl2.item(), toy_operators.sum(), rel_tol=1e-3)
+    assert math.isclose(regfnel2.item(), 2 * toy_operators.sum() - toy_operators.shape[0], rel_tol=1e-3)
+
+    # Mean
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="mean"
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-3, eval_mode=False, verbose=True, reduction="mean"
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    assert math.isclose(regl2.item(), toy_operators.mean(), rel_tol=1e-3)
+    assert math.isclose(regfnel2.item(), 2 * toy_operators.sum() / toy_operators.shape[0] - 1, rel_tol=1e-3)
+
 
 def choose_loss(loss_name):
     loss = []
