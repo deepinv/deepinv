@@ -18,6 +18,7 @@ class JacobianSpectralNorm(Loss):
     :param float tol: tolerance for the convergence of the power method.
     :param bool eval_mode: set to `False` if one does not want to backpropagate through the spectral norm (default), set to `True` otherwise.
     :param bool verbose: whether to print computation details or not.
+    :param str reduction: one of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If None, a vector of length batch_size will be returned.
 
     |sep|
 
@@ -39,13 +40,35 @@ class JacobianSpectralNorm(Loss):
         tensor([49.0202])
     """
 
-    def __init__(self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False):
+    def __init__(self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False, reduction='max'):
         super(JacobianSpectralNorm, self).__init__()
         self.name = "jsn"
         self.max_iter = max_iter
         self.tol = tol
         self.eval = eval_mode
         self.verbose = verbose
+
+        self.reduction = lambda x: x
+        if reduction == "mean":
+            self.reduction = lambda x: torch.mean(x)
+        elif reduction == "sum":
+            self.reduction = lambda x: torch.sum(x)
+        elif reduction == "max":
+            self.reduction = lambda x: torch.max(x)
+
+    @staticmethod
+    def _batched_dot(x, y):
+        """
+        Computes the dot product between corresponding batch elements.
+
+        :param torch.Tensor x: tensor of shape (B, N)
+        :param torch.Tensor y: tensor of shape alike to x
+
+        Returns 1D tensor wth
+        """
+
+        return torch.einsum('bn,bn->b', x, y)
+
 
     def forward(self, y, x, **kwargs):
         """
@@ -56,9 +79,19 @@ class JacobianSpectralNorm(Loss):
 
         :param torch.Tensor y: output of the function :math:`f` at :math:`x`.
         :param torch.Tensor x: input of the function :math:`f`.
+
+        If x has multiple dimensions, it's assumed the first one corresponds to the batch dimension.
         """
+
+        if x.dim() == 1:
+            x = x[None, ...]
+        n_dims = x.dim()
+
         u = torch.randn_like(x)
-        u = u / torch.norm(u.flatten(), p=2)
+        # Normalize each batch element
+        u = u / torch.norm(
+                    u.flatten(start_dim=1, end_dim=-1), p=2, dim=-1
+                ).view(-1, *[1] * (n_dims-1))
 
         zold = torch.zeros_like(u)
 
@@ -76,7 +109,11 @@ class JacobianSpectralNorm(Loss):
 
             (v,) = torch.autograd.grad(y, x, v, retain_graph=True, create_graph=True)
 
-            z = torch.dot(u.flatten(), v.flatten()) / torch.norm(u, p=2) ** 2
+            # multiply corresponding batch elements
+            z = self._batched_dot(
+                u.flatten(start_dim=1, end_dim=-1), 
+                v.flatten(start_dim=1, end_dim=-1)
+            ) / torch.norm(u.flatten(start_dim=1, end_dim=-1), p=2, dim=-1) ** 2
 
             if it > 0:
                 rel_var = torch.norm(z - zold)
@@ -85,21 +122,23 @@ class JacobianSpectralNorm(Loss):
                         "Power iteration converged at iteration: ",
                         it,
                         ", val: ",
-                        z.sqrt().item(),
+                        z.sqrt().tolist(),
                         ", relvar :",
                         rel_var.item(),
                     )
                     break
             zold = z.detach().clone()
 
-            u = v / torch.norm(v.flatten(), p=2)
+            u = v / torch.norm(
+                        v.flatten(start_dim=1, end_dim=-1), p=2, dim=-1
+                    ).view(-1, *[1] * (n_dims-1))
 
             if self.eval:
                 w.detach_()
                 v.detach_()
                 u.detach_()
 
-        return z.view(-1).sqrt()
+        return self.reduction(z.view(-1).sqrt())
 
 
 class FNEJacobianSpectralNorm(Loss):
