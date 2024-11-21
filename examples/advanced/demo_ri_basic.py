@@ -123,7 +123,7 @@ class RadioInterferometry(LinearPhysics):
 
     def A(self, x):
         return (
-            self.nufftObj(x.to(torch.complex64), self.samples_loc, norm="ortho")
+            self.nufftObj(x.to(torch.cfloat), self.samples_loc, norm="ortho")
             * self.dataWeight
         )
 

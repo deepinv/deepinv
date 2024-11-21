@@ -22,8 +22,9 @@ New Features
 - Add loss schedulers (:gh:`296` by `Andrew Wang`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
+- Multi-coil MRI, 3D MRI, MRI Mixin (:gh:`287` by `Andrew Wang`_, Brett Levac)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, metrics docs section, Metric functional wrapper (:gh:`309`, :gh:`343` by `Andrew Wang`_)
-- generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+- generate_dataset features: complex numbers, save/load physics_generator params, overwrite bool (:gh:`324`, :gh:`352` by `Andrew Wang`_)
 - Add a denoiser architecture supporting translation and rotation-equivariance (:gh:`330` by `Jérémy Scanvic`_)
 - Add continuous translations with sinc interpolation (:gh:`330` by `Jérémy Scanvic`_)
 
@@ -42,7 +43,7 @@ Changed
 ^^^^^^^
 
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
-
+- get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_)
 
 v0.2.1
 ----------------
