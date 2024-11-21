@@ -81,8 +81,16 @@ We also provide pre-implemented iterative optimization algorithms,
 which can be loaded in a single line of code, and used
 to solve any inverse problem. The following algorithms are available:
 
-- :class:`dinv.optim.DPIR`
-- :class:`dinv.optim.EPLL`
+
+.. list-table:: Predefined methods
+   :header-rows: 1
+
+   * - **Method**
+     - **Description**
+   * - :class:`deepinv.optim.DPIR`
+     - Custom PnP algorithm with early stopping.
+   * - :class:`deepinv.optim.EPLL`
+     - Patch-based reconstruction algorithm
 
 
 .. _deep-image-prior:
@@ -90,8 +98,9 @@ to solve any inverse problem. The following algorithms are available:
 Deep Image Prior
 ----------------
 
-The `deep image prior <https://arxiv.org/abs/1711.10925>`_ can be interpreted as
+The `deep image prior <https://arxiv.org/abs/1711.10925>`_ :class:`deepinv.models.DeepImage Prior` can be interpreted as
 using an indicator function :math:`g(x) = \mathbf {1} _{x=d_{\theta}(z)}` which forces the reconstruction image
 to be the output of a convolutional decoder network :math:`d_{\theta}` applied to a random input :math:`z`.
-The choice of the architecture of :math:`d_{\theta}` is crucial for the success of the method. The
-following architecture is available, which is based on a convolutional decoder network:
+The choice of the architecture of :math:`d_{\theta}` is crucial for the success of the method: we provide the
+:class:`deepinv.models.ConvDecoder` architecture, which is based on a convolutional decoder network,
+and has shown good inductive bias for image reconstruction tasks.

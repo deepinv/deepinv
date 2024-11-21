@@ -4,6 +4,7 @@ from .utils import get_weights_url
 import math
 from .base import Denoiser
 
+
 class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.

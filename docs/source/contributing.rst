@@ -43,6 +43,10 @@ check the following points:
      - Generates documentation faster but without running the examples
    * - ``PATTERN=/path/to/file make html-pattern``
      - Generates documentation for files matching ``$(PATTERN)``
+   * - ``make clean``
+     - Cleans the documentation files
+   * - ``make clean-win``
+     - Cleans the documentation files (Windows OS)
 
 If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server

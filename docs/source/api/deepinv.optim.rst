@@ -17,6 +17,16 @@ Base Class
    deepinv.optim.optim_builder
    deepinv.optim.BaseOptim
 
+Potentials
+----------
+.. userguide:: potentials
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.Potential
 
 Data Fidelity
 -------------

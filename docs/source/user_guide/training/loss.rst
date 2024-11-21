@@ -50,28 +50,41 @@ of the forward operator (e.g., incomplete operators with less measurements than 
 
    * - Loss
      - Assumptions on Noise
+     - Compatible with general forward operators
    * - :class:`deepinv.loss.MCLoss`
-     - Monte Carlo noise estimation
+     - Small or no noise.
+     - Yes
    * - :class:`deepinv.loss.Neighbor2Neighbor`
-     - Neighboring pixels share similar information, suited for structured noise
+     - Independent noise across pixels.
+     - No
    * - :class:`deepinv.loss.SplittingLoss`
-     - Data can be split into noisy and clean components
+     - Independent noise across measurements.
+     - Yes
    * - :class:`deepinv.loss.Phase2PhaseLoss`
-     - Phase noise is predominant, with phase consistency assumed
+     - TODO
+     - No
    * - :class:`deepinv.loss.Artifact2ArtifactLoss`
-     - Noise primarily causes consistent artifacts
+     - TODO
+     - No
    * - :class:`deepinv.loss.SureGaussianLoss`
-     - Assumes Gaussian noise, based on Stein’s Unbiased Risk Estimator (SURE)
+     - Gaussian noise
+     - Yes
    * - :class:`deepinv.loss.SurePoissonLoss`
-     - Assumes Poisson noise, based on SURE
+     - Poisson noise
+     - Yes
    * - :class:`deepinv.loss.SurePGLoss`
-     - Assumes Poisson-Gaussian noise, based on SURE
+     - Poisson-Gaussian noise
+     - Yes
    * - :class:`deepinv.loss.R2RLoss`
-     - Suited for paired noisy data, no clean reference required
+     - Gaussian noise
+     - Yes
    * - :class:`deepinv.loss.ScoreLoss`
-     - Assumes score-based or noise-injected data for training
+     - Poisson, Gaussian or Gamma noise
+     - No
 
-In order to learn from incomplete data, TODO
+In order to learn from incomplete data, you can either
+i) use multiple operators (e.g., different masking patterns) or
+ii) use a single operator and leverage invariance to transformations (e.g., rotations, translations).
 
 .. list-table:: Other losses
    :widths: 25 35
@@ -80,13 +93,21 @@ In order to learn from incomplete data, TODO
    * - Loss
      - Assumptions
    * - :class:`deepinv.loss.EILoss`
-     - Assumes existence of an energy functional for image reconstruction
+     - Assumes invariance of the signal distribution to transformations.
    * - :class:`deepinv.loss.MOILoss`
-     - Multi-objective optimization framework; assumes multiple conflicting objectives
+     - Assumes measurements observed through multiple operators.
    * - :class:`deepinv.loss.MOEILoss`
-     - Multi-objective energy minimization; assumes compatibility with multiple energy terms
+     -  Assumes measurements observed through multiple operators
+       | and invariance of the signal distribution
    * - :class:`deepinv.loss.TVLoss`
-     - Assumes images have piecewise smooth regions; based on Total Variation (TV) regularization
+     - Assumes images have piecewise smooth regions; based on Total Variation regularization
+
+
+.. tip::
+
+       Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`, :class:`Phase2PhaseLoss <deepinv.loss.Phase2PhaseLoss>`,
+       and :class:`Artifact2ArtifactLoss <deepinv.loss.Artifact2ArtifactLoss>`
+       can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
 .. _regularization-losses:
 
@@ -101,9 +122,9 @@ These losses can be used to regularize the learned function, e.g., controlling i
    * - Loss
      - Description
    * - :class:`deepinv.loss.JacobianSpectralNorm`
-     - Computes the spectral norm of the Jacobian matrix to regularize the model, helping to control sensitivity to input perturbations.
+     - Controls spectral norm of the Jacobian matrix
    * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
-     - Fast Neural Estimation of the Jacobian spectral norm; optimized for efficiency in calculating the spectral norm, suitable for large-scale models.
+     - Promotes a firmly non-expansive network.
 
 .. _adversarial-losses:
 

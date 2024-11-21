@@ -12,14 +12,16 @@ We implement various geometric transforms, ranging from Euclidean to homography 
 Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via ``|`` to randomly select.
 There are numerous other parameters e.g to randomly transform multiple times at once, to constrain the parameters to a range etc.
 
-Transforms can also be used to make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser` by performing Reynolds averaging using ``symmetrize()``.
-They can also be used for equivariant imaging (EI) using the :class:`deepinv.loss.EILoss` loss.
-See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` and :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` for examples.
+Common usages of transforms:
+
+- | Make a denoiser equivariant using :class:`deepinv.models.EquivariantDenoiser`
+  | by performing Reynolds averaging using ``symmetrize()``. See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`.
+- | Equivariant imaging (EI) using the :class:`deepinv.loss.EILoss` loss.
+  | See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`.
 
 If needed, transforms can also be made deterministic by passing in specified parameters to the forward method.
 This allows every transform to have its own deterministic inverse using ``transform.inverse()``.
-Transforms can also be seamlessly integrated with existing ``torchvision`` transforms.
-Transforms can also accept video (5D) input.
+Transforms can also be seamlessly integrated with existing ``torchvision`` transforms and can also accept video (5D) input.
 
 
 For example, random transforms can be used as follows:
@@ -54,17 +56,18 @@ For example, random transforms can be used as follows:
 
 Simple transforms
 -----------------
+We provide the following simple geometric transforms.
 
 .. list-table:: Simple Transformations
    :header-rows: 1
 
    * - **Transform**
      - **Uses Interpolation**
-     - **Invertible**
+     - **Exact Inversion**
 
    * - :class:`deepinv.transform.Rotate`
      - Yes
-     - No (border effects)
+     - No
 
    * - :class:`deepinv.transform.Shift`
      - Yes

@@ -33,9 +33,9 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
 Linear operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :meth:`deepinv.physics.LinearPhysics` class.
-They have important specific properties such as the existence of an adjoint :math:`A^*:\yset\mapsto \xset`.
-Linear operators with a closed-form singular value decomposition are defined via :meth:`deepinv.physics.DecomposablePhysics`,
+Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`deepinv.physics.LinearPhysics` class.
+They have important specific properties such as the existence of an adjoint :math:`A^{\top}:\yset\mapsto \xset`.
+Linear operators with a closed-form singular value decomposition are defined via :class:`deepinv.physics.DecomposablePhysics`,
 which enables the efficient computation of their pseudo-inverse and regularized inverse.
 Composition and linear combinations of linear operators is still a linear operator.
 
@@ -60,10 +60,9 @@ Parameter-dependent operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, ie
-:math:`y = \noise{\forw{x, \theta}}` where
-the ``forward`` method can be called with a dictionary of parameters as an extra input. The explicit dependency on
-:math:`\theta` is often useful for blind inverse problems, model identification, imaging system optimization, etc.
-The following example shows how operators and their parameter can be instantiated and called as:
+:math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of parameters as an extra input.
+The explicit dependency on :math:`\theta` is often useful for blind inverse problems, model identification,
+imaging system optimization, etc. The following example shows how operators and their parameter can be instantiated and called as:
 
 .. doctest::
 
@@ -93,7 +92,7 @@ The following example shows how operators and their parameter can be instantiate
 Physics Generators
 ^^^^^^^^^^^^^^^^^^^
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
-Physics generators inherit from the :meth:`PhysicsGenerator` class:
+Physics generators inherit from the :class:`deepinv.physics.PhysicsGenerator` class:
 
 
 .. doctest::
@@ -122,5 +121,8 @@ it is possible to sum generators as follows:
     >>> print(sorted(params.keys()))
     ['mask', 'sigma']
 
-It is also possible to mix generators of physics parameters through the :meth:`GeneratorMixture` class:
+.. tip::
+
+        It is also possible to mix generators of physics parameters through the
+        :class:`deepinv.physics.generator.GeneratorMixture` class.
 

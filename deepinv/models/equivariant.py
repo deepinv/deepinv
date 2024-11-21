@@ -3,6 +3,7 @@ import torch
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser
 
+
 class EquivariantDenoiser(Denoiser):
     r"""
     Turns the input denoiser into an equivariant denoiser with respect to geometric transforms.
@@ -42,7 +43,9 @@ class EquivariantDenoiser(Denoiser):
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
     """
 
-    def __init__(self, denoiser: Denoiser, transform: Optional[Transform] = None, random=True):
+    def __init__(
+        self, denoiser: Denoiser, transform: Optional[Transform] = None, random=True
+    ):
         super().__init__()
         self.denoiser = denoiser
 

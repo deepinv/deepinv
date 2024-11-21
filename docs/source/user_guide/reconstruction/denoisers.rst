@@ -113,16 +113,16 @@ and rely on hand-crafted priors.
      - Non-learned filter
      - Any C, H, W
    * - :class:`deepinv.models.TVDenoiser`
-     - `Total variation prior <deepinv.optim.TVPrior`
+     - :class:`Total variation prior <deepinv.optim.TVPrior>`
      - Any C, H, W
    * - :class:`deepinv.models.TGVDenoiser`
      - Total generalized variation prior
      - Any C, H, W
    * - :class:`deepinv.models.WaveletDenoiser`
-     - `Sparsity in orthogonal wavelet domain <deepinv.optim.WaveletPrior>`
+     - :class:`Sparsity in orthogonal wavelet domain <deepinv.optim.WaveletPrior>`
      - Any C, H, W
    * - :class:`deepinv.models.WaveletDictDenoiser`
-     - `Sparsity in overcompleete wavelet domain <deepinv.optim.WaveletDictPrior>`
+     - Sparsity in overcomplete wavelet domain
      - Any C, H, W
    * - :class:`deepinv.models.EPLLDenoiser`
      - Learned patch-prior
@@ -132,6 +132,9 @@ and rely on hand-crafted priors.
 
 Denoisers Utilities
 -------------------
+
+Equivariant denoisers
+~~~~~~~~~~~~~~~~~~~~~
 Denoisers can be turned into equivariant denoisers by wrapping them with the
 :class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser
 with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate`
@@ -140,10 +143,14 @@ The denoising can either be averaged over the entire group of transformation (ma
 performed on 1 or n transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo
 estimator of the exact equivariant denoiser.
 
+Complex denoisers
+~~~~~~~~~~~~~~~~~
 Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval,
 require processing complex-valued images. The function :class:`deepinv.models.complex.to_complex_denoiser` can convert any real-valued denoiser into
 a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
 
+Dynamic networks
+~~~~~~~~~~~~~~~~
 When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted.
 To adapt any existing network to take dynamic data as independent time-slices, create a time-agnostic wrapper that
 flattens the time dimension into the batch dimension.

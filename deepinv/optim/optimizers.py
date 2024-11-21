@@ -8,6 +8,7 @@ from deepinv.optim.prior import Zero
 from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 
+
 class BaseOptim(Reconstructor):
     r"""
     Class for optimization algorithms, consists in iterating a fixed-point operator.
@@ -127,9 +128,13 @@ class BaseOptim(Reconstructor):
     :param bool backtracking: whether to apply a backtracking strategy for stepsize selection. Default: ``False``.
     :param float gamma_backtracking: :math:`\gamma` parameter in the backtracking selection. Default: ``0.1``.
     :param float eta_backtracking: :math:`\eta` parameter in the backtracking selection. Default: ``0.9``.
-    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value), the algorithm is initialized with the adjoint :math:`A^Ty` when the adjoint is defined, and with the observation `y` if the adjoint is not defined. Default: ``None``.
-    :param function get_output: get the image output given the current dictionary update containing primal and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
-    :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations. Default: ``False``.
+    :param function custom_init:  initializes the algorithm with ``custom_init(y, physics)``. If ``None`` (default value),
+        the algorithm is initialized with the adjoint :math:`A^{\top}y` when the adjoint is defined,
+        and with the observation `y` if the adjoint is not defined. Default: ``None``.
+    :param function get_output: get the image output given the current dictionary update containing primal
+        and auxiliary variables ``X = {('est' : (primal, aux)}``. Default : ``X['est'][0]``.
+    :param bool anderson_acceleration: whether to use Anderson acceleration for accelerating the forward fixed-point iterations.
+        Default: ``False``.
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.

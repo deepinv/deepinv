@@ -1,6 +1,7 @@
 import torch
 from .base import Denoiser
 
+
 class AutoEncoder(Denoiser):
     r"""
     Simple fully connected autoencoder network.

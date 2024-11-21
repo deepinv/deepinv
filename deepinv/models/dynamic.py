@@ -3,6 +3,7 @@ import torch.nn as nn
 from deepinv.physics import Physics, TimeMixin
 from .base import Reconstructor
 
+
 class TimeAgnosticNet(Reconstructor, TimeMixin):
     r"""
     Time-agnostic network wrapper.

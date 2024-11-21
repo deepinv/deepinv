@@ -95,32 +95,32 @@ Multiple popular easy-to-download datasets are available:
 
    * - :class:`deepinv.datasets.DIV2K`
      - 800 (train) + 100 (val) images
-     - RGB, up to 2000x2000 pixels (variable)
+     - RGB, up to 2040x2040 pixels (variable)
      - A widely-used dataset for natural image restoration.
 
    * - :class:`deepinv.datasets.Urban100HR`
      - 100 images
-     - ?? pixels
+     - up to 1024x1024 pixels (variable)
      - Contains diverse high-resolution urban scenes, typically used for testing super-resolution algorithms.
 
    * - :class:`deepinv.datasets.Set14HR`
      - 14 high-resolution images
-     - ??? pixels
+     - RGB, 276×276 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
    * - :class:`deepinv.datasets.CBSD68`
      - 68 images
      - RGB, 481x321 pixels
-     - A subset of the Berkeley Segmentation Dataset, often used for evaluating image denoising algorithms.
+     - A subset of the Berkeley Segmentation Dataset.
 
    * - :class:`deepinv.datasets.FastMRISliceDataset`
      - Over 100,000 MRI slices
-     - Complex numbers, ??x320x320 voxels
+     - Complex numbers, 320x320 pixels
      - A large-scale dataset of MRI brain and knee scans for training and evaluating MRI reconstruction methods.
 
    * - :class:`deepinv.datasets.LidcIdriSliceDataset`
-     - Over 100,000 CT scan slices
-     - ??x512x512 voxels
+     - Over 200,000 CT scan slices
+     - Slices 512x512 voxels
      - A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.
 
    * - :class:`deepinv.datasets.Flickr2kHR`
@@ -129,11 +129,11 @@ Multiple popular easy-to-download datasets are available:
      - A dataset from Flickr containing high-resolution images for tasks like super-resolution and image restoration.
 
    * - :class:`deepinv.datasets.LsdirHR`
-     - 300 high-resolution landscape images
-     - RGB, up to 2000x2000 pixels (variable)
-     - A dataset with high-resolution landscape images, often used for benchmarking super-resolution methods.
+     - 84499 (train) + 1000 (val) images
+     - RGB, up to 2160x2160 pixels (variable)
+     - A dataset with high-resolution images, often used for training large reconstruction models.
 
    * - :class:`deepinv.datasets.FMD`
-     - ??
-     - ?? pixels
-     - The Fluorescence Microscopy Dataset (FMD) is a dataset of fluorescence microscopy images for evaluating image restoration and super-resolution methods.
+     - 12000 images
+     - 512x512 pixels
+     - The Fluorescence Microscopy Dataset (FMD) is a dataset of real fluorescence microscopy images.

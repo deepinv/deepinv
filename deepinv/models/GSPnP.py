@@ -3,6 +3,7 @@ import torch.nn as nn
 from .utils import get_weights_url
 from .base import Denoiser
 
+
 class StudentGrad(nn.Module):
     def __init__(self, denoiser):
         super().__init__()

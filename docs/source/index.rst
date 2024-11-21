@@ -36,6 +36,7 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
    API
    finding_help
    contributing
+   community
 
 
 **Lead Developers**

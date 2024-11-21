@@ -1,6 +1,7 @@
 import torch
 from .base import Denoiser
 
+
 class TVDenoiser(Denoiser):
     r"""
     Proximal operator of the isotropic Total Variation operator.

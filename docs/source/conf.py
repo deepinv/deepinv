@@ -159,8 +159,18 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
-html_logo = "figures/deepinv_logolarge.png"
+html_sidebars = {
+  "quickstart": [],
+  "contributing": [],
+  "finding_help": [],
+  "community": [],
+}
+# html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
+    "logo": {
+        "image_light": "figures/deepinv_logolarge.png",
+        "image_dark": "figures/logo_large_dark.png",
+    },
     "secondary_sidebar_items": {
         "**": [
             "page-toc",

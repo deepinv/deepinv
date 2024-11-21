@@ -97,17 +97,27 @@ or with a user-defined one.
 Optimization algorithm inherit from the base class :meth:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all optimization algorithms.
 
+.. _potentials:
+
+Potentials
+----------
+The class :class:`deepinv.optim.Potential` implements potential scalar functions :math:`h : \xset \to \mathbb{R}`
+used to define an optimization problems. This class comes with methods for computing operators useful for optimization,
+such as its proximal operator :math:`\operatorname{prox}_{h}`, its gradient :math:`\nabla h`, its convex conjugate :math:`h^*`, etc.
+
 
 .. _data-fidelity:
 
 Data Fidelity
 -------------
-This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
-:math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`.
-The class :meth:`deepinv.optim.Distance` is implemented as a child class from :meth:`deepinv.optim.Potential`.
+The class :class:`deepinv.optim.DataFidelity` implements data fidelity terms :math:`\distance{A(x)}{y}`
+where :math:`A` is the forward operator, :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data,
+and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`.
+The class :class:`deepinv.optim.Distance` is implemented as a child class from :class:`deepinv.optim.Potential`.
 
-This data-fidelity class thus comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
-:math:`\nabla (\distancename \circ A)` (among others), on which optimization algorithms rely.
+This data-fidelity class thus comes with useful methods,
+such as :math:`\operatorname{prox}_{\distancename\circ A}` and :math:`\nabla (\distancename \circ A)` (among others)
+which are used by most optimization algorithms.
 
 .. list-table:: Data Fidelity Overview
    :widths: 25 30
@@ -122,9 +132,9 @@ This data-fidelity class thus comes with methods, such as :math:`\operatorname{p
    * - :class:`deepinv.optim.IndicatorL2`
      - Indicator function of :math:`\|A(x) - y\|_2 \leq \epsilon`
    * - :class:`deepinv.optim.PoissonLikelihood`
-     - Poisson negative log-likelihood: :math:`A(x) - y \log(A(x))`
+     - :math:`\datafid{A(x)}{y} =  -y^{\top} \log(A(x)+\beta)+1^{\top}A(x)`
    * - :class:`deepinv.optim.LogPoissonLikelihood`
-     - Log-Poisson negative log-likelihood: :math:`N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)`
+     - :math:`N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)`
    * - :class:`deepinv.optim.AmplitudeLoss`
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
 
@@ -187,25 +197,26 @@ Bregman
 This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
 where :math:`\phi` is a convex scalar function. All Bregman potentials inherit from
 
-This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
-operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient :math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^T y`.
+This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods
+for computing operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient
+:math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence
+:math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`.
 
 
-.. list-table:: Priors Overview
+.. list-table:: Potentials Overview
    :widths: 35 20
    :header-rows: 1
 
-    * - Class
-      - Bregman Potential :math:`\phi(x)`
-    * - :class:`deepinv.optim.bregman.BregmanL2`
-      - :math:`\|x\|_2^2`
-    * - :class:`deepinv.optim.bregman.BurgEntropy`
-      - :math:`\sum_i x_i \log(x_i)`
-    * - :class:`deepinv.optim.bregman.NegEntropy`
-      - :math:`-\sum_i x_i \log(x_i)`
-    * - :class:`deepinv.optim.bregman.Bregman_ICNN`
-      - :math:`\sum_i x_i \log(x_i) - x_i`
-
+   * - Class
+     - Bregman Potential :math:`\phi(x)`
+   * - :class:`deepinv.optim.bregman.BregmanL2`
+     - :math:`\|x\|_2^2`
+   * - :class:`deepinv.optim.bregman.BurgEntropy`
+     - :math:`- \sum_i \log x_i`
+   * - :class:`deepinv.optim.bregman.NegEntropy`
+     - :math:`\sum_i x_i \log x_i`
+   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
+     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 .. _optim-params:
 

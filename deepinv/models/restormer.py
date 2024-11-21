@@ -22,6 +22,7 @@ from einops import rearrange
 from .utils import get_weights_url, test_pad
 from .base import Denoiser
 
+
 class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
@@ -29,7 +30,7 @@ class Restormer(Denoiser):
     This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
-    .. image:: ../figures/restormer_architecture.png
+    .. image:: figures/restormer_architecture.png
        :width: 600
        :alt: Overview of the Restormer architecture / Fig 2 in paper by Zamir et al.
 

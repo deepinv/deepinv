@@ -8,7 +8,9 @@ Operators & Noise
 
 Operators
 ~~~~~~~~~
-Operators describe the forward model :math:`z = A(x,\theta)`.
+Operators describe the forward model :math:`z = A(x,\theta)`, where
+:math:`x` is the input image and :math:`\theta` are the parameters of the operator.
+The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
 
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
@@ -73,8 +75,8 @@ Operators describe the forward model :math:`z = A(x,\theta)`.
 
    * - Phase Retrieval
      - | :class:`deepinv.physics.PhaseRetrieval`
-       | :class:`deepinv.physics.RandomPhaseRetrieval`
-       | :class:`deepinv.physics.StructuredRandomPhaseRetrieval`
+       | :class:`RandomPhaseRetrieval <deepinv.physics.RandomPhaseRetrieval>`
+       | :class:`StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
      -
 
 
@@ -84,27 +86,28 @@ Noise distributions
 ~~~~~~~~~~~~~~~~~~~
 Noise distributions describe the noise model :math:`N`,
 where :math:`y = N(z)` with :math:`z=A(x)`. The noise models can be assigned
-to **any** operator in the list above, by setting the ``noise_model`` attribute at initialization.
+to **any** operator in the list above, by setting the
+:func:`set_noise_model <deepinv.physics.Physics.set_noise_model>` attribute at initialization.
 
 .. list-table:: Noise Distributions and Their Probability Distributions
    :header-rows: 1
 
    * - **Noise**
-     - :math:`p(y|z)`
+     - :math:`y|z`
 
    * - :class:`deepinv.physics.GaussianNoise`
-     - :math:`\mathcal{N}(z, I\sigma^2)`
+     - :math:`y\sim \mathcal{N}(z, I\sigma^2)`
 
    * - :class:`deepinv.physics.PoissonNoise`
-     - :math:`\mathcal{P}(y/\lambda)`
+     - :math:`y \sim \mathcal{P}(z/\gamma)`
 
    * - :class:`deepinv.physics.PoissonGaussianNoise`
-     - :math:`y = \log \bar{z} + \epsilon`, :math:`\epsilon \sim \mathcal{N}(0, I\sigma^2)`, :math:`\bar{z} \sim \mathcal{P}(z/\lambda)`
+     - :math:`y = \gamma z + \epsilon`, :math:`z\sim\mathcal{P}(\frac{z}{\gamma})`, :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`
 
    * - :class:`deepinv.physics.LogPoissonNoise`
-     - :math:`y = \gamma \bar{z}`, :math:`\bar{z} \sim \mathcal{P}(z/\lambda)`
+     - :math:`y = \frac{1}{\mu} \log(\frac{\mathcal{P}(\exp(-\mu z) N_0)}{N_0})`
 
    * - :class:`deepinv.physics.UniformNoise`
-     - :math:`\mathcal{U}(z-a, z+b)`
+     - :math:`y\sim \mathcal{U}(z-a, z+b)`
 
 

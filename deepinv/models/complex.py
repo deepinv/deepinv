@@ -2,6 +2,7 @@ import torch
 from .base import Denoiser
 from typing import Union
 
+
 def to_complex_denoiser(denoiser, mode="real_imag"):
     r"""
     Converts a denoiser with real inputs into the one with complex inputs.
@@ -14,7 +15,9 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
     """
 
     class complex_denoiser(Denoiser):
-        def __init__(self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs):
+        def __init__(
+            self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs
+        ):
             super().__init__(*args, **kwargs)
             self.mode = mode
             self.denoiser = denoiser

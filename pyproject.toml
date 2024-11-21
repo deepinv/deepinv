@@ -58,7 +58,7 @@ test = [
 doc = [
     "sphinx",
     "sphinx_gallery",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
     "sphinxemoji",
     "sphinx_copybutton",
     "sphinx_autoapi",

@@ -18,17 +18,18 @@ class Denoiser(torch.nn.Module):
     The base class inherits from :class:`torch.nn.Module`.
 
     """
-    def __init__(self, device='cpu'):
+
+    def __init__(self, device="cpu"):
         super().__init__()
         self.to(device)
 
     def forward(self, x, sigma, **kwargs):
         r"""
-        Applies denoiser :math:`\denoiser{x}`.
+        Applies denoiser :math:`\denoiser{x}{\sigma}`.
 
         :param torch.Tensor x: noisy input.
         :param torch.Tensor, float sigma: noise level.
-        :returns: denoised tensor.
+        :returns: (torch.Tensor) Denoised tensor.
         """
         return NotImplementedError
 
@@ -42,16 +43,17 @@ class Reconstructor(torch.nn.Module):
     The base class inherits from :class:`torch.nn.Module`.
 
     """
-    def __init__(self, device='cpu'):
+
+    def __init__(self, device="cpu"):
         super().__init__()
         self.to(device)
 
     def forward(self, y, physics, **kwargs):
         r"""
-        Applies denoiser :math:`\inversef{y, A}`.
+        Applies reconstruction model :math:`\inversef{y}{A}`.
 
         :param torch.Tensor y: measurements.
         :param deepinv.physics.Physics physics: forward model :math:`A`.
-        :returns: denoised tensor.
+        :returns: (torch.Tensor) reconstructed tensor.
         """
         return NotImplementedError

@@ -3,6 +3,7 @@ import torch.nn as nn
 from .drunet import test_pad
 from .base import Denoiser
 
+
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From Mohan et al.
