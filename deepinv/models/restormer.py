@@ -30,10 +30,6 @@ class Restormer(Denoiser):
     This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
-    .. image:: figures/restormer_architecture.png
-       :width: 600
-       :alt: Overview of the Restormer architecture / Fig 2 in paper by Zamir et al.
-
     |
     |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
     |  Usage :

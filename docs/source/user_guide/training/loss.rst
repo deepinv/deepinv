@@ -45,7 +45,6 @@ designed to take care of the noise in the measurements, or take care of the ill-
 of the forward operator (e.g., incomplete operators with less measurements than pixels in the image)
 
 .. list-table:: Denoising Losses
-   :widths: 25 35
    :header-rows: 1
 
    * - Loss
@@ -87,7 +86,6 @@ i) use multiple operators (e.g., different masking patterns) or
 ii) use a single operator and leverage invariance to transformations (e.g., rotations, translations).
 
 .. list-table:: Other losses
-   :widths: 25 35
    :header-rows: 1
 
    * - Loss
@@ -97,7 +95,7 @@ ii) use a single operator and leverage invariance to transformations (e.g., rota
    * - :class:`deepinv.loss.MOILoss`
      - Assumes measurements observed through multiple operators.
    * - :class:`deepinv.loss.MOEILoss`
-     -  Assumes measurements observed through multiple operators
+     - | Assumes measurements observed through multiple operators
        | and invariance of the signal distribution
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
@@ -116,7 +114,6 @@ Network Regularization
 These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
 
 .. list-table:: Network Regularization Losses Overview
-   :widths: 25 45
    :header-rows: 1
 
    * - Loss
@@ -139,7 +136,6 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
 - :class:`deepinv.loss.adversarial.DiscriminatorMetric`
 
 .. list-table:: Adversarial Losses Overview
-   :widths: 35 35 30
    :header-rows: 1
 
    * - Generator Loss
@@ -164,7 +160,6 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
 
 
 .. list-table:: Schedulers Overview
-   :widths: 25 45
    :header-rows: 1
 
    * - Loss

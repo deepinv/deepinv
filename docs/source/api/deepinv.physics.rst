@@ -44,7 +44,9 @@ Operators
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
    deepinv.physics.MRI
+   deepinv.physics.MRIMixin
    deepinv.physics.DynamicMRI
+   deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
