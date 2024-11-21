@@ -13,6 +13,10 @@ import random
 
 from os.path import exists
 
+device = "cuda:0"
+root = "Urban100"
+dataset_path = f"{root}/dinv_dataset0.h5"
+
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 numpy.random.seed(0)
@@ -25,32 +29,25 @@ params = gen.step(batch_size=1, seed=0)
 physics = dinv.physics.Inpainting(tensor_size=(3, 128, 128))
 physics.update_parameters(**params)
 
-device = "cuda:0"
-root = "Urban100"
-dataset_path = f"{root}/dinv_dataset0.h5"
-if not exists(dataset_path):
-    dataset = dinv.datasets.Urban100HR(
-        root=root,
-        download=True,
-        transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
-    )
+dataset = dinv.datasets.Urban100HR(
+    root=root,
+    download=True,
+    transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
+)
 
-    train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
+train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
 
-    # Generate data pairs x,y offline using a physics generator
-    dinv.datasets.generate_dataset(
-        train_dataset=train_dataset,
-        test_dataset=test_dataset,
-        physics=physics,
-        save_dir=root,
-        batch_size=1,
-        device=device,
-    )
+# Generate data pairs x,y offline using a physics generator
+dinv.datasets.generate_dataset(
+    train_dataset=train_dataset,
+    test_dataset=test_dataset,
+    physics=physics,
+    save_dir=root,
+    batch_size=1,
+    device="cpu",
+)
 
-torch.manual_seed(0)
-torch.cuda.manual_seed(0)
-numpy.random.seed(0)
-random.seed(0)
+physics.mask.to(device)
 
 train_dataloader = DataLoader(
     dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
