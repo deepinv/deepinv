@@ -1,12 +1,10 @@
-# Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-#
-# This work is licensed under a Creative Commons
-# Attribution-NonCommercial-ShareAlike 4.0 International License.
-# You should have received a copy of the license along with this
-# work. If not, see http://creativecommons.org/licenses/by-nc-sa/4.0/
+# Adapted from https://github.com/NVlabs/edm
 
-"""Model architectures and preconditioning schemes used in the paper
-"Elucidating the Design Space of Diffusion-Based Generative Models"."""
+"""
+Model architectures and preconditioning schemes used in the paper
+Elucidating the Design Space of Diffusion-Based Generative Models: https://arxiv.org/pdf/2206.00364
+
+"""
 
 import numpy as np
 import torch
@@ -778,21 +776,14 @@ class DhariwalUNet(torch.nn.Module):
 class VPPrecond(torch.nn.Module):
     def __init__(
         self,
-        img_resolution,  # Image resolution.
-        img_channels,  # Number of color channels.
-        label_dim=0,  # Number of class labels, 0 = unconditional.
+        model,
         use_fp16=False,  # Execute the underlying model at FP16 precision?
         beta_d=19.9,  # Extent of the noise level schedule.
         beta_min=0.1,  # Initial slope of the noise level schedule.
         M=1000,  # Original number of timesteps in the DDPM formulation.
         epsilon_t=1e-5,  # Minimum t-value used during training.
-        model_type="SongUNet",  # Class name of the underlying model.
-        **model_kwargs,  # Keyword arguments for the underlying model.
     ):
         super().__init__()
-        self.img_resolution = img_resolution
-        self.img_channels = img_channels
-        self.label_dim = label_dim
         self.use_fp16 = use_fp16
         self.beta_d = beta_d
         self.beta_min = beta_min
@@ -800,26 +791,14 @@ class VPPrecond(torch.nn.Module):
         self.epsilon_t = epsilon_t
         self.sigma_min = float(self.sigma(epsilon_t))
         self.sigma_max = float(self.sigma(1))
-        self.model = globals()[model_type](
-            img_resolution=img_resolution,
-            in_channels=img_channels,
-            out_channels=img_channels,
-            label_dim=label_dim,
-            **model_kwargs,
-        )
+        self.model = model
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)
-        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
-        class_labels = (
-            None
-            if self.label_dim == 0
-            else (
-                torch.zeros([1, self.label_dim], device=x.device)
-                if class_labels is None
-                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
-            )
-        )
+        sigma = handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        if class_labels is not None:
+            class_labels = class_labels.to(torch.float32)
         dtype = (
             torch.float16
             if (self.use_fp16 and not force_fp32 and x.device.type == "cuda")
@@ -865,42 +844,22 @@ class VPPrecond(torch.nn.Module):
 class VEPrecond(torch.nn.Module):
     def __init__(
         self,
-        img_resolution,  # Image resolution.
-        img_channels,  # Number of color channels.
-        label_dim=0,  # Number of class labels, 0 = unconditional.
+        model,
         use_fp16=False,  # Execute the underlying model at FP16 precision?
         sigma_min=0.02,  # Minimum supported noise level.
         sigma_max=100,  # Maximum supported noise level.
-        model_type="SongUNet",  # Class name of the underlying model.
-        **model_kwargs,  # Keyword arguments for the underlying model.
     ):
         super().__init__()
-        self.img_resolution = img_resolution
-        self.img_channels = img_channels
-        self.label_dim = label_dim
         self.use_fp16 = use_fp16
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        self.model = globals()[model_type](
-            img_resolution=img_resolution,
-            in_channels=img_channels,
-            out_channels=img_channels,
-            label_dim=label_dim,
-            **model_kwargs,
-        )
+        self.model = model
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)
-        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
-        class_labels = (
-            None
-            if self.label_dim == 0
-            else (
-                torch.zeros([1, self.label_dim], device=x.device)
-                if class_labels is None
-                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
-            )
-        )
+        sigma = handle_sigma(sigma, torch.float32, x.device, x.size(0))
+        if class_labels is not None:
+            class_labels = class_labels.to(torch.float32)
         dtype = (
             torch.float16
             if (self.use_fp16 and not force_fp32 and x.device.type == "cuda")
@@ -934,31 +893,18 @@ class VEPrecond(torch.nn.Module):
 class iDDPMPrecond(torch.nn.Module):
     def __init__(
         self,
-        img_resolution,  # Image resolution.
-        img_channels,  # Number of color channels.
-        label_dim=0,  # Number of class labels, 0 = unconditional.
+        model,
         use_fp16=False,  # Execute the underlying model at FP16 precision?
         C_1=0.001,  # Timestep adjustment at low noise levels.
         C_2=0.008,  # Timestep adjustment at high noise levels.
         M=1000,  # Original number of timesteps in the DDPM formulation.
-        model_type="DhariwalUNet",  # Class name of the underlying model.
-        **model_kwargs,  # Keyword arguments for the underlying model.
     ):
         super().__init__()
-        self.img_resolution = img_resolution
-        self.img_channels = img_channels
-        self.label_dim = label_dim
         self.use_fp16 = use_fp16
         self.C_1 = C_1
         self.C_2 = C_2
         self.M = M
-        self.model = globals()[model_type](
-            img_resolution=img_resolution,
-            in_channels=img_channels,
-            out_channels=img_channels * 2,
-            label_dim=label_dim,
-            **model_kwargs,
-        )
+        self.model = model
 
         u = torch.zeros(M + 1)
         for j in range(M, 0, -1):  # M, ..., 1
@@ -973,16 +919,10 @@ class iDDPMPrecond(torch.nn.Module):
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)
-        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
-        class_labels = (
-            None
-            if self.label_dim == 0
-            else (
-                torch.zeros([1, self.label_dim], device=x.device)
-                if class_labels is None
-                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
-            )
-        )
+        sigma = handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        if class_labels is not None:
+            class_labels = class_labels.to(torch.float32)
         dtype = (
             torch.float16
             if (self.use_fp16 and not force_fp32 and x.device.type == "cuda")
@@ -1003,7 +943,7 @@ class iDDPMPrecond(torch.nn.Module):
             **model_kwargs,
         )
         assert F_x.dtype == dtype
-        D_x = c_skip * x + c_out * F_x[:, : self.img_channels].to(torch.float32)
+        D_x = c_skip * x + c_out * F_x.to(torch.float32)
         return D_x
 
     def alpha_bar(self, j):
@@ -1066,9 +1006,6 @@ class EDMPrecond(torch.nn.Module):
         assert F_x.dtype == dtype
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         return D_x
-
-    def round_sigma(self, sigma):
-        return torch.as_tensor(sigma)
 
 
 # ----------------------------------------------------------------------------

@@ -8,7 +8,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 from edm import load_model
 import numpy as np
 from utils import get_edm_parameters
-from deepinv.models.edm import EDMPrecond, SongUNet
+from deepinv.models.edm import EDMPrecond, SongUNet, VEPrecond, VPPrecond, iDDPMPrecond
 
 # %%
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -36,21 +36,14 @@ print(sum(p.numel() for p in unet.parameters()))
 for p in unet.parameters():
     p.requires_grad_(False)
 # %%
-# model = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
-# print(model.edm_model.model)
-model = EDMPrecond(model=unet, 
-                   sigma_min=0.002,
-                   sigma_max=80,
-                   sigma_data=0.5).to(device)
-
-# %%
+model = EDMPrecond(model=unet).to(device)
 denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
 prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 
-x_noisy = x + torch.randn_like(x) * 7.5
-dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 7.5)])
+x_noisy = x + torch.randn_like(x) * 0.2
+dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 0.2)])
 
 
 # %%

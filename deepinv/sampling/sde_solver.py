@@ -53,6 +53,9 @@ class BaseSDESolver(nn.Module):
     def sample(
         self, x_init: Tensor, *args, timesteps: Union[Tensor, ndarray] = None, **kwargs
     ) -> Tensor:
+        r"""
+        Solve the SDE with given time-step.
+        """
         x = x_init
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
             x = self.step(t_cur, t_next, x, *args, **kwargs)
@@ -116,7 +119,7 @@ class HeunSolver(BaseSDESolver):
         )
 
 
-def select_sde_solver(name: str = "euler") -> BaseSDESolver:
+def select_solver(name: str = "euler") -> BaseSDESolver:
     if name.lower() == "euler":
         return EulerSolver
     elif name.lower() == "heun":

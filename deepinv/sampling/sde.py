@@ -9,10 +9,9 @@ import numpy as np
 from numpy import ndarray
 import warnings
 from utils import get_edm_parameters
-from noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity
 from deepinv.optim.prior import ScorePrior
 from deepinv.physics import Physics
-from sde_solver import select_sde_solver
+from sde_solver import select_solver
 
 
 class BaseSDE(nn.Module):
@@ -27,6 +26,9 @@ class BaseSDE(nn.Module):
 
     :param callable drift: a time-dependent drift function f(x, t)
     :param callable diffusion: a time-dependent diffusion function g(t)
+    :param torch.Generator rng: a random number generator for reproducibility, optional.
+    :param torch.dtype dtype: the data type of the computations.
+    :param str device: the device for the computations.
     """
 
     def __init__(
@@ -50,13 +52,21 @@ class BaseSDE(nn.Module):
 
     def sample(
         self,
-        x_init: Optional[Tensor] = None,
+        x_init: Tensor = None,
         *args,
         timesteps: Union[Tensor, ndarray] = None,
         method: str = "euler",
         **kwargs,
     ):
-        solver_fn = select_sde_solver(method)
+        r"""
+        Solve the SDE with the given time-step.
+        :param torch.Tensor x_init: initial value.
+        :param timesteps: time steps at which to sample the SDE.
+        :param str method: method for solving the SDE.
+
+        :return torch.Tensor: samples from the SDE.
+        """
+        solver_fn = select_solver(method)
         solver = solver_fn(sde=self, rng=self.rng, **kwargs)
         samples = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
         return samples
@@ -117,13 +127,36 @@ class BaseSDE(nn.Module):
 
 
 class DiffusionSDE(nn.Module):
+    r"""
+    Forward-time and Reverse-time Diffusion Stochastic Differential Equation with parameterized drift term.
+
+    The forward SDE is defined by:
+    .. math::
+            d x_{t} = f(x_t, t) dt + g(t) d w_{t}.
+
+    This forward SDE can be reversed by the following SDE running backward in time:
+
+    .. math::
+            d x_{t} = \left( f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) dt + g(t) d w_{t}.
+
+    There also exists a deterministic probability flow ODE whose trajectories share the same marginal distribution as the SDEs:
+
+    .. math::
+            d x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt
+
+    :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
+    :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
+    :param deepinv.prior.ScorePrior prior: a time-dependent score prior, corresponding to :math:`\nabla \log p_t`
+    :param torch.Generator rng: pseudo-random number generator for reproducibility.
+    """
+
     def __init__(
         self,
         drift: Callable = lambda x, t: -x,
         diffusion: Callable = lambda t: math.sqrt(2.0),
+        use_backward_ode=False,
         prior: ScorePrior = None,
         rng: torch.Generator = None,
-        use_backward_ode=False,
         dtype=torch.float32,
         device=torch.device("cpu"),
         *args,
@@ -252,48 +285,6 @@ class EDMSDE(DiffusionSDE):
         )
 
 
-class PosteriorEDMSDE(EDMSDE):
-    def __init__(
-        self, prior: ScorePrior, data_fidelity: NoisyDataFidelity, *args, **kwargs
-    ):
-        super().__init__(prior=prior, *args, **kwargs)
-        self.data_fidelity = data_fidelity
-
-    def score(
-        self,
-        x: Tensor,
-        sigma: Union[Tensor, float],
-        y: Tensor,
-        physics: Physics,
-        rescale: bool = False,
-    ):
-        if rescale:
-            x = (x + 1) * 0.5
-            sigma_in = sigma * 0.5
-        else:
-            sigma_in = sigma
-        score_prior = -self.prior.grad(x, sigma_in)
-        if rescale:
-            score_prior = score_prior * 2 - 1
-        return score_prior - self.data_fidelity.grad(x, y, physics, sigma)
-
-    torch.no_grad()
-
-    def forward(
-        self,
-        y: Tensor,
-        physics: Physics,
-        x_init: Optional[Tensor] = None,
-        method: str = "Euler",
-        max_iter: int = 100,
-    ):
-        if x_init is None:
-            x_init = torch.randn_like(y) * self.sigma_max
-        return self.backward_sde.sample(
-            x_init, y, physics, timesteps=self.timesteps_fn(max_iter), method=method
-        )
-
-
 if __name__ == "__main__":
     from edm import load_model
     import numpy as np
@@ -320,21 +311,3 @@ if __name__ == "__main__":
     sde.to("cuda")
     x = sde(shape=(1, 3, 64, 64), max_iter=10, method="heun")
     dinv.utils.plot([x_cpu, x], titles=["cpu", "cuda"])
-
-    # Posterior EDM generation
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
-    noisy_data_fidelity = DPSDataFidelity(denoiser=denoiser)
-    y = physics(x)
-    posterior_sde = PosteriorEDMSDE(
-        prior=prior,
-        data_fidelity=noisy_data_fidelity,
-        name="ve",
-        use_backward_ode=True,
-    )
-    posterior_sample = posterior_sde(y, physics, max_iter=100, method="heun")
-
-    # Plotting the samples
-    # dinv.utils.plot([x], titles = ['sample'])
-    dinv.utils.plot(
-        [x, y, posterior_sample], titles=["sample", "y", "posterior_sample"]
-    )
