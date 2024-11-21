@@ -11,6 +11,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
@@ -30,7 +31,6 @@ Fixed
 ^^^^^
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
-
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
@@ -221,6 +221,7 @@ Authors
 ^^^^^^^
 
 .. _Julian Tachella: https://github.com/tachella
+.. _Dongdong Chen: https://www.dongdongchen.com
 .. _Jérémy Scanvic: https://github.com/jscanvic
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
