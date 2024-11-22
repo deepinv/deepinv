@@ -34,6 +34,14 @@ rotate_kwargs = {
 rotate_params = {"theta": [15]}
 
 
+def test_nonsquare_input():
+    x = DummyCircles(1, imsize=(3, 256, 128))[0].unsqueeze(0)
+    y = afc(x)
+    assert y.shape == x.shape
+    y = afc_rotation_equivariant(x)
+    assert y.shape == x.shape
+
+
 def test_shift_equivariant():
     err = Shift().equivariance_test(afc, x, metric=linf_metric)
     assert err < 1e-6
@@ -69,7 +77,6 @@ def test_rotation_equivariant():
         afc_rotation_equivariant, x, params=rotate_params, metric=psnr_metric
     )
     assert psnr_equiv >= 75
-    print(psnr_equiv / psnr_base)
     assert psnr_equiv > 1.04 * psnr_base
 
 
