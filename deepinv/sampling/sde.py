@@ -68,6 +68,7 @@ class BaseSDE(nn.Module):
         """
         solver_fn = select_solver(method)
         solver = solver_fn(sde=self, rng=self.rng, **kwargs)
+
         samples = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
         return samples
 
@@ -75,25 +76,6 @@ class BaseSDE(nn.Module):
         self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
     ) -> Tuple[Tensor, Tensor]:
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
-
-    def to(self, dtype=None, device=None):
-        r"""
-        Send the SDE to the desired device or dtype.
-        This is useful when the drift of the diffusion term is parameterized (e.g., `deepinv.optim.ScorePrior`).
-        """
-        # Define the function to apply to each submodule
-        if dtype is None:
-            dtype = self.dtype
-        if device is None:
-            device = self.device
-        if torch.device(device) != self.rng.device:
-            self.rng = torch.Generator(device).set_state(self.initial_random_state)
-
-        def apply_fn(module):
-            module.to(device=device, dtype=dtype)
-
-        # Use apply to run apply_fn on all submodules
-        self.apply(apply_fn)
 
     def rng_manual_seed(self, seed: int = None):
         r"""
@@ -111,7 +93,7 @@ class BaseSDE(nn.Module):
                 )
 
     def reset_rng(self):
-        r"""
+        r""",
         Reset the random number generator to its initial state.
         """
         self.rng.set_state(self.initial_random_state)
@@ -147,6 +129,7 @@ class DiffusionSDE(nn.Module):
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param deepinv.prior.ScorePrior prior: a time-dependent score prior, corresponding to :math:`\nabla \log p_t`
+    :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
     :param torch.Generator rng: pseudo-random number generator for reproducibility.
     """
 
@@ -286,28 +269,16 @@ class EDMSDE(DiffusionSDE):
 
 
 if __name__ == "__main__":
-    from edm import load_model
     import numpy as np
     from deepinv.utils.demo import load_url_image, get_image_url
     import deepinv as dinv
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    denoiser = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
     x_noisy = x + torch.randn_like(x) * 0.3
     dinv.utils.plot(
         [x, x_noisy, denoiser(x_noisy, 0.3)], titles=["sample", "y", "denoised"]
     )
-
-    # denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
-    # denoiser = dinv.models.DRUNet(device=device)
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
-
-    # EDM generation
-    sde = EDMSDE(name="ve", prior=prior, use_backward_ode=False)
-    sde.to("cpu")
-    x_cpu = sde(shape=(1, 3, 64, 64), max_iter=10, method="heun")
-    sde.to("cuda")
-    x = sde(shape=(1, 3, 64, 64), max_iter=10, method="heun")
-    dinv.utils.plot([x_cpu, x], titles=["cpu", "cuda"])

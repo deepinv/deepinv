@@ -16,6 +16,8 @@ class BaseSDESolver(nn.Module):
 
     where :math:`f` is the drift term, :math:`g` is the diffusion coefficient, and :math:`w_t` is a standard Brownian process.
 
+    Currently only supported for fixed time steps for numerical integration.
+
     :param deepinv.sampling.BaseSDE sde: the SDE to solve.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     """
@@ -37,15 +39,14 @@ class BaseSDESolver(nn.Module):
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
-        Args:
-            t0: float or Tensor of size (,).
-            t1: float or Tensor of size (,).
-            y0: Tensor of size (batch_size, d).
-            extra0: Any extra state for the solver.
+        :param float or Tensor t0: Time at the start of the step, of size (,).
+        :param float or Tensor t1: Time at the end of the step, of size (,).
+        :param Tensor x0: Current state of the system, of size (batch_size, d).
+        :param \*args: Variable length argument list.
+        :param \**kwargs: Arbitrary keyword arguments.
+        :return: Updated state of the system after the step.
 
-        Returns:
-            y1, where y1 is a Tensor of size (batch_size, d).
-            extra1: Modified extra state for the solver.
+        :rtype: Tensor
         """
         raise NotImplementedError
 
@@ -54,7 +55,17 @@ class BaseSDESolver(nn.Module):
         self, x_init: Tensor, *args, timesteps: Union[Tensor, ndarray] = None, **kwargs
     ) -> Tensor:
         r"""
-        Solve the SDE with given time-step.
+        Solve the Stochastic Differential Equation (SDE) with given time steps.
+
+        This function iteratively applies the SDE solver step for each time interval
+        defined by the provided timesteps.
+
+        :param Tensor x_init: The initial state of the system.
+        :param Union[Tensor, ndarray] timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
+        :param \*args: Variable length argument list to be passed to the step function.
+        :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
+        :return: The final state of the system after solving the SDE across all timesteps.
+        :rtype: Tensor
         """
         x = x_init
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
