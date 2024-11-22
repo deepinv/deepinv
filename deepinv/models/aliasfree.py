@@ -160,22 +160,27 @@ def ConvBlock(
 # https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/weight_init.py
 
 
-def create_lpf_rect(N, cutoff=0.5):
-    cutoff_low = int((N * cutoff) // 2)
-    cutoff_high = int(N - cutoff_low)
-    rect_1d = torch.ones(N)
-    rect_1d[cutoff_low + 1 : cutoff_high] = 0
-    if N % 4 == 0:
+def create_lpf_rect(shape, cutoff=0.5):
+    assert len(shape) == 2, "Only 2D low-pass filters are supported"
+    lpfs = []
+    for N in shape:
+        cutoff_low = int((N * cutoff) // 2)
+        cutoff_high = int(N - cutoff_low)
+        lpf = torch.ones(N)
+        lpf[cutoff_low + 1 : cutoff_high] = 0
         # if N is divides by 4, nyquist freq should be 0
-        # N % 4 =0 means the downsampeled signal is even
-        rect_1d[cutoff_low] = 0
-        rect_1d[cutoff_high] = 0
+        # N % 4 = 0 means the downsampeled signal is even
+        if N % 4 == 0:
+            lpf[cutoff_low] = 0
+            lpf[cutoff_high] = 0
+        lpfs.append(lpf)
+    return lpfs[0][:, None] * lpfs[1][None, :]
 
-    rect_2d = rect_1d[:, None] * rect_1d[None, :]
-    return rect_2d
 
-
-def create_lpf_disk(N, cutoff=0.5):
+def create_lpf_disk(shape, cutoff=0.5):
+    assert len(shape) == 2, "Only 2D low-pass filters are supported"
+    N, M = shape
+    assert N == M, "Only square images are supported"
     u = torch.linspace(-1, 1, N)
     v = torch.linspace(-1, 1, N)
     U, V = torch.meshgrid(u, v, indexing="ij")
@@ -185,18 +190,11 @@ def create_lpf_disk(N, cutoff=0.5):
     return mask
 
 
-def create_fixed_lpf_rect(N, size):
-    rect_1d = torch.ones(N)
-    if size < N:
-        cutoff_low = size // 2
-        cutoff_high = int(N - cutoff_low)
-        rect_1d[cutoff_low + 1 : cutoff_high] = 0
-    rect_2d = rect_1d[:, None] * rect_1d[None, :]
-    return rect_2d
-
-
 # upsample using FFT
-def create_recon_rect(N, cutoff=0.5):
+def create_recon_rect(shape, cutoff=0.5):
+    assert len(shape) == 2, "Only 2D low-pass filters are supported"
+    N, M = shape
+    assert N == M, "Only square images are supported"
     cutoff_low = int((N * cutoff) // 2)
     cutoff_high = int(N - cutoff_low)
     rect_1d = torch.ones(N)
@@ -219,12 +217,10 @@ class LPF_RFFT(nn.Module):
         self,
         cutoff=0.5,
         transform_mode="rfft",
-        fixed_size=None,
         rotation_equivariant=False,
     ):
         super(LPF_RFFT, self).__init__()
         self.cutoff = cutoff
-        self.fixed_size = fixed_size
         assert transform_mode in [
             "fft",
             "rfft",
@@ -245,15 +241,11 @@ class LPF_RFFT(nn.Module):
         shape = x.shape[-2:]
         x_fft = self.transform(x)
         if shape not in self.masks:
-            N = x.shape[-1]
             if not self.rotation_equivariant:
-                mask = (
-                    create_lpf_rect(N, self.cutoff)
-                    if not self.fixed_size
-                    else create_fixed_lpf_rect(N, self.fixed_size)
-                )
+                mask = create_lpf_rect(shape, self.cutoff)
             else:
-                mask = create_lpf_disk(N, self.cutoff)
+                mask = create_lpf_disk(shape, self.cutoff)
+            N = x.shape[-1]
             mask = mask[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else mask
             self.masks[shape] = mask
         mask = self.masks[shape]
@@ -291,8 +283,8 @@ class LPF_RECON_RFFT(nn.Module):
         shape = x.shape[-2:]
         x_fft = self.transform(x)
         if shape not in self.rect:
+            rect = create_recon_rect(shape, self.cutoff)
             N = x.shape[-1]
-            rect = create_recon_rect(N, self.cutoff)
             rect = rect[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else rect
             self.rect[shape] = rect
         rect = self.rect[shape]
