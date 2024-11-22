@@ -15,10 +15,10 @@ and we welcome contributions from the community.
 
 Future events
 ~~~~~~~~~~~~~
-- June 4-6, 2025: Summer school tutorial at :ref:`International Symposium on Computational Sensing <https://www.iscs2025.com/>`_ in Luxembourg.
+- June 4-6, 2025: Summer school tutorial at `International Symposium on Computational Sensing <https://www.iscs2025.com/>`_ in Luxembourg.
 
 
 Past events
 ~~~~~~~~~~~
-- Oct 28-30, 2024: deepinverse Hackathon at :ref:`CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
-- June 10-11, 2024: Summer school tutorial at :ref:`Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mathematical-ml-imaging/en/overview>`_ in Bologna, Italy.
+- Oct 28-30, 2024: deepinverse Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
+- June 10-11, 2024: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mathematical-ml-imaging/en/overview>`_ in Bologna, Italy.

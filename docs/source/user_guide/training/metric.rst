@@ -1,7 +1,7 @@
 .. _metric:
 
-Metric
-======
+Metrics
+=======
 
 This package contains popular metrics for inverse problems.
 
@@ -75,25 +75,25 @@ Distortion metrics are used to measure the difference between the original ``x``
      - :math:`\text{MSE}(x, \hat{x}) = \frac{1}{n} \sum_{i=1}^n (x_i - \hat{x}_i)^2`
 
    * - :class:`deepinv.loss.metric.NMSE`
-     - :math:`\text{NMSE}(x, \hat{x}) = \frac{\| x - \hat{x} \|_2^2}{\| x \|_2^2}`
+     - :math:`\text{NMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2^2}{\| x \|_2^2}`
 
    * - :class:`deepinv.loss.metric.MAE`
-     - :math:`\text{MAE}(x, \hat{x}) = \frac{1}{n} \sum_{i=1}^n |x_i - \hat{x}_i|`
+     - :math:`\text{MAE}(\hat{x},x) = \frac{1}{n} \sum_{i=1}^n |x_i - \hat{x}_i|`
 
    * - :class:`deepinv.loss.metric.PSNR`
-     - :math:`\text{PSNR}(x, \hat{x}) = 10 \cdot \log_{10} \left( \frac{\text{MAX}^2}{\text{MSE}(x, \hat{x})} \right)`, where :math:`\text{MAX}` is the maximum possible pixel value of the image
+     - :math:`\text{PSNR}(\hat{x},x) = 10 \cdot \log_{10} \left( \frac{\text{MAX}^2}{\text{MSE}(\hat{x},x)} \right)`, where :math:`\text{MAX}` is the maximum possible pixel value of the image
 
    * - :class:`deepinv.loss.metric.SSIM`
-     - :math:`\text{SSIM}(x, \hat{x}) = \frac{(2 \mu_x \mu_{\hat{x}} + C_1)(2 \sigma_{x\hat{x}} + C_2)}{(\mu_x^2 + \mu_{\hat{x}}^2 + C_1)(\sigma_x^2 + \sigma_{\hat{x}}^2 + C_2)}`, where :math:`\mu` and :math:`\sigma` represent mean and variance, respectively, and :math:`C_1` and :math:`C_2` are constants for stability
+     - :math:`\text{SSIM}(\hat{x},x) = \frac{(2 \mu_x \mu_{\hat{x}} + C_1)(2 \sigma_{x\hat{x}} + C_2)}{(\mu_x^2 + \mu_{\hat{x}}^2 + C_1)(\sigma_x^2 + \sigma_{\hat{x}}^2 + C_2)}`, where :math:`\mu` and :math:`\sigma` are mean and variance
 
    * - :class:`deepinv.loss.metric.QNR`
-     - :math:`\text{QNR}(x, \hat{x}) = (1 - \text{D_s})(1 - \text{D_a})`, where :math:`\text{D_s}` and :math:`\text{D_a}` are spectral and spatial distortion measures
+     - :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
 
    * - :class:`deepinv.loss.metric.L1L2`
-     - :math:`\text{L1L2}(x, \hat{x}) = \lambda \|x - \hat{x}\|_1 + (1 - \lambda) \|x - \hat{x}\|_2`, where :math:`\lambda` is a balancing parameter
+     - :math:`\text{L1L2}(\hat{x},x) = \alpha \|x - \hat{x}\|_1 + (1 - \alpha) \|x - \hat{x}\|_2`, where :math:`\alpha` is a balancing parameter
 
    * - :class:`deepinv.loss.metric.LpNorm`
-     - :math:`\text{LpNorm}(x, \hat{x}) = \|x - \hat{x}\|_p^p`
+     - :math:`\text{LpNorm}(\hat{x},x) = \|x - \hat{x}\|_p^p`
 
 
 .. _perceptual-metrics:

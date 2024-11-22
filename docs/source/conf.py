@@ -46,6 +46,7 @@ from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.addnodes import pending_xref
 
+
 class UserGuideMacro(Directive):
     required_arguments = 1  # The reference name (ref_name)
     has_content = False
@@ -62,11 +63,11 @@ class UserGuideMacro(Directive):
 
         # Create a pending_xref node to resolve the title dynamically
         xref_node = pending_xref(
-            '',  # No initial text
-            refdomain='std',  # Standard domain (used for :ref:)
-            reftype='ref',  # Reference type
+            "",  # No initial text
+            refdomain="std",  # Standard domain (used for :ref:)
+            reftype="ref",  # Reference type
             reftarget=ref_name,  # Target reference
-            refexplicit=False  # Let Sphinx insert the title automatically
+            refexplicit=False,  # Let Sphinx insert the title automatically
         )
         xref_node += nodes.Text("")  # Placeholder; Sphinx replaces this with the title
         paragraph_node += xref_node
@@ -76,8 +77,10 @@ class UserGuideMacro(Directive):
 
         return [paragraph_node]
 
+
 def setup(app):
     app.add_directive("userguide", UserGuideMacro)
+
 
 #############################
 
@@ -129,7 +132,7 @@ mathjax3_config = {
             "noise": [r"{N\left({#1}\right)}", 1],
             "inverse": [r"{R\left({#1}\right)}", 1],
             "inversef": [r"{R\left({#1},{#2}\right)}", 2],
-            "inversename":  r"R",
+            "inversename": r"R",
             "reg": [r"{g_\sigma\left({#1}\right)}", 1],
             "regname": r"g_\sigma",
             "sensor": [r"{\eta\left({#1}\right)}", 1],
@@ -160,10 +163,10 @@ html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_sidebars = {
-  "quickstart": [],
-  "contributing": [],
-  "finding_help": [],
-  "community": [],
+    "quickstart": [],
+    "contributing": [],
+    "finding_help": [],
+    "community": [],
 }
 # html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
@@ -183,7 +186,6 @@ html_theme_options = {
     },
 }
 
-html_js_files = ["js/custom.js"]
 
 googleanalytics_id = "G-NSEKFKYSGR"
 

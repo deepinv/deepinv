@@ -260,7 +260,7 @@ class DCGANGenerator(nn.Module):
 
 
 class CSGMGenerator(Reconstructor):
-    r"""
+    r"""CSGMGenerator(backbone_generator: nn.Module = DCGANGenerator(), inf_max_iter=2500, inf_tol=1e-4, inf_lr=1e-2, inf_progress_bar=False)
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
     This approach was proposed in `Compressed Sensing using Generative Models <https://arxiv.org/abs/1703.03208>`_ and

@@ -30,6 +30,7 @@ Deep denoisers
 ~~~~~~~~~~~~~~
 We provide the following list of deep denoising architectures,
 which are based on CNN, Transformer or hybrid CNN-Transformer modules.
+See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Deep denoisers
    :widths: 15 25 15 15 10

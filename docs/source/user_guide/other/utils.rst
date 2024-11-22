@@ -27,6 +27,8 @@ We provide other plotting functions that are useful for inverse problems:
 
    * - **Function**
      - **Description**
+   * - :func:`deepinv.utils.plot`
+     - Plots a list of tensor images with optional titles.
    * - :func:`deepinv.utils.plot_curves`
      - Plots curves for visualizing performance metrics over iterations or epochs.
    * - :func:`deepinv.utils.plot_parameters`
@@ -34,7 +36,7 @@ We provide other plotting functions that are useful for inverse problems:
    * - :func:`deepinv.utils.plot_inset`
      - Plots an image with an inset zoomed view for detailed examination of specific areas.
    * - :func:`deepinv.utils.plot_videos`
-     - Creates and visualizes videos from sequences of images or frames.
+     - Plots and animates a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
 
@@ -59,7 +61,7 @@ We provide some useful utility functions:
    * - :func:`deepinv.utils.load_image`
      - Loads a local image file for processing and analysis.
    * - :func:`deepinv.utils.demo.demo_mri_model`
-     - Runs a demonstration of an MRI reconstruction model, showcasing its capabilities.
+     - Demo MRI reconstruction model for use in relevant examples.
 
 
 .. _tensorlist:

@@ -4,16 +4,13 @@ Artifact Removal
 ================
 The simplest method for reconstructing an image from a measurements is to first map the measurements
 to the image domain via a non-learned mapping, and then apply a denoiser network to the obtain the final reconstruction.
-This idea was introduced by Jin et al. `"Deep Convolutional Neural Network for Inverse Problems in Imaging" <https://ieeexplore.ieee.org/abstract/document/7949028>`_
-for tomographic reconstruction.
 
-The :class:`deepinv.models.ArtifactRemoval` class implements networks as
 
-.. math::
+The :class:`deepinv.models.ArtifactRemoval` class converts a :class:`deepinv.models.Denoiser` :math:`\phi` into a
+reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 
-    \inversef{x}{A} = \phi(A^{\dagger}y)
-
-where :math:`A^{\dagger}` is a non-learned pseudo-inverse of the forward operator (e.g., adjoint operator
-if :math:`A` is linear, the identity if :math:`y` already lies in the image domain, etc.)
-:math:`\phi` is the denoiser/backbone network (see a :ref:`list of available architectures <deep-architectures>`),
-and :math:`y` are the measurements.
+- | Adjoint: :math:`\inversef{y}{A}=\phi(A^{\top}y)` with ``mode='adjoint'``.
+  | This option is generally to linear operators :math:`A`.
+- Pseudoinverse: :math:`\inversef{y}{A}=\phi(A^{\dagger}y)` with ``mode='pinv'``.
+- | Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
+  | This option serves as only as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and is generally limited to problems where the measurements are the same size as the image, such as inpainting, deblurring or denoising.

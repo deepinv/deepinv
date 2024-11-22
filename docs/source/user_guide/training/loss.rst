@@ -128,12 +128,11 @@ These losses can be used to regularize the learned function, e.g., controlling i
 Adversarial Learning
 --------------------
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game.
-We implement various popular (supervised and unsupervised) adversarial training frameworks below. These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN. Generator and discriminator networks are provided in :ref:`adversarial models <adversarial-networks>`.
-Training is implemented using :class:`deepinv.training.AdversarialTrainer` which overrides the standard :class:`deepinv.Trainer`. See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
-
-- :class:`deepinv.loss.adversarial.GeneratorLoss`
-- :class:`deepinv.loss.adversarial.DiscriminatorLoss`
-- :class:`deepinv.loss.adversarial.DiscriminatorMetric`
+These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN.
+We implement various popular (supervised and unsupervised) adversarial training frameworks below.
+See :ref:`adversarial` for more details.
+The base class for generators is :class:`deepinv.loss.adversarial.GeneratorLoss`
+and for discriminators is :class:`deepinv.loss.adversarial.DiscriminatorLoss`.
 
 .. list-table:: Adversarial Losses Overview
    :header-rows: 1
@@ -141,15 +140,16 @@ Training is implemented using :class:`deepinv.training.AdversarialTrainer` which
    * - Generator Loss
      - Discriminator Loss
      - Description
-   * - :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`
-     - :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`
-     - Supervised adversarial training
-   * - :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
-     - :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`
-     - Unsupervised adversarial training
-   * - :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`
-     -
-     - Unsupervised Adversarial Image Reconstruction loss.
+   * - :class:`SupAdversarialGeneratorLoss <deepinv.loss.adversarial.SupAdversarialGeneratorLoss>`
+     - :class:`SupAdversarialDiscriminatorLoss <deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss>`
+     - Supervised adversarial loss
+   * - :class:`UnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss>`
+     - :class:`UnsupAdversarialDiscriminatorLoss <deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss>`
+     - Unsupervised adversarial loss
+   * - :class:`UAIRGeneratorLoss <deepinv.loss.adversarial.UAIRGeneratorLoss>`
+     - \
+     - Unsupervised reconstruction & adversarial loss.
+
 
 .. _loss-schedulers:
 

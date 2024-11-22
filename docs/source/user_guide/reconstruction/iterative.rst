@@ -91,16 +91,3 @@ to solve any inverse problem. The following algorithms are available:
      - Custom PnP algorithm with early stopping.
    * - :class:`deepinv.optim.EPLL`
      - Patch-based reconstruction algorithm
-
-
-.. _deep-image-prior:
-
-Deep Image Prior
-----------------
-
-The `deep image prior <https://arxiv.org/abs/1711.10925>`_ :class:`deepinv.models.DeepImage Prior` can be interpreted as
-using an indicator function :math:`g(x) = \mathbf {1} _{x=d_{\theta}(z)}` which forces the reconstruction image
-to be the output of a convolutional decoder network :math:`d_{\theta}` applied to a random input :math:`z`.
-The choice of the architecture of :math:`d_{\theta}` is crucial for the success of the method: we provide the
-:class:`deepinv.models.ConvDecoder` architecture, which is based on a convolutional decoder network,
-and has shown good inductive bias for image reconstruction tasks.

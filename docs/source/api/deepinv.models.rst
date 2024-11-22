@@ -98,7 +98,7 @@ Deep Image Prior
 
 Adversarial Networks
 --------------------
-.. userguide:: adversarial-networks
+.. userguide:: adversarial-losses
 
 .. autosummary::
    :toctree: stubs

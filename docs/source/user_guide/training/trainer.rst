@@ -69,10 +69,3 @@ In this case, to update the :meth:`deepinv.physics.Physics` parameters according
             return x.to(self.device), y.to(self.device), physics
 
 
-.. _adversarial-networks:
-
-Adversarial Training
---------------------
-Adversarial training can be done using the :class:`deepinv.training.AdversarialTrainer` class,
-which is a subclass of :class:`deepinv.Trainer`. This class can be used to train a model using
-:ref:`adversarial losses <adversarial-losses>`.

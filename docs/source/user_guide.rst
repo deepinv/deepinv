@@ -135,6 +135,13 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Plug-and-play, RED, and deep image prior.
 
+    .. grid-item-card::
+        :link: adversarial
+        :link-type: ref
+
+        :octicon:`webhook` **Adversarial Reconstruction**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Conditional and unconditional GANs.
 
     .. grid-item-card::
         :link: sampling
@@ -157,6 +164,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/iterative
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
+   user_guide/reconstruction/adversarial
    user_guide/reconstruction/weights
 
 
@@ -178,7 +186,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
     :gutter: 1
 
     .. grid-item-card::
-        :link: training
+        :link: trainer
         :link-type: ref
 
         :octicon:`zap` **Training**

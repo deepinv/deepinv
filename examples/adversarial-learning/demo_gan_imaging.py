@@ -103,7 +103,7 @@ test_dataloader = DataLoader(
 # we use a simple U-Net as the reconstruction network and the
 # discriminator from `PatchGAN <https://arxiv.org/abs/1611.07004>`_, but
 # these can be replaced with any architecture e.g transformers, unrolled
-# etc. Further discriminator models are in :ref:`adversarial models <adversarial-networks>`.
+# etc. Further discriminator models are in :ref:`adversarial models <adversarial>`.
 #
 
 

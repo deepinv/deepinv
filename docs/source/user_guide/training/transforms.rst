@@ -70,7 +70,7 @@ We provide the following simple geometric transforms.
      - No
 
    * - :class:`deepinv.transform.Shift`
-     - Yes
+     - No
      - Yes
 
    * - :class:`deepinv.transform.Scale`

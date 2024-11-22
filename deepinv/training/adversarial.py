@@ -94,7 +94,7 @@ class AdversarialTrainer(Trainer):
     which is trained using losses specified in the ``losses`` argument.
     Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``.
     The adversarial losses themselves are defined in the :ref:`adversarial-losses` module.
-    Examples of discriminators are in :ref:`adversarial-networks`.
+    Examples of discriminators are in :ref:`adversarial`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
 
