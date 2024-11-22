@@ -461,7 +461,9 @@ class SCUNet(Denoiser):
 
         return x
 
-    def forward(self, x, **kwargs):  # This is a blind model: sigma is not used
+    def forward(
+        self, x, sigma=None, **kwargs
+    ):  # This is a blind model: sigma is not used
         den = self.forward_scunet(x)
         return den
 

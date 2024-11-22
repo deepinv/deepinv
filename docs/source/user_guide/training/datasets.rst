@@ -18,18 +18,18 @@ For example, here we generate a compressed sensing MNIST dataset:
 
     We support all data types supported by ``h5py``, including complex numbers.
 
-.. doctest::
+::
 
     >>> import deepinv as dinv
     >>> from torchvision import datasets, transforms
     >>>
-    >>> save_dir = '../datasets/MNIST/' # directory where the dataset will be saved.
+    >>> save_dir = dinv.utils.demo.get_data_home() / 'MNIST' # directory where the dataset will be saved.
     >>>
     >>> # define base train dataset
     >>> transform_data = transforms.Compose([transforms.ToTensor()])
-    >>> data_train = datasets.MNIST(root='../datasets/', train=True,
+    >>> data_train = datasets.MNIST(root=save_dir, train=True,
     ...                             transform=transform_data, download=True)
-    >>> data_test = datasets.MNIST(root='../datasets/', train=False, transform=transform_data)
+    >>> data_test = datasets.MNIST(root=save_dir, train=False, transform=transform_data)
     >>>
     >>> # define forward operator
     >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
@@ -43,20 +43,20 @@ For example, here we generate a compressed sensing MNIST dataset:
 Similarly, we can generate a dataset from a local folder of images (other types of data can be loaded using the ``loader``
 and ``is_valid_file`` arguments of :class:`torchvision.datasets.ImageFolder`):
 
-.. doctest::
+::
 
     >>> # Note that ImageFolder requires file structure to be '.../dir/train/xxx/yyy.ext' where xxx is an arbitrary class label
     >>> data_train = datasets.ImageFolder(f'{save_dir}/train', transform=transform_data)
     >>> data_test  = datasets.ImageFolder(f'{save_dir}/test',  transform=transform_data)
     >>>
     >>> dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
-    >>>                                physics=physics, device=device, save_dir=save_dir)
+    >>>                                physics=physics, save_dir=save_dir)
 
 
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pytorch's standard
 :class:`torch.utils.data.DataLoader`:
 
-.. doctest::
+::
 
     >>> from torch.utils.data import DataLoader
     >>>
@@ -66,12 +66,12 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to pyt
 We can also use physics generators to randomly generate physics params for data,
 and save and load the physics params into the dataset:
 
-.. doctest::
+::
 
     >>> physics_generator = dinv.physics.generator.SigmaGenerator()
     >>> path = dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
     ...                                       physics=physics, physics_generator=physics_generator,
-    ...                                       device=device, save_dir=save_dir)
+    ...                                       save_dir=save_dir)
     >>> dataset = dinv.datasets.HDF5Dataset(path=path, load_physics_generator_params=True, train=True)
     >>> dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
     >>> x, y, params = next(iter(dataloader))
