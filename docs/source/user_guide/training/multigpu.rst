@@ -8,18 +8,18 @@ modules, either via :class:`torch.nn.DataParallel` or :class:`torch.nn.parallel.
 
 For instance, one can simply write:
 
-.. doctest::
+::
 
-    >>> import torch
-    >>> import deepinv as dinv
-    >>>
-    >>> backbone = dinv.models.DRUNet(pretrained=None, device=torch.device("cuda"))
-    >>> model = dinv.models.ArtifactRemoval(backbone)
-    >>> gpu_number = torch.cuda.device_count()  # number of GPUs to use
-    >>> model = torch.nn.DataParallel(model, device_ids=list(range(gpu_number)))
+    import torch
+    import deepinv as dinv
+
+    backbone = dinv.models.DRUNet(pretrained=None, device=torch.device("cuda"))
+    model = dinv.models.ArtifactRemoval(backbone)
+    gpu_number = torch.cuda.device_count()  # number of GPUs to use
+    model = torch.nn.DataParallel(model, device_ids=list(range(gpu_number)))
 
 
-which can seamlessly be combined with the default training loop :func:`deepinv.train`.
+which can seamlessly be combined with the default Trainer :class:`deepinv.Trainer`.
 
 Note however that it is recommended to use :class:`torch.nn.parallel.DistributedDataParallel` instead of the former
 when training on multiple GPUs. Among other drawbacks of the previous approach, it is not possible to set attributes of
