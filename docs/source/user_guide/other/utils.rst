@@ -30,11 +30,11 @@ We provide other plotting functions that are useful for inverse problems:
    * - :func:`deepinv.utils.plot`
      - Plots a list of tensor images with optional titles.
    * - :func:`deepinv.utils.plot_curves`
-     - Plots curves for visualizing performance metrics over iterations or epochs.
+     - Plots curves for visualizing metrics over optimization iterations.
    * - :func:`deepinv.utils.plot_parameters`
-     - Visualizes model parameters to analyze distribution and changes over time.
+     - Visualizes model parameters over optimization iterations.
    * - :func:`deepinv.utils.plot_inset`
-     - Plots an image with an inset zoomed view for detailed examination of specific areas.
+     - Plots a list of images with zoomed-in insets extracted from the images.
    * - :func:`deepinv.utils.plot_videos`
      - Plots and animates a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`

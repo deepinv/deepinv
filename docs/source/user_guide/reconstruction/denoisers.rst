@@ -152,6 +152,9 @@ a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_co
 
 Dynamic networks
 ~~~~~~~~~~~~~~~~
-When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted.
-To adapt any existing network to take dynamic data as independent time-slices, create a time-agnostic wrapper that
-flattens the time dimension into the batch dimension.
+When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted
+using :class:`deepinv.models.TimeAveragingNet`.
+
+To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
+creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
+
