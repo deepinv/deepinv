@@ -168,7 +168,7 @@ def create_lpf_rect(shape, cutoff=0.5):
         cutoff_high = int(N - cutoff_low)
         lpf = torch.ones(N)
         lpf[cutoff_low + 1 : cutoff_high] = 0
-        # if N is divides by 4, nyquist freq should be 0
+        # if N is divisible by 4, the Nyquist frequency should be 0
         # N % 4 = 0 means the downsampeled signal is even
         if N % 4 == 0:
             lpf[cutoff_low] = 0
@@ -180,9 +180,8 @@ def create_lpf_rect(shape, cutoff=0.5):
 def create_lpf_disk(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     N, M = shape
-    assert N == M, "Only square images are supported"
     u = torch.linspace(-1, 1, N)
-    v = torch.linspace(-1, 1, N)
+    v = torch.linspace(-1, 1, M)
     U, V = torch.meshgrid(u, v, indexing="ij")
     mask = (U**2 + V**2) < cutoff**2
     mask = mask.to(torch.float32)
@@ -193,19 +192,20 @@ def create_lpf_disk(shape, cutoff=0.5):
 # upsample using FFT
 def create_recon_rect(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
-    N, M = shape
-    assert N == M, "Only square images are supported"
-    cutoff_low = int((N * cutoff) // 2)
-    cutoff_high = int(N - cutoff_low)
-    rect_1d = torch.ones(N)
-    rect_1d[cutoff_low + 1 : cutoff_high] = 0
-    if N % 4 == 0:
-        # if N is divides by 4, nyquist freq should be 0.5
-        # N % 4 =0 means the downsampeled signal is even
-        rect_1d[cutoff_low] = 0.5
-        rect_1d[cutoff_high] = 0.5
-    rect_2d = rect_1d[:, None] * rect_1d[None, :]
-    return rect_2d
+    lpfs = []
+    for N in shape:
+        cutoff_low = int((N * cutoff) // 2)
+        cutoff_high = int(N - cutoff_low)
+        lpf = torch.ones(N)
+        lpf[cutoff_low + 1 : cutoff_high] = 0
+        # if N is divisible by 4, the Nyquist frequency should be 0.5
+        # N % 4 = 0 means the downsampeled signal is even
+        # NOTE: This is the only difference with create_lpf_rect.
+        if N % 4 == 0:
+            lpf[cutoff_low] = 0.5
+            lpf[cutoff_high] = 0.5
+        lpfs.append(lpf)
+    return lpfs[0][:, None] * lpfs[1][None, :]
 
 
 class LPF_RFFT(nn.Module):
