@@ -237,10 +237,14 @@ class LPF_RFFT(nn.Module):
             else torch.fft.irfft2
         )
         self.rotation_equivariant = rotation_equivariant
+        self.masks = {}
 
     def forward(self, x):
+        # A tuple containing the shape of x used as a key
+        # for caching the masks
+        shape = x.shape[-2:]
         x_fft = self.transform(x)
-        if not hasattr(self, "mask"):
+        if shape not in self.masks:
             N = x.shape[-1]
             if not self.rotation_equivariant:
                 mask = (
@@ -251,9 +255,10 @@ class LPF_RFFT(nn.Module):
             else:
                 mask = create_lpf_disk(N, self.cutoff)
             mask = mask[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else mask
-            self.register_buffer("mask", mask)
-            self.to(x.device)
-        x_fft *= self.mask
+            self.masks[shape] = mask
+        mask = self.masks[shape]
+        mask = mask.to(x.device)
+        x_fft *= mask
         out = self.itransform(x_fft, s=(x.shape[-2], x.shape[-1]))
 
         return out
@@ -278,16 +283,21 @@ class LPF_RECON_RFFT(nn.Module):
             if transform_mode == "fft"
             else torch.fft.irfft2
         )
+        self.rect = {}
 
     def forward(self, x):
+        # A tuple containing the shape of x used as a key
+        # for caching the masks
+        shape = x.shape[-2:]
         x_fft = self.transform(x)
-        if not hasattr(self, "rect"):
+        if shape not in self.rect:
             N = x.shape[-1]
             rect = create_recon_rect(N, self.cutoff)
             rect = rect[:, : int(N / 2 + 1)] if self.transform_mode == "rfft" else rect
-            self.register_buffer("rect", rect)
-            self.to(x.device)
-        x_fft *= self.rect
+            self.rect[shape] = rect
+        rect = self.rect[shape]
+        rect = rect.to(x.device)
+        x_fft *= rect
         out = self.itransform(x_fft)
         return out
 
