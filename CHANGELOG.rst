@@ -42,8 +42,8 @@ Fixed
 
 Changed
 ^^^^^^^
-
-- Sphinx template to furo (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- Added direct option to ArtifactRemoval (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- Sphinx template to pydata (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
 - get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_)
 
