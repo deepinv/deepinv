@@ -231,7 +231,11 @@ class SplittingModel(torch.nn.Module):
         return SplittingLoss.split(mask, y, physics)
 
     def forward(
-        self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        update_parameters: bool = False,
+        **kwargs,
     ):
         """
         Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
