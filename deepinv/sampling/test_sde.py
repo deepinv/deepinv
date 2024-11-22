@@ -1,7 +1,7 @@
 # %%
 import torch
 import torch.nn as nn
-from sde import EDMSDE
+from sde import EDMSDE, DiffusionSDE
 from sde_solver import EulerSolver, HeunSolver
 import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
@@ -112,10 +112,12 @@ beta_fn = params["beta_fn"]
 sigma_max = params["sigma_max"]
 s_fn = params["s_fn"]
 s_deriv_fn = params["s_deriv_fn"]
-sde = EDMSDE(prior=prior, name="ve", use_backward_ode=False)
+# sde = EDMSDE(prior=prior, name="ve", use_backward_ode=False)
+
+sde = DiffusionSDE(prior=prior, use_backward_ode=False)
 
 # %%
-num_steps = 100
+num_steps = 200
 with torch.no_grad():
     # endpoint = sde.forward_sde.sample(x, ve_timesteps[::-1])
     # print(f"End point std: {endpoint.std()}")

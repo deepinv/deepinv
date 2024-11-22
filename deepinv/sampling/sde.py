@@ -124,7 +124,9 @@ class DiffusionSDE(nn.Module):
     There also exists a deterministic probability flow ODE whose trajectories share the same marginal distribution as the SDEs:
 
     .. math::
-            d x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt
+            d x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt.
+
+    Both forward and backward SDE are solved in forward time.
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
@@ -135,7 +137,7 @@ class DiffusionSDE(nn.Module):
 
     def __init__(
         self,
-        drift: Callable = lambda x, t: -x,
+        drift: Callable = lambda x, t: -x,  # Default to Ornstein-Uhlenbeck process
         diffusion: Callable = lambda t: math.sqrt(2.0),
         use_backward_ode=False,
         prior: ScorePrior = None,
@@ -158,26 +160,16 @@ class DiffusionSDE(nn.Module):
         if self.use_backward_ode:
             drift_back = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
                 diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
+            ) * self.prior.score(x, t, *args, **kwargs)
+            diff_back = lambda t: 0.0
         else:
             drift_back = lambda x, t, *args, **kwargs: -drift(x, t) + (
                 diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
-        diff_back = lambda t: diffusion(t)
+            ) * self.prior.score(x, t, *args, **kwargs)
+            diff_back = lambda t: diffusion(t)
         self.backward_sde = BaseSDE(
             drift=drift_back, diffusion=diff_back, rng=rng, dtype=dtype, device=device
         )
-
-    def score(self, x: Tensor, sigma: Union[Tensor, float], rescale: bool = False):
-        if rescale:
-            x = (x + 1) * 0.5
-            sigma_in = sigma * 0.5
-        else:
-            sigma_in = sigma
-        score = -self.prior.grad(x, sigma_in)
-        if rescale:
-            score = score * 2 - 1
-        return score
 
     @torch.no_grad()
     def forward(
@@ -186,99 +178,39 @@ class DiffusionSDE(nn.Module):
         return self.backward_sde.sample(x_init, timesteps=timesteps, method=method)
 
 
-class EDMSDE(DiffusionSDE):
-    def __init__(
-        self,
-        name: str = "ve",
-        use_backward_ode=True,
-        rng: torch.Generator = None,
-        dtype=torch.float32,
-        device=torch.device("cpu"),
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.use_backward_ode = use_backward_ode
-        params = get_edm_parameters(name)
-
-        self.timesteps_fn = params["timesteps_fn"]
-        self.sigma_max = params["sigma_max"]
-
-        sigma_fn = params["sigma_fn"]
-        sigma_deriv_fn = params["sigma_deriv_fn"]
-        beta_fn = params["beta_fn"]
-        s_fn = params["s_fn"]
-        s_deriv_fn = params["s_deriv_fn"]
-
-        # Forward SDE
-        drift_forw = lambda x, t, *args, **kwargs: (
-            -sigma_deriv_fn(t) * sigma_fn(t) + beta_fn(t) * sigma_fn(t) ** 2
-        ) * self.score(x, sigma_fn(t), *args, **kwargs)
-        diff_forw = lambda t: sigma_fn(t) * (2 * beta_fn(t)) ** 0.5
-
-        # Backward SDE
-        if self.use_backward_ode:
-            diff_back = lambda t: 0.0
-            drift_back = lambda x, t, *args, **kwargs: -(
-                (s_deriv_fn(t) / s_fn(t)) * x
-                - (s_fn(t) ** 2)
-                * sigma_deriv_fn(t)
-                * sigma_fn(t)
-                * self.score(x, sigma_fn(t), *args, **kwargs)
-            )
-        else:
-            drift_back = lambda x, t, *args, **kwargs: (
-                sigma_deriv_fn(t) * sigma_fn(t) + beta_fn(t) * sigma_fn(t) ** 2
-            ) * self.score(x, sigma_fn(t), *args, **kwargs)
-            diff_back = diff_forw
-
-        self.forward_sde = BaseSDE(
-            drift=drift_forw,
-            diffusion=diff_forw,
-            rng=rng,
-            dtype=dtype,
-            device=device,
-            *args,
-            **kwargs,
-        )
-        self.backward_sde = BaseSDE(
-            drift=drift_back,
-            diffusion=diff_back,
-            rng=rng,
-            dtype=dtype,
-            device=device,
-            *args,
-            **kwargs,
-        )
-
-    @torch.no_grad()
-    def forward(
-        self,
-        latents: Optional[Tensor] = None,
-        shape: Tuple[int, ...] = None,
-        method: str = "Euler",
-        max_iter: int = 100,
-    ):
-        if latents is None:
-            latents = (
-                torch.randn(shape, device=device, generator=self.rng) * self.sigma_max
-            )
-        return self.backward_sde.sample(
-            latents, timesteps=self.timesteps_fn(max_iter), method=method
-        )
-
-
 if __name__ == "__main__":
+    from edm import load_model
     import numpy as np
     from deepinv.utils.demo import load_url_image, get_image_url
     import deepinv as dinv
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    denoiser = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
     x_noisy = x + torch.randn_like(x) * 0.3
-    dinv.utils.plot(
-        [x, x_noisy, denoiser(x_noisy, 0.3)], titles=["sample", "y", "denoised"]
-    )
+    # dinv.utils.plot(
+    #     [x, x_noisy, denoiser(x_noisy, 0.3)], titles=["sample", "y", "denoised"]
+    # )
     prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+
+    from deepinv.sampling.utils import get_edm_parameters
+
+    # VESDE
+    params = get_edm_parameters("ve")
+    sigma_min = 0.02
+    sigma_max = 100
+    timesteps = params["timesteps_fn"](200)
+    drift = lambda x, t: 0.0
+    diffusion = (
+        lambda t: sigma_min
+        * (sigma_max / sigma_min) ** t
+        * np.sqrt(2 * (np.log(sigma_max) - np.log(sigma_min)))
+    )
+    print(timesteps)
+    sde = DiffusionSDE(drift=drift, diffusion=diffusion, prior=prior, device=device)
+    x_init = torch.randn((1, 3, 64, 64), device=device)
+
+    samples = sde.backward_sde.sample(x_init, timesteps=timesteps, method="euler")
+    dinv.utils.plot(samples)

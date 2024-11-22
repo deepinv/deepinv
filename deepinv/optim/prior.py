@@ -238,14 +238,40 @@ class ScorePrior(Prior):
         self.denoiser = denoiser
         self.explicit_prior = False
 
-    def grad(self, x, sigma_denoiser):
+    def grad(self, x, sigma_denoiser, *args, **kwargs):
         r"""
         Applies the denoiser to the input signal.
 
         :param torch.Tensor x: the input tensor.
         :param float sigma_denoiser: the noise level.
         """
-        return (1 / sigma_denoiser**2) * (x - self.denoiser(x, sigma_denoiser))
+        return self.stable_division(
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
+        )
+
+    def score(self, x, sigma_denoiser, *args, **kwargs):
+        r"""
+        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma_denoiser: the noise level.
+        """
+        return self.stable_division(
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
+        )
+
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
 
 
 class Tikhonov(Prior):
