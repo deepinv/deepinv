@@ -59,8 +59,8 @@ description of their reconstruction performance and speed.
      - No
      - Yes
      - Yes
-   * - :ref:`Deep Image Prior <deep-image-prior>`
-     - Uses a decoder network as an implicit signal prior.
+   * - :ref:`Unconditional GANs, deep image prior  <adversarial>`
+     - Uses a generator network to model the set of possible images.
      - No
      - Yes
      - No

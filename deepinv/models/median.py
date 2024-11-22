@@ -43,7 +43,7 @@ class MedianFilter(Denoiser):
             padding = self.padding
         return padding
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, sigma=None, **kwargs):
         # using existing pytorch functions and tensor ops so that we get autograd,
         # would likely be more efficient to implement from scratch at C/Cuda level
         x = F.pad(x, self._padding(x), mode="reflect")

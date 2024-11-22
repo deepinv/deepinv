@@ -68,10 +68,10 @@ and save and load the physics params into the dataset:
 .. doctest::
 
     >>> physics_generator = dinv.physics.generator.SigmaGenerator()
-    >>> pth = dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
-    >>>                                      physics=physics, physics_generator=physics_generator,
-    >>>                                      device=dinv.device, save_dir=save_dir)
-    >>> dataset = dinv.datasets.HDF5Dataset(path=pth, load_physics_generator_params=True, train=True)
+    >>> path = dinv.datasets.generate_dataset(train_dataset=data_train, test_dataset=data_test,
+    ...                                       physics=physics, physics_generator=physics_generator,
+    ...                                       device=dinv.device, save_dir=save_dir)
+    >>> dataset = dinv.datasets.HDF5Dataset(path=path, load_physics_generator_params=True, train=True)
     >>> dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
     >>> x, y, params = next(iter(dataloader))
     >>> print(params['sigma'].shape)

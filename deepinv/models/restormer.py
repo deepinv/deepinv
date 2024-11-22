@@ -403,7 +403,7 @@ class Restormer(Denoiser):
 
         return out_dec_level1
 
-    def forward(self, x, **kwargs):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
