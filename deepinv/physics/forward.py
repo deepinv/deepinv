@@ -317,6 +317,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
+    def initialize_downsampling_operator(self, shape, device):
+        r"""
+        Downsamples the signal using an antialiasing filter.
+
+        :param shape: shape of the signal.
+        :param device: device of the signal.
+        """
+        if self.downsampling_operator is None:
+            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
+            self.downsampling_operator = deepinv.physics.Downsampling(
+                img_size=shape[1:], filter=filter, device=device
+            )
+
     def downsample_signal(self, x):
         r"""
         Downsamples the signal using an antialiasing filter.
@@ -325,10 +338,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: torch.Tensor downsampled signal.
         """
         if self.downsampling_operator is None:
-            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
-            self.downsampling_operator = deepinv.physics.Downsampling(
-                img_size=x.shape[1:], filter=filter, device=x.device
-            )
+            self.initialize_downsampling_operator(x.shape, x.device)
         return self.downsampling_operator(x)
 
     def upsample_signal(self, x):
@@ -368,9 +378,16 @@ class Physics(torch.nn.Module):  # parent class for forward models
         r"""
         Returns a coarse version of the current physics.
         """
-        raise NotImplementedError(
-            "Method to_coarse not implemented for this physics operator"
-        )
+        if self.downsampling_operator is None:
+            raise ValueError(
+                "No downsampling operator, use initialize_downsampling_operator before."
+            )
+
+        ds = self.downsampling_operator
+
+        # factor**2 is only valid if x is an image
+        A_coarse = lambda x: ds(self.A(ds.factor**2 * ds.A_adjoint(x)))
+        return Physics(A=A_coarse)
 
 
 class LinearPhysics(Physics):
