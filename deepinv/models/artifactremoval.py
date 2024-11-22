@@ -29,13 +29,20 @@ class ArtifactRemoval(Reconstructor):
     :param torch.device device: cpu or gpu.
     """
 
-    def __init__(self, backbone_net: Denoiser, mode='adjoint', pinv=False, ckpt_path=None, device=None):
+    def __init__(
+        self,
+        backbone_net: Denoiser,
+        mode="adjoint",
+        pinv=False,
+        ckpt_path=None,
+        device=None,
+    ):
         super(ArtifactRemoval, self).__init__()
         self.pinv = pinv
         self.backbone_net = backbone_net
 
         if self.pinv:
-            mode = 'pinv'
+            mode = "pinv"
         self.mode = mode
 
         if ckpt_path is not None:
@@ -64,7 +71,9 @@ class ArtifactRemoval(Reconstructor):
         elif self.mode == "direct":
             y_in = y
         else:
-            raise ValueError("Invalid ArtifactRemoval mode. Options are 'direct', 'adjoint' or 'pinv'.")
+            raise ValueError(
+                "Invalid ArtifactRemoval mode. Options are 'direct', 'adjoint' or 'pinv'."
+            )
 
         if type(self.backbone_net).__name__ == "UNetRes":
             noise_level_map = (
