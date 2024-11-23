@@ -22,7 +22,7 @@ class RectifiedFlowModel(torch.nn.Module):
 
     where :math:`Z_0 = x` is an image of :math:`n` pixels,
     :math:`Z_1 = y` is the measurements of same shape :math:`n` pixels,
-    :math:`v(Z_t,t)` is a vector field estimated by our RF model.
+    :math:`v(Z_t,t)` is an unknow vector field estimated by our RF model.
 
     This formulation is a simpler form of Flow matching...
 
