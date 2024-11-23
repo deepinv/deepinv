@@ -133,10 +133,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
-        >>> physics = RandomPhaseRetrieval(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
+        >>> physics = RandomPhaseRetrieval(m=6, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[2.3043, 1.3553, 0.0087, 1.8518, 1.0845, 1.1561, 0.8668, 2.2031, 0.4542,
-            0.0225]])
+        tensor([[3.8405, 2.2588, 0.0146, 3.0864, 1.8075, 0.1518]])
+
     """
 
     def __init__(
