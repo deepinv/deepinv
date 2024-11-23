@@ -136,7 +136,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         >>> physics = RandomPhaseRetrieval(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
         tensor([[2.3043, 1.3553, 0.0087, 1.8518, 1.0845, 1.1561, 0.8668, 2.2031, 0.4542,
-               0.0225]])
+              0.0225]])
     """
 
     def __init__(
