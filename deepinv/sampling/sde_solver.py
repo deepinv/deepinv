@@ -4,6 +4,7 @@ from torch import Tensor
 import warnings
 from typing import Optional, Union
 from numpy import ndarray
+import numpy as np
 
 
 class BaseSDESolver(nn.Module):

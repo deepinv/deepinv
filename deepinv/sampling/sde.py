@@ -56,6 +56,7 @@ class BaseSDE(nn.Module):
         *args,
         timesteps: Union[Tensor, ndarray] = None,
         method: str = "euler",
+        seed: int = None,
         **kwargs,
     ):
         r"""
@@ -66,6 +67,7 @@ class BaseSDE(nn.Module):
 
         :return torch.Tensor: samples from the SDE.
         """
+        self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
         solver = solver_fn(sde=self, rng=self.rng, **kwargs)
 
@@ -173,44 +175,89 @@ class DiffusionSDE(nn.Module):
 
     @torch.no_grad()
     def forward(
-        self, x_init: Optional[Tensor], timesteps: Tensor, method: str = "Euler"
+        self,
+        x_init: Optional[Tensor],
+        timesteps: Tensor,
+        method: str = "Euler",
+        **kwargs,
     ):
-        return self.backward_sde.sample(x_init, timesteps=timesteps, method=method)
+        return self.backward_sde.sample(
+            x_init, timesteps=timesteps, method=method, **kwargs
+        )
 
 
-if __name__ == "__main__":
-    from edm import load_model
-    import numpy as np
-    from deepinv.utils.demo import load_url_image, get_image_url
-    import deepinv as dinv
+# %%
+# if __name__ == "__main__":
+from edm import load_model
+import numpy as np
+from deepinv.utils.demo import load_url_image, get_image_url
+import deepinv as dinv
+import matplotlib.pyplot as plt
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-    denoiser = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
-    url = get_image_url("CBSD_0010.png")
-    x = load_url_image(url=url, img_size=64, device=device)
-    x_noisy = x + torch.randn_like(x) * 0.3
-    # dinv.utils.plot(
-    #     [x, x_noisy, denoiser(x_noisy, 0.3)], titles=["sample", "y", "denoised"]
-    # )
-    prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+# denoiser = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+url = get_image_url("CBSD_0010.png")
+x = load_url_image(url=url, img_size=64, device=device)
+t = 100.0
+x_noisy = x + torch.randn_like(x) * t
+x_denoised = denoiser(x_noisy, t)
+dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
+_ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
+plt.show()
+# %%
+x_noisy = (x_noisy + 1) * 0.5
+x_denoised = denoiser(x_noisy, t * 0.5)
+x_denoised = x_denoised * 2 - 1
+dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
+_ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
+plt.show()
+# %%
+# VESDE
+sigma_min = 0.02
+sigma_max = 25.0
+timesteps = np.linspace(0.001, 1.0, 500)
+drift = lambda x, t: 0.0
+sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
+diffusion = lambda t: sigma_t(t) * np.sqrt(2 * (np.log(sigma_max) - np.log(sigma_min)))
+rng = torch.Generator(device).manual_seed(42)
 
-    from deepinv.sampling.utils import get_edm_parameters
 
-    # VESDE
-    params = get_edm_parameters("ve")
-    sigma_min = 0.02
-    sigma_max = 100
-    timesteps = params["timesteps_fn"](200)
-    drift = lambda x, t: 0.0
-    diffusion = (
-        lambda t: sigma_min
-        * (sigma_max / sigma_min) ** t
-        * np.sqrt(2 * (np.log(sigma_max) - np.log(sigma_min)))
-    )
-    print(timesteps)
-    sde = DiffusionSDE(drift=drift, diffusion=diffusion, prior=prior, device=device)
-    x_init = torch.randn((1, 3, 64, 64), device=device)
+prior = dinv.optim.prior.DiffusionScorePrior(
+    denoiser=denoiser, sigma_t=sigma_t, rescale=True
+)
 
-    samples = sde.backward_sde.sample(x_init, timesteps=timesteps, method="euler")
-    dinv.utils.plot(samples)
+sde = DiffusionSDE(
+    drift=drift,
+    diffusion=diffusion,
+    prior=prior,
+    device=device,
+    use_backward_ode=False,
+    rng=rng,
+)
+plt.figure()
+plt.plot([diffusion(t) for t in timesteps], label="diffusion")
+plt.legend()
+plt.show()
+
+# Check forward
+x_init = x.clone()
+
+samples = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
+dinv.utils.plot(samples, suptitle="Forward sample")
+_ = plt.hist(samples.ravel().cpu().numpy(), bins=100)
+plt.show()
+# %%
+# Check backward
+x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
+
+
+# %%
+samples = sde.backward_sde.sample(
+    x_init, timesteps=timesteps[::-1], method="euler", seed=1
+)
+dinv.utils.plot(samples, suptitle="Backward sample")
+_ = plt.hist(samples.ravel().cpu().numpy(), bins=100)
+plt.show()
+
+# %%

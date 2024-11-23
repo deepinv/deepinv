@@ -1,7 +1,7 @@
 # %%
 import torch
 import torch.nn as nn
-from sde import EDMSDE, DiffusionSDE
+from sde import DiffusionSDE
 from sde_solver import EulerSolver, HeunSolver
 import deepinv as dinv
 from deepinv.utils.demo import load_url_image, get_image_url
@@ -36,14 +36,17 @@ print(sum(p.numel() for p in unet.parameters()))
 for p in unet.parameters():
     p.requires_grad_(False)
 # %%
-model = EDMPrecond(model=unet).to(device)
-denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
+# model = EDMPrecond(model=unet).to(device)
+# denoiser = lambda x, t: model(x.to(torch.float32), t).to(torch.float64)
+denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 
-x_noisy = x + torch.randn_like(x) * 0.2
-dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 0.2)])
+x_noisy = x + torch.randn_like(x) * 1.
+dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 1.)])
+
+dinv.utils.plot(prior.score(x_noisy, 1))
 
 
 # %%
@@ -105,24 +108,30 @@ with torch.no_grad():
 
 # %%
 params = get_edm_parameters("ve")
-timesteps_fn = params["timesteps_fn"]
-sigma_fn = params["sigma_fn"]
-sigma_deriv_fn = params["sigma_deriv_fn"]
-beta_fn = params["beta_fn"]
-sigma_max = params["sigma_max"]
-s_fn = params["s_fn"]
-s_deriv_fn = params["s_deriv_fn"]
-# sde = EDMSDE(prior=prior, name="ve", use_backward_ode=False)
+sigma_min = 0.01
+sigma_max = 100
+# timesteps_fn = params["timesteps_fn"]
+drift = lambda x, t: 0.0
+diffusion = (
+    lambda t: sigma_min
+    * (sigma_max / sigma_min) ** t
+    * np.sqrt(2 * (np.log(sigma_max) - np.log(sigma_min)))
+)
+sde = DiffusionSDE(drift=drift, diffusion=diffusion, prior=prior, device=device)
+x_init = torch.randn((1, 3, 64, 64), device=device)
+timesteps_fn = lambda n: np.linspace(0.001, 1, n)[::-1]
 
-sde = DiffusionSDE(prior=prior, use_backward_ode=False)
+import matplotlib.pyplot as plt
 
+plt.plot(timesteps_fn(100))
+plt.show()
+plt.plot([diffusion(t) for t in timesteps_fn(1000)])
+
+plt.plot(np.exp(np.linspace(np.log(sigma_min), np.log(sigma_max), 1000))[::-1])
 # %%
 num_steps = 200
 with torch.no_grad():
-    # endpoint = sde.forward_sde.sample(x, ve_timesteps[::-1])
-    # print(f"End point std: {endpoint.std()}")
-    # dinv.utils.plot(endpoint)
-    noise = torch.randn(2, 3, 64, 64, device=device) * sigma_max
+    noise = torch.randn(1, 3, 64, 64, device=device) * sigma_max
     samples = sde.backward_sde.sample(noise, timesteps=timesteps_fn(num_steps))
 dinv.utils.plot(samples)
 

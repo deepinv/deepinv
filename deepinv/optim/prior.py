@@ -14,6 +14,7 @@ from deepinv.optim.utils import gradient_descent
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
+from typing import Callable
 
 
 class Prior(nn.Module):
@@ -262,6 +263,93 @@ class ScorePrior(Prior):
 
     @staticmethod
     def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
+
+
+class DiffusionScorePrior(Prior):
+    r"""
+    Score via MMSE denoiser :math:`\nabla \reg{x}=\left(x-\operatorname{D}_{\sigma(t)}(x)\right)/\sigma(t)^2`.
+
+    This approximates the score of a distribution using Tweedie's formula, i.e.,
+
+    .. math::
+
+        - \nabla \log p_{\sigma(t)}(x) \propto \left(x-D(x,\sigma(t))\right)/\sigma(t)^2
+
+    where :math:`p_{\sigma(t)} = p*\mathcal{N}(0,I\sigma(t)^2)` is the prior convolved with a Gaussian kernel,
+    :math:`D(\cdot,\sigma(t))` is a (trained or model-based) denoiser with noise level :math:`\sigma(t)`,
+    which could be very large.
+
+    :param denoiser: a MMSE denoiser
+    :param bool rescale: indicates whether the denoiser was trained on images scaled to [0,1] or not ([-1,1]).
+    :param callable sigma_t: a function that maps time to noise level, defaults to a constant function.
+    """
+
+    def __init__(
+        self,
+        denoiser,
+        rescale: bool = False,
+        sigma_t: Callable = lambda t: t,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.denoiser = denoiser
+        self.rescale = rescale
+        self.sigma_t = sigma_t
+        self.explicit_prior = False
+
+    def grad(self, x, t, *args, **kwargs):
+        r"""
+        Applies the denoiser to the input signal.
+
+        :param torch.Tensor x: the input tensor.
+        :param float t: the time variable define the noise level by `sigma_fn(t)`.
+        """
+        sigma_denoiser = self.sigma_t(t)
+        if self.rescale:
+            x = (x + 1) * 0.5
+            sigma_denoiser = sigma_denoiser * 0.5
+
+        grad = self.denoiser(x, sigma_denoiser, *args, **kwargs)
+        if self.rescale:
+            grad = grad * 2 - 1
+        return self.stable_division(x - grad, sigma_denoiser**2)
+
+    def score(self, x, t, *args, **kwargs):
+        r"""
+        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
+
+        :param torch.Tensor x: the input tensor.
+        :param float t: the time variable define the noise level by `sigma_fn(t)`.
+
+        :return: the score function :math:`\nabla \log p_t()`.
+        :rtype: torch.Tensor
+        """
+        sigma_denoiser = self.sigma_t(t)
+        if self.rescale:
+            x = (x + 1) * 0.5
+            sigma_denoiser = sigma_denoiser * 0.5
+
+        score = self.denoiser(x, sigma_denoiser, *args, **kwargs)
+        if self.rescale:
+            score = score * 2 - 1
+        return self.stable_division(score - x, sigma_denoiser**2)
+
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        r"""
+        Numerical stable division.
+        """
         if isinstance(b, torch.Tensor):
             b = torch.where(
                 b.abs().detach() > epsilon,
