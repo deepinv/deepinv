@@ -16,6 +16,41 @@ from deepinv.physics.blur import gaussian_blur
 from deepinv.physics.functional import conv2d
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/main/models/layer_norm.py
+class LayerNorm_AF(nn.Module):
+    def __init__(
+        self,
+        normalized_shape,
+        eps=1e-6,
+        data_format="channels_last",
+        u_dims=(1, 2, 3),
+        s_dims=(1, 2, 3),
+    ):
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(normalized_shape))
+        self.bias = nn.Parameter(torch.zeros(normalized_shape))
+        self.eps = eps
+        self.data_format = data_format
+        if self.data_format not in ["channels_last", "channels_first"]:
+            raise NotImplementedError
+        self.normalized_shape = (normalized_shape,)
+        self.u_dims = u_dims
+        self.s_dims = s_dims
+
+    def forward(self, x):
+        if self.data_format == "channels_last":
+            x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
+        u = x.mean(self.u_dims, keepdim=True)
+        s = (x - u).pow(2).mean(self.s_dims, keepdim=True)
+        x = (x - u) / torch.sqrt(s + self.eps)
+        x = self.weight[:, None, None] * x + self.bias[:, None, None]
+
+        if self.data_format == "channels_last":
+            x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
+
+        return x
+
+
 class ConvNextBlock(nn.Module):
     def __init__(
         self,
@@ -25,7 +60,7 @@ class ConvNextBlock(nn.Module):
         bias=False,
         ksize=7,
         padding_mode="circular",
-        batch_norm=False,
+        norm="LayerNorm_AF",
         rotation_equivariant=False,
     ):
         super().__init__()
@@ -43,14 +78,6 @@ class ConvNextBlock(nn.Module):
             bias=bias,
             padding_mode=padding_mode,
         )
-        if batch_norm:
-            self.BatchNorm = (
-                BFBatchNorm2d(in_channels, use_bias=bias)
-                if bias
-                else nn.BatchNorm2d(in_channels)
-            )
-        else:
-            self.BatchNorm = nn.Identity()
 
         self.conv2 = nn.Conv2d(
             in_channels,
@@ -61,6 +88,23 @@ class ConvNextBlock(nn.Module):
             bias=bias,
             padding_mode=padding_mode,
         )
+
+        if norm == "BatchNorm2d":
+            self.norm = (
+                BFBatchNorm2d(4 * in_channels, use_bias=bias)
+                if bias
+                else nn.BatchNorm2d(4 * in_channels)
+            )
+            self.norm_order = "channels_first"
+        elif norm == "LayerNorm":
+            self.norm = nn.LayerNorm(4 * in_channels)
+            self.norm_order = "channels_last"
+        elif norm == "LayerNorm_AF":
+            self.norm = LayerNorm_AF(4 * in_channels, data_format="channels_first")
+            self.norm_order = "channels_first"
+        else:
+            self.norm = nn.Identity()
+            self.norm_order = "channels_first"
 
         if mode == "up_poly_per_channel":
             self.nonlin = UpPolyActPerChannel(
@@ -89,7 +133,14 @@ class ConvNextBlock(nn.Module):
     def forward(self, x):
         out = self.conv1(x)
         out = self.conv2(out)
-        out = self.BatchNorm(out)
+        if self.norm_order == "channels_first":
+            out = self.norm(out)
+        elif self.norm_order == "channels_last":
+            out = out.permute(0, 2, 3, 1)
+            out = self.norm(out)
+            out = out.permute(0, 3, 1, 2)
+        else:
+            raise ValueError(f"norm_order={self.norm_order} is not supported")
         out = self.nonlin(out)
         out = self.conv3(out)
         out = out + x
@@ -629,7 +680,7 @@ class AliasFreeUNet(nn.Module):
 
         out_ch = self.hidden_channels
 
-        self.conv_in = ConvBlock(
+        self.conv_in = main_block(
             in_channels=in_channels,
             out_channels=out_ch,
             bias=bias,
@@ -679,7 +730,7 @@ class AliasFreeUNet(nn.Module):
             setattr(
                 self,
                 f"CatBlock{i}",
-                ConvBlock(
+                main_block(
                     in_channels=in_ch,
                     out_channels=out_ch,
                     bias=bias,

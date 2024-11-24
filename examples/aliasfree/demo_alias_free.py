@@ -50,7 +50,9 @@ dinv.datasets.generate_dataset(
 physics.mask.to(device)
 
 train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(dataset_path, train=True),
+    batch_size=4,
+    shuffle=True,
 )
 test_dataloader = DataLoader(
     dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
@@ -59,11 +61,11 @@ test_dataloader = DataLoader(
 model = dinv.models.AliasFreeUNet(
     in_channels=3,
     out_channels=3,
-    scales=2,
+    scales=5,
 ).to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
+optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
+scheduler = None
 
 losses = [
     dinv.loss.SupLoss(metric=torch.nn.MSELoss()),
@@ -74,7 +76,7 @@ trainer = dinv.Trainer(
     physics=physics,
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
-    epochs=20,
+    epochs=50,
     losses=losses,
     optimizer=optimizer,
     scheduler=scheduler,

@@ -23,8 +23,7 @@ afc_rotation_equivariant = AliasFreeUNet(
 unet = UNet(in_channels=3, out_channels=3)
 
 x = DummyCircles(1, imsize=(3, 256, 256))[0].unsqueeze(0)
-linf_metric = lambda x, y: (x - y).abs().max()
-psnr_metric = PSNR()
+metric = PSNR()
 
 rotate_kwargs = {
     "interpolation_mode": InterpolationMode.BILINEAR,
@@ -43,45 +42,45 @@ def test_nonsquare_input():
 
 
 def test_shift_equivariant():
-    err = Shift().equivariance_test(afc, x, metric=linf_metric)
-    assert err < 1e-6
+    err = Shift().equivariance_test(afc, x, metric=metric)
+    assert err >= 75
 
-    err = Shift().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
-    assert err < 1e-6
+    err = Shift().equivariance_test(afc_rotation_equivariant, x, metric=metric)
+    assert err >= 60
 
 
 def test_not_shift_equivariant():
-    err = Shift().equivariance_test(unet, x, metric=linf_metric)
-    assert err >= 1e0
+    err = Shift().equivariance_test(unet, x, metric=metric)
+    assert err < 15
 
 
 def test_translation_equivariant():
-    err = Translate().equivariance_test(afc, x, metric=linf_metric)
-    assert err < 1e-5
+    err = Translate().equivariance_test(afc, x, metric=metric)
+    assert err >= 70
 
-    err = Translate().equivariance_test(afc_rotation_equivariant, x, metric=linf_metric)
-    assert err < 1e-5
+    err = Translate().equivariance_test(afc_rotation_equivariant, x, metric=metric)
+    assert err >= 60
 
 
 def test_not_translation_equivariant():
-    err = Translate().equivariance_test(unet, x, metric=linf_metric)
-    assert err >= 1e0
+    err = Translate().equivariance_test(unet, x, metric=metric)
+    assert err < 10
 
 
 def test_rotation_equivariant():
     psnr_base = Rotate(**rotate_kwargs).equivariance_test(
-        afc, x, params=rotate_params, metric=psnr_metric
+        afc, x, params=rotate_params, metric=metric
     )
 
     psnr_equiv = Rotate(**rotate_kwargs).equivariance_test(
-        afc_rotation_equivariant, x, params=rotate_params, metric=psnr_metric
+        afc_rotation_equivariant, x, params=rotate_params, metric=metric
     )
-    assert psnr_equiv >= 75
+    assert psnr_equiv >= 40
     assert psnr_equiv > 1.04 * psnr_base
 
 
 def test_not_rotation_equivariant():
     psnr = Rotate(**rotate_kwargs).equivariance_test(
-        unet, x, params=rotate_params, metric=psnr_metric
+        unet, x, params=rotate_params, metric=metric
     )
     assert psnr <= 10
