@@ -8,7 +8,7 @@ This subpackage can be used for generating reconstruction datasets from other ba
 
 .. _hd5dataset:
 
-HD5Dataset
+Generating Datasets
 ----------
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MNIST).
