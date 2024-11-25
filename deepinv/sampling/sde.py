@@ -216,10 +216,12 @@ plt.show()
 # VESDE
 sigma_min = 0.02
 sigma_max = 25.0
-timesteps = np.linspace(0.001, 1.0, 500)
+timesteps = np.linspace(0.001, 1.0, 1000)
 drift = lambda x, t: 0.0
 sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
+# sigma_t = lambda t: t
 diffusion = lambda t: sigma_t(t) * np.sqrt(2 * (np.log(sigma_max) - np.log(sigma_min)))
+# diffusion = lambda t: np.sqrt(2)
 rng = torch.Generator(device).manual_seed(42)
 
 
