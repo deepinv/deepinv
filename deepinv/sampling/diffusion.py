@@ -429,18 +429,21 @@ class DiffPIR(nn.Module):
 
         sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
-        # TODO: fix
-        at = 1 / sqrt_recip_alphas_cumprod[999] ** 2
-        x = 0. + self.sigmas[self.seq[0]] * torch.randn_like(x) * (1. * at.sqrt())
+        # moved init below
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
                 # Current noise level
-                curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
+                curr_sigma = self.sigmas[self.seq[i]]#.cpu().numpy()
 
                 # time step associated with the noise level sigmas[i]
-                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
+                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma.cpu().numpy())
+                print('t_i:', t_i)
                 at = 1/sqrt_recip_alphas_cumprod[t_i]**2
+
+                if i == 0:  # Initialization: we need to add some noise
+                    x = (x + curr_sigma * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[-1]
+
                 sigma_cur = curr_sigma
 
                 # Denoising step
@@ -483,6 +486,7 @@ class DiffPIR(nn.Module):
                     )  # sampling
 
 
+                # TODO: remove this, just visual checks
                 img_list = [eps, denoised, noise_est, x0, x, x0_plot]
                 title_list = ['eps', 'denoised', 'noise_est', 'x0', 'x', 'x0_plot']
 
