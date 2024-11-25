@@ -11,7 +11,11 @@ This subpackage can be used for generating reconstruction datasets from other ba
 Generating Datasets
 ----------
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
-using a base PyTorch dataset (:class:`torch.utils.data.Dataset`, in this case MNIST).
+using a base PyTorch dataset (:class:`torch.utils.data.Dataset`).
+Your base dataset can either be one of our predefined datasets (see :ref:`predefined-datasets`), 
+your own data (which you can load using :class:`torchvision.datasets.ImageFolder` or a custom dataset),
+or other external datasets (e.g. in this case, torchvision MNIST).
+
 For example, here we generate a compressed sensing MNIST dataset:
 
 .. note::
