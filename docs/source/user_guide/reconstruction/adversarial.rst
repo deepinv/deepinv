@@ -32,17 +32,8 @@ Training alternates between generator :math:`G` and discriminator :math:`D` in a
 When there are no ground truths (i.e. self-supervised), this may be defined on the measurements :math:`y` instead.
 See the list of available adversarial losses in :ref:`adversarial-losses`.
 
-The reconstruction network :math:`R` can be any architecture that maps the measurements :math:`y` to the signal :math:`x`,
+The reconstruction network (i.e. the "generator") :math:`R` can be any architecture that maps the measurements :math:`y` to the signal :math:`x`,
 including :ref:`artifact removal <artifact>` or :ref:`unfolded <unfolded>` networks.
-We also provide the following specific architectures:
-
-.. list-table:: Generator Networks
-   :header-rows: 1
-
-   * - Generator
-     - Description
-   * - :class:`DCGANGenerator <deepinv.models.DCGANGenerator>`
-     - Deep Convolution GAN generator model
 
 The discriminator network :math:`D` can be implemented with one of the following architectures:
 
@@ -74,15 +65,17 @@ matches the observed measurements :math:`\forw{R(z)}\approx y`:
 
 .. math:: \hat x = \inverse{\hat z}\quad\text{s.t.}\quad\hat z=\operatorname*{argmin}_z \lVert \forw{\inverse{z}}-y\rVert _2^2
 
-We can adapt any generator model to perform unconditional GAN training and inference:
+We can adapt any latent generator model to train an unconditional GAN and perform conditional inference:
 
 .. list-table:: Unconditional GANs
    :header-rows: 1
 
    * - Generator
      - Description
+   * - :class:`DCGANGenerator <deepinv.models.DCGANGenerator>`
+     - DCGAN unconditional generator model
    * - :class:`CSGMGenerator <deepinv.models.CSGMGenerator>`
-     - Adapts a generator model for CSGM or AmbientGAN training.
+     - Adapts an unconditional generator model for CSGM or AmbientGAN training.
 
 
 .. _deep-image-prior:
