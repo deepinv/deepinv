@@ -48,13 +48,16 @@ class JacobianSpectralNorm(Loss):
         self.eval = eval_mode
         self.verbose = verbose
 
-        self.reduction = lambda x: x
         if reduction == "mean":
             self.reduction = lambda x: torch.mean(x)
         elif reduction == "sum":
             self.reduction = lambda x: torch.sum(x)
         elif reduction == "max":
             self.reduction = lambda x: torch.max(x)
+        elif reduction is None or reduction == "none":
+            self.reduction = lambda x: x
+        else:
+            raise ValueError('Reduction should be "mean", "sum", "max", "none" or None.')
 
     @staticmethod
     def _batched_dot(x, y):
