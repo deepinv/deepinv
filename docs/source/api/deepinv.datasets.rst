@@ -7,7 +7,7 @@ Please refer to the :ref:`user guide <datasets>` for more information.
 
 HD5Dataset
 ----------
-.. userguide:: hd5dataset
+.. userguide:: generating-datasets
 
 .. autosummary::
    :toctree: stubs
