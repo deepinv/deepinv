@@ -108,7 +108,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`law` **Artifact Removal**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Learned filtered back-projection.
+        Reconstruction networks from denoisers.
 
     .. grid-item-card::
         :link: optim
