@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
+from deepinv.utils.plotting import plot
 
 
 class DiffusionSampler(MonteCarlo):
@@ -278,7 +279,7 @@ class DiffPIR(nn.Module):
         data_fidelity,
         sigma=0.05,
         max_iter=100,
-        zeta=1.0,
+        zeta=0.1,
         lambda_=7.0,
         verbose=False,
         device="cpu",
@@ -364,7 +365,16 @@ class DiffPIR(nn.Module):
         """
         array = np.asarray(array)
         idx = (np.abs(array - value)).argmin()
-        return idx
+        return torch.tensor([idx])
+
+    def compute_alpha(self, betas, t):
+        """
+        Compute the alpha sequence from the beta sequence.
+        """
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)
+        at = alphas_cumprod[t]
+        return at
 
     def get_alpha_prod(
         self, beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=1000
@@ -419,6 +429,10 @@ class DiffPIR(nn.Module):
 
         sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
+        # TODO: fix
+        at = 1 / sqrt_recip_alphas_cumprod[999] ** 2
+        x = 0. + self.sigmas[self.seq[0]] * torch.randn_like(x) * (1. * at.sqrt())
+
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
                 # Current noise level
@@ -426,25 +440,23 @@ class DiffPIR(nn.Module):
 
                 # time step associated with the noise level sigmas[i]
                 t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
+                at = 1/sqrt_recip_alphas_cumprod[t_i]**2
+                sigma_cur = curr_sigma
 
                 # Denoising step
-                x_aux = x / 2 + 0.5
-                denoised = 2 * self.model(x_aux, curr_sigma / 2) - 1
-                noise_est = (
-                    sqrt_recip_alphas_cumprod[t_i] * x - denoised
-                ) / sqrt_recipm1_alphas_cumprod[t_i]
-
-                x0 = (
-                    self.sqrt_recip_alphas_cumprod[t_i] * x
-                    - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-                )
+                x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+                out = self.model(x_aux, sigma_cur / 2)
+                denoised = (2 * out - 1)
+                noise_est = (x - denoised)  # TODO: this is not used, just used for checks
+                x0 = denoised.clone()  # TODO: clean
                 x0 = x0.clamp(-1, 1)
+                x0_plot = x0.clone()
 
                 if not self.seq[i] == self.seq[-1]:
                     # Data fidelity step
                     x0_p = x0 / 2 + 0.5
                     x0_p = self.data_fidelity.prox(
-                        x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                        x0_p, y, physics, gamma=1. / (2*self.rhos[t_i])
                     )
                     x0 = x0_p * 2 - 1
 
@@ -453,11 +465,13 @@ class DiffPIR(nn.Module):
                         self.reduced_alpha_cumprod,
                         self.sigmas[self.seq[i + 1]].cpu().numpy(),
                     )  # time step associated with the next noise level
+
                     eps = (
                         x - self.sqrt_alphas_cumprod[t_i] * x0
                     ) / self.sqrt_1m_alphas_cumprod[
                         t_i
                     ]  # effective noise
+
                     x = (
                         self.sqrt_alphas_cumprod[t_im1] * x0
                         + self.sqrt_1m_alphas_cumprod[t_im1]
@@ -467,6 +481,14 @@ class DiffPIR(nn.Module):
                         * np.sqrt(self.zeta)
                         * torch.randn_like(x)
                     )  # sampling
+
+
+                img_list = [eps, denoised, noise_est, x0, x, x0_plot]
+                title_list = ['eps', 'denoised', 'noise_est', 'x0', 'x', 'x0_plot']
+
+                plot(img_list, titles=title_list)
+
+                # print(asdasd)
 
         out = x / 2 + 0.5  # back to [0, 1] range
 
