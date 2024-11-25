@@ -13,4 +13,4 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
   | This option is generally to linear operators :math:`A`.
 - Pseudoinverse: :math:`\inversef{y}{A}=\phi(A^{\dagger}y)` with ``mode='pinv'``.
 - | Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
-  | This option serves as only as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and is generally limited to problems where the measurements are the same size as the image, such as inpainting, deblurring or denoising.
+  | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
