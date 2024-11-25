@@ -9,6 +9,7 @@ Elucidating the Design Space of Diffusion-Based Generative Models: https://arxiv
 import numpy as np
 import torch
 from torch.nn.functional import silu
+from typing import List
 
 # ----------------------------------------------------------------------------
 # Unified routine for initializing weights and biases.
@@ -384,38 +385,61 @@ class FourierEmbedding(torch.nn.Module):
 
 
 # ----------------------------------------------------------------------------
-# Reimplementation of the DDPM++ and NCSN++ architectures from the paper
-# "Score-Based Generative Modeling through Stochastic Differential
-# Equations". Equivalent to the original implementation by Song et al.,
-# available at https://github.com/yang-song/score_sde_pytorch
 
 
 class SongUNet(torch.nn.Module):
+    r"""
+    Re-implementation of the DDPM++ and NCSN++ architectures from the paper: Score-Based Generative Modeling through Stochastic Differential Equations (https://arxiv.org/abs/2011.13456).
+    Equivalent to the original implementation by Song et al., available at https://github.com/yang-song/score_sde_pytorch
+
+
+    :param int img_resolution: Image spatial resolution at input/output.
+    :param int in_channels: Number of color channels at input.
+    :param int out_channels: Number of color channels at output.
+    :param int label_dim: Number of class labels, 0 = unconditional.
+    :param int augment_dim: Augmentation label dimensionality, 0 = no augmentation.
+    :param int model_channels: Base multiplier for the number of channels.
+    :param list channel_mult: Per-resolution multipliers for the number of channels.
+    :param int channel_mult_emb: Multiplier for the dimensionality of the embedding vector.
+    :param int num_blocks: Number of residual blocks per resolution.
+    :param list attn_resolutions: List of resolutions with self-attention.
+    :param float dropout: Dropout probability of intermediate activations.
+    :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
+    :param str embedding_type: Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
+    :param int channel_mult_noise: Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
+    :param str encoder_type: Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
+    :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
+    :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
+
+    """
+
     def __init__(
         self,
-        img_resolution,  # Image resolution at input/output.
-        in_channels,  # Number of color channels at input.
-        out_channels,  # Number of color channels at output.
-        label_dim=0,  # Number of class labels, 0 = unconditional.
-        augment_dim=0,  # Augmentation label dimensionality, 0 = no augmentation.
-        model_channels=128,  # Base multiplier for the number of channels.
-        channel_mult=[
+        img_resolution: int,  # Image spatial resolution at input/output.
+        in_channels: int = 3,  # Number of color channels at input.
+        out_channels: int = 3,  # Number of color channels at output.
+        label_dim: int = 0,  # Number of class labels, 0 = unconditional.
+        augment_dim: int = 9,  # Augmentation label dimensionality, 0 = no augmentation.
+        model_channels: int = 128,  # Base multiplier for the number of channels.
+        channel_mult: List = [
             1,
             2,
             2,
             2,
         ],  # Per-resolution multipliers for the number of channels.
-        channel_mult_emb=4,  # Multiplier for the dimensionality of the embedding vector.
-        num_blocks=4,  # Number of residual blocks per resolution.
-        attn_resolutions=[16],  # List of resolutions with self-attention.
-        dropout=0.10,  # Dropout probability of intermediate activations.
-        label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
-        embedding_type="positional",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
-        channel_mult_noise=1,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
-        encoder_type="standard",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
-        decoder_type="standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter=[
+        channel_mult_emb: int = 4,  # Multiplier for the dimensionality of the embedding vector.
+        num_blocks: int = 4,  # Number of residual blocks per resolution.
+        attn_resolutions: List = [16],  # List of resolutions with self-attention.
+        dropout: float = 0.10,  # Dropout probability of intermediate activations.
+        label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
+        embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
+        channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
+        encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
+        decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
+        resample_filter: List = [
             1,
+            3,
+            3,
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
     ):
@@ -556,9 +580,19 @@ class SongUNet(torch.nn.Module):
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
 
-    def forward(self, x, noise_labels, class_labels, augment_labels=None):
+    def forward(self, x, noise_level, class_labels, augment_labels=None):
+        r"""
+        Run the denoiser on noisy image.
+
+        :param torch.Tensor x: noisy image
+        :param torch.Tensor noise_level: noise level
+        :param torch.Tensor class_labels: class labels
+        :param torch.Tensor augment_labels: augmentation labels
+
+        :return torch.Tensor: denoised image.
+        """
         # Mapping.
-        emb = self.map_noise(noise_labels)
+        emb = self.map_noise(noise_level)
         emb = (
             emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
         )  # swap sin/cos
@@ -606,14 +640,12 @@ class SongUNet(torch.nn.Module):
         return aux
 
 
-# ----------------------------------------------------------------------------
-# Reimplementation of the ADM architecture from the paper
-# "Diffusion Models Beat GANS on Image Synthesis". Equivalent to the
-# original implementation by Dhariwal and Nichol, available at
-# https://github.com/openai/guided-diffusion
-
-
 class DhariwalUNet(torch.nn.Module):
+    r"""
+    Re-implementation of the architecture from the paper: Diffusion Models Beat GANS on Image Synthesis (https://arxiv.org/abs/2105.05233).
+    Equivalent to the original implementation by Dhariwal and Nichol, available at: https://github.com/openai/guided-diffusion.
+    """
+
     def __init__(
         self,
         img_resolution,  # Image resolution at input/output.
