@@ -20,5 +20,5 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
 .. tip::
 
-    You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` to provide useful methods for your physics.
+    You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
 
