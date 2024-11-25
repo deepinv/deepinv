@@ -59,12 +59,6 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.SplittingLoss`
      - Independent noise across measurements.
      - Yes
-   * - :class:`deepinv.loss.Phase2PhaseLoss`
-     - TODO
-     - No
-   * - :class:`deepinv.loss.Artifact2ArtifactLoss`
-     - TODO
-     - No
    * - :class:`deepinv.loss.SureGaussianLoss`
      - Gaussian noise
      - Yes
@@ -81,22 +75,32 @@ of the forward operator (e.g., incomplete operators with less measurements than 
      - Poisson, Gaussian or Gamma noise
      - No
 
-In order to learn from incomplete data, you can either
-i) use multiple operators (e.g., different masking patterns) or
-ii) use a single operator and leverage invariance to transformations (e.g., rotations, translations).
+In order to learn from incomplete data, you can either:
 
-.. list-table:: Other losses
+1. Use multiple operators (e.g., different masking patterns or performing further measurement splitting)
+2. Use a single operator and leverage invariance to transformations (e.g., rotations, translations) using Equivariant Imaging.
+
+.. list-table:: Other self-supervised losses
    :header-rows: 1
 
    * - Loss
      - Assumptions
    * - :class:`deepinv.loss.EILoss`
-     - Assumes invariance of the signal distribution to transformations.
+     - | Assumes invariance of the signal distribution to transformations.
+       | (i.e. Equivariant Imaging)
    * - :class:`deepinv.loss.MOILoss`
-     - Assumes measurements observed through multiple operators.
+     - | Assumes measurements observed through multiple operators.
+       | (i.e. Multi-Operator Imaging)
    * - :class:`deepinv.loss.MOEILoss`
      - | Assumes measurements observed through multiple operators
        | and invariance of the signal distribution
+   * - :class:`deepinv.loss.SplittingLoss`
+     - | Assumes masks observe whole distribution.
+       | (i.e. measurement splitting or data undersampling)
+   * - :class:`deepinv.loss.Phase2PhaseLoss`
+     - Splitting loss but across time dimension
+   * - :class:`deepinv.loss.Artifact2ArtifactLoss`
+     - Splitting loss but across time dimension
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
 
@@ -130,7 +134,7 @@ Adversarial Learning
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game.
 These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN.
 We implement various popular (supervised and unsupervised) adversarial training frameworks below.
-See :ref:`adversarial` for more details.
+See :ref:`adversarial` for more details, and see :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
 The base class for generators is :class:`deepinv.loss.adversarial.GeneratorLoss`
 and for discriminators is :class:`deepinv.loss.adversarial.DiscriminatorLoss`.
 
