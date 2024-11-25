@@ -188,15 +188,17 @@ class DiffusionSDE(nn.Module):
 
 # %%
 # if __name__ == "__main__":
-from edm import load_model
 import numpy as np
 from deepinv.utils.demo import load_url_image, get_image_url
 import deepinv as dinv
 import matplotlib.pyplot as plt
+from deepinv.models.edm import SongUNet, EDMPrecond
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-# denoiser = load_model("edm-ffhq-64x64-uncond-ve.pkl").to(device)
+# denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+unet = SongUNet.from_pretrained('song-unet-edm-ffhq64-uncond-ve')
+denoiser = EDMPrecond(model=unet).to(device)
+
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 t = 100.0

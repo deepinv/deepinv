@@ -639,6 +639,36 @@ class SongUNet(torch.nn.Module):
                 x = block(x, emb)
         return aux
 
+    @classmethod
+    def from_pretrained(cls, model_name: str = "songunet-edm-ffhq64-uncond-ve"):
+        r"""
+        Load a pretrained model from the Hugging Face Hub.
+
+        :param str model_name: Name of the model to load.
+
+        :return DhariwalUNet: The loaded model.
+        """
+        model = cls(
+            img_resolution=64,
+            in_channels=3,
+            out_channels=3,
+            augment_dim=9,
+            model_channels=128,
+            channel_mult=[1, 2, 2, 2],
+            channel_mult_noise=2,
+            embedding_type="fourier",
+            encoder_type="residual",
+            decoder_type="standard",
+            resample_filter=[1, 3, 3, 1],
+        )
+        model_url = f"https://huggingface.co/mhnguyen712/edm/resolve/main/{model_name.lower()}.pt"
+        state_dict = torch.hub.load_state_dict_from_url(
+            model_url,
+            file_name=model_name,
+        )
+        model.load_state_dict(state_dict)
+        return model
+
 
 class DhariwalUNet(torch.nn.Module):
     r"""
