@@ -6,7 +6,7 @@ The simplest method for reconstructing an image from a measurements is to first 
 to the image domain via a non-learned mapping, and then apply a denoiser network to the obtain the final reconstruction.
 
 
-The :class:`deepinv.models.ArtifactRemoval` class converts a :class:`deepinv.models.Denoiser` :math:`\phi` into a
+The :class:`deepinv.models.ArtifactRemoval` class converts a denoiser :class:`deepinv.models.Denoiser` or other image-to-image network :math:`\phi` into a
 reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 
 - | Adjoint: :math:`\inversef{y}{A}=\phi(A^{\top}y)` with ``mode='adjoint'``.
