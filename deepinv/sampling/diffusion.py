@@ -438,10 +438,9 @@ class DiffPIR(nn.Module):
 
                 # time step associated with the noise level sigmas[i]
                 t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma.cpu().numpy())
-                print('t_i:', t_i)
-                at = 1/sqrt_recip_alphas_cumprod[t_i]**2
+                at = 1/sqrt_recip_alphas_cumprod[t_i]**2  # TODO: clean at and sequences
 
-                if i == 0:  # Initialization: we need to add some noise
+                if i == 0:  # Initialization # TODO: this is a bit brutal compared to the original code, I would maybe move this to a dedicated method?
                     x = (x + curr_sigma * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[-1]
 
                 sigma_cur = curr_sigma
