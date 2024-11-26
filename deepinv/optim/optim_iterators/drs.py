@@ -7,8 +7,8 @@ class DRSIteration(OptimIterator):
     r"""
     Iterator for Douglas-Rachford Splitting.
 
-    Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimising
-    :math:` f(x) + \lambda \regname(x)`.
+    Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimizing
+    :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default), the iteration is given by
 

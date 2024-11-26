@@ -7,7 +7,7 @@ class ADMMIteration(OptimIterator):
     Iterator for alternating direction method of multipliers.
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
-    minimising :math:` f(x) + \lambda \regname(x)`.
+    minimising :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default),
     the iteration is (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_):

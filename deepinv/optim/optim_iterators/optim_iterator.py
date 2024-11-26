@@ -68,7 +68,7 @@ class OptimIterator(nn.Module):
         General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda \regname`, alternating
         between a step on :math:`f` and a step on :math:`\regname`.
         The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary
-        $X$ of the form `{'est': (x,z), 'cost': F}`.
+        `X` of the form `{'est': (x,z), 'cost': F}`.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -127,7 +127,7 @@ class fStep(nn.Module):
 
 class gStep(nn.Module):
     r"""
-    Module for the single iteration steps on the prior term :math:` \lambda \regname`.
+    Module for the single iteration steps on the prior term :math:`\lambda \regname`.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
     :param kwargs: Additional keyword arguments.

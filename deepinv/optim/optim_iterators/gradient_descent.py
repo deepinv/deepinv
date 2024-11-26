@@ -33,7 +33,7 @@ class GDIteration(OptimIterator):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         r"""
-        Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
+        Single gradient descent iteration on the objective :math:`f(x) + \lambda \regname(x)`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
