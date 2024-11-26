@@ -8,7 +8,6 @@ from deepinv.optim.distance import (
     LogPoissonLikelihoodDistance,
 )
 from deepinv.optim.potential import Potential
-from deepinv.physics import Physics
 import torch
 
 
