@@ -245,7 +245,7 @@ Some predefined optimizers are provided:
      - Parameters
 
    * - :class:`Gradient Descent (GD) <deepinv.optim.optim_iterators.GDIteration>`
-     - | :math:`v_{k} = \nabla f(x_k) + \nabla \reg{x_k}`
+     - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = x_k-\gamma v_{k}`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
@@ -283,9 +283,15 @@ Some predefined optimizers are provided:
        | :math:`z_{k+1} = x_{k+1} + \beta(x_{k+1}-x_k)`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``, ``"stepsize_dual"``
 
+   * - :class:`Mirror Descent (MD) <deepinv.optim.optim_iterators.MDIteration>`
+     - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
+       | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, convex potential ``h``
+
    * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
      - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
      - (phase-retrieval only)
+
 
 .. _optim-params:
 
@@ -351,7 +357,7 @@ following standard optimization theory, is split in two steps:
     z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
     x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
 
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_\regname` are gradient and/or proximal steps
+where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_{\regname}` are gradient and/or proximal steps
 on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
 relaxation parameters, etc...
 
