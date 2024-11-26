@@ -45,9 +45,11 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
+       | The above all also natively support 3D MRI.
      - | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
+       | The above all also support k+t dynamic sampling.
 
    * - Tomography
      - :class:`deepinv.physics.Tomography`
