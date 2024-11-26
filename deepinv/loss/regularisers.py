@@ -33,11 +33,11 @@ class JacobianSpectralNorm(Loss):
         >>>
         >>> reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=False, verbose=True)
         >>> A = torch.diag(torch.Tensor(range(1, 51)))  # creates a diagonal matrix with largest eigenvalue = 50
-        >>> x = torch.randn_like(A).requires_grad_()
-        >>> out = A @ x
+        >>> x = torch.randn((1, A.shape[0])).requires_grad_()
+        >>> out = x @ A
         >>> regval = reg_l2(out, x)
         >>> print(regval) # returns approx 50
-        tensor([49.0202])
+        tensor(49.9999)
     """
 
     def __init__(self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False, reduction='max'):
@@ -84,14 +84,14 @@ class JacobianSpectralNorm(Loss):
         .. warning::
             The input :math:`x` must have requires_grad=True before evaluating :math:`f`.
 
-        :param torch.Tensor y: output of the function :math:`f` at :math:`x`.
-        :param torch.Tensor x: input of the function :math:`f`.
+        :param torch.Tensor y: output of the function :math:`f` at :math:`x`, of dimension (B, *)
+        :param torch.Tensor x: input of the function :math:`f`, of dimension (B, *)
 
         If x has multiple dimensions, it's assumed the first one corresponds to the batch dimension.
         """
 
-        if x.dim() == 1:
-            x = x[None, ...]
+        assert x.shape[0] == y.shape[0], ValueError(f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}")
+
         n_dims = x.dim()
 
         u = torch.randn_like(x)

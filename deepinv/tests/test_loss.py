@@ -28,11 +28,11 @@ def test_jacobian_spectral_values(toymatrix):
     )
 
     # Setup our toy example; here y = A@x
-    x_detached = torch.randn_like(toymatrix).requires_grad_()
-    out = toymatrix @ x_detached
+    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
+    out = x_detached @ toymatrix
 
     def model(x):
-        return toymatrix @ x
+        return x @ toymatrix
 
     regl2 = reg_l2(out, x_detached)
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
