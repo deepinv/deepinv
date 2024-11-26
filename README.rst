@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python Version| |codecov| |Black| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |discord| |colab|
 
 
 Introduction
