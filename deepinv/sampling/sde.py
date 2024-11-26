@@ -128,11 +128,19 @@ class DiffusionSDE(nn.Module):
     .. math::
             d x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt.
 
+
+    The score function can be computed using Tweedie's formula, given a MMSE denoiser :math:`D`:
+
+    .. math::
+            \nabla \log p_{t}(x) = \left(D(x,\sigma(t)) - x \right) / \sigma(t)^2
+
+    where :math:`sigma(t)` is the noise level at time :math:`t`, which can be accessed through the attribute :meth:`sigma_t`
+
     Both forward and backward SDE are solved in forward time.
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
-    :param deepinv.prior.ScorePrior prior: a time-dependent score prior, corresponding to :math:`\nabla \log p_t`
+    :param callable denoiser: a pre-trained MMSE denoiser which will be used to approximate the score function by Tweedie's formula.
     :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
     :param torch.Generator rng: pseudo-random number generator for reproducibility.
     """
