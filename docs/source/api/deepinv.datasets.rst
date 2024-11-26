@@ -5,7 +5,7 @@ This subpackage can be used for generating reconstruction datasets from other ba
 Please refer to the :ref:`user guide <datasets>` for more information.
 
 
-HD5Dataset
+Generating Datasets
 ----------
 .. userguide:: generating-datasets
 

@@ -86,9 +86,6 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.SSIM`
      - :math:`\text{SSIM}(\hat{x},x) = \frac{(2 \mu_x \mu_{\hat{x}} + C_1)(2 \sigma_{x\hat{x}} + C_2)}{(\mu_x^2 + \mu_{\hat{x}}^2 + C_1)(\sigma_x^2 + \sigma_{\hat{x}}^2 + C_2)}`, where :math:`\mu` and :math:`\sigma` are mean and variance
 
-   * - :class:`deepinv.loss.metric.QNR`
-     - :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
-
    * - :class:`deepinv.loss.metric.L1L2`
      - :math:`\text{L1L2}(\hat{x},x) = \alpha \|x - \hat{x}\|_1 + (1 - \alpha) \|x - \hat{x}\|_2`, where :math:`\alpha` is a balancing parameter
 
@@ -106,4 +103,14 @@ No Reference Metrics
 
 We implement no-reference perceptual metrics, they only require the reconstructed image ``x_net``.
 
-- :class:`deepinv.loss.metric.NIQE`
+.. list-table:: No Reference Metrics
+   :header-rows: 1
+
+   * - **Metric**
+     - **Definition**
+
+   * - :class:`deepinv.loss.metric.NIQE`
+     - Calculates deviation of image from statistical regularities of natural images.
+
+   * - :class:`deepinv.loss.metric.QNR`
+     - :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
