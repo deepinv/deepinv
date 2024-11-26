@@ -1,7 +1,7 @@
 :html_theme.sidebar_secondary.remove:
 
 DeepInverse: a PyTorch library for imaging with deep learning
-==================================================================
+=============================================================
 
 |Test Status| |Docs Status| |Python Version| |Black| |discord| |colab|
 

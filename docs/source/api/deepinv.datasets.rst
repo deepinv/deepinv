@@ -6,7 +6,7 @@ Please refer to the :ref:`user guide <datasets>` for more information.
 
 
 Generating Datasets
-----------
+-------------------
 .. userguide:: generating-datasets
 
 .. autosummary::
