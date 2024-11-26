@@ -42,7 +42,7 @@ class SMIteration(OptimIterator):
         self.f_step = fStepSM(lamb, preprocessing=preprocessing, **kwargs)
         self.g_step = gStepSM(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params, y, physics):
+    def forward(self, x, cur_prior, cur_params, y, physics, *args):
         r"""
         Single iteration of the spectral method.
 

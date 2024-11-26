@@ -110,14 +110,32 @@ for all optimization algorithms.
 
    deepinv.optim.BaseOptim
 
+.. _Potential:
+
+Potentials
+----------
+
+The base class for implementing potential scalar functions :math:`h : \xset \to \mathbb{R}` used to define an optimization problems.
+
+This class comes with methods for computing operators useful for optimization, such as its proximal operator :math:`\operatorname{prox}_{h}`, its gradient :math:`\nabla h`,
+its convex conjugate :math:`h^*`, ect ...
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.Potential
+
 .. _data-fidelity:
 
 Data Fidelity
 -------------
 This is the base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
-:math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a convex function.
+:math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`. 
+The class :meth:`deepinv.optim.Distance` is implemented as a child class from :meth:`deepinv.optim.Potential`.
 
-This class comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
+This data-fidelity class thus comes with methods, such as :math:`\operatorname{prox}_{\distancename\circ A}` and
 :math:`\nabla (\distancename \circ A)` (among others), on which optimization algorithms rely.
 
 .. autosummary::
@@ -125,13 +143,13 @@ This class comes with methods, such as :math:`\operatorname{prox}_{\distancename
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.DataFidelity
-   deepinv.optim.L1
-   deepinv.optim.L2
-   deepinv.optim.IndicatorL2
-   deepinv.optim.PoissonLikelihood
-   deepinv.optim.LogPoissonLikelihood
-   deepinv.optim.AmplitudeLoss
+   deepinv.optim.data_fidelity.DataFidelity
+   deepinv.optim.data_fidelity.L1
+   deepinv.optim.data_fidelity.L2
+   deepinv.optim.data_fidelity.IndicatorL2
+   deepinv.optim.data_fidelity.PoissonLikelihood
+   deepinv.optim.data_fidelity.LogPoissonLikelihood
+   deepinv.optim.data_fidelity.AmplitudeLoss
 
 
 .. _priors:
@@ -141,8 +159,8 @@ Priors
 This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
 where :math:`\regname` is a function.
 
-Similarly to the :meth:`deepinv.optim.DataFidelity` class, this class comes with methods for computing
-:math:`\operatorname{prox}_{g}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
+This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
+operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
 priors, such as the Tikhonov regularisation, but also implicit priors. For instance, in PnP methods, the method
 computing the proximity operator is overwritten by a method performing denoising.
 
@@ -163,6 +181,28 @@ computing the proximity operator is overwritten by a method performing denoising
    deepinv.optim.PatchPrior
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
+
+
+.. _bregman:
+
+Bregman
+------
+This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
+where :math:`\phi` is a convex scalar function.
+
+This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
+operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient :math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^T y`.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.bregman.Bregman
+   deepinv.optim.bregman.BregmanL2
+   deepinv.optim.bregman.BurgEntropy
+   deepinv.optim.bregman.NegEntropy
+   deepinv.optim.bregman.Bregman_ICNN
 
 
 .. _optim-params:

@@ -55,7 +55,7 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> import torch
     >>> import deepinv as dinv
     >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28), compute_inverse=True)
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
@@ -229,7 +229,8 @@ deblurring networks.
    
 Magnetic Resonance Imaging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils. We provide 2D and 2D+t dynamic MRI physics.
+In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a single coil or multiple coils.
+We provide physics for 2D, 3D, 2D+t dynamic, and multi-coil MRI.
 
 .. autosummary::
    :toctree: stubs
@@ -239,6 +240,8 @@ In MRI, the Fourier transform is sampled on a grid (FFT) or off-the grid, with a
    deepinv.physics.MRI
    deepinv.physics.DynamicMRI
    deepinv.physics.SequentialMRI
+   deepinv.physics.MultiCoilMRI
+   deepinv.physics.MRIMixin
 
 
 We provide generators for creating random and non-random acceleration masks using Cartesian sampling, for both static (k) and dynamic (k-t) accelerated MRI:
@@ -291,6 +294,7 @@ Compressive operators are implemented in the following classes:
 
    deepinv.physics.CompressedSensing
    deepinv.physics.SinglePixelCamera
+   deepinv.physics.StructuredRandom
 
 
 Radio interferometric imaging
@@ -340,6 +344,7 @@ Operators where :math:`A:\xset\mapsto \yset` is of the form :math:`A(x) = |Bx|^2
 
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
+   deepinv.physics.StructuredRandomPhaseRetrieval
 
 Noise distributions
 --------------------------------
