@@ -153,36 +153,88 @@ class DiffusionSDE(nn.Module):
         self.prior = prior
         self.rng = rng
         self.use_backward_ode = use_backward_ode
-        drift_forw = lambda x, t, *args, **kwargs: drift(x, t)
-        diff_forw = lambda t: diffusion(t)
+        forward_drift = lambda x, t, *args, **kwargs: drift(x, t, *args, **kwargs)
+        forward_diff = lambda t: diffusion(t)
         self.forward_sde = BaseSDE(
-            drift=drift_forw, diffusion=diff_forw, rng=rng, dtype=dtype, device=device
+            drift=forward_drift,
+            diffusion=forward_diff,
+            rng=rng,
+            dtype=dtype,
+            device=device,
         )
 
         if self.use_backward_ode:
-            drift_back = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
+            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
                 diffusion(t) ** 2
             ) * self.prior.score(x, t, *args, **kwargs)
-            diff_back = lambda t: 0.0
+            backward_diff = lambda t: 0.0
         else:
-            drift_back = lambda x, t, *args, **kwargs: -drift(x, t) + (
+            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + (
                 diffusion(t) ** 2
             ) * self.prior.score(x, t, *args, **kwargs)
-            diff_back = lambda t: diffusion(t)
+            backward_diff = lambda t: diffusion(t)
         self.backward_sde = BaseSDE(
-            drift=drift_back, diffusion=diff_back, rng=rng, dtype=dtype, device=device
+            drift=backward_drift,
+            diffusion=backward_diff,
+            rng=rng,
+            dtype=dtype,
+            device=device,
         )
 
     @torch.no_grad()
     def forward(
         self,
-        x_init: Optional[Tensor],
+        x_init: Tensor,
         timesteps: Tensor,
         method: str = "Euler",
+        *args,
         **kwargs,
     ):
+        r"""
+        Sample the backward-SDE.
+
+        :param torch.Tensor x_init: Initial condition of the backward-SDE, x_init should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id}})`.
+        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be in ascending order.
+        :param str method: The method to discretize the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
+
+        :return: SDESolution.
+
+        """
         return self.backward_sde.sample(
-            x_init, timesteps=timesteps, method=method, **kwargs
+            x_init, timesteps=timesteps, method=method, *args, **kwargs
+        )
+
+
+class VESDE(DiffusionSDE):
+    def __init__(
+        self,
+        prior: ScorePrior,
+        sigma_min: float = 0.02,
+        sigma_max: float = 100,
+        use_backward_ode: bool = False,
+        rng: torch.Generator = None,
+        dtype=torch.float32,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
+        self.sigma_min = sigma_min
+        self.sigma_max = sigma_max
+        self.sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
+        forward_drift = lambda x, t, *args, **kwargs: 0.0
+        forward_diff = lambda t: self.sigma_t(t) * np.sqrt(
+            2 * (np.log(sigma_max) - np.log(sigma_min))
+        )
+        super().__init__(
+            drift=forward_drift,
+            diffusion=forward_diff,
+            use_backward_ode=use_backward_ode,
+            prior=prior,
+            rng=rng,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
         )
 
 
@@ -196,7 +248,7 @@ from deepinv.models.edm import SongUNet, EDMPrecond
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-unet = SongUNet.from_pretrained('song-unet-edm-ffhq64-uncond-ve')
+unet = SongUNet.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
 denoiser = EDMPrecond(model=unet).to(device)
 
 url = get_image_url("CBSD_0010.png")
@@ -217,8 +269,8 @@ plt.show()
 # %%
 # VESDE
 sigma_min = 0.02
-sigma_max = 25.0
-timesteps = np.linspace(0.001, 1.0, 1000)
+sigma_max = 50.0
+timesteps = np.linspace(0.001, 1.0, 100)
 drift = lambda x, t: 0.0
 sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
 # sigma_t = lambda t: t
@@ -228,16 +280,25 @@ rng = torch.Generator(device).manual_seed(42)
 
 
 prior = dinv.optim.prior.DiffusionScorePrior(
-    denoiser=denoiser, sigma_t=sigma_t, rescale=True
+    denoiser=denoiser, sigma_t=sigma_t, rescale=False
 )
 
-sde = DiffusionSDE(
-    drift=drift,
-    diffusion=diffusion,
+# sde = DiffusionSDE(
+#     # drift=drift,
+#     # diffusion=diffusion,
+#     prior=prior,
+#     device=device,
+#     use_backward_ode=False,
+#     rng=rng,
+# )
+
+sde = VESDE(
     prior=prior,
+    sigma_max=sigma_max,
+    sigma_min=sigma_min,
+    rng=rng,
     device=device,
     use_backward_ode=False,
-    rng=rng,
 )
 plt.figure()
 plt.plot([diffusion(t) for t in timesteps], label="diffusion")
@@ -247,21 +308,18 @@ plt.show()
 # Check forward
 x_init = x.clone()
 
-samples = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
-dinv.utils.plot(samples, suptitle="Forward sample")
-_ = plt.hist(samples.ravel().cpu().numpy(), bins=100)
+solution = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
+dinv.utils.plot(solution.sample, suptitle=f"Forward sample, nfe = {solution.nfe}")
+_ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
 plt.show()
 # %%
 # Check backward
 x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
-
-
-# %%
-samples = sde.backward_sde.sample(
-    x_init, timesteps=timesteps[::-1], method="euler", seed=1
+solution = sde.backward_sde.sample(
+    x_init, timesteps=timesteps[::-1], method="Heun", seed=1
 )
-dinv.utils.plot(samples, suptitle="Backward sample")
-_ = plt.hist(samples.ravel().cpu().numpy(), bins=100)
+dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
+_ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
 plt.show()
 
 # %%

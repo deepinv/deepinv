@@ -2,9 +2,36 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 import warnings
-from typing import Optional, Union
+from typing import Optional, Union, Any
 from numpy import ndarray
 import numpy as np
+
+
+class SDEOutput(dict):
+    r"""
+    A container for storing the output of an SDE solver, that behaves like a `dict` but allows access with the attribute syntax.
+    """
+
+    def __init__(self, sample: Tensor, trajectory: Tensor, timesteps: Tensor, nfe: int):
+        sol = {
+            "sample": sample,
+            "trajectory": trajectory,
+            "timesteps": timesteps,
+            "nfe": nfe,
+        }
+        super().__init__(sol)
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        del self[name]
 
 
 class BaseSDESolver(nn.Module):
@@ -53,8 +80,13 @@ class BaseSDESolver(nn.Module):
 
     @torch.no_grad()
     def sample(
-        self, x_init: Tensor, *args, timesteps: Union[Tensor, ndarray] = None, **kwargs
-    ) -> Tensor:
+        self,
+        x_init: Tensor,
+        *args,
+        timesteps: Union[Tensor, ndarray] = None,
+        full_trajectory: bool = False,
+        **kwargs,
+    ) -> SDEOutput:
         r"""
         Solve the Stochastic Differential Equation (SDE) with given time steps.
 
@@ -65,13 +97,30 @@ class BaseSDESolver(nn.Module):
         :param Union[Tensor, ndarray] timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
-        :return: The final state of the system after solving the SDE across all timesteps.
-        :rtype: Tensor
+
+        :return: The solution of the system after solving the SDE across all timesteps, with the following attributes:
+            sample torch.Tensor: the final sample of the SDE, of the same shape as `x_init`.
+            trajectory torch.Tensor: the trajectory of the SDE, of shape `(num_timesteps, *x_init.shape)` if `full_trajectory = True`, otherwise equal to `sample`.
+            timestep torch.Tensor: the discrete timesteps.
+            nfe int: the number of function evaluations.
         """
         x = x_init
+        nfe = 0
+        trajectory = []
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
-            x = self.step(t_cur, t_next, x, *args, **kwargs)
-        return x
+            x, cur_nfe = self.step(t_cur, t_next, x, *args, **kwargs)
+            nfe += cur_nfe
+            if full_trajectory:
+                trajectory.append(x.clone())
+        if full_trajectory:
+            trajectory = torch.stack(trajectory, dim=0)
+        else:
+            trajectory = x
+        output = SDEOutput(
+            sample=x, trajectory=trajectory, timesteps=timesteps, nfe=nfe
+        )
+
+        return output
 
     def rng_manual_seed(self, seed: int = None):
         r"""
@@ -112,7 +161,7 @@ class EulerSolver(BaseSDESolver):
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
         drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
-        return x0 + drift * dt + diffusion * dW
+        return x0 + drift * dt + diffusion * dW, 1
 
 
 class HeunSolver(BaseSDESolver):
@@ -127,7 +176,10 @@ class HeunSolver(BaseSDESolver):
         drift_1, diffusion_1 = self.sde.discretize(x_euler, t1, *args, **kwargs)
 
         return (
-            x0 + 0.5 * (drift_0 + drift_1) * dt + 0.5 * (diffusion_0 + diffusion_1) * dW
+            x0
+            + 0.5 * (drift_0 + drift_1) * dt
+            + 0.5 * (diffusion_0 + diffusion_1) * dW,
+            2,
         )
 
 

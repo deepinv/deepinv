@@ -663,8 +663,7 @@ class SongUNet(torch.nn.Module):
         )
         model_url = f"https://huggingface.co/mhnguyen712/edm/resolve/main/{model_name.lower()}.pt"
         state_dict = torch.hub.load_state_dict_from_url(
-            model_url,
-            file_name=model_name,
+            model_url, file_name=model_name, map_location=lambda storage, loc: storage
         )
         model.load_state_dict(state_dict)
         return model
