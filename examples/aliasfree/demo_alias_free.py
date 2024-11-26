@@ -16,6 +16,7 @@ from os.path import exists
 device = "cuda:0"
 root = "Urban100"
 dataset_path = f"{root}/dinv_dataset0.h5"
+rotation_equivariant = False
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
@@ -62,6 +63,7 @@ model = dinv.models.AliasFreeUNet(
     in_channels=3,
     out_channels=3,
     scales=5,
+    rotation_equivariant=rotation_equivariant,
 ).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
