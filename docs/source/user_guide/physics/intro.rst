@@ -8,13 +8,13 @@ The acquisition models are of the form
 
 .. math::
 
-    y = \noise{\forw{x}}
+    y = \noise{\forw{x}},
 
 where :math:`x\in\xset` is an image, :math:`y\in\yset` are the measurements, :math:`A:\xset\mapsto \yset` is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 :math:`N:\yset\mapsto \yset` is a mapping which characterizes the noise affecting the measurements.
 
-All forward operators inherit the structure of the :class:`deepinv.physics.Physics` class:
+All forward operators inherit the structure of the :class:`deepinv.physics.Physics` class.
 
 They are :class:`torch.nn.Module` which can be called with the ``forward`` method.
 
@@ -52,7 +52,7 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
-More details can be found in the doc of each class:
+More details can be found in the doc of each class.
 
 
 
@@ -92,7 +92,7 @@ imaging system optimization, etc. The following example shows how operators and 
 Physics Generators
 ^^^^^^^^^^^^^^^^^^^
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
-Physics generators inherit from the :class:`deepinv.physics.PhysicsGenerator` class:
+Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGenerator` class:
 
 
 .. doctest::

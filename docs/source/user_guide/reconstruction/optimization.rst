@@ -19,7 +19,7 @@ term :math:`\regname:\xset\mapsto \mathbb{R}_{+}` acts as a regularization and
 between the data :math:`y` and the forward operator :math:`A` applied to the variable :math:`x`, as
 
 .. math::
-    \datafid{x}{y} = \distance{A(x)}{y}
+    \datafid{x}{y} = \distance{A(x)}{y},
 
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
 operator (see :class:`deepinv.physics.Physics`)
@@ -256,24 +256,24 @@ Some generic optimizer iterators are provided:
 
    * - :class:`Fast Iterative Shrinkage-Thresholding Algorithm (FISTA) <deepinv.optim.optim_iterators.FISTAIteration>`
      - | :math:`u_{k} = z_k -  \gamma \nabla f(z_k)`
-       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(u_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_k)`
        | :math:`z_{k+1} = x_{k+1} + \alpha_k (x_{k+1} - x_k)`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
    * - :class:`Half-Quadratic Splitting (HQS) <deepinv.optim.optim_iterators.HQSIteration>`
      - | :math:`u_{k} = \operatorname{prox}_{\gamma f}(x_k)`
-       | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda g}(u_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\sigma \lambda \regname}(u_k)`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``
 
    * - :class:`Alternating Direction Method of Multipliers (ADMM) <deepinv.optim.optim_iterators.ADMMIteration>`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(x_k - z_k)`
-       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(u_{k+1} + z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k)`
        | :math:`z_{k+1} = z_k + \beta (u_{k+1} - x_{k+1})`
      - ``"gamma"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
    * - :class:`Douglas-Rachford Splitting (DRS) <deepinv.optim.optim_iterators.DRSIteration>`
      - | :math:`u_{k+1} = \operatorname{prox}_{\gamma f}(z_k)`
-       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda g}(2*u_{k+1}-z_k)`
+       | :math:`x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k)`
        | :math:`z_{k+1} = z_k + \beta (x_{k+1} - u_{k+1})`
      - ``"stepsize"``, ``"lambda"``, ``"g_param"``, ``"beta"``
 
@@ -338,7 +338,7 @@ An optim iterator is an object that implements a fixed point iteration for minim
 by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
 .. math::
-    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)
+    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...),
 
 where :math:`x` is a variable converging to the solution of the minimization problem, and
 :math:`z` is an additional variable that may be required in the computation of the fixed point operator.
@@ -351,7 +351,7 @@ following standard optimization theory, is split in two steps:
     z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
     x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
 
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
+where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_\regname` are gradient and/or proximal steps
 on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
 relaxation parameters, etc...
 
