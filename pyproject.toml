@@ -93,7 +93,7 @@ dataset = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-pythonpath = ["deepinv"]
+# pythonpath = ["deepinv"]
 testpaths = [
     "deepinv/tests",
 ]
