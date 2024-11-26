@@ -35,4 +35,4 @@ Once installed, you can try out the following image inpainting example:
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
-You are now ready to try further examples or experiment yourself using our comprehensive User Guide!
+You are now ready to try further examples or experiment yourself using our comprehensive :ref:`User Guide <user_guide>`!

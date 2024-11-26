@@ -6,7 +6,7 @@ Please refer to the :ref:`user guide <user_guide>` for more information.
 
 Base Classes
 ------------
-.. userguide:: _reconstructors
+.. userguide:: reconstructors
 
 .. autosummary::
    :toctree: stubs
@@ -74,7 +74,7 @@ Denoisers Utils
 
 Artifact Removal
 ----------------
-.. userguide:: artifact-removal
+.. userguide:: artifact
 
 .. autosummary::
    :toctree: stubs

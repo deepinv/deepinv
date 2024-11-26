@@ -83,8 +83,7 @@ We can adapt any latent generator model to train an unconditional GAN and perfor
 Deep Image Prior
 ~~~~~~~~~~~~~~~~
 
-The `deep image prior <https://arxiv.org/abs/1711.10925>`_ :class:`deepinv.models.DeepImagePrior`
-uses an untrained convolutional decoder network as :math:`R` applied to a random input :math:`z`.
+The :class:`deep image prior <deepinv.models.DeepImagePrior>` uses an untrained convolutional decoder network as :math:`R` applied to a random input :math:`z`.
 The choice of the architecture of :math:`R` is crucial for the success of the method: we provide the
 :class:`deepinv.models.ConvDecoder` architecture, which is based on a convolutional decoder network,
 and has shown good inductive bias for image reconstruction tasks.

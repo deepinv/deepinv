@@ -48,8 +48,11 @@ class CompressedSensing(LinearPhysics):
     :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
     :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
 
-    It is recommended to use ``fast=True`` for image sizes bigger than 32 x 32, since the forward computation with
-    ``fast=False`` has an :math:`O(mn)` complexity, whereas with ``fast=True`` it has an :math:`O(n \log n)` complexity.
+    For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity.
+    In this case, we recommend using :class:`deepinv.physics.StructuredRandom` instead.
+
+    .. deprecated:: 0.2.2
+       The ``fast`` option is deprecated and might be removed in future versions. Use :class:`deepinv.physics.StructuredRandom` instead.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.

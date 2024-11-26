@@ -16,10 +16,22 @@ where :math:`\datafidname:\xset\times\yset \mapsto \mathbb{R}_{+}` is a data-fid
 is a prior term, and :math:`\lambda` is a positive scalar. The data-fidelity term measures the discrepancy between the
 reconstruction :math:`x` and the data :math:`y`, and the prior term enforces some prior knowledge on the reconstruction.
 
-PnP and RED algorithms are optimization algorithms where optimization over the prior term is replaced by denoising
-operators. When one replaces a proximity operator with a denoiser, the algorithm is called a Plug-and-Play (PnP) algorithm,
-whereas when one replaces a gradient step on the prior term with a denoising step, the algorithm is called a
-Regularization by Denoising (RED) algorithm.
+The data fidelity :math:`f` term is generally set as the negative log-likelihood :math:`\datafid{x}{y} \propto - \log p(y|A(x))`.
+See the :ref:`available data fidelity terms <data-fidelity>`.
+
+The prior term :math:`g_{\sigma}` can be chosen as (See :ref:`available options <priors>`):
+
+.. list-table::
+   :header-rows: 1
+
+   * - Method
+     - Prior
+   * - Variational
+     - Explicit prior (:math:`\ell_1`, total-variation, etc.).
+   * - Plug-and-Play (PnP)
+     - Replace :math:`\operatorname{prox}_{\lambda g}(x)=\denoiser{x}{\sigma}` where :math:`\denoisername` is a pretrained denoiser.
+   * - Regularization by Denoising (RED)
+     - Replace :math:`\nabla g(x)= x-\denoiser{x}{\sigma}` where :math:`\denoisername` is a pretrained denoiser.
 
 
 Implementing an Algorithm

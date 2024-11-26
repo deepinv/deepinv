@@ -1,7 +1,7 @@
 .. _sampling:
 
-Diffusion and Langevin Algorithms
-===================================
+Diffusion and MCMC Algorithms
+=============================
 
 This package contains posterior sampling algorithms.
 
@@ -49,10 +49,10 @@ obtains multiple samples to compute posterior statistics such as the mean or var
 
 .. _mcmc:
 
-Markov Chain Monte Carlo Langevin
--------------------------------------
+Markov Chain Monte Carlo
+------------------------
 
-The negative log likelihood can be set using :meth:`deepinv.optim.DataFidelity`, which includes Gaussian noise,
+The negative log likelihood from :ref:`this list <data-fidelity>`:, which includes Gaussian noise,
 Poisson noise, etc. The negative log prior can be approximated using :meth:`deepinv.optim.ScorePrior` with a
 :ref:`pretrained denoiser <denoisers>`, which leverages Tweedie's formula, i.e.,
 

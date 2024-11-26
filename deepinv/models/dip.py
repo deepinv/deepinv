@@ -97,9 +97,9 @@ class DeepImagePrior(Reconstructor):
 
     .. math::
 
-        \min_{\theta}  \|y-Ad_{\theta}(z)\|^2
+        \min_{\theta}  \|y-AG_{\theta}(z)\|^2
 
-    where :math:`z` is a random input and :math:`d_{\theta}` is a convolutional decoder network with parameters
+    where :math:`z` is a random input and :math:`G_{\theta}` is a convolutional decoder network with parameters
     :math:`\theta`. The minimization should be stopped early to avoid overfitting. The method uses the Adam
     optimizer.
 

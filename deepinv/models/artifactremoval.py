@@ -13,19 +13,20 @@ class ArtifactRemoval(Reconstructor):
     - Pseudoinverse: :math:`\inversef{y}{A}=\phi(A^{\dagger}y)` with ``mode='pinv'``.
     - Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
 
-
     .. note::
 
         In the case of ``mode='pinv'``, the architecture is inspired by the FBPConvNet
         approach of https://arxiv.org/pdf/1611.03679 where a deep network :math:`\phi`
         is used to improve the filtered back projection :math:`A^{\dagger}y`.
 
+    .. deprecated:: 0.2.2
+
+       The ``pinv`` parameter is deprecated and might be removed in future versions. Use ``mode`` instead.
+
     :param deepinv.models.Denoiser, torch.nn.Module backbone_net: Base denoiser network :math:`\phi`
         (see :ref:`denoisers` for available architectures).
     :param str mode: Reconstruction mode. Options are 'direct', 'adjoint' or 'pinv'.
-    :param bool pinv: If ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
-        .. deprecated:: 0.2.2
-           This parameter is deprecated and will be removed in future versions. Use ``mode`` instead.
+    :param bool pinv: (deprecated) if ``True`` uses pseudo-inverse :math:`A^{\dagger}y` instead of the default transpose.
     :param torch.device device: cpu or gpu.
     """
 

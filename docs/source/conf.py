@@ -6,6 +6,9 @@
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
 from sphinx_gallery.sorting import ExplicitOrder
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

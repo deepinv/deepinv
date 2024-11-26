@@ -84,7 +84,7 @@ class AdversarialScheduler:
 
 @dataclass
 class AdversarialTrainer(Trainer):
-    r"""
+    r"""AdversarialTrainer(model, physics, optimizer, train_dataloader, losses_d, D, step_ratio_D, ...)
     Trainer class for training a reconstruction network using adversarial learning.
 
     It overrides the :class:`deepinv.Trainer` class to provide the same functionality,

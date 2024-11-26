@@ -34,7 +34,7 @@ description of their reconstruction performance and speed.
      - Yes
      - No
      - No
-   * - :ref:`Plug-and-Play <iterative>`
+   * - :ref:`Plug-and-Play (PnP) <iterative>`
      - Leverages :ref:`pretrained denoisers <denoisers>` as priors within an optimisation algorithm.
      - No
      - Yes
@@ -63,7 +63,7 @@ description of their reconstruction performance and speed.
      - Uses a generator network to model the set of possible images.
      - No
      - Yes
-     - No
+     - Depends
 
 
 

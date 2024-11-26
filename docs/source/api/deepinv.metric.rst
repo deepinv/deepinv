@@ -16,9 +16,9 @@ Base class
     deepinv.loss.metric.Metric
 
 
-Distortion metrics
-------------------
-.. userguide:: distortion-metrics
+Full Reference Metrics
+----------------------
+.. userguide:: full-reference-metrics
 
 .. autosummary::
    :toctree: stubs
@@ -33,16 +33,16 @@ Distortion metrics
         deepinv.loss.metric.QNR
         deepinv.loss.metric.L1L2
         deepinv.loss.metric.LpNorm
+        deepinv.loss.metric.LPIPS
 
 
-Perceptual metrics
-------------------
-.. userguide:: perceptual-metrics
+No Reference Metrics
+--------------------
+.. userguide:: no-reference-metrics
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-        deepinv.loss.metric.LPIPS
         deepinv.loss.metric.NIQE

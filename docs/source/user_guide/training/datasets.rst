@@ -6,10 +6,10 @@ Datasets
 This subpackage can be used for generating reconstruction datasets from other base datasets (e.g. MNIST or CelebA).
 
 
-.. _hd5dataset:
+.. _generating-datasets:
 
 Generating Datasets
-----------
+-------------------
 Generating a dataset associated with a certain forward operator is done via :func:`deepinv.datasets.generate_dataset`
 using a base PyTorch dataset (:class:`torch.utils.data.Dataset`).
 Your base dataset can either be one of our predefined datasets (see :ref:`predefined-datasets`), 
@@ -105,12 +105,12 @@ Multiple popular easy-to-download datasets are available:
 
    * - :class:`deepinv.datasets.Urban100HR`
      - 100 images
-     - up to 1024x1024 pixels (variable)
+     - up to 1200x1280 pixels (variable)
      - Contains diverse high-resolution urban scenes, typically used for testing super-resolution algorithms.
 
    * - :class:`deepinv.datasets.Set14HR`
      - 14 high-resolution images
-     - RGB, 276×276 to 512×768 pixels.
+     - RGB, 248×248 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
    * - :class:`deepinv.datasets.CBSD68`

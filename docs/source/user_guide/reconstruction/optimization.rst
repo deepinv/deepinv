@@ -22,7 +22,7 @@ between the data :math:`y` and the forward operator :math:`A` applied to the var
     \datafid{x}{y} = \distance{A(x)}{y}
 
 where :math:`\distance{\cdot}{\cdot}` is a distance function, and where :math:`A:\xset\mapsto \yset` is the forward
-operator (see :meth:`deepinv.physics.Physics`)
+operator (see :class:`deepinv.physics.Physics`)
 
 .. note::
 
@@ -78,41 +78,69 @@ least squares problem.
     Estimated solution:  tensor([1.0000, 1.0000, 1.0000, 1.0000])
 
 
-Optimization algorithms such as the one above can be written as fixed point algorithms,
-i.e. for :math:`k=1,2,...`
-
-.. math::
-    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
-
-where :math:`x` is a variable converging to the solution of the minimization problem, and
-:math:`z` is an additional (dual) variable that may be required in the computation of the fixed point operator.
-
-
-The function :meth:`deepinv.optim.optim_builder` returns an instance of :meth:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
-or with a user-defined one.
-
-
-
-Optimization algorithm inherit from the base class :meth:`deepinv.optim.BaseOptim`, which serves as a common interface
-for all optimization algorithms.
-
 .. _potentials:
 
 Potentials
 ----------
 The class :class:`deepinv.optim.Potential` implements potential scalar functions :math:`h : \xset \to \mathbb{R}`
-used to define an optimization problems. This class comes with methods for computing operators useful for optimization,
+used to define an optimization problems. For example, both :math:`f` and :math:`\regname` are potentials.
+This class comes with methods for computing operators useful for optimization,
 such as its proximal operator :math:`\operatorname{prox}_{h}`, its gradient :math:`\nabla h`, its convex conjugate :math:`h^*`, etc.
 
+The following classes inherit from :class:`deepinv.optim.Potential`
+
+.. list-table::
+
+   * - Class
+     - :math:`h(x)`
+     - Requires
+   * - :class:`deepinv.optim.Bregman`
+     - :math:`\phi(x)` with :math:`\phi` convex
+     - None
+   * - :class:`deepinv.optim.Distance`
+     - :math:`d(x,y)`
+     - :math:`y`
+   * - :class:`deepinv.optim.DataFidelity`
+     - :math:`d(A(x),y)` where :math:`d` is a distance.
+     - :math:`y` & operator :math:`A`
+   * - :class:`deepinv.optim.Prior`
+     - :math:`g_{\sigma}(x)`
+     - optional denoising level :math:`\sigma`
+
+.. _bregman:
+
+Bregman
+~~~~~~~
+Bregman potentials are defined as :math:`\phi(x)` where :math:`x\in\xset` is a variable and
+where :math:`\phi` is a convex scalar function, and are defined via the base class :class:`deepinv.optim.Bregman`.
+
+In addition to the methods inherited from :class:`deepinv.optim.Potential` (gradient
+:math:`\nabla \phi`, conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`),
+this class provides the Bregman divergence :math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`,
+and is well suited for performing Mirror Descent.
+
+
+.. list-table:: Bregman potentials
+   :header-rows: 1
+
+   * - Class
+     - Bregman potential :math:`\phi(x)`
+   * - :class:`deepinv.optim.bregman.BregmanL2`
+     - :math:`\|x\|_2^2`
+   * - :class:`deepinv.optim.bregman.BurgEntropy`
+     - :math:`- \sum_i \log x_i`
+   * - :class:`deepinv.optim.bregman.NegEntropy`
+     - :math:`\sum_i x_i \log x_i`
+   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
+     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
 
 .. _data-fidelity:
 
 Data Fidelity
--------------
-The class :class:`deepinv.optim.DataFidelity` implements data fidelity terms :math:`\distance{A(x)}{y}`
+~~~~~~~~~~~~~
+The base class :class:`deepinv.optim.DataFidelity` implements data fidelity terms :math:`\distance{A(x)}{y}`
 where :math:`A` is the forward operator, :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data,
-and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`.
+and where :math:`d` is a distance function from the class :class:`deepinv.optim.Distance`.
 The class :class:`deepinv.optim.Distance` is implemented as a child class from :class:`deepinv.optim.Potential`.
 
 This data-fidelity class thus comes with useful methods,
@@ -120,7 +148,6 @@ such as :math:`\operatorname{prox}_{\distancename\circ A}` and :math:`\nabla (\d
 which are used by most optimization algorithms.
 
 .. list-table:: Data Fidelity Overview
-   :widths: 25 30
    :header-rows: 1
 
    * - Data Fidelity
@@ -134,7 +161,7 @@ which are used by most optimization algorithms.
    * - :class:`deepinv.optim.PoissonLikelihood`
      - :math:`\datafid{A(x)}{y} =  -y^{\top} \log(A(x)+\beta)+1^{\top}A(x)`
    * - :class:`deepinv.optim.LogPoissonLikelihood`
-     - :math:`N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)`
+     - :math:`N_0 (1^{\top} \exp(-\mu A(x))+ \mu \exp(-\mu y)^{\top}A(x))`
    * - :class:`deepinv.optim.AmplitudeLoss`
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
 
@@ -142,17 +169,16 @@ which are used by most optimization algorithms.
 .. _priors:
 
 Priors
-------
-This is the base class for implementing prior functions :math:`\reg{x}` where :math:`x\in\xset` is a variable and
+~~~~~~
+Prior functions are defined as :math:`\reg{x}` where :math:`x\in\xset` is a variable and
 where :math:`\regname` is a function.
 
-This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods for computing
-operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
-priors, such as the Tikhonov regularisation, but also implicit priors. For instance, in PnP methods, the method
-computing the proximity operator is overwritten by a method performing denoising.
+The base class is :class:`deepinv.optim.Prior` implemented as a child class from :class:`deepinv.optim.Potential`
+and therefore it comes with methods for computing operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
+priors (eg. Tikhonov regularisation) but also implicit priors (eg. plug-and-play methods).
+
 
 .. list-table:: Priors Overview
-   :widths: 25 20 15
    :header-rows: 1
 
    * - Prior
@@ -190,109 +216,28 @@ computing the proximity operator is overwritten by a method performing denoising
      - Yes
 
 
-.. _bregman:
-
-Bregman
--------
-This is the base class for implementing Bregman potentials :math:`\phi(x)` where :math:`x\in\xset` is a variable and
-where :math:`\phi` is a convex scalar function. All Bregman potentials inherit from
-
-This class is implemented as a child class from :meth:`deepinv.optim.Potential` and therefore it comes with methods
-for computing operators useful for Bregman optimization algorithms such as Mirror Descent: the gradient
-:math:`\nabla \phi`, the conjugate :math:`\phi^*` and its gradient :math:`\nabla \phi^*`, or the Bregman divergence
-:math:`D(x,y) = \phi(x) - \phi^*(y) - x^{\top} y`.
-
-
-.. list-table:: Potentials Overview
-   :widths: 35 20
-   :header-rows: 1
-
-   * - Class
-     - Bregman Potential :math:`\phi(x)`
-   * - :class:`deepinv.optim.bregman.BregmanL2`
-     - :math:`\|x\|_2^2`
-   * - :class:`deepinv.optim.bregman.BurgEntropy`
-     - :math:`- \sum_i \log x_i`
-   * - :class:`deepinv.optim.bregman.NegEntropy`
-     - :math:`\sum_i x_i \log x_i`
-   * - :class:`deepinv.optim.bregman.Bregman_ICNN`
-     - :class:`Convolutional Input Convex NN <deepinv.models.ICNN>`
-
-.. _optim-params:
-
-Parameters
+Predefined algorithms
 ---------------------
-The parameters of the optimization algorithm, such as
-stepsize, regularisation parameter, denoising standard deviation, etc.
-are stored in a dictionary ``"params_algo"``, whose typical entries are:
 
-.. list-table::
-   :widths: 25 30 30
-   :header-rows: 1
+Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
+for all predefined optimization algorithms.
 
-   * - Key
-     - Meaning
-     - Recommended Values
-   * - ``"stepsize"``
-     - Step size of the optimization algorithm.
-     - | Should be positive. Depending on the algorithm,
-       | needs to be small enough for convergence;
-       | e.g. for PGD with ``g_first=False``,
-       | should be smaller than :math:`1/(\|A\|_2^2)`.
-   * - ``"lambda"``
-     - | Regularization parameter :math:`\lambda`
-       | multiplying the regularization term.
-     - Should be positive.
-   * - ``"g_param"``
-     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
-       | For priors based on denoisers,
-       | corresponds to the noise level.
-     - Should be positive.
-   * - ``"beta"``
-     - | Relaxation parameter used in
-       | ADMM, DRS, CP.
-     - Should be positive.
-   * - ``"stepsize_dual"``
-     - | Step size in the dual update in the
-       | Primal Dual algorithm (only required by CP).
-     - Should be positive.
+The function :func:`deepinv.optim.optim_builder` returns an instance of :class:`deepinv.optim.BaseOptim` with the
+optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
+or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
+at the beginning of this page, in one line of code:
 
-Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
-a single float (same value for each iteration).
+.. doctest::
 
+    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
+    ...                             params_algo={"stepsize": stepsize, "lambda": lambd}, max_iter=max_iter)
+    >>> x_hat = model(y, physics)
+    >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
-.. _optim-iterators:
-
-Iterators
----------
-An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
-by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
-
-.. math::
-    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)
-
-where :math:`x` is a variable converging to the solution of the minimization problem, and
-:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
-
-
-The implementation of the fixed point algorithm in :meth:`deepinv.optim`,
-following standard optimization theory, is split in two steps:
-
-.. math::
-    z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
-    x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
-
-where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
-on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
-relaxation parameters, etc...
-
-The fStep and gStep classes precisely implement these steps.
 
 Some generic optimizer iterators are provided:
 
 .. list-table::
-   :widths: 25 30 30
    :header-rows: 1
 
    * - Algorithm
@@ -341,6 +286,76 @@ Some generic optimizer iterators are provided:
    * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
      - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`
      - (phase-retrieval only)
+
+.. _optim-params:
+
+Parameters
+~~~~~~~~~~
+The parameters of generic optimization algorithms, such as
+stepsize, regularisation parameter, standard deviation of denoiser prior, etc.
+are stored in a dictionary ``"params_algo"``, whose typical entries are:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Meaning
+     - Recommended Values
+   * - ``"stepsize"``
+     - Step size of the optimization algorithm.
+     - | Should be positive. Depending on the algorithm,
+       | needs to be small enough for convergence;
+       | e.g. for PGD with ``g_first=False``,
+       | should be smaller than :math:`1/(\|A\|_2^2)`.
+   * - ``"lambda"``
+     - | Regularization parameter :math:`\lambda`
+       | multiplying the regularization term.
+     - Should be positive.
+   * - ``"g_param"``
+     - | Optional parameter :math:`\sigma` which :math:`\regname` depends on.
+       | For priors based on denoisers,
+       | corresponds to the noise level.
+     - Should be positive.
+   * - ``"beta"``
+     - | Relaxation parameter used in
+       | ADMM, DRS, CP.
+     - Should be positive.
+   * - ``"stepsize_dual"``
+     - | Step size in the dual update in the
+       | Primal Dual algorithm (only required by CP).
+     - Should be positive.
+
+Each value of the dictionary can be either an iterable (i.e., a list with a distinct value for each iteration) or
+a single float (same value for each iteration).
+
+
+.. _optim-iterators:
+
+Iterators
+~~~~~~~~~
+An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
+:math:`F = \datafidname + \lambda \regname` where :math:`\datafidname` is a data-fidelity term  that will be modeled
+by an instance of physics and :math:`\regname` is a regularizer. The fixed point iteration takes the form
+
+.. math::
+    \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, \datafidname, \regname, A, y, ...)
+
+where :math:`x` is a variable converging to the solution of the minimization problem, and
+:math:`z` is an additional variable that may be required in the computation of the fixed point operator.
+
+
+The implementation of the fixed point algorithm in ``deepinv.optim``,
+following standard optimization theory, is split in two steps:
+
+.. math::
+    z_{k+1} = \operatorname{step}_{\datafidname}(x_k, z_k, y, A, ...)\\
+    x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
+
+where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_g` are gradient and/or proximal steps
+on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
+relaxation parameters, etc...
+
+The fStep and gStep classes precisely implement these steps.
 
 
 .. _optim-utils:

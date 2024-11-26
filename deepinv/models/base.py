@@ -40,6 +40,9 @@ class Reconstructor(torch.nn.Module):
 
     Provides a template for defining reconstruction models.
 
+    Reconstructors provide a signal estimate ``x_hat`` as ``x_hat = model(y, physics)`` where ``y`` are the measurements
+    and ``physics`` is the forward model :math:`A` (possibly including information about the noise distribution too).
+
     The base class inherits from :class:`torch.nn.Module`.
 
     """

@@ -4,7 +4,7 @@ User Guide
 ==========
 
 Imaging inverse problems are described by the equation :math:`y = \noise{\forw{x}}` where
-:math:`x` is an unknown image we want to recover,
+:math:`x` is an unknown signal (image, volume, etc.) we want to recover,
 :math:`y` are the observed measurements, :math:`A` is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 :math:`N` characterizes the noise affecting the measurements.
@@ -79,7 +79,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
 ::
 
-    x_hat = model(y, physics)
+    x_hat = model(y, physics) # reconstruct signal
 
 
 .. grid:: 3
@@ -108,7 +108,8 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`law` **Artifact Removal**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Reconstruction networks from denoisers.
+        Reconstruction networks from denoisers
+        and other image-to-image networks.
 
     .. grid-item-card::
         :link: optim
@@ -133,7 +134,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`play` **Iterative Reconstruction**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Plug-and-play, RED, and deep image prior.
+        Plug-and-play, RED, variational methods.
 
     .. grid-item-card::
         :link: adversarial
@@ -141,7 +142,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`webhook` **Adversarial Reconstruction**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Conditional and unconditional GANs.
+        Conditional, unconditional GANs and deep image prior.
 
     .. grid-item-card::
         :link: sampling
@@ -149,7 +150,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
 
         :octicon:`flame` **Sampling**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Diffusion and Langevin algorithms.
+        Diffusion and MCMC algorithms.
 
 
 .. toctree::
@@ -177,7 +178,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
 
 ::
 
-    trainer = Trainer(model, loss, metric, train_dataset, ...)
+    trainer = Trainer(model, loss, optimizer, metric, train_dataset, ...)
     trainer.train()
     trainer.test(test_dataset)
 

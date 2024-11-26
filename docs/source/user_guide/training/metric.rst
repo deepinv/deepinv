@@ -59,20 +59,20 @@ Example:
     tensor(1.9999)
     >>> l = dinv.loss.MCLoss(metric=dinv.metric.SSIM(train_loss=True, reduction="mean")) # Use SSIM for training
 
-.. _distortion-metrics:
+.. _full-reference-metrics:
 
-Distortion metrics
-------------------
-Distortion metrics are used to measure the difference between the original ``x`` and the reconstructed image ``x_net``.
+Full Reference Metrics
+----------------------
+Full reference metrics are used to measure the difference between the original ``x`` and the reconstructed image ``x_net``.
 
-.. list-table:: Distortion Metrics
+.. list-table:: Full Reference Metrics
    :header-rows: 1
 
    * - **Metric**
      - **Definition**
 
    * - :class:`deepinv.loss.metric.MSE`
-     - :math:`\text{MSE}(x, \hat{x}) = \frac{1}{n} \sum_{i=1}^n (x_i - \hat{x}_i)^2`
+     - :math:`\text{MSE}(\hat{x},x) = \frac{1}{n} \sum_{i=1}^n (x_i - \hat{x}_i)^2`
 
    * - :class:`deepinv.loss.metric.NMSE`
      - :math:`\text{NMSE}(\hat{x},x) = \frac{\| x - \hat{x} \|_2^2}{\| x \|_2^2}`
@@ -95,11 +95,14 @@ Distortion metrics are used to measure the difference between the original ``x``
    * - :class:`deepinv.loss.metric.LpNorm`
      - :math:`\text{LpNorm}(\hat{x},x) = \|x - \hat{x}\|_p^p`
 
+   * - :class:`deepinv.loss.metric.LPIPS`
+     - Uses a pretrained network to calculate the perceptual similarity between two images.
 
-.. _perceptual-metrics:
 
-Perceptual metrics
-------------------
+.. _no-reference-metrics:
+
+No Reference Metrics
+--------------------
 
 We implement no-reference perceptual metrics, they only require the reconstructed image ``x_net``.
 

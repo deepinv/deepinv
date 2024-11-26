@@ -1,5 +1,5 @@
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, zeros_like, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
 import os
 import numpy as np
 from tqdm import tqdm
@@ -21,6 +21,8 @@ import inspect
 class Trainer:
     r"""Trainer(model, physics, optimizer, train_dataloader, ...)
     Trainer class for training a reconstruction network.
+
+    See the :ref:`User Guide <trainer>` for more details on how to adapt the trainer to your needs.
 
     Training can be done by calling the :meth:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :meth:`deepinv.Trainer.test` method.
