@@ -20,7 +20,7 @@ which can simulate the observation process:
     x = load_image()
     y = physics(x) # simulate observation
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::
@@ -82,7 +82,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
     x_hat = model(y, physics) # reconstruct signal
 
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::
@@ -183,7 +183,7 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
     trainer.test(test_dataset)
 
 
-.. grid:: 3
+.. grid:: 1 2 3 3
     :gutter: 1
 
     .. grid-item-card::
