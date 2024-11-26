@@ -355,7 +355,8 @@ where :math:`\operatorname{step}_{\datafidname}` and :math:`\operatorname{step}_
 on :math:`\datafidname` and :math:`\regname`, while using additional inputs, such as :math:`A` and :math:`y`, but also stepsizes,
 relaxation parameters, etc...
 
-The fStep and gStep classes precisely implement these steps.
+The :class:`deepinv.optim.optim_iterators.fStep` and :class:`deepinv.optim.optim_iterators.gStep` classes
+precisely implement these steps.
 
 
 .. _optim-utils:

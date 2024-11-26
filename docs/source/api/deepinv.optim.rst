@@ -89,11 +89,28 @@ Bregman
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.optim.bregman.Bregman
-   deepinv.optim.bregman.BregmanL2
-   deepinv.optim.bregman.BurgEntropy
-   deepinv.optim.bregman.NegEntropy
-   deepinv.optim.bregman.Bregman_ICNN
+   deepinv.optim.Bregman
+   deepinv.optim.BregmanL2
+   deepinv.optim.BurgEntropy
+   deepinv.optim.NegEntropy
+   deepinv.optim.Bregman_ICNN
+
+Distance
+--------
+.. userguide:: potentials
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.Distance
+   deepinv.optim.L2Distance
+   deepinv.optim.IndicatorL2Distance
+   deepinv.optim.PoissonLikelihoodDistance
+   deepinv.optim.L1Distance
+   deepinv.optim.AmplitudeLossDistance
+   deepinv.optim.LogPoissonLikelihoodDistance
 
 Iterators
 ---------
@@ -106,6 +123,8 @@ Iterators
 
    deepinv.optim.FixedPoint
    deepinv.optim.OptimIterator
+   deepinv.optim.optim_iterators.fStep
+   deepinv.optim.optim_iterators.gStep
    deepinv.optim.optim_iterators.GDIteration
    deepinv.optim.optim_iterators.PGDIteration
    deepinv.optim.optim_iterators.FISTAIteration
