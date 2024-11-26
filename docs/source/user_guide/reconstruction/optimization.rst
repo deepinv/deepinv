@@ -175,7 +175,7 @@ where :math:`\regname` is a function.
 
 The base class is :class:`deepinv.optim.Prior` implemented as a child class from :class:`deepinv.optim.Potential`
 and therefore it comes with methods for computing operators such as :math:`\operatorname{prox}_{\regname}` and :math:`\nabla \regname`.  This base class is used to implement user-defined differentiable
-priors (eg. Tikhonov regularisation) but also implicit priors (eg. plug-and-play methods).
+priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play methods).
 
 
 .. list-table:: Priors Overview
@@ -216,7 +216,7 @@ priors (eg. Tikhonov regularisation) but also implicit priors (eg. plug-and-play
      - Yes
 
 
-Predefined algorithms
+Predefined Algorithms
 ---------------------
 
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
@@ -235,7 +235,7 @@ at the beginning of this page, in one line of code:
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
-Some generic optimizer iterators are provided:
+Some predefined optimizers are provided:
 
 .. list-table::
    :header-rows: 1
@@ -292,7 +292,7 @@ Some generic optimizer iterators are provided:
 Parameters
 ~~~~~~~~~~
 The parameters of generic optimization algorithms, such as
-stepsize, regularisation parameter, standard deviation of denoiser prior, etc.
+stepsize, regularization parameter, standard deviation of denoiser prior, etc.
 are stored in a dictionary ``"params_algo"``, whose typical entries are:
 
 .. list-table::
