@@ -22,8 +22,9 @@ New Features
 - Add loss schedulers (:gh:`296` by `Andrew Wang`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
-- Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, and metrics docs section (:gh:`309` by `Andrew Wang`_)
-- generate_dataset features: complex numbers, save/load physics_generator params (:gh:`324` by `Andrew Wang`_)
+- Multi-coil MRI, 3D MRI, MRI Mixin (:gh:`287` by `Andrew Wang`_, Brett Levac)
+- Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, metrics docs section, Metric functional wrapper (:gh:`309`, :gh:`343` by `Andrew Wang`_)
+- generate_dataset features: complex numbers, save/load physics_generator params, overwrite bool (:gh:`324`, :gh:`352` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -34,18 +35,20 @@ Fixed
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
 - Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_) 
+- Fix bug when using cuda device in dinv.datasets.generate_dataset  (:gh:`334` by `Tobias Liaudat`_)
 
 Changed
 ^^^^^^^
 
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
-
+- get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_) 
 
 v0.2.1
 ----------------
 
 New Features
 ^^^^^^^^^^^^
+- Mirror Descent algorithm with Bregman potentials (:gh:`282` by `Samuel Hurault`_)
 - Added Gaussian-weighted splitting mask (from Yaman et al.), Artifact2Artifact (Liu et al.) and Phase2Phase (Eldeniz et al.) (:gh:`279` by `Andrew Wang`_)
 - Added time-agnostic network wrapper (:gh:`279` by `Andrew Wang`_)
 - Add sinc filter (:gh:`280` by `Julian Tachella`_)
@@ -82,6 +85,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Redefine Prior, DataFidelity and Bregman with a common parent class Potential (:gh:`282` by `Samuel Hurault`_)
 - Changed to Python 3.9+ (:gh:`280` by `Julian Tachella`_)
 - Improved support for parameter-dependent operators (:gh:`227` by `Jérémy Scanvic`_) - 28/05/2024
 - Added a divergence check in the conjugate gradient implementation (:gh:`225` by `Jérémy Scanvic`_) - 22/05/2024

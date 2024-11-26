@@ -264,7 +264,7 @@ class DiffPIR(nn.Module):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = DiffPIR(
         ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.L2()
+        ...   data_fidelity=dinv.optim.data_fidelity.L2()
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
