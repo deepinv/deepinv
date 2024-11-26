@@ -9,7 +9,7 @@ We organize hackathons and summer schools on an annual basis,
 and we welcome contributions from the community.
 
 
-.. image:: figures/cirm_hackathon.jpg
+.. image:: figures/CIRM_hackathon.jpg
    :width: 100%
    :alt: deepinverse Hackathon 2024 at CIRM, Marseille, France
 
