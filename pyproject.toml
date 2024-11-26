@@ -63,7 +63,6 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "furo",
     "sphinxcontrib-googleanalytics @ git+https://github.com/sphinx-contrib/googleanalytics.git",
 ]
 
@@ -94,6 +93,7 @@ dataset = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+pythonpath = ["deepinv"]
 testpaths = [
     "deepinv/tests",
 ]
