@@ -142,7 +142,7 @@ class DiffusionSDE(nn.Module):
         drift: Callable = lambda x, t: -x,  # Default to Ornstein-Uhlenbeck process
         diffusion: Callable = lambda t: math.sqrt(2.0),
         use_backward_ode=False,
-        prior: ScorePrior = None,
+        denoiser: nn.Module = None,
         rng: torch.Generator = None,
         dtype=torch.float32,
         device=torch.device("cpu"),
@@ -150,7 +150,7 @@ class DiffusionSDE(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.prior = prior
+        self.denoiser = denoiser
         self.rng = rng
         self.device = device
         self.dtype = dtype
@@ -168,12 +168,12 @@ class DiffusionSDE(nn.Module):
         if self.use_backward_ode:
             backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
                 diffusion(t) ** 2
-            ) * self.prior.score(x, t, *args, **kwargs)
+            ) * self.score(x, t, *args, **kwargs)
             backward_diff = lambda t: 0.0
         else:
             backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + (
                 diffusion(t) ** 2
-            ) * self.prior.score(x, t, *args, **kwargs)
+            ) * self.score(x, t, *args, **kwargs)
             backward_diff = lambda t: diffusion(t)
         self.backward_sde = BaseSDE(
             drift=backward_drift,
@@ -212,13 +212,29 @@ class DiffusionSDE(nn.Module):
         r"""
         Sample from the end-point distribution :math:`p_T` of the forward-SDE.
         """
-        raise NotImplementedError
+        return torch.randn(
+            shape, generator=self.rng, device=self.device, dtype=self.dtype
+        ) * self.sigma_t(1.0)
+
+    def score(self, x, t, *args, **kwargs):
+        r"""
+        Approximating the score function :math:`\nabla \log p_t` by the denoiser.
+        """
+        return self.sigma_t(t) ** (-2) * (
+            np.exp(-t) * self.denoiser(x, self.sigma_t(t), *args, **kwargs) - x
+        )
+
+    def sigma_t(self, t):
+        r"""
+        The std of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(..., \sigma_t^2 \mathrm{\Id})`.
+        """
+        return np.sqrt(1 - np.exp(-2 * t))
 
 
 class VESDE(DiffusionSDE):
     def __init__(
         self,
-        prior: ScorePrior,
+        denoiser: nn.Module,
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         use_backward_ode: bool = False,
@@ -230,7 +246,6 @@ class VESDE(DiffusionSDE):
     ):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        self.sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
         forward_drift = lambda x, t, *args, **kwargs: 0.0
         forward_diff = lambda t: self.sigma_t(t) * np.sqrt(
             2 * (np.log(sigma_max) - np.log(sigma_min))
@@ -239,7 +254,7 @@ class VESDE(DiffusionSDE):
             drift=forward_drift,
             diffusion=forward_diff,
             use_backward_ode=use_backward_ode,
-            prior=prior,
+            denoiser=denoiser,
             rng=rng,
             dtype=dtype,
             device=device,
@@ -251,6 +266,14 @@ class VESDE(DiffusionSDE):
         return (
             torch.randn(shape, generator=self.rng, device=self.device, dtype=self.dtype)
             * self.sigma_max
+        )
+
+    def sigma_t(self, t):
+        return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
+
+    def score(self, x, t, *args, **kwargs):
+        return self.sigma_t(t) ** (-2) * (
+            self.denoiser(x, self.sigma_t(t), *args, **kwargs) - x
         )
 
 
@@ -285,24 +308,26 @@ plt.show()
 # %%
 # VESDE
 sigma_min = 0.02
-sigma_max = 50.0
-timesteps = np.linspace(0.001, 1.0, 100)
+sigma_max = 1.0
+timesteps = np.linspace(0.001, 1.0, 200)
 sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
 rng = torch.Generator(device).manual_seed(42)
 
 
-prior = dinv.optim.prior.DiffusionScorePrior(
-    denoiser=denoiser, sigma_t=sigma_t, rescale=False
-)
+# prior = dinv.optim.prior.DiffusionScorePrior(
+#     denoiser=denoiser, sigma_t=sigma_t, rescale=False
+# )
 
-sde = VESDE(
-    prior=prior,
-    sigma_max=sigma_max,
-    sigma_min=sigma_min,
-    rng=rng,
-    device=device,
-    use_backward_ode=False,
-)
+# sde = VESDE(
+#     denoiser=denoiser,
+#     sigma_max=sigma_max,
+#     sigma_min=sigma_min,
+#     rng=rng,
+#     device=device,
+#     use_backward_ode=False,
+# )
+
+sde = DiffusionSDE(denoiser=denoiser, rng=rng, device=device)
 
 # Check forward
 x_init = x.clone()
@@ -314,7 +339,7 @@ plt.show()
 # %% Check backward
 # x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
 
-solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Euler", seed=1)
+solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Heun", seed=1)
 dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
 _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
 plt.show()
