@@ -9,7 +9,7 @@
 
 Introduction
 ------------
-Deep Inverse is an open-source pytorch library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standardizing forward imaging models and simplifying the creation of imaging datasets.
+DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems using deep learning. The goal of ``deepinv`` is to accelerate the development of deep learning based methods for imaging inverse problems, by combining popular learning-based reconstruction approaches in a common and simplified framework, standardizing forward imaging models and simplifying the creation of imaging datasets.
 
 ``deepinv`` features
 
@@ -82,7 +82,7 @@ Try out the following plug-and-play image inpainting example:
    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
-Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started.
+Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive :ref:`User Guide <user_guide>`.
 
 Contributing
 ------------
