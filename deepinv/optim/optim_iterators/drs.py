@@ -8,7 +8,7 @@ class DRSIteration(OptimIterator):
     Iterator for Douglas-Rachford Splitting.
 
     Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimising
-    :math:` f(x) + \lambda g(x)`.
+    :math:` f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default), the iteration is given by
 
@@ -16,14 +16,14 @@ class DRSIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(2*u_{k+1}-z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
         \end{aligned}
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 
-    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
+    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     """
 
     def __init__(self, **kwargs):

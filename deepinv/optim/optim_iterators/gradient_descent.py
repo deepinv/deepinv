@@ -6,7 +6,7 @@ class GDIteration(OptimIterator):
     r"""
     Iterator for Gradient Descent.
 
-    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`f(x) + \lambda g(x)`.
+    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`f(x) + \lambda \regname(x)`.
 
     The iteration is given by
 
@@ -14,7 +14,7 @@ class GDIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
+        v_{k} &= \nabla f(x_k) + \nabla \regname(x_k) \\
         x_{k+1} &= x_k-\gamma v_{k}
         \end{aligned}
         \end{equation*}

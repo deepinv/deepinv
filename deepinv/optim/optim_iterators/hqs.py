@@ -5,7 +5,7 @@ class HQSIteration(OptimIterator):
     r"""
     Single iteration of half-quadratic splitting.
 
-    Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:` f(x) + \lambda g(x)`.
+    Class for a single iteration of the Half-Quadratic Splitting (HQS) algorithm for minimising :math:` f(x) + \lambda \regname(x)`.
     The iteration is given by
 
 

@@ -28,8 +28,7 @@ class DnCNN(Denoiser):
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool train: training or testing mode
-    :param str device: gpu or cpu
+    :param str device: gpu or cpu.
     """
 
     def __init__(
