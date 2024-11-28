@@ -8,7 +8,6 @@ from deepinv.optim.distance import (
     LogPoissonLikelihoodDistance,
 )
 from deepinv.optim.potential import Potential
-from deepinv.physics import Physics
 import torch
 
 
@@ -53,6 +52,37 @@ class DataFidelity(Potential):
         :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
+
+    def grad_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`. Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function direclty calls :meth:`deepinv.optim.Distance.grad` for the
+        speficic distance function :math:`\distance`.
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        return self.d.grad(u, y, *args, **kwargs)
+
+    def prox_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`. Note
+        that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function direclty calls :meth:`deepinv.optim.Distance.prox` for the
+        speficic distance function :math:`\distance`.
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        return self.d.prox(u, y, *args, **kwargs)
+
+    def prox_d_conjugate(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
+        This function direclty calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
+        speficic distance function :math:`\distance`.
+        """
+        return self.d.prox_conjugate(u, y, *args, **kwargs)
 
 
 class L2(DataFidelity):

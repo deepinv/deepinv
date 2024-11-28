@@ -215,7 +215,7 @@ class PSNR(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
-    def __init__(self, max_pixel=1, normalize=False, **kwargs):
+    def __init__(self, max_pixel=1, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
         self.lower_better = False

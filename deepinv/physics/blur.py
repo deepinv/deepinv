@@ -187,7 +187,9 @@ class Blur(LinearPhysics):
 
     This forward operator performs
 
-    .. math:: y = w*x
+    .. math::
+
+        y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
@@ -288,7 +290,9 @@ class BlurFFT(DecomposablePhysics):
 
     It performs the operation
 
-    .. math:: y = w*x
+    .. math::
+
+        y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 

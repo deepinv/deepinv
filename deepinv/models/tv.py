@@ -1,8 +1,8 @@
 import torch
-import torch.nn as nn
+from .base import Denoiser
 
 
-class TVDenoiser(nn.Module):
+class TVDenoiser(Denoiser):
     r"""
     Proximal operator of the isotropic Total Variation operator.
 
@@ -82,7 +82,7 @@ class TVDenoiser(nn.Module):
             ).unsqueeze(-1)
         )
 
-    def forward(self, y, ths=None):
+    def forward(self, y, ths=None, **kwargs):
         r"""
         Computes the proximity operator of the TV norm.
 

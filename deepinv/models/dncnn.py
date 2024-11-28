@@ -2,9 +2,10 @@ import torch.nn as nn
 import torch
 from .utils import get_weights_url
 import math
+from .base import Denoiser
 
 
-class DnCNN(nn.Module):
+class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.
 
@@ -27,7 +28,7 @@ class DnCNN(nn.Module):
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str device: gpu or cpu
+    :param str device: gpu or cpu.
     """
 
     def __init__(

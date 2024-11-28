@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .drunet import test_pad
+from .base import Denoiser
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
@@ -52,7 +53,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
         return y.view(return_shape).transpose(0, 1)
 
 
-class UNet(nn.Module):
+class UNet(Denoiser):
     r"""
     U-Net convolutional denoiser.
 
