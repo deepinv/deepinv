@@ -28,7 +28,7 @@ train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True, d
 test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False, data_dir=BASE_DIR)
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), device=device, rng=rng)
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=2, img_size=(img_size, img_size), device=device, rng=rng)
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
