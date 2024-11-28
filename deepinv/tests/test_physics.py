@@ -244,7 +244,7 @@ def find_operator(name, device):
         p = dinv.physics.CompressedSensing(
             m=m,
             img_shape=img_size,
-            dtype=torch.cfloat,
+            dtype=torch.cdouble,
             device=device,
             compute_inverse=True,
             rng=rng,
