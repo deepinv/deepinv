@@ -11,12 +11,16 @@ from deepinv.utils.demo import load_dataset, demo_mri_model
 
 
 torch.manual_seed(0)
+rng = torch.Generator().manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 
-loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_input=False) # SSDU
+loss = dinv.loss.SplittingLoss(
+    split_ratio=0.6, eval_split_input=False,
+    mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2, 128, 128), 0.6, rng=rng)
+) # SSDU
 
 img_size = 128
 
@@ -26,7 +30,7 @@ train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True, d
 test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False, data_dir=BASE_DIR)
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size))
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), center_fraction=0.2)
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
