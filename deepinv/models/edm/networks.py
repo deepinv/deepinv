@@ -1073,6 +1073,8 @@ class EDMPrecond(torch.nn.Module):
 # Some additional utilities
 def handle_sigma(sigma, dtype, device, batch_size):
     if isinstance(sigma, torch.Tensor):
+        if sigma.ndim == 0:
+            sigma = sigma[None]
         assert (
             sigma.size(0) == batch_size or sigma.size(1) == 1
         ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"

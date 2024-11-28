@@ -8,10 +8,9 @@ from typing import Callable, Union, Optional, Tuple, List, Any
 import numpy as np
 from numpy import ndarray
 import warnings
-from utils import get_edm_parameters
 from deepinv.optim.prior import ScorePrior
 from deepinv.physics import Physics
-from sde_solver import select_solver, SDEOutput
+from .sde_solver import select_solver, SDEOutput
 
 
 class BaseSDE(nn.Module):
@@ -62,7 +61,7 @@ class BaseSDE(nn.Module):
         r"""
         Solve the SDE with the given timesteps.
         :param torch.Tensor x_init: initial value.
-        :param timesteps: time steps at which to discretize the SDE.
+        :param timesteps: time steps at which to discretize the SDE, of shape `(n_steps,)`.
         :param str method: method for solving the SDE. One of the methods available in :meth:`deepinv.sampling.sde_solver`.
 
         :rtype SDEOutput.
@@ -70,7 +69,6 @@ class BaseSDE(nn.Module):
         self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
         solver = solver_fn(sde=self, rng=self.rng, **kwargs)
-
         solution = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
         return solution
 
@@ -148,8 +146,6 @@ class DiffusionSDE(nn.Module):
 
     Default parameters correspond to the `Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`_ SDE, defined in the time interval `[0,1]`.
 
-    Both forward and backward SDE are solved in ascending time steps.
-
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param callable denoiser: a pre-trained MMSE denoiser which will be used to approximate the score function by Tweedie's formula.
@@ -223,7 +219,7 @@ class DiffusionSDE(nn.Module):
             If it is a tensor, `x_init` should follow the distribution of :math:`p_T`, which is usually   :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id}})`.
             If it is a tuple, it should be of the form `(B, C, H, W)`. A sample from the distribution :math:`p_T` will be generated automatically.
 
-        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be in ascending order.
+        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be of shape `(n_steps,)`.
         :param str method: The method to discretize the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
         :param args: additional arguments for the backward drift (passed to the `denoiser`).
         :param kwargs: additional keyword arguments for the backward drift (passed to the `denoiser`), e.g., `class_labels` for class-conditional models.
@@ -271,6 +267,7 @@ class DiffusionSDE(nn.Module):
 
     def _handle_time_step(self, t):
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
+        return t
 
     def sigma_t(self, t: Any) -> Tensor:
         r"""
@@ -344,68 +341,67 @@ class VESDE(DiffusionSDE):
 
 
 # %%
-# if __name__ == "__main__":
-import numpy as np
-from deepinv.utils.demo import load_url_image, get_image_url
-import deepinv as dinv
-import matplotlib.pyplot as plt
-from deepinv.models.edm import SongUNet, EDMPrecond
+if __name__ == "__main__":
+    import numpy as np
+    from deepinv.utils.demo import load_url_image, get_image_url
+    import deepinv as dinv
+    import matplotlib.pyplot as plt
+    from deepinv.models.edm import SongUNet, EDMPrecond
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-unet = SongUNet.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
-denoiser = EDMPrecond(model=unet).to(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    unet = SongUNet.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
+    denoiser = EDMPrecond(model=unet).to(device)
 
-url = get_image_url("CBSD_0010.png")
-x = load_url_image(url=url, img_size=64, device=device)
-t = 100.0
-x_noisy = x + torch.randn_like(x) * t
-x_denoised = denoiser(x_noisy, t)
-dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
-_ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
-plt.show()
-# %%
-x_noisy = (x_noisy + 1) * 0.5
-x_denoised = denoiser(x_noisy, t * 0.5)
-x_denoised = x_denoised * 2 - 1
-dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
-_ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
-plt.show()
-# %%
-# VESDE
-sigma_min = 0.02
-sigma_max = 10
-timesteps = np.linspace(0.001, 1.0, 200)
-sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
-rng = torch.Generator(device).manual_seed(42)
+    url = get_image_url("CBSD_0010.png")
+    x = load_url_image(url=url, img_size=64, device=device)
+    t = 100.0
+    x_noisy = x + torch.randn_like(x) * t
+    x_denoised = denoiser(x_noisy, t)
+    dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
+    _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
+    plt.show()
+    # %%
+    x_noisy = (x_noisy + 1) * 0.5
+    x_denoised = denoiser(x_noisy, t * 0.5)
+    x_denoised = x_denoised * 2 - 1
+    dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
+    _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
+    plt.show()
+    # %%
+    # VESDE
+    sigma_min = 0.02
+    sigma_max = 10
+    timesteps = np.linspace(0.001, 1.0, 200)
+    sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
+    rng = torch.Generator(device).manual_seed(42)
 
+    # prior = dinv.optim.prior.DiffusionScorePrior(
+    #     denoiser=denoiser, sigma_t=sigma_t, rescale=False
+    # )
 
-# prior = dinv.optim.prior.DiffusionScorePrior(
-#     denoiser=denoiser, sigma_t=sigma_t, rescale=False
-# )
+    # sde = VESDE(
+    #     denoiser=denoiser,
+    #     sigma_max=sigma_max,
+    #     sigma_min=sigma_min,
+    #     rng=rng,
+    #     device=device,
+    #     use_backward_ode=False,
+    # )
 
-# sde = VESDE(
-#     denoiser=denoiser,
-#     sigma_max=sigma_max,
-#     sigma_min=sigma_min,
-#     rng=rng,
-#     device=device,
-#     use_backward_ode=False,
-# )
+    sde = DiffusionSDE(denoiser=denoiser, rng=rng, device=device)
 
-sde = DiffusionSDE(denoiser=denoiser, rng=rng, device=device)
+    # Check forward
+    x_init = x.clone()
 
-# Check forward
-x_init = x.clone()
+    solution = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
+    dinv.utils.plot(solution.sample, suptitle=f"Forward sample, nfe = {solution.nfe}")
+    _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
+    plt.show()
+    # %% Check backward
+    # x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
 
-solution = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
-dinv.utils.plot(solution.sample, suptitle=f"Forward sample, nfe = {solution.nfe}")
-_ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
-plt.show()
-# %% Check backward
-# x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
-
-solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Euler", seed=1)
-dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
-_ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
-plt.show()
+    solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Euler", seed=1)
+    dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
+    _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
+    plt.show()
