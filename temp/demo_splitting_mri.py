@@ -29,7 +29,7 @@ train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True, d
 test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False, data_dir=BASE_DIR)
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), center_fraction=0.2, device=device)
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), center_fraction=0.1, device=device, rng=rng)
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
@@ -87,7 +87,7 @@ trainer.test(test_dataloader)
 
 
 model = demo_mri_model(device=device)
-loss = dinv.loss.EILoss(transform=dinv.transform.CPABDiffeomorphism(device=device))
+loss = [dinv.loss.EILoss(transform=dinv.transform.CPABDiffeomorphism(device=device)), dinv.loss.MCLoss()]
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
