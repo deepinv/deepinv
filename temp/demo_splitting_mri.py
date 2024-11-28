@@ -19,7 +19,7 @@ DATA_DIR = BASE_DIR / "measurements"
 
 loss = dinv.loss.SplittingLoss(
     split_ratio=0.6, eval_split_input=False,
-    mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2, 128, 128), 0.6, rng=rng)
+    mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2, 128, 128), 0.6, rng=rng, device=device)
 ) # SSDU
 
 img_size = 128
@@ -30,7 +30,7 @@ train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True, d
 test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False, data_dir=BASE_DIR)
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), center_fraction=0.2)
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(acceleration=4, img_size=(img_size, img_size), center_fraction=0.2, device=device)
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
