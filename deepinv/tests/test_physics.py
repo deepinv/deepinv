@@ -454,7 +454,7 @@ def test_MRI(mri_img_size, device, rng):
     for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
         B, C, T, H, W = mri_img_size
         if rng.device != device:
-            rng = torch.Generator(device=device)
+            rng = torch.Generator(device=device).manual_seed(0)
         x, y = (
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
             torch.rand(mri_img_size, generator=rng, device=device) + 1,
