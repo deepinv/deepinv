@@ -113,7 +113,7 @@ model = optim_builder(
 )
 
 # Set the model to evaluation mode. We do not require training here.
-# model.eval()
+model.eval()
 
 
 # %%
@@ -123,25 +123,20 @@ model = optim_builder(
 # The model returns the output and the metrics computed along the iterations.
 # For computing PSNR, the ground truth image ``x_gt`` must be provided.
 
-x = torch.cat([x, x, x, x], dim=0)
-
-print("X shape ", x.shape)
-
 y = physics(x)
 x_lin = (
     physics.A_adjoint(y) * SCALING
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(
-    y, physics, x_gt=x, compute_metrics=True
-)  # reconstruction with PnP algorithm
+with torch.no_grad():
+    x_model, metrics = model(
+        y, physics, x_gt=x, compute_metrics=True
+    )  # reconstruction with PnP algorithm
 
 # compute PSNR
-# print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-# print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
-# print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin):.2f} dB")
-# print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PnP reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
