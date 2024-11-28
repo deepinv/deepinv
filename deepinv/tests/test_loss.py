@@ -192,17 +192,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
-    # test the untrained model
-    initial_test = dinv.test(
-        model=model,
-        test_dataloader=test_dataloader,
-        physics=physics,
-        plot_images=False,
-        device=device,
-    )
-
-    # train the network
-    model = dinv.train(
+    trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
         epochs=epochs,
@@ -217,13 +207,13 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         verbose=False,
     )
 
-    final_test = dinv.test(
-        model=model,
-        test_dataloader=test_dataloader,
-        physics=physics,
-        plot_images=False,
-        device=device,
-    )
+    # test the untrained model
+    initial_test = trainer.test(test_dataloader=test_dataloader)
+
+    # train the network
+    trainer.train()
+
+    final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 

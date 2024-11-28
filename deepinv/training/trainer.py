@@ -422,8 +422,6 @@ class Trainer:
         """
         y = y.to(self.device)
 
-        kwargs = {}
-
         # check if the forward has 'update_parameters' method, and if so, update the parameters
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
@@ -437,6 +435,7 @@ class Trainer:
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
         else:
+            kwargs["x_gt"] = x  # some models may need x_gt for the forward
             x_net = self.model(y, physics, **kwargs)
 
         return x_net

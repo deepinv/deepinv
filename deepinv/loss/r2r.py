@@ -135,7 +135,7 @@ class R2RModel(torch.nn.Module):
         self.alpha = alpha
         self.eval_n_samples = eval_n_samples
 
-    def forward(self, y, physics, update_parameters=False):
+    def forward(self, y, physics, update_parameters=False, **kwargs):
         eval_n_samples = 1 if self.training else self.eval_n_samples
 
         out = 0

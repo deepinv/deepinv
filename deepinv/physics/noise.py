@@ -103,8 +103,35 @@ class GaussianNoise(NoiseModel):
         >>> import torch
         >>> physics = Denoising()
         >>> physics.noise_model = GaussianNoise()
-        >>> x = torch.rand(1, 1, 2, 2)
+        >>> x = torch.rand(3, 1, 2, 2)
         >>> y = physics(x)
+
+        We can sum 2 GaussianNoise instances:
+
+        >>> gaussian_noise_1 = GaussianNoise(sigma=3.0)
+        >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
+        >>> gaussian_noise = gaussian_noise_1 + gaussian_noise_2
+        >>> y = gaussian_noise(x)
+        >>> assert gaussian_noise.sigma == 5.0, "Wrong standard deviation value for the sum."
+
+        We can also multiply a GaussianNoise by a float:
+
+        | :math:`scaled\_gaussian\_noise(x) = \lambda \times gaussian\_noise(x)`
+
+        >>> scaled_gaussian_noise = 3.0 * gaussian_noise
+        >>> y = scaled_gaussian_noise(x)
+        >>> assert scaled_gaussian_noise.sigma == 15.0, "Wrong standard deviation value for the multiplication."
+
+        We can also create a batch of GaussianNoise with different standard deviations:
+
+        | :math:`x=[x_1, ..., x_b]`
+        | :math:`t=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
+        | :math:`[t \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`
+
+        >>> t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)
+        >>> batch_gaussian_noise = t * gaussian_noise
+        >>> y = batch_gaussian_noise(x)
+        >>> assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), "Wrong standard deviation value for the first GaussianNoise."
 
     :param float sigma: Standard deviation of the noise.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
@@ -113,6 +140,69 @@ class GaussianNoise(NoiseModel):
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
         self.update_parameters(sigma=sigma)
+
+    def __add__(self, other):
+        r"""
+        Sum of 2 gaussian noises via + operator.
+
+        :math:`N(x) = \sqrt{N_1(x)^2 + N_2(x)^2}`
+
+        :param deepinv.physics.GaussianNoise other: Gaussian noise :math:`N_2`
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
+        """
+        if not isinstance(other, GaussianNoise):
+            raise TypeError(
+                f"GaussianNoise Add Operator is unsupported for type {type(other)}"
+            )
+        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
+
+    def __mul__(self, other):
+        r"""
+        Element-wise multiplication of a GaussianNoise via * operator.
+
+        0) If `other` is a :class:`NoiseModel`, then applies the NoiseModel multiplication.
+
+        1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.
+
+            | :math:`x=[x_1, ..., x_b]` a batch of images.
+            | :math:`\lambda` a float.
+            | :math:`[\lambda \times gaussian](x) = [\lambda \times gaussian(x_1), ..., \lambda \times gaussian(x_b)]`
+
+        2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
+
+            | :math:`x=[x_1, ..., x_b]` a batch of images.
+            | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
+            | :math:`[other \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`
+
+        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
+        """
+        if isinstance(other, NoiseModel):  # standard NoiseModel multiplication
+            return super().__mul__(other)
+        elif isinstance(other, float) or isinstance(
+            other, torch.Tensor
+        ):  # should be a float or a torch.Tensor
+            return GaussianNoise(sigma=self.sigma * other)
+        else:
+            raise NotImplementedError(
+                "Multiplication with type {} is not supported.".format(type(other))
+            )
+
+    def __rmul__(self, other):
+        r"""
+        Commutativity of the __mul__ operator.
+
+        :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
+        :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
+        """
+        if not isinstance(other, NoiseModel):
+            return self.__mul__(other)
+        else:
+            raise NotImplementedError(
+                "Multiplication (noise_model * gaussian_noise) with type {} is not supported.".format(
+                    type(other)
+                )
+            )
 
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""
