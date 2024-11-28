@@ -63,7 +63,7 @@ class BaseSDESolver(nn.Module):
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def step(self, t0, t1, x0: Tensor, *args, **kwargs) -> Tensor:
+    def step(self, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 

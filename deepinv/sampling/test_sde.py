@@ -43,8 +43,8 @@ prior = dinv.optim.prior.ScorePrior(denoiser=denoiser)
 url = get_image_url("CBSD_0010.png")
 x = load_url_image(url=url, img_size=64, device=device)
 
-x_noisy = x + torch.randn_like(x) * 1.
-dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 1.)])
+x_noisy = x + torch.randn_like(x) * 1.0
+dinv.utils.plot([x, x_noisy, denoiser(x_noisy, 1.0)])
 
 dinv.utils.plot(prior.score(x_noisy, 1))
 

@@ -4,14 +4,14 @@ import torch
 import math
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Optional, Tuple, List
+from typing import Callable, Union, Optional, Tuple, List, Any
 import numpy as np
 from numpy import ndarray
 import warnings
 from utils import get_edm_parameters
 from deepinv.optim.prior import ScorePrior
 from deepinv.physics import Physics
-from sde_solver import select_solver
+from sde_solver import select_solver, SDEOutput
 
 
 class BaseSDE(nn.Module):
@@ -58,25 +58,35 @@ class BaseSDE(nn.Module):
         method: str = "euler",
         seed: int = None,
         **kwargs,
-    ):
+    ) -> SDEOutput:
         r"""
-        Solve the SDE with the given time-step.
+        Solve the SDE with the given timesteps.
         :param torch.Tensor x_init: initial value.
-        :param timesteps: time steps at which to sample the SDE.
-        :param str method: method for solving the SDE.
+        :param timesteps: time steps at which to discretize the SDE.
+        :param str method: method for solving the SDE. One of the methods available in :meth:`deepinv.sampling.sde_solver`.
 
-        :return torch.Tensor: samples from the SDE.
+        :rtype SDEOutput.
         """
         self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
         solver = solver_fn(sde=self, rng=self.rng, **kwargs)
 
-        samples = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
-        return samples
+        solution = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
+        return solution
 
     def discretize(
         self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
     ) -> Tuple[Tensor, Tensor]:
+        r"""
+        Discretize the SDE at the given time step.
+
+        :param torch.Tensor x: current state.
+        :param float t: discretized time step.
+        :param args: additional arguments for the drift.
+        :param kwargs: additional keyword arguments for the drift.
+
+        :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
+        """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def rng_manual_seed(self, seed: int = None):
@@ -116,17 +126,17 @@ class DiffusionSDE(nn.Module):
 
     The forward SDE is defined by:
     .. math::
-            d x_{t} = f(x_t, t) dt + g(t) d w_{t}.
+            d\, x_{t} = f(x_t, t) d\,t + g(t) d\, w_{t}.
 
     This forward SDE can be reversed by the following SDE running backward in time:
 
     .. math::
-            d x_{t} = \left( f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) dt + g(t) d w_{t}.
+            d\, x_{t} = \left( f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) d\, w_{t}.
 
     There also exists a deterministic probability flow ODE whose trajectories share the same marginal distribution as the SDEs:
 
     .. math::
-            d x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt.
+            d\, x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
 
 
     The score function can be computed using Tweedie's formula, given a MMSE denoiser :math:`D`:
@@ -136,13 +146,19 @@ class DiffusionSDE(nn.Module):
 
     where :math:`sigma(t)` is the noise level at time :math:`t`, which can be accessed through the attribute :meth:`sigma_t`
 
-    Both forward and backward SDE are solved in forward time.
+    Default parameters correspond to the `Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`_ SDE, defined in the time interval `[0,1]`.
+
+    Both forward and backward SDE are solved in ascending time steps.
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param callable denoiser: a pre-trained MMSE denoiser which will be used to approximate the score function by Tweedie's formula.
     :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
     :param torch.Generator rng: pseudo-random number generator for reproducibility.
+    :param torch.dtype dtype: data type of the computation, except for the `denoiser` which will be always compute in `float32`.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the `denoiser`, which will be always computed in `float32`.
+    :param torch.device device: device on which the computation is performed.
     """
 
     def __init__(
@@ -152,7 +168,7 @@ class DiffusionSDE(nn.Module):
         use_backward_ode=False,
         denoiser: nn.Module = None,
         rng: torch.Generator = None,
-        dtype=torch.float32,
+        dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
@@ -194,8 +210,8 @@ class DiffusionSDE(nn.Module):
     @torch.no_grad()
     def forward(
         self,
-        x_init: Tensor,
-        timesteps: Tensor,
+        x_init: Union[Tensor, Tuple],
+        timesteps: Union[Tensor, List, ndarray],
         method: str = "Euler",
         *args,
         **kwargs,
@@ -203,11 +219,16 @@ class DiffusionSDE(nn.Module):
         r"""
         Sample the backward-SDE.
 
-        :param torch.Tensor x_init: Initial condition of the backward-SDE, x_init should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id}})`.
+        :param Union[Tensor, Tuple] x_init: Initial condition of the backward-SDE.
+            If it is a tensor, `x_init` should follow the distribution of :math:`p_T`, which is usually   :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id}})`.
+            If it is a tuple, it should be of the form `(B, C, H, W)`. A sample from the distribution :math:`p_T` will be generated automatically.
+
         :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be in ascending order.
         :param str method: The method to discretize the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
+        :param args: additional arguments for the backward drift (passed to the `denoiser`).
+        :param kwargs: additional keyword arguments for the backward drift (passed to the `denoiser`), e.g., `class_labels` for class-conditional models.
 
-        :return: SDESolution.
+        :rtype: SDESolution.
 
         """
         if isinstance(x_init, (Tuple, List, torch.Size)):
@@ -216,30 +237,62 @@ class DiffusionSDE(nn.Module):
             x_init, timesteps=timesteps, method=method, *args, **kwargs
         )
 
-    def prior_sample(self, shape):
+    def prior_sample(self, shape: Union[List, Tuple, torch.Size]) -> Tensor:
         r"""
         Sample from the end-point distribution :math:`p_T` of the forward-SDE.
+
+        :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         return torch.randn(
             shape, generator=self.rng, device=self.device, dtype=self.dtype
-        ) * self.sigma_t(1.0)
+        ) * self.sigma_t(1.0).view(-1, 1, 1, 1)
 
-    def score(self, x, t, *args, **kwargs):
+    def score(self, x: Tensor, t: Any, *args, **kwargs) -> Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
+
+        :param torch.Tensor x: current state
+        :param Any t: current time step
+        :param args: additional arguments for the `denoiser`.
+        :param kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
+
+        :return: the score function :math:`nabla \log p_t(x)`.
+        :rtype: torch.Tensor
         """
-        return self.sigma_t(t) ** (-2) * (
-            np.exp(-t) * self.denoiser(x, self.sigma_t(t), *args, **kwargs) - x
+        t = self._handle_time_step(t)
+        exp_minus_t = torch.exp(-t) if isinstance(t, Tensor) else np.exp(-t)
+        return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
+            exp_minus_t
+            * self.denoiser(x.to(torch.float32), self.sigma_t(t), *args, **kwargs).to(
+                self.dtype
+            )
+            - x
         )
 
-    def sigma_t(self, t):
+    def _handle_time_step(self, t):
+        t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
+
+    def sigma_t(self, t: Any) -> Tensor:
         r"""
         The std of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(..., \sigma_t^2 \mathrm{\Id})`.
+
+        :param Any t: time step.
         """
-        return np.sqrt(1 - np.exp(-2 * t))
+        t = self._handle_time_step(t)
+        return torch.sqrt(1.0 - torch.exp(-2.0 * t))
 
 
 class VESDE(DiffusionSDE):
+    r"""
+    Variance-Exploding Stochastic Differential Equation (VE-SDE), described in the paper: https://arxiv.org/abs/2011.13456
+
+    The forward-time SDE is defined as follows:
+
+    .. math::
+        d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \)^t
+
+    """
+
     def __init__(
         self,
         denoiser: nn.Module,
@@ -277,11 +330,16 @@ class VESDE(DiffusionSDE):
         )
 
     def sigma_t(self, t):
+        t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
     def score(self, x, t, *args, **kwargs):
-        return self.sigma_t(t) ** (-2) * (
-            self.denoiser(x, self.sigma_t(t), *args, **kwargs) - x
+        t = self._handle_time_step(t)
+        return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
+            self.denoiser(x.to(torch.float32), self.sigma_t(t), *args, **kwargs).to(
+                self.dtype
+            )
+            - x
         )
 
 
@@ -316,7 +374,7 @@ plt.show()
 # %%
 # VESDE
 sigma_min = 0.02
-sigma_max = 1.0
+sigma_max = 10
 timesteps = np.linspace(0.001, 1.0, 200)
 sigma_t = lambda t: sigma_min * (sigma_max / sigma_min) ** t
 rng = torch.Generator(device).manual_seed(42)
@@ -347,9 +405,7 @@ plt.show()
 # %% Check backward
 # x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
 
-solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Heun", seed=1)
+solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Euler", seed=1)
 dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
 _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
 plt.show()
-
-# %%
