@@ -9,10 +9,9 @@ import deepinv as dinv
 from deepinv.models.utils import get_weights_url
 from deepinv.utils.demo import load_dataset, demo_mri_model
 
-
-torch.manual_seed(0)
-rng = torch.Generator().manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+torch.manual_seed(0)
+rng = torch.Generator(device=device).manual_seed(0)
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
