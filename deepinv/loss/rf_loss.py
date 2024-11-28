@@ -4,13 +4,6 @@ from deepinv.loss.loss import Loss
 from deepinv.physics import GaussianNoise, Denoising
 
 
-<<<<<<< HEAD
-class FlowTrainerModel(torch.nn.Module):
-    r"""
-    Standard Flow Model:
-
-    TODO !!!
-=======
 class RectifiedFlowModel(torch.nn.Module):
     r"""
     `Rectified Flow <https://arxiv.org/pdf/2209.03003>`_
@@ -22,12 +15,11 @@ class RectifiedFlowModel(torch.nn.Module):
 
     where :math:`Z_0 = x` is an image of :math:`n` pixels,
     :math:`Z_1 = y` is the measurements of same shape :math:`n` pixels,
-    :math:`v(Z_t,t)` is a vector field estimated by our RF model.
+    :math:`v(Z_t,t)` is an unknow vector field estimated by our RF model.
 
     This formulation is a simpler form of Flow matching...
 
     TODO: complete this and missing example of usage
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
     """
 
     def __init__(self, model):
@@ -36,30 +28,19 @@ class RectifiedFlowModel(torch.nn.Module):
 
     def forward(self, y, physics, x_gt, **kwargs):
         r"""
-<<<<<<< HEAD
-        Generate the forward process at timestep t for the Flow model and get output of the model.
-=======
         Generate the forward process at timestep t for the Rectified Flow model and get output of the model.
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         :param torch.Tensor x_gt: Target (ground-truth) image.
         :param torch.Tensor y: Noisy measurements derived from `x_gt`, not used in the method.
         :return: (torch.Tensor) Output of `nn_model`.
         """
         ### COMPUTE INTERMEDIATE PHYSICS
-<<<<<<< HEAD
-        gaussian_noise = GaussianNoise(sigma=0.1)
-        physics_clean = Denoising(noise_model=gaussian_noise, device=x_gt.device)
-        # timestep t between 0. and 1. (t=0 -> z_t=x, t=1 -> z_t=y)
-        # shape (b, 1, 1, 1) if x_gt.shape == (b, c, h, w)
-=======
         gaussian_noise = GaussianNoise(sigma=0.01)
         physics_clean = Denoising(noise_model=gaussian_noise, device=x_gt.device)
         # timestep t between 0 and 1
         # if t == 0 then z_t == x_gt
         # if t == 0 then z_t == y
         # t.shape == (b, 1, 1, 1) if x_gt.shape == (b, c, h, w)
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
         t = torch.rand((x_gt.size(0),) + (1,) * (x_gt.dim() - 1), device=x_gt.device)
         # for each timestep t, we have an "intermediate physics" that is used as conditioning
         # to guide the flow model, it is also the physics that generate our training samples
@@ -67,18 +48,12 @@ class RectifiedFlowModel(torch.nn.Module):
 
         ### COMPUTE "INTERMEDIATE REPRESENTATION" FOR FLOW MODEL
         z_t = t_diffusion_physics(x_gt)
-<<<<<<< HEAD
-        # z_t = (1-t)*x + t*y
-=======
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         # For reconstruction network
         x_net = self.nn_model(y=z_t, physics=t_diffusion_physics)
 
         return x_net
 
-<<<<<<< HEAD
-=======
     @classmethod
     @torch.no_grad()
     def sample(cls, model, y, physics, sample_steps=50, cfg=2.0):
@@ -121,7 +96,6 @@ class RectifiedFlowModel(torch.nn.Module):
 
         return images
 
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
 class RFLoss(Loss):
     r"""
@@ -150,8 +124,4 @@ class RFLoss(Loss):
         return batchwise_mse
 
     def adapt_model(self, model):
-<<<<<<< HEAD
-        return FlowTrainerModel(model)
-=======
         return RectifiedFlowModel(model)
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175

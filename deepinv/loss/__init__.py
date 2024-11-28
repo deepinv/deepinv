@@ -8,10 +8,6 @@ from .measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
-<<<<<<< HEAD
-from .rf_loss import RFLoss
-from .loss import Loss
-=======
 from .moi import MOILoss, MOEILoss
 from .r2r import R2RLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
@@ -22,7 +18,6 @@ from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .tv import TVLoss
 
 # Loss schedulers
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 from .scheduler import (
     BaseLossScheduler,  # Base Loss Scheduler class
     RandomLossScheduler,

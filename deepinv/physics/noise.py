@@ -106,11 +106,7 @@ class GaussianNoise(NoiseModel):
         >>> x = torch.rand(3, 1, 2, 2)
         >>> y = physics(x)
 
-<<<<<<< HEAD
-        We can sum 2 GaussianNoise instance:
-=======
         We can sum 2 GaussianNoise instances:
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         >>> gaussian_noise_1 = GaussianNoise(sigma=3.0)
         >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
@@ -118,27 +114,19 @@ class GaussianNoise(NoiseModel):
         >>> y = gaussian_noise(x)
         >>> assert gaussian_noise.sigma == 5.0, "Wrong standard deviation value for the sum."
 
-<<<<<<< HEAD
-        We can also mulitply a GaussianNoise and a scalar:
-=======
         We can also multiply a GaussianNoise by a float:
 
         | :math:`scaled\_gaussian\_noise(x) = \lambda \times gaussian\_noise(x)`
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         >>> scaled_gaussian_noise = 3.0 * gaussian_noise
         >>> y = scaled_gaussian_noise(x)
         >>> assert scaled_gaussian_noise.sigma == 15.0, "Wrong standard deviation value for the multiplication."
 
         We can also create a batch of GaussianNoise with different standard deviations:
-<<<<<<< HEAD
-        :math:`batch\_gaussian(x) = [\lambda_1 \times gaussian(x), ..., \lambda_b \times gaussian(x)]`
-=======
 
         | :math:`x=[x_1, ..., x_b]`
         | :math:`t=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
         | :math:`[t \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         >>> t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)
         >>> batch_gaussian_noise = t * gaussian_noise
@@ -154,22 +142,6 @@ class GaussianNoise(NoiseModel):
         self.update_parameters(sigma=sigma)
 
     def __add__(self, other):
-<<<<<<< HEAD
-        """Sum of 2 gaussian noises via + operator."""
-        if not isinstance(other, GaussianNoise):
-            return self
-        return GaussianNoise(sigma=(self.sigma**2 + other.sigma**2) ** (0.5))
-
-    def __mul__(self, other):
-        """Multiply the gaussian noise by a scalar or tensor."""
-        if isinstance(other, NoiseModel):
-            return super().__mul__(other)
-        return GaussianNoise(sigma=self.sigma * other)
-
-    def __rmul__(self, other):
-        """Commutativity of the __mul__ operator."""
-        return self.__mul__(other)
-=======
         r"""
         Sum of 2 gaussian noises via + operator.
 
@@ -231,7 +203,6 @@ class GaussianNoise(NoiseModel):
                     type(other)
                 )
             )
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""

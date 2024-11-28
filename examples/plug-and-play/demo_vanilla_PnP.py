@@ -125,7 +125,7 @@ model = optim_builder(
 
 x = torch.cat([x, x, x, x], dim=0)
 
-print('X shape ', x.shape)
+print("X shape ", x.shape)
 
 y = physics(x)
 x_lin = (

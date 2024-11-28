@@ -291,13 +291,6 @@ class LinearPhysics(Physics):
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
         >>> stacked_physics = LinearPhysics.stack(physics1, physics2)
         >>> y = stacked_physics(x)
-<<<<<<< HEAD
-        >>> assert y[0].shape == [1, 1, 30, 30], "Wrong output shape of the Blur op"
-        >>> assert y[1].shape == [1, 1, 8, 8], "Wrong output shape of the Downsampling op"
-
-        Linear operators can also be composed by multiplying them:
-
-=======
         >>> assert y[0].shape == (1, 1, 30, 30), "Wrong output shape of the Blur op"
         >>> assert y[1].shape == (1, 1, 8, 8), "Wrong output shape of the Downsampling op"
 
@@ -307,21 +300,15 @@ class LinearPhysics(Physics):
         | :math:`physics_1(x) = N_1(A_1(x))`
         | :math:`physics_2(x) = N_2(A_2(x))`
 
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
         >>> composed_physics = physics1 * physics2
         >>> y = composed_physics(x)
 
         A linear operator can also be amplified by a scalar:
 
-<<<<<<< HEAD
-        >>> from deepinv.physics.noise import GaussianNoise
-        >>> physics_with_gauss_noise = Blur(filter=w, noise_level=GaussianNoise())
-=======
-        :math:`y = \lambda \times N(A(x))`
+        | :math:`y = \lambda \times N(A(x))`
 
         >>> from deepinv.physics.noise import GaussianNoise
         >>> physics_with_gauss_noise = Blur(filter=w, noise_model=GaussianNoise())
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
         >>> scaled_physics = 3.0 * physics_with_gauss_noise
         >>> y = scaled_physics(x)
 
@@ -330,14 +317,10 @@ class LinearPhysics(Physics):
             Beware that it works only with LinearPhysics operator with GaussianNoise for now.
 
         A linear operator can also be used to create a batch of LinearPhysics:
-<<<<<<< HEAD
-        :math:`batch\_physics(x) = [\lambda_1 \times physics(x), ..., \lambda_b \times physics(x)]`
-=======
 
         | :math:`x=[x_1, ..., x_b]`
         | :math:`t=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
         | :math:`batch\_physics(x) = [\lambda_1 \times physics(x_1), ..., \lambda_b \times physics(x_b)]`
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
 
         >>> t = torch.rand((x.size(0),) + (1,) * (x.dim() - 1)) # if x.shape = (b, 3, 32, 32) then t.shape = (b, 1, 1, 1)
         >>> batch_physics = t * physics_with_gauss_noise
@@ -349,11 +332,7 @@ class LinearPhysics(Physics):
 
         Linear operator can also be transposed as a new LinearPhysic object:
 
-<<<<<<< HEAD
-        >>> transposed_physics = physics1.get_transpose()
-=======
         >>> transposed_physics = physics1.get_transpose_physics()
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
         >>> y = transposed_physics(x)
 
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
@@ -506,27 +485,6 @@ class LinearPhysics(Physics):
 
         :return: (:class:`deepinv.physics.LinearPhysics`) -- Transposed linear physics.
         """
-<<<<<<< HEAD
-        if isinstance(other, LinearPhysics):
-            new_A = lambda x, **kwargs: self.A(
-                other.A(x, **kwargs), **kwargs
-            )  # (A' = A_1 A_2)
-            new_A_adj = lambda x, **kwargs: other.A_adjoint(
-                self.A_adjoint(x, **kwargs), **kwargs
-            )
-            new_noise_model = self.noise_model
-        else:  # should be a scalar or a torch.tensor
-            new_A = lambda x: other * self.A(x)  # self.A is a function
-            new_A_adj = lambda x: other * self.A_adj(x)  # self.A_adj is a function
-            new_noise_model = (
-                other * self.noise_model
-            )  # create a new object from the same class as self.noise_model
-
-        return LinearPhysics(
-            A=new_A,
-            A_adjoint=new_A_adj,
-            noise_model=new_noise_model,
-=======
         new_A = self.A_adj
         new_A_adj = self.A
 
@@ -534,43 +492,7 @@ class LinearPhysics(Physics):
             A=new_A,
             A_adj=new_A_adj,
             noise_model=self.noise_model,
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
             sensor_model=self.sensor_model,
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
-
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
-    @classmethod
-    def stack(cls, linearphysics1, linearphysics2):
-        r"""
-<<<<<<< HEAD
-=======
-        Add two linear forward operators via the add operation: :math:`A(x) = \begin{bmatrix} A_1(x) + A_2(x) \end{bmatrix}`
-
-        | 1) The 2 linears operators :math:`A_1` and :math:`A_2` should be of same shape.
-        | 2) `noise_model` and `sensor_model` are added as well.
-
-        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.LinearPhysics`) -- Physics operator with the sum of the linears operators.
-        """
-        if not isinstance(other, LinearPhysics):
-            raise TypeError(
-                f"LinearPhysics Add Operator is unsupported for type {type(other)}"
-            )
-
-        new_A = lambda x: self.A(x) + other.A(x)
-        new_A_adj = lambda x: self.A_adj(x) + other.A_adj(x)
-        new_noise_model = self.noise_model + other.noise_model
-        new_sensor_model = lambda x: self.sensor_model(x) + other.sensor_model(x)
-
-        return LinearPhysics(
-            A=new_A,
-            A_adj=new_A_adj,
-            noise_model=new_noise_model,
-            sensor_model=new_sensor_model,
             max_iter=self.max_iter,
             tol=self.tol,
         )
@@ -645,7 +567,6 @@ class LinearPhysics(Physics):
     @classmethod
     def stack(cls, linearphysics1, linearphysics2):
         r"""
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
         Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
@@ -656,16 +577,9 @@ class LinearPhysics(Physics):
             When using this method on two noise objects, the operation will retain only the second
             noise.
 
-<<<<<<< HEAD
-        :param deepinv.physics.LinearPhysics linearphysics1: Physics operator :math!`A_1`
-        :param deepinv.physics.LinearPhysics linearphysics2: Physics operator :math:`A_2`
-        :return: (deepinv.physics.LinearPhysics) stacked operator
-=======
         :param deepinv.physics.LinearPhysics linearphysics1: Physics operator :math:`A_1`
         :param deepinv.physics.LinearPhysics linearphysics2: Physics operator :math:`A_2`
         :return: (:class:`deepinv.physics.LinearPhysics`) -- Stacked operator
->>>>>>> 3a527416fc4706e98972a124e1acc7f8a667b175
-
         """
         A = lambda x, **kwargs: TensorList(linearphysics1.A(x, **kwargs)).append(
             TensorList(linearphysics2.A(x, **kwargs))
