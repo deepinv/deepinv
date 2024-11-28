@@ -149,7 +149,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         self.img_size = img_size
 
         if mask is None:
-            mask = torch.ones(*img_size)
+            mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
         self.update_parameters(mask=mask.to(self.device))

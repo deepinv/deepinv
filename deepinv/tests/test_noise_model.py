@@ -20,13 +20,12 @@ if torch.cuda.is_available():
 DTYPES = [torch.float32, torch.float64]
 
 
-def choose_noise(noise_type, device):
+def choose_noise(noise_type, rng):
     gain = 0.1
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
     l = 2.0
-    rng = torch.Generator(device)
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain, rng=rng)
     elif noise_type == "Gaussian":
