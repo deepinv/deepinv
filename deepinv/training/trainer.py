@@ -61,7 +61,9 @@ class Trainer:
         If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
         If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
         Caveat: this requires ``shuffle=False`` in your dataloaders.
-        An alternative solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.
+        
+        An alternative, safer solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.
+        The params dict will then be automatically updated every time data is loaded.
 
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -367,9 +369,9 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) != 2:
+        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
             raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y)"
+                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
 
         if len(data) == 2:
