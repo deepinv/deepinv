@@ -434,22 +434,30 @@ class DiffPIR(nn.Module):
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
                 # Current noise level
-                curr_sigma = self.sigmas[self.seq[i]]#.cpu().numpy()
+                curr_sigma = self.sigmas[self.seq[i]]  # .cpu().numpy()
 
                 # time step associated with the noise level sigmas[i]
-                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma.cpu().numpy())
-                at = 1/sqrt_recip_alphas_cumprod[t_i]**2  # TODO: clean at and sequences
+                t_i = self.find_nearest(
+                    self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
+                )
+                at = (
+                    1 / sqrt_recip_alphas_cumprod[t_i] ** 2
+                )  # TODO: clean at and sequences
 
-                if i == 0:  # Initialization # TODO: this is a bit brutal compared to the original code, I would maybe move this to a dedicated method?
-                    x = (x + curr_sigma * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[-1]
+                if (
+                    i == 0
+                ):  # Initialization # TODO: this is a bit brutal compared to the original code, I would maybe move this to a dedicated method?
+                    x = (
+                        x + curr_sigma * torch.randn_like(x)
+                    ) / sqrt_recip_alphas_cumprod[-1]
 
                 sigma_cur = curr_sigma
 
                 # Denoising step
                 x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
                 out = self.model(x_aux, sigma_cur / 2)
-                denoised = (2 * out - 1)
-                noise_est = (x - denoised)  # TODO: this is not used, just used for checks
+                denoised = 2 * out - 1
+                noise_est = x - denoised  # TODO: this is not used, just used for checks
                 x0 = denoised.clone()  # TODO: clean
                 x0 = x0.clamp(-1, 1)
                 x0_plot = x0.clone()
@@ -458,7 +466,7 @@ class DiffPIR(nn.Module):
                     # Data fidelity step
                     x0_p = x0 / 2 + 0.5
                     x0_p = self.data_fidelity.prox(
-                        x0_p, y, physics, gamma=1. / (2*self.rhos[t_i])
+                        x0_p, y, physics, gamma=1.0 / (2 * self.rhos[t_i])
                     )
                     x0 = x0_p * 2 - 1
 
@@ -484,10 +492,9 @@ class DiffPIR(nn.Module):
                         * torch.randn_like(x)
                     )  # sampling
 
-
                 # TODO: remove this, just visual checks
                 img_list = [eps, denoised, noise_est, x0, x, x0_plot]
-                title_list = ['eps', 'denoised', 'noise_est', 'x0', 'x', 'x0_plot']
+                title_list = ["eps", "denoised", "noise_est", "x0", "x", "x0_plot"]
 
                 plot(img_list, titles=title_list)
 
@@ -591,30 +598,9 @@ class DPS(nn.Module):
         a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
         return a
 
-    def forward(
-        self,
-        y,
-        physics: deepinv.physics.Physics,
-        seed=None,
-        x_init=None,
-    ):
-        r"""
-        Runs the diffusion to obtain a random sample of the posterior distribution.
-
-        :param torch.Tensor y: the measurements.
-        :param deepinv.physics.LinearPhysics physics: the physics operator.
-        :param int seed: the seed for the random number generator.
-        :param torch.Tensor x_init: the initial guess for the reconstruction.
-        """
-
+    def forward(self, y, physics: deepinv.physics.Physics, seed=None, x_init=None):
         if seed:
             torch.manual_seed(seed)
-
-        # Initialization
-        if x_init is None:  # Necessary when x and y don't live in the same space
-            x = 2 * physics.A_adjoint(y) - 1
-        else:
-            x = 2 * x_init - 1
 
         skip = self.num_train_timesteps // self.max_iter
         batch_size = y.shape[0]
@@ -622,6 +608,9 @@ class DPS(nn.Module):
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
         time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        # Initial sample from x_T
+        x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
 
         if self.save_iterates:
             xs = [x]
@@ -638,32 +627,40 @@ class DPS(nn.Module):
             with torch.enable_grad():
                 xt.requires_grad_(True)
 
-                # 1. Denoising
-                # we call the denoiser using standard deviation instead of the time step.
-                aux_x = xt / 2 + 0.5
-                x0_t = 2 * self.model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+                # 1. Denoising step
+                aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+                sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
 
-                x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+                x0_t = 2 * self.model(aux_x, sigma_cur / 2) - 1
+                x0_t = torch.clip(x0_t, -1.0, 1.0)
 
-                # DPS
+                # 2. Likelihood gradient approximation
                 l2_loss = self.data_fidelity(x0_t, y, physics).sqrt().sum()
 
             norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
             norm_grad = norm_grad.detach()
 
-            c1 = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * self.eta
-            c2 = ((1 - at_next) - c1**2).sqrt()
+            sigma_tilde = (
+                (1 - at / at_next) * (1 - at_next) / (1 - at)
+            ).sqrt() * self.eta
+            c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
 
-            # 3. noise step
+            # 3. Noise step
             epsilon = torch.randn_like(xt)
 
             # 4. DDPM(IM) step
             xt_next = (
                 (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
-                + c1 * epsilon
+                + sigma_tilde * epsilon
                 + c2 * xt / (1 - at).sqrt()
                 - norm_grad
             )
+
+            # Visualization
+            # TODO remove this, just visual checks for debugging
+            img_list = [aux_x, x0_t, norm_grad, epsilon, xt_next]
+            title_list = ["Input", "Denoised", "Gradient", "Noise", "Next state"]
+            plot(img_list, titles=title_list)
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))
