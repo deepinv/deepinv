@@ -430,8 +430,6 @@ class DiffPIR(Reconstructor):
 
         sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
-        # moved init below
-
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
                 # Current noise level

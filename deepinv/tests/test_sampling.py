@@ -5,7 +5,6 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
-from docs.source.auto_examples.basics.demo_custom_prior import noise_level_img
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 

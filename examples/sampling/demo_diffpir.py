@@ -279,20 +279,35 @@ x = 2 * y - 1
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
         # Current and next noise levels
-        curr_sigma = sigmas[T - 1 - seq[i]]
+        # curr_sigma = sigmas[T - 1 - seq[i]]
+        # There is a confusion between t_i and i
+        curr_sigma = sigmas[seq[i]]
+        print('seq[i] ', seq[i])
+        print(i)
+        print('curr_sigma ', curr_sigma)
+        print('alpha ', alphas[seq[i]])
+        print('t_i ', t_i)
+        t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
+
+        if i == 0:  # First iteration, we need to add noise to the image
+            x = (x + curr_sigma * torch.randn_like(x)) * alphas[t_i].sqrt()
 
         # 1. Denoising step
-        x0 = model(x, curr_sigma)
+        x_aux = x / (2 * alphas[t_i].sqrt()) + 0.5  # renormalize in [0, 1]
+        out = model(x_aux, curr_sigma / 2)
+        denoised = 2 * out - 1
+        x0 = denoised.clamp(-1, 1)
+
+        list_imgs = [x_aux, out]
+        list_titles = ["input", "output"]
+        dinv.utils.plot(list_imgs, titles=list_titles)
+
+        print(asdasd)
+
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
-            t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
-
             x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
-
-            # Normalize data for sampling
-            x0 = 2 * x0 - 1
-            x = 2 * x - 1
 
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
@@ -307,9 +322,6 @@ with torch.no_grad():
             x = alphas[t_im1].sqrt() * x0 + torch.sqrt(1.0 - alphas[t_im1]) * (
                 np.sqrt(1 - zeta) * eps + np.sqrt(zeta) * torch.randn_like(x)
             )
-
-            # Rescale the output in [0, 1]
-            x = (x + 1) / 2
 
 
 # Plotting the results
