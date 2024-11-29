@@ -441,13 +441,11 @@ class DiffPIR(Reconstructor):
                 t_i = self.find_nearest(
                     self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
                 )
-                at = (
-                    1 / sqrt_recip_alphas_cumprod[t_i] ** 2
-                )  # TODO: clean at and sequences
+                at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
 
                 if (
                     i == 0
-                ):  # Initialization # TODO: this is a bit brutal compared to the original code, I would maybe move this to a dedicated method?
+                ):  # Initialization (simpler than the original code, may be suboptimal)
                     x = (
                         x + curr_sigma * torch.randn_like(x)
                     ) / sqrt_recip_alphas_cumprod[-1]
@@ -458,10 +456,7 @@ class DiffPIR(Reconstructor):
                 x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
                 out = self.model(x_aux, sigma_cur / 2)
                 denoised = 2 * out - 1
-                noise_est = x - denoised  # TODO: this is not used, just used for checks
-                x0 = denoised.clone()  # TODO: clean
-                x0 = x0.clamp(-1, 1)
-                x0_plot = x0.clone()
+                x0 = denoised.clamp(-1, 1)
 
                 if not self.seq[i] == self.seq[-1]:
                     # Data fidelity step
@@ -492,14 +487,6 @@ class DiffPIR(Reconstructor):
                         * np.sqrt(self.zeta)
                         * torch.randn_like(x)
                     )  # sampling
-
-                # TODO: remove this, just visual checks
-                img_list = [eps, denoised, noise_est, x0, x, x0_plot]
-                title_list = ["eps", "denoised", "noise_est", "x0", "x", "x0_plot"]
-
-                plot(img_list, titles=title_list)
-
-                # print(asdasd)
 
         out = x / 2 + 0.5  # back to [0, 1] range
 
@@ -656,12 +643,6 @@ class DPS(Reconstructor):
                 + c2 * xt / (1 - at).sqrt()
                 - norm_grad
             )
-
-            # Visualization
-            # TODO remove this, just visual checks for debugging
-            img_list = [aux_x, x0_t, norm_grad, epsilon, xt_next]
-            title_list = ["Input", "Denoised", "Gradient", "Noise", "Next state"]
-            plot(img_list, titles=title_list)
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))

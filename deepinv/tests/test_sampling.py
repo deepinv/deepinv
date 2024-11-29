@@ -5,7 +5,7 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
-
+from docs.source.auto_examples.basics.demo_custom_prior import noise_level_img
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -129,8 +129,55 @@ def test_diffpir(device):
 
     algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device=device)
 
-    out = algorithm(y, physics)
+    with torch.no_grad():
+        out = algorithm(y, physics)
+
     assert out.shape == x.shape
+
+
+def test_diffpir_inpaint(device):
+    from deepinv.models import DiffUNet
+
+    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
+    x[:, 0, ...] = 0  # create a colored image
+
+    torch.manual_seed(10)
+
+    mask = torch.ones_like(x)
+    mask[:, :, 10:20, 10:20] = 0
+
+    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
+
+    y = physics(x)
+
+    model = DiffUNet().to(device)
+    likelihood = L2()
+
+    algorithm = DiffPIR(
+        model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
+    )
+
+    with torch.no_grad():
+        out = algorithm(y, physics)
+
+    assert out.shape == x.shape
+
+    list_imgs = [x, y, out]
+    titles = ["Sample", "Observed", "Reconstructed"]
+    dinv.utils.plot(list_imgs, titles=titles)
+
+    mean_crop = out[:, :, 10:20, 10:20].flatten().mean()
+
+    mask = mask.bool()
+    masked_out = out[mask]
+    mean_outside_crop = masked_out.mean()
+
+    masked_target = x[mask]
+    mean_target_masked = masked_target.mean()
+    mean_target_inmask = 1 / 3.0
+
+    assert (mean_target_inmask - mean_crop).abs() < 0.2
+    assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
 def test_dps(device):
@@ -152,7 +199,51 @@ def test_dps(device):
     model = DiffUNet().to(device)
     likelihood = L2()
 
-    algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
+    with torch.no_grad():
+        algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
 
     out = algorithm(y, physics)
     assert out.shape == x.shape
+
+
+def test_dps_inpaint(device):
+    from deepinv.models import DiffUNet
+
+    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
+    x[:, 0, ...] = 0  # create a colored image
+
+    torch.manual_seed(10)
+
+    mask = torch.ones_like(x)
+    mask[:, :, 10:20, 10:20] = 0
+
+    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
+
+    y = physics(x)
+
+    model = DiffUNet().to(device)
+    likelihood = L2()
+
+    algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+
+    with torch.no_grad():
+        out = algorithm(y, physics)
+
+    assert out.shape == x.shape
+
+    list_imgs = [x, y, out]
+    titles = ["Sample", "Observed", "Reconstructed"]
+    dinv.utils.plot(list_imgs, titles=titles)
+
+    mean_crop = out[:, :, 10:20, 10:20].flatten().mean()
+
+    mask = mask.bool()
+    masked_out = out[mask]
+    mean_outside_crop = masked_out.mean()
+
+    masked_target = x[mask]
+    mean_target_masked = masked_target.mean()
+    mean_target_inmask = 1 / 3.0
+
+    assert (mean_target_inmask - mean_crop).abs() < 0.2
+    assert (mean_target_masked - mean_outside_crop).abs() < 0.01
