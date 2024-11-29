@@ -282,11 +282,11 @@ with torch.no_grad():
         # curr_sigma = sigmas[T - 1 - seq[i]]
         # There is a confusion between t_i and i
         curr_sigma = sigmas[seq[i]]
-        print('seq[i] ', seq[i])
+        print("seq[i] ", seq[i])
         print(i)
-        print('curr_sigma ', curr_sigma)
-        print('alpha ', alphas[seq[i]])
-        print('t_i ', t_i)
+        print("curr_sigma ", curr_sigma)
+        print("alpha ", alphas[seq[i]])
+        print("t_i ", t_i)
         t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
 
         if i == 0:  # First iteration, we need to add noise to the image
@@ -303,7 +303,6 @@ with torch.no_grad():
         dinv.utils.plot(list_imgs, titles=list_titles)
 
         print(asdasd)
-
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
