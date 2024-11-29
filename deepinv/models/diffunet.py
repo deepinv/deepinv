@@ -7,9 +7,10 @@ from abc import abstractmethod
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from .base import Denoiser
 
 
-class DiffUNet(nn.Module):
+class DiffUNet(Denoiser):
     r"""
     Diffusion UNet model.
 

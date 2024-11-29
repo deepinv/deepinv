@@ -1,38 +1,104 @@
 import torch
-import torch.fft
 from torch import Tensor
 from typing import List, Optional, Union
 import warnings
-from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
 from deepinv.physics.time import TimeMixin
 
 
-class MRI(DecomposablePhysics):
+class MRIMixin:
     r"""
-    Single-coil accelerated magnetic resonance imaging.
+    Mixin base class for MRI functionality.
 
-    The linear operator operates in 2D slices and is defined as
+    Base class that provides helper functions for FFT and mask checking.
+    """
+
+    def check_mask(
+        self, mask: Tensor = None, three_d: bool = False, device: str = "cpu", **kwargs
+    ) -> None:
+        r"""
+        Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
+
+        :param torch.nn.Parameter, torch.Tensor mask: MRI subsampling mask.
+        :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
+        :param torch.device, str device: mask intended device.
+        """
+        if mask is not None:
+            mask = mask.to(device)
+
+            while len(mask.shape) < (
+                4 if not three_d else 5
+            ):  # to B,C,H,W or B,C,D,H,W
+                mask = mask.unsqueeze(0)
+
+            if mask.shape[1] == 1:  # make complex if real
+                mask = torch.cat([mask, mask], dim=1)
+
+        return mask
+
+    @staticmethod
+    def to_torch_complex(x: Tensor):
+        """[B,2,...,H,W] real -> [B,...,H,W] complex"""
+        return torch.view_as_complex(x.moveaxis(1, -1).contiguous())
+
+    @staticmethod
+    def from_torch_complex(x: Tensor):
+        """[B,...,H,W] complex -> [B,2,...,H,W] real"""
+        return torch.view_as_real(x).moveaxis(-1, 1)
+
+    @staticmethod
+    def ifft(x: Tensor, dim=(-2, -1), norm="ortho"):
+        """Centered, orthogonal ifft
+
+        :param torch.Tensor x: input kspace of complex dtype of shape [B,...] where ... is all dims to be transformed
+        :param tuple dim: fft transform dims, defaults to (-2, -1)
+        :param str norm: fft norm, see docs for :meth:`torch.fft.fftn`, defaults to "ortho"
+        """
+        x = torch.fft.ifftshift(x, dim=dim)
+        x = torch.fft.ifftn(x, dim=dim, norm=norm)
+        return torch.fft.fftshift(x, dim=dim)
+
+    @staticmethod
+    def fft(x: Tensor, dim=(-2, -1), norm="ortho"):
+        """Centered, orthogonal fft
+
+        :param torch.Tensor x: input image of complex dtype of shape [B,...] where ... is all dims to be transformed
+        :param tuple dim: fft transform dims, defaults to (-2, -1)
+        :param str norm: fft norm, see docs for :meth:`torch.fft.fftn`, defaults to "ortho"
+        """
+        x = torch.fft.ifftshift(x, dim=dim)
+        x = torch.fft.fftn(x, dim=dim, norm=norm)
+        return torch.fft.fftshift(x, dim=dim)
+
+
+class MRI(MRIMixin, DecomposablePhysics):
+    r"""
+    Single-coil accelerated 2D or 3D magnetic resonance imaging.
+
+    The linear operator operates in 2D slices or 3D volumes and is defined as
 
     .. math::
 
-        y = SFx
+        y = MFx
 
-    where :math:`S` applies a mask (subsampling operator), and :math:`F` is the 2D discrete Fourier Transform.
+    where :math:`M` applies a mask (subsampling operator), and :math:`F` is the 2D or 3D discrete Fourier Transform.
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
-    The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, H, W) where the first channel corresponds to the real part
-    and the second channel corresponds to the imaginary part.
+    The complex images :math:`x` and measurements :math:`y` should be of size (B, C,..., H, W) with C=2, where the first channel corresponds to the real part
+    and the second channel corresponds to the imaginary part. The ``...`` is an optional depth dimension for 3D MRI data.
 
     A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
 
     .. note::
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
+        If mask is not passed, a mask full of ones is used (i.e. no acceleration).
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
-        The mask size can either be (H,W), (C,H,W), or (B,C,H,W) where H, W are the image height and width, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+        The mask size can either be (H,W), (C,H,W), (B,C,H,W), (B,C,...,H,W) where H, W are the image height and width, C is channels (which should be 2) and B is batch size.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -73,71 +139,221 @@ class MRI(DecomposablePhysics):
         self,
         mask: Optional[Tensor] = None,
         img_size: Optional[tuple] = (320, 320),
+        three_d: bool = False,
         device="cpu",
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.device = device
+        self.three_d = three_d
         self.img_size = img_size
 
         if mask is None:
             mask = torch.ones(*img_size)
 
+        # Check and update mask
         self.update_parameters(mask=mask.to(self.device))
 
-    # def U(self, x):
-    #     if self.mask.size(0) == 1:
-    #         return x[:, self.mask[0, ...] > 0]
-    #     elif x.size(0) == self.mask.size(0):
-    #         return x[self.mask > 0]
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #
-    # def U_adjoint(self, x):
-    #     _, c, h, w = self.mask.shape
-    #     out = torch.zeros((x.shape[0], c, h, w), device=x.device)
-    #
-    #     if self.mask.size(0) == 1:
-    #         out[:, self.mask[0, ...] > 0] = x
-    #     elif x.size(0) == self.mask.size(0):
-    #         out[self.mask > 0] = x
-    #     else:
-    #         raise ValueError(
-    #             "The batch size of the mask and the input should be the same."
-    #         )
-    #     return out
-
-    def V_adjoint(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
-        y = fft2c_new(x.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-        return y
-
-    def V(self, x: Tensor) -> Tensor:  # (B, 2, H, W) -> (B, H, W, 2)
-        x = x.permute(0, 2, 3, 1)
-        return ifft2c_new(x).permute(0, 3, 1, 2)
-
-    def update_parameters(self, mask=None, check_mask=True, **kwargs):
-        return super().update_parameters(
-            mask=self.check_mask(mask=mask) if check_mask else mask, **kwargs
+    def V_adjoint(self, x: Tensor) -> Tensor:
+        return self.from_torch_complex(
+            self.fft(
+                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
+            )
         )
 
-    def check_mask(self, mask: Tensor = None) -> None:
-        r"""
-        Updates MRI mask and verifies mask shape to be B,C,H,W.
+    def V(self, x: Tensor) -> Tensor:
+        return self.from_torch_complex(
+            self.ifft(
+                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
+            )
+        )
 
-        :param torch.nn.Parameter, float MRI subsampling mask.
+    def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
+        """Update MRI subsampling mask.
+
+        :param torch.nn.Parameter, torch.Tensor mask: MRI mask
+        :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            mask = mask.to(self.device)
+            self.mask = torch.nn.Parameter(
+                (
+                    self.check_mask(
+                        mask=mask,
+                        three_d=getattr(self, "three_d", False),
+                        device=self.device,
+                    )
+                    if check_mask
+                    else mask
+                ),
+                requires_grad=False,
+            )
 
-            while len(mask.shape) < 4:  # to B,C,H,W
-                mask = mask.unsqueeze(0)
 
-            if mask.shape[1] == 1:  # make complex if real
-                mask = torch.cat([mask, mask], dim=1)
+class MultiCoilMRI(MRIMixin, LinearPhysics):
+    r"""
+    Multi-coil 2D or 3D MRI operator.
 
-        return mask
+    The linear operator operates in 2D slices or 3D volumes and is defined as:
+
+    .. math::
+
+        y_n = \text{diag}(p) F \text{diag}(s_n) x
+
+    for :math:`n=1,\dots,N` coils, where :math:`y_n` are the measurements from the cth coil, :math:`\text{diag}(p)` is the acceleration mask, :math:`F` is the Fourier transform and :math:`\text{diag}(s_n)` is the nth coil sensitivity.
+
+    The data ``x`` should be of shape (B,C,H,W) or (B,C,D,H,W) where C=2 is the channels (real and imaginary) and D is optional dimension for 3D MRI.
+    Then, the resulting measurements ``y`` will be of shape (B,C,N,(D,)H,W) where N is the coils dimension.
+
+    .. note::
+
+        We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`.
+        If mask or coil maps are not passed, a mask and maps full of ones is used (i.e. no acceleration).
+
+    .. note::
+
+        You can also simulate basic `birdcage coil sensitivity maps <https://mriquestions.com/birdcage-coil.html>` by passing instead an integer to ``coil_maps``
+        using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires installing the ``sigpy`` library).
+
+    :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
+    :param torch.Tensor, str coil_maps: complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
+        If None, generate flat coil maps of ones with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
+    :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, flat ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
+        where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
+    :param bool three_d: if ``True``, calculate Fourier transform in 3D for 3D data (i.e. data of shape (B,C,D,H,W) where D is depth).
+    :param torch.device, str device: specify which device you want to use (i.e, cpu or gpu).
+
+    |sep|
+
+    :Examples:
+
+        Multi-coil MRI operator:
+
+        >>> from deepinv.physics import MultiCoilMRI
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> x = torch.randn(1, 2, 2, 2) # Define random 2x2 image B,C,H,W
+        >>> physics = MultiCoilMRI(img_size=x.shape) # Define coil map of ones
+        >>> physics(x).shape # B,C,N,H,W
+        torch.Size([1, 2, 1, 2, 2])
+        >>> coil_maps = torch.randn(1, 5, 2, 2, dtype=torch.complex64) # Define 5-coil sensitivity maps
+        >>> physics.update_parameters(coil_maps=coil_maps) # Update coil maps on the fly
+        >>> physics(x).shape
+        torch.Size([1, 2, 5, 2, 2])
+
+    """
+
+    def __init__(
+        self,
+        mask: Optional[Tensor] = None,
+        coil_maps: Optional[Union[Tensor, int]] = None,
+        img_size: Optional[tuple] = (320, 320),
+        three_d: bool = False,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.img_size = img_size
+        self.device = device
+        self.three_d = three_d
+
+        if mask is None:
+            mask = torch.ones(*img_size)
+
+        if coil_maps is None:
+            coil_maps = torch.ones(
+                (self.img_size[-2:] if not self.three_d else self.img_size[-3:]),
+                dtype=torch.complex64,
+            )
+        elif isinstance(coil_maps, int):
+            coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
+
+        self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
+
+    def A(self, x, mask=None, coil_maps=None, **kwargs):
+        r"""
+        Applies linear operator.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor x: image with shape [B,2,...,H,W].
+        :returns: (torch.Tensor) multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        """
+        self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+
+        Sx = self.coil_maps * self.to_torch_complex(x)[:, None]  # [B,N,...,H,W]
+        FSx = self.fft(Sx, dim=(-3, -2, -1) if self.three_d else (-2, -1))
+        MFSx = self.mask[:, :, None] * self.from_torch_complex(FSx)  # [B,2,N,...,H,W]
+        return MFSx
+
+    def A_adjoint(self, y, mask=None, coil_maps=None, **kwargs):
+        r"""
+        Applies adjoint linear operator.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :returns: (torch.Tensor) image with shape [B,2,...,H,W]
+        """
+        self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
+
+        My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
+        FiMy = self.ifft(My, dim=(-3, -2, -1) if self.three_d else (-2, -1))
+        SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
+        return self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
+
+    def update_parameters(
+        self,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
+        check_mask: bool = True,
+        **kwargs,
+    ):
+        """Update MRI subsampling mask and coil sensitivity maps.
+
+        :param torch.nn.Parameter, torch.Tensor mask: MRI mask
+        :param torch.nn.Parameter, torch.Tensor coil_maps: MRI coil sensitivity maps
+        :param bool check_mask: check mask dimensions before updating
+        """
+        if mask is not None:
+            self.mask = torch.nn.Parameter(
+                (
+                    self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
+                    if check_mask
+                    else mask
+                ),
+                requires_grad=False,
+            )
+
+        if coil_maps is not None:
+            while len(coil_maps.shape) < (
+                4 if not self.three_d else 5
+            ):  # to B,N,H,W or B,N,D,H,W
+                coil_maps = coil_maps.unsqueeze(0)
+
+            if not coil_maps.is_complex():
+                raise ValueError("coil_maps should be of torch complex dtype.")
+
+            self.coil_maps = torch.nn.Parameter(
+                coil_maps.to(self.device), requires_grad=False
+            )
+
+    def simulate_birdcage_csm(self, n_coils: int):
+        """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
+
+        :param int n_coils: number of coils N
+        :return torch.Tensor: coil maps of complex dtype of shape (N,H,W)
+        """
+        try:
+            from sigpy.mri import birdcage_maps
+        except ImportError:
+            raise ImportError(
+                "sigpy is required to simulate coil maps. Install it using pip install sigpy"
+            )
+
+        coil_maps = birdcage_maps(
+            (n_coils,)
+            + (self.img_size[-2:] if not self.three_d else self.img_size[-3:])
+        )
+        return torch.tensor(coil_maps).type(torch.complex64)
 
 
 class DynamicMRI(MRI, TimeMixin):
@@ -148,9 +364,9 @@ class DynamicMRI(MRI, TimeMixin):
 
     .. math::
 
-        y_t = S_t Fx_t
+        y_t = M_t Fx_t
 
-    where :math:`S_t` applies a time-varying mask, and :math:`F` is the 2D discrete Fourier Transform.
+    where :math:`M_t` applies a time-varying mask, and :math:`F` is the 2D discrete Fourier Transform.
     This operator has a simple singular value decomposition, so it inherits the structure of
     :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
@@ -165,7 +381,7 @@ class DynamicMRI(MRI, TimeMixin):
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -223,10 +439,7 @@ class DynamicMRI(MRI, TimeMixin):
     def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
         return self.A_adjoint(y, mask=mask, **kwargs)
 
-    def check_mask(
-        self,
-        mask: torch.Tensor = None,
-    ) -> None:
+    def check_mask(self, mask: torch.Tensor = None, **kwargs) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,T,H,W.
 
@@ -263,13 +476,13 @@ class SequentialMRI(DynamicMRI):
     r"""
     Single-coil accelerated magnetic resonance imaging using sequential sampling.
 
-    Let :math:`S` be a subsampling mask with given acceleration.
-    :math:`S_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`S=\bigcup_t S_t`.
+    Let :math:`M` be a subsampling mask with given acceleration.
+    :math:`M_t` is a time-varying mask with the sequential sampling pattern e.g. non-overlapping lines or spokes, such that :math:`S=\bigcup_t S_t`.
     The sequential MRI operator then simulates a time sequence of k-space samples:
 
     .. math::
 
-        y_t = S_t F x
+        y_t = M_t F x
 
     where :math:`F` is the 2D discrete Fourier Transform, the image :math:`x` is of shape (B, 2, H, W) and measurements :math:`y` is of shape (B, 2, T, H, W)
     where the first channel corresponds to the real part and the second channel corresponds to the imaginary part.
@@ -284,7 +497,7 @@ class SequentialMRI(DynamicMRI):
 
     :param torch.Tensor mask: binary mask :math:`S_t,t=1\ldots T`, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (T,H,W), (C,T,H,W) or (B,C,T,H,W) where H, W are the image height and width, T is time-steps, C is channels (typically 2) and B is batch size.
-    :param tuple img_size: if mask not specified, blank mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
+    :param tuple img_size: if mask not specified, flat mask of ones is created using ``img_size``, where ``img_size`` can be of any shape specified above. If mask provided, ``img_size`` is ignored.
     :param torch.device device: cpu or gpu.
 
     |sep|
@@ -326,139 +539,3 @@ class SequentialMRI(DynamicMRI):
             return self.to_static().A_adjoint(
                 self.average(y, mask), mask=self.average(mask), **kwargs
             )
-
-
-#
-# reference: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
-def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
-    r"""
-    Apply centered 2 dimensional Fast Fourier Transform.
-    :param torch.Tensor data: Complex valued input data containing at least 3 dimensions:
-        dimensions -2 & -1 are spatial dimensions and dimension -3 has size
-        2. All other dimensions are assumed to be batch dimensions.
-    :param bool norm: Normalization mode. See ``torch.fft.fft``.
-    :return: (torch.tensor) the FFT of the input.
-    """
-    if not data.shape[-1] == 2:
-        raise ValueError("Tensor does not have separate complex dim.")
-
-    data = ifftshift(data, dim=[-3, -2])
-    data = torch.view_as_real(
-        torch.fft.fftn(  # type: ignore
-            torch.view_as_complex(data), dim=(-2, -1), norm=norm
-        )
-    )
-    data = fftshift(data, dim=[-3, -2])
-
-    return data
-
-
-def ifft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
-    """
-    Apply centered 2-dimensional Inverse Fast Fourier Transform.
-    Args:
-        data: Complex valued input data containing at least 3 dimensions:
-            dimensions -2 & -1 are spatial dimensions and dimension -3 has size
-            2. All other dimensions are assumed to be batch dimensions.
-        norm: Normalization mode. See ``torch.fft.ifft``.
-    Returns:
-        The IFFT of the input.
-    """
-    if not data.shape[-1] == 2:
-        raise ValueError("Tensor does not have separate complex dim.")
-
-    data = ifftshift(data, dim=[-3, -2])
-    data = torch.view_as_real(
-        torch.fft.ifftn(  # type: ignore
-            torch.view_as_complex(data), dim=(-2, -1), norm=norm
-        )
-    )
-    data = fftshift(data, dim=[-3, -2])
-
-    return data
-
-
-# Helper functions
-def roll_one_dim(x: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
-    """
-    Similar to roll but for only one dim.
-    Args:
-        x: A PyTorch tensor.
-        shift: Amount to roll.
-        dim: Which dimension to roll.
-    Returns:
-        Rolled version of x.
-    """
-    shift = shift % x.size(dim)
-    if shift == 0:
-        return x
-
-    left = x.narrow(dim, 0, x.size(dim) - shift)
-    right = x.narrow(dim, x.size(dim) - shift, shift)
-
-    return torch.cat((right, left), dim=dim)
-
-
-def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
-    """
-    Similar to np.roll but applies to PyTorch Tensors.
-    Args:
-        x: A PyTorch tensor.
-        shift: Amount to roll.
-        dim: Which dimension to roll.
-    Returns:
-        Rolled version of x.
-    """
-    if len(shift) != len(dim):
-        raise ValueError("len(shift) must match len(dim)")
-
-    for s, d in zip(shift, dim):
-        x = roll_one_dim(x, s, d)
-
-    return x
-
-
-def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
-    """
-    Similar to np.fft.fftshift but applies to PyTorch Tensors
-    Args:
-        x: A PyTorch tensor.
-        dim: Which dimension to fftshift.
-    Returns:
-        fftshifted version of x.
-    """
-    if dim is None:
-        # this weird code is necessary for toch.jit.script typing
-        dim = [0] * (x.dim())
-        for i in range(1, x.dim()):
-            dim[i] = i
-
-    # also necessary for torch.jit.script
-    shift = [0] * len(dim)
-    for i, dim_num in enumerate(dim):
-        shift[i] = x.shape[dim_num] // 2
-
-    return roll(x, shift, dim)
-
-
-def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
-    """
-    Similar to np.fft.ifftshift but applies to PyTorch Tensors
-    Args:
-        x: A PyTorch tensor.
-        dim: Which dimension to ifftshift.
-    Returns:
-        ifftshifted version of x.
-    """
-    if dim is None:
-        # this weird code is necessary for toch.jit.script typing
-        dim = [0] * (x.dim())
-        for i in range(1, x.dim()):
-            dim[i] = i
-
-    # also necessary for torch.jit.script
-    shift = [0] * len(dim)
-    for i, dim_num in enumerate(dim):
-        shift[i] = (x.shape[dim_num] + 1) // 2
-
-    return roll(x, shift, dim)

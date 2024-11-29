@@ -188,15 +188,14 @@ class DiffractionBlurGenerator(PSFGenerator):
     (Fresnel/Fraunhoffer diffraction theory).
 
     Zernike polynomials are ordered following the
-    Noll's sequential indices convention (https://en.wikipedia.org/wiki/Zernike_polynomials#Noll's_sequential_indices for more details).
+    Noll's sequential indices convention (https://en.wikipedia.org/wiki/Zernike_polynomials for more details).
 
     :param tuple psf_size: the shape ``H x W`` of the generated PSF in 2D
     :param int num_channels: number of images channels. Defaults to 1.
     :param list[str] list_param: list of activated Zernike coefficients in Noll's convention,
-        defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
+        defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``.
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in ``[0, 0.25]``
         to respect the Shannon-Nyquist sampling theorem, defaults to ``0.2``.
-
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil.
         The higher the more precise, defaults to ``(256, 256)``.
         If a single ``int`` is given, a square pupil is considered.
@@ -680,31 +679,33 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
 
 class DiffractionBlurGenerator3D(PSFGenerator):
     r"""
-    Generates 3D diffraction limited kernels in optics using Zernike decomposition of the phase mask (Fresnel/Fraunhoffer diffraction theory).
-    See :meth:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
+    3D diffraction limited kernels using Zernike decomposition of the phase mask.
+
+    Fresnel/Fraunhoffer diffraction theory, see :meth:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
 
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
-
     :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
     :param float fc: cutoff frequency (NA/emission_wavelength) * pixel_size. Should be in `[0, 1/4]` to respect Shannon, defaults to `0.2`
     :param float kb: wave number (NI/emission_wavelength) * pixel_size or (NA/NI) * fc. `Must be greater than fc`. Defaults to `0.3`.
     :param float max_zernike_amplitude: maximum amplitude of Zernike coefficients. Defaults to 0.15.
     :param tuple[int] pupil_size: this is used to synthesize the super-resolved pupil. The higher the more precise, defaults to (512, 512).
-            If an int is given, a square pupil is considered.
+        If an int is given, a square pupil is considered.
     :param float stepz_pixel: Ratio between the physical size of the z direction to that in the x/y direction of the voxels in the 3D image.
 
     :return: a DiffractionBlurGenerator object
 
     .. note::
+
         NA: numerical aperture, NI: refraction index of the immersion medium,
         emission_wavelength: wavelength of the light,
-        pixel_size : physical size of the pixels in the xy plane
+        pixel_size: physical size of the pixels in the xy plane
         in the same unit as emission_wavelength
 
     |sep|
 
     :Examples:
+
     >>> import torch
     >>> from deepinv.physics.generator import DiffractionBlurGenerator3D
     >>> generator = DiffractionBlurGenerator3D((21, 51, 51), stepz_pixel = 2, list_param=['Z0'])

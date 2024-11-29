@@ -17,6 +17,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder
+from deepinv.utils.demo import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -24,10 +25,10 @@ from deepinv.unfolded import unfolded_builder
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
+ORIGINAL_DATA_DIR = get_data_home()
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

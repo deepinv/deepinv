@@ -4,8 +4,8 @@ DPIR method for PnP image deblurring.
 
 This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in
 the following paper:
-Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
-Learning deep CNN denoiser prior for image restoration. 
+Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
+Learning deep CNN denoiser prior for image restoration.
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
@@ -28,7 +28,6 @@ from deepinv.utils.demo import load_dataset, load_degradation
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -60,7 +59,7 @@ kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%

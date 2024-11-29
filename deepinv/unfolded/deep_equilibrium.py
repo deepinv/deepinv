@@ -17,7 +17,7 @@ class BaseDEQ(BaseUnfold):
     .. math::
 
         \begin{equation}
-        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^T v + u.
+        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^{\top} v + u.
         \end{equation}
 
     where :math:`u` is the incoming gradient from the backward pass,
@@ -27,7 +27,7 @@ class BaseDEQ(BaseUnfold):
 
     .. note::
 
-        .. note:: For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.

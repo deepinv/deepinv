@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .utils import get_weights_url
+from .base import Denoiser
 
 
 class StudentGrad(nn.Module):
@@ -12,7 +13,7 @@ class StudentGrad(nn.Module):
         return self.model(x, sigma)
 
 
-class GSPnP(nn.Module):
+class GSPnP(Denoiser):
     r"""
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
     See https://arxiv.org/pdf/2110.03220.pdf.
@@ -92,7 +93,6 @@ def GSDRUNet(
         online repository (only available for the default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
     """

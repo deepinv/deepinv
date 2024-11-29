@@ -99,6 +99,19 @@ def test_data_fidelity_l2(device):
 
     assert torch.allclose(torch_loss_prox, manual_prox)
 
+    # 7. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
+
 
 def test_data_fidelity_indicator(device):
     # Define two points
@@ -144,6 +157,12 @@ def test_data_fidelity_indicator(device):
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
     assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
 
+    # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+
 
 def test_data_fidelity_l1(device):
     # Define two points
@@ -170,6 +189,19 @@ def test_data_fidelity_l1(device):
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
     assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
 
 
 def test_zero_prior():

@@ -11,8 +11,10 @@ def conv2d(
     A helper function performing the 2d convolution of images ``x`` and ``filter``. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d`
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
-    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and ``hh = h//2 - 1`` if h is even. Same for ``ww``.
+    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B``
+        and ``c`` can be either ``1`` or ``C``.
+        Filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and
+        ``hh = h//2 - 1`` if h is even. Same for ``ww``.
     :param bool correlation: choose True if you want a cross-correlation (default False)
 
     ..note:
@@ -21,9 +23,9 @@ def conv2d(
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
-    ``constant`` corresponds to zero padding or ``same`` in :meth:`torch.nn.functional.conv2d`
-
+        ``constant`` corresponds to zero padding or ``same`` in :meth:`torch.nn.functional.conv2d`
     :return: (torch.Tensor) : the output
+
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import deepinv
 from deepinv.optim.utils import gradient_descent
 
 

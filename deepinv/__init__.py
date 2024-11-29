@@ -10,13 +10,13 @@ __all__ = [
     "__license__",
 ]
 
-from deepinv import optim
-
-__all__ += ["optim"]
-
 from deepinv import models
 
 __all__ += ["models"]
+
+from deepinv import optim
+
+__all__ += ["optim"]
 
 from deepinv import loss
 
