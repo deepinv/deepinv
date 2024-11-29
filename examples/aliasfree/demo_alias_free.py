@@ -1,20 +1,17 @@
 import deepinv as dinv
-from deepinv.loss import adversarial
-from deepinv.physics.generator import MotionBlurGenerator
 import torch
+import torch.nn as nn
+import torchmetrics
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import ImageFolder
-from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
-from torchvision.datasets.utils import download_and_extract_archive
-from torchvision.transforms import InterpolationMode
+from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize, InterpolationMode
 from torchvision.utils import save_image
 from tqdm import tqdm
 
 import numpy
 import random
+from datetime import datetime
 
-from os.path import exists, dirname
-from os import makedirs
+import os
 
 device = "cuda:0"
 dataset_root = "Urban100"
@@ -75,14 +72,18 @@ physics.mask.to(device)
 train_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=True)
 test_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=False)
 
+batch_size = 4
+
 train_dataloader = DataLoader(
     train_dataset,
-    batch_size=4,
+    batch_size=batch_size,
     shuffle=True,
 )
 
-test_dataloader = DataLoader(
+eval_dataloader = DataLoader(
     test_dataset,
+    batch_size=batch_size,
+    shuffle=False,
 )
 
 # Step 3. Train the model.
@@ -108,32 +109,81 @@ model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 scheduler = None
 
-losses = [
-    dinv.loss.SupLoss(metric=torch.nn.MSELoss()),
-]
+loss_fn = nn.MSELoss()
 
-trainer = dinv.Trainer(
-    model=model,
-    physics=physics,
-    train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
-    epochs=50,
-    losses=losses,
-    optimizer=optimizer,
-    scheduler=scheduler,
-    verbose=True,
-    show_progress_bar=False,
-    save_path=None,
-    device=device,
-    no_learning_method="y",
-)
+# Training loop
+epochs = 50
+model.train()
 
-model = trainer.train()
+# Training metrics
+metrics = {}
+metrics_fmt_map = {}
+def metric_update(metric_name, value, fmt=None):
+    # Register the metric once.
+    if metric_name not in metrics:
+        metrics[metric_name] = torchmetrics.MeanMetric()
+
+    # Register its format once.
+    if metric_name not in metrics_fmt_map:
+        metrics_fmt_map[metric_name] = fmt
+    # Catch attempts to change the format.
+    else:
+        assert metrics_fmt_map[metric_name] == fmt, "The format cannot change."
+
+    if isinstance(value, torch.Tensor):
+        value = value.item()
+    metrics[metric_name].update(value)
+
+for epoch in range(1, epochs+1):
+    # Reset the metrics
+    for metric in metrics.values():
+        metric.reset()
+
+    for i, (target, predictor) in enumerate(train_dataloader):
+        target = target.to(device)
+        predictor = predictor.to(device)
+
+        optimizer.zero_grad()
+        estimate = model(predictor)
+        training_loss = loss_fn(estimate, target)
+        training_loss.backward()
+        optimizer.step()
+
+        metric_update("Training loss", training_loss, fmt=".3e")
+
+    for i, (target, predictor) in enumerate(eval_dataloader):
+        target = target.to(device)
+        predictor = predictor.to(device)
+
+        with torch.no_grad():
+            estimate = model(predictor)
+            test_loss = loss_fn(estimate, target)
+
+            metric_update("Eval loss", test_loss, fmt=".3e")
+
+    if scheduler is not None:
+        scheduler.step()
+
+    epochs_ndigits = len(str(int(epochs)))
+    current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    segments = [
+        "",
+        current_timestamp,
+        f"[{epoch:{epochs_ndigits}d}/{epochs}]",
+    ]
+
+    for key, metric in metrics.items():
+        fmt = metrics_fmt_map.get(key, None)
+        if fmt is not None:
+            value = metric.compute().item()
+            segments.append(f"{key}: {value:{fmt}}")
+
+    print("\t".join(segments))
 
 # Save the final weights.
 weights = model.state_dict()
 path = f"{out_dir}/weights.pt"
-makedirs(dirname(path), exist_ok=True)
+os.makedirs(os.path.dirname(path), exist_ok=True)
 torch.save(weights, path)
 
 # Step 4. Evaluate the model.
@@ -160,7 +210,7 @@ for split_name, dataset in splits_map.items():
 
         im_m = model(predictor)
         path = f"{out_dir}/{split_name}/m/{i}.png"
-        makedirs(dirname(path), exist_ok=True)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         save_image(im_m, path)
 
         for transform_dirname, transform in transforms_map.items():
@@ -169,15 +219,15 @@ for split_name, dataset in splits_map.items():
 
             im_t = transform(predictor, **params)
             path = f"{out_dir}/{split_name}/{transform_dirname}/t/{i}.png"
-            makedirs(dirname(path), exist_ok=True)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             save_image(im_t, path)
 
             im_mt = model(im_t)
             path = f"{out_dir}/{split_name}/{transform_dirname}/mt/{i}.png"
-            makedirs(dirname(path), exist_ok=True)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             save_image(im_mt, path)
 
             im_tm = transform(im_m, **params)
             path = f"{out_dir}/{split_name}/{transform_dirname}/tm/{i}.png"
-            makedirs(dirname(path), exist_ok=True)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             save_image(im_tm, path)
