@@ -3,14 +3,21 @@ import torch
 import torch.nn as nn
 import torchmetrics
 from torch.utils.data import DataLoader, random_split
-from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize, InterpolationMode
+from torchvision.transforms import (
+    Compose,
+    ToTensor,
+    CenterCrop,
+    Resize,
+    InterpolationMode,
+)
 from torchvision.utils import save_image
 from tqdm import tqdm
 
 import numpy
-import random
-from datetime import datetime
 
+import csv
+from datetime import datetime
+import random
 import os
 
 device = "cuda:0"
@@ -115,29 +122,102 @@ loss_fn = nn.MSELoss()
 epochs = 50
 model.train()
 
+
 # Training metrics
-metrics = {}
-metrics_fmt_map = {}
-def metric_update(metric_name, value, fmt=None):
-    # Register the metric once.
-    if metric_name not in metrics:
-        metrics[metric_name] = torchmetrics.MeanMetric()
+class MetricsDict:
+    def __init__(self):
+        self.metrics = {}
+        self.formats_map = {}
 
-    # Register its format once.
-    if metric_name not in metrics_fmt_map:
-        metrics_fmt_map[metric_name] = fmt
-    # Catch attempts to change the format.
-    else:
-        assert metrics_fmt_map[metric_name] == fmt, "The format cannot change."
+    def update(self, name, value, fmt=None, agg="mean"):
+        # Register the metric once.
+        if name not in self.metrics:
+            if agg == "mean":
+                self.metrics[name] = torchmetrics.MeanMetric()
 
-    if isinstance(value, torch.Tensor):
-        value = value.item()
-    metrics[metric_name].update(value)
+        # Register its format once.
+        if name not in self.formats_map:
+            self.formats_map[name] = fmt
+        # Catch attempts to change the format.
+        else:
+            assert self.formats_map[name] == fmt, "The format cannot change."
 
-for epoch in range(1, epochs+1):
-    # Reset the metrics
-    for metric in metrics.values():
-        metric.reset()
+        if isinstance(value, torch.Tensor):
+            value = value.item()
+
+        if agg in ["mean"]:
+            self.metrics[name].update(value)
+        elif agg in ["latest"]:
+            self.metrics[name] = value
+        else:
+            raise ValueError(f"Unknown aggregation: {agg}")
+
+    def reset(self):
+        for name, metric in self.metrics.items():
+            if isinstance(metric, torchmetrics.MeanMetric):
+                metric.reset()
+            else:
+                self.metrics[name] = None
+
+    def compute(self):
+        values = {}
+        for name, metric in self.metrics.items():
+            if isinstance(metric, torchmetrics.MeanMetric):
+                value = metric.compute().item()
+            else:
+                value = metric
+            values[name] = value
+        return values
+
+    def format(self, metrics_value=None):
+        if metrics_value is None:
+            metrics_value = self.compute()
+
+        values = {}
+        for name, value in metrics_value.items():
+            fmt = self.formats_map.get(name, None)
+            if fmt is not None:
+                if isinstance(fmt, str):
+                    value = fmt.format(value)
+                elif callable(fmt):
+                    value = fmt(value)
+                else:
+                    raise ValueError(f"Unsupported format: {fmt}")
+            else:
+                if isinstance(value, datetime):
+                    value = value.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    value = str(value)
+            values[name] = value
+        return values
+
+
+metrics = MetricsDict()
+
+
+# Training history
+class HistoryWriter:
+    def __init__(self, path):
+        self.file = open(path, "w", newline="", buffering=1)
+        self.writer = None
+
+    def writerow(self, row):
+        if self.writer is None:
+            fieldnames = row.keys()
+            self.writer = csv.DictWriter(self.file, fieldnames=fieldnames)
+            self.writer.writeheader()
+        self.writer.writerow(row)
+
+    def close(self):
+        self.file.close()
+
+
+history_path = f"{out_dir}/Training_History.csv"
+os.makedirs(os.path.dirname(history_path), exist_ok=True)
+history_writer = HistoryWriter(history_path)
+
+for epoch in range(1, epochs + 1):
+    metrics.reset()
 
     for i, (target, predictor) in enumerate(train_dataloader):
         target = target.to(device)
@@ -149,7 +229,7 @@ for epoch in range(1, epochs+1):
         training_loss.backward()
         optimizer.step()
 
-        metric_update("Training loss", training_loss, fmt=".3e")
+        metrics.update("Training loss", training_loss, fmt="{:.3e}", agg="mean")
 
     for i, (target, predictor) in enumerate(eval_dataloader):
         target = target.to(device)
@@ -159,26 +239,55 @@ for epoch in range(1, epochs+1):
             estimate = model(predictor)
             test_loss = loss_fn(estimate, target)
 
-            metric_update("Eval loss", test_loss, fmt=".3e")
+            metrics.update("Eval loss", test_loss, fmt="{:.3e}", agg="mean")
 
     if scheduler is not None:
         scheduler.step()
 
+    epoch_endtime = datetime.now()
+    metrics.update("End time", epoch_endtime, agg="latest")
+
+    # Compute the metrics.
+    metrics_value = metrics.compute()
+
+    # Print epoch summary.
+    formatted_metrics = metrics.format(metrics_value=metrics_value)
+
+    segments = []
+    if "End time" in formatted_metrics:
+        segments.append(formatted_metrics["End time"])
+    else:
+        current_time = datetime.now()
+        segments.append(current_time.strftime("%Y-%m-%d %H:%M:%S"))
+
     epochs_ndigits = len(str(int(epochs)))
-    current_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    segments = [
-        "",
-        current_timestamp,
-        f"[{epoch:{epochs_ndigits}d}/{epochs}]",
-    ]
+    segments.append(f"[{epoch:{epochs_ndigits}d}/{epochs}]")
 
-    for key, metric in metrics.items():
-        fmt = metrics_fmt_map.get(key, None)
-        if fmt is not None:
-            value = metric.compute().item()
-            segments.append(f"{key}: {value:{fmt}}")
+    displayed_metrics = ["Training loss", "Eval loss"]
+    for key, value in formatted_metrics.items():
+        if key in displayed_metrics:
+            segments.append(f"{key}: {value}")
 
+    segments.insert(0, "")
     print("\t".join(segments))
+
+    # Append epoch summary to the training history.
+    for name, value in metrics_value.items():
+        if isinstance(value, datetime):
+            value = value.isoformat()
+        else:
+            value = str(value)
+
+        row = {
+            "Epoch": epoch,
+            "Variable": name,
+            "Value": value,
+        }
+        history_writer.writerow(row)
+
+    # Close the file after the last epoch.
+    if epoch == epochs:
+        history_writer.close()
 
 # Save the final weights.
 weights = model.state_dict()
@@ -198,8 +307,7 @@ splits_map = {
 transforms_map = {
     "shifts": dinv.transform.Shift(),
     "rotations": dinv.transform.Rotate(
-        interpolation_mode=InterpolationMode.BILINEAR,
-        padding="circular"
+        interpolation_mode=InterpolationMode.BILINEAR, padding="circular"
     ),
 }
 
