@@ -17,8 +17,8 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 
 loss = dinv.loss.SplittingLoss(
-    split_ratio=0.6, eval_split_input=True,
-    mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
+    split_ratio=0.5, eval_split_input=True,
+    #mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
 ) # SSDU
 
 img_size = 128
