@@ -61,7 +61,7 @@ class Trainer:
         If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
         If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
         Caveat: this requires ``shuffle=False`` in your dataloaders.
-        
+
         An alternative, safer solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.
         The params dict will then be automatically updated every time data is loaded.
 
