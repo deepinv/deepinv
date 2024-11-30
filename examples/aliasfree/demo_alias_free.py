@@ -23,11 +23,14 @@ import os
 device = "cuda:0"
 dataset_root = "Urban100"
 dataset_path = f"{dataset_root}/dinv_dataset0.h5"
-# model_kind = "AliasFreeUNet"
-model_kind = "UNet"
+model_kind = "AliasFreeUNet"
+# model_kind = "UNet"
 rotation_equivariant = False
-# out_dir = "results/Inpainting_AliasFreeUNet"
-out_dir = "results/Inpainting_UNet"
+out_dir = "results/Inpainting_AliasFreeUNet"
+# out_dir = "results/Inpainting_UNet"
+epochs = 500
+batch_size = 5
+# batch_size = 128
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
@@ -79,8 +82,6 @@ physics.mask.to(device)
 train_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=True)
 test_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=False)
 
-batch_size = 4
-
 train_dataloader = DataLoader(
     train_dataset,
     batch_size=batch_size,
@@ -119,7 +120,6 @@ scheduler = None
 loss_fn = nn.MSELoss()
 
 # Training loop
-epochs = 50
 model.train()
 
 

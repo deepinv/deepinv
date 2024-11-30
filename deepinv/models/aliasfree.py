@@ -25,10 +25,14 @@ class LayerNorm_AF(nn.Module):
         data_format="channels_last",
         u_dims=(1, 2, 3),
         s_dims=(1, 2, 3),
+        bias=True,
     ):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(normalized_shape))
-        self.bias = nn.Parameter(torch.zeros(normalized_shape))
+        if bias:
+            self.bias = nn.Parameter(torch.zeros(normalized_shape))
+        else:
+            self.bias = None
         self.eps = eps
         self.data_format = data_format
         if self.data_format not in ["channels_last", "channels_first"]:
@@ -43,7 +47,9 @@ class LayerNorm_AF(nn.Module):
         u = x.mean(self.u_dims, keepdim=True)
         s = (x - u).pow(2).mean(self.s_dims, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.eps)
-        x = self.weight[:, None, None] * x + self.bias[:, None, None]
+        x = self.weight[:, None, None] * x
+        if self.bias is not None:
+            x = x + self.bias[:, None, None]
 
         if self.data_format == "channels_last":
             x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
@@ -97,10 +103,10 @@ class ConvNextBlock(nn.Module):
             )
             self.norm_order = "channels_first"
         elif norm == "LayerNorm":
-            self.norm = nn.LayerNorm(4 * in_channels)
+            self.norm = nn.LayerNorm(4 * in_channels, bias=bias)
             self.norm_order = "channels_last"
         elif norm == "LayerNorm_AF":
-            self.norm = LayerNorm_AF(4 * in_channels, data_format="channels_first")
+            self.norm = LayerNorm_AF(4 * in_channels, data_format="channels_first", bias=bias)
             self.norm_order = "channels_first"
         else:
             self.norm = nn.Identity()
