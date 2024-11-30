@@ -21,6 +21,8 @@ loss = dinv.loss.SplittingLoss(
     #mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
 ) # SSDU
 
+loss = [dinv.loss.EILoss(transform=dinv.transform.Rotate()), dinv.loss.MCLoss()]
+
 img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
@@ -51,7 +53,7 @@ test_dataloader = DataLoader(test_dataset, shuffle=False)
 
 #model = demo_mri_model(device=device)
 model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device).to(device)
-model = loss.adapt_model(model)
+#model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
