@@ -16,7 +16,7 @@ BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
 
 loss = dinv.loss.SplittingLoss(
-    split_ratio=0.5,
+    split_ratio=0.6,
     eval_split_input=True,
     eval_n_samples=50
     # mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
@@ -37,11 +37,11 @@ test_dataset = load_dataset(
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
 physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-    acceleration=2,
+    acceleration=8,
     img_size=(img_size, img_size),
     device=device,
     rng=rng,
-    center_fraction=0.2,
+    #center_fraction=0.2,
 )
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
@@ -72,9 +72,9 @@ model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
-file_name = "demo_measplit_fastmri.pth"
+"""file_name = "demo_measplit_fastmri.pth"
 ckpt = torch.load(file_name)
-model.load_state_dict(ckpt["state_dict"])
+model.load_state_dict(ckpt["state_dict"])"""
 
 trainer = dinv.Trainer(
     model=model,
@@ -90,14 +90,14 @@ trainer = dinv.Trainer(
     show_progress_bar=False,
 )
 
-#model = trainer.train()
+model = trainer.train()
 
 torch.save(
     {"state_dict": model.state_dict(), "optimizer": optimizer.state_dict()},
     "demo_measplit_fastmri.pth",
 )
 
-trainer.plot_images = True
+#trainer.plot_images = True
 # trainer.test(test_dataloader)
 
 
