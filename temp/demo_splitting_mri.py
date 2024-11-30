@@ -21,7 +21,7 @@ loss = dinv.loss.SplittingLoss(
     #mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
 ) # SSDU
 
-loss = [dinv.loss.EILoss(transform=dinv.transform.Rotate()), dinv.loss.MCLoss()]
+#loss = [dinv.loss.EILoss(transform=dinv.transform.Rotate()), dinv.loss.MCLoss()]
 
 img_size = 128
 
@@ -51,16 +51,16 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 train_dataloader = DataLoader(train_dataset, shuffle=True)
 test_dataloader = DataLoader(test_dataset, shuffle=False)
 
-#model = demo_mri_model(device=device)
-model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device).to(device)
-#model = loss.adapt_model(model)
+model = demo_mri_model(device=device)
+#model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device).to(device)
+model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
 trainer = dinv.Trainer(
     model=model,
     physics=physics,
-    epochs=30,
+    epochs=100,
     losses=loss,
     optimizer=optimizer,
     device=device,
