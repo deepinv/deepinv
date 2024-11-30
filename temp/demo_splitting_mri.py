@@ -50,7 +50,7 @@ train_dataloader = DataLoader(train_dataset, shuffle=True)
 test_dataloader = DataLoader(test_dataset, shuffle=False)
 
 #model = demo_mri_model(device=device)
-model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device)
+model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device).to(device)
 model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
