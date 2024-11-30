@@ -58,6 +58,13 @@ You can also install additional dependencies needed for some modules in deepinv.
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
 
+Since ``deepinv`` is under active development, you can update to the latest version easily using:
+
+.. code-block:: bash
+
+    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+
 Quickstart
 ----------
 Try out the following plug-and-play image inpainting example:
