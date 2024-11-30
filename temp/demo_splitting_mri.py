@@ -18,6 +18,7 @@ DATA_DIR = BASE_DIR / "measurements"
 loss = dinv.loss.SplittingLoss(
     split_ratio=0.5,
     eval_split_input=True,
+    eval_n_samples=50
     # mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator((2,128,128), 0.6, device=device, rng=rng)
 )  # SSDU
 
@@ -71,6 +72,10 @@ model = loss.adapt_model(model)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-8)
 
+file_name = "demo_measplit_fastmri.pth"
+ckpt = torch.load(file_name)
+model.load_state_dict(ckpt["state_dict"])
+
 trainer = dinv.Trainer(
     model=model,
     physics=physics,
@@ -85,7 +90,7 @@ trainer = dinv.Trainer(
     show_progress_bar=False,
 )
 
-model = trainer.train()
+#model = trainer.train()
 
 torch.save(
     {"state_dict": model.state_dict(), "optimizer": optimizer.state_dict()},
