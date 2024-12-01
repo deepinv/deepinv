@@ -106,7 +106,9 @@ class ConvNextBlock(nn.Module):
             self.norm = nn.LayerNorm(4 * in_channels, bias=bias)
             self.norm_order = "channels_last"
         elif norm == "LayerNorm_AF":
-            self.norm = LayerNorm_AF(4 * in_channels, data_format="channels_first", bias=bias)
+            self.norm = LayerNorm_AF(
+                4 * in_channels, data_format="channels_first", bias=bias
+            )
             self.norm_order = "channels_first"
         else:
             self.norm = nn.Identity()

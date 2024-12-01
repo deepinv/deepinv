@@ -7,7 +7,6 @@ This is a simple example showing how to use the Alias-Free UNet models and verif
 We use pre-trained weights on an inpainting task but the models can be trained on any other task. The pre-trained weights are available at https://huggingface.co/jscanvic/deepinv/tree/main/demo_alias_free.
 """
 
-
 import deepinv as dinv
 import torch
 import torch.nn as nn
@@ -114,6 +113,7 @@ dinv.utils.plot(
 # ----------------------------------------------------------------------------------------
 #
 
+
 def eq_fn(model, predictor, transform, params=None):
     if params is None:
         params = transform.get_params(predictor)
@@ -127,14 +127,14 @@ def eq_fn(model, predictor, transform, params=None):
 
     return eq, im_mt, im_tm
 
+
 transform = dinv.transform.Shift()
 eq_shift, im_tm_shift, im_mt_shift = eq_fn(model, predictor, transform)
 
 transform = dinv.transform.Rotate(
     interpolation_mode=InterpolationMode.BILINEAR, padding="circular"
 )
-eq_rotation, im_tm_rotation, im_mt_rotation = eq_fn(model, predictor,
-                                                    transform)
+eq_rotation, im_tm_rotation, im_mt_rotation = eq_fn(model, predictor, transform)
 
 print(f"Eq-Shift: {eq_shift:.1f} dB")
 print(f"Eq-Rotation: {eq_rotation:.1f} dB")
