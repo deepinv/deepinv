@@ -1,3 +1,13 @@
+r"""
+Image Inpainting with Alias-Free UNets
+====================================================================================================
+
+This is a simple example showing how to use the Alias-Free UNet models and verify that they are equivariant, unlike the standard UNet models.
+
+We use pre-trained weights on an inpainting task but the models can be trained on any other task. The pre-trained weights are available at https://huggingface.co/jscanvic/deepinv/tree/main/demo_alias_free.
+"""
+
+
 import deepinv as dinv
 import torch
 import torch.nn as nn
@@ -10,7 +20,6 @@ from torchvision.transforms import (
     Resize,
     InterpolationMode,
 )
-from torchvision.utils import save_image
 from tqdm import tqdm
 
 import numpy
@@ -18,9 +27,8 @@ import numpy
 import csv
 from datetime import datetime
 import random
-import os
 
-device = "cuda:0"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 dataset_root = "Urban100"
 dataset_path = f"{dataset_root}/dinv_dataset0.h5"
 # model_kind = "AliasFreeUNet"
@@ -31,71 +39,17 @@ out_dir = "results/Inpainting_UNet"
 epochs = 500
 # batch_size = 5
 batch_size = 128
-retrain = False
 
 torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 numpy.random.seed(0)
 random.seed(0)
 
-# Step 0. Print the configuration.
 
-print()
-print("Configuration:")
-print(f"  Device: {device}")
-print(f"  Dataset root: {dataset_root}")
-print(f"  Dataset path: {dataset_path}")
-print(f"  Model kind: {model_kind}")
-print(f"  Rotation equivariant: {rotation_equivariant}")
-print(f"  Out dir: {out_dir}")
-print()
-
-# Step 1. Synthesize the dataset.
-
-dataset = dinv.datasets.Urban100HR(
-    root=dataset_root,
-    download=True,
-    transform=Compose([ToTensor(), Resize(256), CenterCrop(128)]),
-)
-
-gen = dinv.physics.generator.BernoulliSplittingMaskGenerator(
-    (3, 128, 128), split_ratio=0.7
-)
-params = gen.step(batch_size=1, seed=0)
-physics = dinv.physics.Inpainting(tensor_size=(3, 128, 128))
-physics.update_parameters(**params)
-
-train_dataset, test_dataset = random_split(dataset, (0.8, 0.2))
-
-dinv.datasets.generate_dataset(
-    train_dataset=train_dataset,
-    test_dataset=test_dataset,
-    physics=physics,
-    save_dir=dataset_root,
-    batch_size=1,
-    device="cpu",
-)
-
-physics.mask.to(device)
-
-# Step 2. Load the dataset.
-
-train_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=True)
-test_dataset = dinv.datasets.HDF5Dataset(dataset_path, train=False)
-
-train_dataloader = DataLoader(
-    train_dataset,
-    batch_size=batch_size,
-    shuffle=True,
-)
-
-eval_dataloader = DataLoader(
-    test_dataset,
-    batch_size=batch_size,
-    shuffle=False,
-)
-
-# Step 3. Train the model.
+# %%
+# Load the model
+# ----------------------------------------------------------------------------------------
+#
 
 if model_kind == "AliasFreeUNet":
     model = dinv.models.AliasFreeUNet(
@@ -113,269 +67,80 @@ elif model_kind == "UNet":
 else:
     raise ValueError(f"Unknown model kind: {model_kind}")
 
+model.eval()
 model.to(device)
 
-if not retrain:
-    print("Loading the pre-trained weights")
+print("Loading the pre-trained weights")
 
-    if isinstance(model, dinv.models.AliasFreeUNet):
-        model_name = "AliasFreeUNet"
-    elif isinstance(model, dinv.models.UNet):
-        model_name = "UNet"
-    else:
-        raise ValueError(f"Unknown model: {model}")
-    weights_url = f"https://huggingface.co/jscanvic/deepinv/resolve/main/demo_alias_free/Inpainting_{model_name}.pt"
-    weights = torch.hub.load_state_dict_from_url(weights_url, map_location=device)
-    model.load_state_dict(weights)
+if isinstance(model, dinv.models.AliasFreeUNet):
+    model_name = "AliasFreeUNet"
+elif isinstance(model, dinv.models.UNet):
+    model_name = "UNet"
 else:
-    # Training loop
-    print("Retraining the model")
+    raise ValueError(f"Unknown model: {model}")
+weights_url = f"https://huggingface.co/jscanvic/deepinv/resolve/main/demo_alias_free/Inpainting_{model_name}.pt"
+weights = torch.hub.load_state_dict_from_url(weights_url, map_location=device)
+model.load_state_dict(weights)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
-    scheduler = None
-
-    loss_fn = nn.MSELoss()
-
-    model.train()
-
-    # Training metrics
-    class MetricsDict:
-        def __init__(self):
-            self.metrics = {}
-            self.formats_map = {}
-
-        def update(self, name, value, fmt=None, agg="mean"):
-            # Register the metric once.
-            if name not in self.metrics:
-                if agg == "mean":
-                    self.metrics[name] = torchmetrics.MeanMetric()
-
-            # Register its format once.
-            if name not in self.formats_map:
-                self.formats_map[name] = fmt
-            # Catch attempts to change the format.
-            else:
-                assert self.formats_map[name] == fmt, "The format cannot change."
-
-            if isinstance(value, torch.Tensor):
-                value = value.item()
-
-            if agg in ["mean"]:
-                self.metrics[name].update(value)
-            elif agg in ["latest"]:
-                self.metrics[name] = value
-            else:
-                raise ValueError(f"Unknown aggregation: {agg}")
-
-        def reset(self):
-            for name, metric in self.metrics.items():
-                if isinstance(metric, torchmetrics.MeanMetric):
-                    metric.reset()
-                else:
-                    self.metrics[name] = None
-
-        def compute(self):
-            values = {}
-            for name, metric in self.metrics.items():
-                if isinstance(metric, torchmetrics.MeanMetric):
-                    value = metric.compute().item()
-                else:
-                    value = metric
-                values[name] = value
-            return values
-
-        def format(self, metrics_value=None):
-            if metrics_value is None:
-                metrics_value = self.compute()
-
-            values = {}
-            for name, value in metrics_value.items():
-                fmt = self.formats_map.get(name, None)
-                if fmt is not None:
-                    if isinstance(fmt, str):
-                        value = fmt.format(value)
-                    elif callable(fmt):
-                        value = fmt(value)
-                    else:
-                        raise ValueError(f"Unsupported format: {fmt}")
-                else:
-                    if isinstance(value, datetime):
-                        value = value.strftime("%Y-%m-%d %H:%M:%S")
-                    else:
-                        value = str(value)
-                values[name] = value
-            return values
-
-
-    metrics = MetricsDict()
-
-
-    # Training history
-    class HistoryWriter:
-        def __init__(self, path):
-            self.file = open(path, "w", newline="", buffering=1)
-            self.writer = None
-
-        def writerow(self, row):
-            if self.writer is None:
-                fieldnames = row.keys()
-                self.writer = csv.DictWriter(self.file, fieldnames=fieldnames)
-                self.writer.writeheader()
-            self.writer.writerow(row)
-
-        def close(self):
-            self.file.close()
-
-
-    history_path = f"{out_dir}/Training_History.csv"
-    os.makedirs(os.path.dirname(history_path), exist_ok=True)
-    history_writer = HistoryWriter(history_path)
-
-    for epoch in range(1, epochs + 1):
-        metrics.reset()
-
-        for i, (im_gt, predictor) in enumerate(train_dataloader):
-            im_gt = im_gt.to(device)
-            predictor = predictor.to(device)
-
-            optimizer.zero_grad()
-            estimate = model(predictor)
-            training_loss = loss_fn(estimate, im_gt)
-            training_loss.backward()
-            optimizer.step()
-
-            metrics.update("Training loss", training_loss, fmt="{:.3e}", agg="mean")
-
-        for i, (im_gt, predictor) in enumerate(eval_dataloader):
-            im_gt = im_gt.to(device)
-            predictor = predictor.to(device)
-
-            with torch.no_grad():
-                estimate = model(predictor)
-                test_loss = loss_fn(estimate, im_gt)
-
-                metrics.update("Eval loss", test_loss, fmt="{:.3e}", agg="mean")
-
-        if scheduler is not None:
-            scheduler.step()
-
-        epoch_endtime = datetime.now()
-        metrics.update("End time", epoch_endtime, agg="latest")
-
-        # Compute the metrics.
-        metrics_value = metrics.compute()
-
-        # Print epoch summary.
-        formatted_metrics = metrics.format(metrics_value=metrics_value)
-
-        segments = []
-        if "End time" in formatted_metrics:
-            segments.append(formatted_metrics["End time"])
-        else:
-            current_time = datetime.now()
-            segments.append(current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-        epochs_ndigits = len(str(int(epochs)))
-        segments.append(f"[{epoch:{epochs_ndigits}d}/{epochs}]")
-
-        displayed_metrics = ["Training loss", "Eval loss"]
-        for metric_key, value in formatted_metrics.items():
-            if metric_key in displayed_metrics:
-                segments.append(f"{metric_key}: {value}")
-
-        segments.insert(0, "")
-        print("\t".join(segments))
-
-        # Append epoch summary to the training history.
-        for name, value in metrics_value.items():
-            if isinstance(value, datetime):
-                value = value.isoformat()
-            else:
-                value = str(value)
-
-            row = {
-                "Epoch": epoch,
-                "Variable": name,
-                "Value": value,
-            }
-            history_writer.writerow(row)
-
-        # Close the file after the last epoch.
-        if epoch == epochs:
-            history_writer.close()
-
-    # Save the final weights.
-    weights = model.state_dict()
-    path = f"{out_dir}/weights.pt"
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    torch.save(weights, path)
-
-# Step 4. Evaluate the model.
-
-model.eval()
-
-splits_map = {
-    "train": train_dataset,
-    "test": test_dataset,
-}
-
-transforms_map = {
-    "shifts": dinv.transform.Shift(),
-    "rotations": dinv.transform.Rotate(
-        interpolation_mode=InterpolationMode.BILINEAR, padding="circular"
-    ),
-}
+# %%
+# Performance evaluation
+# ----------------------------------------------------------------------------------------
+#
 
 psnr_fn = torchmetrics.image.PeakSignalNoiseRatio(data_range=1.0).to(device)
 
-for split_name, dataset in splits_map.items():
-    print(f"Split: {split_name}")
+im_gt = dinv.utils.demo.load_url_image(
+    "https://huggingface.co/jscanvic/deepinv/resolve/main/demo_alias_free/gt.png",
+    device=device,
+)
+predictor = dinv.utils.demo.load_url_image(
+    "https://huggingface.co/jscanvic/deepinv/resolve/main/demo_alias_free/predictor.png",
+    device=device,
+)
 
-    metrics_list = {}
+im_estimate = model(predictor)
 
-    for i, (im_gt, predictor) in tqdm(enumerate(dataset)):
-        im_gt = im_gt.to(device).unsqueeze(0)
-        predictor = predictor.to(device).unsqueeze(0)
+psnr = psnr_fn(im_gt, im_estimate).item()
+print(f"PSNR: {psnr:.1f} dB")
 
-        im_estimate = model(predictor)
-        path = f"{out_dir}/{split_name}/m/{i}.png"
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        save_image(im_estimate, path)
+dinv.utils.plot(
+    [im_gt, predictor, im_estimate],
+    titles=["Ground Truth", "Input", "Output"],
+    show=True,
+)
 
-        psnr = psnr_fn(im_gt, im_estimate).item()
+# %%
+# Equivariance evaluation
+# ----------------------------------------------------------------------------------------
+#
 
-        if "PSNR" not in metrics_list:
-            metrics_list["PSNR"] = []
-        metrics_list["PSNR"].append(psnr)
+def eq_fn(model, predictor, transform, params=None):
+    if params is None:
+        params = transform.get_params(predictor)
 
-        for transform_dirname, transform in transforms_map.items():
-            # Sample a random transform.
-            params = transform.get_params(predictor)
+    im_t = transform(predictor, **params)
+    im_mt = model(im_t)
+    im_estimate = model(predictor)
+    im_tm = transform(im_estimate, **params)
 
-            im_t = transform(predictor, **params)
-            path = f"{out_dir}/{split_name}/{transform_dirname}/t/{i}.png"
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            save_image(im_t, path)
+    eq = psnr_fn(im_tm, im_mt).item()
 
-            im_mt = model(im_t)
-            path = f"{out_dir}/{split_name}/{transform_dirname}/mt/{i}.png"
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            save_image(im_mt, path)
+    return eq, im_mt, im_tm
 
-            im_tm = transform(im_estimate, **params)
-            path = f"{out_dir}/{split_name}/{transform_dirname}/tm/{i}.png"
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            save_image(im_tm, path)
+transform = dinv.transform.Shift()
+eq_shift, im_tm_shift, im_mt_shift = eq_fn(model, predictor, transform)
 
-            eq = psnr_fn(im_tm, im_mt).item()
+transform = dinv.transform.Rotate(
+    interpolation_mode=InterpolationMode.BILINEAR, padding="circular"
+)
+eq_rotation, im_tm_rotation, im_mt_rotation = eq_fn(model, predictor,
+                                                    transform)
 
-            metric_key = f"Eq-{transform_dirname}"
-            if metric_key not in metrics_list:
-                metrics_list[metric_key] = []
-            metrics_list[metric_key].append(eq)
+print(f"Eq-Shift: {eq_shift:.1f} dB")
+print(f"Eq-Rotation: {eq_rotation:.1f} dB")
 
-    for metric_key, metric_values in metrics_list.items():
-        metric_values = torch.tensor(metric_values)
-        mean = metric_values.mean().item()
-        std = metric_values.std().item()
-        print(f"{metric_key}: {mean:.1f} ± {std:.1f}")
+dinv.utils.plot(
+    [im_mt_shift, im_tm_shift, im_mt_rotation, im_tm_rotation],
+    titles=["Shifted input", "Shifted output", "Rotated input", "Rotated output"],
+    show=True,
+)
