@@ -9,6 +9,9 @@ from tqdm.auto import tqdm
 
 from torch.utils.data import Dataset
 from torch import randn
+from torch.nn import Module
+
+from deepinv.utils.plotting import rescale_img
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -103,3 +106,12 @@ class PlaceholderDataset(Dataset):
 
     def __getitem__(self, index):
         return randn(self.shape), randn(self.shape)
+
+
+class Rescale(Module):
+    def __init__(self, *args, rescale_mode="min_max", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rescale_mode = rescale_mode
+
+    def forward(self, x):
+        return rescale_img(x, rescale_mode=self.rescale_mode)

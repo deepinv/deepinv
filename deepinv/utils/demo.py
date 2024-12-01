@@ -1,48 +1,17 @@
-import os
-import shutil
-import zipfile
+from typing import Union, Callable
+import os, shutil, zipfile, requests
 from io import BytesIO
-from pathlib import Path
 
-import numpy as np
-import requests
-import torch
-import torchvision
-from PIL import Image
+from pathlib import Path
 from tqdm import tqdm
+from PIL import Image
+import numpy as np
+import torch
+from torch.utils.data import Dataset
+import torchvision
 from torchvision import transforms
 
-
-class MRIData(torch.utils.data.Dataset):
-    """fastMRI dataset (knee subset)."""
-
-    def __init__(
-        self, root_dir, train=True, sample_index=None, tag=900, transform=None
-    ):
-        x = torch.load(str(root_dir) + ".pt")
-        x = x.squeeze()
-        self.transform = transform
-
-        if train:
-            self.x = x[:tag]
-        else:
-            self.x = x[tag:, ...]
-
-        self.x = torch.stack([self.x, torch.zeros_like(self.x)], dim=1)
-
-        if sample_index is not None:
-            self.x = self.x[sample_index].unsqueeze(0)
-
-    def __getitem__(self, index):
-        x = self.x[index]
-
-        if self.transform is not None:
-            x = self.transform(x)
-
-        return x
-
-    def __len__(self):
-        return len(self.x)
+from deepinv.datasets.fastmri import SimpleFastMRISliceDataset
 
 
 def get_git_root():
@@ -97,12 +66,25 @@ def get_data_home():
 
 
 def load_dataset(
-    dataset_name, transform, data_dir=None, download=True, url=None, train=True
-):
+    dataset_name: Union[str, Path],
+    transform: Callable,
+    data_dir: Path = None,
+    download: bool = True,
+    url: str = None,
+    train: bool = True,
+) -> Dataset:
+    # TODO add load_dataset to docs
+    # TODO docstring
+    # TODO robust checking of dataset_name especially for mri
+    # TODO add note to userguide on how mri datasets were created
     if data_dir is None:
         data_dir = get_data_home()
+
+    if isinstance(data_dir, str):
+        data_dir = Path(data_dir)
+
     dataset_dir = data_dir / dataset_name
-    if dataset_name == "fastmri_knee_singlecoil":
+    if dataset_name in ("fastmri_knee_singlecoil"):
         file_type = "pt"
     else:
         file_type = "zip"
@@ -132,9 +114,9 @@ def load_dataset(
                 str(dataset_dir) + f".{file_type}",
                 str(dataset_dir / dataset_name) + f".{file_type}",
             )
-    if dataset_name == "fastmri_knee_singlecoil":
-        dataset = MRIData(
-            train=train, root_dir=dataset_dir / dataset_name, transform=transform
+    if dataset_name in ("fastmri_knee_singlecoil", "fastmri_brain"):
+        dataset = SimpleFastMRISliceDataset(
+            root_dir=dataset_dir / dataset_name, transform=transform, train=train
         )
     else:
         dataset = torchvision.datasets.ImageFolder(
@@ -261,7 +243,7 @@ def load_np_url(url=None):
     return array
 
 
-def demo_mri_model(device):
+def demo_mri_model(device, dncnn_depth: int = 7):
     """Demo MRI reconstruction model for use in relevant examples.
 
     As a reconstruction network, we use an unrolled network (half-quadratic splitting)
@@ -269,6 +251,7 @@ def demo_mri_model(device):
     model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
     :param str, torch.device device: device
+    :param int dncnn_depth: depth of DnCNN denoiser backbone
     :return torch.nn.Module: model
     """
     from deepinv.optim.prior import PnP
@@ -287,7 +270,7 @@ def demo_mri_model(device):
             in_channels=n_channels,
             out_channels=n_channels,
             pretrained=None,
-            depth=7,
+            depth=dncnn_depth,
         ).to(device)
     )
 

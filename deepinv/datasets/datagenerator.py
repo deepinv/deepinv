@@ -116,7 +116,7 @@ def generate_dataset(
     verbose: bool = True,
     show_progress_bar: bool = False,
     device: Union[torch.device, str] = "cpu",
-):
+) -> Union[str, Tuple[str]]:
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
 
@@ -168,7 +168,8 @@ def generate_dataset(
     :param bool show_progress_bar: Show progress bar during the generation
         of the dataset (if verbose is set to ``True``).
     :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.
-
+    :return: filename(s) of generated dataset or datasets
+    :rtype: str, tuple[str]
     """
     if test_dataset is None and train_dataset is None:
         raise ValueError("No train or test datasets provided.")

@@ -448,7 +448,7 @@ class DynamicMRI(MRI, TimeMixin):
         while mask is not None and len(mask.shape) < 5:  # to B,C,T,H,W
             mask = mask.unsqueeze(0)
 
-        return super().check_mask(mask=mask)
+        return super().check_mask(mask=mask, device=self.device, three_d=self.three_d)
 
     def noise(self, x, **kwargs):
         r"""
