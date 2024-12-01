@@ -12,7 +12,8 @@ class SigmaGenerator(PhysicsGenerator):
     :param float sigma_max: maximum noise level
     :param torch.Generator rng: random number generator
     :param str device: device where the tensor is stored
-    :param torch.dtype dtype: data type of the generated tensor
+    :param torch.dtype dtype: data type of the generated tensor.
+
     |sep|
 
     :Examples:

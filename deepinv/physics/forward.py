@@ -145,6 +145,14 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         return self.sensor_model(x)
 
+    def set_noise_model(self, noise_model):
+        r"""
+        Sets the noise model
+
+        :param Callable noise_model: noise model
+        """
+        self.noise_model = noise_model
+
     def noise(self, x, **kwargs):
         r"""
         Incorporates noise into the measurements :math:`\tilde{y} = N(y)`

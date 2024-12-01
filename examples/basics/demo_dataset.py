@@ -20,7 +20,6 @@ from deepinv.utils.demo import load_dataset
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 
 
@@ -47,7 +46,7 @@ val_transform = transforms.Compose(
 )
 
 # add batch and channel dimensions
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 # display an image from the base dataset
 dinv.utils.plot(dataset[0][0].unsqueeze(0))

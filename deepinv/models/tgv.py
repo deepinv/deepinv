@@ -1,10 +1,9 @@
 import torch
-import torch.nn as nn
+from .base import Denoiser
+from .tv import TVDenoiser
 
-from deepinv.models import TVDenoiser
 
-
-class TGVDenoiser(nn.Module):
+class TGVDenoiser(Denoiser):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
 
@@ -82,7 +81,7 @@ class TGVDenoiser(nn.Module):
             ).unsqueeze(-1)
         )
 
-    def forward(self, y, ths=None):
+    def forward(self, y, ths=None, **kwargs):
         r"""
         Computes the proximity operator of the TGV norm.
 

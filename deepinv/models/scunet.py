@@ -5,11 +5,12 @@ import numpy as np
 from einops import rearrange
 from einops.layers.torch import Rearrange
 from .utils import get_weights_url
+from .base import Denoiser
 
 # Compatibility with optional dependency on timm
 try:
     import timm
-    from timm.models.layers import trunc_normal_, DropPath
+    from timm.layers import trunc_normal_, DropPath
 except ImportError as e:
     timm = e
 
@@ -270,7 +271,7 @@ class ConvTransBlock(nn.Module):
         return x
 
 
-class SCUNet(nn.Module):
+class SCUNet(Denoiser):
     r"""
     SCUNet denoising network.
 
@@ -460,7 +461,9 @@ class SCUNet(nn.Module):
 
         return x
 
-    def forward(self, x, sigma=None):  # This is a blind model: sigma is not used
+    def forward(
+        self, x, sigma=None, **kwargs
+    ):  # This is a blind model: sigma is not used
         den = self.forward_scunet(x)
         return den
 

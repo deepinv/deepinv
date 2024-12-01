@@ -6,7 +6,7 @@ class GDIteration(OptimIterator):
     r"""
     Iterator for Gradient Descent.
 
-    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`f(x) + \lambda g(x)`.
+    Class for a single iteration of the gradient descent (GD) algorithm for minimising :math:`f(x) + \lambda \regname(x)`.
 
     The iteration is given by
 
@@ -14,13 +14,14 @@ class GDIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
+        v_{k} &= \nabla f(x_k) + \lambda \nabla \regname(x_k) \\
         x_{k+1} &= x_k-\gamma v_{k}
         \end{aligned}
         \end{equation*}
 
 
-   where :math:`\gamma` is a stepsize.
+    where :math:`\gamma` is a stepsize.
+
     """
 
     def __init__(self, **kwargs):
@@ -33,7 +34,7 @@ class GDIteration(OptimIterator):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         r"""
-        Single gradient descent iteration on the objective :math:`f(x) + \lambda g(x)`.
+        Single gradient descent iteration on the objective :math:`f(x) + \lambda \regname(x)`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
@@ -68,14 +69,16 @@ class MDIteration(OptimIterator):
     .. math::
         \begin{equation*}
         \begin{aligned}
-        v_{k} &= \nabla f(x_k) + \nabla g(x_k) \\
+        v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
         \end{aligned}
         \end{equation*}
 
 
-   where :math:`\gamma` is a stepsize.
-   The potential :math:`h` should be specified in the cur_params dictionary.
+    where :math:`\gamma` is a stepsize.
+
+    The potential :math:`h` should be specified in the cur_params dictionary.
+
     """
 
     def __init__(self, bregman_potential=BregmanL2(), **kwargs):
