@@ -37,11 +37,11 @@ test_dataset = load_dataset(
 
 physics = dinv.physics.MRI(img_size=(img_size, img_size), device=device)
 physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-    acceleration=8,
+    acceleration=2,
     img_size=(img_size, img_size),
     device=device,
     rng=rng,
-    #center_fraction=0.2,
+    center_fraction=0.2,
 )
 
 deepinv_datasets_path = dinv.datasets.generate_dataset(
