@@ -76,6 +76,7 @@ def load_dataset(
     # TODO add load_dataset to docs
     # TODO docstring
     # TODO robust checking of dataset_name especially for mri
+    # TODO add note to userguide on how mri datasets were created
     if data_dir is None:
         data_dir = get_data_home()
 
@@ -242,7 +243,7 @@ def load_np_url(url=None):
     return array
 
 
-def demo_mri_model(device):
+def demo_mri_model(device, dncnn_depth: int = 7):
     """Demo MRI reconstruction model for use in relevant examples.
 
     As a reconstruction network, we use an unrolled network (half-quadratic splitting)
@@ -250,6 +251,7 @@ def demo_mri_model(device):
     model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
     :param str, torch.device device: device
+    :param int dncnn_depth: depth of DnCNN denoiser backbone
     :return torch.nn.Module: model
     """
     from deepinv.optim.prior import PnP
@@ -268,7 +270,7 @@ def demo_mri_model(device):
             in_channels=n_channels,
             out_channels=n_channels,
             pretrained=None,
-            depth=7,
+            depth=dncnn_depth,
         ).to(device)
     )
 
