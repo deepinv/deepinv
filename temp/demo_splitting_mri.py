@@ -66,7 +66,7 @@ test_dataset = dinv.datasets.HDF5Dataset(
 train_dataloader = DataLoader(train_dataset, shuffle=True)
 test_dataloader = DataLoader(test_dataset, shuffle=False)
 
-model = demo_mri_model(device=device)
+model = demo_mri_model(device=device, dncnn_depth=15)
 # model = dinv.models.ArtifactRemoval(dinv.models.UNet(2, 2, batch_norm=False, scales=2), device=device).to(device)
 model = loss.adapt_model(model)
 
