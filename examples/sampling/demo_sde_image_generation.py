@@ -8,7 +8,7 @@ The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.1
 
 This method requires:
 
-* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.model.edm.SongUNet`).
+* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.model.edm.NCSNpp`).
 * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE.
 
 The forward-time SDE is defined as follows, for :math:`t \in \[0, T\]`:
@@ -45,7 +45,7 @@ import torch
 import numpy as np
 
 import deepinv as dinv
-from deepinv.models.edm import SongUNet, EDMPrecond
+from deepinv.models.edm import NCSNpp, EDMPrecond
 from deepinv.utils.plotting import plot
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -57,7 +57,7 @@ dtype = torch.float64
 # EDM framework: https://arxiv.org/pdf/2206.00364
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456
 
-unet = SongUNet.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
+unet = NCSNpp.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
 denoiser = EDMPrecond(model=unet).to(device)
 
 # %%

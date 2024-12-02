@@ -1,15 +1,11 @@
-# %%
-
 import torch
 import math
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Optional, Tuple, List, Any
+from typing import Callable, Union, Tuple, List, Any
 import numpy as np
 from numpy import ndarray
 import warnings
-from deepinv.optim.prior import ScorePrior
-from deepinv.physics import Physics
 from .sde_solver import select_solver, SDEOutput
 
 
@@ -346,11 +342,11 @@ if __name__ == "__main__":
     from deepinv.utils.demo import load_url_image, get_image_url
     import deepinv as dinv
     import matplotlib.pyplot as plt
-    from deepinv.models.edm import SongUNet, EDMPrecond
+    from deepinv.models.edm import NCSNpp, EDMPrecond
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-    unet = SongUNet.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
+    unet = NCSNpp.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
     denoiser = EDMPrecond(model=unet).to(device)
 
     url = get_image_url("CBSD_0010.png")

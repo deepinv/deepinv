@@ -387,7 +387,7 @@ class FourierEmbedding(torch.nn.Module):
 # ----------------------------------------------------------------------------
 
 
-class SongUNet(torch.nn.Module):
+class NCSNpp(torch.nn.Module):
     r"""
     Re-implementation of the DDPM++ and NCSN++ architectures from the paper: Score-Based Generative Modeling through Stochastic Differential Equations (https://arxiv.org/abs/2011.13456).
     Equivalent to the original implementation by Song et al., available at https://github.com/yang-song/score_sde_pytorch
@@ -640,13 +640,13 @@ class SongUNet(torch.nn.Module):
         return aux
 
     @classmethod
-    def from_pretrained(cls, model_name: str = "songunet-edm-ffhq64-uncond-ve"):
+    def from_pretrained(cls, model_name: str = "NCSNpp-edm-ffhq64-uncond-ve"):
         r"""
         Load a pretrained model from the Hugging Face Hub.
 
         :param str model_name: Name of the model to load.
 
-        :return DhariwalUNet: The loaded model.
+        :return NCSNpp: The loaded model.
         """
         model = cls(
             img_resolution=64,
@@ -667,6 +667,48 @@ class SongUNet(torch.nn.Module):
         )
         model.load_state_dict(state_dict)
         return model
+
+    @classmethod
+    def get_model_config(cls, model_name):
+        r"""
+        Get the configuration of the model.
+
+        :param str model_name: Name of the model.
+        :return dict: The configuration of the model.
+        """
+
+        # Default configuration for 64x64 unconditional-model 
+        default_64x64_config = dict(
+            img_resolution=64,
+            in_channels=3,
+            out_channels=3,
+            augment_dim=9,
+            model_channels=128,
+            channel_mult=[1, 2, 2, 2],
+            channel_mult_noise=2,
+            embedding_type="fourier",
+            encoder_type="residual",
+            decoder_type="standard",
+            resample_filter=[1, 3, 3, 1],
+        )
+        # Default configuration for 64x64 conditional-model on ImageNet 
+        default_64x64_imagenet_config = dict(
+            img_resolution=64,
+            in_channels=3,
+            out_channels=3,
+            augment_dim=9,
+            model_channels=128,
+            channel_mult=[1, 2, 2, 2],
+            channel_mult_noise=2,
+            embedding_type="fourier",
+            encoder_type="residual",
+            decoder_type="standard",
+            resample_filter=[1, 3, 3, 1],
+            map_label=True,
+            map_label_dim=128,
+        )
+
+        # Default configuration for 64x64 conditional-model on FFHQ 64 
 
 
 class DhariwalUNet(torch.nn.Module):

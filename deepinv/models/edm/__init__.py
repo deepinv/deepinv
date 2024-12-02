@@ -1,5 +1,5 @@
 from .networks import (
-    SongUNet,
+    NCSNpp,
     DhariwalUNet,
     VEPrecond,
     VPPrecond,
