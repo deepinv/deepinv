@@ -54,9 +54,8 @@ class BaseSDESolver(nn.Module):
         self,
         sde,
         rng: Optional[torch.Generator] = None,
-        **kwargs,
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         self.sde = sde
 
         self.rng = rng
@@ -154,8 +153,8 @@ class BaseSDESolver(nn.Module):
 
 
 class EulerSolver(BaseSDESolver):
-    def __init__(self, sde, rng: torch.Generator = None, *args, **kwargs):
-        super().__init__(sde, rng=rng, *args, **kwargs)
+    def __init__(self, sde, rng: torch.Generator = None):
+        super().__init__(sde, rng=rng)
 
     def step(self, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
@@ -165,8 +164,12 @@ class EulerSolver(BaseSDESolver):
 
 
 class HeunSolver(BaseSDESolver):
-    def __init__(self, sde, rng: torch.Generator = None, *args, **kwargs):
-        super().__init__(sde, rng=rng, *args, **kwargs)
+    def __init__(
+        self,
+        sde,
+        rng: torch.Generator = None,
+    ):
+        super().__init__(sde, rng=rng)
 
     def step(self, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)

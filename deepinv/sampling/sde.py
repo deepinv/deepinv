@@ -1,3 +1,4 @@
+# %%
 import torch
 import math
 from torch import Tensor
@@ -6,7 +7,7 @@ from typing import Callable, Union, Tuple, List, Any
 import numpy as np
 from numpy import ndarray
 import warnings
-from .sde_solver import select_solver, SDEOutput
+from sde_solver import select_solver, SDEOutput
 
 
 class BaseSDE(nn.Module):
@@ -64,7 +65,7 @@ class BaseSDE(nn.Module):
         """
         self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
-        solver = solver_fn(sde=self, rng=self.rng, **kwargs)
+        solver = solver_fn(sde=self, rng=self.rng)
         solution = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
         return solution
 
@@ -338,28 +339,32 @@ class VESDE(DiffusionSDE):
 
 # %%
 if __name__ == "__main__":
+    # %%
     import numpy as np
     from deepinv.utils.demo import load_url_image, get_image_url
     import deepinv as dinv
     import matplotlib.pyplot as plt
-    from deepinv.models.edm import NCSNpp, EDMPrecond
+    from deepinv.models.edm import NCSNpp, ADMUNet, EDMPrecond
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-    unet = NCSNpp.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
+    # unet = dinv.models.DRUNet(pretrained="download").to(device)
+    # unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
+    unet = ADMUNet.from_pretrained("imagenet64-cond")
     denoiser = EDMPrecond(model=unet).to(device)
+
 
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
     t = 100.0
     x_noisy = x + torch.randn_like(x) * t
-    x_denoised = denoiser(x_noisy, t)
+    class_labels = torch.eye(1000, device=device)[0:1]
+    x_denoised = denoiser(x_noisy, t, class_labels=class_labels)
     dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
     _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
     plt.show()
     # %%
     x_noisy = (x_noisy + 1) * 0.5
-    x_denoised = denoiser(x_noisy, t * 0.5)
+    x_denoised = denoiser(x_noisy, t * 0.5, class_labels=class_labels)
     x_denoised = x_denoised * 2 - 1
     dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
     _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
@@ -376,28 +381,38 @@ if __name__ == "__main__":
     #     denoiser=denoiser, sigma_t=sigma_t, rescale=False
     # )
 
-    # sde = VESDE(
-    #     denoiser=denoiser,
-    #     sigma_max=sigma_max,
-    #     sigma_min=sigma_min,
-    #     rng=rng,
-    #     device=device,
-    #     use_backward_ode=False,
-    # )
+    sde = VESDE(
+        denoiser=denoiser,
+        sigma_max=sigma_max,
+        sigma_min=sigma_min,
+        rng=rng,
+        device=device,
+        use_backward_ode=False,
+    )
 
-    sde = DiffusionSDE(denoiser=denoiser, rng=rng, device=device)
+    # sde = DiffusionSDE(denoiser=denoiser, rng=rng, device=device)
 
     # Check forward
     x_init = x.clone()
 
-    solution = sde.forward_sde.sample(x_init, timesteps=timesteps, method="euler")
+    solution = sde.forward_sde.sample(
+        x_init, timesteps=timesteps, method="euler", class_labels=class_labels
+    )
     dinv.utils.plot(solution.sample, suptitle=f"Forward sample, nfe = {solution.nfe}")
     _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
     plt.show()
     # %% Check backward
     # x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
 
-    solution = sde((1, 3, 64, 64), timesteps=timesteps[::-1], method="Euler", seed=1)
+    solution = sde(
+        (1, 3, 64, 64),
+        timesteps=timesteps[::-1],
+        method="Euler",
+        seed=1,
+        class_labels=class_labels,
+    )
     dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
     _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
     plt.show()
+
+# %%

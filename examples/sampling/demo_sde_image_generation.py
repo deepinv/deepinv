@@ -57,7 +57,7 @@ dtype = torch.float64
 # EDM framework: https://arxiv.org/pdf/2206.00364
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456
 
-unet = NCSNpp.from_pretrained("song-unet-edm-ffhq64-uncond-ve")
+unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
 denoiser = EDMPrecond(model=unet).to(device)
 
 # %%

@@ -1,7 +1,14 @@
 from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
-from .unet import UNet
+from .edm import (
+    NCSNpp,
+    ADMUNet,
+    EDMPrecond,
+    VEPrecond,
+    VPPrecond,
+    iDDPMPrecond,
+)
 from .dncnn import DnCNN
 from .artifactremoval import ArtifactRemoval
 from .tv import TVDenoiser
