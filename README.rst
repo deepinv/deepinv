@@ -82,7 +82,7 @@ Try out the following plug-and-play image inpainting example:
    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
-Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive :ref:`User Guide <user_guide>`.
+Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 
 Contributing
 ------------
