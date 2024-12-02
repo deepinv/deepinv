@@ -677,7 +677,7 @@ class NCSNpp(torch.nn.Module):
         :return dict: The configuration of the model.
         """
 
-        # Default configuration for 64x64 unconditional-model 
+        # Default configuration for 64x64 unconditional-model
         default_64x64_config = dict(
             img_resolution=64,
             in_channels=3,
@@ -691,24 +691,6 @@ class NCSNpp(torch.nn.Module):
             decoder_type="standard",
             resample_filter=[1, 3, 3, 1],
         )
-        # Default configuration for 64x64 conditional-model on ImageNet 
-        default_64x64_imagenet_config = dict(
-            img_resolution=64,
-            in_channels=3,
-            out_channels=3,
-            augment_dim=9,
-            model_channels=128,
-            channel_mult=[1, 2, 2, 2],
-            channel_mult_noise=2,
-            embedding_type="fourier",
-            encoder_type="residual",
-            decoder_type="standard",
-            resample_filter=[1, 3, 3, 1],
-            map_label=True,
-            map_label_dim=128,
-        )
-
-        # Default configuration for 64x64 conditional-model on FFHQ 64 
 
 
 class DhariwalUNet(torch.nn.Module):
