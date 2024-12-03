@@ -10,10 +10,9 @@ def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator
     """Sample a random tensor from a list of values"""
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
-    indices = (
-        torch.floor(N * torch.rand(shape, dtype=dtype, device=device, generator=generator))
-        .to(torch.long)
-    )
+    indices = torch.floor(
+        N * torch.rand(shape, dtype=dtype, device=device, generator=generator)
+    ).to(torch.long)
     return values[indices]
 
 

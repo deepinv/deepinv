@@ -93,14 +93,13 @@ dataset = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-# pythonpath = ["deepinv"]
 testpaths = [
     "deepinv/tests",
 ]
 
 [tool.coverage.run]
 branch = true
-# omit = examples/*,src/db/versions/*  # define paths to omit
+omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
 show_missing = true

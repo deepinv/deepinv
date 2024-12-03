@@ -608,7 +608,7 @@ def test_physics_Avjp(device):
         assert torch.allclose(physics.A_vjp(x, v), v)
 
 
-def choose_noise(noise_type, device='cpu'):
+def choose_noise(noise_type, device="cpu"):
     gain = 0.1
     sigma = 0.1
     mu = 0.2

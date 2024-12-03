@@ -71,7 +71,10 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device)
         reduction="mean",
     )
     x = load_url_image(
-        get_image_url("celeba_example.jpg"), img_size=128, resize_mode="resize", device=device
+        get_image_url("celeba_example.jpg"),
+        img_size=128,
+        resize_mode="resize",
+        device=device,
     )
 
     if metric_name == "QNR":
@@ -139,10 +142,7 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         from torchmetrics.image import PeakSignalNoiseRatio
 
         torch_psnr = PeakSignalNoiseRatio(data_range=1.0, device=device).to(device)
-        assert torch.allclose(
-            metric.cal_psnr(x_net, x),
-            torch_psnr(x_net, x)
-        )
+        assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
 
 def test_metric_kwargs():

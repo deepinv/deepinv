@@ -173,7 +173,7 @@ class PoissonLikelihoodDistance(Distance):
 
     .. math::
 
-        \d{y}{x} =  \sum_i y_i \log(y_i / x_i) + x_i - y_i
+        \distance{y}{x} =  \sum_i y_i \log(y_i / x_i) + x_i - y_i
 
 
     .. note::
