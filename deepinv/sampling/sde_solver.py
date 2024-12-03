@@ -105,7 +105,7 @@ class BaseSDESolver(nn.Module):
         """
         x = x_init
         nfe = 0
-        trajectory = []
+        trajectory = [x_init.clone()] if full_trajectory else []
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
             x, cur_nfe = self.step(t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe

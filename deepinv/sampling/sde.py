@@ -7,7 +7,7 @@ from typing import Callable, Union, Tuple, List, Any
 import numpy as np
 from numpy import ndarray
 import warnings
-from sde_solver import select_solver, SDEOutput
+from .sde_solver import select_solver, SDEOutput
 
 
 class BaseSDE(nn.Module):
@@ -146,6 +146,9 @@ class DiffusionSDE(nn.Module):
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param callable denoiser: a pre-trained MMSE denoiser which will be used to approximate the score function by Tweedie's formula.
+    :param bool rescale: a boolean indicating whether to rescale the input and output of the denoiser to match the scale of the drift.
+                        Should be set to `True` if the denoiser was trained on `[0,1]`. Default to `False`.
+
     :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
     :param torch.Generator rng: pseudo-random number generator for reproducibility.
     :param torch.dtype dtype: data type of the computation, except for the `denoiser` which will be always compute in `float32`.
@@ -160,6 +163,7 @@ class DiffusionSDE(nn.Module):
         diffusion: Callable = lambda t: math.sqrt(2.0),
         use_backward_ode=False,
         denoiser: nn.Module = None,
+        rescale: bool = False,
         rng: torch.Generator = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -167,7 +171,16 @@ class DiffusionSDE(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.denoiser = denoiser
+        if not rescale:
+            self.denoiser = denoiser
+        else:
+            self.denoiser = (
+                lambda x, sigma, *args, **kwargs: denoiser(
+                    (x + 1) * 0.5, sigma / 2, *args, **kwargs
+                )
+                * 2.0
+                - 1.0
+            )
         self.rng = rng
         self.device = device
         self.dtype = dtype
@@ -224,6 +237,7 @@ class DiffusionSDE(nn.Module):
         :rtype: SDESolution.
 
         """
+        self.rng_manual_seed(kwargs.pop("seed"))
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.prior_sample(x_init)
         return self.backward_sde.sample(
@@ -256,9 +270,9 @@ class DiffusionSDE(nn.Module):
         exp_minus_t = torch.exp(-t) if isinstance(t, Tensor) else np.exp(-t)
         return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
             exp_minus_t
-            * self.denoiser(x.to(torch.float32), self.sigma_t(t), *args, **kwargs).to(
-                self.dtype
-            )
+            * self.denoiser(
+                x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
+            ).to(self.dtype)
             - x
         )
 
@@ -275,6 +289,36 @@ class DiffusionSDE(nn.Module):
         t = self._handle_time_step(t)
         return torch.sqrt(1.0 - torch.exp(-2.0 * t))
 
+    def rng_manual_seed(self, seed: int = None):
+        r"""
+        Sets the seed for the random number generator.
+
+        :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
+            Note: it will be ignored if the random number generator is not initialized.
+        """
+        if seed is not None:
+            if self.rng is not None:
+                self.rng = self.rng.manual_seed(seed)
+            else:
+                warnings.warn(
+                    "Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored."
+                )
+
+    def reset_rng(self):
+        r""",
+        Reset the random number generator to its initial state.
+        """
+        self.rng.set_state(self.initial_random_state)
+
+    def randn_like(self, input: torch.Tensor, seed: int = None):
+        r"""
+        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+
+        """
+        self.rng_manual_seed(seed)
+        return torch.empty_like(input).normal_(generator=self.rng)
+
 
 class VESDE(DiffusionSDE):
     r"""
@@ -290,11 +334,12 @@ class VESDE(DiffusionSDE):
     def __init__(
         self,
         denoiser: nn.Module,
+        rescale: bool = False,
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         use_backward_ode: bool = False,
         rng: torch.Generator = None,
-        dtype=torch.float32,
+        dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
@@ -310,6 +355,7 @@ class VESDE(DiffusionSDE):
             diffusion=forward_diff,
             use_backward_ode=use_backward_ode,
             denoiser=denoiser,
+            rescale=rescale,
             rng=rng,
             dtype=dtype,
             device=device,
@@ -317,7 +363,7 @@ class VESDE(DiffusionSDE):
             *kwargs,
         )
 
-    def prior_sample(self, shape):
+    def prior_sample(self, shape) -> Tensor:
         return (
             torch.randn(shape, generator=self.rng, device=self.device, dtype=self.dtype)
             * self.sigma_max
@@ -330,9 +376,9 @@ class VESDE(DiffusionSDE):
     def score(self, x, t, *args, **kwargs):
         t = self._handle_time_step(t)
         return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
-            self.denoiser(x.to(torch.float32), self.sigma_t(t), *args, **kwargs).to(
-                self.dtype
-            )
+            self.denoiser(
+                x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
+            ).to(self.dtype)
             - x
         )
 
@@ -344,31 +390,67 @@ if __name__ == "__main__":
     from deepinv.utils.demo import load_url_image, get_image_url
     import deepinv as dinv
     import matplotlib.pyplot as plt
-    from deepinv.models.edm import NCSNpp, ADMUNet, EDMPrecond
+
+    # from deepinv.models.edm import NCSNpp, ADMUNet, EDMPrecond
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # unet = dinv.models.DRUNet(pretrained="download").to(device)
-    # unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
-    unet = ADMUNet.from_pretrained("imagenet64-cond")
-    denoiser = EDMPrecond(model=unet).to(device)
+    _unet = dinv.models.DRUNet(pretrained="download").to(device)
 
+    def unet(x, sigma, *arg, **kwargs):
+        x = (x + 1) * 0.5
+        sigma = sigma * 0.5
+        return _unet(x, sigma) * 2 - 1
+
+    # def unet(x, sigma, *arg, **kwargs):
+    # return _unet(x, sigma)
+
+    # unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
+    # unet = ADMUNet.from_pretrained("imagenet64-cond")
+    # denoiser = EDMPrecond(model=unet).to(device)
+    denoiser = unet
 
     url = get_image_url("CBSD_0010.png")
     x = load_url_image(url=url, img_size=64, device=device)
-    t = 100.0
+    t = 0.5
     x_noisy = x + torch.randn_like(x) * t
     class_labels = torch.eye(1000, device=device)[0:1]
     x_denoised = denoiser(x_noisy, t, class_labels=class_labels)
     dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
     _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
     plt.show()
-    # %%
-    x_noisy = (x_noisy + 1) * 0.5
-    x_denoised = denoiser(x_noisy, t * 0.5, class_labels=class_labels)
-    x_denoised = x_denoised * 2 - 1
-    dinv.utils.plot([x, x_noisy, x_denoised], titles=["sample", "y", "denoised"])
-    _ = plt.hist(x_denoised.detach().cpu().numpy().ravel(), bins=100)
+    # %% # Check output range
+    from tqdm import tqdm
+
+    norm = []
+    min = []
+    max = []
+    quantile_min = []
+    quantile_max = []
+
+    for sigma in tqdm(np.linspace(0.001, 100, 300)):
+        x_noisy = x + torch.randn_like(x) * sigma
+        x_denoised = denoiser(x_noisy, sigma, class_labels=class_labels)
+
+        norm.append(torch.linalg.norm(x_denoised.ravel()).item())
+        min.append(x_denoised.min().item())
+        max.append(x_denoised.max().item())
+        quantile_min.append(x_denoised.quantile(0.1).item())
+        quantile_max.append(x_denoised.quantile(0.9).item())
+
+    fig, axs = plt.subplots(1, 3, figsize=(14, 3))
+    axs[0].hlines(torch.linalg.norm(x.ravel()).item(), xmin=0, xmax=100)
+    axs[0].plot(np.linspace(0.001, 100, 300), norm)
+    axs[0].set_title("Norm")
+
+    axs[1].plot(np.linspace(0.001, 100, 300), min)
+    axs[1].plot(np.linspace(0.001, 100, 300), max)
+    axs[1].set_title("Min-Max")
+
+    axs[2].plot(np.linspace(0.001, 100, 300), quantile_min)
+    axs[2].plot(np.linspace(0.001, 100, 300), quantile_max)
+    axs[2].set_title("Quantile")
     plt.show()
+
     # %%
     # VESDE
     sigma_min = 0.02
@@ -402,17 +484,45 @@ if __name__ == "__main__":
     _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
     plt.show()
     # %% Check backward
-    # x_init = torch.randn((1, 3, 64, 64), device=device, generator=rng) * sigma_max
 
+    sde.rng.manual_seed(2)
+    sde.rng.manual_seed(1)
+    # x_init = torch.randn(1, 3, 64, 64, generator=sde.rng, device=device)
     solution = sde(
         (1, 3, 64, 64),
         timesteps=timesteps[::-1],
         method="Euler",
-        seed=1,
+        seed=None,
+        full_trajectory=True,
         class_labels=class_labels,
     )
     dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
     _ = plt.hist(solution.sample.ravel().cpu().numpy(), bins=100)
     plt.show()
 
+    # %%
+    n_state = solution.trajectory.size(0)
+
+    norm = torch.linalg.norm(solution.trajectory.view(n_state, -1), dim=-1).tolist()
+    min = torch.amin(solution.trajectory.view(n_state, -1), dim=-1).tolist()
+    max = torch.amax(solution.trajectory.view(n_state, -1), dim=-1).tolist()
+    quantile_min = torch.quantile(
+        solution.trajectory.view(n_state, -1), q=0.1, dim=-1
+    ).tolist()
+    quantile_max = torch.quantile(
+        solution.trajectory.view(n_state, -1), q=0.9, dim=-1
+    ).tolist()
+
+    fig, axs = plt.subplots(1, 3, figsize=(14, 3))
+    axs[0].plot(norm)
+    axs[0].set_title("Norm")
+
+    axs[1].plot(min)
+    axs[1].plot(max)
+    axs[1].set_title("Min-Max")
+
+    axs[2].plot(quantile_min)
+    axs[2].plot(quantile_max)
+    axs[2].set_title("Quantile")
+    plt.show()
 # %%
