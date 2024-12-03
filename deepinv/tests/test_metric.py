@@ -141,7 +141,7 @@ def test_functional(functional_name, imsize_2_channel, device, rng):
         )
         from torchmetrics.image import PeakSignalNoiseRatio
 
-        torch_psnr = PeakSignalNoiseRatio(data_range=1.0, device=device).to(device)
+        torch_psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
         assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
 
