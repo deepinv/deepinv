@@ -11,6 +11,11 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`)
+- Added SDE class (DiffusionSDE, VESDE, VPSDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
+- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen` and `Samuel Hurault`)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`)
+
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
@@ -238,7 +243,7 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
-.. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
+.. _Minh Hai Nguyen: https://mh-nguyen712.github.io/
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
