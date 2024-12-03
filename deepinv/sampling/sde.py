@@ -13,6 +13,7 @@ from .sde_solver import select_solver, SDEOutput
 class BaseSDE(nn.Module):
     r"""
     Base class for Stochastic Differential Equation (SDE):
+
     .. math::
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}
 
@@ -57,6 +58,7 @@ class BaseSDE(nn.Module):
     ) -> SDEOutput:
         r"""
         Solve the SDE with the given timesteps.
+
         :param torch.Tensor x_init: initial value.
         :param timesteps: time steps at which to discretize the SDE, of shape `(n_steps,)`.
         :param str method: method for solving the SDE. One of the methods available in :meth:`deepinv.sampling.sde_solver`.
@@ -107,9 +109,20 @@ class BaseSDE(nn.Module):
 
     def randn_like(self, input: torch.Tensor, seed: int = None):
         r"""
-        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
+        Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
+        :param torch.Tensor input: The input tensor whose size will be used.
+        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
+
+        :return: A tensor of the same size as input filled with random numbers from a normal distribution.
+        :rtype: torch.Tensor
+
+        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
+        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
+        generating the random numbers.
+
+        .. note::
+           The :attr:`rng` attribute must be initialized for this method to work properly.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
@@ -120,24 +133,25 @@ class DiffusionSDE(nn.Module):
     Forward-time and Reverse-time Diffusion Stochastic Differential Equation with parameterized drift term.
 
     The forward SDE is defined by:
+
     .. math::
-            d\, x_{t} = f(x_t, t) d\,t + g(t) d\, w_{t}.
+        d\, x_{t} = f(x_t, t) d\,t + g(t) d\, w_{t}.
 
     This forward SDE can be reversed by the following SDE running backward in time:
 
     .. math::
-            d\, x_{t} = \left( f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) d\, w_{t}.
+        d\, x_{t} = \left( f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) d\, w_{t}.
 
     There also exists a deterministic probability flow ODE whose trajectories share the same marginal distribution as the SDEs:
 
     .. math::
-            d\, x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
+        d\, x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
 
 
     The score function can be computed using Tweedie's formula, given a MMSE denoiser :math:`D`:
 
     .. math::
-            \nabla \log p_{t}(x) = \left(D(x,\sigma(t)) - x \right) / \sigma(t)^2
+        \nabla \log p_{t}(x) = \left( D(x, \sigma(t)) - x \right) / \sigma(t)^2
 
     where :math:`sigma(t)` is the noise level at time :math:`t`, which can be accessed through the attribute :meth:`sigma_t`
 
@@ -221,12 +235,12 @@ class DiffusionSDE(nn.Module):
         method: str = "Euler",
         *args,
         **kwargs,
-    ):
+    ) -> SDEOutput:
         r"""
         Sample the backward-SDE.
 
         :param Union[Tensor, Tuple] x_init: Initial condition of the backward-SDE.
-            If it is a tensor, `x_init` should follow the distribution of :math:`p_T`, which is usually   :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id}})`.
+            If it is a :meth:`torch.Tensor`, `x_init` should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id})`.
             If it is a tuple, it should be of the form `(B, C, H, W)`. A sample from the distribution :math:`p_T` will be generated automatically.
 
         :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be of shape `(n_steps,)`.
@@ -234,7 +248,7 @@ class DiffusionSDE(nn.Module):
         :param args: additional arguments for the backward drift (passed to the `denoiser`).
         :param kwargs: additional keyword arguments for the backward drift (passed to the `denoiser`), e.g., `class_labels` for class-conditional models.
 
-        :rtype: SDESolution.
+        :rtype: SDEOutput.
 
         """
         self.rng_manual_seed(kwargs.pop("seed"))
@@ -263,7 +277,7 @@ class DiffusionSDE(nn.Module):
         :param args: additional arguments for the `denoiser`.
         :param kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
 
-        :return: the score function :math:`nabla \log p_t(x)`.
+        :return: the score function :math:`\nabla \log p_t(x)`.
         :rtype: torch.Tensor
         """
         t = self._handle_time_step(t)
@@ -276,20 +290,22 @@ class DiffusionSDE(nn.Module):
             - x
         )
 
-    def _handle_time_step(self, t):
+    def _handle_time_step(self, t) -> Tensor:
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
         return t
 
     def sigma_t(self, t: Any) -> Tensor:
         r"""
-        The std of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(..., \sigma_t^2 \mathrm{\Id})`.
+        The std of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(..., \sigma_t^2 \mathrm{Id})`.
 
         :param Any t: time step.
+
+        :return torch.Tensor: the noise level at time step :attrib:`t`.
         """
         t = self._handle_time_step(t)
         return torch.sqrt(1.0 - torch.exp(-2.0 * t))
 
-    def rng_manual_seed(self, seed: int = None):
+    def rng_manual_seed(self, seed: int = None) -> None:
         r"""
         Sets the seed for the random number generator.
 
@@ -304,17 +320,28 @@ class DiffusionSDE(nn.Module):
                     "Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored."
                 )
 
-    def reset_rng(self):
-        r""",
+    def reset_rng(self) -> None:
+        r"""
         Reset the random number generator to its initial state.
         """
         self.rng.set_state(self.initial_random_state)
 
-    def randn_like(self, input: torch.Tensor, seed: int = None):
+    def randn_like(self, input: torch.Tensor, seed: int = None) -> Tensor:
         r"""
-        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
+        Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
+        :param torch.Tensor input: The input tensor whose size will be used.
+        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
+
+        :return: A tensor of the same size as input filled with random numbers from a normal distribution.
+        :rtype: torch.Tensor
+
+        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
+        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
+        generating the random numbers.
+
+        .. note::
+           The :attr:`rng` attribute must be initialized for this method to work properly.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
@@ -327,7 +354,7 @@ class VESDE(DiffusionSDE):
     The forward-time SDE is defined as follows:
 
     .. math::
-        d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \)^t
+        d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
 
     """
 

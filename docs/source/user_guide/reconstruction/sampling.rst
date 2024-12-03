@@ -7,16 +7,89 @@ This package contains posterior sampling algorithms.
 
 .. math::
 
-    - \log p(x|y,A) \propto d(Ax,y) + \reg{x},
+    \log p(x|y,A) \propto d(Ax,y) + \reg{x},
 
 where :math:`x` is the image to be reconstructed, :math:`y` are the measurements,
 :math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
 is the negative log-prior.
 
-.. _diffusion:
+.. _diffusion_generation:
+Diffusion models for image generation
+-------------------------------------
+ 
+We first provide a unified framework for image generation using diffusion models.
+We define diffusion models as Stochastic Differential Equations (SDE).
 
-Diffusion
----------
+The forward-time SDE is defined as follows, for :math:`t \in [0, T]`:
+
+.. math::
+
+    d\, x_t = f(x_t, t) d\,t + g(t) d\, w_t.
+
+Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
+The reverse-time SDE is defined as follows, running backward in time:
+
+.. math::
+
+    d\, x_t = \left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) d\, w_t.
+
+This reverse-time SDE can be used as a generative process. It also admits an equivalent probability ODE flow: 
+
+.. math::
+
+    d\, x_t = \left(f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
+
+
+The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
+
+.. math::
+
+    x_t \vert x_0 \sim \mathcal{N}\left( \mu_t x_0, \sigma_t^2 \mathrm{Id} \right),
+
+then
+
+.. math::
+
+    \nabla p_t(x_t) = \frac{\left(\mu_t D_{\sigma_t}(x_t) -  x_t \right)}{\sigma_t^2}.
+
+Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
+solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
+
+.. list-table:: Stochastic Differential Equations
+   :header-rows: 1
+
+   * - **Method**
+     - **Description**
+
+   * - :class:`deepinv.sampling.sde.BaseSDE`
+     - Base class for defining a SDE with a drift term and a diffusion coefficient
+
+   * - :class:`deepinv.sampling.sde.DiffusionSDE`
+     - Define automatically the reverse-time SDE from a forward SDE and a denoiser. 
+
+   * - :class:`deepinv.sampling.sde.VESDE`
+     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.sde.DiffusionSDE`.
+
+We also provide generic methods for solving SDE (and ODE).
+
+.. list-table:: SDE/ODE solvers
+   :header-rows: 1
+
+   * - **Method**
+     - **Description**
+  
+   * - :class:`deepinv.sampling.sde_solver.BaseSDESolver`
+     - Base class of the solvers.
+
+   * - :class:`deepinv.sampling.sde_solver.EulerSolver`
+     - First order Euler solver. 
+
+   * - :class:`deepinv.sampling.sde_solver.HeunSolver`
+     - Second order Heun solver. 
+
+.. _diffusion:
+Diffusion models for posterior sampling
+--------------------------------
 We provide various sota diffusion methods for sampling from the posterior distribution.
 Diffusion methods produce a sample from the posterior ``x`` given a
 measurement ``y`` as ``x = model(y, physics)``,

@@ -12,7 +12,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`)
-- Added SDE class (DiffusionSDE, VESDE, VPSDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
+- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
 - Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen` and `Samuel Hurault`)
 - Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`)
 

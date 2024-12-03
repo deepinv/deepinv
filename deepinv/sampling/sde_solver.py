@@ -144,9 +144,20 @@ class BaseSDESolver(nn.Module):
 
     def randn_like(self, input: torch.Tensor, seed: int = None):
         r"""
-        Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
+        Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
+        :param torch.Tensor input: The input tensor whose size will be used.
+        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
+
+        :return: A tensor of the same size as input filled with random numbers from a normal distribution.
+        :rtype: torch.Tensor
+
+        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
+        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
+        generating the random numbers.
+
+        .. note::
+           The :attr:`rng` attribute must be initialized for this method to work properly.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
