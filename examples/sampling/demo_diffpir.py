@@ -84,7 +84,7 @@ plot(
 # :math:`\mathcal{N}(0, \mathbf{I})` is a Gaussian noise
 # with zero mean and unit variance, :math:`\zeta` is a parameter that controls the amount of noise added at each
 # iteration and :math:`f` refers to the data fidelity/measurement consistency term,
-# which for Gaussian Noise (implemented as :class:`deepinv.optim.L2`) is given by:
+# which for Gaussian Noise (implemented as :class:`deepinv.optim.data_fidelity.L2`) is given by:
 #
 # .. math::
 #               f(\mathbf{y}, \mathbf{x}) = \frac{1}{2}\|\mathbf{y} - \mathcal{A}(\mathbf{x})\|^2
@@ -279,14 +279,14 @@ x = 2 * y - 1
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
         # Current and next noise levels
-        curr_sigma = sigmas[T - 1 - seq[i]].cpu().numpy()
+        curr_sigma = sigmas[T - 1 - seq[i]]
 
         # 1. Denoising step
         x0 = model(x, curr_sigma)
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
-            t_i = find_nearest(sigmas.cpu(), curr_sigma)
+            t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
 
             x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
 
@@ -328,6 +328,6 @@ plot(
 # ::
 #
 #       y = physics(x)
-#       model = dinv.sampling.DiffPIR(dinv.models.DiffUNet(), data_fidelity=dinv.optim.L2())
+#       model = dinv.sampling.DiffPIR(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #

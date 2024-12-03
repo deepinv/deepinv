@@ -109,6 +109,19 @@ Most denoisers in the library are designed to process real images. However, some
 
 
 
+Complex Denoisers
+--------------------------
+Most denoisers are designed to process real-valued images. However, some problems, e.g., phase retrieval, require processing complex-valued images. We hence provide a function :class:`deepinv.models.complex.to_complex_denoiser` which can convert any real-valued denoiser into a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
+
+
+
 .. _pretrained-weights:
 Pretrained Weights
 ------------------

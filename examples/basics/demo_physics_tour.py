@@ -90,7 +90,12 @@ plot([x, y], titles=["signal", "measurement"])
 # Here we take 2048 measurements of an image of size 64x64, which corresponds to a compression ratio of 2.
 
 physics = dinv.physics.CompressedSensing(
-    m=2048, fast=False, channelwise=True, img_shape=img_size, device=device
+    m=2048,
+    fast=False,
+    channelwise=True,
+    img_shape=img_size,
+    compute_inverse=True,
+    device=device,
 )
 
 y = physics(x)

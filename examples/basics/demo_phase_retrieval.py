@@ -20,11 +20,15 @@ import torch
 import matplotlib.pyplot as plt
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.prior import PnP
+from deepinv.optim.prior import PnP, Zero
 from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.utils.plotting import plot
-from deepinv.optim.phase_retrieval import correct_global_phase, cosine_similarity
+from deepinv.optim.phase_retrieval import (
+    correct_global_phase,
+    cosine_similarity,
+    spectral_methods,
+)
 from deepinv.models.complex import to_complex_denoiser
 
 BASE_DIR = Path(".")
@@ -76,14 +80,12 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 oversampling_ratio = 5.0
 img_shape = x.shape[1:]
 m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
-noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
 # Create the physics
 physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
     img_shape=img_shape,
-    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
     device=device,
 )
 
@@ -93,11 +95,13 @@ y = physics(x_phase)
 # %%
 # Reconstruction with gradient descent and random initialization
 # ---------------------------------------------------------------
-# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and directly call its ``grad`` method to run a gradient descent algorithm. The initial guess is a random complex signal.
+# First, we use the function :class:`deepinv.optim.L2` as the data fidelity function, and the class :class:`deepinv.optim.optim_iterators.GDIteration` as the optimizer to run a gradient descent algorithm. The initial guess is a random complex signal.
 
 data_fidelity = L2()
-# Step size for the gradient descent
-stepsize = 0.10
+prior = Zero()
+iterator = dinv.optim.optim_iterators.GDIteration()
+# Parameters for the optimizer, including stepsize and regularization coefficient.
+optim_params = {"stepsize": 0.06, "lambda": 1.0, "g_param": []}
 num_iter = 1000
 
 # Initial guess
@@ -106,9 +110,15 @@ x_phase_gd_rand = torch.randn_like(x_phase)
 loss_hist = []
 
 for _ in range(num_iter):
-    x_phase_gd_rand = x_phase_gd_rand - stepsize * data_fidelity.grad(
-        x_phase_gd_rand, y, physics
+    res = iterator(
+        {"est": (x_phase_gd_rand,), "cost": 0},
+        cur_data_fidelity=data_fidelity,
+        cur_prior=prior,
+        cur_params=optim_params,
+        y=y,
+        physics=physics,
     )
+    x_phase_gd_rand = res["est"][0]
     loss_hist.append(data_fidelity(x_phase_gd_rand, y, physics).cpu())
 
 print("initial loss:", loss_hist[0])
@@ -141,8 +151,6 @@ plot([x, x_gd_rand], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 
 # Spectral methods return a tensor with unit norm.
 x_phase_spec = physics.A_dagger(y, n_iter=300)
-# Correct the norm of the estimated signal
-x_phase_spec = x_phase_spec * torch.sqrt(y.sum())
 
 # %%
 # Phase correction and signal reconstruction
@@ -161,13 +169,18 @@ plot([x, x_spec], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 
 # Initial guess from spectral methods
 x_phase_gd_spec = physics.A_dagger(y, n_iter=300)
-x_phase_gd_spec = x_phase_gd_spec * torch.sqrt(y.sum())
 
 loss_hist = []
 for _ in range(num_iter):
-    x_phase_gd_spec = x_phase_gd_spec - stepsize * data_fidelity.grad(
-        x_phase_gd_spec, y, physics
+    res = iterator(
+        {"est": (x_phase_gd_spec,), "cost": 0},
+        cur_data_fidelity=data_fidelity,
+        cur_prior=prior,
+        cur_params=optim_params,
+        y=y,
+        physics=physics,
     )
+    x_phase_gd_spec = res["est"][0]
     loss_hist.append(data_fidelity(x_phase_gd_spec, y, physics).cpu())
 
 print("intial loss:", loss_hist[0])
@@ -206,7 +219,7 @@ denoiser_complex = to_complex_denoiser(denoiser, mode="abs_angle")
 data_fidelity = L2()
 prior = PnP(denoiser=denoiser_complex)
 params_algo = {"stepsize": 0.30, "g_param": 0.04}
-max_iter = 400
+max_iter = 100
 early_stop = True
 verbose = True
 
@@ -252,14 +265,14 @@ plot(
 
 # Compute metrics
 print(
-    f"GD Random reconstruction, PSNR: {dinv.metric.PSNR()(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase):.3f}."
+    f"GD Random reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase).item():.3f}."
 )
 print(
-    f"Spectral reconstruction, PSNR: {dinv.metric.PSNR()(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase):.3f}."
+    f"Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase).item():.3f}."
 )
 print(
-    f"GD Spectral reconstruction, PSNR: {dinv.metric.PSNR()(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase):.3f}."
+    f"GD Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase).item():.3f}."
 )
 print(
-    f"PnP reconstruction, PSNR: {dinv.metric.PSNR()(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase):.3f}."
+    f"PnP reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase).item():.3f}."
 )
