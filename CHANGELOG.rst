@@ -11,6 +11,8 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
 - Add transform symmetrisation, further transform arithmetic, and new equivariant denoiser (:gh:`259` by `Andrew Wang`_)
 - New transforms: multi-axis reflect, time-shift and diffeomorphism (:gh:`259` by `Andrew Wang`_)
@@ -28,6 +30,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed sphinx warnings (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
@@ -39,9 +42,10 @@ Fixed
 
 Changed
 ^^^^^^^
-
+- Added direct option to ArtifactRemoval (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
+- Sphinx template to pydata (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
-- get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_) 
+- get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_)
 
 v0.2.1
 ----------------

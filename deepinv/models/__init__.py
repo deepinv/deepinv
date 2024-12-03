@@ -1,3 +1,4 @@
+from .base import Denoiser, Reconstructor
 from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder

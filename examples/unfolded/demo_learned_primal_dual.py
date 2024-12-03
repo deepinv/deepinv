@@ -1,15 +1,15 @@
 r"""
 Learned Primal-Dual algorithm for CT scan.
 ====================================================================================================
-Implementation of the Unfolded Primal-Dual algorithm from 
+Implementation of the Unfolded Primal-Dual algorithm from
 
-Adler, Jonas, and Ozan Öktem. 
-"Learned primal-dual reconstruction." 
+Adler, Jonas, and Ozan Öktem.
+"Learned primal-dual reconstruction."
 IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
 
 where both the data fidelity and the prior are learned modules, distinct for each iterations.
 
-The algorithm is used for CT reconstruction trained on random phantoms. 
+The algorithm is used for CT reconstruction trained on random phantoms.
 The phantoms are generated on the fly during training using the odl library (https://odlgroup.github.io/odl/).
 """
 
@@ -29,7 +29,6 @@ from deepinv.optim import Prior, DataFidelity
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"

@@ -2,6 +2,7 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
+from pathlib import Path
 
 import numpy as np
 import requests
@@ -78,9 +79,28 @@ def get_image_url(file_name):
     )
 
 
+def get_data_home():
+    """Return a folder to store deepinv datasets.
+
+    This folder can be specified by setting the environment variable``DEEPINV_DATA``,
+    or ``XDG_DATA_HOME``. By default, it is ``./datasets``.
+    """
+    data_home = os.environ.get("DEEPINV_DATA", None)
+    if data_home is not None:
+        return Path(data_home)
+
+    data_home = os.environ.get("XDG_DATA_HOME", None)
+    if data_home is not None:
+        return Path(data_home) / "deepinv"
+
+    return Path(".") / "datasets"
+
+
 def load_dataset(
-    dataset_name, data_dir, transform, download=True, url=None, train=True
+    dataset_name, transform, data_dir=None, download=True, url=None, train=True
 ):
+    if data_dir is None:
+        data_dir = get_data_home()
     dataset_dir = data_dir / dataset_name
     if dataset_name == "fastmri_knee_singlecoil":
         file_type = "pt"
@@ -123,7 +143,9 @@ def load_dataset(
     return dataset
 
 
-def load_degradation(name, data_dir, index=0, download=True):
+def load_degradation(name, data_dir=None, index=0, download=True):
+    if data_dir is None:
+        data_dir = get_data_home()
     path = data_dir / name
     if download and not path.exists():
         data_dir.mkdir(parents=True, exist_ok=True)

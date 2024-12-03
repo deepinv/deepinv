@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 
 class FixedPoint(nn.Module):
-    """
+    r"""
     Fixed-point iterations module.
 
     This module implements the fixed-point iteration algorithm given a specific fixed-point iterator (e.g.

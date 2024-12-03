@@ -1,6 +1,6 @@
 r"""
 Image transforms for equivariance & augmentations
-===============================================
+=================================================
 
 We demonstrate the use of our ``deepinv.transform`` module for use in
 solving imaging problems. These can be used for:
@@ -121,7 +121,7 @@ t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max
 # Symmetrize function with respect to transform
 f_s = t.symmetrize(f, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\sum_i T_i^{-1}f(T_ix)$"]
+    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
 )
 
 

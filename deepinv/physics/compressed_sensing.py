@@ -1,9 +1,30 @@
-import numpy as np
-import torch
-
 from deepinv.physics.forward import LinearPhysics
+import torch
+import numpy as np
 from deepinv.physics.functional import random_choice
-from deepinv.physics.structured_random import StructuredRandom, generate_diagonal
+
+
+def dst1(x):
+    r"""
+    Orthogonal Discrete Sine Transform, Type I
+    The transform is performed across the last dimension of the input signal
+    Due to orthogonality we have ``dst1(dst1(x)) = x``.
+
+    :param torch.Tensor x: the input signal
+    :return: (torch.tensor) the DST-I of the signal over the last dimension
+
+    """
+    x_shape = x.shape
+
+    b = int(np.prod(x_shape[:-1]))
+    n = x_shape[-1]
+    x = x.view(-1, n)
+
+    z = torch.zeros(b, 1, device=x.device)
+    x = torch.cat([z, x, z, -x.flip([1])], dim=1)
+    x = torch.view_as_real(torch.fft.rfft(x, norm="ortho"))
+    x = x[:, 1:-1, 1]
+    return x.view(*x_shape)
 
 
 class CompressedSensing(LinearPhysics):
@@ -27,11 +48,11 @@ class CompressedSensing(LinearPhysics):
     :math:`D\in\mathbb{R}^{n\times n}` is a fast orthogonal transform (DST-1) and
     :math:`\text{diag}(m)\in\mathbb{R}^{m\times n}` is random subsampling matrix, which keeps :math:`m` out of :math:`n` entries.
 
-    For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity. In this case, we recommend using :meth:`deepinv.physics.StructuredRandom` instead.
+    For image sizes bigger than 32 x 32, the forward computation can be prohibitively expensive due to its :math:`O(mn)` complexity.
+    In this case, we recommend using :class:`deepinv.physics.StructuredRandom` instead.
 
     .. deprecated:: 0.2.2
-
-                         The ``fast`` option is deprecated and might be removed in future versions.
+       The ``fast`` option is deprecated and might be removed in future versions. Use :class:`deepinv.physics.StructuredRandom` instead.
 
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
@@ -47,14 +68,12 @@ class CompressedSensing(LinearPhysics):
 
     .. math::
 
-        A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m}) \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
+        A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m} \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
 
     :param int m: number of measurements.
     :param tuple img_shape: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
-    :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
-    :param bool compute_inverse: Precompute the pseudo-inverse of the forward matrix (only for ``fast=False`` option). Precomputing the pseudoinverse can be slow if the matrix is large. Default is ``False``.
     :param torch.type dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
     :param str device: Device to store the forward matrix.
     :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
@@ -71,8 +90,8 @@ class CompressedSensing(LinearPhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[ 0.8522,  0.2133,  0.9897, -0.8714,  1.8953, -0.5284,  1.4422,  0.4238,
-                  0.7754, -0.0479]])
+        tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
+                  0.6752, -1.5684]])
 
     """
 
@@ -82,8 +101,6 @@ class CompressedSensing(LinearPhysics):
         img_shape,
         fast=False,
         channelwise=False,
-        unitary=False,
-        compute_inverse=False,
         dtype=torch.float,
         device="cpu",
         rng: torch.Generator = None,
@@ -94,8 +111,6 @@ class CompressedSensing(LinearPhysics):
         self.img_shape = img_shape
         self.fast = fast
         self.channelwise = channelwise
-        self.unitary = unitary
-        self.compute_inverse = compute_inverse
         self.dtype = dtype
         self.device = device
 
@@ -115,57 +130,27 @@ class CompressedSensing(LinearPhysics):
             n = int(np.prod(img_shape))
 
         if self.fast:
-            print(
-                "Warning: fast option is deprecated and might be removed in future versions."
-            )
-            # generate random subsampling matrix
             self.n = n
+            self.D = torch.where(
+                torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
+            )
+
             self.mask = torch.zeros(self.n, device=device)
             idx = torch.sort(
                 random_choice(self.n, size=m, replace=False, rng=self.rng)
             ).values
             self.mask[idx] = 1
             self.mask = self.mask.type(torch.bool)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
 
-            # generate random sign matrix
-            self.D = generate_diagonal(
-                shape=(n,),
-                mode="rademacher",
-                dtype=torch.float,
-                device=device,
-                generator=self.rng,
-            )
             self.D = torch.nn.Parameter(self.D, requires_grad=False)
-
-            self.FD = StructuredRandom(
-                input_shape=(n,),
-                output_shape=(n,),
-                device=device,
-                diagonals=[self.D],
-            )
-
+            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
         else:
-            if self.unitary is False:
-                # generate A as an iid Gaussian matrix
-                self._A = torch.randn((m, n), device=device, dtype=dtype)
-                self._A = self._A / np.sqrt(m)
-                self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            else:
-                # generate A as a random unitary matrix
-                print("Using Haar matrix")
-                self._A = torch.randn(
-                    (m, n), device=device, dtype=dtype, generator=self.rng
-                ) / np.sqrt(m)
-                self._A, R = torch.linalg.qr(self._A)
-                L = torch.sgn(torch.diag(R))
-                self._A = self._A * L[None, :]
-                self._A = torch.nn.Parameter(self._A, requires_grad=False)
-
-            if self.compute_inverse is True:
-                self._A_dagger = torch.linalg.pinv(self._A)
-                self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-
+            self._A = torch.randn(
+                (m, n), device=device, dtype=dtype, generator=self.rng
+            ) / np.sqrt(m)
+            self._A_dagger = torch.linalg.pinv(self._A)
+            self._A = torch.nn.Parameter(self._A, requires_grad=False)
+            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
             self._A_adjoint = (
                 torch.nn.Parameter(self._A.conj().T, requires_grad=False)
                 .type(dtype)
@@ -180,7 +165,7 @@ class CompressedSensing(LinearPhysics):
             x = x.reshape(N, -1)
 
         if self.fast:
-            y = self.FD(x)[:, self.mask]
+            y = dst1(x * self.D)[:, self.mask]
         else:
             y = torch.einsum("in, mn->im", x, self._A)
 
@@ -203,7 +188,7 @@ class CompressedSensing(LinearPhysics):
         if self.fast:
             y2 = torch.zeros((N2, self.n), device=y.device)
             y2[:, self.mask] = y.type(y2.dtype)
-            x = self.FD.A_adjoint(y2)
+            x = dst1(y2) * self.D
         else:
             x = torch.einsum("im, nm->in", y, self._A_adjoint)  # x:(N, n, 1)
 
