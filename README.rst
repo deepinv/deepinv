@@ -14,12 +14,12 @@ DeepInverse is an open-source PyTorch-based library for solving imaging inverse 
 ``deepinv`` features
 
 
-* A large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/api/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
-* `Training losses <https://deepinv.github.io/deepinv/api/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.)
-* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/api/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/api/stubs/deepinv.optim.PnP.html>`_
-* A framework for `building datasets <https://deepinv.github.io/deepinv/api/deepinv.datasets.html>`_ for inverse problems
-* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/api/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.)
-* `Sampling algorithms <https://deepinv.github.io/deepinv/api/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.)
+* A large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/intro.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.)
+* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/weights.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_
+* A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
+* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.)
+* `Sampling algorithms <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.)
 * A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, from basics to state-of-the-art methods
 
 .. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_schematic.png
