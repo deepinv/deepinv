@@ -23,7 +23,7 @@ The reverse-time SDE is defined as follows, running backward in time:
     d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right( d\,t + g(t) d\, w_t.
 
 This reverse-time SDE can be used as a generative process. 
-The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
+The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
 
 .. math::
     x_t \vert x_0 \sim \mathcal{N}(\mu_tx_0, \sigma_t^2 \mathrm{Id}),
@@ -31,7 +31,7 @@ The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedi
 then
 
 .. math::
-    \nabla p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
+    \nabla \log p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
 
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
@@ -48,8 +48,7 @@ import deepinv as dinv
 from deepinv.models.edm import NCSNpp, EDMPrecond, ADMUNet
 from deepinv.utils.plotting import plot
 
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = torch.device("cuda")
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 
 # %%

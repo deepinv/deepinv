@@ -40,7 +40,7 @@ This reverse-time SDE can be used as a generative process. It also admits an equ
     d\, x_t = \left(f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
 
 
-The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
+The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
 
 .. math::
 
@@ -50,7 +50,7 @@ then
 
 .. math::
 
-    \nabla p_t(x_t) = \frac{\left(\mu_t D_{\sigma_t}(x_t) -  x_t \right)}{\sigma_t^2}.
+    \nabla \log p_t(x_t) = \frac{\left(\mu_t D_{\sigma_t}(x_t) -  x_t \right)}{\sigma_t^2}.
 
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
