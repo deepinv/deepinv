@@ -360,7 +360,7 @@ class Ptychography(PhaseRetrieval):
     :param array_like shifts: shifts of the probe.
     :param int fov: Field of view used for calculating shifts if `shifts` is not provided.
     :param int n_img: Number of shifted probe positions (should be a perfect square).
-    :param device: Device "cpu" or "gpu".
+    :param torch.device, str device: Device "cpu" or "gpu".
     """
 
     def __init__(
