@@ -288,7 +288,7 @@ class PtychographyLinearOperator(LinearPhysics):
         Generates the array of probe shifts across the image, based on probe radius and field of view.
 
         :param size: Size of the image.
-        :param n_img: Number of shifts (must be a perfect square).
+        :param int n_img: Number of shifts (must be a perfect square).
         :param probe_radius: Radius of the probe.
         :param fov: Field of view for shift computation.
         :return np.ndarray: Array of (x, y) shifts.
