@@ -20,10 +20,10 @@ Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 The reverse-time SDE is defined as follows, running backward in time:
 
 .. math::
-    d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right( d\,t + g(t) d\, w_t.
+    d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right) d\,t + g(t) d\, w_t.
 
 This reverse-time SDE can be used as a generative process. 
-The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
+The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
 
 .. math::
     x_t \vert x_0 \sim \mathcal{N}(\mu_tx_0, \sigma_t^2 \mathrm{Id}),
@@ -31,14 +31,14 @@ The (Stein) score function :math:`\nabla p_t(x_t)` can be approximated by Tweedi
 then
 
 .. math::
-    \nabla p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
+    \nabla \log p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
 
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 """
 
 # %% Define the forward process
-# -------------------------------
+# -----------------------------
 # Let us import the necessary modules and define the denoiser
 
 import torch
@@ -46,11 +46,8 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.models.edm import NCSNpp, EDMPrecond, ADMUNet
-from deepinv.utils.plotting import plot
 
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = torch.device("cuda")
-dtype = torch.float64
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load the pre-trained denoiser.
@@ -62,10 +59,13 @@ unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
 denoiser = EDMPrecond(model=unet).to(device)
 
 # %%
-# Define the SDE. In this example, we use the Variance-Exploding SDE, whose forward process is defined as:
+# Define the SDE
+# ______________
+#
+# In this example, we use the Variance-Exploding SDE, whose forward process is defined as:
 #
 # .. math::
-#     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right(^t
+#     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
 from deepinv.sampling.sde import VESDE
 
@@ -84,38 +84,77 @@ sde = VESDE(
     use_backward_ode=False,
 )
 
-# %% Reverse-time SDE as generative process
-# -----------------------------------------
+# %%
+# Reverse-time SDE as generative process
+# --------------------------------------
+#
+# Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
-timesteps = np.linspace(0, 1, 200)[::-1]
+num_steps = 200
+timesteps = np.linspace(0, 1, num_steps)[::-1]
+
+# The solution is obtained by calling the SDE object with a desired solver (here, Euler).
+
 solution = sde(
     (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
 )
-dinv.utils.plot_videos(
+
+sample_seed_1 = solution.sample
+
+dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
     titles=[f"SDE Trajectory"],
-    display=True,
+    save_fn="sde_trajectory.gif",
 )
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_0.gif")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# .. image-sg:: /auto_examples/images/sde_trajectory_0.gif
+#    :alt: example learn_samples
+#    :srcset: /auto_examples/images/sde_trajectory_0.gif
+#    :class: sphx-glr-single-img
 
 # %% Varying samples
+# -----------------
+#
 # One can obtain varying samples by using a different seed.
-# To ensure the reproducibility, if the parameter :attrib:`rng` is given, the same sample will
+# To ensure the reproducibility, if the parameter `rng` is given, the same sample will
 # be generated when the same seed is used
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
-)
-dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
 
-# By changing the seed, we can obtain different samples
+# By changing the seed, we can obtain different samples:
 solution = sde(
     (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=111, full_trajectory=True
 )
-dinv.utils.plot(solution.sample, suptitle=f"Backward sample, nfe = {solution.nfe}")
+sample_seed_111 = solution.sample
+
+dinv.utils.plot(
+    [sample_seed_1, sample_seed_111],
+    titles=[
+        f"Backward sample, seed 1, nfe = {solution.nfe}",
+        f"Backward sample, seed 111, nfe = {solution.nfe}",
+    ],
+)
 
 
-# %% Plug-and-play Image Generation with arbitrary denoisers
-# ----------------------------------------------------------
+# %%
+# Plug-and-play Image Generation with arbitrary denoisers
+# -------------------------------------------------------
 # The `SDE` class can be used together with any (well-trained) denoisers for image generation.
 # For example, we can use, for example the :meth:`deepinv.models.DRUNet` for image generation.
 # However, it should be careful to set the parameter `rescale` to `True` when instantiating the SDE class, since
@@ -137,20 +176,43 @@ sde = VESDE(
 )
 
 # We then can generate an image by solving the reverse-time SDE
-timesteps = np.linspace(0.001, 1, 200)[::-1]
+timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
+    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
 )
 
-dinv.utils.plot_videos(
+dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory"],
-    display=True,
+    titles=[f"SDE Trajectory with DRUNet denoiser"],
+    save_fn="sde_trajectory.gif",
 )
 
-# %% The underlying image distribution depends on the dataset on which the denoiser was trained,
-# and the end-point distribution. In VE-SDE, this depends on the `sigma_max`.
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_1.gif")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# .. image-sg:: /auto_examples/images/sde_trajectory_1.gif
+#    :alt: example learn_samples
+#    :srcset: /auto_examples/images/sde_trajectory_1.gif
+#    :class: sphx-glr-single-img
+
+# %%
+# The underlying image distribution depends on the dataset on which the denoiser was trained,
+# and the end-point distribution. In VE-SDE, this depends on the `sigma_max` parameter.
 # We can change its value as well.
 sigma_min = 0.02
 sigma_max = 20
@@ -168,19 +230,39 @@ sde = VESDE(
 )
 
 # We then can generate an image by solving the reverse-time SDE
-timesteps = np.linspace(0.001, 1, 200)[::-1]
+timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
+    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
 )
 
-# %% We could also use the :meth:`deepinv.models.DRUNet`.
-#
-dinv.utils.plot_videos(
+dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory"],
-    display=True,
+    titles=[f"SDE Trajectory (VE, DRUNet denoiser)"],
+    save_fn="sde_trajectory.gif",
 )
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_2.gif")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# .. image-sg:: /auto_examples/images/sde_trajectory_2.gif
+#    :alt: example learn_samples
+#    :srcset: /auto_examples/images/sde_trajectory_2.gif
+#    :class: sphx-glr-single-img
 
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
@@ -195,14 +277,36 @@ sde = VESDE(
 )
 
 # We then can generate an image by solving the reverse-time SDE
-timesteps = np.linspace(0.001, 1, 200)[::-1]
+timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
+    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
 )
 
-dinv.utils.plot_videos(
+dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory"],
-    display=True,
+    titles=[f"SDE Trajectory (VE, DiffUNet denoiser)"],
+    save_fn="sde_trajectory.gif",
 )
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_3.gif")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# .. image-sg:: /auto_examples/images/sde_trajectory_3.gif
+#    :alt: example learn_samples
+#    :srcset: /auto_examples/images/sde_trajectory_3.gif
+#    :class: sphx-glr-single-img

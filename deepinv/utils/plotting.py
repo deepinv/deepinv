@@ -1,3 +1,4 @@
+import os
 import math
 import shutil
 from pathlib import Path
@@ -18,6 +19,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from PIL import Image
+import io
 
 
 def config_matplotlib(fontsize=17):
@@ -703,12 +707,10 @@ def plot_videos(
     r"""Plots and animates a list of image sequences.
 
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :meth:`deepinv.utils.plot`
-
     vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
 
-    Per frame of the videos, this function calls :meth:`deepinv.utils.plot`, see its params to see how the frames are plotted.
-
-    To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
+    Per frame of the videos, this function calls :meth:deepinv.utils.plot, see its params to see how the frames are plotted.
+    To display an interactive HTML video in an IPython notebook, use `display=True. Note IPython must be installed for this.
 
     |sep|
 
@@ -726,15 +728,15 @@ def plot_videos(
     :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
     :param Union[str, List[str]] titles: titles of images in frame, defaults to None
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
-    :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
+    :param str rescale_mode: rescaling mode for :meth:deepinv.utils.plot, defaults to "min_max"
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
     :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
+    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note `anim_writer might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
     :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
-    :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
+    :param \** plot_kwargs: kwargs to pass to :meth:deepinv.utils.plot
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -756,10 +758,19 @@ def plot_videos(
             **plot_kwargs,
         )
 
+    def init():
+        # fig, axs = animate(0)
+        # plt.gcf().set_visible(not plt.gcf().get_visible())
+        return tuple()
+
     fig, axs = animate(0)
+    # plt.gcf().set_visible(not plt.gcf().get_visible())
+    # fig, axs = plt.subplots()
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
+        init_func=init,
         frames=vid_list[0].shape[time_dim],
         **anim_kwargs,
     )
@@ -782,6 +793,84 @@ def plot_videos(
             return HTML(anim.to_jshtml())
         except ImportError:
             warn("IPython can't be found. Install it to use display=True. Skipping...")
+
+
+def save_videos(
+    vid_list: Union[torch.Tensor, List[torch.Tensor]],
+    titles: Union[str, List[str]] = None,
+    time_dim: int = 2,
+    rescale_mode: str = "min_max",
+    display: bool = False,
+    figsize: Tuple[int] = None,
+    dpi: int = None,
+    save_fn: str = None,
+    return_anim: bool = False,
+    anim_writer: str = None,
+    anim_kwargs: dict = {},
+    **plot_kwargs,
+):
+    r"""Plots and animates a list of image sequences.
+
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :meth:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+
+    Per frame of the videos, this function calls :meth:deepinv.utils.plot, see its params to see how the frames are plotted.
+    To display an interactive HTML video in an IPython notebook, use `display=True. Note IPython must be installed for this.
+
+    |sep|
+
+    :Examples:
+
+        Display list of image sequences live in a notebook:
+
+        >>> from deepinv.utils import plot_videos
+        >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+        >>> y = torch.rand((1, 3, 5, 16, 16))
+        >>> plot_videos([x, y], display=True) # Display interactive view in notebook (requires IPython)
+        >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
+
+
+    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
+    :param str rescale_mode: rescaling mode for :meth:deepinv.utils.plot, defaults to "min_max"
+    :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
+    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
+    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note `anim_writer might have to be specified. Defaults to None
+    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
+    :param bool return_anim: return matplotlib animation object, defaults to False
+    :param int dpi: DPI of saved videos.
+    :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
+    :param \** plot_kwargs: kwargs to pass to :meth:deepinv.utils.plot
+    """
+    if isinstance(vid_list, torch.Tensor):
+        vid_list = [vid_list]
+
+    for i, vid in enumerate(vid_list):
+        for t in range(vid.shape[time_dim]):
+            plot(
+                [vid.select(time_dim, t)],
+                titles=titles,
+                show=False,
+                rescale_mode=rescale_mode,
+                figsize=figsize,
+                save_fn="frame_" + str(t) + ".png",
+                **plot_kwargs,
+            )
+            # hide the plot
+            plt.close()
+
+    # load all frames and save them as a gif
+    frames = []
+    for t in range(vid_list[0].shape[time_dim]):
+        frames.append(Image.open("frame_" + str(t) + ".png"))
+    frames[0].save(
+        save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
+    )
+
+    # remove all frames
+    for t in range(vid_list[0].shape[time_dim]):
+        os.remove("frame_" + str(t) + ".png")
 
 
 def plot_ortho3D(

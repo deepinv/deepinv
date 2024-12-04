@@ -63,7 +63,7 @@ class BaseSDE(nn.Module):
         :param timesteps: time steps at which to discretize the SDE, of shape `(n_steps,)`.
         :param str method: method for solving the SDE. One of the methods available in :meth:`deepinv.sampling.sde_solver`.
 
-        :rtype SDEOutput.
+        :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
         self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
@@ -102,7 +102,7 @@ class BaseSDE(nn.Module):
                 )
 
     def reset_rng(self):
-        r""",
+        r"""
         Reset the random number generator to its initial state.
         """
         self.rng.set_state(self.initial_random_state)
@@ -300,7 +300,7 @@ class DiffusionSDE(nn.Module):
 
         :param Any t: time step.
 
-        :return torch.Tensor: the noise level at time step :attrib:`t`.
+        :return torch.Tensor: the noise level at time step :attr:`t`.
         """
         t = self._handle_time_step(t)
         return torch.sqrt(1.0 - torch.exp(-2.0 * t))
