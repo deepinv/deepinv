@@ -20,7 +20,7 @@ Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 The reverse-time SDE is defined as follows, running backward in time:
 
 .. math::
-    d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right) d\,t + g(t) d\, w_t.
+    d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right( d\,t + g(t) d\, w_t.
 
 This reverse-time SDE can be used as a generative process. 
 The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
@@ -46,8 +46,10 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.models.edm import NCSNpp, EDMPrecond, ADMUNet
+from deepinv.utils.plotting import plot
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+dtype = torch.float64
 
 # %%
 # Load the pre-trained denoiser.
