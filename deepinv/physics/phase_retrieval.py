@@ -231,7 +231,7 @@ class PtychographyLinearOperator(LinearPhysics):
         Applies the forward operator to the input image `x` by shifting the probe,
         multiplying element-wise, and performing a 2D Fourier transform.
 
-        :param x: Input image tensor.
+        :param torch.Tensor x: Input image tensor.
         :return: Concatenated Fourier transformed tensors after applying shifted probes.
         """
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
@@ -246,7 +246,7 @@ class PtychographyLinearOperator(LinearPhysics):
         """
         Applies the adjoint operator to `y`.
 
-        :param y: Transformed image data tensor of size (batch_size, n_img, height, width).
+        :param torch.Tensor y: Transformed image data tensor of size (batch_size, n_img, height, width).
         :return: Reconstructed image tensor.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
@@ -312,10 +312,10 @@ class PtychographyLinearOperator(LinearPhysics):
         """
         Applies a shift to the tensor `x` by `x_shift` and `y_shift`.
 
-        :param x: Input tensor.
-        :param x_shift: Shift in x-direction.
-        :param y_shift: Shift in y-direction.
-        :param pad_zeros: If True, pads shifted regions with zeros.
+        :param torch.Tensor x: Input tensor.
+        :param int x_shift: Shift in x-direction.
+        :param int y_shift: Shift in y-direction.
+        :param bool pad_zeros: If True, pads shifted regions with zeros.
         :return: Shifted tensor.
         """
         x = torch.roll(x, (x_shift, y_shift), dims=(-2, -1))
@@ -335,8 +335,8 @@ class PtychographyLinearOperator(LinearPhysics):
         """
         Computes the overlapping image intensities from probe shifts, used for normalization.
 
-        :param probe: Probe tensor.
-        :param shifts: Array of probe shifts.
+        :param torch.Tensor probe: Probe tensor.
+        :param array_like shifts: Array of probe shifts.
         :return: Tensor representing the overlap image.
         """
         overlap_img = torch.zeros_like(probe, dtype=torch.float32)
@@ -356,7 +356,7 @@ class Ptychography(PhaseRetrieval):
     where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
 
     :param tuple in_shape: Shape of the input image (height, width).
-    :param probe: A 2D tensor representing the probe function.
+    :param torch.Tensor probe: A 2D tensor representing the probe function.
     :param str probe_type: Type of probe (e.g., "disk"), used if `probe` is not provided.
     :param int probe_radius: Radius of the probe, used if `probe` is not provided.
     :param array_like shifts: shifts of the probe.
