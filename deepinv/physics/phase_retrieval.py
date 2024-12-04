@@ -298,7 +298,9 @@ class PtychographyLinearOperator(LinearPhysics):
         start_shift = -fov // 2
         end_shift = fov // 2
 
-        assert int(np.sqrt(n_img)) ** 2 == n_img, "n_img needs to be a perfect square"
+        if  n_img != int(np.sqrt(n_img)) ** 2:
+            raise ValueError("n_img needs to be a perfect square")
+            
         side_n_img = int(np.sqrt(n_img))
         shifts = np.linspace(start_shift, end_shift, side_n_img).astype(int)
         y_shifts, x_shifts = np.meshgrid(shifts, shifts, indexing="ij")
