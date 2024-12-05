@@ -156,3 +156,62 @@ def test_dps(device):
 
     out = algorithm(y, physics)
     assert out.shape == x.shape
+
+
+def test_sde(device):
+    from deepinv.sampling.sde import VESDE
+    from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
+
+    # Set up all denoisers
+    denoisers = []
+    rescales = []
+
+    denoisers.append(
+        EDMPrecond(NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")).to(device)
+    )
+    rescales.append(False)
+
+    denoisers.append(EDMPrecond(ADMUNet.from_pretrained("imagenet64-cond")).to(device))
+    rescales.append(False)
+
+    denoisers.append(DRUNet(pretrained="download").to(device))
+    rescales.append(True)
+
+    # Set up the SDE
+    sigma_max = 20
+    sigma_min = 0.02
+    num_steps = 200
+    rng = torch.Generator(device)
+    for denoiser, rescale in zip(denoisers, rescales):
+        sde = VESDE(
+            denoiser=denoiser,
+            rescale=rescale,
+            sigma_max=sigma_max,
+            sigma_min=sigma_min,
+            rng=rng,
+            device=device,
+            use_backward_ode=False,
+        )
+
+        # Test generation
+        timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+        solution = sde(
+            (1, 3, 64, 64),
+            timesteps=timesteps,
+            method="Euler",
+            seed=10,
+            full_trajectory=False,
+        )
+        sample_1 = solution.sample
+        solution = sde(
+            (1, 3, 64, 64),
+            timesteps=timesteps,
+            method="Euler",
+            seed=10,
+            full_trajectory=False,
+        )
+        sample_2 = solution.sample
+        # Test reproducibility
+        assert torch.allclose(sample_1, sample_2, atol=1e-2, rtol=1e-2)
+        # TODO: add better error checking
+        assert solution.sample.shape == (1, 3, 64, 64)

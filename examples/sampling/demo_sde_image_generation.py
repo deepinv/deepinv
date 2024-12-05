@@ -148,8 +148,8 @@ sample_seed_111 = solution.sample
 dinv.utils.plot(
     [sample_seed_1, sample_seed_111],
     titles=[
-        f"Backward sample, seed 1, nfe = {solution.nfe}",
-        f"Backward sample, seed 111, nfe = {solution.nfe}",
+        f"Backward sample, seed 1, \n nfe = {solution.nfe}",
+        f"Backward sample, seed 111, \n nfe = {solution.nfe}",
     ],
 )
 
@@ -180,13 +180,13 @@ sde = VESDE(
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
+    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=101, full_trajectory=True
 )
-
+dinv.utils.plot(solution.sample, titles="VE-SDE sample \n DRUNet denoiser")
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory with DRUNet denoiser"],
+    titles=["SDE Trajectory \n with DRUNet denoiser"],
     save_fn="sde_trajectory.gif",
 )
 
@@ -234,13 +234,13 @@ sde = VESDE(
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
+    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=111, full_trajectory=True
 )
 
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory (VE, DRUNet denoiser)"],
+    titles=["SDE Trajectory \n (VE, DRUNet denoiser)"],
     save_fn="sde_trajectory.gif",
 )
 
@@ -287,7 +287,7 @@ solution = sde(
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory (VE, DiffUNet denoiser)"],
+    titles=["SDE Trajectory \n (VE, DiffUNet denoiser)"],
     save_fn="sde_trajectory.gif",
 )
 
