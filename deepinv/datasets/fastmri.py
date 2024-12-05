@@ -46,7 +46,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     You can use this to generate a custom dataset and load using the ``file_name`` argument.
     
     :param str, Path root_dir: dataset root directory
-    :param str, Path file_name: optional, name of local dataset to load. If ``None``, load dataset based on ``anatomy`` parameter.
+    :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
     :param bool train: whether to use training set or test set, defaults to True
     :param int sample_index: if specified only load this sample, defaults to None
@@ -67,8 +67,10 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         transform: Optional[Callable] = None,
         download: bool = False,
     ):
-        if anatomy not in ("knee", "brain"):
-            raise ValueError("anatomy must be either 'knee' or 'brain'.")
+        if anatomy not in ("knee", "brain", None):
+            raise ValueError("anatomy must be either 'knee' or 'brain' or None.")
+        elif anatomy is None and file_name is None:
+            raise ValueError("Either anatomy or file_name must be passed.")
 
         os.makedirs(root_dir, exist_ok=True)
         root_dir = Path(root_dir)
