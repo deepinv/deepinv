@@ -382,6 +382,3 @@ class FourierEmbedding(torch.nn.Module):
         x = x.ger((2 * np.pi * self.freqs).to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
-
-
-# ----------------------------------------------------------------------------

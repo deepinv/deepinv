@@ -205,7 +205,7 @@ class NCSNpp(torch.nn.Module):
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
 
-    def forward(self, x, noise_level, class_labels, augment_labels=None):
+    def forward(self, x, noise_level, class_labels=None, augment_labels=None):
         r"""
         Run the denoiser on noisy image.
 
@@ -217,6 +217,7 @@ class NCSNpp(torch.nn.Module):
         :return torch.Tensor: denoised image.
         """
         # Mapping.
+        noise_level = self._handle_sigma(noise_level, x.dtype, x.device, x.size(0))
         emb = self.map_noise(noise_level)
         emb = (
             emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
@@ -298,3 +299,22 @@ class NCSNpp(torch.nn.Module):
         else:
             raise ValueError(f"Unsupported model name: {model_name}")
         return model
+
+    @staticmethod
+    def _handle_sigma(sigma, dtype, device, batch_size):
+        if isinstance(sigma, torch.Tensor):
+            if sigma.ndim == 0:
+                return sigma[None].to(device, dtype).expand(batch_size)
+            elif sigma.ndim == 1:
+                assert (
+                    sigma.size(0) == batch_size or sigma.size(0) == 1
+                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
+                return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
+
+            else:
+                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
+
+        elif isinstance(sigma, (float, int)):
+            return torch.tensor([sigma]).to(device, dtype).expand(batch_size)
+        else:
+            raise ValueError("Unsupported sigma type.")
