@@ -401,7 +401,6 @@ class VESDE(DiffusionSDE):
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
     def score(self, x, t, *args, **kwargs):
-        t = self._handle_time_step(t)
         return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
             self.denoiser(
                 x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs

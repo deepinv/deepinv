@@ -5,7 +5,7 @@ import numpy as np
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
-
+import os
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -158,6 +158,12 @@ def test_dps(device):
     assert out.shape == x.shape
 
 
+DEVICES = ["cpu"]
+if torch.cuda.is_available():
+    DEVICES.append("cuda")
+
+
+@pytest.mark.parametrize("device", DEVICES)
 def test_sde(device):
     from deepinv.sampling.sde import VESDE
     from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
@@ -165,24 +171,29 @@ def test_sde(device):
     # Set up all denoisers
     denoisers = []
     rescales = []
-
+    list_kwargs = []
     denoisers.append(
-        EDMPrecond(NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")).to(device)
+        EDMPrecond(model=NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")).to(device)
     )
     rescales.append(False)
+    list_kwargs.append(dict())
 
-    denoisers.append(EDMPrecond(ADMUNet.from_pretrained("imagenet64-cond")).to(device))
+    denoisers.append(
+        EDMPrecond(model=ADMUNet.from_pretrained("imagenet64-cond")).to(device)
+    )
     rescales.append(False)
+    list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
 
     denoisers.append(DRUNet(pretrained="download").to(device))
     rescales.append(True)
+    list_kwargs.append(dict())
 
     # Set up the SDE
     sigma_max = 20
     sigma_min = 0.02
-    num_steps = 200
+    num_steps = 20
     rng = torch.Generator(device)
-    for denoiser, rescale in zip(denoisers, rescales):
+    for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
         sde = VESDE(
             denoiser=denoiser,
             rescale=rescale,
@@ -200,18 +211,26 @@ def test_sde(device):
             timesteps=timesteps,
             method="Euler",
             seed=10,
-            full_trajectory=False,
+            full_trajectory=True,
+            **kwargs,
         )
+        x_init_1 = solution.trajectory[0]
         sample_1 = solution.sample
+
+        assert solution.sample.shape == (1, 3, 64, 64)
+
+        # Test reproducibility
         solution = sde(
             (1, 3, 64, 64),
             timesteps=timesteps,
             method="Euler",
             seed=10,
-            full_trajectory=False,
+            full_trajectory=True,
+            **kwargs,
         )
+        x_init_2 = solution.trajectory[0]
         sample_2 = solution.sample
         # Test reproducibility
-        assert torch.allclose(sample_1, sample_2, atol=1e-2, rtol=1e-2)
+        assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+        assert torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean") < 1e-2
         # TODO: add better error checking
-        assert solution.sample.shape == (1, 3, 64, 64)

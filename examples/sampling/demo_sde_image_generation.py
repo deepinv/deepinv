@@ -48,7 +48,8 @@ import deepinv as dinv
 from deepinv.models.edm import NCSNpp, EDMPrecond, ADMUNet
 from deepinv.utils.plotting import plot
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = "cpu"
 dtype = torch.float64
 
 # %%
@@ -92,7 +93,7 @@ sde = VESDE(
 #
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
-num_steps = 200
+num_steps = 20
 timesteps = np.linspace(0, 1, num_steps)[::-1]
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
@@ -103,6 +104,7 @@ solution = sde(
 
 sample_seed_1 = solution.sample
 
+dinv.utils.plot(sample_seed_1)
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
