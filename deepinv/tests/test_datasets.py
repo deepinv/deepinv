@@ -1,7 +1,8 @@
-import shutil
+import shutil, os
 
 import PIL
 import pytest
+import torch
 
 from deepinv.datasets import (
     DIV2K,
@@ -10,7 +11,10 @@ from deepinv.datasets import (
     CBSD68,
     LsdirHR,
     FMD,
+    FastMRISliceDataset, SimpleFastMRISliceDataset
 )
+from deepinv.datasets.utils import download_archive
+from deepinv.utils.demo import get_image_dataset_url
 
 
 @pytest.fixture
@@ -180,3 +184,61 @@ def test_load_fmd_dataset(download_fmd):
     assert (
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+@pytest.fixture
+def download_simplefastmri():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "fastmri"
+
+    # Download simple FastMRI slice dataset
+    SimpleFastMRISliceDataset(tmp_data_dir, download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+def test_SimpleFastMRISliceDataset(download_simplefastmri):
+    dataset = SimpleFastMRISliceDataset(
+        root_dir=download_simplefastmri,
+        anatomy="knee",
+        train=True,
+        train_percent=1.,
+        download=False
+    )
+    x = dataset[0]
+    x2 = dataset[1]
+    assert x.shape == (2, 320, 320)
+    assert not torch.all(x == x2)
+    assert len(dataset) == 973
+
+@pytest.fixture
+def download_fastmri():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "fastmri"
+    file_name = "brain_multicoil_train_0.h5"
+
+    # Download single FastMRI volume
+    os.makedirs(tmp_data_dir, exist_ok=True)
+    url = get_image_dataset_url(file_name, None)
+    download_archive(url, f"{tmp_data_dir}/{file_name}")
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+def test_FastMRISliceDataset(download_fastmri):
+    dataset = FastMRISliceDataset(
+        root=download_fastmri,
+        slice_index="all",
+    )
+    target1, kspace1 = dataset[0]
+    target2, kspace2 = dataset[1]
+
+    assert target1.shape == (320, 320)
+    assert kspace1.shape == (2, 20, 512, 256)
+    assert not torch.all(target1 == target2)
+    assert not torch.all(kspace1 == kspace2)

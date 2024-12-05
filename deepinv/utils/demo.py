@@ -26,8 +26,7 @@ def get_image_dataset_url(dataset_name, file_type="zip"):
     return (
         "https://huggingface.co/datasets/deepinv/images/resolve/main/"
         + dataset_name
-        + "."
-        + file_type
+        + (("." + file_type) if file_type is not None else "")
         + "?download=true"
     )
 
@@ -71,7 +70,7 @@ def load_dataset(
     data_dir: Path = None,
     download: bool = True,
     url: str = None,
-    train: bool = True,
+    file_type: str = "zip",
 ) -> Dataset:
     # TODO add load_dataset to docs
     # TODO docstring
@@ -83,15 +82,17 @@ def load_dataset(
     if isinstance(data_dir, str):
         data_dir = Path(data_dir)
 
+    if "fastmri" in dataset_name:
+        raise ValueError("Loading singlecoil fastmri with load_dataset is now deprecated. Please use deepinv.datasets.SimpleFastMRISliceDataset(download=True).")
+
     dataset_dir = data_dir / dataset_name
-    if dataset_name in ("fastmri_knee_singlecoil"):
-        file_type = "pt"
-    else:
-        file_type = "zip"
+    
     if download and not dataset_dir.exists():
         dataset_dir.mkdir(parents=True, exist_ok=True)
+        
         if url is None:
             url = get_image_dataset_url(dataset_name, file_type)
+        
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
         block_size = 1024  # 1 Kibibyte
@@ -103,26 +104,15 @@ def load_dataset(
                 file.write(data)
         progress_bar.close()
 
-        if file_type == "zip":
-            with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
-                zip_ref.extractall(str(data_dir))
-            # remove temp file
-            os.remove(str(dataset_dir) + f".{file_type}")
-            print(f"{dataset_name} dataset downloaded in {data_dir}")
-        else:
-            shutil.move(
-                str(dataset_dir) + f".{file_type}",
-                str(dataset_dir / dataset_name) + f".{file_type}",
-            )
-    if dataset_name in ("fastmri_knee_singlecoil", "fastmri_brain"):
-        dataset = SimpleFastMRISliceDataset(
-            root_dir=dataset_dir / dataset_name, transform=transform, train=train
-        )
-    else:
-        dataset = torchvision.datasets.ImageFolder(
-            root=dataset_dir, transform=transform
-        )
-    return dataset
+        with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
+            zip_ref.extractall(str(data_dir))
+        
+        os.remove(str(dataset_dir) + f".{file_type}")
+        print(f"{dataset_name} dataset downloaded in {data_dir}")
+
+    return torchvision.datasets.ImageFolder(
+        root=dataset_dir, transform=transform
+    )
 
 
 def load_degradation(name, data_dir=None, index=0, download=True):

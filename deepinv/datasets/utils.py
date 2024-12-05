@@ -8,7 +8,7 @@ import requests
 from tqdm.auto import tqdm
 
 from torch.utils.data import Dataset
-from torch import randn
+from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 
 from deepinv.utils.plotting import rescale_img
@@ -109,9 +109,23 @@ class PlaceholderDataset(Dataset):
 
 
 class Rescale(Module):
-    def __init__(self, *args, rescale_mode="min_max", **kwargs):
+    """Image value rescale torchvision-style transform.
+
+    The transform expects tensor of shape (..., H, W) and performs rescale over all dimensions (i.e. over all images in batch).
+
+    :param str rescale_mode: rescale mode, either "min_max" or "clip".
+    """
+    def __init__(self, *args, rescale_mode: str = "min_max", **kwargs):
         super().__init__(*args, **kwargs)
         self.rescale_mode = rescale_mode
+    
+    def forward(self, x: Tensor):
+        return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
 
-    def forward(self, x):
-        return rescale_img(x, rescale_mode=self.rescale_mode)
+class ToComplex(Module):
+    """Torchvision-style transform to add empty imaginary dimension to image.
+
+    Expects tensor of shape (..., H, W) and returns tensor of shape (..., 2, H, W).
+    """
+    def forward(self, x: Tensor):
+        return stack([x, zeros_like(x)], dim=-3)
