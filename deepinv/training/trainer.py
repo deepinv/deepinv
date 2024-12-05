@@ -843,15 +843,15 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader, save_path=None, compare_no_learning=True):
+    def test(self, test_dataloader, save_path=None, compare_no_learning=True) -> dict:
         r"""
-        Test the model.
+        Test the model, compute metrics and plot images.
 
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) should provide a
             a signal x or a tuple of (x, y) signal/measurement pairs.
-        :param str save_path: Directory in which to save the trained model.
+        :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
-        :returns: The trained model.
+        :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
         self.setup_train(train=False)
