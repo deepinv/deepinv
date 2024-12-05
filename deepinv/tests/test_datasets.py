@@ -242,3 +242,8 @@ def test_FastMRISliceDataset(download_fastmri):
     assert kspace1.shape == (2, 20, 512, 256)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
+
+    subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
+    x = subset[0]
+
+    assert x.shape == (2, 320, 320)

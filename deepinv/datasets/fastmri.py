@@ -34,15 +34,19 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
 
     Loads a saved subset of 2D slices from the full FastMRI slice dataset.
-    These images are RSS reconstructions from fully-sampled MRI, normalised and padded.
     
-    We provide a pregenerated saved subset for FastMRI knees (total 973 images) and brains (total 455 images),
-    from their respective original train sets, which are loaded as images of shape (2x320x320).
-    Download the dataset using ``download=True``.
+    We provide a pregenerated saved subset for singlecoil FastMRI knees (total 973 images)
+    and RSS reconstructions of multicoil brains (total 455 images).
+    These originate from their respective original fully-sampled train volumes.
+    Each slice is the middle slice from one independent volume.
+    The images are of shape (2x320x320) and are normalised (0-1) and padded.
+    Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
     
     These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
-
-    :param str, Path root_dir: dataset name e.g. ``fastmri_knee_singlecoil``
+    You can use this to generate a custom dataset and load using the ``file_name`` argument.
+    
+    :param str, Path root_dir: dataset root directory
+    :param str, Path file_name: optional, name of local dataset to load. If ``None``, load dataset based on ``anatomy`` parameter.
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
     :param bool train: whether to use training set or test set, defaults to True
     :param int sample_index: if specified only load this sample, defaults to None
@@ -55,6 +59,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root_dir: Union[str, Path],
+        file_name: Union[str, Path] = None,
         anatomy: str = "knee",
         train: bool = True,
         sample_index: int = None,
@@ -67,7 +72,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         os.makedirs(root_dir, exist_ok=True)
         root_dir = Path(root_dir)
-        file_name = Path(f"fastmri_{anatomy}_singlecoil.pt")
+        file_name = file_name if file_name is not None else Path(f"fastmri_{anatomy}_singlecoil.pt")
 
         try:
             x = torch.load(root_dir / file_name)
@@ -295,7 +300,16 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         """Convert dataset to a 2D singlecoil dataset and save as pickle file.
         This allows the dataset to be loaded in memory with :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.
 
-        :param str dataset_path: desired path of dataset to be saved.
+        :Example:
+
+            from deepinv.datasets import FastMRISliceDataset
+            root = "/path/to/dataset/fastMRI/brain/multicoil_train"
+            dataset = FastMRISliceDataset(root=root, slice_index="middle")
+            subset = dataset.save_simple_dataset(
+                root + "/fastmri_brain_singlecoil.pt"
+            )
+
+        :param str dataset_path: desired path of dataset to be saved with file extension e.g. ``fastmri_knee_singlecoil.pt``.
         :param bool pad_to_size: if not None, normalise images to 0-1 then pad to provided shape. Must be set if images are of varying size,
             in order to successfully stack images to tensor.
         :return: loaded SimpleFastMRISliceDataset
@@ -316,9 +330,18 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         xs = [self.__getitem__(i)[0] for i in tqdm(range(self.__len__()))]
 
-        torch.save(torch.stack(xs), str(dataset_path) + ".pt")
+        torch.save(torch.stack(xs), str(dataset_path))
 
         self.transform_target = transform_target
 
-        return SimpleFastMRISliceDataset(dataset_path, train=True, train_percent=1., transform=None)
+        dataset_path = Path(dataset_path)
 
+        return SimpleFastMRISliceDataset(
+            root_dir=dataset_path.parent,
+            file_name=dataset_path.name,
+            anatomy=None,
+            train=True,
+            train_percent=1.,
+            transform=None,
+            download=False,
+        )

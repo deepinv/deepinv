@@ -11,9 +11,6 @@ from torch.utils.data import Dataset
 import torchvision
 from torchvision import transforms
 
-from deepinv.datasets.fastmri import SimpleFastMRISliceDataset
-
-
 def get_git_root():
     import git
 
@@ -74,8 +71,6 @@ def load_dataset(
 ) -> Dataset:
     # TODO add load_dataset to docs
     # TODO docstring
-    # TODO robust checking of dataset_name especially for mri
-    # TODO add note to userguide on how mri datasets were created
     if data_dir is None:
         data_dir = get_data_home()
 
