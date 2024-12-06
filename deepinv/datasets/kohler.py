@@ -37,25 +37,25 @@ class Kohler(Dataset):
     between the frames as the camera barely moves between consecutive frames,
     for this reason the implementation allows selecting a single frame as the
     priviledged ground truth. This enables using the tooling provided by
-    deepinv such as `deepinv.test` and which gives approximately the same
-    performance as comparing to all the frames. It is the parameter `frames`
-    that controls this behavior, when it is set to either `"first"`,
-    `"middle"`, `"last"`, or to a specific frame index (between 1 and 198). If
+    deepinv such as :func:`deepinv.test` and which gives approximately the same
+    performance as comparing to all the frames. It is the parameter ``frames``
+    that controls this behavior, when it is set to either ``"first"``,
+    ``"middle"``, ``"last"``, or to a specific frame index (between 1 and 198). If
     the user wants to compare against all the frames, e.g. to reproduce the
     benchmarks of the original paper, they can do so by setting the parameter
-    `frames` to `"all"` or to a list of frame indices.
+    ``frames`` to ``"all"`` or to a list of frame indices.
 
-    The dataset does not have a priviledged ordering and this implementation
+    The dataset does not have a preferred ordering and this implementation
     uses lexicographic ordering on the printout index (1 to 4) and the
-    trajectory index (1 to 12). The parameter `ordering` controls whether to
-    order by printout first `"printout_first"` or by trajectory first
-    `"trajectory_first"`. This enables accessing the 48 items using the standard
-    method `__getitem__` using an index between 0 and 47. The nonstandard
-    method `get_item` allows selecting one of them by printout and trajectory
+    trajectory index (1 to 12). The parameter ``ordering`` controls whether to
+    order by printout first ``"printout_first"`` or by trajectory first
+    ``"trajectory_first"``. This enables accessing the 48 items using the standard
+    method ``__getitem__`` using an index between 0 and 47. The nonstandard
+    method ``get_item`` allows selecting one of them by printout and trajectory
     index directly if needed.
 
-    :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, "first", "middle", "last", or "all". If a list is provided, the method will return a list of sharp frames.
-    :param str ordering: Ordering of the dataset. Can be "printout_first" or "trajectory_first".
+    :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, ``"first"``, ``"middle"``, ``"last"``, or ``"all"``. If a list is provided, the method will return a list of sharp frames.
+    :param str ordering: Ordering of the dataset. Can be ``"printout_first"`` or ``"trajectory_first"``.
     :param Union[str, Path] root: Root directory of the dataset.
     :param callable, optional transform: A function used to transform both the blurry shots and the sharp frames.
     :param bool download: Download the dataset.
