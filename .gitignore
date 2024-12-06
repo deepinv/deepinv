@@ -22,6 +22,8 @@ results/
 *tmp
 *.tar
 *.ipynb
+examples/*/*.png
+examples/*/*.gif
 
 # Folders
 /docs/build/
