@@ -35,7 +35,6 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinxcontrib.googleanalytics",
 ]
 copybutton_exclude = ".linenos, .gp"
 
@@ -188,10 +187,9 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
-
-googleanalytics_id = "G-NSEKFKYSGR"
 
 # Separator substition : Writing |sep| in the rst file will display a horizontal line.
 rst_prolog = """
