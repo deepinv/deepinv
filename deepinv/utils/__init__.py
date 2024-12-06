@@ -9,6 +9,7 @@ from .plotting import (
     plot_parameters,
     plot_inset,
     plot_videos,
+    save_videos,
     make_grid,
     wandb_imgs,
     wandb_plot_curves,

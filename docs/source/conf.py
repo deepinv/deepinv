@@ -166,6 +166,9 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
+html_css_files = [
+    'custom.css',
+]
 html_sidebars = {
     "quickstart": [],
     "contributing": [],
