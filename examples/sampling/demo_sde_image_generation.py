@@ -104,11 +104,11 @@ solution = sde(
 
 sample_seed_1 = solution.sample
 
-dinv.utils.plot(sample_seed_1)
+dinv.utils.plot(sample_seed_1, titles="VE-SDE sample", save_fn="sde_sample.png", show=False)
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"SDE Trajectory"],
+    titles=[f"VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
 )
 
@@ -118,21 +118,30 @@ import os
 import shutil
 from pathlib import Path
 
+
 try:
     final_dir = (
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
     shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_0.gif")
+    shutil.copyfile("sde_sample.png", final_dir / "sde_sample.png")
 except FileNotFoundError:
     pass
 
 # sphinx_gallery_end_ignore
-
 # %%
-# .. image-sg:: /auto_examples/images/sde_trajectory_0.gif
-#    :alt: example learn_samples
-#    :srcset: /auto_examples/images/sde_trajectory_0.gif
-#    :class: sphx-glr-single-img
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory_0.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory_0.gif
+#       :class: custom-gif
+#
+#    .. image-sg:: /auto_examples/images/sde_sample.png
+#       :alt: other example
+#       :srcset: /auto_examples/images/sde_sample.png
+#       :class: custom-gif
+
 
 # %% Varying samples
 # -----------------
@@ -184,7 +193,7 @@ timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solution = sde(
     (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=101, full_trajectory=True
 )
-dinv.utils.plot(solution.sample, titles="VE-SDE sample \n DRUNet denoiser")
+dinv.utils.plot(solution.sample, titles="VE-SDE sample \n DRUNet denoiser", show=False, save_fn="sde_sample.png")
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
@@ -203,16 +212,19 @@ try:
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
     shutil.copyfile("sde_trajectory.gif", final_dir / "sde_trajectory_1.gif")
+    shutil.copyfile("sde_trajectory.png", final_dir / "sde_sample_1.png")
 except FileNotFoundError:
     pass
 
 # sphinx_gallery_end_ignore
 
 # %%
-# .. image-sg:: /auto_examples/images/sde_trajectory_1.gif
-#    :alt: example learn_samples
-#    :srcset: /auto_examples/images/sde_trajectory_1.gif
-#    :class: sphx-glr-single-img
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory_1.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory_1.gif
+#       :class: custom-gif
 
 # %%
 # The underlying image distribution depends on the dataset on which the denoiser was trained,
@@ -263,10 +275,12 @@ except FileNotFoundError:
 # sphinx_gallery_end_ignore
 
 # %%
-# .. image-sg:: /auto_examples/images/sde_trajectory_2.gif
-#    :alt: example learn_samples
-#    :srcset: /auto_examples/images/sde_trajectory_2.gif
-#    :class: sphx-glr-single-img
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory_2.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory_2.gif
+#       :class: custom-gif
 
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
@@ -310,7 +324,10 @@ except FileNotFoundError:
 # sphinx_gallery_end_ignore
 
 # %%
-# .. image-sg:: /auto_examples/images/sde_trajectory_3.gif
-#    :alt: example learn_samples
-#    :srcset: /auto_examples/images/sde_trajectory_3.gif
-#    :class: sphx-glr-single-img
+# %%
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory_3.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory_3.gif
+#       :class: custom-gif
