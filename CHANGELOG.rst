@@ -36,10 +36,11 @@ Fixed
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
 
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
-- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou) 
-- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_) 
-- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_) 
+- Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
+- Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
+- Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_)
 - Fix bug when using cuda device in dinv.datasets.generate_dataset  (:gh:`334` by `Tobias Liaudat`_)
+- Update outdated links in the readme (:gh:`366` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
