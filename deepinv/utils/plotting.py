@@ -115,7 +115,9 @@ def preprocess_img(im, rescale_mode="min_max"):
     :return: the preprocessed image.
     """
     with torch.no_grad():
-        if im.shape[1] == 2:  # for complex images
+        if im.shape[1] == 1:  # for grayscale images
+            pimg = im[:, 0, ...].type(torch.float32)
+        elif im.shape[1] == 2:  # for complex images
             pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
         elif im.shape[1] > 3:
             pimg = im.type(torch.float32)
