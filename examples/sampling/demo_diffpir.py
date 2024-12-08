@@ -35,20 +35,23 @@ config_matplotlib()
 
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+torch.manual_seed(1)
 
-url = get_image_url("butterfly.png")
+url = get_image_url("69037.png")
 
-x_true = load_url_image(url=url, img_size=64, device=device)
+x_true = load_url_image(url=url, img_size=256, device=device)
 
 x = x_true.clone()
+mask = torch.ones_like(x)
+mask[:, :, 50:100, 50:100] = 0
+mask[:, :, 80:130, 50:100] = 0
 
 sigma_noise = 12.75 / 255.0  # noise level
-
-physics = dinv.physics.BlurFFT(
-    img_size=(3, x.shape[-2], x.shape[-1]),
-    filter=torch.ones((1, 1, 5, 5), device=device) / 25,
-    device=device,
+physics = dinv.physics.Inpainting(
+    mask=mask,
+    tensor_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
+    device=device,
 )
 
 y = physics(x)
@@ -58,7 +61,7 @@ plot(
     imgs,
     titles=["measurement", "ground-truth"],
 )
-
+# print(asdasd)
 # %%
 # The DiffPIR algorithm
 # ---------------------
@@ -125,7 +128,7 @@ def get_alphas(beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=T)
     return torch.tensor(alphas_cumprod)
 
 
-alphas = get_alphas()
+alphas_cumprod = get_alphas()
 
 
 # %%
@@ -136,7 +139,7 @@ alphas = get_alphas()
 #           \sigma_t = \sqrt{1-\overline{\alpha}_t}/\overline{\alpha}_t.
 
 
-sigmas = torch.sqrt(1.0 - alphas) / alphas.sqrt()
+sigmas = torch.sqrt(1.0 - alphas_cumprod) / alphas_cumprod.sqrt()
 
 
 def find_nearest(array, value):
@@ -200,8 +203,8 @@ y_scaled = 2 * y - 1  # Rescale the measurement in [-1, 1]
 t_i = find_nearest(
     sigmas.cpu().numpy(), sigma_noise * 2
 )  # time step associated with the noise level sigma
-eps = (y_scaled - alphas[t_i].sqrt() * x_prox_scaled) / torch.sqrt(
-    1.0 - alphas[t_i]
+eps = (y_scaled - alphas_cumprod[t_i].sqrt() * x_prox_scaled) / torch.sqrt(
+    1.0 - alphas_cumprod[t_i]
 )  # effective noise
 
 # (notice the rescaling)
@@ -209,8 +212,8 @@ eps = (y_scaled - alphas[t_i].sqrt() * x_prox_scaled) / torch.sqrt(
 # Secondly, we need to perform the sampling step, which is a linear combination between the estimated noise and
 # the realizations of a Gaussian white noise. This is done as follows:
 zeta = 0.3
-x_sampled_scaled = alphas[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
-    1.0 - alphas[t_i - 1]
+x_sampled_scaled = alphas_cumprod[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
+    1.0 - alphas_cumprod[t_i - 1]
 ) * (np.sqrt(1 - zeta) * eps + np.sqrt(zeta) * torch.randn_like(x))
 
 x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
@@ -227,30 +230,47 @@ plot(
 )
 
 # %%
-# Putting it all together: the DiffPIR algorithm
-# ------------------------------------------------
+# Setting the noise and regularization schedules
+# ----------------------------------------------
 #
-# We can now put all the steps together and implement the DiffPIR algorithm. The only remaining step is to set the
-# noise schedule (i.e. the sequence of noise powers and regularization parameters) appropriately. This is done with the
-# following function:
+# The only remaining step is to set the noise schedule (i.e. the sequence of noise powers and regularization parameters)
+# appropriately. This is done with the following function:
 #
 # .. note::
 #
 #   We only use 30 steps to reduce the computational time of this example. As suggested by the authors of DiffPIR, the
 #   algorithm works best with ``diffusion_steps = 100``.
-#
 
-diffusion_steps = 30  # Maximum number of iterations of the DiffPIR algorithm
+max_iter = 30  # maximum number of iterations of the DiffPIR algorithm
 
-lambda_ = 7.0  # Regularization parameter
+# Useful sequences for the algorithm
+sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
+sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
+reduced_alpha_cumprod = torch.div(
+    sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod
+)  # equivalent noise sigma on image
+sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
 
-rhos = lambda_ * (sigma_noise**2) / (sigmas**2)
 
-# get timestep sequence
-seq = np.sqrt(np.linspace(0, T**2, diffusion_steps))
-seq = [int(s) for s in list(seq)]
-seq[-1] = seq[-1] - 1
+# noise schedule of the algorithm
+def get_noise_schedule(sigma, lambda_=7.0, num_train_timesteps=1000, max_iter=max_iter):
+    sigmas = []
+    sigma_ks = []
+    rhos = []
+    for i in range(num_train_timesteps):
+        sigmas.append(reduced_alpha_cumprod[num_train_timesteps - 1 - i])
+        sigma_ks.append((sqrt_1m_alphas_cumprod[i] / sqrt_alphas_cumprod[i]))
+        rhos.append(lambda_ * (sigma**2) / (sigma_ks[i] ** 2))
+    rhos, sigmas = torch.tensor(rhos).to(device), torch.tensor(sigmas).to(device)
 
+    seq = np.sqrt(np.linspace(0, num_train_timesteps**2, max_iter))
+    seq = [int(s) for s in list(seq)]
+    seq[-1] = seq[-1] - 1
+
+    return rhos, sigmas, seq
+
+
+rhos, sigmas, seq = get_noise_schedule(sigma_noise)
 
 # Plot the noise and regularization schedules
 plt.figure(figsize=(6, 3))
@@ -265,48 +285,72 @@ plt.subplot(122)
 plt.plot(sigmas.cpu().numpy()[::-1])
 plt.xlabel(r"$t$")
 plt.ylabel(r"$\sigma$")
-plt.suptitle("Regularisation parameter and noise schedules")
+plt.suptitle("Regularisation parameter and noise schedules (fully sampled)")
 plt.tight_layout()
 plt.show()
 
 # %%
-# Eventually, the DiffPIR algorithm is implemented as follows:
+# In the algorithm, we will only use sub-sampled versions of the noise and regularization schedules. Let's visualize
+# those.
+
+list_sigmas_algo = [sigmas[seq[i]] for i in range(max_iter)]
+list_rhos_algo = [rhos[seq[i]] for i in range(max_iter)]
+
+plt.figure(figsize=(6, 3))
+plt.rcParams.update({"font.size": 9})
+plt.subplot(121)
+plt.plot(
+    2 / torch.tensor(list_rhos_algo).cpu().numpy()
+)  # Note that the regularization parameter is 2/rho and not rho
+plt.xlabel(r"$t$")
+plt.ylabel(r"$\rho$")
+plt.subplot(122)
+plt.plot(list_sigmas_algo)
+plt.xlabel(r"$t$")
+plt.ylabel(r"$\sigma$")
+plt.suptitle(f"Regularisation parameter and noise schedules (for {max_iter} steps)")
+plt.show()
+
+
+# %%
+# Putting it all together: the DiffPIR algorithm
+# ----------------------------------------------
 #
+# We can now put all the steps together and implement the DiffPIR algorithm! First, we initialize the algorithm, and
+# then we iterate over the different steps detailed above.
 
 # Initialization
 x = 2 * y - 1
 
+# TODO: clean below
+
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
-        # Current and next noise levels
-        # curr_sigma = sigmas[T - 1 - seq[i]]
-        # There is a confusion between t_i and i
+
         curr_sigma = sigmas[seq[i]]
-        print("seq[i] ", seq[i])
-        print(i)
-        print("curr_sigma ", curr_sigma)
-        print("alpha ", alphas[seq[i]])
-        print("t_i ", t_i)
-        t_i = find_nearest(sigmas.cpu(), curr_sigma.cpu().numpy())
 
-        if i == 0:  # First iteration, we need to add noise to the image
-            x = (x + curr_sigma * torch.randn_like(x)) * alphas[t_i].sqrt()
+        # time step associated with the noise level sigmas[i]
+        t_i = find_nearest(reduced_alpha_cumprod, curr_sigma.cpu().numpy())
+        at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
 
-        # 1. Denoising step
-        x_aux = x / (2 * alphas[t_i].sqrt()) + 0.5  # renormalize in [0, 1]
-        out = model(x_aux, curr_sigma / 2)
+        if i == 0:  # Initialization (simpler than the original code, may be suboptimal)
+            x = (x + curr_sigma * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[-1]
+
+        sigma_cur = curr_sigma
+
+        # Denoising step
+        x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+        out = model(x_aux, sigma_cur / 2)
         denoised = 2 * out - 1
         x0 = denoised.clamp(-1, 1)
 
-        list_imgs = [x_aux, out]
-        list_titles = ["input", "output"]
+        list_imgs = [x_aux, denoised]
+        list_titles = ["input", "denoised"]
         dinv.utils.plot(list_imgs, titles=list_titles)
-
-        print(asdasd)
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
-            x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
+            x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (rhos[t_i]))
 
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
@@ -314,14 +358,16 @@ with torch.no_grad():
                 sigmas, next_sigma
             )  # time step associated with the next noise level
 
-            eps = (x - alphas[t_i].sqrt() * x0) / torch.sqrt(
-                1.0 - alphas[t_i]
+            eps = (x - alphas_cumprod[t_i].sqrt() * x0) / torch.sqrt(
+                1.0 - alphas_cumprod[t_i]
             )  # effective noise
 
-            x = alphas[t_im1].sqrt() * x0 + torch.sqrt(1.0 - alphas[t_im1]) * (
-                np.sqrt(1 - zeta) * eps + np.sqrt(zeta) * torch.randn_like(x)
-            )
+            x = alphas_cumprod[t_im1].sqrt() * x0 + torch.sqrt(
+                1.0 - alphas_cumprod[t_im1]
+            ) * (np.sqrt(1 - zeta) * eps + np.sqrt(zeta) * torch.randn_like(x))
 
+# renormalize
+x = (x + 1) / 2
 
 # Plotting the results
 imgs = [y, x, x_true]
