@@ -1,7 +1,7 @@
 from typing import Union, Iterable
 import torch
 from deepinv.transform.base import Transform, TransformParam
-
+from deepinv.transform.libcpab import Cpab
 
 class CPABDiffeomorphism(Transform):
     r"""
@@ -43,16 +43,9 @@ class CPABDiffeomorphism(Transform):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        try:
-            from libcpab import Cpab
-        except ImportError:
-            raise ImportError(
-                "Install libcpab using pip install git+https://github.com/Andrewwango/libcpab.git"
-            )
 
         self.cpab = Cpab(
             [n_tesselation, n_tesselation],
-            backend="pytorch",
             device=device,
             zero_boundary=zero_boundary,
             volume_perservation=volume_perservation,
