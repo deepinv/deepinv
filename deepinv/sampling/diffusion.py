@@ -432,11 +432,9 @@ class DiffPIR(Reconstructor):
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
+
                 # Current noise level
-                curr_sigma = self.sigmas[self.seq[i]]  # .cpu().numpy()
-                print("curr_sigma ", curr_sigma)
-                print("alpha ", self.reduced_alpha_cumprod[self.seq[i]])
-                print("seq ", self.seq[i])
+                curr_sigma = self.sigmas[self.seq[i]]
 
                 # time step associated with the noise level sigmas[i]
                 t_i = self.find_nearest(
@@ -488,11 +486,6 @@ class DiffPIR(Reconstructor):
                         * np.sqrt(self.zeta)
                         * torch.randn_like(x)
                     )  # sampling
-
-                print(asdasd)
-                list_imgs = [x_aux, denoised, x0, x]
-                list_titles = ["x_aux", "denoised", "x0", "x"]
-                plot(list_imgs, titles=list_titles)
 
         out = x / 2 + 0.5  # back to [0, 1] range
 

@@ -320,37 +320,33 @@ plt.show()
 # then we iterate over the different steps detailed above.
 
 # Initialization
-x = 2 * y - 1
+x = 2 * physics.A_adjoint(y) - 1  # Rescale
+x = (x + sigmas[seq[0]] * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[
+    -1
+]  # Add noise (simpler than the original code, may be suboptimal)
 
-# TODO: clean below
+# Images to save for visualization
+list_denoised, list_prox, list_noisy = [], [], []
+save_steps = [0, 1, 2, 5, 10, 20, 29]
 
 with torch.no_grad():
     for i in tqdm(range(len(seq))):
 
-        curr_sigma = sigmas[seq[i]]
+        sigma_cur = sigmas[seq[i]]
 
         # time step associated with the noise level sigmas[i]
-        t_i = find_nearest(reduced_alpha_cumprod, curr_sigma.cpu().numpy())
+        t_i = find_nearest(reduced_alpha_cumprod, sigma_cur.cpu().numpy())
         at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
-
-        if i == 0:  # Initialization (simpler than the original code, may be suboptimal)
-            x = (x + curr_sigma * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[-1]
-
-        sigma_cur = curr_sigma
 
         # Denoising step
         x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
         out = model(x_aux, sigma_cur / 2)
         denoised = 2 * out - 1
-        x0 = denoised.clamp(-1, 1)
-
-        list_imgs = [x_aux, denoised]
-        list_titles = ["input", "denoised"]
-        dinv.utils.plot(list_imgs, titles=list_titles)
+        x0 = denoised.clamp(-1, 1)  # optional
 
         if not seq[i] == seq[-1]:
             # 2. Data fidelity step
-            x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (rhos[t_i]))
+            x0 = data_fidelity.prox(x0, y, physics, gamma=1 / (2 * rhos[t_i]))
 
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
@@ -366,7 +362,12 @@ with torch.no_grad():
                 1.0 - alphas_cumprod[t_im1]
             ) * (np.sqrt(1 - zeta) * eps + np.sqrt(zeta) * torch.randn_like(x))
 
-# renormalize
+        if i in save_steps:
+            list_noisy.append(x_aux)
+            list_denoised.append(denoised)
+            list_prox.append(x0)
+
+# Renormalize in [0, 1]
 x = (x + 1) / 2
 
 # Plotting the results
@@ -376,6 +377,23 @@ plot(
     titles=["measurement", "model output", "ground-truth"],
 )
 
+# %%
+# Let's visualize the denoising and proximal steps at different iterations.
+
+plot(
+    list_noisy,
+    titles=[f"noisy sample step {i}" for i in save_steps],
+)
+
+plot(
+    list_denoised,
+    titles=[f"denoised step {i}" for i in save_steps],
+)
+
+plot(
+    list_prox,
+    titles=[f"proximal step {i}" for i in save_steps],
+)
 
 # %%
 # Using the DiffPIR algorithm in your inverse problem
