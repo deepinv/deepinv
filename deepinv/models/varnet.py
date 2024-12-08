@@ -56,16 +56,13 @@ class VarNet(ArtifactRemoval, MRIMixin):
             depth=7,
         )
 
-        cascades = nn.Sequential([VarNetBlock(denoiser, estimate_x=self.estimate_x) for _ in range(num_cascades)])
+        cascades = nn.Sequential(*[VarNetBlock(denoiser, estimate_x=self.estimate_x) for _ in range(num_cascades)])
         
         super().__init__(backbone_net=cascades, mode="adjoint" if self.estimate_x else "direct", device=None)
     
     def backbone_inference(self, tensor_in, physics, y):
-        return self.backbone_net(tensor_in, physics, y)
-    
-    def forward(self, y, physics, **kwargs):
-        hat = super().forward(y, physics, **kwargs)
-        
+        hat, _, _ = self.backbone_net((tensor_in, physics, y))
+        return hat
         return hat if self.estimate_x else self.from_torch_complex(
             self.ifft(self.to_torch_complex(hat), dim=(-2, -1))
         )
@@ -88,17 +85,19 @@ class VarNetBlock(nn.Module):
 
     def forward(
         self,
-        tensor_in: Tensor,
-        physics: MRI,
-        y: Tensor,
-    ) -> torch.Tensor:
+        args_in: tuple,
+    ) -> tuple:
         """Forward pass of one VarNet block
+
+        The following arguments should be passed in as a tuple ``args_in``.
 
         :param Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
         :param MRI physics: forward physics including updated mask
         :param Tensor y: input kspace measurements.
-        :return torch.Tensor: output tensor, either images ``x`` or kspaces ``y``.
+        :return: ``(tensor_out, physics, y)``, where tensor_out is either images ``x`` or kspaces ``y``.
         """
+        tensor_in, physics, y = args_in
+
         y_in = tensor_in if not self.estimate_x else physics.A(tensor_in)
 
         dc = physics.mask * (y_in - y)
@@ -108,4 +107,4 @@ class VarNetBlock(nn.Module):
         
         tensor_out = tensor_in - dc * self.dc_weight + self.denoiser(tensor_in)
 
-        return tensor_out, physics, y
+        return (tensor_out, physics, y)

@@ -595,3 +595,6 @@ def test_time_agnostic_net():
     y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
     x_net = net(y, None)
     assert x_net.shape == y.shape
+
+def test_varnet():
+    
