@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Nov 21 14:31:34 2018
-
-@author: nsde
+Code taken directly from https://github.com/Andrewwango/libcpab
+which is a modified version of the original https://github.com/SkafteNicki/libcpab
+See LICENSE for more details
 """
 
 #%%

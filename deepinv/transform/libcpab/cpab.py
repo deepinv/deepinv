@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Fri Nov 16 15:34:36 2018
-
-@author: nsde
+Code taken directly from https://github.com/Andrewwango/libcpab
+which is a modified version of the original https://github.com/SkafteNicki/libcpab
+See LICENSE for more details
 """
 
 #%%

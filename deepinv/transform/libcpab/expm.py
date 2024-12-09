@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Thu Dec 13 09:14:45 2018
-
-@author: nsde
+Code taken directly from https://github.com/Andrewwango/libcpab
+which is a modified version of the original https://github.com/SkafteNicki/libcpab
+See LICENSE for more details
 """
 #%%
 import torch
