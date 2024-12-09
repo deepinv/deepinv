@@ -6,8 +6,10 @@ from torch import Tensor
 import torch.nn as nn
 
 from deepinv.models.base import Reconstructor, Denoiser
+
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
+
 
 class ArtifactRemoval(Reconstructor):
     r"""

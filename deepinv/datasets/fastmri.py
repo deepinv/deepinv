@@ -30,21 +30,22 @@ from torchvision.transforms import Compose, CenterCrop
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.utils.demo import get_image_dataset_url
 
+
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
 
     Loads a saved subset of 2D slices from the full FastMRI slice dataset.
-    
+
     We provide a pregenerated saved subset for singlecoil FastMRI knees (total 973 images)
     and RSS reconstructions of multicoil brains (total 455 images).
     These originate from their respective original fully-sampled train volumes.
     Each slice is the middle slice from one independent volume.
     The images are of shape (2x320x320) and are normalised (0-1) and padded.
     Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
-    
+
     These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
     You can use this to generate a custom dataset and load using the ``file_name`` argument.
-    
+
     :param str, Path root_dir: dataset root directory
     :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
@@ -74,7 +75,11 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         os.makedirs(root_dir, exist_ok=True)
         root_dir = Path(root_dir)
-        file_name = file_name if file_name is not None else Path(f"fastmri_{anatomy}_singlecoil.pt")
+        file_name = (
+            file_name
+            if file_name is not None
+            else Path(f"fastmri_{anatomy}_singlecoil.pt")
+        )
 
         try:
             x = torch.load(root_dir / file_name)
@@ -84,15 +89,19 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
                 download_archive(url, root_dir / file_name)
                 x = torch.load(root_dir / file_name)
             else:
-                raise FileNotFoundError("Local dataset not downloaded. Download by setting download=True.")
+                raise FileNotFoundError(
+                    "Local dataset not downloaded. Download by setting download=True."
+                )
 
         x = x.squeeze()
-        self.transform = Compose([ToComplex()] + ([transform] if transform is not None else []))
+        self.transform = Compose(
+            [ToComplex()] + ([transform] if transform is not None else [])
+        )
 
         if train:
-            self.x = x[:int(train_percent * len(x))]
+            self.x = x[: int(train_percent * len(x))]
         else:
-            self.x = x[int(train_percent * len(x)):]
+            self.x = x[int(train_percent * len(x)) :]
 
         if sample_index is not None:
             self.x = self.x[sample_index].unsqueeze(0)
@@ -137,7 +146,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     Each file contains the k-space data, ground truth and some metadata related to the scan.
     When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.
-    
+
     .. note::
 
         We also provide a simple FastMRI dataset class in :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.
@@ -180,13 +189,14 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             dataset = FastMRISliceDataset(root=root, transform_target=Compose([Rescale(), CenterCrop(320)]))
 
     """
-    
+
     @staticmethod
     def torch_shuffle(x: list, generator=None):
         return [x[i] for i in torch.randperm(len(x), generator=generator).tolist()]
 
     class SliceSampleFileIdentifier(NamedTuple):
         """Data structure for identifying specific slices within MRI data files."""
+
         fname: Path
         slice_ind: int
 
@@ -198,7 +208,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
         slice_index: Union[str, int] = "all",
-        subsample_volumes: Optional[float] = 1.,
+        subsample_volumes: Optional[float] = 1.0,
         transform_kspace: Optional[Callable] = None,
         transform_target: Optional[Callable] = None,
         rng: Optional[torch.Generator] = None,
@@ -212,15 +222,16 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             raise ValueError(
                 f"The `root` folder doesn't exist. Please set `root` properly. Current value `{root}`."
             )
-        
+
         if not all([file.endswith(".h5") for file in os.listdir(root)]):
             raise ValueError(
                 f"The `root` folder doesn't contain only hdf5 files. Please set `root` properly. Current value `{root}`."
             )
-        
-        if slice_index not in ("all", "random", "middle") and not isinstance(slice_index, int):
+
+        if slice_index not in ("all", "random", "middle") and not isinstance(
+            slice_index, int
+        ):
             raise ValueError('slice_index must be "all", "random", "middle", or int.')
-        
 
         # Load all slices
         self.sample_identifiers = defaultdict(list)
@@ -245,7 +256,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             for fname in tqdm(all_fnames):
                 with h5py.File(fname, "r") as hf:
                     for i in range(hf["kspace"].shape[0]):
-                        self.sample_identifiers[str(fname)].append(self.SliceSampleFileIdentifier(fname, i))
+                        self.sample_identifiers[str(fname)].append(
+                            self.SliceSampleFileIdentifier(fname, i)
+                        )
 
             if save_metadata_to_cache:
                 dataset_cache = {}
@@ -267,38 +280,56 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         # Randomly keep a portion of MRI volumes
         if subsample_volumes < 1.0:
-            subsampled_fnames = self.torch_shuffle(list(self.sample_identifiers.keys()), generator=rng)[:round(len(all_fnames) * subsample_volumes)]
-            self.sample_identifiers = {k: self.sample_identifiers[k] for k in subsampled_fnames}
-        
+            subsampled_fnames = self.torch_shuffle(
+                list(self.sample_identifiers.keys()), generator=rng
+            )[: round(len(all_fnames) * subsample_volumes)]
+            self.sample_identifiers = {
+                k: self.sample_identifiers[k] for k in subsampled_fnames
+            }
+
         # Flatten to list of samples
-        self.sample_identifiers = [samp for samps in self.sample_identifiers.values() for samp in samps]
+        self.sample_identifiers = [
+            samp for samps in self.sample_identifiers.values() for samp in samps
+        ]
 
     def __len__(self) -> int:
         return len(self.sample_identifiers)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
-        r"""Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)
-        """
+        r"""Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)"""
         fname, dataslice = self.sample_identifiers[idx]
 
         with h5py.File(fname, "r") as hf:
-            kspace = torch.from_numpy(hf["kspace"][dataslice]) # ((N,) H, W) dtype complex
-            kspace = torch.view_as_real(kspace) # ((N,) H, W, 2)
-            kspace = kspace.moveaxis(-1, -3) # ((N,) 2, H, W)
+            kspace = torch.from_numpy(
+                hf["kspace"][dataslice]
+            )  # ((N,) H, W) dtype complex
+            kspace = torch.view_as_real(kspace)  # ((N,) H, W, 2)
+            kspace = kspace.moveaxis(-1, -3)  # ((N,) 2, H, W)
             if self.transform_kspace is not None:
-                kspace = self.transform_kspace(kspace) # torchvision transforms require (..., C, H, W)
-            kspace = kspace.moveaxis(-3, 0) # (2, N, H, W)
+                kspace = self.transform_kspace(
+                    kspace
+                )  # torchvision transforms require (..., C, H, W)
+            kspace = kspace.moveaxis(-3, 0)  # (2, N, H, W)
 
             if not self.test:
-                recons_key = "reconstruction_esc" if "reconstruction_esc" in hf.keys() else "reconstruction_rss"
-                target = torch.from_numpy(hf[recons_key][dataslice]) # shape (H, W)
-                
+                recons_key = (
+                    "reconstruction_esc"
+                    if "reconstruction_esc" in hf.keys()
+                    else "reconstruction_rss"
+                )
+                target = torch.from_numpy(hf[recons_key][dataslice])  # shape (H, W)
+
                 if self.transform_target is not None:
                     target = self.transform_target(target)
 
         return kspace if self.test else (target, kspace)
-    
-    def save_simple_dataset(self, dataset_path: str, pad_to_size: Tuple[int] = (320, 320), to_complex: bool = False) -> SimpleFastMRISliceDataset:
+
+    def save_simple_dataset(
+        self,
+        dataset_path: str,
+        pad_to_size: Tuple[int] = (320, 320),
+        to_complex: bool = False,
+    ) -> SimpleFastMRISliceDataset:
         """Convert dataset to a 2D singlecoil dataset and save as pickle file.
         This allows the dataset to be loaded in memory with :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.
 
@@ -318,7 +349,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         :rtype: SimpleFastMRISliceDataset
         """
         if self.test:
-            raise ValueError("save_simple_dataset can only be used when targets are provided, i.e. test = False.")
+            raise ValueError(
+                "save_simple_dataset can only be used when targets are provided, i.e. test = False."
+            )
 
         transform_target = self.transform_target
 
@@ -343,7 +376,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             file_name=dataset_path.name,
             anatomy=None,
             train=True,
-            train_percent=1.,
+            train_percent=1.0,
             transform=None,
             download=False,
         )

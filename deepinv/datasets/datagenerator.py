@@ -345,7 +345,7 @@ def generate_dataset(
                 x = x.to(device)
 
                 bsize = x.size()[0]
-                
+
                 # choose operator and generate measurement
                 y, params = measure(x, b=bsize, g=g)
 

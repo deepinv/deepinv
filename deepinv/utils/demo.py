@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 import torchvision
 from torchvision import transforms
 
+
 def get_git_root():
     import git
 
@@ -78,16 +79,18 @@ def load_dataset(
         data_dir = Path(data_dir)
 
     if "fastmri" in dataset_name:
-        raise ValueError("Loading singlecoil fastmri with load_dataset is now deprecated. Please use deepinv.datasets.SimpleFastMRISliceDataset(download=True).")
+        raise ValueError(
+            "Loading singlecoil fastmri with load_dataset is now deprecated. Please use deepinv.datasets.SimpleFastMRISliceDataset(download=True)."
+        )
 
     dataset_dir = data_dir / dataset_name
-    
+
     if download and not dataset_dir.exists():
         dataset_dir.mkdir(parents=True, exist_ok=True)
-        
+
         if url is None:
             url = get_image_dataset_url(dataset_name, file_type)
-        
+
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
         block_size = 1024  # 1 Kibibyte
@@ -101,13 +104,11 @@ def load_dataset(
 
         with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
             zip_ref.extractall(str(data_dir))
-        
+
         os.remove(str(dataset_dir) + f".{file_type}")
         print(f"{dataset_name} dataset downloaded in {data_dir}")
 
-    return torchvision.datasets.ImageFolder(
-        root=dataset_dir, transform=transform
-    )
+    return torchvision.datasets.ImageFolder(root=dataset_dir, transform=transform)
 
 
 def load_degradation(name, data_dir=None, index=0, download=True):

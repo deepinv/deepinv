@@ -11,7 +11,8 @@ from deepinv.datasets import (
     CBSD68,
     LsdirHR,
     FMD,
-    FastMRISliceDataset, SimpleFastMRISliceDataset
+    FastMRISliceDataset,
+    SimpleFastMRISliceDataset,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_dataset_url
@@ -185,6 +186,7 @@ def test_load_fmd_dataset(download_fmd):
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
 
+
 @pytest.fixture
 def download_simplefastmri():
     """Downloads dataset for tests and removes it after test executions."""
@@ -199,19 +201,21 @@ def download_simplefastmri():
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
 
+
 def test_SimpleFastMRISliceDataset(download_simplefastmri):
     dataset = SimpleFastMRISliceDataset(
         root_dir=download_simplefastmri,
         anatomy="knee",
         train=True,
-        train_percent=1.,
-        download=False
+        train_percent=1.0,
+        download=False,
     )
     x = dataset[0]
     x2 = dataset[1]
     assert x.shape == (2, 320, 320)
     assert not torch.all(x == x2)
     assert len(dataset) == 973
+
 
 @pytest.fixture
 def download_fastmri():
@@ -229,6 +233,7 @@ def download_fastmri():
 
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
+
 
 def test_FastMRISliceDataset(download_fastmri):
     dataset = FastMRISliceDataset(

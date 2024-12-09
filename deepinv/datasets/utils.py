@@ -115,17 +115,20 @@ class Rescale(Module):
 
     :param str rescale_mode: rescale mode, either "min_max" or "clip".
     """
+
     def __init__(self, *args, rescale_mode: str = "min_max", **kwargs):
         super().__init__(*args, **kwargs)
         self.rescale_mode = rescale_mode
-    
+
     def forward(self, x: Tensor):
         return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
+
 
 class ToComplex(Module):
     """Torchvision-style transform to add empty imaginary dimension to image.
 
     Expects tensor of shape (..., H, W) and returns tensor of shape (..., 2, H, W).
     """
+
     def forward(self, x: Tensor):
         return stack([x, zeros_like(x)], dim=-3)
