@@ -2,7 +2,9 @@ from __future__ import annotations
 from itertools import product
 from typing import Tuple, Callable, Any
 import torch
+from deepinv.physics import Physics
 from deepinv.physics.time import TimeMixin
+from deepinv.loss.metric import PSNR
 
 
 class TransformParam(torch.Tensor):
@@ -430,3 +432,29 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+    def equivariance_test(self, f, y, params=None, metric=None):
+        r"""
+        Test the equivariance of a function to the action of the transform.
+
+        Given a function :math:`f` and an input tensor :math:`y`, it computes :math:`d(T_g f(y), f(T_g y))` where :math:`g \sim \mathcal G` and :math:`d` is a user-defined function.
+
+        .. note::
+
+            If :math:`f` is an instance of :class:`deepinv.physics.Physics`, it uses :math:`f.A` instead of :math:`f`.
+
+        :param Callable f: function to test
+        :param torch.Tensor y: input tensor
+        :param dict params: transform parameters
+        :param Callable metric: metric to compare the transformed images, defaults to :class:`deepinv.loss.metric.PSNR`
+
+        """
+        if isinstance(f, Physics):
+            f = f.A
+        if params is None:
+            params = self.get_params(y)
+        if metric is None:
+            metric = PSNR()
+        x1 = self(f(y), **params)
+        x2 = f(self(y, **params))
+        return metric(x1, x2)
