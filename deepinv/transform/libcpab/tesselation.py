@@ -72,7 +72,7 @@ class Tesselation(object):
                             'vp' + str(int(self.volume_perservation))
 
         # Check if file exist else calculate the basis
-        if not os.path.isfile(self._basis_file+'.pkl') or override:
+        if not os.path.isfile(self._basis_file+'.cpab_basis') or override:
             # Get vertices
             self.find_verts()
             
@@ -103,11 +103,11 @@ class Tesselation(object):
             self.B = np.transpose(null_space)
         
             # Save to file
-            with open(self._basis_file + '.pkl', 'wb') as f:
+            with open(self._basis_file + '.cpab_basis', 'wb') as f:
                 pickle.dump(self.__dict__, f, pickle.HIGHEST_PROTOCOL)
         
         else:
-            with open(self._basis_file + '.pkl', 'rb') as f:
+            with open(self._basis_file + '.cpab_basis', 'rb') as f:
                 self.__dict__ = pickle.load(f)
     
     def get_cell_centers(self):
