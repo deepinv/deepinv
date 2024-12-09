@@ -50,7 +50,9 @@ class Rotate(Transform):
         theta = torch.arange(0, self.limits, self.multiples, device=self.rng.device)
         if not self.positive:
             theta = torch.cat((theta, -theta))
-        theta = theta[torch.randperm(len(theta), generator=self.rng, device=self.rng.device)]
+        theta = theta[
+            torch.randperm(len(theta), generator=self.rng, device=self.rng.device)
+        ]
         theta = theta[: self.n_trans]
         return {"theta": theta}
 

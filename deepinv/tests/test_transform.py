@@ -188,7 +188,7 @@ def test_transform_identity(
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
-    
+
     if device.type != "cpu" and transform_name in (
         "homography",
         "euclidean",
