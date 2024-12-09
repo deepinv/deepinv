@@ -90,7 +90,7 @@ def choose_transform(transform_name, device, rng):
             "padding": "zeros",
             "interpolation": "bicubic",
             "device": device,
-            "rng": rng,
+            #"rng": rng,
         }
 
     if transform_name == "shift":
