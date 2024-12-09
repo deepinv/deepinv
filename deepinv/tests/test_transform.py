@@ -38,34 +38,34 @@ TRANSFORMS = [
 ]
 
 
-def choose_transform(transform_name, device, rng_with_device):
+def choose_transform(transform_name, device, rng):
 
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0], device=device) * choose_transform(
-                names[1], device=device
-            )
+            return choose_transform(
+                names[0], device=device, rng=rng
+            ) * choose_transform(names[1], device=device, rng=rng)
 
     if "+" in transform_name:
         names = transform_name.split("+")
-        return choose_transform(names[0], device=device) + choose_transform(
-            names[1], device=device
+        return choose_transform(names[0], device=device, rng=rng) + choose_transform(
+            names[1], device=device, rng=rng
         )
 
     if "|" in transform_name:
         names = transform_name.split("|")
-        return choose_transform(names[0], device=device) | choose_transform(
-            names[1], device=device
+        return choose_transform(names[0], device=device, rng=rng) | choose_transform(
+            names[1], device=device, rng=rng
         )
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0], device=device) * choose_transform(
-                names[1], device=device
-            )
+            return choose_transform(
+                names[0], device=device, rng=rng
+            ) * choose_transform(names[1], device=device, rng=rng)
 
     if transform_name in (
         "homography",
@@ -90,22 +90,22 @@ def choose_transform(transform_name, device, rng_with_device):
             "padding": "zeros",
             "interpolation": "bicubic",
             "device": device,
-            "rng": rng_with_device,
+            "rng": rng,
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift(rng=rng_with_device)
+        return dinv.transform.Shift(rng=rng)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate(rng=rng_with_device)
+        return dinv.transform.Rotate(rng=rng)
     elif transform_name == "rotate3":
-        return dinv.transform.Rotate(n_trans=3, rng=rng_with_device)
+        return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":
-        return dinv.transform.Reflect(dim=[-2, -1], rng=rng_with_device)
+        return dinv.transform.Reflect(dim=[-2, -1], rng=rng)
     elif transform_name == "scale":
         # Limit to 0.75 only to avoid severe edge/interp effects
-        return dinv.transform.Scale(factors=[0.75], rng=rng_with_device)
+        return dinv.transform.Scale(factors=[0.75], rng=rng)
     elif transform_name == "scale3":
-        return dinv.transform.Scale(factors=[0.75], n_trans=3, rng=rng_with_device)
+        return dinv.transform.Scale(factors=[0.75], n_trans=3, rng=rng)
     elif transform_name == "homography":
         # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
         return dinv.transform.projective.Homography(**proj_kwargs)
@@ -118,7 +118,7 @@ def choose_transform(transform_name, device, rng_with_device):
     elif transform_name == "pantiltrotate":
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     elif transform_name == "diffeomorphism":
-        return dinv.transform.CPABDiffeomorphism(device=device) #doesn't support rng
+        return dinv.transform.CPABDiffeomorphism(device=device)  # doesn't support rng
     else:
         raise ValueError("Invalid transform_name provided")
 
@@ -162,8 +162,8 @@ def check_correct_pattern(x, x_t, pattern_offset):
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
-def test_transforms(transform_name, image, add_time_dim: bool, device):
-    transform = choose_transform(transform_name, device=device)
+def test_transforms(transform_name, image, add_time_dim: bool, device, rng_with_device):
+    transform = choose_transform(transform_name, device=device, rng=rng_with_device)
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
     image_t = transform(image)
@@ -184,11 +184,11 @@ def test_transforms(transform_name, image, add_time_dim: bool, device):
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
 def test_transform_identity(
-    transform_name, pattern, pattern_offset, add_time_dim: bool, device
+    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng_with_device
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
-    t = choose_transform(transform_name, device=device)
+    t = choose_transform(transform_name, device=device, rng=rng_with_device)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(
         pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
