@@ -213,9 +213,10 @@ class Homography(Transform):
     padding: str = "reflection"
     interpolation: str = "bilinear"
     device: str = "cpu"
+    rng: torch.Generator = None,
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, n_trans=self.n_trans, **kwargs)
+        super().__init__(*args, n_trans=self.n_trans, rng=rng, **kwargs)
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
