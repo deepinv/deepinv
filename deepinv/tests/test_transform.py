@@ -90,7 +90,7 @@ def choose_transform(transform_name, device, rng):
             "padding": "zeros",
             "interpolation": "bicubic",
             "device": device,
-            #"rng": rng,
+            "rng": rng,
         }
 
     if transform_name == "shift":
@@ -188,6 +188,17 @@ def test_transform_identity(
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
+    
+    if device.type != "cpu" and transform_name in (
+        "homography",
+        "euclidean",
+        "similarity",
+        "affine",
+        "pantiltrotate",
+    ):
+        # more reliable with a cpu rng here
+        rng_with_device = torch.Generator().manual_seed(0)
+
     t = choose_transform(transform_name, device=device, rng=rng_with_device)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(
