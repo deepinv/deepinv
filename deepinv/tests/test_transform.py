@@ -38,7 +38,7 @@ TRANSFORMS = [
 ]
 
 
-def choose_transform(transform_name, device):
+def choose_transform(transform_name, device, rng_with_device):
 
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
@@ -90,21 +90,22 @@ def choose_transform(transform_name, device):
             "padding": "zeros",
             "interpolation": "bicubic",
             "device": device,
+            "rng": rng_with_device,
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift()
+        return dinv.transform.Shift(rng=rng_with_device)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate()
+        return dinv.transform.Rotate(rng=rng_with_device)
     elif transform_name == "rotate3":
-        return dinv.transform.Rotate(n_trans=3)
+        return dinv.transform.Rotate(n_trans=3, rng=rng_with_device)
     elif transform_name == "reflect":
-        return dinv.transform.Reflect(dim=[-2, -1])
+        return dinv.transform.Reflect(dim=[-2, -1], rng=rng_with_device)
     elif transform_name == "scale":
         # Limit to 0.75 only to avoid severe edge/interp effects
-        return dinv.transform.Scale(factors=[0.75])
+        return dinv.transform.Scale(factors=[0.75], rng=rng_with_device)
     elif transform_name == "scale3":
-        return dinv.transform.Scale(factors=[0.75], n_trans=3)
+        return dinv.transform.Scale(factors=[0.75], n_trans=3, rng=rng_with_device)
     elif transform_name == "homography":
         # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
         return dinv.transform.projective.Homography(**proj_kwargs)
@@ -117,7 +118,7 @@ def choose_transform(transform_name, device):
     elif transform_name == "pantiltrotate":
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     elif transform_name == "diffeomorphism":
-        return dinv.transform.CPABDiffeomorphism(device=device)
+        return dinv.transform.CPABDiffeomorphism(device=device) #doesn't support rng
     else:
         raise ValueError("Invalid transform_name provided")
 
