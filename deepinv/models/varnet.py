@@ -1,5 +1,4 @@
-from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from typing import Union
 
 import torch
 from torch import Tensor
@@ -10,14 +9,12 @@ from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
 from deepinv.physics.mri import MRIMixin
 
-if TYPE_CHECKING:
-    from deepinv.physics.mri import MRI
 
 class VarNet(ArtifactRemoval, MRIMixin):
     """
     VarNet or E2E-VarNet model.
 
-    These models are from the papers 
+    These models are from the papers
     `Sriram et al., End-to-End Variational Networks for Accelerated MRI Reconstruction <https://arxiv.org/abs/2004.06688>`_
     and
     `Hammernik et al., Learning a variational network for reconstruction of accelerated MRI data <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`_.
@@ -32,7 +29,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
     :param Denoiser, nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
         If ``None``, a small DnCNN is used.
     :param int num_cascades: number of unrolled iterations ('cascades').
-    :param str mode: if 'varnet', perform iterates on the images x as in original VarNet. 
+    :param str mode: if 'varnet', perform iterates on the images x as in original VarNet.
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
     """
 
@@ -48,24 +45,41 @@ class VarNet(ArtifactRemoval, MRIMixin):
             self.estimate_x = False
         else:
             raise ValueError("mode must either be 'varnet' or 'e2e-varnet'.")
-        
-        denoiser = denoiser if denoiser is not None else DnCNN(
-            in_channels=2,
-            out_channels=2,
-            pretrained=None,
-            depth=7,
+
+        denoiser = (
+            denoiser
+            if denoiser is not None
+            else DnCNN(
+                in_channels=2,
+                out_channels=2,
+                pretrained=None,
+                depth=7,
+            )
         )
 
-        cascades = nn.Sequential(*[VarNetBlock(denoiser, estimate_x=self.estimate_x) for _ in range(num_cascades)])
-        
-        super().__init__(backbone_net=cascades, mode="adjoint" if self.estimate_x else "direct", device=None)
-    
+        cascades = nn.Sequential(
+            *[
+                VarNetBlock(denoiser, estimate_x=self.estimate_x)
+                for _ in range(num_cascades)
+            ]
+        )
+
+        super().__init__(
+            backbone_net=cascades,
+            mode="adjoint" if self.estimate_x else "direct",
+            device=None,
+        )
+
     def backbone_inference(self, tensor_in, physics, y):
         hat, _, _ = self.backbone_net((tensor_in, physics, y))
-        return hat
-        return hat if self.estimate_x else self.from_torch_complex(
-            self.ifft(self.to_torch_complex(hat), dim=(-2, -1))
+        return (
+            hat
+            if self.estimate_x
+            else self.from_torch_complex(
+                self.ifft(self.to_torch_complex(hat), dim=(-2, -1))
+            )
         )
+
 
 class VarNetBlock(nn.Module):
     """
@@ -104,7 +118,7 @@ class VarNetBlock(nn.Module):
 
         if self.estimate_x:
             dc = physics.A_adjoint(dc)
-        
-        tensor_out = tensor_in - dc * self.dc_weight + self.denoiser(tensor_in)
+
+        tensor_out = tensor_in - dc * self.dc_weight - self.denoiser(tensor_in)
 
         return (tensor_out, physics, y)
