@@ -129,7 +129,21 @@ for model_name, model in models.items():
     print(f"Eq-Rotation: {eq_rotation:.1f} dB")
 
     dinv.utils.plot(
-        [im_mt_shift, im_tm_shift, im_mt_translate, im_tm_translate, im_mt_rotation, im_tm_rotation],
-        titles=["Shifted input", "Shifted output", "Translated input", "Translated output", "Rotated input", "Rotated output"],
+        [
+            im_mt_shift,
+            im_tm_shift,
+            im_mt_translate,
+            im_tm_translate,
+            im_mt_rotation,
+            im_tm_rotation,
+        ],
+        titles=[
+            "Shifted input",
+            "Shifted output",
+            "Translated input",
+            "Translated output",
+            "Rotated input",
+            "Rotated output",
+        ],
         show=True,
     )
