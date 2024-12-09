@@ -132,10 +132,10 @@ and rely on hand-crafted priors.
 .. _denoiser-utils:
 
 Denoisers Utilities
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 Equivariant denoisers
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 Denoisers can be turned into equivariant denoisers by wrapping them with the
 :class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser
 with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate`
@@ -149,13 +149,13 @@ efficient translation-equivariant UNet using blocks introduced by `Karras et al.
 and `Michaeli et al. (2023) <https://doi.org/10.48550/arXiv.2303.08085>`_.
 
 Complex denoisers
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval,
 require processing complex-valued images. The function :class:`deepinv.models.complex.to_complex_denoiser` can convert any real-valued denoiser into
 a complex-valued denoiser. It can be simply called by ``complex_denoiser = to_complex_denoiser(denoiser)``.
 
 Dynamic networks
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 When using time-varying (i.e. dynamic) data of 5D shape (B,C,T,H,W), the reconstruction network must be adapted
 using :class:`deepinv.models.TimeAveragingNet`.
 

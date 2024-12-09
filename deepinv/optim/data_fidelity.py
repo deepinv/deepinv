@@ -55,9 +55,12 @@ class DataFidelity(Potential):
 
     def grad_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`. Note that this is the gradient of
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
+
+        Note that this is the gradient of
         :math:`\distancename` and not :math:`\datafidname`. This function direclty calls :meth:`deepinv.optim.Distance.grad` for the
-        speficic distance function :math:`\distance`.
+        speficic distance function :math:`\distancename`.
+
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
@@ -66,10 +69,12 @@ class DataFidelity(Potential):
 
     def prox_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`. Note
-        that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
         This function direclty calls :meth:`deepinv.optim.Distance.prox` for the
-        speficic distance function :math:`\distance`.
+        speficic distance function :math:`\distancename`.
+
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
         :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
@@ -79,8 +84,9 @@ class DataFidelity(Potential):
     def prox_d_conjugate(self, u, y, *args, **kwargs):
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
-        This function direclty calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
-        speficic distance function :math:`\distance`.
+
+        This function directly calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
+        specific distance function :math:`\distancename`.
         """
         return self.d.prox_conjugate(u, y, *args, **kwargs)
 

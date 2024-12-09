@@ -27,6 +27,7 @@ New Features
 - Multi-coil MRI, 3D MRI, MRI Mixin (:gh:`287` by `Andrew Wang`_, Brett Levac)
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, metrics docs section, Metric functional wrapper (:gh:`309`, :gh:`343` by `Andrew Wang`_)
 - generate_dataset features: complex numbers, save/load physics_generator params, overwrite bool (:gh:`324`, :gh:`352` by `Andrew Wang`_)
+- Add the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_)
 - Add a denoiser architecture supporting translation and rotation-equivariance (:gh:`330` by `Jérémy Scanvic`_)
 - Add continuous translations with sinc interpolation (:gh:`330` by `Jérémy Scanvic`_)
 
@@ -41,6 +42,7 @@ Fixed
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
 - Fix Scale transform rng device error (:gh:`324` by `Andrew Wang`_)
 - Fix bug when using cuda device in dinv.datasets.generate_dataset  (:gh:`334` by `Tobias Liaudat`_)
+- Update outdated links in the readme (:gh:`366` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
