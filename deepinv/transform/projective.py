@@ -221,7 +221,8 @@ class Homography(Transform):
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
             mini = -maxi
-        return (mini - maxi) * torch.rand(self.n_trans, generator=self.rng, device=self.rng.device) + maxi
+        out = (mini - maxi) * torch.rand(self.n_trans, generator=self.rng, device=self.rng.device) + maxi
+        return out.cpu() # require cpu for numpy
 
     def _get_params(self, x: torch.Tensor) -> dict:
         H, W = x.shape[-2:]
