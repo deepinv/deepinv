@@ -6,6 +6,7 @@ from deepinv.models import Reconstructor
 
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
+from deepinv.utils.plotting import plot
 
 
 class DiffusionSampler(MonteCarlo):
@@ -279,7 +280,7 @@ class DiffPIR(Reconstructor):
         data_fidelity,
         sigma=0.05,
         max_iter=100,
-        zeta=1.0,
+        zeta=0.1,
         lambda_=7.0,
         verbose=False,
         device="cpu",
@@ -365,7 +366,16 @@ class DiffPIR(Reconstructor):
         """
         array = np.asarray(array)
         idx = (np.abs(array - value)).argmin()
-        return idx
+        return torch.tensor([idx])
+
+    def compute_alpha(self, betas, t):
+        """
+        Compute the alpha sequence from the beta sequence.
+        """
+        alphas = 1.0 - betas
+        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)
+        at = alphas_cumprod[t]
+        return at
 
     def get_alpha_prod(
         self, beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=1000
@@ -422,30 +432,36 @@ class DiffPIR(Reconstructor):
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
+
                 # Current noise level
-                curr_sigma = self.sigmas[self.seq[i]].cpu().numpy()
+                curr_sigma = self.sigmas[self.seq[i]]
 
                 # time step associated with the noise level sigmas[i]
-                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
+                t_i = self.find_nearest(
+                    self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
+                )
+                at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
+
+                if (
+                    i == 0
+                ):  # Initialization (simpler than the original code, may be suboptimal)
+                    x = (
+                        x + curr_sigma * torch.randn_like(x)
+                    ) / sqrt_recip_alphas_cumprod[-1]
+
+                sigma_cur = curr_sigma
 
                 # Denoising step
-                x_aux = x / 2 + 0.5
-                denoised = 2 * self.model(x_aux, curr_sigma / 2) - 1
-                noise_est = (
-                    sqrt_recip_alphas_cumprod[t_i] * x - denoised
-                ) / sqrt_recipm1_alphas_cumprod[t_i]
-
-                x0 = (
-                    self.sqrt_recip_alphas_cumprod[t_i] * x
-                    - self.sqrt_recipm1_alphas_cumprod[t_i] * noise_est
-                )
-                x0 = x0.clamp(-1, 1)
+                x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+                out = self.model(x_aux, sigma_cur / 2)
+                denoised = 2 * out - 1
+                x0 = denoised.clamp(-1, 1)
 
                 if not self.seq[i] == self.seq[-1]:
                     # Data fidelity step
                     x0_p = x0 / 2 + 0.5
                     x0_p = self.data_fidelity.prox(
-                        x0_p, y, physics, gamma=1 / (2 * self.rhos[t_i])
+                        x0_p, y, physics, gamma=1.0 / (2 * self.rhos[t_i])
                     )
                     x0 = x0_p * 2 - 1
 
@@ -454,11 +470,13 @@ class DiffPIR(Reconstructor):
                         self.reduced_alpha_cumprod,
                         self.sigmas[self.seq[i + 1]].cpu().numpy(),
                     )  # time step associated with the next noise level
+
                     eps = (
                         x - self.sqrt_alphas_cumprod[t_i] * x0
                     ) / self.sqrt_1m_alphas_cumprod[
                         t_i
                     ]  # effective noise
+
                     x = (
                         self.sqrt_alphas_cumprod[t_im1] * x0
                         + self.sqrt_1m_alphas_cumprod[t_im1]
@@ -567,30 +585,9 @@ class DPS(Reconstructor):
         a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
         return a
 
-    def forward(
-        self,
-        y,
-        physics: deepinv.physics.Physics,
-        seed=None,
-        x_init=None,
-    ):
-        r"""
-        Runs the diffusion to obtain a random sample of the posterior distribution.
-
-        :param torch.Tensor y: the measurements.
-        :param deepinv.physics.LinearPhysics physics: the physics operator.
-        :param int seed: the seed for the random number generator.
-        :param torch.Tensor x_init: the initial guess for the reconstruction.
-        """
-
+    def forward(self, y, physics: deepinv.physics.Physics, seed=None, x_init=None):
         if seed:
             torch.manual_seed(seed)
-
-        # Initialization
-        if x_init is None:  # Necessary when x and y don't live in the same space
-            x = 2 * physics.A_adjoint(y) - 1
-        else:
-            x = 2 * x_init - 1
 
         skip = self.num_train_timesteps // self.max_iter
         batch_size = y.shape[0]
@@ -598,6 +595,9 @@ class DPS(Reconstructor):
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
         time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        # Initial sample from x_T
+        x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
 
         if self.save_iterates:
             xs = [x]
@@ -614,29 +614,31 @@ class DPS(Reconstructor):
             with torch.enable_grad():
                 xt.requires_grad_(True)
 
-                # 1. Denoising
-                # we call the denoiser using standard deviation instead of the time step.
-                aux_x = xt / 2 + 0.5
-                x0_t = 2 * self.model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+                # 1. Denoising step
+                aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+                sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
 
-                x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
+                x0_t = 2 * self.model(aux_x, sigma_cur / 2) - 1
+                x0_t = torch.clip(x0_t, -1.0, 1.0)
 
-                # DPS
+                # 2. Likelihood gradient approximation
                 l2_loss = self.data_fidelity(x0_t, y, physics).sqrt().sum()
 
             norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
             norm_grad = norm_grad.detach()
 
-            c1 = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * self.eta
-            c2 = ((1 - at_next) - c1**2).sqrt()
+            sigma_tilde = (
+                (1 - at / at_next) * (1 - at_next) / (1 - at)
+            ).sqrt() * self.eta
+            c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
 
-            # 3. noise step
+            # 3. Noise step
             epsilon = torch.randn_like(xt)
 
             # 4. DDPM(IM) step
             xt_next = (
                 (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
-                + c1 * epsilon
+                + sigma_tilde * epsilon
                 + c2 * xt / (1 - at).sqrt()
                 - norm_grad
             )
