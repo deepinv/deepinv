@@ -162,8 +162,8 @@ def check_correct_pattern(x, x_t, pattern_offset):
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
-def test_transforms(transform_name, image, add_time_dim: bool, device, rng_with_device):
-    transform = choose_transform(transform_name, device=device, rng=rng_with_device)
+def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
+    transform = choose_transform(transform_name, device=device, rng=rng)
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
     image_t = transform(image)
@@ -184,7 +184,7 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng_with_
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
 def test_transform_identity(
-    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng_with_device
+    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
@@ -197,9 +197,9 @@ def test_transform_identity(
         "pantiltrotate",
     ):
         # more reliable with a cpu rng here
-        rng_with_device = torch.Generator().manual_seed(0)
+        rng = torch.Generator().manual_seed(0)
 
-    t = choose_transform(transform_name, device=device, rng=rng_with_device)
+    t = choose_transform(transform_name, device=device, rng=rng)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(
         pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
