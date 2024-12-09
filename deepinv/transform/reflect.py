@@ -41,8 +41,12 @@ class Reflect(Transform):
                 itertools.combinations(self.dim, r) for r in range(len(self.dim) + 1)
             )
         )
-        idx = torch.randperm(len(subsets), generator=self.rng)[: self.n_trans]
-        out = torch.full((self.n_trans, len(self.dim)), float("nan"))
+        idx = torch.randperm(len(subsets), generator=self.rng, device=self.rng.device)[
+            : self.n_trans
+        ]
+        out = torch.full(
+            (self.n_trans, len(self.dim)), fill_value=float("nan"), device=x.device
+        )
 
         for i, id in enumerate(idx):
             out[i, : len(subsets[id])] = torch.tensor(subsets[id], dtype=torch.int)
