@@ -3,6 +3,7 @@ import torch
 from deepinv.transform.base import Transform, TransformParam
 from deepinv.transform.libcpab import Cpab
 
+
 class CPABDiffeomorphism(Transform):
     r"""
     Continuous Piecewise-Affine-based Diffeomorphism.
@@ -10,7 +11,7 @@ class CPABDiffeomorphism(Transform):
     Wraps CPAB from a modified version of the `original implementation <https://github.com/SkafteNicki/libcpab>`_.
     From the paper Freifeld et al. `Transformations Based on Continuous Piecewise-Affine Velocity Fields <https://ieeexplore.ieee.org/abstract/document/7814343>`_.
     We reproduce exactly a modified version of the code from our `maintained fork <https://github.com/Andrewwango/libcpab>`_.
-    
+
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 
     Generates ``n_trans`` randomly transformed versions.
@@ -61,7 +62,11 @@ class CPABDiffeomorphism(Transform):
 
         :param torch.Tensor x: input image
         """
-        return {"diffeo": self.cpab.sample_transformation(self.n_trans * (1 if self.constant_batch else len(x)))}
+        return {
+            "diffeo": self.cpab.sample_transformation(
+                self.n_trans * (1 if self.constant_batch else len(x))
+            )
+        }
 
     def _transform(
         self,

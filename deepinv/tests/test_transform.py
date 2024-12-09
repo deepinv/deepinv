@@ -44,20 +44,28 @@ def choose_transform(transform_name, device):
         transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0], device=device) * choose_transform(names[1], device=device)
+            return choose_transform(names[0], device=device) * choose_transform(
+                names[1], device=device
+            )
 
     if "+" in transform_name:
         names = transform_name.split("+")
-        return choose_transform(names[0], device=device) + choose_transform(names[1], device=device)
+        return choose_transform(names[0], device=device) + choose_transform(
+            names[1], device=device
+        )
 
     if "|" in transform_name:
         names = transform_name.split("|")
-        return choose_transform(names[0], device=device) | choose_transform(names[1], device=device)
+        return choose_transform(names[0], device=device) | choose_transform(
+            names[1], device=device
+        )
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0], device=device) * choose_transform(names[1], device=device)
+            return choose_transform(names[0], device=device) * choose_transform(
+                names[1], device=device
+            )
 
     if transform_name in (
         "homography",
