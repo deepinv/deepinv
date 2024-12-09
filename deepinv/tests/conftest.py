@@ -50,10 +50,5 @@ def imsize_2_channel():
 
 
 @pytest.fixture
-def rng():
-    return torch.Generator().manual_seed(0)
-
-
-@pytest.fixture
-def rng_with_device(device):
-    return torch.Generator(device=device).manual_seed(0)
+def rng(device):
+    return torch.Generator(device).manual_seed(0)

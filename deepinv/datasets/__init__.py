@@ -10,3 +10,4 @@ from .lidc_idri import LidcIdriSliceDataset
 from .flickr2k import Flickr2kHR
 from .lsdir import LsdirHR
 from .fmd import FMD
+from .kohler import Kohler

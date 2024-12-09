@@ -7,7 +7,6 @@
 # VSCode
 .vscode/
 
-results/
 *__pycache__*
 *.pyc
 
@@ -41,7 +40,7 @@ build
 deepinv.egg-info
 dist
 wandb/
-kernels
+kernels/
 measurements/
 degradations/
 results/
