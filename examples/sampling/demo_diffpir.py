@@ -378,21 +378,25 @@ plot(
 )
 
 # %%
-# Let's visualize the denoising and proximal steps at different iterations.
+# Let's visualize the sample, its denoised version and the proximal steps at different iterations.
 
+# sphinx_gallery_multi_image = "single"
 plot(
     list_noisy,
     titles=[f"noisy sample step {i}" for i in save_steps],
+    dpi=1500,
 )
 
 plot(
     list_denoised,
     titles=[f"denoised step {i}" for i in save_steps],
+    dpi=1500,
 )
 
 plot(
     list_prox,
     titles=[f"proximal step {i}" for i in save_steps],
+    dpi=1500,
 )
 
 # %%
