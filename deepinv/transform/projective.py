@@ -216,7 +216,7 @@ class Homography(Transform):
     rng: torch.Generator = None,
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, n_trans=self.n_trans, rng=rng, **kwargs)
+        super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
