@@ -4,6 +4,7 @@ from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
 from deepinv.utils import TensorList
+from deepinv.optim.utils import conjugate_gradient
 
 
 class Pansharpen(LinearPhysics):
@@ -20,7 +21,7 @@ class Pansharpen(LinearPhysics):
     It is possible to assign a different noise model to the RGB and grayscale images.
 
 
-    :param tuple[int] img_size: size of the input image.
+    :param tuple[int] img_size: size of the input image, must be of shape (C, H, W).
     :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
@@ -55,6 +56,7 @@ class Pansharpen(LinearPhysics):
         img_size,
         filter="bilinear",
         factor=4,
+        srf=None,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
         device="cpu",
@@ -62,6 +64,8 @@ class Pansharpen(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
+
+        assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         self.downsampling = Downsampling(
             img_size=img_size,
@@ -73,7 +77,7 @@ class Pansharpen(LinearPhysics):
 
         self.noise_color = noise_color if noise_color is not None else lambda x: x
         self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
-        self.colorize = Decolorize(device=device)
+        self.colorize = Decolorize(srf=srf, channels=img_size[0])
 
     def A(self, x, **kwargs):
         return TensorList(
@@ -92,6 +96,34 @@ class Pansharpen(LinearPhysics):
                 self.noise_gray(self.colorize(x, **kwargs)),
             ]
         )
+
+    def A_dagger(self, y, **kwargs):
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using the
+        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
+        see :meth:`deepinv.optim.utils.conjugate_gradient`.
+
+        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.Tensor) The reconstructed image :math:`x`.
+
+        """
+
+        A = lambda x: self.A_A_adjoint(x)
+        b = y
+        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1)
+
+        x = self.A_adjoint(x)
+        return x
+
+    def A_classical(self, y, **kwargs):
+        """
+        From https://github.com/AlexeyTrekin/pansharpen/blob/master/pysharpen/methods/sharpening/brovey.py
+        ESRI Brovey from https://pro.arcgis.com/en/pro-app/latest/help/analysis/raster-functions/fundamentals-of-pan-sharpening-pro.htm
+        Another unused implementation https://github.com/mapbox/rio-pansharpen/blob/master/rio_pansharpen/methods.py
+        """
+        hrms = self.downsampling.A_adjoint(y[0], **kwargs)
+        hrms *= y[1] / hrms.mean(axis=1)
+        return hrms
 
 
 # test code
