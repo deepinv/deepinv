@@ -2,17 +2,29 @@
 from typing import Union, Iterable
 import torch
 import torch.nn.functional as F
-from torch.nn import Module
 from deepinv.transform.base import Transform, TransformParam
 
 
-def sample_from(values, shape=(1,), dtype=torch.float32, device="cpu", generator=None):
+def sample_from(
+    values,
+    shape=(1,),
+    dtype=torch.float32,
+    device="cpu",
+    generator: torch.Generator = None,
+):
     """Sample a random tensor from a list of values"""
     values = torch.tensor(values, device=device, dtype=dtype)
     N = torch.tensor(len(values), device=device, dtype=dtype)
-    indices = torch.floor(
-        N * torch.rand(shape, dtype=dtype, device=device, generator=generator)
-    ).to(torch.long)
+    indices = (
+        torch.floor(
+            N
+            * torch.rand(
+                shape, dtype=dtype, device=generator.device, generator=generator
+            )
+        )
+        .to(torch.long)
+        .to(device)
+    )
     return values[indices]
 
 
@@ -63,7 +75,9 @@ class Scale(Transform):
 
         # Sample a random transformation center for each batch element
         # with coordinates in [-1, 1]
-        center = torch.rand((b, 2), dtype=x.dtype, device=x.device, generator=self.rng)
+        center = torch.rand(
+            (b, 2), dtype=x.dtype, device=self.rng.device, generator=self.rng
+        ).to(x.device)
 
         # Scale params override negation
         return {

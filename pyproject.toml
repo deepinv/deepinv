@@ -98,7 +98,7 @@ testpaths = [
 
 [tool.coverage.run]
 branch = true
-omit = ['examples/*', 'deepinv/tests']  # define paths to omit
+omit = ['examples/*', 'deepinv/tests', 'deepinv/transform/libcpab/*']  # define paths to omit
 
 [tool.coverage.report]
 show_missing = true
