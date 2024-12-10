@@ -41,14 +41,14 @@ def test_jacobian_spectral_values(toymatrix):
     assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
 
 
-def choose_loss(loss_name):
+def choose_loss(loss_name, rng=None):
     loss = []
     if loss_name == "mcei":
         loss.append(dinv.loss.MCLoss())
         loss.append(dinv.loss.EILoss(dinv.transform.Shift()))
     elif loss_name == "mcei-scale":
         loss.append(dinv.loss.MCLoss())
-        loss.append(dinv.loss.EILoss(dinv.transform.Scale()))
+        loss.append(dinv.loss.EILoss(dinv.transform.Scale(rng=rng)))
     elif loss_name == "mcei-homography":
         pytest.importorskip(
             "kornia",
@@ -171,9 +171,9 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
+def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     # choose training losses
-    loss = choose_loss(loss_name)
+    loss = choose_loss(loss_name, rng)
 
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
@@ -192,17 +192,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
     dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
 
-    # test the untrained model
-    initial_test = dinv.test(
-        model=model,
-        test_dataloader=test_dataloader,
-        physics=physics,
-        plot_images=False,
-        device=device,
-    )
-
-    # train the network
-    model = dinv.train(
+    trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
         epochs=epochs,
@@ -217,13 +207,13 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         verbose=False,
     )
 
-    final_test = dinv.test(
-        model=model,
-        test_dataloader=test_dataloader,
-        physics=physics,
-        plot_images=False,
-        device=device,
-    )
+    # test the untrained model
+    initial_test = trainer.test(test_dataloader=test_dataloader)
+
+    # train the network
+    trainer.train()
+
+    final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 

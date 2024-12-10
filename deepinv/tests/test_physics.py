@@ -244,7 +244,7 @@ def find_operator(name, device):
         p = dinv.physics.CompressedSensing(
             m=m,
             img_shape=img_size,
-            dtype=torch.cfloat,
+            dtype=torch.cdouble,
             device=device,
             compute_inverse=True,
             rng=rng,
@@ -440,7 +440,8 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
-def test_MRI(mri_img_size, device, rng):
+@pytest.mark.parametrize("mri", [dinv.physics.MRI, dinv.physics.DynamicMRI])
+def test_MRI(mri, mri_img_size, device, rng):
     r"""
     Test MRI and DynamicMRI functions
 
@@ -451,58 +452,57 @@ def test_MRI(mri_img_size, device, rng):
     :param rng: (torch.Generator)
     """
 
-    for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
-        B, C, T, H, W = mri_img_size
-        if rng.device != device:
-            rng = torch.Generator(device=device).manual_seed(0)
-        x, y = (
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    B, C, T, H, W = mri_img_size
+    if rng.device != device:
+        rng = torch.Generator(device=device).manual_seed(0)
+    x, y = (
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    )
+
+    if mri is dinv.physics.MRI:
+        x = x[:, :, 0, :, :]
+        y = y[:, :, 0, :, :]
+
+    for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+        # Remove time dim for static MRI
+        _mask_size = (
+            mask_size
+            if mri is dinv.physics.DynamicMRI
+            else mask_size[:-3] + mask_size[-2:]
         )
 
-        if mri is dinv.physics.MRI:
-            x = x[:, :, 0, :, :]
-            y = y[:, :, 0, :, :]
+        mask, mask2 = (
+            torch.ones(_mask_size, device=device)
+            - torch.eye(*_mask_size[-2:], device=device),
+            torch.zeros(_mask_size, device=device)
+            + torch.eye(*_mask_size[-2:], device=device),
+        )
 
-        for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
-            # Remove time dim for static MRI
-            _mask_size = (
-                mask_size
-                if mri is dinv.physics.DynamicMRI
-                else mask_size[:-3] + mask_size[-2:]
-            )
+        # Empty mask
+        physics = mri(img_size=x.shape, device=device)
+        y1 = physics(x)
+        x1 = physics.A_adjoint(y)
+        assert torch.sum(y1 == 0) == 0
+        assert torch.sum(x1 == 0) == 0
 
-            mask, mask2 = (
-                torch.ones(_mask_size, device=device)
-                - torch.eye(*_mask_size[-2:], device=device),
-                torch.zeros(_mask_size, device=device)
-                + torch.eye(*_mask_size[-2:], device=device),
-            )
+        # Set mask in constructor
+        physics = mri(mask=mask, device=device)
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask == 0))
 
-            # Empty mask
-            physics = mri(img_size=x.shape, device=device)
-            y1 = physics(x)
-            x1 = physics.A_adjoint(y)
-            assert torch.sum(y1 == 0) == 0
-            assert torch.sum(x1 == 0) == 0
+        # Set mask in forward
+        y1 = physics(x, mask=mask2)
+        assert torch.all((y1 == 0) == (mask2 == 0))
 
-            # Set mask in constructor
-            physics = mri(mask=mask, device=device)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
+        # Mask retained in previous forward
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask2 == 0))
 
-            # Set mask in forward
-            y1 = physics(x, mask=mask2)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Mask retained in previous forward
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Set mask via update_parameters
-            physics.update_parameters(mask=mask)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
+        # Set mask via update_parameters
+        physics.update_parameters(mask=mask)
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask == 0))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -608,12 +608,12 @@ def test_physics_Avjp(device):
         assert torch.allclose(physics.A_vjp(x, v), v)
 
 
-def choose_noise(noise_type):
+def choose_noise(noise_type, device="cpu"):
     gain = 0.1
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
-    l = 2.0
+    l = torch.ones((1), device=device)
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -642,7 +642,7 @@ def test_noise(device, noise_type):
     Tests noise models.
     """
     physics = dinv.physics.DecomposablePhysics(device=device)
-    physics.noise_model = choose_noise(noise_type)
+    physics.noise_model = choose_noise(noise_type, device)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
     y1 = physics(
@@ -657,7 +657,7 @@ def test_noise_domain(device):
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
     """
-    x = torch.ones((3, 12, 7), device=device).unsqueeze(0)
+    x = torch.ones((1, 3, 12, 7), device=device)
     mask = torch.ones_like(x[0])
     # mask[:, x.shape[-2]//2-3:x.shape[-2]//2+3, x.shape[-1]//2-3:x.shape[-1]//2+3] = 0
     mask[0, 0, 0] = 0

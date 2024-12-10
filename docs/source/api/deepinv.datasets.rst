@@ -46,3 +46,4 @@ Image Datasets
     deepinv.datasets.Flickr2kHR
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
+    deepinv.datasets.Kohler
