@@ -98,19 +98,22 @@ def test_load_set14_dataset(download_set14):
 
 
 @pytest.fixture
-def download_cbsd68():
+def download_cbsd68(download=True):
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "CBSD68"
 
     # Download CBSD raw dataset from huggingface
-    CBSD68(tmp_data_dir, download=True)
+    try:
+        CBSD68(tmp_data_dir, download=download)
+    except ImportError:
+        download = False
 
     # This will return control to the test function
     yield tmp_data_dir
 
     # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
-
+    if download:
+        shutil.rmtree(tmp_data_dir)
 
 def test_load_cbsd68_dataset(download_cbsd68):
     """Check that dataset contains 68 PIL images."""
@@ -266,7 +269,7 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri):
 def download_fastmri():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "fastmri"
-    file_name = "brain_multicoil_train_0.h5"
+    file_name = "fastmri_brain_multicoil_train_0.h5"
 
     # Download single FastMRI volume
     os.makedirs(tmp_data_dir, exist_ok=True)
@@ -289,7 +292,7 @@ def test_FastMRISliceDataset(download_fastmri):
     target2, kspace2 = dataset[1]
 
     assert target1.shape == (320, 320)
-    assert kspace1.shape == (2, 20, 512, 256)
+    assert kspace1.shape == (2, 20, 640, 320)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
 
