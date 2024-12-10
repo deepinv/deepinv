@@ -9,7 +9,7 @@ from torchmetrics.functional import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,
     spectral_angle_mapper,
-    error_relative_global_dimensionless_synthesis
+    error_relative_global_dimensionless_synthesis,
 )
 
 from deepinv.loss.metric.metric import Metric
@@ -428,6 +428,7 @@ class QNR(Metric):
 
         return qnr
 
+
 class SpectralAngleMapper(Metric):
     r"""
     Spectral Angle Mapper (SAM) metric using torchmetrics.
@@ -446,7 +447,10 @@ class SpectralAngleMapper(Metric):
     """
 
     def metric(self, x_net, x, *args, **kwargs):
-        return spectral_angle_mapper(x_net, x, reduction='none').mean(dim=tuple(range(1, x.ndim-1)), keepdim=False)
+        return spectral_angle_mapper(x_net, x, reduction="none").mean(
+            dim=tuple(range(1, x.ndim - 1)), keepdim=False
+        )
+
 
 class ERGAS(Metric):
     r"""
@@ -463,6 +467,11 @@ class ERGAS(Metric):
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
+
     def __init__(self, factor: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._metric = partial(error_relative_global_dimensionless_synthesis, ratio=factor, reduction='none')
+        self._metric = partial(
+            error_relative_global_dimensionless_synthesis,
+            ratio=factor,
+            reduction="none",
+        )

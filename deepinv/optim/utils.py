@@ -35,7 +35,7 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
-    verbose = False,
+    verbose=False,
 ):
     """
     Standard conjugate gradient algorithm.

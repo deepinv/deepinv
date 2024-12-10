@@ -32,36 +32,40 @@ class Decolorize(DecomposablePhysics):
         if srf is None or srf == "rec601":
             self.srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
         elif srf in ("average", "flat"):
-            self.srf = [1/channels] * channels
+            self.srf = [1 / channels] * channels
         elif srf == "learn":
-            raise NotImplementedError() #TODO
+            raise NotImplementedError()  # TODO
         elif isinstance(srf, (tuple, list)):
             self.srf = srf
         else:
             raise ValueError("Invalid srf")
-        
+
         if len(self.srf) < channels:
             # pad with zeros
             self.srf += [0] * (channels - len(self.srf))
         elif len(self.srf) > channels:
             raise ValueError("srf should be of length equal to or less than channels.")
 
-        assert np.allclose(sum(self.srf), 1., rtol=1e-4)
+        assert np.allclose(sum(self.srf), 1.0, rtol=1e-4)
 
         self.srf = torch.tensor(self.srf)
 
     def V_adjoint(self, x):
         if x.shape[1] != len(self.srf):
             raise ValueError("x should have same number of channels as SRF.")
-        
+
         y = x * self.srf.view(1, len(self.srf), 1, 1)
         return torch.sum(y, dim=1, keepdim=True)
 
     def V(self, y):
         if y.shape[1] != 1:
-            raise ValueError("y should be grayscale i.e. have length 1 in the 1st dimension.")
-        
-        return y.expand(y.shape[0], len(self.srf), *y.shape[2:]) * self.srf.view(1, len(self.srf), 1, 1)
+            raise ValueError(
+                "y should be grayscale i.e. have length 1 in the 1st dimension."
+            )
+
+        return y.expand(y.shape[0], len(self.srf), *y.shape[2:]) * self.srf.view(
+            1, len(self.srf), 1, 1
+        )
 
 
 # # test code

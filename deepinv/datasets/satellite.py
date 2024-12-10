@@ -14,14 +14,15 @@ from deepinv.datasets.utils import download_archive, extract_zipfile
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.nn import TensorList
 
+
 class NBUDataset(Dataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns 4x256x256 multispectral (MS) satellite images of urban scenes from 6 different satellites.
-    
+
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
-    
+
     This dataset was compiled in `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_
     and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
     For our processing, we take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
@@ -32,9 +33,9 @@ class NBUDataset(Dataset):
     - "worldview-2": 150 images
     - "worldview-3": 55 images
     - "worldview-4": 90 images
-    
+
     .. note::
-        
+
         Returns images as torch tensors normalised to 0-1 over the whole dataset.
 
     TODO checksums
@@ -46,8 +47,9 @@ class NBUDataset(Dataset):
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
     """
+
     def __init__(
-        self, 
+        self,
         root_dir: Union[str, Path],
         satellite: str = "gaofen-1",
         return_pan: bool = False,
@@ -55,18 +57,31 @@ class NBUDataset(Dataset):
         transform_pan: Callable = None,
         download: bool = False,
     ):
-        if satellite not in ("ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", "worldview-4"):
-            raise ValueError('satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".')
-        
+        if satellite not in (
+            "ikonos",
+            "gaofen-1",
+            "quickbird",
+            "worldview-2",
+            "worldview-3",
+            "worldview-4",
+        ):
+            raise ValueError(
+                'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
+            )
+
         self.data_dir = Path(root_dir) / satellite
-        self.normalise = lambda x: (x / (1023 if satellite == "gaofen-1" else 2047)).astype(np.float32)
+        self.normalise = lambda x: (
+            x / (1023 if satellite == "gaofen-1" else 2047)
+        ).astype(np.float32)
         self.transform_ms = transform_ms
         self.transform_pan = transform_pan
         self.return_pan = return_pan
 
         if not self.check_dataset_exists():
             if download:
-                download_archive(get_image_url(f"nbu_{satellite}.zip"), str(self.data_dir) + ".zip")
+                download_archive(
+                    get_image_url(f"nbu_{satellite}.zip"), str(self.data_dir) + ".zip"
+                )
                 extract_zipfile(str(self.data_dir) + ".zip", root_dir)
                 os.remove(str(self.data_dir) + ".zip")
 
@@ -78,17 +93,17 @@ class NBUDataset(Dataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
-        
-        self.ms_paths  = natsorted(self.data_dir.glob("MS_256/*.mat"))
+
+        self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
         assert len(self.ms_paths) == len(self.pan_paths), "Image dataset incomplete."
         self.image_paths = list(zip(self.ms_paths, self.pan_paths))
-        for (_ms, _pan) in self.image_paths:
+        for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
     def check_dataset_exists(self):
         return os.path.isdir(self.data_dir) and len(list(self.data_dir.glob("*"))) > 0
-    
+
     def __len__(self):
         return len(self.image_paths)
 
@@ -96,10 +111,16 @@ class NBUDataset(Dataset):
         paths = self.image_paths[idx]
         ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
 
-        transform_ms  = Compose([self.normalise, ToTensor()] + ([self.transform_ms] if self.transform_ms is not None else []))
-        transform_pan = Compose([self.normalise, ToTensor()] + ([self.transform_pan] if self.transform_pan is not None else []))
-        
-        ms  = transform_ms(ms)
+        transform_ms = Compose(
+            [self.normalise, ToTensor()]
+            + ([self.transform_ms] if self.transform_ms is not None else [])
+        )
+        transform_pan = Compose(
+            [self.normalise, ToTensor()]
+            + ([self.transform_pan] if self.transform_pan is not None else [])
+        )
+
+        ms = transform_ms(ms)
         pan = transform_pan(pan)
-        
+
         return TensorList([ms, pan]) if self.return_pan else ms

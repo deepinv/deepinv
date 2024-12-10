@@ -8,6 +8,7 @@ from deepinv.physics.noise import PoissonNoise
 from deepinv.physics.blur import Downsampling, Blur
 from deepinv.physics.remote_sensing import Pansharpen
 
+
 class ResNet(nn.Module):
     """Simple implementation of ResNet with ReLU activation
 
@@ -62,7 +63,7 @@ class ResNet(nn.Module):
 
 class PanNet(nn.Module):
     """PanNet architecture for pan-sharpening.
-    
+
     PanNet neural network from Yang et al. PanNet: A Deep Network Architecture for Pan-Sharpening, ICCV 2017.
     In forward pass, input is a concatenated volume of zero-filled-upsampled LRMS + PAN with shape (B,C+1,H,W)
     and output is HRMS + PAN where PAN is unchanged.
@@ -135,9 +136,7 @@ class PanNet(nn.Module):
         )
 
         if noise_gain > 0:
-            sampler.noise_model = PoissonNoise(
-                gain=noise_gain, clip_positive=True
-            )
+            sampler.noise_model = PoissonNoise(gain=noise_gain, clip_positive=True)
 
         return sampler if direction == "down" else sampler.A_adjoint
 
