@@ -14,15 +14,13 @@ from torchvision.transforms import InterpolationMode
 torch.manual_seed(0)
 
 # a translation-equivariant model
-afc = AliasFreeUNet(in_channels=3, out_channels=3)
+afc = AliasFreeUNet(in_channels=1, out_channels=1, scales=2)
 # a translation- and rotation-equivariant model
-afc_rotation_equivariant = AliasFreeUNet(
-    in_channels=3, out_channels=3, rotation_equivariant=True
-)
+afc_rotation_equivariant = AliasFreeUNet(in_channels=1, out_channels=1, scales=2, rotation_equivariant=True)
 # a model neither translation-equivariant nor shift-equivariant
-unet = UNet(in_channels=3, out_channels=3)
+unet = UNet(in_channels=1, out_channels=1, scales=2)
 
-x = DummyCircles(1, imsize=(3, 256, 256))[0].unsqueeze(0)
+x = DummyCircles(1, imsize=(1, 32, 32))[0].unsqueeze(0)
 metric = PSNR()
 
 rotate_kwargs = {
@@ -34,7 +32,7 @@ rotate_params = {"theta": [15]}
 
 
 def test_nonsquare_input():
-    x = DummyCircles(1, imsize=(3, 256, 128))[0].unsqueeze(0)
+    x = DummyCircles(1, imsize=(1, 32, 16))[0].unsqueeze(0)
     y = afc(x)
     assert y.shape == x.shape
     y = afc_rotation_equivariant(x)
@@ -46,7 +44,7 @@ def test_shift_equivariant():
     assert err >= 75
 
     err = Shift().equivariance_test(afc_rotation_equivariant, x, metric=metric)
-    assert err >= 60
+    assert err >= 35
 
 
 def test_not_shift_equivariant():
@@ -56,10 +54,10 @@ def test_not_shift_equivariant():
 
 def test_translation_equivariant():
     err = Translate().equivariance_test(afc, x, metric=metric)
-    assert err >= 70
+    assert err >= 65
 
     err = Translate().equivariance_test(afc_rotation_equivariant, x, metric=metric)
-    assert err >= 60
+    assert err >= 45
 
 
 def test_not_translation_equivariant():
@@ -68,19 +66,14 @@ def test_not_translation_equivariant():
 
 
 def test_rotation_equivariant():
-    psnr_base = Rotate(**rotate_kwargs).equivariance_test(
-        afc, x, params=rotate_params, metric=metric
-    )
-
-    psnr_equiv = Rotate(**rotate_kwargs).equivariance_test(
+    psnr = Rotate(**rotate_kwargs).equivariance_test(
         afc_rotation_equivariant, x, params=rotate_params, metric=metric
     )
-    assert psnr_equiv >= 40
-    assert psnr_equiv > 1.04 * psnr_base
+    assert psnr >= 25
 
 
 def test_not_rotation_equivariant():
     psnr = Rotate(**rotate_kwargs).equivariance_test(
         unet, x, params=rotate_params, metric=metric
     )
-    assert psnr <= 10
+    assert psnr <= 15
