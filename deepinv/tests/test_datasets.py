@@ -16,7 +16,7 @@ from deepinv.datasets import (
     SimpleFastMRISliceDataset,
 )
 from deepinv.datasets.utils import download_archive
-from deepinv.utils.demo import get_image_dataset_url
+from deepinv.utils.demo import get_image_url
 
 
 @pytest.fixture
@@ -114,6 +114,7 @@ def download_cbsd68(download=True):
     # After the test function complete, any code after the yield statement will run
     if download:
         shutil.rmtree(tmp_data_dir)
+
 
 def test_load_cbsd68_dataset(download_cbsd68):
     """Check that dataset contains 68 PIL images."""
@@ -273,7 +274,7 @@ def download_fastmri():
 
     # Download single FastMRI volume
     os.makedirs(tmp_data_dir, exist_ok=True)
-    url = get_image_dataset_url(file_name, None)
+    url = get_image_url(file_name)
     download_archive(url, f"{tmp_data_dir}/{file_name}")
 
     # This will return control to the test function
