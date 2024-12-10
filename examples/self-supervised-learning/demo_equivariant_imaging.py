@@ -9,13 +9,14 @@ The equivariant imaging loss is presented in `"Equivariant Imaging: Learning Bey
 
 """
 
-import deepinv as dinv
-from torch.utils.data import DataLoader
-import torch
 from pathlib import Path
+import torch
+from torch.utils.data import DataLoader
 from torchvision import transforms
-from deepinv.optim.prior import PnP
-from deepinv.utils.demo import load_dataset, load_degradation, demo_mri_model
+
+import deepinv as dinv
+from deepinv.datasets import SimpleFastMRISliceDataset
+from deepinv.utils.demo import get_data_home, load_degradation, demo_mri_model
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -49,8 +50,12 @@ img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
 
-train_dataset = load_dataset(train_dataset_name, transform, train=True)
-test_dataset = load_dataset(train_dataset_name, transform, train=False)
+train_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=True, download=True
+)
+test_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=False
+)
 
 # %%
 # Generate a dataset of knee images and load it.
