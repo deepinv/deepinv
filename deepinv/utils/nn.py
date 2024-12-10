@@ -208,6 +208,12 @@ class TensorList:
 
         return TensorList([xi < other for xi in self.x])
 
+    def squeeze(self, dim=None):
+        return TensorList([xi.squeeze(dim=dim) for xi in self.x])
+
+    def unsqueeze(self, dim=None):
+        return TensorList([xi.unsqueeze(dim=dim) for xi in self.x])
+
 
 def randn_like(x):
     r"""
