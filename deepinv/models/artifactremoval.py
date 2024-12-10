@@ -63,22 +63,25 @@ class ArtifactRemoval(Reconstructor):
                 v.requires_grad = False
             self.backbone_net = self.backbone_net.to(device)
 
-    def backbone_inference(self, y_in: Tensor, physics: Physics, y: Tensor):
+    def backbone_inference(
+        self, tensor_in: Tensor, physics: Physics, y: Tensor
+    ) -> Tensor:
         """Perform inference on the backbone network.
+
         By default, treats backbone network as a denoiser.
         Override for different inference e.g. for an unrolled network.
 
-        :param Tensor y_in: input tensor as dictated by ArtifactRemoval mode
+        :param Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
-        :param Tensor y: _description_
-        :return _type_: _description_
+        :param Tensor y: input measurements y
+        :return: Tensor: reconstructed image
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma = physics.noise_model.sigma
         else:
             sigma = None
 
-        return self.backbone_net(y_in, sigma)
+        return self.backbone_net(tensor_in, sigma)
 
     def forward(self, y: Tensor, physics: Physics, **kwargs):
         r"""

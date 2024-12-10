@@ -1,4 +1,5 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -8,6 +9,9 @@ from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
 from deepinv.physics.mri import MRIMixin
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class VarNet(ArtifactRemoval, MRIMixin):
@@ -70,15 +74,26 @@ class VarNet(ArtifactRemoval, MRIMixin):
             device=None,
         )
 
-    def backbone_inference(self, tensor_in, physics, y):
+    def backbone_inference(
+        self, tensor_in: Tensor, physics: Physics, y: Tensor
+    ) -> Tensor:
+        """Perform inference on input tensor.
+
+        Uses physics and y for data consistency.
+        If necessary, perform fully-sampled MRI IFFT on model output.
+
+        :param Tensor tensor_in: input tensor as dictated by VarNet mode (either k-space or image)
+        :param Physics physics: forward physics for data consistency
+        :param Tensor y: input measurements y for data consistency
+        :return: Tensor: reconstructed image
+        """
         hat, _, _ = self.backbone_net((tensor_in, physics, y))
-        return (
-            hat
-            if self.estimate_x
-            else self.from_torch_complex(
+        if self.estimate_x:
+            return hat
+        else:
+            return self.from_torch_complex(
                 self.ifft(self.to_torch_complex(hat), dim=(-2, -1))
             )
-        )
 
 
 class VarNetBlock(nn.Module):
