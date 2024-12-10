@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from .base import Denoiser
 
 
-class DiffUNet(Denoiser):
+class AttentionUNet(Denoiser):
     r"""
     Diffusion UNet model.
 
@@ -49,47 +49,24 @@ class DiffUNet(Denoiser):
 
     def __init__(
         self,
-        in_channels=3,
-        out_channels=3,
-        large_model=False,
-        use_fp16=False,
-        pretrained="download",
+        in_channels,
+        out_channels,
+        img_size,
+        model_channels,
+        num_res_blocks,
+        attention_resolutions, 
+        dropout, 
+        channel_mult,
+        conv_resample,
+        num_classes, 
+        use_checkpoint,
+        use_fp16,
+        num_heads,
+        num_head_channels,
+        num_heads_upsample
     ):
         super().__init__()
-
-        if large_model:
-            model_channels = 256
-            num_res_blocks = 2
-            attention_resolutions = "8,16,32"
-        else:
-            model_channels = 128
-            num_res_blocks = 1
-            attention_resolutions = "16"
-
-        dropout = 0.1
-        conv_resample = True
-        dims = 2
-        num_classes = None
-        use_checkpoint = False
-        num_heads = 4
-        num_head_channels = 64
-        num_heads_upsample = -1
-        use_scale_shift_norm = True
-        resblock_updown = True
-        use_new_attention_order = False
-
-        out_channels = 6 if out_channels == 3 else out_channels
-        channel_mult = (1, 1, 2, 2, 4, 4)
-
-        img_size = 256
-        attention_ds = []
-        for res in attention_resolutions.split(","):
-            attention_ds.append(img_size // int(res))
-        attention_resolutions = tuple(attention_ds)
-
-        if num_heads_upsample == -1:
-            num_heads_upsample = num_heads
-
+        
         self.img_size = img_size
         self.in_channels = in_channels
         self.model_channels = model_channels
@@ -105,6 +82,16 @@ class DiffUNet(Denoiser):
         self.num_heads = num_heads
         self.num_head_channels = num_head_channels
         self.num_heads_upsample = num_heads_upsample
+
+        attention_ds = []
+        for res in attention_resolutions.split(","):
+            attention_ds.append(img_size // int(res))
+        attention_resolutions = tuple(attention_ds)
+
+        use_scale_shift_norm = True
+        resblock_updown = True
+        use_new_attention_order = False
+        dims = 2
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
@@ -253,26 +240,6 @@ class DiffUNet(Denoiser):
             nn.SiLU(),
             zero_module(conv_nd(dims, input_ch, out_channels, 3, padding=1)),
         )
-
-        if pretrained is not None:
-            if pretrained == "download":
-                if in_channels == 3 and out_channels == 6 and not large_model:
-                    name = "diffusion_ffhq_10m.pt"
-                elif in_channels == 3 and out_channels == 6 and large_model:
-                    name = "diffusion_openai.pt"
-                else:
-                    raise ValueError(
-                        "no existing pretrained model matches the requested configuration"
-                    )
-                url = get_weights_url(model_name="diffunet", file_name=name)
-                ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name=name
-                )
-            else:
-                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
-
-            self.load_state_dict(ckpt, strict=True)
-            self.eval()
 
     def convert_to_fp16(self):
         """
@@ -435,6 +402,82 @@ class DiffUNet(Denoiser):
         return (denoised + 1) / 2
 
 
+class DiffUNet(AttentionUNet):
+    def __init__(self, in_channels=3,
+                out_channels=3,
+                large_model=False,
+                use_fp16=False,
+                pretrained="download"):
+        
+        if large_model:
+            model_channels = 256
+            num_res_blocks = 2
+            attention_resolutions = "8,16,32"
+        else:
+            model_channels = 128
+            num_res_blocks = 1
+            attention_resolutions = "16"
+
+        dropout = 0.1
+        conv_resample = True
+        dims = 2
+        num_classes = None
+        use_checkpoint = False
+        num_heads = 4
+        num_head_channels = 64
+        num_heads_upsample = -1
+        use_scale_shift_norm = True
+        resblock_updown = True
+        use_new_attention_order = False
+
+        out_channels = 6 if out_channels == 3 else out_channels
+        channel_mult = (1, 1, 2, 2, 4, 4)
+
+        img_size = 256
+        
+
+        if num_heads_upsample == -1:
+            num_heads_upsample = num_heads
+
+        super().__init__(in_channels=in_channels,
+                        out_channels=out_channels,
+                        img_size=256,
+                        model_channels=model_channels,
+                        num_res_blocks=num_res_blocks,
+                        attention_resolutions=attention_resolutions, 
+                        dropout=dropout, 
+                        channel_mult=channel_mult,
+                        conv_resample=conv_resample,
+                        num_classes=num_classes, 
+                        use_checkpoint=use_checkpoint,
+                        use_fp16=use_fp16,
+                        num_heads=num_heads,
+                        num_head_channels=num_head_channels,
+                        num_heads_upsample=num_heads_upsample)
+
+        if pretrained is not None:
+            if pretrained == "download":
+                if in_channels == 3 and out_channels == 6 and not large_model:
+                    name = "diffusion_ffhq_10m.pt"
+                elif in_channels == 3 and out_channels == 6 and large_model:
+                    name = "diffusion_openai.pt"
+                else:
+                    raise ValueError(
+                        "no existing pretrained model matches the requested configuration"
+                    )
+                url = get_weights_url(model_name="diffunet", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+
+            self.load_state_dict(ckpt, strict=True)
+            self.eval()
+
+
+
+
 class AttentionPool2d(nn.Module):
     """
     Adapted from CLIP: https://github.com/openai/CLIP/blob/main/clip/model.py
@@ -554,6 +597,8 @@ class Downsample(nn.Module):
     def forward(self, x):
         assert x.shape[1] == self.channels
         return self.op(x)
+
+
 
 
 class ResBlock(TimestepBlock):
