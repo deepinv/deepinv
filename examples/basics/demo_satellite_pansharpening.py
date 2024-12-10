@@ -4,17 +4,39 @@ import deepinv as dinv
 # Simulate pansharpening measurements (4-channel)
 physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, noise_gray=None, srf="flat")
 dataset = dinv.datasets.NBUDataset("nbu", download=True, return_pan=False)
-y = dataset[0].unsqueeze(0) # just MS of shape 1,4,256,256
+x = dataset[0].unsqueeze(0) # just MS of shape 1,4,256,256
+y = physics(x)
+
+# Pansharpen with classical
+x_hat = physics.A_classical(y)
+
+# Pansharpen with model
+model = dinv.models.PanNet(hrms_shape=(4, 256, 256))
+x_net = model(y, physics)
 
 dinv.utils.plot([
-    y[:, :3],
-    physics(y)[0][:, :3],
-    physics(y)[1]
+    x[:, :3],
+    y[0][:, :3],
+    y[1],
+    x_hat[:, :3],
+    x_net[:, :3],
 ], titles=[
     "x MS",
     "y MS",
-    "y PAN"
+    "y PAN",
+    "x_hat (classical)",
+    "x_net (PanNet)"
 ])
+
+# Evaluate performance
+qnr = dinv.metric.QNR()
+sam = dinv.metric.distortion.SpectralAngleMapper()
+ergas = dinv.metric.distortion.ERGAS(factor=4)
+print(
+    qnr(x_hat, x=None, y=y, physics=physics),
+    sam(x_hat, x),
+    ergas(x_hat, x)
+)
 
 # %%
 # Perform pansharpening using raw measurements y
@@ -38,9 +60,8 @@ dinv.utils.plot([
     "pansharpening dagger"
 ], dpi=1200)
 
-# Evaluate performance
+# Evaluate performance - note we can only use QNR as we have no GT
 qnr = dinv.metric.QNR()
-
 print(qnr(
     x_net=physics.A_classical(y),
     x=None,
