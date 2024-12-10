@@ -11,6 +11,8 @@ from torch.utils.data import Dataset
 import torchvision
 from torchvision import transforms
 
+from deepinv.models.base import Reconstructor
+
 
 def get_git_root():
     import git
@@ -20,16 +22,12 @@ def get_git_root():
     return git_root
 
 
-def get_image_dataset_url(dataset_name, file_type="zip"):
-    return (
-        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
-        + dataset_name
-        + (("." + file_type) if file_type is not None else "")
-        + "?download=true"
-    )
+def get_degradation_url(file_name: str) -> str:
+    """Get URL for degradation from DeepInverse HuggingFace repository.
 
-
-def get_degradation_url(file_name):
+    :param str file_name: degradation filename in repository
+    :return: degradation URL
+    """
     return (
         "https://huggingface.co/datasets/deepinv/degradations/resolve/main/"
         + file_name
@@ -37,7 +35,12 @@ def get_degradation_url(file_name):
     )
 
 
-def get_image_url(file_name):
+def get_image_url(file_name: str) -> str:
+    """Get URL for image from DeepInverse HuggingFace repository.
+
+    :param str file_name: image filename in repository
+    :return str: image URL
+    """
     return (
         "https://huggingface.co/datasets/deepinv/images/resolve/main/"
         + file_name
@@ -45,11 +48,13 @@ def get_image_url(file_name):
     )
 
 
-def get_data_home():
+def get_data_home() -> Path:
     """Return a folder to store deepinv datasets.
 
     This folder can be specified by setting the environment variable``DEEPINV_DATA``,
     or ``XDG_DATA_HOME``. By default, it is ``./datasets``.
+
+    :return: pathlib Path for data home
     """
     data_home = os.environ.get("DEEPINV_DATA", None)
     if data_home is not None:
@@ -65,13 +70,21 @@ def get_data_home():
 def load_dataset(
     dataset_name: Union[str, Path],
     transform: Callable,
-    data_dir: Path = None,
+    data_dir: Union[str, Path] = None,
     download: bool = True,
     url: str = None,
     file_type: str = "zip",
 ) -> Dataset:
-    # TODO add load_dataset to docs
-    # TODO docstring
+    """Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
+
+    :param str, Path dataset_name: dataset name without file extension.
+    :param Callable transform: optional transform to pass to torchvision dataset.
+    :param str, Path data_dir: dataset root directory, defaults to None
+    :param bool download: whether to download, defaults to True
+    :param str url: download URL, if ``None``, gets URL using :meth:`deepinv.utils.demo.get_image_url`
+    :param str file_type: file extension, defaults to "zip"
+    :return: torchvision ImageFolder dataset.
+    """
     if data_dir is None:
         data_dir = get_data_home()
 
@@ -89,7 +102,7 @@ def load_dataset(
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
         if url is None:
-            url = get_image_dataset_url(dataset_name, file_type)
+            url = get_image_url(f"{str(dataset_name)}.{file_type}")
 
         response = requests.get(url, stream=True)
         total_size_in_bytes = int(response.headers.get("content-length", 0))
@@ -105,16 +118,34 @@ def load_dataset(
         with zipfile.ZipFile(str(dataset_dir) + ".zip") as zip_ref:
             zip_ref.extractall(str(data_dir))
 
-        os.remove(str(dataset_dir) + f".{file_type}")
+        os.remove(f"{str(dataset_dir)}.{file_type}")
         print(f"{dataset_name} dataset downloaded in {data_dir}")
 
     return torchvision.datasets.ImageFolder(root=dataset_dir, transform=transform)
 
 
-def load_degradation(name, data_dir=None, index=0, download=True):
+def load_degradation(
+    name: Union[str, Path],
+    data_dir: Union[str, Path] = None,
+    index: int = 0,
+    download: bool = True,
+) -> torch.Tensor:
+    """Loads a degradation tensor from DeepInverse HuggingFace repository.
+
+    :param str, Path name: degradation name with file extension
+    :param str, Path data_dir: dataset root directory, defaults to None
+    :param int index: degradation index, defaults to 0
+    :param bool download: whether to download, defaults to True
+    :return: Tensor containing degradation.
+    """
     if data_dir is None:
         data_dir = get_data_home()
+
+    if isinstance(data_dir, str):
+        data_dir = Path(data_dir)
+
     path = data_dir / name
+
     if download and not path.exists():
         data_dir.mkdir(parents=True, exist_ok=True)
         url = get_degradation_url(name)
@@ -122,9 +153,9 @@ def load_degradation(name, data_dir=None, index=0, download=True):
             with open(str(data_dir / name), "wb") as f:
                 shutil.copyfileobj(r.raw, f)
         print(f"{name} degradation downloaded in {data_dir}")
+
     deg = np.load(path, allow_pickle=True)
-    deg_torch = torch.from_numpy(deg[index])  # .unsqueeze(0).unsqueeze(0)
-    return deg_torch
+    return torch.from_numpy(deg[index])  # .unsqueeze(0).unsqueeze(0)
 
 
 def load_image(
@@ -229,7 +260,7 @@ def load_np_url(url=None):
     return array
 
 
-def demo_mri_model(device, dncnn_depth: int = 7):
+def demo_mri_model(device, denoiser: torch.nn.Module = None) -> Reconstructor:
     """Demo MRI reconstruction model for use in relevant examples.
 
     As a reconstruction network, we use an unrolled network (half-quadratic splitting)
@@ -237,7 +268,6 @@ def demo_mri_model(device, dncnn_depth: int = 7):
     model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
     :param str, torch.device device: device
-    :param int dncnn_depth: depth of DnCNN denoiser backbone
     :return torch.nn.Module: model
     """
     from deepinv.optim.prior import PnP
@@ -247,18 +277,20 @@ def demo_mri_model(device, dncnn_depth: int = 7):
 
     # Select the data fidelity term
     data_fidelity = L2()
-    n_channels = 2  # real + imaginary parts
 
     # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
     # iteration. For fixed trained model prior across iterations, initialize with a single model.
-    prior = PnP(
-        denoiser=DnCNN(
-            in_channels=n_channels,
-            out_channels=n_channels,
+    denoiser = (
+        denoiser
+        if denoiser is not None
+        else DnCNN(
+            in_channels=2,  # real + imaginary parts
+            out_channels=2,
             pretrained=None,
-            depth=dncnn_depth,
-        ).to(device)
+            depth=7,
+        )
     )
+    prior = PnP(denoiser=denoiser.to(device))
 
     # Unrolled optimization algorithm parameters
     max_iter = 3  # number of unfolded layers

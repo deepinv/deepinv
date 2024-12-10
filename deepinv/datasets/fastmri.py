@@ -28,7 +28,7 @@ from tqdm import tqdm
 import torch
 from torchvision.transforms import Compose, CenterCrop
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
-from deepinv.utils.demo import get_image_dataset_url
+from deepinv.utils.demo import get_image_url
 
 
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
@@ -47,8 +47,8 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     You can use this to generate a custom dataset and load using the ``file_name`` argument.
 
     :param str, Path root_dir: dataset root directory
-    :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
+    :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param bool train: whether to use training set or test set, defaults to True
     :param int sample_index: if specified only load this sample, defaults to None
     :param float train_percent: percentage train for train/test split, defaults to 0.925
@@ -60,8 +60,8 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root_dir: Union[str, Path],
-        file_name: Union[str, Path] = None,
         anatomy: str = "knee",
+        file_name: Union[str, Path] = None,
         train: bool = True,
         sample_index: int = None,
         train_percent: float = 0.925,
@@ -85,7 +85,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
             x = torch.load(root_dir / file_name)
         except FileNotFoundError:
             if download:
-                url = get_image_dataset_url(str(file_name), None)
+                url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
                 x = torch.load(root_dir / file_name)
             else:

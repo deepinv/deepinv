@@ -121,7 +121,12 @@ Multiple popular easy-to-download datasets are available:
    * - :class:`deepinv.datasets.FastMRISliceDataset`
      - Over 100,000 MRI slices
      - Complex numbers, 320x320 pixels
-     - A large-scale dataset of MRI brain and knee scans for training and evaluating MRI reconstruction methods.
+     - A large-scale dataset of MRI knee and brain scans for training and evaluating MRI reconstruction methods.
+
+   * - :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+     - 973 (knee) and 455 (brain) images
+     - 320x320 fully-sampled reconstructed slices
+     - Easy-to-use in-memory prepared subset of 2D slices from the full FastMRI slice dataset for knees and brains.
 
    * - :class:`deepinv.datasets.LidcIdriSliceDataset`
      - Over 200,000 CT scan slices
@@ -147,3 +152,20 @@ Multiple popular easy-to-download datasets are available:
      - 48 blurry + 9547 sharp images
      - 800x800 RGB
      - A blind-deblurring dataset consists of blurry shots and sharp frames, each blurry shot being associated with about 200 sharp frames.
+
+.. _data-transforms:
+
+Data Transforms
+---------------
+
+We provide some torchvision-style transforms for use when loading data:
+
+.. list-table:: Datasets Overview
+   :header-rows: 1
+
+   * - **Transform**
+     - **Description**
+   * - :class:`deepinv.datasets.utils.Rescale`
+     - Min-max or clip value rescaling.
+   * - :class:`deepinv.datasets.utils.ToComplex`
+     - Add empty imaginary dimension to image.
