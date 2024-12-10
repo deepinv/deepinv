@@ -25,14 +25,14 @@ dinv.utils.plot(
     titles=["x MS", "y MS", "y PAN", "x_hat (classical)", "x_net (PanNet)"],
 )
 
-# Evaluate performance
+# Evaluate performance ("supervised")
 qnr = dinv.metric.QNR()
 sam = dinv.metric.distortion.SpectralAngleMapper()
 ergas = dinv.metric.distortion.ERGAS(factor=4)
 print(qnr(x_hat, x=None, y=y, physics=physics), sam(x_hat, x), ergas(x_hat, x))
 
 # %%
-# Perform pansharpening using raw measurements y
+# Perform pansharpening using raw measurements y ("unsupervised")
 physics = dinv.physics.Pansharpen((4, 1024, 1024), factor=4)
 dataset = dinv.datasets.NBUDataset("nbu", return_pan=True)
 y = dataset[0].unsqueeze(0)  # MS (1,4,256,256), PAN (1,1,1024,1024)
