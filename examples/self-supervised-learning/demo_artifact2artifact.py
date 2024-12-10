@@ -30,7 +30,8 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
 import deepinv as dinv
-from deepinv.utils.demo import load_dataset, demo_mri_model
+from deepinv.datasets import SimpleFastMRISliceDataset
+from deepinv.utils.demo import demo_mri_model, get_data_home
 from deepinv.models.utils import get_weights_url
 from deepinv.physics.generator import (
     GaussianMaskGenerator,
@@ -55,8 +56,12 @@ H = 128
 
 transform = transforms.Compose([transforms.Resize(H)])
 
-train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True)
-test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False)
+train_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=True, download=True
+)
+test_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=False
+)
 
 train_dataset = Subset(train_dataset, torch.arange(5))
 test_dataset = Subset(test_dataset, torch.arange(30))
