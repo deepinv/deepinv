@@ -154,7 +154,6 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-
         if len(input_shape) == 3:
             mode = compare(input_shape, output_shape)
         else:

@@ -1,7 +1,9 @@
 from functools import partial
+
 import math
 
 import torch
+import numpy as np
 
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
@@ -318,3 +320,235 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         :return: (str) the structure of the operator, e.g., "FDFD".
         """
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)
+
+
+class PtychographyLinearOperator(LinearPhysics):
+    r"""
+    Forward linear operator for phase retrieval in ptychography. Modelling multiple applications of the shifted probe and Fourier transform on an input image.
+
+    This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.
+    The probe function is applied element by element to the input image.
+
+    .. math::
+
+        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
+        B_l = F P T_l, \quad l = 1, \dots, n_{\text{img}},
+
+    where :math:`F` is the 2D Fourier transform, :math:`P` is the probe function and :math:`T_l` is a shift.
+
+    :param tuple img_size: Shape of the input image (height, width).
+    :param probe: A 2D tensor representing the probe function.
+    :param str probe_type: Type of probe (e.g., "disk"), used if `probe` is not provided.
+    :param int probe_radius: Radius of the probe, used if `probe` is not provided.
+    :param array_like shifts: shifts of the probe.
+    :param int fov: Field of view used for calculating shifts if `shifts` is not provided.
+    :param int n_img: Number of shifted probe positions (should be a perfect square).
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        img_size=None,
+        probe=None,
+        shifts=None,
+        probe_type=None,
+        probe_radius=None,  # probe parameters
+        fov=None,
+        n_img: int = 25,
+        device="cpu",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.device = device
+
+        if probe is not None:
+            self.probe = probe
+            self.img_size = img_size if img_size is not None else probe.shape
+        else:
+            self.img_size = img_size
+            self.probe_type = probe_type
+            self.probe_radius = probe_radius
+            self.probe = self.construct_probe(
+                type=probe_type, probe_radius=probe_radius
+            )
+
+        if shifts is not None:
+            self.shifts = shifts
+            self.n_img = len(shifts)
+        else:
+            self.n_img = n_img
+            self.fov = fov
+            self.shifts = self.generate_shifts(n_img=n_img, fov=fov)
+
+        self.probe = (
+            self.probe / self.get_overlap_img(self.probe, self.shifts).mean().sqrt()
+        )
+
+    def A(self, x, **kwargs):
+        """
+        Applies the forward operator to the input image `x` by shifting the probe,
+        multiplying element-wise, and performing a 2D Fourier transform.
+
+        :param torch.Tensor x: Input image tensor.
+        :return: Concatenated Fourier transformed tensors after applying shifted probes.
+        """
+        op_fft2 = partial(torch.fft.fft2, norm="ortho")
+        f = lambda x, x_shift, y_shift: op_fft2(
+            self.probe * self.shift(x, x_shift, y_shift)
+        )
+        return torch.cat(
+            [f(x, x_shift, y_shift) for (x_shift, y_shift) in self.shifts], dim=1
+        )
+
+    def A_adjoint(self, y, **kwargs):
+        """
+        Applies the adjoint operator to `y`.
+
+        :param torch.Tensor y: Transformed image data tensor of size (batch_size, n_img, height, width).
+        :return: Reconstructed image tensor.
+        """
+        op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
+        g = lambda s, x_shift, y_shift: self.shift(
+            self.probe * op_ifft2(s), -x_shift, -y_shift
+        )
+        for i in range(len(self.shifts)):
+            if i == 0:
+                x = g(y[:, i, :, :].unsqueeze(1), self.shifts[i, 0], self.shifts[i, 1])
+            else:
+                x += g(y[:, i, :, :].unsqueeze(1), self.shifts[i, 0], self.shifts[i, 1])
+        return x
+
+    def construct_probe(self, type="disk", probe_radius=10):
+        """
+        Constructs the probe based on the specified type and radius.
+
+        :param str type: Type of probe shape, e.g., "disk".
+        :param int probe_radius: Radius of the probe shape.
+        :return: Tensor representing the constructed probe.
+        """
+        if type == "disk" or type is None:
+            x = torch.arange(self.img_size[0], dtype=torch.float64)
+            y = torch.arange(self.img_size[1], dtype=torch.float64)
+            X, Y = torch.meshgrid(x, y, indexing="ij")
+            probe = torch.zeros(self.img_size, device=self.device)
+            probe[
+                torch.sqrt(
+                    (X - self.img_size[0] // 2) ** 2 + (Y - self.img_size[1] // 2) ** 2
+                )
+                < probe_radius
+            ] = 1
+        else:
+            raise NotImplementedError(f"Probe type {type} not implemented")
+        return probe
+
+    def generate_shifts(self, n_img, fov=None):
+        """
+        Generates the array of probe shifts across the image, based on probe radius and field of view.
+
+        :param size: Size of the image.
+        :param int n_img: Number of shifts (must be a perfect square).
+        :param probe_radius: Radius of the probe.
+        :param int fov: Field of view for shift computation.
+        :return np.ndarray: Array of (x, y) shifts.
+        """
+        if fov is None:
+            fov = self.img_size[-1]
+        start_shift = -fov // 2
+        end_shift = fov // 2
+
+        if n_img != int(np.sqrt(n_img)) ** 2:
+            raise ValueError("n_img needs to be a perfect square")
+
+        side_n_img = int(np.sqrt(n_img))
+        shifts = np.linspace(start_shift, end_shift, side_n_img).astype(int)
+        y_shifts, x_shifts = np.meshgrid(shifts, shifts, indexing="ij")
+        return np.concatenate(
+            [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], axis=1
+        )
+
+    def shift(self, x, x_shift, y_shift, pad_zeros=True):
+        """
+        Applies a shift to the tensor `x` by `x_shift` and `y_shift`.
+
+        :param torch.Tensor x: Input tensor.
+        :param int x_shift: Shift in x-direction.
+        :param int y_shift: Shift in y-direction.
+        :param bool pad_zeros: If True, pads shifted regions with zeros.
+        :return: Shifted tensor.
+        """
+        x = torch.roll(x, (x_shift, y_shift), dims=(-2, -1))
+
+        if pad_zeros:
+            if x_shift < 0:
+                x[..., x_shift:, :] = 0
+            elif x_shift > 0:
+                x[..., 0:x_shift, :] = 0
+            if y_shift < 0:
+                x[..., :, y_shift:] = 0
+            elif y_shift > 0:
+                x[..., :, 0:y_shift] = 0
+        return x
+
+    def get_overlap_img(self, probe, shifts):
+        """
+        Computes the overlapping image intensities from probe shifts, used for normalization.
+
+        :param torch.Tensor probe: Probe tensor.
+        :param array_like shifts: Array of probe shifts.
+        :return: Tensor representing the overlap image.
+        """
+        overlap_img = torch.zeros_like(probe, dtype=torch.float32)
+        for x_shift, y_shift in shifts:
+            overlap_img += torch.abs(self.shift(probe, x_shift, y_shift)) ** 2
+        return overlap_img
+
+
+class Ptychography(PhaseRetrieval):
+    r"""
+    Ptychography forward operator. Corresponding to the operator
+
+    .. math::
+
+         \forw{x} = \left| Bx \right|^2
+
+    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
+
+    :param tuple in_shape: Shape of the input image (height, width).
+    :param torch.Tensor probe: A 2D tensor representing the probe function.
+    :param str probe_type: Type of probe (e.g., "disk"), used if `probe` is not provided.
+    :param int probe_radius: Radius of the probe, used if `probe` is not provided.
+    :param array_like shifts: shifts of the probe.
+    :param int fov: Field of view used for calculating shifts if `shifts` is not provided.
+    :param int n_img: Number of shifted probe positions (should be a perfect square).
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        in_shape=None,
+        probe=None,
+        shifts=None,
+        probe_type=None,
+        probe_radius=None,  # probe parameters
+        fov=None,
+        n_img: int = 25,
+        device="cpu",
+        **kwargs,
+    ):
+        B = PtychographyLinearOperator(
+            img_size=in_shape,
+            probe=probe,
+            shifts=shifts,
+            probe_type=probe_type,
+            probe_radius=probe_radius,
+            fov=fov,
+            n_img=n_img,
+            device=device,
+        )
+        self.probe = B.probe
+        self.shifts = B.shifts
+        self.device = device
+
+        super().__init__(B, **kwargs)
+        self.name = f"Ptychography_PR"
