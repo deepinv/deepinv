@@ -73,6 +73,10 @@ We provide the following simple geometric transforms.
      - No
      - Yes
 
+   * - :class:`deepinv.transform.Translate`
+     - Yes
+     - No
+
    * - :class:`deepinv.transform.Scale`
      - Yes
      - No
