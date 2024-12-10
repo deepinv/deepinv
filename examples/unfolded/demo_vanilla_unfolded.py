@@ -24,7 +24,6 @@ from deepinv.utils.demo import load_dataset
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -60,12 +59,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 # Define the base train and test datasets of clean images.
-train_base_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
+train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
+test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 
 # Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
@@ -205,13 +200,34 @@ model = trainer.train()
 # --------------------------------------------
 #
 #
-
 trainer.test(test_dataloader)
 
+test_sample, _ = next(iter(test_dataloader))
+model.eval()
+test_sample = test_sample.to(device)
+
+# Get the measurements and the ground truth
+y = physics(test_sample)
+with torch.no_grad():
+    rec = model(y, physics=physics)
+
+backprojected = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    [backprojected, rec, test_sample],
+    titles=["Linear", "Reconstruction", "Ground truth"],
+    suptitle="Reconstruction results",
+)
+
+
 # %%
-# Plotting the trained parameters.
+# Plotting the weights of the network.
 # ------------------------------------
+#
+# We now plot the weights of the network that were learned and check that they are different from their initialization
+# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
+#
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_drs" / operation
+    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )

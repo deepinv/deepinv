@@ -19,7 +19,7 @@ from .noise import (
     LogPoissonNoise,
     GammaNoise,
 )
-from .mri import MRI, DynamicMRI, SequentialMRI
+from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI, MRIMixin
 from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
@@ -27,11 +27,13 @@ from .remote_sensing import Pansharpen
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
+    StructuredRandomPhaseRetrieval,
     PtychographyLinearOperator,
     Ptychography,
 )
 from .radio import RadioInterferometry
 from .time import TimeMixin
+from .structured_random import StructuredRandom
 
 from . import generator
 from . import functional

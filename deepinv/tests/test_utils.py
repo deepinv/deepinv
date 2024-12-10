@@ -2,8 +2,6 @@ import deepinv
 import torch
 import pytest
 
-import matplotlib.pyplot as plt
-
 
 @pytest.fixture
 def tensorlist():
@@ -78,10 +76,11 @@ def test_tensordict_append(tensorlist):
 def test_plot():
     for c in range(1, 5):
         x = torch.ones((1, c, 2, 2))
-        imgs = [x, x]
-        deepinv.utils.plot(imgs, titles=["a", "b"], show=False)
+        titles, imgs = ["a", "b"], [x, x]
+        deepinv.utils.plot(imgs, titles=titles, show=False)
         deepinv.utils.plot(x, titles="a", show=False)
         deepinv.utils.plot(imgs, show=False)
+        deepinv.utils.plot({k: v for k, v in zip(titles, imgs)}, show=False)
 
 
 def test_plot_inset():

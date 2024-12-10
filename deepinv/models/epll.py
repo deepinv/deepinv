@@ -1,10 +1,10 @@
-import torch.nn as nn
 import torch
 from deepinv.optim.epll import EPLL
 from deepinv.physics import Denoising, GaussianNoise
+from .base import Denoiser
 
 
-class EPLLDenoiser(nn.Module):
+class EPLLDenoiser(Denoiser):
     r"""
     Expected Patch Log Likelihood denoising method.
 

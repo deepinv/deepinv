@@ -20,18 +20,15 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from .utils import get_weights_url, test_pad
+from .base import Denoiser
 
 
-class Restormer(nn.Module):
+class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
 
     This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
-
-    .. image:: ../figures/restormer_architecture.png
-       :width: 600
-       :alt: Overview of the Restormer architecture / Fig 2 in paper by Zamir et al.
 
     |
     |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
@@ -406,12 +403,11 @@ class Restormer(nn.Module):
 
         return out_dec_level1
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
         :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
         """
         if self.training:
             out = self.forward_restormer(x)

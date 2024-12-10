@@ -7,14 +7,12 @@
 # VSCode
 .vscode/
 
-results/
 *__pycache__*
 *.pyc
 
 # Files
 *.pt
 *.h5
-*.png
 *.pth
 *.ckpt
 *.tar.gz
@@ -28,7 +26,7 @@ results/
 /docs/build/
 /docs/source/auto_examples/
 /docs/source/gen_modules/
-/docs/source/stubs/*
+/docs/source/**/stubs/*
 
 # Miscellaneous
 /experimental/
@@ -41,7 +39,7 @@ build
 deepinv.egg-info
 dist
 wandb/
-kernels
+kernels/
 measurements/
 degradations/
 results/
