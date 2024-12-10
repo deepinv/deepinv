@@ -4,6 +4,8 @@ from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
 from deepinv.utils import TensorList
+from deepinv.optim.utils import conjugate_gradient
+
 
 
 class Pansharpen(LinearPhysics):
@@ -75,6 +77,7 @@ class Pansharpen(LinearPhysics):
         self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.colorize = Decolorize(device=device)
 
+
     def A(self, x, **kwargs):
         return TensorList(
             [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
@@ -85,6 +88,7 @@ class Pansharpen(LinearPhysics):
             y[1], **kwargs
         )
 
+
     def forward(self, x, **kwargs):
         return TensorList(
             [
@@ -92,6 +96,25 @@ class Pansharpen(LinearPhysics):
                 self.noise_gray(self.colorize(x, **kwargs)),
             ]
         )
+
+    def A_dagger(self, y, **kwargs):
+        r"""
+        Computes the solution in :math:`x` to :math:`y = Ax` using the
+        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
+        see :meth:`deepinv.optim.utils.conjugate_gradient`.
+
+        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :return: (torch.Tensor) The reconstructed image :math:`x`.
+
+        """
+
+        A = lambda x: self.A_A_adjoint(x)
+        b = y
+        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1)
+
+        x = self.A_adjoint(x)
+        return x
+
 
 
 # test code

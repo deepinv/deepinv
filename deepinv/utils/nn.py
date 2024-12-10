@@ -29,6 +29,24 @@ class TensorList:
     def __repr__(self):
         return f"TensorList({self.x})"
 
+    def to(self, *args, **kwargs):
+        r"""
+        Moves the TensorList to the given device and dtype.
+        """
+        return TensorList([xi.to(*args, **kwargs) for xi in self.x])
+
+    def clone(self):
+        r"""
+        Returns a copy of the TensorList.
+        """
+        return TensorList([xi.clone() for xi in self.x])
+
+    def detach(self):
+        r"""
+        Returns a copy of the TensorList with detached gradients.
+        """
+        return TensorList([xi.detach() for xi in self.x])
+
     def __len__(self):
         r"""
         Returns the number of tensors in the list.
@@ -40,6 +58,12 @@ class TensorList:
         Returns the ith tensor in the list.
         """
         return self.x[item]
+
+    def __setitem__(self, key, value):
+        r"""
+        Sets the ith tensor in the list.
+        """
+        self.x[key] = value
 
     def flatten(self):
         r"""
