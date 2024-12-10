@@ -56,7 +56,11 @@ OPERATORS = [
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
 
-PHASE_RETRIEVAL_OPERATORS = ["random_phase_retrieval", "structured_random_phase_retrieval", "ptychography"]
+PHASE_RETRIEVAL_OPERATORS = [
+    "random_phase_retrieval",
+    "structured_random_phase_retrieval",
+    "ptychography",
+]
 
 NOISES = [
     "Gaussian",
@@ -311,7 +315,8 @@ def find_operator(name, device):
             probe_radius=15,
             fov=50,
             n_img=25,
-            device=device)
+            device=device,
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype

@@ -185,6 +185,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     def get_A_squared_mean(self):
         return self.B._A.var() + self.B._A.mean() ** 2
 
+
 class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     r"""
     Structured random phase retrieval model corresponding to the operator
@@ -208,17 +209,18 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
     :param str device: Device for computation. Default is `cpu`.
     """
+
     def __init__(
         self,
         input_shape: tuple,
         output_shape: tuple,
         n_layers: int,
-        transform = "fft",
-        diagonal_mode = "uniform_phase",
-        shared_weights = False,
-        dtype = torch.cfloat,
-        device = "cpu",
-        ** kwargs,
+        transform="fft",
+        diagonal_mode="uniform_phase",
+        shared_weights=False,
+        dtype=torch.cfloat,
+        device="cpu",
+        **kwargs,
     ):
         if output_shape is None:
             output_shape = input_shape
@@ -229,7 +231,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
         assert (
-        n_layers % 1 == 0.5 or n_layers % 1 == 0
+            n_layers % 1 == 0.5 or n_layers % 1 == 0
         ), "n_layers must be an integer or an integer plus 0.5"
         self.n_layers = n_layers
         self.structure = self.get_structure(self.n_layers)
@@ -300,7 +302,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     def B_dagger(self, y):
         return self.B.A_adjoint(y)
-
 
     def get_A_squared_mean(self):
         if self.n_layers == 0.5:
@@ -456,9 +457,9 @@ class PtychographyLinearOperator(LinearPhysics):
         start_shift = -fov // 2
         end_shift = fov // 2
 
-        if  n_img != int(np.sqrt(n_img)) ** 2:
+        if n_img != int(np.sqrt(n_img)) ** 2:
             raise ValueError("n_img needs to be a perfect square")
-            
+
         side_n_img = int(np.sqrt(n_img))
         shifts = np.linspace(start_shift, end_shift, side_n_img).astype(int)
         y_shifts, x_shifts = np.meshgrid(shifts, shifts, indexing="ij")
