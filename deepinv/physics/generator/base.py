@@ -1,10 +1,11 @@
+from typing import List, Union
+
 import torch
 import torch.nn as nn
-from typing import List, Union
-import warnings
 
+from deepinv.utils.mixin import RandomMixin
 
-class PhysicsGenerator(nn.Module):
+class PhysicsGenerator(nn.Module, RandomMixin):
     r"""
     Base class for parameter generation of physics parameters.
 
@@ -12,6 +13,8 @@ class PhysicsGenerator(nn.Module):
 
     Generators can be summed to create larger generators via :meth:`deepinv.physics.generator.PhysicsGenerator.__add__`,
     or mixed to create a generator that randomly selects them via :meth:`deepinv.physics.generator.GeneratorMixture`.
+
+    Note that this class inherits random generator functionalities for reproducibility from :class:`deepinv.utils.mixin.RandomMixin`.
 
     :param Callable step: a function that generates the parameters of the physics, e.g.,
         the filter of the :meth:`deepinv.physics.Blur`. This function should return the parameters in a dictionary with
@@ -54,15 +57,6 @@ class PhysicsGenerator(nn.Module):
         self.kwargs = kwargs
         self.factory_kwargs = {"device": device, "dtype": dtype}
         self.device = device
-        if rng is None:
-            self.rng = torch.Generator(device=device)
-        else:
-            # Make sure that the random generator is on the same device as the physics generator
-            assert rng.device == torch.device(
-                device
-            ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {self.device}."
-            self.rng = rng
-        self.initial_random_state = self.rng.get_state()
 
         # Set attributes
         for k, v in kwargs.items():
@@ -81,23 +75,6 @@ class PhysicsGenerator(nn.Module):
             self.kwargs = kwargs
 
         return self.step_func(batch_size, seed, **kwargs)
-
-    def rng_manual_seed(self, seed: int = None):
-        r"""
-        Sets the seed for the random number generator.
-
-        :param int seed: the seed to set for the random number generator.
-         If not provided, the current state of the random number generator is used.
-         Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
-        """
-        if seed is not None:
-            self.rng = self.rng.manual_seed(seed)
-
-    def reset_rng(self):
-        r"""
-        Reset the random number generator to its initial state.
-        """
-        self.rng.set_state(self.initial_random_state)
 
     def __add__(self, other):
         r"""

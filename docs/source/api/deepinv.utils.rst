@@ -36,6 +36,18 @@ TensorList
         deepinv.utils.randn_like
         deepinv.utils.rand_like
 
+Mixins
+------
+.. userguide:: mixin
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.utils.mixin.TimeMixin
+        deepinv.utils.mixin.RandomMixin
+        deepinv.utils.mixin.MRIMixin
 
 Other
 -----

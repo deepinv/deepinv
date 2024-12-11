@@ -18,7 +18,26 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
     you can define the adjoint automatically using autograd with :class:`deepinv.physics.adjoint_function`.
     Note however that coding a closed form adjoint is generally more efficient.
 
-.. tip::
+.. _mixin:
 
-    You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
+**TODO**: move this to a new section of "How to contribute", not just specific to physics.
+
+You can also inherit from mixin classes to provide specific useful methods,
+for your physics, models, losses etc. This is encouraged to maintain a consistent API,
+and to prevent rewriting code.
+
+.. list-table:: Mixins
+   :header-rows: 1
+
+   * - **Mixin**
+     - **Description**
+
+   * - :class:`deepinv.utils.mixin.TimeMixin`
+     - Easily add temporal capabilities for dynamic physics, models etc.
+
+   * - :class:`deepinv.utils.mixin.RandomMixin`
+     - Enforce reproducibility in classes that require randomness.
+
+   * - :class:`deepinv.utils.mixin.MRIMixin`
+     - Provides helper methods for FFT and mask checking.
 
