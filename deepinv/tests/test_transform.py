@@ -232,24 +232,26 @@ def test_shift_time():
 
 
 def test_forward_operator_equivariance():
+    x = torch.randn(1, 3, 16, 16)
+
     physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])
 
-    err = Shift().equivariance_test(physics, x, metric=linf_metric)
-    assert err < 1e-6
+    psnr = Shift().equivariance_test(physics, x)
+    assert psnr > 75
 
-    err = Translate().equivariance_test(physics, x, metric=linf_metric)
-    assert err < 1e-6
+    psnr = Translate().equivariance_test(physics, x)
+    assert psnr > 75
 
     gen = BernoulliSplittingMaskGenerator(x.shape[-3:], split_ratio=0.7)
     params = gen.step(batch_size=1, seed=0)
     physics = Inpainting(tensor_size=x.shape[-3:])
     physics.update_parameters(**params)
 
-    err = Shift().equivariance_test(physics, x, metric=linf_metric)
-    assert err >= 1e-1
+    psnr = Shift().equivariance_test(physics, x)
+    assert psnr < 5
 
-    err = Translate().equivariance_test(physics, x, metric=linf_metric)
-    assert err >= 1e0
+    psnr = Translate().equivariance_test(physics, x)
+    assert psnr < 5
 
-    psnr = Rotate(**rotate_kwargs).equivariance_test(physics, x, metric=psnr_metric)
-    assert psnr <= 15
+    psnr = Rotate().equivariance_test(physics, x)
+    assert psnr < 5
