@@ -27,7 +27,6 @@ from deepinv.utils.demo import load_dataset
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -50,11 +49,10 @@ method = "L2_prior"
 dataset_name = "set3c"
 operation = "deblur"
 img_size = 256
-dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -123,9 +121,8 @@ class L2Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, args, **kwargs):
-        g = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
-        return g
+    def fn(self, x, args, **kwargs):
+        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
 
 
 # Specify the custom prior

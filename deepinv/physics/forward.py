@@ -1,7 +1,7 @@
 import torch
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils import randn_like, TensorList
+from deepinv.optim.utils import conjugate_gradient
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -144,6 +144,14 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (torch.Tensor) clean measurements
         """
         return self.sensor_model(x)
+
+    def set_noise_model(self, noise_model):
+        r"""
+        Sets the noise model
+
+        :param Callable noise_model: noise model
+        """
+        self.noise_model = noise_model
 
     def noise(self, x, **kwargs):
         r"""

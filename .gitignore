@@ -14,7 +14,6 @@ results/
 # Files
 *.pt
 *.h5
-*.png
 *.pth
 *.ckpt
 *.tar.gz
@@ -23,12 +22,14 @@ results/
 *tmp
 *.tar
 *.ipynb
+examples/*/*.png
+examples/*/*.gif
 
 # Folders
 /docs/build/
 /docs/source/auto_examples/
 /docs/source/gen_modules/
-/docs/source/stubs/*
+/docs/source/**/stubs/*
 
 # Miscellaneous
 /experimental/

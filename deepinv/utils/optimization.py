@@ -82,7 +82,7 @@ if __name__ == "__main__":
     import torch
     import deepinv as dinv
 
-    net = dinv.models.unet().to(dinv.device)
+    net = dinv.models.edm.NCSNpp.from_pretrained("edm-ffhq64-uncond-ve").to(dinv.device)
     physics = dinv.physics.Inpainting([32, 32], device=dinv.device)
 
     x = torch.randn(10, 1, 32, 32).to(dinv.device)
@@ -96,7 +96,10 @@ if __name__ == "__main__":
     print("iterations=3")
     iterations = 3
     step_size = 1.0
-    blocks = [dinv.models.unet().to(dinv.device) for _ in range(iterations)]
+    blocks = [
+        dinv.models.edm.NCSNpp.from_pretrained("edm-ffhq64-uncond-ve").to(dinv.device)
+        for _ in range(iterations)
+    ]
 
     physics = dinv.physics.Inpainting([32, 32], device=dinv.device)
     x = torch.randn(10, 1, 32, 32).to(dinv.device)

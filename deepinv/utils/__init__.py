@@ -9,6 +9,7 @@ from .plotting import (
     plot_parameters,
     plot_inset,
     plot_videos,
+    save_videos,
     make_grid,
     wandb_imgs,
     wandb_plot_curves,
@@ -16,7 +17,7 @@ from .plotting import (
     scatter_plot,
     plot_ortho3D,
 )
-from .demo import load_url_image, load_image
+from .demo import load_url_image, load_image, get_data_home
 from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor

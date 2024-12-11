@@ -10,11 +10,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
+from .base import Denoiser
 
 # Compatibility with optional dependency on timm
 try:
     import timm
-    from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+    from timm.layers import DropPath, to_2tuple, trunc_normal_
 except ImportError as e:
     timm = e
 
@@ -786,7 +787,7 @@ class UpsampleOneStep(nn.Sequential):
         return flops
 
 
-class SwinIR(nn.Module):
+class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
     The Swin Image Restoration (SwinIR) denoising network was introduced in `SwinIR: Image Restoration Using Swin
@@ -1076,7 +1077,7 @@ class SwinIR(nn.Module):
 
         return x
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 

@@ -87,7 +87,7 @@ class JacobianSpectralNorm(Loss):
                         ", val: ",
                         z.sqrt().item(),
                         ", relvar :",
-                        rel_var,
+                        rel_var.item(),
                     )
                     break
             zold = z.detach().clone()
