@@ -232,6 +232,8 @@ def test_shift_time():
 
 
 def test_forward_operator_equivariance():
+    torch.manual_seed(0)
+
     x = torch.randn(1, 3, 16, 16)
 
     physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])
