@@ -22,7 +22,6 @@ class LayerNorm_AF(nn.Module):
         self,
         normalized_shape,
         eps=1e-6,
-        data_format="channels_last",
         u_dims=(1, 2, 3),
         s_dims=(1, 2, 3),
         bias=True,
@@ -34,26 +33,17 @@ class LayerNorm_AF(nn.Module):
         else:
             self.bias = None
         self.eps = eps
-        self.data_format = data_format
-        if self.data_format not in ["channels_last", "channels_first"]:
-            raise NotImplementedError
         self.normalized_shape = (normalized_shape,)
         self.u_dims = u_dims
         self.s_dims = s_dims
 
     def forward(self, x):
-        if self.data_format == "channels_last":
-            x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
         u = x.mean(self.u_dims, keepdim=True)
         s = (x - u).pow(2).mean(self.s_dims, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.eps)
         x = self.weight[:, None, None] * x
         if self.bias is not None:
             x = x + self.bias[:, None, None]
-
-        if self.data_format == "channels_last":
-            x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
-
         return x
 
 
@@ -106,9 +96,7 @@ class ConvNextBlock(nn.Module):
             self.norm = nn.LayerNorm(4 * in_channels, bias=bias)
             self.norm_order = "channels_last"
         elif norm == "LayerNorm_AF":
-            self.norm = LayerNorm_AF(
-                4 * in_channels, data_format="channels_first", bias=bias
-            )
+            self.norm = LayerNorm_AF(4 * in_channels, bias=bias)
             self.norm_order = "channels_first"
         else:
             self.norm = nn.Identity()
@@ -154,66 +142,6 @@ class ConvNextBlock(nn.Module):
         out = out + x
         out = self.convout(out)
         return out
-
-
-def ConvBlock(
-    in_channels, out_channels, mode="relu", bias=False, rotation_equivariant=False
-):
-    if rotation_equivariant:
-        ksize = 1
-    else:
-        ksize = 3
-
-    seq = nn.Sequential()
-    seq.append(
-        nn.Conv2d(
-            in_channels,
-            out_channels,
-            kernel_size=ksize,
-            stride=1,
-            padding=ksize // 2,
-            bias=bias,
-            padding_mode="circular",
-            groups=1,
-        )
-    )
-
-    if mode == "up_poly_per_channel":
-        seq.append(
-            UpPolyActPerChannel(
-                out_channels,
-                rotation_equivariant=rotation_equivariant,
-            )
-        )
-    elif mode == "relu":
-        seq.append(nn.ReLU(inplace=True))
-    else:
-        raise ValueError(f"Mode {mode} not supported")
-
-    seq.append(
-        nn.Conv2d(
-            out_channels,
-            out_channels,
-            kernel_size=ksize,
-            stride=1,
-            padding=ksize // 2,
-            bias=bias,
-            padding_mode="circular",
-        )
-    )
-
-    if mode == "up_poly_per_channel":
-        seq.append(
-            UpPolyActPerChannel(
-                out_channels,
-                data_format="channels_first",
-                rotation_equivariant=rotation_equivariant,
-            )
-        )
-    else:
-        seq.append(nn.ReLU(inplace=True))
-
-    return seq
 
 
 # https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/weight_init.py
@@ -376,62 +304,25 @@ class UpsampleRFFT(nn.Module):
 
 
 class PolyActPerChannel(nn.Module):
-    def __init__(
-        self,
-        channels,
-        init_coef=None,
-        data_format="channels_first",
-        in_scale=1,
-        out_scale=1,
-        train_scale=False,
-    ):
+    def __init__(self, channels):
         super(PolyActPerChannel, self).__init__()
         self.channels = channels
-        if init_coef is None:
-            init_coef = [0.0169394634313126, 0.5, 0.3078363963999393]
+        init_coef = [0.0169394634313126, 0.5, 0.3078363963999393]
         self.deg = len(init_coef) - 1
         coef = torch.Tensor(init_coef)
         coef = coef.repeat([channels, 1])
         coef = torch.unsqueeze(torch.unsqueeze(coef, -1), -1)
         self.coef = nn.Parameter(coef, requires_grad=True)
 
-        if train_scale:
-            self.in_scale = nn.Parameter(
-                torch.tensor([in_scale * 1.0]), requires_grad=True
-            )
-            self.out_scale = nn.Parameter(
-                torch.tensor([out_scale * 1.0]), requires_grad=True
-            )
-
-        else:
-            if in_scale != 1:
-                self.register_buffer("in_scale", torch.tensor([in_scale * 1.0]))
-            else:
-                self.in_scale = None
-
-            if out_scale != 1:
-                self.register_buffer("out_scale", torch.tensor([out_scale * 1.0]))
-            else:
-                self.out_scale = None
-
-        self.data_format = data_format
-
     def forward(self, x):
-        if self.data_format == "channels_last":
-            x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
-
-        if self.in_scale is not None:
-            x = self.in_scale * x
-
-        x = self.calc_polynomial(x)
-
-        if self.out_scale is not None:
-            x = self.out_scale * x
-
-        if self.data_format == "channels_last":
-            x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
-
-        return x
+        if self.deg == 2:
+            # maybe this is faster?
+            res = self.coef[:, 0] + self.coef[:, 1] * x + self.coef[:, 2] * (x**2)
+        else:
+            res = self.coef[:, 0] + self.coef[:, 1] * x
+            for i in range(2, self.deg):
+                res = res + self.coef[:, i] * (x**i)
+        return res
 
     def __repr__(self):
         # print_coef = self.coef.cpu().detach().numpy()
@@ -443,17 +334,6 @@ class PolyActPerChannel(nn.Module):
         return "PolyActPerChannel(channels={}, in_scale={}, out_scale={})".format(
             self.channels, print_in_scale, print_out_scale
         )
-
-    def calc_polynomial(self, x):
-        if self.deg == 2:
-            # maybe this is faster?
-            res = self.coef[:, 0] + self.coef[:, 1] * x + self.coef[:, 2] * (x**2)
-        else:
-            res = self.coef[:, 0] + self.coef[:, 1] * x
-            for i in range(2, self.deg):
-                res = res + self.coef[:, i] * (x**i)
-
-        return res
 
 
 class UpPolyActPerChannel(nn.Module):
@@ -506,7 +386,6 @@ class BlurPool(nn.Module):
         filt_size=1,
         stride=2,
         pad_off=0,
-        filter_type="ideal",
         cutoff=0.5,
         scale_l2=False,
         eps=1e-6,
@@ -527,68 +406,23 @@ class BlurPool(nn.Module):
         self.off = int((self.stride - 1) / 2.0)
         self.channels = channels
         self.pad_type = pad_type
-        self.filter_type = filter_type
         self.scale_l2 = scale_l2
         self.eps = eps
 
-        if filter_type == "ideal":
-            self.filt = LPF_RFFT(
-                cutoff=cutoff,
-                transform_mode=transform_mode,
-                rotation_equivariant=rotation_equivariant,
-            )
-
-        elif filter_type == "basic":
-            a = self.get_rect(self.filt_size)
-
-        if filter_type == "basic":
-            filt = torch.Tensor(a[:, None] * a[None, :])
-            filt = filt / torch.sum(filt)
-            self.filt = Filter(filt, channels, pad_type, self.pad_sizes, scale_l2)
-            if self.filt_size == 1 and self.pad_off == 0:
-                self.pad = get_pad_layer(pad_type)(self.pad_sizes)
+        self.filt = LPF_RFFT(
+            cutoff=cutoff,
+            transform_mode=transform_mode,
+            rotation_equivariant=rotation_equivariant,
+        )
 
     def forward(self, inp):
-        if self.filter_type == "ideal":
-            if self.scale_l2:
-                inp_norm = torch.norm(inp, p=2, dim=(-1, -2), keepdim=True)
-            out = self.filt(inp)
-            if self.scale_l2:
-                out_norm = torch.norm(out, p=2, dim=(-1, -2), keepdim=True)
-                out = out * (inp_norm / (out_norm + self.eps))
-            return out[:, :, :: self.stride, :: self.stride]
-
-        elif self.filt_size == 1:
-            if self.pad_off == 0:
-                return inp[:, :, :: self.stride, :: self.stride]
-            else:
-                return self.pad(inp)[:, :, :: self.stride, :: self.stride]
-
-        else:
-            return self.filt(inp)[:, :, :: self.stride, :: self.stride]
-
-    @staticmethod
-    def get_rect(filt_size):
-        if filt_size == 1:
-            a = np.array(
-                [
-                    1.0,
-                ]
-            )
-        elif filt_size == 2:
-            a = np.array([1.0, 1.0])
-        elif filt_size == 3:
-            a = np.array([1.0, 2.0, 1.0])
-        elif filt_size == 4:
-            a = np.array([1.0, 3.0, 3.0, 1.0])
-        elif filt_size == 5:
-            a = np.array([1.0, 4.0, 6.0, 4.0, 1.0])
-        elif filt_size == 6:
-            a = np.array([1.0, 5.0, 10.0, 10.0, 5.0, 1.0])
-        elif filt_size == 7:
-            a = np.array([1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0])
-
-        return a
+        if self.scale_l2:
+            inp_norm = torch.norm(inp, p=2, dim=(-1, -2), keepdim=True)
+        out = self.filt(inp)
+        if self.scale_l2:
+            out_norm = torch.norm(out, p=2, dim=(-1, -2), keepdim=True)
+            out = out * (inp_norm / (out_norm + self.eps))
+        return out[:, :, :: self.stride, :: self.stride]
 
     def __repr__(self):
         return (
@@ -652,7 +486,6 @@ class AliasFreeUNet(nn.Module):
     :param bool residual: if True, the output is the sum of the input and the denoised image.
     :param bool cat: if True, the network uses skip connections.
     :param int scales: number of scales in the network.
-    :param str block_kind: type of block to use in the network. Options are ``ConvBlock`` and ``ConvNextBlock``.
     :param bool rotation_equivariant: if True, the network is rotation-equivariant.
     """
 
@@ -664,31 +497,20 @@ class AliasFreeUNet(nn.Module):
         cat=True,
         bias=False,
         scales=4,
-        block_kind="ConvNextBlock",
         rotation_equivariant=False,
+        hidden_channels=64,
     ):
         super().__init__()
-        mode = "up_poly_per_channel"
-
         self.in_channels = in_channels
         self.out_channels = out_channels
-
+        self.hidden_channels = hidden_channels
         self.residual = residual
         self.cat = cat
         self.scales = scales
 
-        self.hidden_channels = 64
-
-        if block_kind == "ConvBlock":
-            main_block = ConvBlock
-        elif block_kind == "ConvNextBlock":
-            main_block = ConvNextBlock
-        else:
-            raise NotImplementedError()
-
         out_ch = self.hidden_channels
 
-        self.conv_in = main_block(
+        self.conv_in = ConvNextBlock(
             in_channels=in_channels,
             out_channels=out_ch,
             bias=bias,
@@ -707,7 +529,7 @@ class AliasFreeUNet(nn.Module):
             setattr(
                 self,
                 f"DownBlock{i}",
-                main_block(
+                ConvNextBlock(
                     in_channels=in_ch,
                     out_channels=out_ch,
                     bias=bias,
@@ -727,7 +549,7 @@ class AliasFreeUNet(nn.Module):
             setattr(
                 self,
                 f"UpBlock{i}",
-                main_block(
+                ConvNextBlock(
                     in_channels=in_ch,
                     out_channels=out_ch,
                     bias=bias,
@@ -738,7 +560,7 @@ class AliasFreeUNet(nn.Module):
             setattr(
                 self,
                 f"CatBlock{i}",
-                main_block(
+                ConvNextBlock(
                     in_channels=in_ch,
                     out_channels=out_ch,
                     bias=bias,
