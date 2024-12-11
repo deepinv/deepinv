@@ -67,6 +67,12 @@ def choose_transform(transform_name, device, rng):
                 names[0], device=device, rng=rng
             ) * choose_transform(names[1], device=device, rng=rng)
 
+    if transform_name == "diffeomorphism":
+        pytest.importorskip(
+            "libcpab",
+            reason="This test requires libcpab. Install with `pip install libcpab`."
+        )
+
     if transform_name in (
         "homography",
         "euclidean",

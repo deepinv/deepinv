@@ -48,7 +48,7 @@ Changed
 - Sphinx template to pydata (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Remove metrics from utils and consolidate complex and normalisation options (:gh:`309` by `Andrew Wang`_)
 - get_freer_gpu falls back to torch.cuda when nvidia-smi fails (:gh:`352` by `Andrew Wang`_)
-- Remove libcpab dependency for diffeomorphisms (:gh:`370` by `Andrew Wang`_)
+- libcpab now is a PyPi package for diffeomorphisms, add rngs and devices to transforms (:gh:`370` by `Andrew Wang`_)
 
 v0.2.1
 ----------------
