@@ -10,6 +10,12 @@ import numpy as np
 class SDEOutput(dict):
     r"""
     A container for storing the output of an SDE solver, that behaves like a `dict` but allows access with the attribute syntax.
+
+    Attributes:
+    :attr torch.Tensor sample: the final samples of the sampling process, of shape ``(B, C, H, W)``.
+    :attr torch.Tensor trajectory: the trajectory of the sampling process, of shape ``(num_steps, B, C, H, W)`` if ``full_trajectory`` is ``True``, otherwise of shape ``(B, C, H, W)``.
+    :attr torch.Tensor timesteps: the time steps at which the samples were taken, of shape ``(num_steps,)``.
+    :attr int nfe: the number of function evaluations performed during the integration.
     """
 
     def __init__(self, sample: Tensor, trajectory: Tensor, timesteps: Tensor, nfe: int):
@@ -97,11 +103,7 @@ class BaseSDESolver(nn.Module):
         :param \*args: Variable length argument list to be passed to the step function.
         :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
 
-        :return: The solution of the system after solving the SDE across all timesteps, with the following attributes:
-            sample torch.Tensor: the final sample of the SDE, of the same shape as `x_init`.
-            trajectory torch.Tensor: the trajectory of the SDE, of shape `(num_timesteps, *x_init.shape)` if `full_trajectory = True`, otherwise equal to `sample`.
-            timestep torch.Tensor: the discrete timesteps.
-            nfe int: the number of function evaluations.
+        :return: SDEOutput
         """
         x = x_init
         nfe = 0

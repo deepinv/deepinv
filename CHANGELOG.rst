@@ -14,7 +14,7 @@ New Features
 - Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`)
 - Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
 - Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen` and `Samuel Hurault`)
-- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen` and `Mathieu Terris`)
 
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)

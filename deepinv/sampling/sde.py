@@ -20,8 +20,8 @@ class BaseSDE(nn.Module):
 
     It defines the common interface for drift and diffusion functions.
 
-    :param callable drift: a time-dependent drift function f(x, t)
-    :param callable diffusion: a time-dependent diffusion function g(t)
+    :param callable drift: a time-dependent drift function :math:`f(x, t)`
+    :param callable diffusion: a time-dependent diffusion function :math:`g(t)`
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     :param torch.dtype dtype: the data type of the computations.
     :param str device: the device for the computations.
@@ -60,9 +60,9 @@ class BaseSDE(nn.Module):
 
         :param torch.Tensor x_init: initial value.
         :param timesteps: time steps at which to discretize the SDE, of shape `(n_steps,)`.
-        :param str method: method for solving the SDE. One of the methods available in :meth:`deepinv.sampling.sde_solver`.
+        :param str method: method for solving the SDE. One of the methods available in :func:`deepinv.sampling.sde_solver`.
 
-        :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
+        :return SDEOutput: a namespaced container of the output.
         """
         self.rng_manual_seed(seed)
         solver_fn = select_solver(method)
@@ -147,26 +147,26 @@ class DiffusionSDE(nn.Module):
         d\, x_{t} = \left( f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
 
 
-    The score function can be computed using Tweedie's formula, given a MMSE denoiser :math:`D`:
+    The score function can be computed using Tweedie's formula, given a MMSE denoiser :math:`\denoisername`:
 
     .. math::
-        \nabla \log p_{t}(x) = \left( D(x, \sigma(t)) - x \right) / \sigma(t)^2
+        \nabla \log p_{t}(x) = \left( \denoiser{x}{\sigma_t} - x \right) / \sigma_t^2
 
-    where :math:`sigma(t)` is the noise level at time :math:`t`, which can be accessed through the attribute :meth:`sigma_t`
+    where :math:`sigma_t` is the noise level at time :math:`t`, which can be accessed through the attribute ``sigma_t``
 
-    Default parameters correspond to the `Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`_ SDE, defined in the time interval `[0,1]`.
+    Default parameters correspond to the `Ornstein-Uhlenbeck process <https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process>`_ SDE, defined in the time interval :math:`[0,1]`.
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param callable denoiser: a pre-trained MMSE denoiser which will be used to approximate the score function by Tweedie's formula.
     :param bool rescale: a boolean indicating whether to rescale the input and output of the denoiser to match the scale of the drift.
-                        Should be set to `True` if the denoiser was trained on `[0,1]`. Default to `False`.
+                        Should be set to `True` if the denoiser was trained on :math:`[0,1]`. Default to `False`.
 
     :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
     :param torch.Generator rng: pseudo-random number generator for reproducibility.
-    :param torch.dtype dtype: data type of the computation, except for the `denoiser` which will be always compute in `float32`.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
-        most computation cost is from evaluating the `denoiser`, which will be always computed in `float32`.
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
     """
 
@@ -239,10 +239,10 @@ class DiffusionSDE(nn.Module):
         Sample the backward-SDE.
 
         :param Union[Tensor, Tuple] x_init: Initial condition of the backward-SDE.
-            If it is a :meth:`torch.Tensor`, `x_init` should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id})`.
-            If it is a tuple, it should be of the form `(B, C, H, W)`. A sample from the distribution :math:`p_T` will be generated automatically.
+            If it is a :meth:`torch.Tensor`, ``x_init`` should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id})`.
+            If it is a tuple, it should be of the form ``(B, C, H, W)``. A sample from the distribution :math:`p_T` will be generated automatically.
 
-        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be of shape `(n_steps,)`.
+        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be of shape ``(n_steps,)``.
         :param str method: The method to discretize the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
         :param args: additional arguments for the backward drift (passed to the `denoiser`).
         :param kwargs: additional keyword arguments for the backward drift (passed to the `denoiser`), e.g., `class_labels` for class-conditional models.
@@ -348,7 +348,7 @@ class DiffusionSDE(nn.Module):
 
 class VESDE(DiffusionSDE):
     r"""
-    Variance-Exploding Stochastic Differential Equation (VE-SDE), described in the paper: https://arxiv.org/abs/2011.13456
+    `Variance-Exploding Stochastic Differential Equation (VE-SDE) <https://arxiv.org/abs/2011.13456>`_
 
     The forward-time SDE is defined as follows:
 

@@ -70,7 +70,7 @@ solving the reverse-time SDE gives us a sample of the data distribution :math:`p
    * - :class:`deepinv.sampling.sde.VESDE`
      - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.sde.DiffusionSDE`.
 
-We also provide generic methods for solving SDE (and ODE).
+We also provide generic methods for solving SDEs (and ODEs).
 
 .. list-table:: SDE/ODE solvers
    :header-rows: 1
@@ -82,10 +82,10 @@ We also provide generic methods for solving SDE (and ODE).
      - Base class of the solvers.
 
    * - :class:`deepinv.sampling.sde_solver.EulerSolver`
-     - First order Euler solver. 
+     - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ .
 
    * - :class:`deepinv.sampling.sde_solver.HeunSolver`
-     - Second order Heun solver. 
+     - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_.
 
 .. _diffusion:
 Diffusion models for posterior sampling
