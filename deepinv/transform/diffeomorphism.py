@@ -12,7 +12,7 @@ class CPABDiffeomorphism(Transform):
 
     Wraps CPAB from a modified version of the `original implementation <https://github.com/SkafteNicki/libcpab>`_.
     From the paper Freifeld et al. `Transformations Based on Continuous Piecewise-Affine Velocity Fields <https://ieeexplore.ieee.org/abstract/document/7814343>`_.
-    
+
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 
     Generates ``n_trans`` randomly transformed versions.
@@ -53,7 +53,7 @@ class CPABDiffeomorphism(Transform):
             from libcpab import Cpab
         except ImportError:
             raise ImportError("Install libcpab using pip install libcpab")
-        
+
         self.cpab = Cpab(
             [n_tesselation, n_tesselation],
             device=device,

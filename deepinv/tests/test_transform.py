@@ -70,7 +70,7 @@ def choose_transform(transform_name, device, rng):
     if transform_name == "diffeomorphism":
         pytest.importorskip(
             "libcpab",
-            reason="This test requires libcpab. Install with `pip install libcpab`."
+            reason="This test requires libcpab. Install with `pip install libcpab`.",
         )
 
     if transform_name in (
