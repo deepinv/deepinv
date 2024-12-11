@@ -10,13 +10,17 @@ from .utils import (
     Conv2d,
     GroupNorm,
 )
+from ..base import Denoiser
 
 
-class NCSNpp(torch.nn.Module):
-    r"""
-    Re-implementation of the DDPM++ and NCSN++ architectures from the paper: Score-Based Generative Modeling through Stochastic Differential Equations (https://arxiv.org/abs/2011.13456).
-    Equivalent to the original implementation by Song et al., available at https://github.com/yang-song/score_sde_pytorch
+class NCSNpp(Denoiser):
+    r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
+    Equivalent to the original implementation by Song et al., available at `<https://github.com/yang-song/score_sde_pytorch`_.
 
+    The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
+    The model also supports an additional class condition model.
+    Each residual block has a self-attention mechanism with multiple channels per attention head.
+    The noise level can be embedded using either Positional Embedding  or Fourier Embedding with optional augmentation linear layer.
 
     :param int img_resolution: Image spatial resolution at input/output.
     :param int in_channels: Number of color channels at input.

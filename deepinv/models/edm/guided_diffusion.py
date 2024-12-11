@@ -8,12 +8,30 @@ from .utils import (
     Conv2d,
     GroupNorm,
 )
+from ..base import Denoiser
 
 
-class ADMUNet(torch.nn.Module):
+class ADMUNet(Denoiser):
     r"""
-    Re-implementation of the architecture from the paper: Diffusion Models Beat GANS on Image Synthesis (https://arxiv.org/abs/2105.05233).
+    Re-implementation of the architecture from the paper: `Diffusion Models Beat GANs on Image Synthesis <https://arxiv.org/abs/2105.05233>`_.
     Equivalent to the original implementation by Dhariwal and Nichol, available at: https://github.com/openai/guided-diffusion.
+    The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections.
+    Each residual block has a self-attention mechanism with `64` channels per attention head with the up/down-sampling from BigGAN..
+    The noise level is embedded using Positional Embedding with optional augmentation linear layer.
+
+    :param int img_resolution: Image spatial resolution at input/output.
+    :param int in_channels: Number of color channels at input.
+    :param int out_channels: Number of color channels at output.
+    :param int label_dim: Number of class labels, 0 = unconditional.
+    :param int augment_dim: Augmentation label dimensionality, 0 = no augmentation.
+    :param int model_channels: Base multiplier for the number of channels.
+    :param list[int] channel_mult: Per-resolution multipliers for the number of channels.
+    :param int channel_mult_emb: Multiplier for the dimensionality of the embedding vector.
+    :param int num_blocks: Number of residual blocks per resolution.
+    :param list[int] attn_resolutions: List of resolutions with self-attention.
+    :param float dropout: dropout probability used in residual blocks.
+    :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
+
     """
 
     def __init__(
@@ -139,6 +157,16 @@ class ADMUNet(torch.nn.Module):
         )
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):
+        r"""
+        Run the denoiser on noisy image.
+
+        :param torch.Tensor x: noisy image
+        :param torch.Tensor noise_level: noise level
+        :param torch.Tensor class_labels: class labels
+        :param torch.Tensor augment_labels: augmentation labels
+
+        :return torch.Tensor: denoised image.
+        """
         # Mapping.
         noise_level = self._handle_sigma(noise_level, x.dtype, x.device, x.size(0))
         emb = self.map_noise(noise_level)
