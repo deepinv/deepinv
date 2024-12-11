@@ -21,7 +21,6 @@
 *tmp
 *.tar
 *.ipynb
-*.cpab_basis
 
 # Folders
 /docs/build/
