@@ -16,7 +16,7 @@ from deepinv.physics.blur import gaussian_blur
 from deepinv.physics.functional import conv2d
 
 
-# https://github.com/hmichaeli/alias_free_convnets/blob/main/models/layer_norm.py
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/layer_norm.py#L50
 class LayerNorm_AF(nn.Module):
     def __init__(
         self,
@@ -47,6 +47,7 @@ class LayerNorm_AF(nn.Module):
         return x
 
 
+# https://github.com/facebookresearch/ConvNeXt/blob/048efcea897d999aed302f2639b6270aedf8d4c8/models/convnext.py#L15
 class ConvNextBlock(nn.Module):
     def __init__(
         self,
@@ -143,10 +144,7 @@ class ConvNextBlock(nn.Module):
         out = self.convout(out)
         return out
 
-
-# https://github.com/huggingface/pytorch-image-models/blob/f689c850b90b16a45cc119a7bc3b24375636fc63/timm/layers/weight_init.py
-
-
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L5
 def create_lpf_rect(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     lpfs = []
@@ -164,6 +162,7 @@ def create_lpf_rect(shape, cutoff=0.5):
     return lpfs[0][:, None] * lpfs[1][None, :]
 
 
+# TODO: merge with create_lpf_rect
 def create_lpf_disk(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     N, M = shape
@@ -177,6 +176,7 @@ def create_lpf_disk(shape, cutoff=0.5):
 
 
 # upsample using FFT
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L31
 def create_recon_rect(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     lpfs = []
@@ -195,6 +195,7 @@ def create_recon_rect(shape, cutoff=0.5):
     return lpfs[0][:, None] * lpfs[1][None, :]
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L45
 class LPF_RFFT(nn.Module):
     """
     saves rect in first use
@@ -243,6 +244,7 @@ class LPF_RFFT(nn.Module):
         return out
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L73
 class LPF_RECON_RFFT(nn.Module):
     """
     saves rect in first use
@@ -281,6 +283,7 @@ class LPF_RECON_RFFT(nn.Module):
         return out
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L99
 class UpsampleRFFT(nn.Module):
     """
     input shape is unknown
@@ -303,6 +306,7 @@ class UpsampleRFFT(nn.Module):
         return x
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/activation.py#L117
 class PolyActPerChannel(nn.Module):
     def __init__(self, channels):
         super(PolyActPerChannel, self).__init__()
@@ -336,6 +340,7 @@ class PolyActPerChannel(nn.Module):
         )
 
 
+# https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/activation.py#L187
 class UpPolyActPerChannel(nn.Module):
     def __init__(
         self,
@@ -364,20 +369,7 @@ class UpPolyActPerChannel(nn.Module):
         return out
 
 
-class circular_pad(nn.Module):
-    def __init__(self, padding=(1, 1, 1, 1)):
-        super(circular_pad, self).__init__()
-        self.pad_sizes = padding
-
-    def forward(self, x):
-        return F.pad(x, pad=self.pad_sizes, mode="circular")
-
-
-# Code originally from https://github.com/adobe/antialiased-cnns
-# Copyright 2019 Adobe. All rights reserved.
-## Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
-
-
+# https://github.com/adobe/antialiased-cnns/blob/b27a34a26f3ab039113d44d83c54d0428598ac9c/antialiased_cnns/blurpool.py#L13
 class BlurPool(nn.Module):
     def __init__(
         self,
@@ -430,45 +422,6 @@ class BlurPool(nn.Module):
             f" stride={self.stride}, filter_type={self.filter_type},  filt_size={self.filt_size}, "
             f"scale_l2={self.scale_l2})"
         )
-
-
-class Filter(nn.Module):
-    def __init__(
-        self, filt, channels, pad_type=None, pad_sizes=None, scale_l2=False, eps=1e-6
-    ):
-        super(Filter, self).__init__()
-        self.register_buffer("filt", filt[None, None, :, :].repeat((channels, 1, 1, 1)))
-        if pad_sizes is not None:
-            self.pad = get_pad_layer(pad_type)(pad_sizes)
-        else:
-            self.pad = None
-        self.scale_l2 = scale_l2
-        self.eps = eps
-
-    def forward(self, x):
-        if self.scale_l2:
-            inp_norm = torch.norm(x, p=2, dim=(-1, -2), keepdim=True)
-        if self.pad is not None:
-            x = self.pad(x)
-        out = F.conv2d(x, self.filt, groups=x.shape[1])
-        if self.scale_l2:
-            out_norm = torch.norm(out, p=2, dim=(-1, -2), keepdim=True)
-            out = out * (inp_norm / (out_norm + self.eps))
-        return out
-
-
-def get_pad_layer(pad_type):
-    if pad_type in ["refl", "reflect"]:
-        PadLayer = nn.ReflectionPad2d
-    elif pad_type in ["repl", "replicate"]:
-        PadLayer = nn.ReplicationPad2d
-    elif pad_type == "zero":
-        PadLayer = nn.ZeroPad2d
-    elif pad_type == "circular":
-        PadLayer = circular_pad
-    else:
-        print("Pad type [%s] not recognized" % pad_type)
-    return PadLayer
 
 
 class AliasFreeUNet(nn.Module):
