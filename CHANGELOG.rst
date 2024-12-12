@@ -11,6 +11,12 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
+- Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
+- Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
+- Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
+
+
 Fixed
 ^^^^^
 
@@ -40,10 +46,6 @@ New Features
 - Add Metric baseclass, unified params (for complex, norm, reduce), typing, tests, L1L2 metric, QNR metric, metrics docs section, Metric functional wrapper (:gh:`309`, :gh:`343` by `Andrew Wang`_)
 - generate_dataset features: complex numbers, save/load physics_generator params, overwrite bool (:gh:`324`, :gh:`352` by `Andrew Wang`_)
 - Add the Köhler dataset (:gh:`271` by `Jérémy Scanvic`_)
-- Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
-- Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
-- Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
-- Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
