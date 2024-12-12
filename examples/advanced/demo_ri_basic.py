@@ -22,6 +22,7 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
 from deepinv.utils.demo import load_np_url, get_image_dataset_url, get_degradation_url
 from deepinv.utils.nn import dirac_like
+from deepinv.optim import FISTA
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -309,7 +310,6 @@ def custom_init(y, physics):
 
 # %%
 # We are now ready to implement the FISTA algorithm.
-from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
@@ -326,8 +326,7 @@ max_iter = 50
 early_stop = True
 
 # Instantiate the algorithm class to solve the problem.
-model = optim_builder(
-    iteration="FISTA",
+model = FISTA(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
