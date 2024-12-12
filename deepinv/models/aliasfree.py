@@ -144,6 +144,7 @@ class ConvNextBlock(nn.Module):
         out = self.convout(out)
         return out
 
+
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L5
 def create_lpf_rect(shape, cutoff=0.5):
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
