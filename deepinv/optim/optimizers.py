@@ -195,7 +195,9 @@ class BaseOptim(Reconstructor):
         else:
             self.data_fidelity = data_fidelity
 
-        self.has_cost = (prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior)
+        self.has_cost = (
+            prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
+        )
         iterator.has_cost = self.has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
@@ -494,7 +496,8 @@ class BaseOptim(Reconstructor):
                 return x, metrics
             else:
                 return x
-        
+
+
 def create_iterator(
     iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
 ):
@@ -616,59 +619,65 @@ def str_to_class(classname):
 
 
 class ADMM(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(ADMM, self).__init__(ADMMIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(ADMM, self).__init__(ADMMIteration(g_first=g_first, F_fn=F_fn), **kwargs)
 
 
 class DRS(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(DRS, self).__init__(DRSIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DRS, self).__init__(DRSIteration(g_first=g_first, F_fn=F_fn), **kwargs)
 
 
 class GradientDescent(BaseOptim):
-    def __init__(self, F_fn = None, **kwargs):
-        super(GradientDescent, self).__init__(GDIteration(F_fn = F_fn), **kwargs)
+    def __init__(self, F_fn=None, **kwargs):
+        super(GradientDescent, self).__init__(GDIteration(F_fn=F_fn), **kwargs)
 
 
 class MirrorDescent(BaseOptim):
-    def __init__(self, bregman_potential = BregmanL2(), F_fn = None, **kwargs):
-        super(MirrorDescent, self).__init__(MDIteration(F_fn = F_fn, bregman_potential = bregman_potential), **kwargs)
+    def __init__(self, bregman_potential=BregmanL2(), F_fn=None, **kwargs):
+        super(MirrorDescent, self).__init__(
+            MDIteration(F_fn=F_fn, bregman_potential=bregman_potential), **kwargs
+        )
 
 
 class HQS(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(HQS, self).__init__(HQSIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(HQS, self).__init__(HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs)
 
 
 class ProximalGradientDescent(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(ProximalGradientDescent, self).__init__(PGDIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
 
 
 class FISTA(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(FISTA, self).__init__(FISTAIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(FISTA, self).__init__(
+            FISTAIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
 
 
 class ProximalMirrorDescent(BaseOptim):
-    def __init__(self, bregman_potential = BregmanL2(), g_first = False, F_fn = None, **kwargs):
-        super(ProximalGradientDescent, self).__init__(PMDIteration(bregman_potential = bregman_potential, g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(
+        self, bregman_potential=BregmanL2(), g_first=False, F_fn=None, **kwargs
+    ):
+        super(ProximalGradientDescent, self).__init__(
+            PMDIteration(
+                bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
+            ),
+            **kwargs,
+        )
 
 
 class PrimalDualCP(BaseOptim):
-    def __init__(self, g_first = False, F_fn = None, **kwargs):
-        super(PrimalDualCP, self).__init__(CPIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(PrimalDualCP, self).__init__(
+            CPIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
 
 
 class SpectralMethod(BaseOptim):
     def __init__(self, **kwargs):
         super(SpectralMethod, self).__init__(SMIteration(), **kwargs)
-
-
-
-
-
-
-
-
-

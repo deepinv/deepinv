@@ -8,13 +8,16 @@ from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optim_iterators import GDIteration
 
+
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
 
 def custom_init_CP(y, physics):
     x_init = physics.A_adjoint(y)
     u_init = y
     return {"est": (x_init, x_init, u_init)}
+
 
 def test_data_fidelity_l2(device):
     data_fidelity = L2()

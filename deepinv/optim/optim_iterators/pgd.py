@@ -89,7 +89,7 @@ class FISTAIteration(OptimIterator):
 
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-             if self.F_fn is not None
+            if self.F_fn is not None
             else None
         )
 

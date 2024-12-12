@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import warnings
 
+
 def F_fn(x, data_fidelity, prior, cur_params, y, physics):
     r"""
     Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
@@ -12,7 +13,7 @@ def F_fn(x, data_fidelity, prior, cur_params, y, physics):
     :param deepinv.optim.prior prior: Instance of the Prior class defining the current prior.
     :param dict cur_params: Dictionary containing the current parameters of the algorithm.
     :param torch.Tensor y: Obervation.
-    :param deepinv.physics physics: Instance of the physics modeling the observation.    
+    :param deepinv.physics physics: Instance of the physics modeling the observation.
     """
     if prior.explicit_prior:
         prior_value = prior(x, cur_params["g_param"], reduce=False)
@@ -28,10 +29,12 @@ def F_fn(x, data_fidelity, prior, cur_params, y, physics):
                 ).sum()
         return data_fidelity(x, y, physics) + reg_value
     else:
-        warnings.warn("No explicit prior has been given to compute the objective function. Computing the data-fidelity term only.")
+        warnings.warn(
+            "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."
+        )
         return data_fidelity(x, y, physics)
 
-    
+
 class OptimIterator(nn.Module):
     r"""
     Base class for all :meth:`Optim` iterators.
