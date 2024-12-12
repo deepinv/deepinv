@@ -16,16 +16,27 @@ from deepinv.physics.blur import gaussian_blur
 from deepinv.physics.functional import conv2d
 
 
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/layer_norm.py#L50
 class LayerNorm_AF(nn.Module):
-    def __init__(
-        self,
-        normalized_shape,
-        eps=1e-6,
-        u_dims=(1, 2, 3),
-        s_dims=(1, 2, 3),
-        bias=True,
-    ):
+    """
+    Alias-Free Layer Normalization
+
+    From `"Alias-Free Convnets: Fractional Shift Invariance via Polynomial Activations" by Michaeli et al. <https://doi.org/10.48550/arXiv.2303.08085>`_
+
+    :param int in_channels: number of input channels.
+    :param int out_channels: number of output channels.
+    :param bool residual: if True, the output is the sum of the input and the denoised image.
+    :param bool cat: if True, the network uses skip connections.
+    :param int scales: number of scales in the network.
+    :param bool rotation_equivariant: if True, the network is rotation-equivariant.
+
+    :param Union[int, list, torch.Size] normalized_shape: Input shape from an expected input of size.
+    :param float eps: A value added to the denominator for numerical stability. Default: 1e-6.
+    :param bool bias: If set to False, the layer will not learn an additive bias. Default: True.
+    """
+
+    def __init__(self, normalized_shape, eps=1e-6, bias=True):
         super().__init__()
         self.weight = nn.Parameter(torch.ones(normalized_shape))
         if bias:
@@ -34,10 +45,15 @@ class LayerNorm_AF(nn.Module):
             self.bias = None
         self.eps = eps
         self.normalized_shape = (normalized_shape,)
-        self.u_dims = u_dims
-        self.s_dims = s_dims
+        self.u_dims = (1, 2, 3)
+        self.s_dims = (1, 2, 3)
 
     def forward(self, x):
+        """
+        Forward pass for layer normalization.
+
+        :param torch.Tensor x: Input tensor
+        """
         u = x.mean(self.u_dims, keepdim=True)
         s = (x - u).pow(2).mean(self.s_dims, keepdim=True)
         x = (x - u) / torch.sqrt(s + self.eps)
@@ -47,8 +63,24 @@ class LayerNorm_AF(nn.Module):
         return x
 
 
+# Adapted from
 # https://github.com/facebookresearch/ConvNeXt/blob/048efcea897d999aed302f2639b6270aedf8d4c8/models/convnext.py#L15
 class ConvNextBlock(nn.Module):
+    """
+    ConvNextBlock implements a block of the ConvNeXt architecture with optional normalization and non-linearity.
+
+    From `"A ConvNet for the 2020s" by Liu et al. <https://arxiv.org/abs/2201.03545>`_
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param str mode: Type of non-linearity to use. Default is "up_poly_per_channel".
+    :param bool bias: If True, adds a learnable bias to the convolutional layers. Default is False.
+    :param int ksize: Kernel size for the depthwise convolution. Default is 7.
+    :param str padding_mode: Padding mode for the convolutional layers. Default is "circular".
+    :param str norm: Type of normalization to use. Options are "BatchNorm2d", "LayerNorm", "LayerNorm_AF", or "Identity". Default is "LayerNorm_AF".
+    :param bool rotation_equivariant: If True, makes the block rotation equivariant by setting kernel size to 1. Default is False. For more details, see `"Alias-Free Generative Adversarial Networks" by Karras et al. <https://doi.org/10.48550/arXiv.2106.12423>`_.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -128,6 +160,11 @@ class ConvNextBlock(nn.Module):
             self.convout = nn.Identity()
 
     def forward(self, x):
+        """
+        Forward pass for the ConvNextBlock.
+
+        :param torch.Tensor x: Input tensor
+        """
         out = self.conv1(x)
         out = self.conv2(out)
         if self.norm_order == "channels_first":
@@ -145,8 +182,16 @@ class ConvNextBlock(nn.Module):
         return out
 
 
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L5
 def create_lpf_rect(shape, cutoff=0.5):
+    """
+    Creates a rectangular low-pass filter (LPF) for 2D signals.
+
+    :param Tuple[int] shape: The shape of the filter, should be a tuple of two integers.
+    :param float cutoff: The cutoff frequency as a fraction of the Nyquist frequency. Default is 0.5.
+    :return: A 2D tensor representing the low-pass filter.
+    """
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     lpfs = []
     for N in shape:
@@ -165,6 +210,13 @@ def create_lpf_rect(shape, cutoff=0.5):
 
 # TODO: merge with create_lpf_rect
 def create_lpf_disk(shape, cutoff=0.5):
+    """
+    Create a 2D low-pass filter with a disk-shaped cutoff.
+
+    :param shape: Tuple[int, int], the shape of the filter (N, M).
+    :param cutoff: float, the cutoff frequency for the low-pass filter. Default is 0.5.
+    :return: torch.Tensor, a 2D tensor representing the low-pass filter.
+    """
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     N, M = shape
     u = torch.linspace(-1, 1, N)
@@ -176,9 +228,16 @@ def create_lpf_disk(shape, cutoff=0.5):
     return mask
 
 
-# upsample using FFT
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L31
 def create_recon_rect(shape, cutoff=0.5):
+    """
+    Create a 2D rectangular reconstruction filter.
+
+    :param shape: Tuple[int, int], the shape of the filter (N, M).
+    :param cutoff: float, the cutoff frequency for the reconstruction filter. Default is 0.5.
+    :return: torch.Tensor, a 2D tensor representing the reconstruction filter.
+    """
     assert len(shape) == 2, "Only 2D low-pass filters are supported"
     lpfs = []
     for N in shape:
@@ -199,9 +258,12 @@ def create_recon_rect(shape, cutoff=0.5):
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L45
 class LPF_RFFT(nn.Module):
     """
-    saves rect in first use
-    """
+    A module that applies a low-pass filter in the frequency domain using fast fourier transforms (FFTs).
 
+    :param cutoff: float, the cutoff frequency for the low-pass filter. Default is 0.5.
+    :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
+    :param rotation_equivariant: bool, whether to use a rotation-equivariant filter. Default is False. For more details, see `"Alias-Free Generative Adversarial Networks" by Karras et al. <https://doi.org/10.48550/arXiv.2106.12423>`_.
+    """
     def __init__(
         self,
         cutoff=0.5,
@@ -225,6 +287,12 @@ class LPF_RFFT(nn.Module):
         self.masks = {}
 
     def forward(self, x):
+        """
+        Apply the low-pass filter to the input tensor.
+
+        :param x: torch.Tensor, the input tensor to be filtered.
+        :return: torch.Tensor, the filtered output tensor.
+        """
         # A tuple containing the shape of x used as a key
         # for caching the masks
         shape = x.shape[-2:]
@@ -245,10 +313,14 @@ class LPF_RFFT(nn.Module):
         return out
 
 
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L73
 class LPF_RECON_RFFT(nn.Module):
     """
-    saves rect in first use
+    A module that applies a rectangular reconstruction filter in the frequency domain using FFT or RFFT.
+
+    :param cutoff: float, the cutoff frequency for the reconstruction filter. Default is 0.5.
+    :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
     """
 
     def __init__(self, cutoff=0.5, transform_mode="rfft"):
@@ -268,6 +340,12 @@ class LPF_RECON_RFFT(nn.Module):
         self.rect = {}
 
     def forward(self, x):
+        """
+        Apply the rectangular reconstruction filter to the input tensor.
+
+        :param x: torch.Tensor, the input tensor to be filtered.
+        :return: torch.Tensor, the filtered output tensor.
+        """
         # A tuple containing the shape of x used as a key
         # for caching the masks
         shape = x.shape[-2:]
@@ -284,10 +362,14 @@ class LPF_RECON_RFFT(nn.Module):
         return out
 
 
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/ideal_lpf.py#L99
 class UpsampleRFFT(nn.Module):
     """
-    input shape is unknown
+    A module that upsamples an input tensor in the frequency domain using FFT or RFFT.
+
+    :param up: int, the upsampling factor. Default is 2.
+    :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
     """
 
     def __init__(self, up=2, transform_mode="rfft"):
@@ -296,6 +378,12 @@ class UpsampleRFFT(nn.Module):
         self.recon_filter = LPF_RECON_RFFT(cutoff=1 / up, transform_mode=transform_mode)
 
     def forward(self, x):
+        """
+        Upsample the input tensor.
+
+        :param x: torch.Tensor, the input tensor to be upsampled.
+        :return: torch.Tensor, the upsampled output tensor.
+        """
         # pad zeros
         batch_size, num_channels, in_height, in_width = x.shape
         x = x.reshape([batch_size, num_channels, in_height, 1, in_width, 1])
@@ -307,8 +395,17 @@ class UpsampleRFFT(nn.Module):
         return x
 
 
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/activation.py#L117
 class PolyActPerChannel(nn.Module):
+    """
+    A module that applies a polynomial activation function per channel.
+
+    From `"Alias-Free Convnets: Fractional Shift Invariance via Polynomial Activations" by Michaeli et al. <https://doi.org/10.48550/arXiv.2303.08085>`_
+
+    :param channels: int, the number of channels.
+    """
+
     def __init__(self, channels):
         super(PolyActPerChannel, self).__init__()
         self.channels = channels
@@ -320,6 +417,12 @@ class PolyActPerChannel(nn.Module):
         self.coef = nn.Parameter(coef, requires_grad=True)
 
     def forward(self, x):
+        """
+        Apply the polynomial activation function to the input tensor.
+
+        :param x: torch.Tensor, the input tensor.
+        :return: torch.Tensor, the output tensor after applying the activation function.
+        """
         if self.deg == 2:
             # maybe this is faster?
             res = self.coef[:, 0] + self.coef[:, 1] * x + self.coef[:, 2] * (x**2)
@@ -330,19 +433,22 @@ class PolyActPerChannel(nn.Module):
         return res
 
     def __repr__(self):
-        # print_coef = self.coef.cpu().detach().numpy()
-        print_in_scale = self.in_scale.cpu().detach().numpy() if self.in_scale else None
-        print_out_scale = (
-            self.out_scale.cpu().detach().numpy() if self.out_scale else None
-        )
+        return "PolyActPerChannel(channels={})".format(self.channels)
 
-        return "PolyActPerChannel(channels={}, in_scale={}, out_scale={})".format(
-            self.channels, print_in_scale, print_out_scale
-        )
-
-
+# Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/activation.py#L187
 class UpPolyActPerChannel(nn.Module):
+    """
+    A module that applies an upsampled polynomial activation function per channel.
+
+    From `"Alias-Free Convnets: Fractional Shift Invariance via Polynomial Activations" by Michaeli et al. <https://doi.org/10.48550/arXiv.2303.08085>`_
+
+    :param channels: int, the number of channels.
+    :param up: int, the upsampling factor. Default is 2.
+    :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
+    :param rotation_equivariant: bool, whether to use a rotation-equivariant filter. Default is False.
+    :param kwargs: additional keyword arguments for the polynomial activation function.
+    """
     def __init__(
         self,
         channels,
@@ -363,6 +469,12 @@ class UpPolyActPerChannel(nn.Module):
         self.pact = PolyActPerChannel(channels, **kwargs)
 
     def forward(self, x):
+        """
+        Apply the upsampled polynomial activation function per channel to the input tensor.
+
+        :param x: torch.Tensor, the input tensor.
+        :return: torch.Tensor, the output tensor after applying the activation function.
+        """
         out = self.upsample(x)
         out = self.pact(out)
         out = self.lpf(out)
@@ -370,8 +482,26 @@ class UpPolyActPerChannel(nn.Module):
         return out
 
 
+# Adapted from
 # https://github.com/adobe/antialiased-cnns/blob/b27a34a26f3ab039113d44d83c54d0428598ac9c/antialiased_cnns/blurpool.py#L13
 class BlurPool(nn.Module):
+    """
+    A module that applies a blur pooling operation.
+
+    From `"Alias-Free Generative Adversarial Networks" by Karras et al. <https://doi.org/10.48550/arXiv.2106.12423>`_
+
+    :param channels: int, the number of channels.
+    :param pad_type: str, the type of padding to use. Default is "circular".
+    :param filt_size: int, the size of the filter. Default is 1.
+    :param stride: int, the stride of the pooling operation. Default is 2.
+    :param pad_off: int, the padding offset. Default is 0.
+    :param cutoff: float, the cutoff frequency for the low-pass filter. Default is 0.5.
+    :param scale_l2: bool, whether to scale the output by the L2 norm of the input. Default is False.
+    :param eps: float, a small value to avoid division by zero. Default is 1e-6.
+    :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
+    :param rotation_equivariant: bool, whether to use a rotation-equivariant filter. Default is False.
+    """
+
     def __init__(
         self,
         channels,
@@ -409,6 +539,12 @@ class BlurPool(nn.Module):
         )
 
     def forward(self, inp):
+        """
+        Apply the blur pooling operation to the input tensor.
+
+        :param inp: torch.Tensor, the input tensor.
+        :return: torch.Tensor, the output tensor after applying the blur pooling operation.
+        """
         if self.scale_l2:
             inp_norm = torch.norm(inp, p=2, dim=(-1, -2), keepdim=True)
         out = self.filt(inp)
@@ -420,7 +556,7 @@ class BlurPool(nn.Module):
     def __repr__(self):
         return (
             f"BlurPool(channels={self.channels}, pad_type={self.pad_type}, "
-            f" stride={self.stride}, filter_type={self.filter_type},  filt_size={self.filt_size}, "
+            f" stride={self.stride}, filt_size={self.filt_size}, "
             f"scale_l2={self.scale_l2})"
         )
 
