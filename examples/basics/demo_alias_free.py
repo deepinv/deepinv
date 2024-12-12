@@ -26,7 +26,7 @@ torch.cuda.manual_seed(0)
 #
 
 models = {
-    "AliasFreeUNet": dinv.models.AliasFreeUNet(
+    "AliasFreeUNet": dinv.models.EquivariantUNet(
         in_channels=3,
         out_channels=3,
         scales=5,
@@ -47,7 +47,7 @@ for model in models.values():
 print("Loading the pre-trained weights")
 
 for model in models.values():
-    if isinstance(model, dinv.models.AliasFreeUNet):
+    if isinstance(model, dinv.models.EquivariantUNet):
         model_name = "AliasFreeUNet"
     elif isinstance(model, dinv.models.UNet):
         model_name = "UNet"

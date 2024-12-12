@@ -1,4 +1,4 @@
-from deepinv.models import AliasFreeUNet, UNet
+from deepinv.models import EquivariantUNet, UNet
 from deepinv.transform import Translate, Shift, Rotate
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.physics import BlurFFT, Inpainting
@@ -14,9 +14,9 @@ from torchvision.transforms import InterpolationMode
 torch.manual_seed(0)
 
 # a translation-equivariant model
-afc = AliasFreeUNet(in_channels=1, out_channels=1, scales=2)
+afc = EquivariantUNet(in_channels=1, out_channels=1, scales=2)
 # a translation- and rotation-equivariant model
-afc_rotation_equivariant = AliasFreeUNet(
+afc_rotation_equivariant = EquivariantUNet(
     in_channels=1, out_channels=1, scales=2, rotation_equivariant=True
 )
 # a model neither translation-equivariant nor shift-equivariant

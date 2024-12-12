@@ -264,6 +264,7 @@ class LPF_RFFT(nn.Module):
     :param transform_mode: str, the transform mode to use ('fft' or 'rfft'). Default is 'rfft'.
     :param rotation_equivariant: bool, whether to use a rotation-equivariant filter. Default is False. For more details, see `"Alias-Free Generative Adversarial Networks" by Karras et al. <https://doi.org/10.48550/arXiv.2106.12423>`_.
     """
+
     def __init__(
         self,
         cutoff=0.5,
@@ -435,6 +436,7 @@ class PolyActPerChannel(nn.Module):
     def __repr__(self):
         return "PolyActPerChannel(channels={})".format(self.channels)
 
+
 # Adapted from
 # https://github.com/hmichaeli/alias_free_convnets/blob/9018d9858b2db44cac329c7844cbd0d873519952/models/activation.py#L187
 class UpPolyActPerChannel(nn.Module):
@@ -449,6 +451,7 @@ class UpPolyActPerChannel(nn.Module):
     :param rotation_equivariant: bool, whether to use a rotation-equivariant filter. Default is False.
     :param kwargs: additional keyword arguments for the polynomial activation function.
     """
+
     def __init__(
         self,
         channels,
@@ -561,7 +564,7 @@ class BlurPool(nn.Module):
         )
 
 
-class AliasFreeUNet(nn.Module):
+class EquivariantUNet(nn.Module):
     r"""
     An efficient translation-equivariant UNet denoiser
 
