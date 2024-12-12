@@ -12,7 +12,7 @@ import torch
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import deepinv as dinv
-from deepinv.utils.plotting import plot, plot_inset
+from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
 
