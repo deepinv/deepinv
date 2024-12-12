@@ -17,6 +17,7 @@ from deepinv.datasets import (
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
+from deepinv.physics.mri import MultiCoilMRI, MRI
 
 
 @pytest.fixture
@@ -285,6 +286,9 @@ def download_fastmri():
 
 
 def test_FastMRISliceDataset(download_fastmri):
+    kspace_shape = (640, 320)
+    img_shape = (320, 320)
+
     dataset = FastMRISliceDataset(
         root=download_fastmri,
         slice_index="all",
@@ -292,10 +296,25 @@ def test_FastMRISliceDataset(download_fastmri):
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
 
-    assert target1.shape == (320, 320)
-    assert kspace1.shape == (2, 20, 640, 320)
+    assert target1.shape == (1, *img_shape)
+    assert kspace1.shape == (2, 20, *kspace_shape)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
+
+    physics = MultiCoilMRI(
+        mask=torch.ones(kspace_shape),
+        coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
+        img_size=img_shape,
+    )
+    rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
+    assert torch.allclose(target1.unsqueeze(0), rss1)
+
+    if False:
+        # This code can be used to test singlecoil data (e.g. singlecoil knee data)
+        # But we omit this for downloading speed.
+        physics = MRI(mask=torch.ones(kspace_shape), img_size=img_shape)
+        mag1 = physics.A_adjoint(kspace1.unsqueeze(0), mag=True, crop=True)
+        assert torch.allclose(target1.unsqueeze(0), mag1)
 
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]

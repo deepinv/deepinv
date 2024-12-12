@@ -134,7 +134,12 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     The dataset is loaded as pairs ``(kspace, target)`` where ``kspace`` are the measurements of shape ``(2, (N,) H, W)``
     where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
-    and ``target`` are the magnitude root-sum-square reconstructions of shape ``(H, W)``.
+    and ``target`` are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
+
+    .. note::
+
+        ``x`` and ``y`` are related by :meth:`deepinv.physics.MRI.A_adjoint` or :meth:`deepinv.physics.MultiCoilMRI.A_adjoint`
+        depending on if ``y`` are multicoil or not, with ``crop=True, rss=True``.
 
     See the `fastMRI README <https://github.com/facebookresearch/fastMRI/blob/main/fastmri/data/README.md>`_ for more details.
 
@@ -162,7 +167,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     :param str, int, tuple slice_index: if "all", keep all slices per volume, if ``int``, keep only that indexed slice per volume,
         if "middle", keep the middle slice. If "random", select random slice. Defaults to "all".
     :param callable, optional transform_kspace: transform function for (multicoil) kspace operating on images of shape (..., 2, H, W).
-    :param callable, optional transform_target: transform function for ground truth recon targets operating on single-channel images of shape (H, W).
+    :param callable, optional transform_target: transform function for ground truth recon targets operating on single-channel images of shape (1, H, W).
     :param torch.Generator, None rng: optional torch random generator for shuffle slice indices
 
     |sep|
@@ -306,9 +311,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             kspace = torch.view_as_real(kspace)  # ((N,) H, W, 2)
             kspace = kspace.moveaxis(-1, -3)  # ((N,) 2, H, W)
             if self.transform_kspace is not None:
-                kspace = self.transform_kspace(
-                    kspace
-                )  # torchvision transforms require (..., C, H, W)
+                # torchvision transforms require (..., C, H, W)
+                kspace = self.transform_kspace(kspace)
             kspace = kspace.moveaxis(-3, 0)  # (2, N, H, W)
 
             if not self.test:
@@ -317,7 +321,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                     if "reconstruction_esc" in hf.keys()
                     else "reconstruction_rss"
                 )
-                target = torch.from_numpy(hf[recons_key][dataslice])  # shape (H, W)
+                # to shape (1, H, W)
+                target = torch.from_numpy(hf[recons_key][dataslice]).unsqueeze(0)
 
                 if self.transform_target is not None:
                     target = self.transform_target(target)
@@ -363,7 +368,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             transform_target += [ToComplex()]
         self.transform_target = Compose(transform_list)
 
-        xs = [self.__getitem__(i)[0] for i in tqdm(range(self.__len__()))]
+        xs = [self.__getitem__(i)[0].squeeze(0) for i in tqdm(range(self.__len__()))]
 
         torch.save(torch.stack(xs), str(dataset_path))
 
