@@ -38,26 +38,40 @@ TRANSFORMS = [
 ]
 
 
-def choose_transform(transform_name):
+def choose_transform(transform_name, device, rng):
 
     if "VARIANT" in transform_name:
         transform_name = transform_name[7:]
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0]) * choose_transform(names[1])
+            return choose_transform(
+                names[0], device=device, rng=rng
+            ) * choose_transform(names[1], device=device, rng=rng)
 
     if "+" in transform_name:
         names = transform_name.split("+")
-        return choose_transform(names[0]) + choose_transform(names[1])
+        return choose_transform(names[0], device=device, rng=rng) + choose_transform(
+            names[1], device=device, rng=rng
+        )
 
     if "|" in transform_name:
         names = transform_name.split("|")
-        return choose_transform(names[0]) | choose_transform(names[1])
+        return choose_transform(names[0], device=device, rng=rng) | choose_transform(
+            names[1], device=device, rng=rng
+        )
 
     if "VARIANT" not in transform_name:
         if "*" in transform_name:
             names = transform_name.split("*")
-            return choose_transform(names[0]) * choose_transform(names[1])
+            return choose_transform(
+                names[0], device=device, rng=rng
+            ) * choose_transform(names[1], device=device, rng=rng)
+
+    if transform_name == "diffeomorphism":
+        pytest.importorskip(
+            "libcpab",
+            reason="This test requires libcpab. Install with `pip install libcpab`.",
+        )
 
     if transform_name in (
         "homography",
@@ -81,21 +95,23 @@ def choose_transform(transform_name):
             "y_stretch_factor_min": 0.85,
             "padding": "zeros",
             "interpolation": "bicubic",
+            "device": device,
+            "rng": rng,
         }
 
     if transform_name == "shift":
-        return dinv.transform.Shift()
+        return dinv.transform.Shift(rng=rng)
     elif transform_name == "rotate":
-        return dinv.transform.Rotate()
+        return dinv.transform.Rotate(rng=rng)
     elif transform_name == "rotate3":
-        return dinv.transform.Rotate(n_trans=3)
+        return dinv.transform.Rotate(n_trans=3, rng=rng)
     elif transform_name == "reflect":
-        return dinv.transform.Reflect(dim=[-2, -1])
+        return dinv.transform.Reflect(dim=[-2, -1], rng=rng)
     elif transform_name == "scale":
         # Limit to 0.75 only to avoid severe edge/interp effects
-        return dinv.transform.Scale(factors=[0.75])
+        return dinv.transform.Scale(factors=[0.75], rng=rng)
     elif transform_name == "scale3":
-        return dinv.transform.Scale(factors=[0.75], n_trans=3)
+        return dinv.transform.Scale(factors=[0.75], n_trans=3, rng=rng)
     elif transform_name == "homography":
         # Limit to avoid severe edge/interp effects. All the subgroups will zero their appropriate params.
         return dinv.transform.projective.Homography(**proj_kwargs)
@@ -108,20 +124,15 @@ def choose_transform(transform_name):
     elif transform_name == "pantiltrotate":
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     elif transform_name == "diffeomorphism":
-        pytest.importorskip(
-            "libcpab",
-            reason="This test requires libcpab. It should be "
-            "installed with `pip install git+https://github.com/Andrewwango/libcpab.git`",
-        )
-        return dinv.transform.CPABDiffeomorphism()
+        return dinv.transform.CPABDiffeomorphism(device=device)  # doesn't support rng
     else:
         raise ValueError("Invalid transform_name provided")
 
 
 @pytest.fixture
-def image():
+def image(device):
     # Random image
-    return torch.randn(1, 3, 64, 64)
+    return torch.randn(1, 3, 64, 64).to(device)
 
 
 @pytest.fixture
@@ -130,9 +141,9 @@ def pattern_offset():
 
 
 @pytest.fixture
-def pattern(pattern_offset):
+def pattern(pattern_offset, device):
     # Fixed binary image of small white square
-    x = torch.zeros(1, 3, 256, 256)
+    x = torch.zeros(1, 3, 256, 256, device=device)
     h, w = pattern_offset
     x[..., h : h + 30, w : w + 30] = 1
     return x
@@ -157,11 +168,13 @@ def check_correct_pattern(x, x_t, pattern_offset):
 
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
-def test_transforms(transform_name, image, add_time_dim: bool):
-    transform = choose_transform(transform_name)
+def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
+    transform = choose_transform(transform_name, device=device, rng=rng)
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
     image_t = transform(image)
+
+    assert image.device == image_t.device == device
 
     # Check if any constituent part of transform is a stacking
     if "+" in transform_name:
@@ -177,11 +190,22 @@ def test_transforms(transform_name, image, add_time_dim: bool):
 @pytest.mark.parametrize("transform_name", TRANSFORMS)
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
 def test_transform_identity(
-    transform_name, pattern, pattern_offset, add_time_dim: bool
+    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
-    t = choose_transform(transform_name)
+
+    if device.type != "cpu" and transform_name in (
+        "homography",
+        "euclidean",
+        "similarity",
+        "affine",
+        "pantiltrotate",
+    ):
+        # more reliable with a cpu rng here
+        rng = torch.Generator().manual_seed(0)
+
+    t = choose_transform(transform_name, device=device, rng=rng)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
     assert check_correct_pattern(
         pattern, t.symmetrize(lambda x: x)(pattern), pattern_offset
