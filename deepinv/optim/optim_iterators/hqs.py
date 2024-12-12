@@ -29,7 +29,6 @@ class HQSIteration(OptimIterator):
         super(HQSIteration, self).__init__(**kwargs)
         self.g_step = gStepHQS(**kwargs)
         self.f_step = fStepHQS(**kwargs)
-        self.requires_prox_g = True
 
 
 class fStepHQS(fStep):

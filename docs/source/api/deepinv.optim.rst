@@ -16,6 +16,15 @@ Base Class
 
    deepinv.optim.optim_builder
    deepinv.optim.BaseOptim
+   deepinv.optim.GradientDescent
+   deepinv.optim.ProximalGradientDescent
+   deepinv.optim.FISTA
+   deepinv.optim.ADMM
+   deepinv.optim.DRS
+   deepinv.optim.HQS
+   deepinv.optim.MirrorDescent
+   deepinv.optim.ProximalMirrorDescent
+   deepinv.optim.SpectralMethod
 
 Potentials
 ----------

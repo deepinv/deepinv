@@ -7,7 +7,7 @@ from .data_fidelity import (
     AmplitudeLoss,
     LogPoissonLikelihood,
 )
-from .optimizers import BaseOptim, optim_builder
+from .optimizers import BaseOptim, ADMM, DRS, GradientDescent, MirrorDescent, HQS, ProximalGradientDescent, FISTA, ProximalMirrorDescent, PrimalDualCP, SpectralMethod
 from .fixed_point import FixedPoint
 from .prior import (
     Prior,

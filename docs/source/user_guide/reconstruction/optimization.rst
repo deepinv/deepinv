@@ -222,14 +222,13 @@ Predefined Algorithms
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all predefined optimization algorithms.
 
-The function :func:`deepinv.optim.optim_builder` returns an instance of :class:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
-or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
-at the beginning of this page, in one line of code:
+Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, for example:
+:class:`deepinv.optim.GradientDescent`, :class:`deepinv.optim.ProximalGradientDescent`, :class:`deepinv.optim.ADMM`, etc...
+For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
 
-    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
+    >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity,
     ...                             params_algo={"stepsize": stepsize, "lambda": lambd}, max_iter=max_iter)
     >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')

@@ -22,7 +22,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
-from deepinv.optim import optim_builder
+from deepinv.optim import MirrorDescent
 from deepinv.optim.bregman import BurgEntropy
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.utils.plotting import plot, plot_curves
@@ -87,8 +87,7 @@ params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictio
 verbose = True
 
 # Define the unfolded trainable model.
-model = optim_builder(
-    iteration="MD",
+model = MirrorDescent(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=True,

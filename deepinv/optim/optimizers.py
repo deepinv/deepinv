@@ -7,6 +7,7 @@ from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Zero
 from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
+from deepinv.optim.bregman import BregmanL2
 
 
 class BaseOptim(Reconstructor):
@@ -43,8 +44,6 @@ class BaseOptim(Reconstructor):
 
     where :math:`x_k` is a variable converging to the solution of the minimization problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
-
-    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
@@ -182,6 +181,23 @@ class BaseOptim(Reconstructor):
         self.get_output = get_output
         self.has_cost = has_cost
 
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
+            self.prior = [prior]
+        else:
+            self.prior = prior
+
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
+        if not isinstance(data_fidelity, Iterable):
+            self.data_fidelity = [data_fidelity]
+        else:
+            self.data_fidelity = data_fidelity
+
+        self.has_cost = (prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior)
+        iterator.has_cost = self.has_cost
+
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
@@ -224,20 +240,6 @@ class BaseOptim(Reconstructor):
 
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
-
-        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
-        if prior is None:
-            self.prior = [Zero()]
-        elif not isinstance(prior, Iterable):
-            self.prior = [prior]
-        else:
-            self.prior = prior
-
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
-        if not isinstance(data_fidelity, Iterable):
-            self.data_fidelity = [data_fidelity]
-        else:
-            self.data_fidelity = data_fidelity
 
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
@@ -492,8 +494,7 @@ class BaseOptim(Reconstructor):
                 return x, metrics
             else:
                 return x
-
-
+        
 def create_iterator(
     iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
 ):
@@ -612,3 +613,62 @@ def optim_builder(
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
+
+class ADMM(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(ADMM, self).__init__(ADMMIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class DRS(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(DRS, self).__init__(DRSIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class GradientDescent(BaseOptim):
+    def __init__(self, F_fn = None, **kwargs):
+        super(GradientDescent, self).__init__(GDIteration(F_fn = F_fn), **kwargs)
+
+
+class MirrorDescent(BaseOptim):
+    def __init__(self, bregman_potential = BregmanL2(), F_fn = None, **kwargs):
+        super(MirrorDescent, self).__init__(MDIteration(F_fn = F_fn, bregman_potential = bregman_potential), **kwargs)
+
+
+class HQS(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(HQS, self).__init__(HQSIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class ProximalGradientDescent(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(ProximalGradientDescent, self).__init__(PGDIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class FISTA(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(FISTA, self).__init__(FISTAIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class ProximalMirrorDescent(BaseOptim):
+    def __init__(self, bregman_potential = BregmanL2(), g_first = False, F_fn = None, **kwargs):
+        super(ProximalGradientDescent, self).__init__(PMDIteration(bregman_potential = bregman_potential, g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class PrimalDualCP(BaseOptim):
+    def __init__(self, g_first = False, F_fn = None, **kwargs):
+        super(PrimalDualCP, self).__init__(CPIteration(g_first=g_first, F_fn = F_fn), **kwargs)
+
+
+class SpectralMethod(BaseOptim):
+    def __init__(self, **kwargs):
+        super(SpectralMethod, self).__init__(SMIteration(), **kwargs)
+
+
+
+
+
+
+
+
+

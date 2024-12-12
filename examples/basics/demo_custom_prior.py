@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.prior import Prior
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import ADMM
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
@@ -102,7 +102,7 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 # %%
 # Set up the optimization algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------------------
-# We use the :class:`deepinv.optim.optimizers.optim_builder` function to instantiate the optimization algorithm.
+# We use the :class:`deepinv.optim.optimizers.ADMM` to instantiate the ADMM optimization algorithm.
 #
 # The optimization algorithm is a proximal gradient descent algorithm that solves the following optimization problem:
 #
@@ -146,8 +146,7 @@ backtracking = False  # use backtraking to automatically adjust the stepsize
 max_iter = 500  # Maximum number of iterations
 
 # Instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="ADMM",
+model = ADMM(
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,

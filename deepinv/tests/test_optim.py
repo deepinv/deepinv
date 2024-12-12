@@ -1,21 +1,20 @@
 import pytest
-
+import sys
 import torch
 from torch.utils.data import DataLoader
-
 import deepinv as dinv
-from deepinv.optim import DataFidelity
+from deepinv.optim import DataFidelity, PrimalDualCP
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
-from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
 
 def custom_init_CP(y, physics):
     x_init = physics.A_adjoint(y)
     u_init = y
     return {"est": (x_init, x_init, u_init)}
-
 
 def test_data_fidelity_l2(device):
     data_fidelity = L2()
@@ -287,8 +286,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        optimalgo = optim_builder(
-            name_algo,
+        optimalgo = str_to_class(name_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -408,8 +406,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     custom_init = custom_init_CP if pnp_algo == "CP" else None
 
-    pnp = optim_builder(
-        pnp_algo,
+    pnp = str_to_class(pnp_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -509,8 +506,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         custom_init = custom_init_CP if pnp_algo == "CP" else None
 
-        opt_algo = optim_builder(
-            pnp_algo,
+        opt_algo = str_to_class(pnp_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -567,8 +563,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
-    red = optim_builder(
-        red_algo,
+    red = str_to_class(red_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -660,8 +655,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             "K_adjoint": K_adjoint,
         }
 
-        optimalgo = optim_builder(
-            "CP",
+        optimalgo = PrimalDualCP(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -748,8 +742,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         "K_adjoint": A_adjoint,
     }
 
-    optimalgo = optim_builder(
-        "CP",
+    optimalgo = PrimalDualCP(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,

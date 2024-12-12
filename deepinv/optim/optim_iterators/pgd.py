@@ -27,10 +27,6 @@ class PGDIteration(OptimIterator):
         super(PGDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
 
 
 class FISTAIteration(OptimIterator):
@@ -63,10 +59,6 @@ class FISTAIteration(OptimIterator):
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
         self.a = a
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -97,7 +89,7 @@ class FISTAIteration(OptimIterator):
 
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+             if self.F_fn is not None
             else None
         )
 
@@ -187,10 +179,6 @@ class PMDIteration(OptimIterator):
         self.bregman_potential = bregman_potential
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
