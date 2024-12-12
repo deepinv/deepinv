@@ -14,6 +14,7 @@ New Features
 - Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
 - Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
 - Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
+- FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 
 
