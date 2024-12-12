@@ -2,6 +2,12 @@ import pytest
 import deepinv as dinv
 import torch
 
+from deepinv.transform import Translate, Shift, Rotate
+from deepinv.physics import BlurFFT, Inpainting
+from deepinv.physics.blur import gaussian_blur
+from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+
+
 ADD_TIME_DIM = [True, False]
 
 """
@@ -247,3 +253,31 @@ def test_shift_time():
 
     assert torch.allclose(t1.identity(x), x)
     assert torch.allclose((t1 * t2).identity(x), x)
+
+
+def test_forward_operator_equivariance():
+    torch.manual_seed(0)
+
+    x = torch.randn(1, 3, 16, 16)
+
+    physics = BlurFFT(filter=gaussian_blur(sigma=1), img_size=x.shape[-3:])
+
+    psnr = Shift().equivariance_test(physics, x)
+    assert psnr > 75
+
+    psnr = Translate().equivariance_test(physics, x)
+    assert psnr > 75
+
+    gen = BernoulliSplittingMaskGenerator(x.shape[-3:], split_ratio=0.7)
+    params = gen.step(batch_size=1, seed=0)
+    physics = Inpainting(tensor_size=x.shape[-3:])
+    physics.update_parameters(**params)
+
+    psnr = Shift().equivariance_test(physics, x)
+    assert psnr < 5
+
+    psnr = Translate().equivariance_test(physics, x)
+    assert psnr < 5
+
+    psnr = Rotate().equivariance_test(physics, x)
+    assert psnr < 5

@@ -1,5 +1,6 @@
 from typing import Union, Iterable
 import torch
+from torch.nn import functional as F
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
@@ -24,6 +25,8 @@ class Rotate(Transform):
     :param bool positive: if True, only consider positive angles.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param InterpolationMode interpolation_mode: interpolation mode for rotation, defaults to ``InterpolationMode.NEAREST``
+    :param str padding: padding mode for rotation, choose from ``zeros`` (default) or ``circular``
     """
 
     def __init__(
@@ -33,6 +36,7 @@ class Rotate(Transform):
         multiples: float = 1.0,
         positive: bool = False,
         interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
+        padding: str = "zeros",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -40,6 +44,7 @@ class Rotate(Transform):
         self.multiples = multiples
         self.positive = positive
         self.interpolation_mode = interpolation_mode
+        self.padding = padding
 
     def _get_params(self, x: torch.Tensor) -> dict:
         """Randomly generate rotation parameters.
@@ -68,7 +73,16 @@ class Rotate(Transform):
         :param torch.Tensor, list theta: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
-        return torch.cat(
+        H, W = x.size(-2), x.size(-1)
+        if self.padding == "circular":
+            x = F.pad(x, (H, H, W, W), mode="circular")
+            crop_offsets = (H, -H, W, -W)
+        elif self.padding == "zeros":
+            crop_offsets = None
+        else:
+            raise ValueError(f"Unknown padding mode: {self.padding}")
+
+        x = torch.cat(
             [
                 rotate(
                     x,
@@ -79,3 +93,11 @@ class Rotate(Transform):
                 for _theta in theta
             ]
         )
+
+        if crop_offsets is not None:
+            h1, h2, w1, w2 = crop_offsets
+            x = x[..., h1:h2, w1:w2]
+        elif self.padding is not "zeros":
+            raise ValueError(f"Unknown padding mode: {self.padding}")
+
+        return x

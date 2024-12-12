@@ -144,6 +144,10 @@ The denoising can either be averaged over the entire group of transformation (ma
 performed on 1 or n transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo
 estimator of the exact equivariant denoiser.
 
+The library also features :class:`deepinv.models.AliasFreeUNet`, an
+efficient translation-equivariant UNet using blocks introduced by `Karras et al. (2021) <https://doi.org/10.48550/arXiv.2106.12423>`_
+and `Michaeli et al. (2023) <https://doi.org/10.48550/arXiv.2303.08085>`_.
+
 Complex denoisers
 ^^^^^^^^^^^^^^^^^
 Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval,
@@ -157,4 +161,3 @@ using :class:`deepinv.models.TimeAveragingNet`.
 
 To adapt any existing network to take dynamic data as independent time-slices, :class:`deepinv.models.TimeAgnosticNet`
 creates a time-agnostic wrapper that flattens the time dimension into the batch dimension.
-

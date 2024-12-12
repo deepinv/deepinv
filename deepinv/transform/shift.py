@@ -10,6 +10,8 @@ class Shift(Transform):
 
     Generates ``n_trans`` randomly shifted versions of 2D images with circular padding.
 
+    For subpixel shifts (translations), see :class:`deepinv.transform.Translate`.
+
     See :class:`deepinv.transform.Transform` for further details and examples.
 
     :param float shift_max: maximum shift as fraction of total height/width.
