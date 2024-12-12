@@ -44,7 +44,6 @@ Operators
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
    deepinv.physics.MRI
-   deepinv.physics.MRIMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
@@ -109,17 +108,16 @@ Noise distributions
    deepinv.physics.generator.SigmaGenerator
 
 
+Functional
+----------
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.physics.TimeMixin
     deepinv.physics.adjoint_function
 
-
-Functional
-----------
 .. userguide:: physics_functional
 
 .. autosummary::

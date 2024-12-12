@@ -6,6 +6,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
+from deepinv.utils.mixin import MRIMixin
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -896,8 +897,8 @@ def test_mri_fft():
     x = torch.randn(4, 2, 16, 8)  # B,C,H,W
 
     # Our FFT
-    xf1 = dinv.physics.MRIMixin.from_torch_complex(
-        dinv.physics.MRIMixin.fft(dinv.physics.MRIMixin.to_torch_complex(x))
+    xf1 =MRIMixin.from_torch_complex(
+        MRIMixin.fft(MRIMixin.to_torch_complex(x))
     )
 
     # FastMRI FFT

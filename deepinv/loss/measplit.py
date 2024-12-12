@@ -3,6 +3,7 @@ from typing import Optional, Tuple, Union
 from copy import deepcopy
 from warnings import warn
 import torch
+
 from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
@@ -13,7 +14,7 @@ from deepinv.physics.generator import (
     Artifact2ArtifactSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixin import TimeMixin
 
 
 class SplittingLoss(Loss):

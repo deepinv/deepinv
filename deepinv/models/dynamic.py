@@ -1,8 +1,13 @@
-from torch import Tensor, rand
-import torch.nn as nn
-from deepinv.physics import Physics, TimeMixin
-from deepinv.models.base import Reconstructor
+from __future__ import annotations
+from typing import TYPE_CHECKING
 
+from torch import Tensor
+from torch.nn import Module
+
+from deepinv.models.base import Reconstructor
+from deepinv.utils.mixin import TimeMixin
+if TYPE_CHECKING:
+    from deepinv.physics import Physics
 
 class TimeAgnosticNet(Reconstructor, TimeMixin):
     r"""
@@ -25,11 +30,11 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
     >>> x_net.shape == y.shape
     True
 
-    :param torch.nn.Module backbone_net: Base network which can only take static inputs (B,C,H,W)
+    :param Module backbone_net: Base network which can only take static inputs (B,C,H,W)
     :param torch.device device: cpu or gpu.
     """
 
-    def __init__(self, backbone_net: nn.Module):
+    def __init__(self, backbone_net: Module):
         super().__init__()
         self.backbone_net = backbone_net
 
@@ -38,16 +43,16 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
         Reconstructs a signal estimate from measurements y
 
         :param Tensor y: measurements [B,C,T,H,W]
-        :param deepinv.physics.Physics physics: forward operator acting on dynamic inputs
+        :param Physics physics: forward operator acting on dynamic inputs
         """
         return self.unflatten(self.backbone_net(self.flatten(y), physics, **kwargs))
 
 
-class TimeAveragingNet(
-    nn.Module, TimeMixin
-):  # Network wrapper to flatten dynamic input
+class TimeAveragingNet(Module, TimeMixin):
     r"""
     Time-averaging network wrapper.
+
+    Network wrapper to flatten dynamic input.
 
     Adapts a static image reconstruction network for time-varying inputs to output static reconstructions.
     Average the data across the time dim before passing into network.
@@ -69,7 +74,7 @@ class TimeAveragingNet(
     >>> x_net.shape # B,C,H,W
     torch.Size([1, 1, 8, 8])
 
-    :param torch.nn.Module backbone_net: Base network which can only take static inputs (B,C,H,W)
+    :param Module backbone_net: Base network which can only take static inputs (B,C,H,W)
     :param torch.device device: cpu or gpu.
     """
 

@@ -40,7 +40,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
 
 
    * - Magnetic Resonance Imaging (MRI)
-     - | :class:`deepinv.physics.MRIMixin`
+     - | :class:`deepinv.utils.mixin.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`

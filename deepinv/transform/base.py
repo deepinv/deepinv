@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing import Callable, Any
 from itertools import product
-from typing import Tuple, Callable, Any
+
 import torch
-from deepinv.physics.time import TimeMixin
+
+from deepinv.utils.mixin import RandomMixin, TimeMixin
 
 
 class TransformParam(torch.Tensor):
@@ -26,7 +28,7 @@ class TransformParam(torch.Tensor):
         return TransformParam(xi, neg=self._neg) if hasattr(self, "_neg") else xi
 
 
-class Transform(torch.nn.Module, TimeMixin):
+class Transform(torch.nn.Module, TimeMixin, RandomMixin):
     r"""
     Base class for image transforms.
 
@@ -100,6 +102,7 @@ class Transform(torch.nn.Module, TimeMixin):
         ``transform`` will try to switch off automatic cropping/padding resulting in errors.
         However, ``symmetrize`` will still work but perform one-by-one (i.e. without collating over batch, which is less efficient).
     :param bool flatten_video_input: accept video (5D) input of shape ``(B,C,T,H,W)`` by flattening time dim before transforming and unflattening after all operations.
+    :param str, torch.device device: torch device. Note that this is unused for several subclass transforms which do not require device.
     """
 
     def __init__(
@@ -109,11 +112,11 @@ class Transform(torch.nn.Module, TimeMixin):
         rng: torch.Generator = None,
         constant_shape: bool = True,
         flatten_video_input: bool = True,
+        device: torch.device = "cpu",
         **kwargs,
     ):
         super().__init__()
         self.n_trans = n_trans
-        self.rng = torch.Generator() if rng is None else rng
         self.constant_shape = constant_shape
         self.flatten_video_input = flatten_video_input
 
