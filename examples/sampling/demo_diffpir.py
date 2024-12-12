@@ -12,7 +12,7 @@ import torch
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import deepinv as dinv
-from deepinv.utils.plotting import plot
+from deepinv.utils.plotting import plot, plot_inset
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
 
@@ -171,8 +171,10 @@ plot(
 data_fidelity = L2()
 
 # In order to take a meaningful data fidelity step, it is best if we apply it to denoised measurements.
-# First, denoise the measurements:
-y_denoised = model(y, sigmas[t])
+# First, denoise the measurements. To do so, we need to estimate the timestep associated with the noise level of the
+# measurements. This is done as follows:
+t_temp = find_nearest(sigmas.cpu().numpy(), sigma_noise * 2)
+y_denoised = model(y, sigmas[t_temp] / 2.0)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
@@ -209,6 +211,7 @@ eps = (y_scaled - alphas_cumprod[t_i].sqrt() * x_prox_scaled) / torch.sqrt(
 
 # (notice the rescaling)
 #
+# %%
 # Secondly, we need to perform the sampling step, which is a linear combination between the estimated noise and
 # the realizations of a Gaussian white noise. This is done as follows:
 zeta = 0.3
@@ -219,17 +222,12 @@ x_sampled_scaled = alphas_cumprod[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
 x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
 
 imgs = [y, y_denoised, x_prox, x_sampled]
-plot(
-    imgs,
-    titles=[
-        "measurement",
-        "denoised measurement",
-        "data fidelity step",
-        "sampling step",
-    ],
-)
+titles = ["measurement", "denoised measurement", "data fidelity step", "sampling step"]
+plot(imgs, titles=titles)
 
 # %%
+# (notice that noise has been added everywhere in the image, including in the masked region)
+#
 # Setting the noise and regularization schedules
 # ----------------------------------------------
 #
@@ -309,6 +307,7 @@ plt.plot(list_sigmas_algo)
 plt.xlabel(r"$t$")
 plt.ylabel(r"$\sigma$")
 plt.suptitle(f"Regularisation parameter and noise schedules (for {max_iter} steps)")
+plt.tight_layout()
 plt.show()
 
 
@@ -380,6 +379,7 @@ plot(
 # %%
 # Let's visualize the sample, its denoised version and the proximal steps at different iterations.
 
+# sphinx_gallery_thumbnail_number = 9
 # sphinx_gallery_multi_image = "single"
 plot(
     list_noisy,
