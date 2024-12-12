@@ -1,8 +1,8 @@
 r"""
-Image Inpainting with Alias-Free UNets
+Equivariant UNets for Image Inpainting
 ====================================================================================================
 
-This is a simple example showing how to use the Alias-Free UNet models and verify that they are equivariant, unlike the standard UNet models.
+This is a simple example showing how to use equivariant UNets and verify that they are equivariant, unlike the standard UNet models.
 
 We use pre-trained weights on an inpainting task but the models can be trained on any other task. The pre-trained weights are available at https://huggingface.co/jscanvic/deepinv/tree/main/demo_alias_free.
 """
@@ -23,6 +23,8 @@ torch.cuda.manual_seed(0)
 # %%
 # Load the model
 # ----------------------------------------------------------------------------------------
+#
+# We load pre-trained weights for the equivariant UNet and for the standard UNet as well.
 #
 
 models = {
@@ -62,6 +64,8 @@ for model in models.values():
 # Performance evaluation
 # ----------------------------------------------------------------------------------------
 #
+# We evaluate the performance of the models on a test image in terms of PSNR.
+#
 
 psnr_fn = torchmetrics.image.PeakSignalNoiseRatio(data_range=1.0).to(device)
 
@@ -92,6 +96,11 @@ for model_name, model in models.items():
 # %%
 # Equivariance evaluation
 # ----------------------------------------------------------------------------------------
+#
+# We evaluate the equivariance of the models to translations, rotations, and shifts, using the PSNR between images transformed before, and after the model.
+# .. math::
+#
+#           \text{Eq} = \mathbb E_{g} \left\[ \text{PSNR}(f_\theta(T_g x), T_g f_\theta(x)) \right\]
 #
 
 
