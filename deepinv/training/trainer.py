@@ -440,7 +440,7 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None, backward=True):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -487,7 +487,7 @@ class Trainer:
             meters.update(loss_total.item())
             logs[f"TotalLoss"] = meters.avg
 
-        if train:
+        if train and backward:
             loss_total.backward()  # Backward the total loss
 
             norm = self.check_clip_grad()  # Optional gradient clipping
@@ -497,7 +497,7 @@ class Trainer:
             # Optimizer step
             self.optimizer.step()
 
-        return x_net, logs
+        return loss_total, x_net, logs
 
     def compute_metrics(
         self, x, x_net, y, physics, logs, train=True, epoch: int = None
@@ -578,7 +578,7 @@ class Trainer:
 
         return x_nl
 
-    def step(self, epoch, progress_bar, train=True, last_batch=False):
+    def step(self, epoch, progress_bar, train=True, last_batch=False, backward_all=True):
         r"""
         Train/Eval a batch.
 
@@ -593,12 +593,14 @@ class Trainer:
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
+        loss = 0
 
         for g in G_perm:  # for each dataloader
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
+            loss_cur, x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch, backward=not backward_all)
+            loss += loss_cur
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -610,6 +612,16 @@ class Trainer:
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
+
+        if train and backward_all:
+            loss.backward()
+
+            norm = self.check_clip_grad()  # Optional gradient clipping
+            if norm is not None:
+                logs["gradient_norm_all"] = self.check_grad_val.avg
+
+            # Optimizer step
+            self.optimizer.step()
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
