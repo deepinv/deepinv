@@ -8,6 +8,18 @@ This change log is for the `main` branch. It contains changes for each release, 
 Current
 ----------------
 
+New Features
+^^^^^^^^^^^^
+
+Fixed
+^^^^^
+
+Changed
+^^^^^^^
+
+
+v0.2.2
+----------------
 
 New Features
 ^^^^^^^^^^^^
