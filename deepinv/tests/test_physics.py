@@ -67,16 +67,16 @@ NOISES = [
 ]
 
 
-def find_operator(name, device):
+def find_operator(name, device, sf=1):
     r"""
     Chooses operator
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda
+    :param sf: (float) scale factor for multiscale tests
     :return: (deepinv.physics.Physics) forward operator.
     """
-    # img_size = (3, 16, 8)
-    img_size = (3, 16, 16)
+    img_size = (3, sf*16, sf*8)
     norm = 1
     dtype = torch.float
     padding = None
@@ -173,9 +173,9 @@ def find_operator(name, device):
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name.startswith("deblur"):
-        img_size = (3, 17, 19)
+        img_size = (3, sf*17, sf*19)
         p = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(sigma=(sf*0.25, sf*0.1), angle=45.0),
             padding=padding,
             device=device,
         )
@@ -240,7 +240,7 @@ def find_operator(name, device):
             dtype=dtype,
         )
     elif name == "complex_compressed_sensing":
-        img_size = (1, 16, 16)
+        img_size = (1, sf*8, sf*8)
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
@@ -293,7 +293,7 @@ def find_operator(name, device):
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
     elif name == "structured_random":
-        img_size = (1, 16, 16)
+        img_size = (1, sf*8, sf*8)
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
@@ -915,13 +915,11 @@ def test_coarse_physics_validity(name, device):
     :param name: operator name (see find_operator)
     :param device: (torch.device) cpu or cuda:x
     """
-    physics, imsize, _, dtype = find_operator(name, device)
+    physics, imsize, _, dtype = find_operator(name, device, sf=2)
     if not isinstance(physics, dinv.physics.LinearPhysics):
-        print("Skip", name, ": not LinearPhysics")
-        return
+        pytest.skip("Skip "+name+" : not LinearPhysics")
     if not len(imsize) == 3:
-        print("Skip", name, ": not proper data shape")
-        return
+        pytest.skip("Skip "+name+" : not proper data shape")
 
     x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
     x_coarse = physics.downsample_signal(x)
@@ -940,6 +938,4 @@ def test_coarse_physics_validity(name, device):
     cmp = dinv.physics.LinearPhysics(A=op_cmp, A_adjoint=op_cmp)
     error = cmp.compute_norm(x_coarse)
 
-    print(name, "norm value :", error.item())
-
-    # assert error < (constant to be defined)
+    assert error < 0.2
