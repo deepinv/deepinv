@@ -344,7 +344,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator[g].step(x.size(0))
+            params = self.physics_generator[g].step(batch_size=x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)
