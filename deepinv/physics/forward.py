@@ -317,15 +317,16 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
-    def initialize_downsampling_operator(self, shape, device):
+    def initialize_downsampling_operator(self, shape, device, dtype):
         r"""
-        Downsamples the signal using an antialiasing filter.
+        Create the antialiasing filter to be used for downsampling.
 
         :param shape: shape of the signal.
         :param device: device of the signal.
         """
         if self.downsampling_operator is None:
             filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
+            filter = filter.to(dtype)
             self.downsampling_operator = deepinv.physics.Downsampling(
                 img_size=shape[1:], filter=filter, device=device
             )
@@ -338,7 +339,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: torch.Tensor downsampled signal.
         """
         if self.downsampling_operator is None:
-            self.initialize_downsampling_operator(x.shape, x.device)
+            self.initialize_downsampling_operator(x.shape, x.device, x.dtype)
         return self.downsampling_operator(x)
 
     def upsample_signal(self, x):
@@ -385,8 +386,10 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         ds = self.downsampling_operator
 
-        # factor**2 is only valid if x is an image
-        A_coarse = lambda x: ds(self.A(ds.factor**2 * ds.A_adjoint(x)))
+        # factor**2 is only valid if x is an image.
+        # In this case, image space is coarse but measurement space stays the same
+        # since there is no explicit way to retrieve the image.
+        A_coarse = lambda x: self.A(ds.factor**2 * ds.A_adjoint(x))
         return Physics(A=A_coarse)
 
 
@@ -819,6 +822,22 @@ class ComposedPhysics(Physics):
         :param int item: index of the physics operator
         """
         return self.physics_list[item]
+
+    def to_coarse(self):
+        r"""
+        Returns a coarse version of the current physics.
+        """
+        if self.downsampling_operator is None:
+            raise ValueError(
+                "No downsampling operator, use initialize_downsampling_operator before."
+            )
+
+        ds = self.downsampling_operator
+
+        # factor**2 is only valid if x is an image
+        A_coarse = lambda x: self.A(ds.factor**2 * ds.A_adjoint(x))
+        A_coarse_adj = lambda y: ds.A(self.A_adjoint(y))
+        return LinearPhysics(A=A_coarse, A_adjoint=A_coarse_adj)
 
 
 class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):

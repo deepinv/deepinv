@@ -378,10 +378,17 @@ class Blur(LinearPhysics):
         """
 
         df = self.downsampling_operator.filter
+        in_filt = self.filter
+
+        # ensure filter is at least 3x3
+        if in_filt.shape[-2] <= 3:
+            in_filt = torch.nn.functional.pad(in_filt, (0, 0, 1, 1))
+        if in_filt.shape[-1] <= 3:
+            in_filt = torch.nn.functional.pad(in_filt, (1, 1, 0, 0))
 
         # left, right, top, bottom padding to perform valid convolution
         pad_size = (df.shape[-2] // 2,) * 2 + (df.shape[-1] // 2,) * 2
-        pf = torch.nn.functional.pad(self.filter, pad_size)
+        pf = torch.nn.functional.pad(in_filt, pad_size)
 
         # downsample the blur filter
         filt = torch.nn.functional.conv2d(pf, df, groups=pf.shape[1], padding="valid")
