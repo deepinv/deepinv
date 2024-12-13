@@ -2,7 +2,13 @@
 Multiscale Plug-and-Play
 ====================================================================================================
 
-This example describe the usage of multiple scales with Plug-and-Play schemes.
+In this example, multiscale Plug-and-Play is used to show its benefits
+over the regular Plug-and-Play for solving the inpainting inverse problem.
+First, the results of regular Plug-and-Play is shown.
+In the second part of this example, a coarse inverse problem is designed,
+and the solution of the coarse problem is then used by fine scale algorithm obtain the solution.
+It appears the quality of the obtained solution is worth the small computation overhead introduced
+by the coarse scale operations.
 """
 
 import deepinv as dinv
@@ -72,7 +78,7 @@ params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
 # create the iterative algorithm model
 model = optim_builder(
-    iteration=PGDIteration(),
+    iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
@@ -111,7 +117,7 @@ def custom_init(y, physics, F_fn=None):
     params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
     model = optim_builder(
-        iteration=PGDIteration(),
+        iteration="PGD",
         prior=prior,
         data_fidelity=data_fidelity,
         early_stop=False,
@@ -128,7 +134,7 @@ def custom_init(y, physics, F_fn=None):
 
 # define the multiscale model by setting the "custom_init" field
 model = optim_builder(
-    iteration=PGDIteration(),
+    iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=False,
