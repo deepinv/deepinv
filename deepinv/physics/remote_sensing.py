@@ -77,6 +77,11 @@ class Pansharpen(LinearPhysics):
         self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.colorize = Decolorize(device=device)
 
+    def __getitem__(self, item):
+        if item == 0:
+            return self.downsampling
+        elif item == 1:
+            return self.colorize
 
     def A(self, x, **kwargs):
         return TensorList(
