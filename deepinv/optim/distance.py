@@ -2,6 +2,7 @@ import torch
 from deepinv.optim.potential import Potential
 from deepinv.utils import TensorList
 
+
 class Distance(Potential):
     r"""
     Distance :math:`\distance{x}{y}`.
@@ -66,7 +67,7 @@ class L2Distance(Distance):
         """
         z = x - y
         if isinstance(z, TensorList):
-            d = 0.
+            d = 0.0
             for r in z:
                 d += 0.5 * torch.norm(r.reshape(r.shape[0], -1), p=2, dim=-1) ** 2
         else:

@@ -22,7 +22,7 @@ class Pansharpen(LinearPhysics):
     It is possible to assign a different noise model to the RGB and grayscale images.
 
 
-    :param tuple[int] img_size: size of the input image.
+    :param tuple[int] img_size: size of the input image, must be of shape (C, H, W).
     :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
@@ -65,6 +65,8 @@ class Pansharpen(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
+        assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
+
         self.downsampling = Downsampling(
             img_size=img_size,
             factor=factor,
@@ -75,13 +77,7 @@ class Pansharpen(LinearPhysics):
 
         self.noise_color = noise_color if noise_color is not None else lambda x: x
         self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
-        self.colorize = Decolorize(device=device)
-
-    def __getitem__(self, item):
-        if item == 0:
-            return self.downsampling
-        elif item == 1:
-            return self.colorize
+        self.colorize = Decolorize(srf=srf, channels=img_size[0])
 
     def A(self, x, **kwargs):
         return TensorList(
@@ -120,6 +116,15 @@ class Pansharpen(LinearPhysics):
         x = self.A_adjoint(x)
         return x
 
+    def A_classical(self, y, **kwargs):
+        """
+        From https://github.com/AlexeyTrekin/pansharpen/blob/master/pysharpen/methods/sharpening/brovey.py
+        ESRI Brovey from https://pro.arcgis.com/en/pro-app/latest/help/analysis/raster-functions/fundamentals-of-pan-sharpening-pro.htm
+        Another unused implementation https://github.com/mapbox/rio-pansharpen/blob/master/rio_pansharpen/methods.py
+        """
+        hrms = self.downsampling.A_adjoint(y[0], **kwargs)
+        hrms *= y[1] / hrms.mean(axis=1)
+        return hrms
 
 
 # test code
