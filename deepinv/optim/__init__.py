@@ -1,5 +1,6 @@
 from .data_fidelity import (
     DataFidelity,
+    DataFidelityList,
     L2,
     L1,
     IndicatorL2,

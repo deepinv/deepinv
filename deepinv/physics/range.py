@@ -12,6 +12,10 @@ class Decolorize(DecomposablePhysics):
     Images must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
     The measurements are grayscale images.
 
+    :param int channels: number of channels in the input image.
+    :param str srf: spectral response function. Default: ``rec601``.
+    :param str, torch.device device: device on which to perform the computations. Default: ``cpu``.
+
     |sep|
 
     :Examples:
@@ -27,7 +31,7 @@ class Decolorize(DecomposablePhysics):
                   [1.0000, 1.0000, 1.0000]]]], grad_fn=<MulBackward0>)
     """
 
-    def __init__(self, channels=3, srf="rec601", **kwargs):
+    def __init__(self, channels=3, srf="rec601", device='cpu', **kwargs):
         super().__init__(**kwargs)
         if srf is None or srf == "rec601":
             self.srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
@@ -48,7 +52,7 @@ class Decolorize(DecomposablePhysics):
 
         assert np.allclose(sum(self.srf), 1.0, rtol=1e-4)
 
-        self.srf = torch.tensor(self.srf)
+        self.srf = torch.tensor(self.srf, device=device)
 
     def V_adjoint(self, x):
         if x.shape[1] != len(self.srf):

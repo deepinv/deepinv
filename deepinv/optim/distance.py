@@ -66,12 +66,7 @@ class L2Distance(Distance):
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
-        if isinstance(z, TensorList):
-            d = 0.0
-            for r in z:
-                d += 0.5 * torch.norm(r.reshape(r.shape[0], -1), p=2, dim=-1) ** 2
-        else:
-            d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
+        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
         return d
 
     def grad(self, x, y, *args, **kwargs):

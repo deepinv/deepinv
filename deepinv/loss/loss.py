@@ -51,3 +51,20 @@ class Loss(torch.nn.Module):
         :param torch.nn.Module model: reconstruction model
         """
         return model
+
+
+class StackedPhysicsLoss(Loss):
+    def __init__(self, losses):
+        super(StackedPhysicsLoss, self).__init__()
+        self.losses = losses
+
+    def forward(self, y, x_net, physics, model, **kwargs):
+        loss = 0
+        for i, loss_fn in enumerate(self.losses):
+            def model_aux(s, p, **kwargs):
+                r = y.clone()
+                r[i] = s
+                return model(r, physics, **kwargs)
+            loss += loss_fn(y=y[i], x_net=x_net, physics=physics[i], model=model_aux, **kwargs).mean()
+
+        return loss
