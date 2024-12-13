@@ -5,13 +5,15 @@ from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from PIL import Image
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from torch.nn import Module
 import torchvision
 from torchvision import transforms
 
-from deepinv.models.base import Reconstructor
+from deepinv.models.base import Reconstructor, Denoiser
 
 
 def get_git_root():
@@ -260,14 +262,21 @@ def load_np_url(url=None):
     return array
 
 
-def demo_mri_model(device, denoiser: torch.nn.Module = None) -> Reconstructor:
+def demo_mri_model(
+    denoiser: Union[Denoiser, Module] = None,
+    num_iter: int = 3,
+    device: torch.device = "cpu",
+) -> Reconstructor:
     """Demo MRI reconstruction model for use in relevant examples.
 
     As a reconstruction network, we use an unrolled network (half-quadratic splitting)
     with a trainable denoising prior based on the DnCNN architecture, as an example of a
     model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
+    :param Denoiser, Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
+    :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
     :param str, torch.device device: device
+
     :return torch.nn.Module: model
     """
     from deepinv.optim.prior import PnP
@@ -293,7 +302,7 @@ def demo_mri_model(device, denoiser: torch.nn.Module = None) -> Reconstructor:
     prior = PnP(denoiser=denoiser.to(device))
 
     # Unrolled optimization algorithm parameters
-    max_iter = 3  # number of unfolded layers
+    max_iter = num_iter  # number of unfolded layers
     lamb = [1.0] * max_iter  # initialization of the regularization parameter
     stepsize = [1.0] * max_iter  # initialization of the step sizes.
     sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
