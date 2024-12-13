@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Union, TYPE_CHECKING
+from warnings import warn
 
 import torch
 from torch import Tensor
@@ -8,7 +9,7 @@ import torch.nn as nn
 from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
-from deepinv.physics.mri import MRIMixin
+from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
@@ -26,12 +27,17 @@ class VarNet(ArtifactRemoval, MRIMixin):
     This performs unrolled iterations on the image estimate x (as per the original VarNet paper)
     or the kspace y (as per E2E-VarNet).
 
-    Note that we do not currently support sensitivity-map estimation for multicoil MRI.
+    .. note::
+
+        For singlecoil MRI, either mode is valid.
+        For multicoil MRI, the VarNet mode will simply sum over the coils (not preferred). Using E2E-VarNet is therefore preferred.
+        For sensitivity-map estimation for multicoil MRI, pass in ``sensitivity_model``.
 
     Code loosely adapted from E2E-VarNet implementation from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/models/varnet.py.
 
     :param Denoiser, nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
         If ``None``, a small DnCNN is used.
+    :param nn.Module sensitivity_model: network to jointly estimate coil sensitivity maps for multi-coil MRI. If ``None``, do not perform any map estimation. For single-coil MRI, unused.
     :param int num_cascades: number of unrolled iterations ('cascades').
     :param str mode: if 'varnet', perform iterates on the images x as in original VarNet.
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
@@ -40,6 +46,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
     def __init__(
         self,
         denoiser: Union[Denoiser, nn.Module] = None,
+        sensitivity_model: nn.Module = None,
         num_cascades: int = 12,
         mode: str = "varnet",
     ):
@@ -68,6 +75,8 @@ class VarNet(ArtifactRemoval, MRIMixin):
             ]
         )
 
+        self.sensitivity_model = sensitivity_model
+
         super().__init__(
             backbone_net=cascades,
             mode="adjoint" if self.estimate_x else "direct",
@@ -75,7 +84,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
         )
 
     def backbone_inference(
-        self, tensor_in: Tensor, physics: Physics, y: Tensor
+        self, tensor_in: Tensor, physics: Union[MRI, MultiCoilMRI], y: Tensor
     ) -> Tensor:
         """Perform inference on input tensor.
 
@@ -87,13 +96,26 @@ class VarNet(ArtifactRemoval, MRIMixin):
         :param Tensor y: input measurements y for data consistency
         :return: Tensor: reconstructed image
         """
-        hat, _, _ = self.backbone_net((tensor_in, physics, y))
-        if self.estimate_x:
-            return hat
+        if self.sensitivity_model is not None:
+            if self.mode != "e2e-varnet":
+                warn(
+                    "sensitivity_model provided but will not be used when model is not e2e-varnet."
+                )
+
+            coil_maps = self.sensitivity_model(y, physics)
         else:
-            return self.from_torch_complex(
-                self.ifft(self.to_torch_complex(hat), dim=(-2, -1))
-            )
+            coil_maps = None
+
+        hat, _, _, _ = self.backbone_net((tensor_in, physics, y, coil_maps))
+        mask = physics.mask
+
+        if not self.estimate_x:
+            # Convert estimate to image domain
+            hat = physics.A_adjoint(hat, mask=torch.ones_like(hat))
+
+        physics.update_parameters(mask=mask)
+
+        return hat
 
 
 class VarNetBlock(nn.Module):
@@ -123,17 +145,46 @@ class VarNetBlock(nn.Module):
         :param Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
         :param MRI physics: forward physics including updated mask
         :param Tensor y: input kspace measurements.
-        :return: ``(tensor_out, physics, y)``, where tensor_out is either images ``x`` or kspaces ``y``.
+        :param Optional[Tensor] coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
+        :return: ``(tensor_out, physics, y, coil_maps)``, where tensor_out is either images ``x`` or kspaces ``y``.
         """
-        tensor_in, physics, y = args_in
+        tensor_in, physics, y, coil_maps = args_in
 
         y_in = tensor_in if not self.estimate_x else physics.A(tensor_in)
 
-        dc = physics.mask * (y_in - y)
+        mask = physics.mask
+
+        if len(mask.shape) == len(y.shape):
+            dc = mask * (y_in - y)
+        elif len(mask.shape) == len(y.shape) - 1:
+            # y is multicoil, mask is not
+            dc = mask.unsqueeze(2).expand_as(y) * (y_in - y)
+        else:
+            raise ValueError(
+                "Measurements y should either be same shape as physics mask, or have one additional dimension for multicoil data."
+            )
 
         if self.estimate_x:
-            dc = physics.A_adjoint(dc)
+            # DC term in image domain
+            dc = physics.A_adjoint(dc, coil_maps=coil_maps)
 
-        tensor_out = tensor_in - dc * self.dc_weight - self.denoiser(tensor_in)
+            # Denoises images directly
+            denoised = self.denoiser(tensor_in)
+        else:
+            # DC term in measurement domain
+            # Denoiser in image domain so convert from measurements
+            ones_mask = torch.ones_like(mask)
+            denoised = physics.A(
+                self.denoiser(
+                    physics.A_adjoint(tensor_in, mask=ones_mask, coil_maps=coil_maps)
+                ),
+                mask=ones_mask,
+                coil_maps=coil_maps,
+            )
 
-        return (tensor_out, physics, y)
+        tensor_out = tensor_in - dc * self.dc_weight - denoised
+
+        # Reset physics back to original mask
+        physics.update_parameters(mask=mask)
+
+        return (tensor_out, physics, y, coil_maps)
