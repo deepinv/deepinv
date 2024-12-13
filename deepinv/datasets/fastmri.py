@@ -46,6 +46,10 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
     You can use this to generate a custom dataset and load using the ``file_name`` argument.
 
+    .. important::
+
+        By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
+
     :param str, Path root_dir: dataset root directory
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
     :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
@@ -136,7 +140,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
     and ``target`` are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
 
-    .. note::
+    .. tip::
 
         ``x`` and ``y`` are related by :meth:`deepinv.physics.MRI.A_adjoint` or :meth:`deepinv.physics.MultiCoilMRI.A_adjoint`
         depending on if ``y`` are multicoil or not, with ``crop=True, rss=True``.
@@ -158,6 +162,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         This allows you to save and load the dataset as 2D singlecoil slices much faster and all in-memory.
         You can generate this using the method ``save_simple_dataset``.
 
+    .. important::
+
+        By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
+
     :param Union[str, Path] root: Path to the dataset.
     :param bool test: Whether the split is the "test" set, if yes, only return kspace measurements.
     :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
@@ -174,20 +182,22 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instantiate train dataset:
+        Instantiate dataset with sample data (from the multicoil brain train dataset) ::
 
-            from deepinv.datasets import FastMRISliceDataset
-            root = "/path/to/dataset/fastMRI/knee_singlecoil/train"
-            dataset = FastMRISliceDataset(root=root)
+            from deepinv.datasets import FastMRISliceDataset, download_archive
+            from deepinv.utils import get_image_url, get_data_home
+            url = get_image_url("fastmri_brain_multicoil_train_0.h5")
+            download_archive(url, get_data_home() / "brain" / "fastmri.h5")
+            dataset = FastMRISliceDataset(root=get_data_home() / "brain")
             target, kspace = dataset[0]
-            print(target.shape)
-            print(kspace.shape)
+            print(target.shape) # 1, 320, 320
+            print(kspace.shape) # 2, 20, 640, 320
 
-        Instantiate dataset with metadata cache (speeds up subsequent instantiation)
+        Instantiate dataset with metadata cache (speeds up subsequent instantiation) ::
 
             dataset = FastMRISliceDataset(root=root, load_metadata_from_cache=True, save_metadata_to_cache=True)
 
-        Normalise and pad images:
+        Normalise and pad images ::
 
             from torchvision.transforms import Compose, CenterCrop
             from deepinv.utils import Rescale
