@@ -45,7 +45,6 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #
 
 operation = "MRI"
-train_dataset_name = "fastmri_knee_singlecoil"
 img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
@@ -77,7 +76,7 @@ n_images_max = (
 # (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
-measurement_dir = DATA_DIR / train_dataset_name / operation
+measurement_dir = DATA_DIR / "fastmri" / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
