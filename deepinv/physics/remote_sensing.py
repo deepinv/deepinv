@@ -1,13 +1,12 @@
 import torch
 from deepinv.physics.noise import GaussianNoise
-from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
-from deepinv.utils import TensorList
 from deepinv.optim.utils import conjugate_gradient
 
 
-class Pansharpen(LinearPhysics):
+class Pansharpen(StackedLinearPhysics):
     r"""
     Pansharpening forward operator.
 
@@ -63,39 +62,23 @@ class Pansharpen(LinearPhysics):
         padding="circular",
         **kwargs,
     ):
-        super().__init__(**kwargs)
-
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
-        self.downsampling = Downsampling(
+        noise_color = noise_color if noise_color is not None else lambda x: x
+        noise_gray = noise_gray if noise_gray is not None else lambda x: x
+
+        downsampling = Downsampling(
             img_size=img_size,
             factor=factor,
             filter=filter,
+            noise_model=noise_color,
             device=device,
             padding=padding,
         )
+        decolorize = Decolorize(srf=srf, noise_model=noise_gray, channels=img_size[0], device=device)
 
-        self.noise_color = noise_color if noise_color is not None else lambda x: x
-        self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
-        self.colorize = Decolorize(srf=srf, channels=img_size[0])
+        super().__init__(physics_list=[downsampling, decolorize], **kwargs)
 
-    def A(self, x, **kwargs):
-        return TensorList(
-            [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
-        )
-
-    def A_adjoint(self, y, **kwargs):
-        return self.downsampling.A_adjoint(y[0], **kwargs) + self.colorize.A_adjoint(
-            y[1], **kwargs
-        )
-
-    def forward(self, x, **kwargs):
-        return TensorList(
-            [
-                self.noise_color(self.downsampling(x, **kwargs)),
-                self.noise_gray(self.colorize(x, **kwargs)),
-            ]
-        )
 
     def A_dagger(self, y, **kwargs):
         r"""

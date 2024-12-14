@@ -91,6 +91,95 @@ class DataFidelity(Potential):
         return self.d.prox_conjugate(u, y, *args, **kwargs)
 
 
+class DataFidelityList(DataFidelity):
+    def __init__(self, data_fidelity_list):
+        super(DataFidelityList, self).__init__()
+        self.data_fidelity_list = data_fidelity_list
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        r"""
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.fn(x, y[i], physics[i], *args, **kwargs)
+        return out
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
+
+        where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.grad(x, y[i], physics[i], *args, **kwargs)
+        return out
+
+    def grad_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
+
+        Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function direclty calls :meth:`deepinv.optim.Distance.grad` for the
+        speficic distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.grad_d(u, y[i], *args, **kwargs)
+        return out
+
+    def prox_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function direclty calls :meth:`deepinv.optim.Distance.prox` for the
+        speficic distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.prox_d(u, y[i], *args, **kwargs)
+        return out
+
+
+    def prox_d_conjugate(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
+
+        This function directly calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
+        specific distance function :math:`\distancename`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.prox_d_conjugate(u, y[i], *args, **kwargs)
+        return out
+
+
 class L2(DataFidelity):
     r"""
     Implementation of the data-fidelity as the normalized :math:`\ell_2` norm

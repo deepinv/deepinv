@@ -81,35 +81,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (deepinv.physics.Physics) stacked operator
 
         """
-        A = lambda x: TensorList(self.A(x)).append(TensorList(other.A(x)))
-
-        class noise(torch.nn.Module):
-            def __init__(self, noise1, noise2):
-                super().__init__()
-                self.noise1 = noise1
-                self.noise2 = noise2
-
-            def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(
-                    self.noise2(x[-1], **kwargs)
-                )
-
-        class sensor(torch.nn.Module):
-            def __init__(self, sensor1, sensor2):
-                super().__init__()
-                self.sensor1 = sensor1
-                self.sensor2 = sensor2
-
-            def forward(self, x):
-                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
-
-        return Physics(
-            A=A,
-            noise_model=noise(self.noise_model, other.noise_model),
-            sensor_model=sensor(self.sensor_model, other.sensor_model),
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return StackedPhysics([self, other])
 
     def forward(self, x, **kwargs):
         r"""
@@ -434,46 +406,7 @@ class LinearPhysics(Physics):
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        A = lambda x, **kwargs: TensorList(self.A(x, **kwargs)).append(
-            TensorList(other.A(x, **kwargs))
-        )
-
-        def A_adjoint(y, **kwargs):
-            at1 = (
-                self.A_adjoint(y[:-1], **kwargs)
-                if len(y) > 2
-                else self.A_adjoint(y[0], **kwargs)
-            )
-            return at1 + other.A_adjoint(y[-1], **kwargs)
-
-        class noise(torch.nn.Module):
-            def __init__(self, noise1, noise2):
-                super().__init__()
-                self.noise1 = noise1
-                self.noise2 = noise2
-
-            def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(
-                    self.noise2(x[-1], **kwargs)
-                )
-
-        class sensor(torch.nn.Module):
-            def __init__(self, sensor1, sensor2):
-                super().__init__()
-                self.sensor1 = sensor1
-                self.sensor2 = sensor2
-
-            def forward(self, x):
-                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
-
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
-            noise_model=noise(self.noise_model, other.noise_model),
-            sensor_model=sensor(self.sensor_model, other.sensor_model),
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return StackedLinearPhysics([self, other])
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
@@ -852,3 +785,37 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
             return vjpfunc(y)[0]
 
     return adjoint
+
+
+
+class StackedPhysics(Physics):
+    def __init__(self, physics_list, **kwargs):
+        super(StackedPhysics, self).__init__()
+        self.physics_list = physics_list
+
+    def A(self, x, **kwargs):
+        return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
+
+    def __getitem__(self, item):
+        return self.physics_list[item]
+
+    def sensor(self, y, **kwargs):
+        for i, physics in enumerate(self.physics_list):
+            y[i] = physics.sensor(y[i], **kwargs)
+        return y
+
+    def noise(self, y, **kwargs):
+        for i, physics in enumerate(self.physics_list):
+            y[i] = physics.noise(y[i], **kwargs)
+        return y
+
+    def set_noise_model(self, noise_model, item):
+        self.physics_list[item].set_noise_model(noise_model)
+
+
+class StackedLinearPhysics(StackedPhysics, LinearPhysics):
+    def A_adjoint(self, y, **kwargs):
+        out = 0
+        for i, physics in enumerate(self.physics_list):
+            out += physics.A_adjoint(y[i], **kwargs)
+        return out
