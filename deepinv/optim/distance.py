@@ -1,6 +1,6 @@
 import torch
 from deepinv.optim.potential import Potential
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 class Distance(Potential):

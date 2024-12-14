@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):

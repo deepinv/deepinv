@@ -1,13 +1,67 @@
+from typing import List, Union
 import torch
-from deepinv.physics.noise import GaussianNoise
+from torch.nn import Module, ModuleList
+
 from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 from deepinv.optim.utils import conjugate_gradient
 
+# We really should be able to abstract this more
+# and inherit from TensorListModule
+# since it's very similar to it
+class TensorListPhysics(LinearPhysics):
+    def __init__(self, *physics: Module, **kwargs):
+        super().__init__(**kwargs)
+        self.physics_mods = physics
 
-class Pansharpen(LinearPhysics):
+    def A(self, x, **kwargs):
+        return TensorList(
+            [physics.A(x, **kwargs) for physics in self.physics_mods]
+        )
+
+    def A_adjoint(self, y, **kwargs):
+        return sum([physics.A_adjoint(y[i], **kwargs) for i, physics in enumerate(self.physics_mods)])
+
+    def forward(self, x, **kwargs):
+        return TensorList(
+            [physics(x, **kwargs) for physics in self.physics_mods]
+        )
+    
+    def __getitem__(self, idx):
+        return self.physics_mods[idx]
+    
+    def __len__(self):
+        return len(self.physics_mods)
+
+# This is a generalised version of a tensorlist loss
+class TensorListModule(Module):
+    def __init__(self, *mods):
+        super().__init__()
+        self.mods = ModuleList(mods)
+    
+    def forward(
+            self, 
+            *args: Union[TensorList, TensorListPhysics], 
+            **kwargs: Union[TensorList, TensorListPhysics]
+        ):
+        for arg in args:
+            if not isinstance(arg, (TensorList, TensorListModule, TensorListPhysics)) or len(arg) == 1:
+                arg = [arg] * len(self.mods)
+            else:
+                assert len(self.mods) == len(arg)
+        for (k, v) in kwargs.items():
+            if not isinstance(v, (TensorList, TensorListModule, TensorListPhysics)) or len(v) == 1:
+                kwargs[k] = [v] * len(self.mods)
+            else:
+                assert len(self.mods) == len(v)
+
+        return sum([mod(*[arg[i] for arg in args], **{k: v[i] for (k, v) in kwargs.items()}) for i, mod in enumerate(self.mods)])
+
+
+class Pansharpen(TensorListPhysics):
     r"""
     Pansharpening forward operator.
 
@@ -63,39 +117,23 @@ class Pansharpen(LinearPhysics):
         padding="circular",
         **kwargs,
     ):
-        super().__init__(**kwargs)
-
+        
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
-        self.downsampling = Downsampling(
+        downsampling = Downsampling(
             img_size=img_size,
             factor=factor,
             filter=filter,
             device=device,
             padding=padding,
         )
+        downsampling.set_noise_model(noise_color if noise_color is not None else lambda x: x)
+        colorize = Decolorize(srf=srf, channels=img_size[0])
+        colorize.set_noise_model(noise_gray if noise_gray is not None else lambda x: x)
 
-        self.noise_color = noise_color if noise_color is not None else lambda x: x
-        self.noise_gray = noise_gray if noise_gray is not None else lambda x: x
-        self.colorize = Decolorize(srf=srf, channels=img_size[0])
-
-    def A(self, x, **kwargs):
-        return TensorList(
-            [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
-        )
-
-    def A_adjoint(self, y, **kwargs):
-        return self.downsampling.A_adjoint(y[0], **kwargs) + self.colorize.A_adjoint(
-            y[1], **kwargs
-        )
-
-    def forward(self, x, **kwargs):
-        return TensorList(
-            [
-                self.noise_color(self.downsampling(x, **kwargs)),
-                self.noise_gray(self.colorize(x, **kwargs)),
-            ]
-        )
+        super().__init__(downsampling, colorize, **kwargs)
+        self.downsampling = downsampling
+        self.colorize = colorize
 
     def A_dagger(self, y, **kwargs):
         r"""
