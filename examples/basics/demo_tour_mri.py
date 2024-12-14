@@ -249,7 +249,10 @@ _ = trainer.test(
 # ``x`` are the cropped root-sum-square (RSS) magnitude reconstructions.
 #
 
-# dinv.datasets.download_archive(dinv.utils.get_image_url("fastmri_brain_multicoil_train_0.h5"), dinv.utils.get_data_home() / "brain" / "fastmri.h5")
+dinv.datasets.download_archive(
+    dinv.utils.get_image_url("fastmri_brain_multicoil_train_0.h5"),
+    dinv.utils.get_data_home() / "brain" / "fastmri.h5",
+)
 
 dataset = dinv.datasets.FastMRISliceDataset(
     dinv.utils.get_data_home() / "brain", slice_index="middle"
