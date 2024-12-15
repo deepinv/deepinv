@@ -141,7 +141,7 @@ Stacking operators :math:`A_1` and :math:`A_2` into a single operator
 
     A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}
 
-can be done with :func:`stack <deepinv.physics.Physics.stack>`. The stacked operator is
+can be done with :func:`deepinv.physics.stack`. The stacked operator is
 
 .. doctest::
 
@@ -150,12 +150,16 @@ can be done with :func:`stack <deepinv.physics.Physics.stack>`. The stacked oper
     >>> x = torch.rand((1, 1, 8, 8))
     >>> physics1 = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(.2))
     >>> physics2 = dinv.physics.Downsampling(img_size=(8, 8), factor=2)
-    >>> physics = physics1.stack(physics2)
+    >>> physics3 = dinv.physics.stack(physics1, physics2)
+    >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
     >>> y = physics(x) #
     >>> print(y[0].shape)
     torch.Size([1, 1, 8, 8])
     >>> print(y[1].shape)
     torch.Size([1, 1, 4, 4])
+    >>> physics4 = physics4.stack(physics1) # add a new operator to the stack
+    >>> len(physics4)
+    3
 
 The measurements are stored as :class:`deepinv.utils.TensorList` objects, which can be accessed by index
 (see the :ref:`tensorlist` user guide for more details).

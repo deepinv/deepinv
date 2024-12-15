@@ -11,6 +11,7 @@ from .forward import (
     StackedLinearPhysics,
     DecomposablePhysics,
     adjoint_function,
+    stack,
 )
 from .noise import (
     GaussianNoise,
@@ -27,7 +28,6 @@ from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
 
-# from .remote_sensing_alt import Pansharpen as Pansharpen2, TensorListModule, TensorListPhysics
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,

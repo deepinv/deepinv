@@ -1,5 +1,5 @@
 deepinv.physics
-================
+===============
 
 This module provides a set of forward operators for various imaging modalities.
 Please refer to the :ref:`physics` section for more details.
@@ -118,6 +118,7 @@ Noise distributions
 
     deepinv.physics.TimeMixin
     deepinv.physics.adjoint_function
+    deepinv.physics.stack
 
 
 Functional
