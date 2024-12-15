@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from kornia.filters.kernels import get_box_kernel2d
 
-from deepinv.utils.nn import TensorList
+from deepinv.utils.tensorlist import TensorList
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import PoissonNoise
 from deepinv.physics.blur import Downsampling, Blur

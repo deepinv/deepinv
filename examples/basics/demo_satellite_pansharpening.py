@@ -2,8 +2,8 @@ import deepinv as dinv
 
 # %%
 # Simulate pansharpening measurements (4-channel)
-physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, noise_gray=None, srf="flat")
-dataset = dinv.datasets.NBUDataset("nbu", download=True, return_pan=False)
+physics = dinv.physics.Pansharpen2((4, 256, 256), factor=4, srf="flat")
+dataset = dinv.datasets.NBUDataset("nbu", download=False, return_pan=False)
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 y = physics(x)
 
@@ -30,6 +30,17 @@ qnr = dinv.metric.QNR()
 sam = dinv.metric.distortion.SpectralAngleMapper()
 ergas = dinv.metric.distortion.ERGAS(factor=4)
 print(qnr(x_hat, x=None, y=y, physics=physics), sam(x_hat, x), ergas(x_hat, x))
+
+loss = dinv.physics.TensorListModule(
+    dinv.loss.MCLoss(),
+    dinv.loss.SupLoss()
+)
+metric = dinv.physics.TensorListModule(
+    dinv.metric.PSNR(),
+    dinv.metric.PSNR()
+)
+l = loss(y=y, x=x, x_net=x_net, physics=physics, model=model)
+m = metric(x=x, x_net=x_net)
 
 # %%
 # Perform pansharpening using raw measurements y ("unsupervised")

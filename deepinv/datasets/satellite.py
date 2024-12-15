@@ -12,7 +12,7 @@ from torchvision.transforms import ToTensor, Compose, Grayscale
 
 from deepinv.datasets.utils import download_archive, extract_zipfile
 from deepinv.utils.demo import get_image_url
-from deepinv.utils.nn import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 class NBUDataset(Dataset):

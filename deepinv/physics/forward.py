@@ -1,6 +1,6 @@
 import torch
 from deepinv.physics.noise import GaussianNoise
-from deepinv.utils import randn_like, TensorList
+from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import conjugate_gradient
 
 

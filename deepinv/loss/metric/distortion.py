@@ -14,10 +14,10 @@ from torchmetrics.functional import (
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
-from deepinv.utils.nn import TensorList
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
+    from deepinv.utils.tensorlist import TensorList
 
 
 class MAE(Metric):

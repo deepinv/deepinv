@@ -1,12 +1,67 @@
+from typing import List, Union
 import torch
+from torch.nn import Module, ModuleList
+
+from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.noise import GaussianNoise
-from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
+from deepinv.utils.tensorlist import TensorList
 from deepinv.optim.utils import conjugate_gradient
 
+# We really should be able to abstract this more
+# and inherit from TensorListModule
+# since it's very similar to it
+class TensorListPhysics(LinearPhysics):
+    def __init__(self, *physics: Module, **kwargs):
+        super().__init__(**kwargs)
+        self.physics_mods = physics
 
-class Pansharpen(StackedLinearPhysics):
+    def A(self, x, **kwargs):
+        return TensorList(
+            [physics.A(x, **kwargs) for physics in self.physics_mods]
+        )
+
+    def A_adjoint(self, y, **kwargs):
+        return sum([physics.A_adjoint(y[i], **kwargs) for i, physics in enumerate(self.physics_mods)])
+
+    def forward(self, x, **kwargs):
+        return TensorList(
+            [physics(x, **kwargs) for physics in self.physics_mods]
+        )
+    
+    def __getitem__(self, idx):
+        return self.physics_mods[idx]
+    
+    def __len__(self):
+        return len(self.physics_mods)
+
+# This is a generalised version of a tensorlist loss
+class TensorListModule(Module):
+    def __init__(self, *mods):
+        super().__init__()
+        self.mods = ModuleList(mods)
+    
+    def forward(
+            self, 
+            *args: Union[TensorList, TensorListPhysics], 
+            **kwargs: Union[TensorList, TensorListPhysics]
+        ):
+        for arg in args:
+            if not isinstance(arg, (TensorList, TensorListModule, TensorListPhysics)) or len(arg) == 1:
+                arg = [arg] * len(self.mods)
+            else:
+                assert len(self.mods) == len(arg)
+        for (k, v) in kwargs.items():
+            if not isinstance(v, (TensorList, TensorListModule, TensorListPhysics)) or len(v) == 1:
+                kwargs[k] = [v] * len(self.mods)
+            else:
+                assert len(self.mods) == len(v)
+
+        return sum([mod(*[arg[i] for arg in args], **{k: v[i] for (k, v) in kwargs.items()}) for i, mod in enumerate(self.mods)])
+
+
+class Pansharpen(TensorListPhysics):
     r"""
     Pansharpening forward operator.
 
@@ -62,23 +117,23 @@ class Pansharpen(StackedLinearPhysics):
         padding="circular",
         **kwargs,
     ):
+        
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
-
-        noise_color = noise_color if noise_color is not None else lambda x: x
-        noise_gray = noise_gray if noise_gray is not None else lambda x: x
 
         downsampling = Downsampling(
             img_size=img_size,
             factor=factor,
             filter=filter,
-            noise_model=noise_color,
             device=device,
             padding=padding,
         )
-        decolorize = Decolorize(srf=srf, noise_model=noise_gray, channels=img_size[0], device=device)
+        downsampling.set_noise_model(noise_color if noise_color is not None else lambda x: x)
+        colorize = Decolorize(srf=srf, channels=img_size[0])
+        colorize.set_noise_model(noise_gray if noise_gray is not None else lambda x: x)
 
-        super().__init__(physics_list=[downsampling, decolorize], **kwargs)
-
+        super().__init__(downsampling, colorize, **kwargs)
+        self.downsampling = downsampling
+        self.colorize = colorize
 
     def A_dagger(self, y, **kwargs):
         r"""
