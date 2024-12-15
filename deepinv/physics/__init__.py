@@ -6,7 +6,9 @@ from .haze import Haze
 from .forward import (
     Denoising,
     Physics,
+    StackedPhysics,
     LinearPhysics,
+    StackedLinearPhysics,
     DecomposablePhysics,
     adjoint_function,
 )
@@ -24,7 +26,8 @@ from .tomography import Tomography
 from .lidar import SinglePhotonLidar
 from .singlepixel import SinglePixelCamera
 from .remote_sensing import Pansharpen
-from .remote_sensing_alt import Pansharpen as Pansharpen2, TensorListModule, TensorListPhysics
+
+# from .remote_sensing_alt import Pansharpen as Pansharpen2, TensorListModule, TensorListPhysics
 from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,

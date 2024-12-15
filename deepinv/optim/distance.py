@@ -50,7 +50,7 @@ class L2Distance(Distance):
     :param float sigma: normalization parameter. Default: 1.
     """
 
-    def __init__(self, sigma=1.):
+    def __init__(self, sigma=1.0):
         super().__init__()
         self.norm = 1 / (sigma**2)
 

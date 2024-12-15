@@ -16,6 +16,8 @@ Base Classes
    deepinv.physics.Physics
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
+   deepinv.physics.StackedPhysics
+   deepinv.physics.StackedLinearPhysics
 
 .. autosummary::
    :toctree: stubs

@@ -8,7 +8,7 @@ import numpy as np
 from scipy.io import loadmat
 
 from torch.utils.data import Dataset
-from torchvision.transforms import ToTensor, Compose, Grayscale
+from torchvision.transforms import ToTensor, Compose
 
 from deepinv.datasets.utils import download_archive, extract_zipfile
 from deepinv.utils.demo import get_image_url
@@ -18,7 +18,8 @@ from deepinv.utils.tensorlist import TensorList
 class NBUDataset(Dataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
-    Returns 4x256x256 multispectral (MS) satellite images of urban scenes from 6 different satellites.
+    Returns Cx256x256 multispectral (MS) satellite images of urban scenes from 6 different satellites.
+    with C=4 for "gaofen-1" and C=8 for the rest.
 
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.

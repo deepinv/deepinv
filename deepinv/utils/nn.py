@@ -3,6 +3,7 @@ from warnings import warn
 import numpy as np
 import torch
 
+
 def get_freer_gpu(verbose=True):
     """
     Returns the GPU device with the most free memory.

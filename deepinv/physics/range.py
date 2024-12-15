@@ -31,7 +31,7 @@ class Decolorize(DecomposablePhysics):
                   [1.0000, 1.0000, 1.0000]]]], grad_fn=<MulBackward0>)
     """
 
-    def __init__(self, channels=3, srf="rec601", device='cpu', **kwargs):
+    def __init__(self, channels=3, srf="rec601", device="cpu", **kwargs):
         super().__init__(**kwargs)
         if srf is None or srf == "rec601":
             self.srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]

@@ -9,6 +9,7 @@ from deepinv.physics.range import Decolorize
 from deepinv.utils.tensorlist import TensorList
 from deepinv.optim.utils import conjugate_gradient
 
+
 # We really should be able to abstract this more
 # and inherit from TensorListModule
 # since it's very similar to it
@@ -18,47 +19,60 @@ class TensorListPhysics(LinearPhysics):
         self.physics_mods = physics
 
     def A(self, x, **kwargs):
-        return TensorList(
-            [physics.A(x, **kwargs) for physics in self.physics_mods]
-        )
+        return TensorList([physics.A(x, **kwargs) for physics in self.physics_mods])
 
     def A_adjoint(self, y, **kwargs):
-        return sum([physics.A_adjoint(y[i], **kwargs) for i, physics in enumerate(self.physics_mods)])
+        return sum(
+            [
+                physics.A_adjoint(y[i], **kwargs)
+                for i, physics in enumerate(self.physics_mods)
+            ]
+        )
 
     def forward(self, x, **kwargs):
-        return TensorList(
-            [physics(x, **kwargs) for physics in self.physics_mods]
-        )
-    
+        return TensorList([physics(x, **kwargs) for physics in self.physics_mods])
+
     def __getitem__(self, idx):
         return self.physics_mods[idx]
-    
+
     def __len__(self):
         return len(self.physics_mods)
+
 
 # This is a generalised version of a tensorlist loss
 class TensorListModule(Module):
     def __init__(self, *mods):
         super().__init__()
         self.mods = ModuleList(mods)
-    
+
     def forward(
-            self, 
-            *args: Union[TensorList, TensorListPhysics], 
-            **kwargs: Union[TensorList, TensorListPhysics]
-        ):
+        self,
+        *args: Union[TensorList, TensorListPhysics],
+        **kwargs: Union[TensorList, TensorListPhysics],
+    ):
         for arg in args:
-            if not isinstance(arg, (TensorList, TensorListModule, TensorListPhysics)) or len(arg) == 1:
+            if (
+                not isinstance(arg, (TensorList, TensorListModule, TensorListPhysics))
+                or len(arg) == 1
+            ):
                 arg = [arg] * len(self.mods)
             else:
                 assert len(self.mods) == len(arg)
-        for (k, v) in kwargs.items():
-            if not isinstance(v, (TensorList, TensorListModule, TensorListPhysics)) or len(v) == 1:
+        for k, v in kwargs.items():
+            if (
+                not isinstance(v, (TensorList, TensorListModule, TensorListPhysics))
+                or len(v) == 1
+            ):
                 kwargs[k] = [v] * len(self.mods)
             else:
                 assert len(self.mods) == len(v)
 
-        return sum([mod(*[arg[i] for arg in args], **{k: v[i] for (k, v) in kwargs.items()}) for i, mod in enumerate(self.mods)])
+        return sum(
+            [
+                mod(*[arg[i] for arg in args], **{k: v[i] for (k, v) in kwargs.items()})
+                for i, mod in enumerate(self.mods)
+            ]
+        )
 
 
 class Pansharpen(TensorListPhysics):
@@ -117,7 +131,7 @@ class Pansharpen(TensorListPhysics):
         padding="circular",
         **kwargs,
     ):
-        
+
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         downsampling = Downsampling(
@@ -127,7 +141,9 @@ class Pansharpen(TensorListPhysics):
             device=device,
             padding=padding,
         )
-        downsampling.set_noise_model(noise_color if noise_color is not None else lambda x: x)
+        downsampling.set_noise_model(
+            noise_color if noise_color is not None else lambda x: x
+        )
         colorize = Decolorize(srf=srf, channels=img_size[0])
         colorize.set_noise_model(noise_gray if noise_gray is not None else lambda x: x)
 

@@ -75,10 +75,11 @@ class Pansharpen(StackedLinearPhysics):
             device=device,
             padding=padding,
         )
-        decolorize = Decolorize(srf=srf, noise_model=noise_gray, channels=img_size[0], device=device)
+        decolorize = Decolorize(
+            srf=srf, noise_model=noise_gray, channels=img_size[0], device=device
+        )
 
         super().__init__(physics_list=[downsampling, decolorize], **kwargs)
-
 
     def A_dagger(self, y, **kwargs):
         r"""
