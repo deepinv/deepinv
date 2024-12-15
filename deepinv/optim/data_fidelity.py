@@ -91,9 +91,9 @@ class DataFidelity(Potential):
         return self.d.prox_conjugate(u, y, *args, **kwargs)
 
 
-class DataFidelityList(DataFidelity):
+class StackedPhysicsDataFidelity(DataFidelity):
     def __init__(self, data_fidelity_list):
-        super(DataFidelityList, self).__init__()
+        super(StackedPhysicsDataFidelity, self).__init__()
         self.data_fidelity_list = data_fidelity_list
 
     def fn(self, x, y, physics, *args, **kwargs):
@@ -224,7 +224,7 @@ class L2(DataFidelity):
 
     def __init__(self, sigma=1.0):
         super().__init__()
-        self.d = L2Distance()
+        self.d = L2Distance(sigma)
         self.norm = 1 / (sigma**2)
 
     def prox(self, x, y, physics, *args, gamma=1.0, **kwargs):

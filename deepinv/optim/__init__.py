@@ -1,6 +1,6 @@
 from .data_fidelity import (
     DataFidelity,
-    DataFidelityList,
+    StackedPhysicsDataFidelity,
     L2,
     L1,
     IndicatorL2,

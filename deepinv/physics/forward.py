@@ -69,7 +69,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             tol=self.tol,
         )
 
-    def __add__(self, other):
+    def stack(self, other):
         r"""
         Stacks two linear forward operators :math:`A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}`
         via the add operation.
@@ -81,7 +81,10 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (deepinv.physics.Physics) stacked operator
 
         """
-        return StackedPhysics([self, other])
+        if isinstance(other, StackedPhysics):
+            return other.stack(self)
+        else:
+            return StackedPhysics([self, other])
 
     def forward(self, x, **kwargs):
         r"""
@@ -390,7 +393,7 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
-    def __add__(self, other):
+    def stack(self, other):
         r"""
         Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}` via the add operation.
 
@@ -399,14 +402,17 @@ class LinearPhysics(Physics):
 
         .. note::
 
-            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            When using the ``stack`` operator between two noise objects, the operation will retain only the second
             noise.
 
         :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.LinearPhysics) stacked operator
 
         """
-        return StackedLinearPhysics([self, other])
+        if isinstance(other, StackedLinearPhysics):
+            return other.stack(self)
+        else:
+            return StackedLinearPhysics([self, other])
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
@@ -787,7 +793,6 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return adjoint
 
 
-
 class StackedPhysics(Physics):
     def __init__(self, physics_list, **kwargs):
         super(StackedPhysics, self).__init__()
@@ -803,6 +808,9 @@ class StackedPhysics(Physics):
         for i, physics in enumerate(self.physics_list):
             y[i] = physics.sensor(y[i], **kwargs)
         return y
+
+    def stack(self, physics):
+        self.physics_list.append(physics)
 
     def noise(self, y, **kwargs):
         for i, physics in enumerate(self.physics_list):
