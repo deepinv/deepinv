@@ -1,3 +1,10 @@
+r"""
+Pan-sharpening of satellite images
+==================================
+
+
+"""
+
 import deepinv as dinv
 
 # %%

@@ -101,6 +101,8 @@ class Pansharpen(StackedLinearPhysics):
 
     def A_classical(self, y, **kwargs):
         """
+        TODO: explain
+
         From https://github.com/AlexeyTrekin/pansharpen/blob/master/pysharpen/methods/sharpening/brovey.py
         ESRI Brovey from https://pro.arcgis.com/en/pro-app/latest/help/analysis/raster-functions/fundamentals-of-pan-sharpening-pro.htm
         Another unused implementation https://github.com/mapbox/rio-pansharpen/blob/master/rio_pansharpen/methods.py

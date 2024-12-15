@@ -127,6 +127,7 @@ it is possible to sum generators as follows:
         :class:`deepinv.physics.generator.GeneratorMixture` class.
 
 
+.. _physics_combining:
 
 Combining Physics
 ^^^^^^^^^^^^^^^^^

@@ -3,7 +3,6 @@ from pathlib import Path
 import os
 
 from natsort import natsorted
-
 import numpy as np
 from scipy.io import loadmat
 

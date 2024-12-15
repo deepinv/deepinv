@@ -44,6 +44,30 @@ class TensorList:
         """
         return TensorList([xi.detach() for xi in self.x])
 
+    def cpu(self):
+        r"""
+        Moves the TensorList to the cpu.
+        """
+        return TensorList([xi.cpu() for xi in self.x])
+
+    def numpy(self):
+        r"""
+        Returns a list of numpy arrays.
+        """
+        return [xi.numpy() for xi in self.x]
+
+    def cuda(self, *args, **kwargs):
+        r"""
+        Moves the TensorList to the cuda device.
+        """
+        return TensorList([xi.cuda(*args, **kwargs) for xi in self.x])
+
+    def type(self, dtype):
+        r"""
+        Returns the TensorList with the given dtype.
+        """
+        return TensorList([xi.type(dtype) for xi in self.x])
+
     def __len__(self):
         r"""
         Returns the number of tensors in the list.

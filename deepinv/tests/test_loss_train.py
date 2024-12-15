@@ -9,7 +9,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.physics import Inpainting, GaussianNoise, Blur
+from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
 from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     SigmaGenerator,
@@ -17,13 +17,19 @@ from deepinv.physics.generator import (
 )
 
 
-def test_generate_dataset(tmp_path, imsize, device):
+@pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
+def test_generate_dataset(tmp_path, imsize, device, physics_name):
     N = 10
     max_N = 10
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    if physics_name == "inpainting":
+        physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    elif physics_name == "pansharpen": # proxy for StackedPhysics
+        physics = Pansharpen(img_size=imsize, factor=2, device=device)
+    else:
+        raise ValueError(f"Unknown physics {physics_name}")
 
     dinv.datasets.generate_dataset(
         train_dataset,

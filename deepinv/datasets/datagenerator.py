@@ -9,6 +9,8 @@ import torch
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from torch.utils import data
+from deepinv.utils import TensorList
+from deepinv.physics import StackedPhysics
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -56,7 +58,13 @@ class HDF5Dataset(data.Dataset):
 
         hd5 = h5py.File(path, "r")
         suffix = "_train" if train else "_test"
-        self.y = hd5[f"y{suffix}"]
+
+        if "stacked" in hd5.attrs.keys():
+            self.stacked = hd5.attrs["stacked"]
+            self.y = [hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
+        else:
+            self.stacked = 0
+            self.y = hd5[f"y{suffix}"]
 
         if train:
             if "x_train" in hd5:
@@ -73,7 +81,18 @@ class HDF5Dataset(data.Dataset):
                     self.params[k.replace(suffix, "")] = hd5[k]
 
     def __getitem__(self, index):
-        y = self.cast(torch.from_numpy(self.y[index]))
+        r"""
+        Returns the measurement and signal pair ``(x, y)`` at the given index.
+
+        If there is no training ground truth (i.e. ``x_train``) in the dataset file,
+        the dataset returns the measurement again as the signal.
+
+        :param int index: Index of the pair to return.
+        """
+        if self.stacked > 0:
+            y = TensorList([self.cast(torch.from_numpy(y[index])) for y in self.y])
+        else:
+            y = self.cast(torch.from_numpy(self.y[index]))
 
         x = y
         if not self.unsupervised:
@@ -96,7 +115,14 @@ class HDF5Dataset(data.Dataset):
             return x, y
 
     def __len__(self):
-        return len(self.y)
+        r"""
+        Returns the size of the dataset.
+
+        """
+        if self.stacked > 0:
+            return len(self.y[0])
+        else:
+            return len(self.y)
 
 
 def generate_dataset(
@@ -221,6 +247,8 @@ def generate_dataset(
         hf = h5py.File(hf_path, "w")
 
         hf.attrs["operator"] = physics[g].__class__.__name__
+        if isinstance(physics[g], StackedPhysics):
+            hf.attrs["stacked"] = len(physics)
 
         # get initial image for image size
         if train_dataset is not None:
@@ -249,9 +277,17 @@ def generate_dataset(
         torch.save(physics[g].state_dict(), f"{save_dir}/physics{g}.pt")
 
         if train_dataset is not None:
-            hf.create_dataset(
-                "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.cpu().numpy().dtype
-            )
+            if isinstance(y0, TensorList):
+                for i in range(len(y0)):
+                    hf.create_dataset(
+                        f"y{i}_train",
+                        (n_train_g,) + y0[i].shape[1:],
+                        dtype=y0[0].cpu().numpy().dtype,
+                    )
+            else:
+                hf.create_dataset(
+                    "y_train", (n_train_g,) + y0.shape[1:], dtype=y0.cpu().numpy().dtype
+                )
             if supervised:
                 hf.create_dataset(
                     "x_train", (n_train_g,) + x0.shape[1:], dtype=x0.cpu().numpy().dtype
@@ -310,16 +346,22 @@ def generate_dataset(
                     y, params = measure(x, b=bsize, g=g)
 
                     # Add new data to it
-                    hf["y_train"][index : index + bsize] = (
-                        y[:bsize, :].to("cpu").numpy()
-                    )
+                    if isinstance(y, TensorList):
+                        for i in range(len(y)):
+                            hf[f"y{i}_train"][index: index + bsize] = (
+                                y[i][:bsize, :].to("cpu").numpy()
+                            )
+                    else:
+                        hf["y_train"][index: index + bsize] = (
+                            y[:bsize, :].to("cpu").numpy()
+                        )
                     if supervised:
-                        hf["x_train"][index : index + bsize] = (
+                        hf["x_train"][index: index + bsize] = (
                             x[:bsize, ...].to("cpu").numpy()
                         )
                     if save_physics_generator_params:
                         for p in params.keys():
-                            hf[f"{p}_train"][index : index + bsize] = (
+                            hf[f"{p}_train"][index: index + bsize] = (
                                 params[p][:bsize, ...].to("cpu").numpy()
                             )
                     index = index + bsize
@@ -352,9 +394,17 @@ def generate_dataset(
                     hf.create_dataset(
                         "x_test", (n_test_g,) + x.shape[1:], dtype=x.cpu().numpy().dtype
                     )
-                    hf.create_dataset(
-                        "y_test", (n_test_g,) + y.shape[1:], dtype=y.cpu().numpy().dtype
-                    )
+                    if isinstance(y, TensorList):
+                        for i in range(len(y)):
+                            hf.create_dataset(
+                                f"y{i}_test",
+                                (n_test_g,) + y[i].shape[1:],
+                                dtype=y[0].cpu().numpy().dtype,
+                            )
+                    else:
+                        hf.create_dataset(
+                            "y_test", (n_test_g,) + y.shape[1:], dtype=y.cpu().numpy().dtype
+                        )
                     if save_physics_generator_params:
                         for k, p in params.items():
                             hf.create_dataset(
@@ -363,8 +413,13 @@ def generate_dataset(
                                 dtype=p.cpu().numpy().dtype,
                             )
 
-                hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
-                hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
+                if isinstance(y, TensorList):
+                    for i in range(len(y)):
+                        hf[f"y{i}_test"][index: index + bsize] = y[i].to("cpu").numpy()
+                else:
+                    hf["y_test"][index: index + bsize] = y.to("cpu").numpy()
+
+                hf["x_test"][index: index + bsize] = x.to("cpu").numpy()
 
                 if save_physics_generator_params:
                     for p in params.keys():
