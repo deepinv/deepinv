@@ -504,6 +504,18 @@ def test_MRI(mri, mri_img_size, device, rng):
         y1 = physics(x)
         assert torch.all((y1 == 0) == (mask == 0))
 
+        # Check rss works
+        xrss1 = physics.A_adjoint(y, rss=True)
+        assert (
+            xrss1.shape == x.shape[:-2] + x.shape[-2:]
+        )  # Shape of x is like (B, C, N, H, W) or (B, C, H, W)
+
+        # Check mag works
+        xrss2 = physics.A_adjoint(y, mag=True)
+        assert (
+            xrss2.shape == x.shape[:-2] + x.shape[-2:]
+        )  # Shape of xrss2 should be (B, 1, ...) while x is (B, 2, ...)
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_concatenation(name, device):

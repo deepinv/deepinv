@@ -36,19 +36,24 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
     Loads a saved subset of 2D slices from the full FastMRI slice dataset.
 
-    We provide a pregenerated saved subset for singlecoil FastMRI knees (total 973 images)
-    and RSS reconstructions of multicoil brains (total 455 images).
-    These originate from their respective original fully-sampled train volumes.
-    Each slice is the middle slice from one independent volume.
-    The images are of shape (2x320x320) and are normalised (0-1) and padded.
-    Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
-
-    These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
-    You can use this to generate a custom dataset and load using the ``file_name`` argument.
-
     .. important::
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
+
+
+    We provide a pregenerated saved subset for singlecoil FastMRI knees (total 973 images)
+    and RSS reconstructions of multicoil brains (total 455 images).
+    These originate from their respective fully-sampled train volumes converted to images via root-sum-of-square (RSS).
+    Each slice is the middle slice from one independent volume.
+    The images are of shape (2x320x320) and are normalised per-sample (0-1) and padded.
+    Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
+
+    .. note ::
+
+        Since images are obtained from RSS, the imaginary part of each sample it 0.
+
+    These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
+    You can use this to generate a custom dataset and load using the ``file_name`` argument.
 
     :param str, Path root_dir: dataset root directory
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.

@@ -84,16 +84,26 @@ class MRIMixin:
 
     @staticmethod
     def rss(x: Tensor, multicoil: bool = True) -> Tensor:
-        """Perform root-sum-square reconstruction on multicoil data
+        """Perform root-sum-square reconstruction on multicoil data, defined as
+
+        .. math::
+
+                \operatorname{RSS}(x) = \sqrt{\sum_{n=1}^N |x_n|^2}
+
+        where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
+        and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
 
         :param Tensor x: input image of shape (B,2,...) where 2 represents
-            real and imaginary channels, and N is coil dimension.
+            real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
             and reduce over coil dimension N too.
         """
         assert (
             x.shape[1] == 2 and not x.is_complex()
         ), "x should be of shape (B,2,...) and not of complex dtype."
+        assert (len(x.shape) == 4 and not multicoil) or (
+            len(x.shape) == 5 and multicoil
+        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
         ss = x.pow(2).sum(dim=1, keepdim=True)
         return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
 

@@ -74,7 +74,7 @@ dinv.utils.plot({"knee": knee_dataset[0], "brain": brain_dataset[0]})
 
 
 # %%
-# Define single-coil MRI physics. We can define a constant Cartesian 4x
+# Let's start with single-coil MRI. We can define a constant Cartesian 4x
 # undersampling mask by sampling once from a physics generator. The mask,
 # data and measurements will all be of shape ``(B, C, H, W)`` where
 # ``C=2`` is the real and imaginary parts.
@@ -98,7 +98,7 @@ print("Shapes:", x.shape, physics.mask.shape)
 
 
 # %%
-# Generate an accelerated single-coil MRI measurement dataset. Use knees
+# We can next generate an accelerated single-coil MRI measurement dataset. Let's use knees
 # for training and brains for testing.
 #
 # We can also use the physics generator to randomly sample a new mask per
@@ -136,7 +136,7 @@ dinv.utils.plot(
 
 
 # %%
-# You can also simulate multicoil MRI data. Either pass in ground-truth
+# We can also simulate multicoil MRI data. Either pass in ground-truth
 # coil maps, or pass an integer to simulate simple birdcage coil maps. The
 # measurements ``y`` are now of shape ``(B, C, N, H, W)``, where ``N`` is
 # the coil-dimension.
@@ -147,10 +147,11 @@ mc_physics = dinv.physics.MultiCoilMRI(img_size=img_size, coil_maps=3, device=de
 dinv.utils.plot(
     {
         "x": x,
+        "mask": mask,
         "coil_map_0": mc_physics.coil_maps.abs()[:, 0, ...],
         "coil_map_1": mc_physics.coil_maps.abs()[:, 1, ...],
         "coil_map_2": mc_physics.coil_maps.abs()[:, 2, ...],
-        "x RSS": mc_physics.A_adjoint_A(x, mask=mask, rss=True),
+        "RSS": mc_physics.A_adjoint_A(x, mask=mask, rss=True),
     }
 )
 
@@ -159,9 +160,9 @@ dinv.utils.plot(
 # 2. Train an accelerated MRI problem with neural networks
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Train a neural network to solve the inverse problem. We provide various
+# Next, we train a neural network to solve the MRI inverse problem. We provide various
 # models specifically used for MRI reconstruction. These are unrolled
-# networks which require a denoiser, such as UNet or DnCNN as a backbone:
+# networks which require a backbone denoiser, such as UNet or DnCNN:
 #
 
 denoiser = dinv.models.UNet(
@@ -179,9 +180,9 @@ denoiser = dinv.models.DnCNN(
 
 
 # %%
-# We provide some specific implementations, including
+# These backbones can be used within specific MRI models, such as
 # `VarNet <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`__/`E2E-VarNet <https://arxiv.org/abs/2004.06688>`__
-# and `MoDL <https://ieeexplore.ieee.org/document/8434321>`__:
+# and `MoDL <https://ieeexplore.ieee.org/document/8434321>`__, for which we provide implementations:
 #
 
 model = dinv.models.VarNet(denoiser, num_cascades=2, mode="varnet").to(device)
@@ -190,12 +191,11 @@ model = dinv.utils.demo.demo_mri_model(denoiser, num_iter=2, device=device).to(d
 
 
 # %%
-# Train a network with supervised or self-supervised (using Equivariant
+# Now that we have our architecture defined, we can train it with supervised or self-supervised (using Equivariant
 # Imaging) loss.
 #
-# For speed, we only use a very small 2-layer DnCNN inside a unrolled
-# network with 2 cascades, and train with 5 images for 1 epoch, but load a
-# pretrained model that has been trained with 10 images for 50 epochs:
+# For the sake of speed in this example, we only use a very small 2-layer DnCNN inside an unrolled
+# network with 2 cascades, and train with 5 images for 1 epoch.
 #
 
 loss = dinv.loss.SupLoss()
@@ -215,21 +215,24 @@ trainer = dinv.Trainer(
     save_path=None,
 )
 
+# %%
+# To improve results in the case of this very short training, we start training from a pretrained model state:
+
 url = dinv.models.utils.get_weights_url(
     model_name="demo", file_name="demo_tour_mri.pth"
 )
 ckpt = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name="demo_tour_mri.pth"
 )
-trainer.model.load_state_dict(ckpt["state_dict"])
-trainer.optimizer.load_state_dict(ckpt["optimizer"])
+trainer.model.load_state_dict(ckpt["state_dict"])  # load the state dict
+trainer.optimizer.load_state_dict(ckpt["optimizer"])  # load the optimizer state dict
 
-model = trainer.train()
+model = trainer.train()  # train the model
 trainer.plot_images = True
 
 
 # %%
-# Test the model: we improve the PSNR compared to the zero-filled
+# Now that our model is trained, we can test it. Notice that we improve the PSNR compared to the zero-filled
 # reconstruction, both on the train (knee) set and the test (brain) set:
 #
 
@@ -244,6 +247,7 @@ _ = trainer.test(
 # 3. Load raw FastMRI data
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
+# It is also possible to use the raw data directly.
 # The raw multi-coil FastMRI data is provided as pairs of ``(x, y)`` where
 # ``y`` are the fully-sampled k-space measurements of arbitrary size, and
 # ``x`` are the cropped root-sum-square (RSS) magnitude reconstructions.
@@ -267,10 +271,9 @@ print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 img_shape, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
 
-
 # %%
 # We can relate ``x`` and ``y`` using our
-# :class:`deepinv.physics.MultiCoilMRI` (note that since we aren�t
+# :class:`deepinv.physics.MultiCoilMRI` (note that since we are not
 # provided with the ground-truth coil-maps, we can only perform the
 # adjoint operator).
 #
@@ -291,8 +294,8 @@ assert torch.allclose(x, x_rss)
 # 4. Train using raw data
 # ~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We now use a mask generator to generate acceleration masks on-the-fly
-# (�online�) during training. We use the E2E-VarNet model designed for
+# We now use a mask generator to generate acceleration masks **on-the-fly**
+# (online) during training. We use the E2E-VarNet model designed for
 # multicoil MRI. We do not perform coil sensitivity map estimation and
 # simply assume they are flat as above. To do this yourself, pass a model
 # as the ``sensitivity_model`` parameter.
@@ -379,8 +382,10 @@ _ = trainer.train()
 # 5. Explore 3D MRI
 # ~~~~~~~~~~~~~~~~~
 #
-# We use a demo 3D brain volume of shape ``(181, 217, 181)`` and simulate
-# 3D single-coil or multi-coil Fourier measurements using
+# We can also simulate 3D MRI data.
+# Here, we use a demo 3D brain volume of shape ``(181, 217, 181)`` from the
+# `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_ dataset
+# and simulate 3D single-coil or multi-coil Fourier measurements using
 # :class:`deepinv.physics.MRI` or
 # :class:`deepinv.physics.MultiCoilMRI`.
 #
@@ -410,7 +415,7 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 # ~~~~~~~~~~~~~~~~~~~~~~
 #
 # Finally, we show how to use the dynamic MRI for image sequence data of
-# shape ``(B, C, T, H, W)`` where ``T`` is the time dimension. note that
+# shape ``(B, C, T, H, W)`` where ``T`` is the time dimension. Note that
 # this is also compatible with 3D MRI. We simulate an MRI image sequence
 # using the first 5 knees:
 #
