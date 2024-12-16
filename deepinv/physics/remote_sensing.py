@@ -80,6 +80,10 @@ class Pansharpen(StackedLinearPhysics):
         )
 
         super().__init__(physics_list=[downsampling, decolorize], **kwargs)
+        
+        # Set convenience attributes
+        self.downsampling = downsampling
+        self.decolorize = decolorize
 
     def A_dagger(self, y, **kwargs):
         r"""
