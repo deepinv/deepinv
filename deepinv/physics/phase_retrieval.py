@@ -419,9 +419,9 @@ class PtychographyLinearOperator(LinearPhysics):
                 x += g(y[:, i, :, :].unsqueeze(1), self.shifts[i, 0], self.shifts[i, 1])
         return x
 
-    def construct_probe(self, type="disk", probe_radius=10):
+    def build_probe(self, type="disk", probe_radius=10):
         """
-        Constructs the probe based on the specified type and radius.
+        Builds the probe based on the specified type and radius.
 
         :param str type: Type of probe shape, e.g., "disk".
         :param int probe_radius: Radius of the probe shape.
