@@ -10,7 +10,7 @@ import deepinv as dinv
 # %%
 # Simulate pansharpening measurements (4-channel)
 physics = dinv.physics.Pansharpen2((4, 256, 256), factor=4, srf="flat")
-dataset = dinv.datasets.NBUDataset("nbu", download=False, return_pan=False)
+dataset = dinv.datasets.NBUDataset(".", download=False, return_pan=False)
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 y = physics(x)
 
@@ -52,7 +52,7 @@ m = metric(x=x, x_net=x_net)
 # %%
 # Perform pansharpening using raw measurements y ("unsupervised")
 physics = dinv.physics.Pansharpen((4, 1024, 1024), factor=4)
-dataset = dinv.datasets.NBUDataset("nbu", return_pan=True)
+dataset = dinv.datasets.NBUDataset(".", return_pan=True)
 y = dataset[0].unsqueeze(0)  # MS (1,4,256,256), PAN (1,1,1024,1024)
 
 dinv.utils.plot(
