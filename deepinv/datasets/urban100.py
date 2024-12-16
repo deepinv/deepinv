@@ -118,7 +118,7 @@ class Urban100HR(torch.utils.data.Dataset):
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
 
-        `self.root` should have the following structure: ::
+        ``self.root`` should have the following structure: ::
 
             self.root --- Urban100_HR --- img_001.png
                        |               |
