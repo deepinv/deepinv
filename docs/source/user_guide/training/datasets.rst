@@ -149,6 +149,6 @@ Multiple popular easy-to-download datasets are available:
      - A blind-deblurring dataset consists of blurry shots and sharp frames, each blurry shot being associated with about 200 sharp frames.
 
    * - :class:`deepinv.datasets.NBUDataset`
-     - TODO images
-     - Cx256x256 multispectral (C=4 or 8)
+     - 510 images across 6 satellites
+     - Cx256x256 multispectral (C=4 or 8) and 1x1024x1024 panchromatic
      - Multispectral satellite images of urban scenes from 6 different satellites.
