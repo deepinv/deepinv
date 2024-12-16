@@ -1,9 +1,10 @@
-import torch
+from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
 from deepinv.optim.utils import conjugate_gradient
+from deepinv.utils.tensorlist import TensorList
 
 
 class Pansharpen(StackedLinearPhysics):
@@ -19,14 +20,15 @@ class Pansharpen(StackedLinearPhysics):
 
     It is possible to assign a different noise model to the RGB and grayscale images.
 
-
     :param tuple[int] img_size: size of the high-resolution multispectral input image, must be of shape (C, H, W).
     :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
-    :param int factor: downsampling factor.
+    :param int factor: downsampling factor/ratio.
+    :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
+        See :class:`deepinv.physics.Decolorize` for parameter options.
     :param torch.nn.Module noise_color: noise model for the RGB image.
     :param torch.nn.Module noise_gray: noise model for the grayscale image.
-
+    :param torch.device, str device: torch device.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
@@ -85,7 +87,7 @@ class Pansharpen(StackedLinearPhysics):
         self.downsampling = downsampling
         self.decolorize = decolorize
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: TensorList, **kwargs) -> Tensor:
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
         `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
@@ -103,13 +105,14 @@ class Pansharpen(StackedLinearPhysics):
         x = self.A_adjoint(x)
         return x
 
-    def A_classical(self, y, **kwargs):
+    def A_classical(self, y: TensorList, **kwargs) -> Tensor:
         """
-        TODO: explain
+        Compute the classical Brovey solution.
 
-        From https://github.com/AlexeyTrekin/pansharpen/blob/master/pysharpen/methods/sharpening/brovey.py
-        ESRI Brovey from https://pro.arcgis.com/en/pro-app/latest/help/analysis/raster-functions/fundamentals-of-pan-sharpening-pro.htm
-        Another unused implementation https://github.com/mapbox/rio-pansharpen/blob/master/rio_pansharpen/methods.py
+        See `review paper <https://ieeexplore.ieee.org/document/6998089>`_ for details.
+
+        :param TensorList y: input tensorlist of (MS, PAN)
+        :return: Tensor of image pan-sharpening using the Brovey method.
         """
         hrms = self.downsampling.A_adjoint(y[0], **kwargs)
         hrms *= y[1] / hrms.mean(axis=1)

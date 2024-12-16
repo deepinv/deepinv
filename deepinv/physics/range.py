@@ -5,15 +5,20 @@ from deepinv.physics.forward import DecomposablePhysics
 
 class Decolorize(DecomposablePhysics):
     r"""
-    Converts RGB images to grayscale.
+    Converts n-channel images to grayscale.
 
-    Follows the `rec601 <https://en.wikipedia.org/wiki/Rec._601>`_ convention.
+    The image channels are multiplied by factors determined by the spectral response function (SRF), then summed to produce a grayscale image.
 
-    Images must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
-    The measurements are grayscale images.
+    We provide various ways of defining the SRF including the `rec601 <https://en.wikipedia.org/wiki/Rec._601>`_ convention for RGB images.
+
+    In the adjoint operation, we multiply the grayscale image by the coefficients in the SRF.
+
+    Images must be tensors with C channels, i.e. ``(B,C,H,W)``. The measurements are grayscale images.
 
     :param int channels: number of channels in the input image.
-    :param str srf: spectral response function. Default: ``rec601``.
+    :param str, tuple, list srf: spectral response function. Either pass in user-defined SRF (must be of length channels),
+        or ``rec601`` (default) following the `rec601 <https://en.wikipedia.org/wiki/Rec._601>`_ convention,
+        or ``flat`` for a flat SRF (i.e. averages channels), or ``random`` for random SRF (e.g. to initialise joint learning).
     :param str, torch.device device: device on which to perform the computations. Default: ``cpu``.
 
     |sep|
@@ -37,8 +42,9 @@ class Decolorize(DecomposablePhysics):
             self.srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
         elif srf in ("average", "flat"):
             self.srf = [1 / channels] * channels
-        elif srf == "learn":
-            raise NotImplementedError()  # TODO
+        elif srf == "random":
+            self.srf = torch.rand(channels, device=device)
+            self.srf /= self.srf.sum()
         elif isinstance(srf, (tuple, list)):
             self.srf = srf
         else:
