@@ -1,4 +1,7 @@
+from typing import Union
+
 import torch
+from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import conjugate_gradient
@@ -788,20 +791,19 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     return adjoint
 
 
-def stack(physics1, physics2):
+def stack(*physics: Union[Physics, LinearPhysics]):
     r"""
-    Stacks two forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
+    Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
 
     The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
     each entry corresponds to the measurements of the corresponding operator.
 
-    :param deepinv.physics.Physics physics1: Physics operator :math:`A_1`
-    :param deepinv.physics.Physics physics2: Physics operator :math:`A_2`
+    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be stacked.
     """
-    if isinstance(physics1, LinearPhysics) and isinstance(physics2, LinearPhysics):
-        return StackedLinearPhysics([physics1, physics2])
+    if all(isinstance(phys, LinearPhysics) for phys in physics):
+        return StackedLinearPhysics(physics)
     else:
-        return StackedPhysics([physics1, physics2])
+        return StackedPhysics(physics)
 
 
 class StackedPhysics(Physics):
@@ -826,7 +828,7 @@ class StackedPhysics(Physics):
                 list.append(p)
         self.physics_list = list
 
-    def A(self, x, **kwargs):
+    def A(self, x: Tensor, **kwargs) -> TensorList:
         r"""
         Computes forward of stacked operator
 
@@ -856,7 +858,7 @@ class StackedPhysics(Physics):
         """
         return self.physics_list[item]
 
-    def sensor(self, y, **kwargs):
+    def sensor(self, y: TensorList, **kwargs) -> TensorList:
         r"""
         Applies sensor non-linearities to the measurements per physics operator
         in the stacked operator.
@@ -873,7 +875,7 @@ class StackedPhysics(Physics):
         """
         return len(self.physics_list)
 
-    def noise(self, y, **kwargs):
+    def noise(self, y: TensorList, **kwargs) -> TensorList:
         r"""
         Applies noise to the measurements per physics operator in the stacked operator.
 
@@ -903,7 +905,7 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
     def __init__(self, physics_list, **kwargs):
         super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: TensorList, **kwargs) -> Tensor:
         r"""
         Computes the adjoint of the stacked operator, defined as
 
