@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from kornia.filters.kernels import get_box_kernel2d
 
 from deepinv.utils.tensorlist import TensorList
 from deepinv.physics.forward import Physics
@@ -60,16 +59,17 @@ class ResNet(nn.Module):
             x = nn.ReLU()(x) if not self.relu_before_addition else x
         return x
 
-
 class PanNet(nn.Module):
     """PanNet architecture for pan-sharpening.
 
-    PanNet neural network from Yang et al. PanNet: A Deep Network Architecture for Pan-Sharpening, ICCV 2017.
-    In forward pass, input is a concatenated volume of zero-filled-upsampled LRMS + PAN with shape (B,C+1,H,W)
-    and output is HRMS + PAN where PAN is unchanged.
+    PanNet neural network from Yang et al. `PanNet: A Deep Network Architecture for Pan-Sharpening <https://ieeexplore.ieee.org/document/8237455/>`_, ICCV 2017.
+
+    Takes input measurements as a :class:`deepinv.utils.TensorList` with elements (MS, PAN),
+    where MS is the low-resolution multispectral image of shape (B, C, H, W) and PAN is the
+    high-resolution panchromatic image of shape (B, 1, H*r, W*r) where r is the pan-sharpening factor.
 
     :param nn.Module backbone_net: Backbone neural network, e.g. ResNet. If ``None``, defaults to a simple ResNet.
-    :param tuple[int] hrms_shape: shape of input images (C,H,W), defaults to (4,900,900)
+    :param tuple[int] hrms_shape: shape of high-resolution multispectral images (C,H,W), defaults to (4,900,900)
     :param int scale_factor: pansharpening downsampling ratio HR/LR, defaults to 4
     :param int highpass_kernel_size: square kernel size for extracting high-frequency features, defaults to 5
     :param str device: torch device, defaults to "cpu"
@@ -91,7 +91,7 @@ class PanNet(nn.Module):
         self.upsampler = self.create_sampler("up", self.hrms_shape)
 
         self.boxblur = Blur(
-            filter=get_box_kernel2d(highpass_kernel_size, device=device).unsqueeze(0),
+            filter=torch.tensor(1. / highpass_kernel_size ** 2, device=device).expand(1, 1, highpass_kernel_size, highpass_kernel_size),
             padding="reflect",
             device=device,
         ).A
@@ -156,76 +156,3 @@ class PanNet(nn.Module):
         output = self.net(ms) + self.upsampler(lr)
 
         return output
-
-
-class PanNetReducedRes(PanNet):
-    """PanNet but at reduced resolution (i.e. Wald's protocol).
-    This allows supervised training to take place using LRMS as ground truth.
-    """
-
-    def __init__(
-        self,
-        *args,
-        hrms_shape=(4, 900, 900),
-        scale_factor=4,
-        full_res=False,
-        noise_gain=0.0,
-        **kwargs,
-    ):
-        self.hrms_shape = hrms_shape
-        self.scale_factor = scale_factor
-        self.full_res = full_res
-
-        if not self.full_res:
-            lrms_shape = (
-                self.hrms_shape[0],
-                self.hrms_shape[1] // self.scale_factor,
-                self.hrms_shape[2] // self.scale_factor,
-            )
-            pan_shape = (1, self.hrms_shape[1], self.hrms_shape[2])
-
-            super().__init__(*args, hrms_shape=lrms_shape, **kwargs)
-
-            print(
-                f"HRMS shape {self.hrms_shape}, LRMS shape {lrms_shape}, PAN shape {pan_shape}"
-            )
-
-            self.lrms_downsampler = self.create_sampler(
-                "down", lrms_shape, noise_gain=noise_gain
-            )
-            self.pan_downsampler = self.create_sampler(
-                "down", pan_shape, noise_gain=noise_gain
-            )
-        else:
-            super().__init__(*args, hrms_shape=hrms_shape, **kwargs)
-
-    def forward(self, y, *args, **kwargs):
-        if not self.full_res:
-            lr, pan = self.lrms_from_volume(y), self.pan_from_volume(y)
-
-            # In noisy training, this adds more noise, like Noise2Noisier model
-            lr_down = self.lrms_downsampler(lr)
-            pan_down = self.pan_downsampler(pan)
-
-            y_rr = self.lrms_pan_to_volume(
-                lr_down, pan_down, scale_factor=self.scale_factor
-            )
-            # print(f"lr {lr.shape} pan {pan.shape} lr_down {lr_down.shape} pan_down {pan_down.shape} y_rr {y_rr.shape}")
-            return super().forward(y_rr, *args, **kwargs)
-        else:
-            return super().forward(y, *args, **kwargs)
-
-
-class PanNetEstimatePan(PanNet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.n_channels = self.hrms_shape[0]
-        self.srf_coeffs = nn.Parameter(torch.randn(self.n_channels))
-
-    def forward(self, y, *args, **kwargs):
-        x_net = super().forward(y, *args, **kwargs)
-        hrms = self.hrms_from_volume(x_net)
-
-        out_pan = self.srf_coeffs.view(1, 4, 1, 1).mul(hrms).sum(dim=1, keepdim=True)
-
-        return self.hrms_pan_to_volume(hrms, out_pan)
