@@ -9,7 +9,7 @@ from scipy.io import loadmat
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
 
-from deepinv.datasets.utils import download_archive, extract_zipfile
+from deepinv.datasets.utils import download_archive, extract_zipfile, calculate_md5_for_folder
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
 
@@ -25,7 +25,7 @@ class NBUDataset(Dataset):
 
     This dataset was compiled in `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_
     and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
-    For our processing, we take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
+    We perform no other processing other than to take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
 
     - "gaofen-1": 5 images
     - "ikonos": 60 images
@@ -38,7 +38,21 @@ class NBUDataset(Dataset):
 
         Returns images as torch tensors normalised to 0-1 over the whole dataset.
 
-    TODO checksums
+    |sep|
+
+    :Examples:
+
+        Instantiate dataset and download raw data from the Internet ::
+
+            from deepinv.datasets import NBUDataset
+            dataset = NBUDataset(
+                root_dir=".",            # root directory
+                satellite="worldview-2", # choose satellite
+                download=True,           # download dataset
+                return_pan=True          # return panchromatic image too as pair (MS, PAN)
+            )
+            print(dataset.check_dataset_exists())
+            print(len(dataset))
 
     :param str, Path root_dir: NBU dataset root directory
     :param str satellite: satellite name, choose from the options above, defaults to "gaofen-1".
@@ -47,6 +61,15 @@ class NBUDataset(Dataset):
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
     """
+
+    satellites = {
+        'ikonos': 'cf6fdb64ca5fbbf7050b8e27b2f9399d',
+        'gaofen-1': 'ea1525b7bd5342f0177d898e3c44bb51',
+        'quickbird': '47163aec0a0be2c98ee267166d8aa5d3',
+        'worldview-2': '11310cee5a8dd5ee0dc3b79b6b3c3203',
+        'worldview-3': '85e5f7027fb7bde8592284b060fe145e',
+        'worldview-4': '3a3ade874e0095978648132501edfc01'
+    }
 
     def __init__(
         self,
@@ -57,19 +80,12 @@ class NBUDataset(Dataset):
         transform_pan: Callable = None,
         download: bool = False,
     ):
-        if satellite not in (
-            "ikonos",
-            "gaofen-1",
-            "quickbird",
-            "worldview-2",
-            "worldview-3",
-            "worldview-4",
-        ):
+        if satellite not in self.satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
 
-        self.data_dir = Path(root_dir) / satellite
+        self.data_dir = Path(root_dir) / "nbu" / satellite
         self.normalise = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)
@@ -79,11 +95,11 @@ class NBUDataset(Dataset):
 
         if not self.check_dataset_exists():
             if download:
-                download_archive(
-                    get_image_url(f"nbu_{satellite}.zip"), str(self.data_dir) + ".zip"
-                )
-                extract_zipfile(str(self.data_dir) + ".zip", root_dir)
-                os.remove(str(self.data_dir) + ".zip")
+                dl_file = str(self.data_dir) + ".zip"
+                print(f"Downloading {dl_file}")
+                download_archive(get_image_url(f"nbu_{satellite}.zip"), dl_file)
+                extract_zipfile(dl_file, self.data_dir.parent)
+                os.remove(dl_file)
 
                 if self.check_dataset_exists():
                     print("Dataset has been successfully downloaded.")
@@ -102,12 +118,28 @@ class NBUDataset(Dataset):
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
     def check_dataset_exists(self):
-        return os.path.isdir(self.data_dir) and len(list(self.data_dir.glob("*"))) > 0
+        """Verify that the image folders exist and contain all the images.
+
+        ``root_dir`` should have the following structure: ::
+
+            root_dir --- nbu --- <satellite> --- 1.mat
+                      |       |               |
+                      |       |               -- x.mat
+                      |       -- <satellite>     
+                      -- xxx
+        """
+        return os.path.isdir(self.data_dir) and len(list(self.data_dir.glob("MS_256/*.mat"))) > 0 \
+            and calculate_md5_for_folder(str(self.data_dir / "MS_256")) == self.satellites[self.data_dir.stem]
 
     def __len__(self):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
+        """Load satellite image and convert to tensor.
+
+        :param int idx: image index
+        :return: torch.Tensor: normalised image to the range [0,1]
+        """
         paths = self.image_paths[idx]
         ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
 
