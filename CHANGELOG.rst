@@ -10,8 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
-- Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize, ... TODO (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
-
+- Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize, stacked physics, ... TODO (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 Fixed
 ^^^^^
