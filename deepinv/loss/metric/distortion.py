@@ -501,8 +501,5 @@ class ERGAS(Metric):
 
     def __init__(self, factor: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._metric = partial(
-            error_relative_global_dimensionless_synthesis,
-            ratio=factor,
-            reduction="none",
-        )
+        self._metric = self._metric = lambda x_hat, x, *args, **kwargs: error_relative_global_dimensionless_synthesis(x_hat, x, ratio=factor, reduction="none")
+
