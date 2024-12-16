@@ -9,7 +9,6 @@ Elucidating the Design Space of Diffusion-Based Generative Models: https://arxiv
 import numpy as np
 import torch
 from torch.nn.functional import silu
-from typing import List
 from torch import Tensor
 
 # ----------------------------------------------------------------------------

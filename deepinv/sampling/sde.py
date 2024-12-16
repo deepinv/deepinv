@@ -198,8 +198,13 @@ class DiffusionSDE(nn.Module):
         self.device = device
         self.dtype = dtype
         self.use_backward_ode = use_backward_ode
-        forward_drift = lambda x, t, *args, **kwargs: drift(x, t, *args, **kwargs)
-        forward_diff = lambda t: diffusion(t)
+
+        def forward_drift(x, t, *args, **kwargs):
+            return drift(x, t, *args, **kwargs)
+
+        def forward_diff(t):
+            return diffusion(t)
+
         self.forward_sde = BaseSDE(
             drift=forward_drift,
             diffusion=forward_diff,
@@ -209,15 +214,25 @@ class DiffusionSDE(nn.Module):
         )
 
         if self.use_backward_ode:
-            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
-                diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
-            backward_diff = lambda t: 0.0
+
+            def backward_drift(x, t, *args, **kwargs):
+                return -drift(x, t) + 0.5 * diffusion(t) ** 2 * self.score(
+                    x, t, *args, **kwargs
+                )
+
+            def backward_diff(t):
+                return 0.0
+
         else:
-            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + (
-                diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
-            backward_diff = lambda t: diffusion(t)
+
+            def backward_drift(x, t, *args, **kwargs):
+                return -drift(x, t) + diffusion(t) ** 2 * self.score(
+                    x, t, *args, **kwargs
+                )
+
+            def backward_diff(t):
+                return diffusion(t)
+
         self.backward_sde = BaseSDE(
             drift=backward_drift,
             diffusion=backward_diff,
@@ -250,7 +265,7 @@ class DiffusionSDE(nn.Module):
         :rtype: SDEOutput.
 
         """
-        self.rng_manual_seed(kwargs.pop("seed"))
+        self.rng_manual_seed(kwargs.pop("seed", None))
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.prior_sample(x_init)
         return self.backward_sde.sample(
@@ -372,10 +387,15 @@ class VESDE(DiffusionSDE):
     ):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        forward_drift = lambda x, t, *args, **kwargs: 0.0
-        forward_diff = lambda t: self.sigma_t(t) * np.sqrt(
-            2 * (np.log(sigma_max) - np.log(sigma_min))
-        )
+
+        def forward_drift(x, t, *args, **kwargs):
+            return 0.0
+
+        def forward_diff(t):
+            return self.sigma_t(t) * np.sqrt(
+                2 * (np.log(sigma_max) - np.log(sigma_min))
+            )
+
         super().__init__(
             drift=forward_drift,
             diffusion=forward_diff,

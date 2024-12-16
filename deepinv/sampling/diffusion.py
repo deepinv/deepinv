@@ -1,4 +1,3 @@
-import torch.nn as nn
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -349,8 +348,9 @@ class DiffPIR(Reconstructor):
                 (self.sqrt_1m_alphas_cumprod[i] / self.sqrt_alphas_cumprod[i])
             )
             rhos.append(lambda_ * (sigma**2) / (sigma_ks[i] ** 2))
-        rhos, sigmas = torch.tensor(rhos).to(self.device), torch.tensor(sigmas).to(
-            self.device
+        rhos, sigmas = (
+            torch.tensor(rhos).to(self.device),
+            torch.tensor(sigmas).to(self.device),
         )
 
         seq = np.sqrt(np.linspace(0, self.num_train_timesteps**2, self.max_iter))

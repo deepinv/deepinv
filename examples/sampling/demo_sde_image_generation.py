@@ -110,7 +110,7 @@ dinv.utils.plot(
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
     time_dim=0,
-    titles=[f"VE-SDE Trajectory"],
+    titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
 )
 
@@ -161,8 +161,8 @@ sample_seed_111 = solution.sample
 dinv.utils.plot(
     [sample_seed_1, sample_seed_111],
     titles=[
-        f"seed 1",
-        f"seed 111",
+        "seed 1",
+        "seed 111",
     ],
 )
 

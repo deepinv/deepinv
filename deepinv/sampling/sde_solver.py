@@ -4,7 +4,6 @@ from torch import Tensor
 import warnings
 from typing import Optional, Union, Any
 from numpy import ndarray
-import numpy as np
 
 
 class SDEOutput(dict):
