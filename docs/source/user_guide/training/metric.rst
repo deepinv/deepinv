@@ -95,6 +95,13 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.LPIPS`
      - Uses a pretrained network to calculate the perceptual similarity between two images.
 
+   * - :class:`deepinv.loss.metric.SpectralAngleMapper`
+     - Multispectral image metric that calculates spectral similarity between bands.
+
+   * - :class:`deepinv.loss.metric.ERGAS`
+     - "Error relative global dimensionless synthesis" multispectral image metric for pan-sharpening problems.
+
+
 
 .. _no-reference-metrics:
 
@@ -113,4 +120,4 @@ We implement no-reference perceptual metrics, they only require the reconstructe
      - Calculates deviation of image from statistical regularities of natural images.
 
    * - :class:`deepinv.loss.metric.QNR`
-     - :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
+     - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
