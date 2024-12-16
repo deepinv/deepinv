@@ -20,7 +20,7 @@ class Pansharpen(StackedLinearPhysics):
     It is possible to assign a different noise model to the RGB and grayscale images.
 
 
-    :param tuple[int] img_size: size of the input image, must be of shape (C, H, W).
+    :param tuple[int] img_size: size of the high-resolution multispectral input image, must be of shape (C, H, W).
     :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor.
