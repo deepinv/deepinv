@@ -9,13 +9,14 @@ The equivariant imaging loss is presented in `"Equivariant Imaging: Learning Bey
 
 """
 
-import deepinv as dinv
-from torch.utils.data import DataLoader
-import torch
 from pathlib import Path
+import torch
+from torch.utils.data import DataLoader
 from torchvision import transforms
-from deepinv.optim.prior import PnP
-from deepinv.utils.demo import load_dataset, load_degradation, demo_mri_model
+
+import deepinv as dinv
+from deepinv.datasets import SimpleFastMRISliceDataset
+from deepinv.utils.demo import get_data_home, load_degradation, demo_mri_model
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -44,13 +45,16 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #
 
 operation = "MRI"
-train_dataset_name = "fastmri_knee_singlecoil"
 img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
 
-train_dataset = load_dataset(train_dataset_name, transform, train=True)
-test_dataset = load_dataset(train_dataset_name, transform, train=False)
+train_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=True, download=True
+)
+test_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train=False
+)
 
 # %%
 # Generate a dataset of knee images and load it.
@@ -63,7 +67,7 @@ mask = load_degradation("mri_mask_128x128.npy")
 # defined physics
 physics = dinv.physics.MRI(mask=mask, device=device)
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
@@ -72,7 +76,7 @@ n_images_max = (
 # (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
-measurement_dir = DATA_DIR / train_dataset_name / operation
+measurement_dir = DATA_DIR / "fastmri" / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
