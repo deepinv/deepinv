@@ -38,6 +38,23 @@ sam = dinv.metric.distortion.SpectralAngleMapper()
 ergas = dinv.metric.distortion.ERGAS(factor=4)
 print(qnr(x_hat, x=None, y=y, physics=physics), sam(x_hat, x), ergas(x_hat, x))
 
+# Example training
+loss = dinv.loss.StackedPhysicsLoss([
+    dinv.loss.MCLoss(),
+    dinv.loss.SureGaussianLoss(0.05)
+])
+
+from torch.optim import Adam
+from torch.utils.data import DataLoader
+trainer = dinv.Trainer(
+    model=model,
+    physics=physics,
+    optimizer=Adam(model.parameters()),
+    losses=loss,
+    train_dataloader=DataLoader(dataset),
+    online_measurements=True,
+    
+)
 
 # %%
 # Perform pansharpening using raw measurements y ("unsupervised")
