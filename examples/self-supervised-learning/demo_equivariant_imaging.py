@@ -37,7 +37,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------
 # In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
-# as the base image dataset, consisting of knees of size 320x320.
+# as the base image dataset, consisting of 2 knee images of size 320x320.
 #
 # .. seealso::
 #
@@ -60,10 +60,10 @@ img_size = 128
 transform = transforms.Compose([transforms.Resize(img_size)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=True, download=True
+    get_data_home(), transform=transform, train_percent=0.5, train=True, download=True
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=False
+    get_data_home(), transform=transform, train_percent=0.5, train=False
 )
 
 # %%
