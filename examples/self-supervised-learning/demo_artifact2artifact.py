@@ -45,10 +45,24 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Load data
 # ---------
 #
-# We use a subset of single coil knee MRI data from the fastMRI challenge
-# and resize to 128x128. We use a train set of size 5 in this demo for
-# speed to fine-tune the original model. Set to 150 to train the original
-# model from scratch.
+
+# In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
+# as the base image dataset, consisting of knees of size 320x320, and then resized to 128x128 for speed.
+#
+# .. important::
+#
+#    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
+#
+# .. seealso::
+#
+#   Datasets :class:`deepinv.datasets.FastMRISliceDataset` :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+#       We provide convenient datasets to easily load both raw and reconstructed FastMRI images.
+#       You can download more data on the `FastMRI site <https://fastmri.med.nyu.edu/>`_.
+#
+#
+# We use a train set of size 1 and test set of size 1 in this demo for
+# speed to fine-tune the original model. To train the original
+# model from scratch, use a larger dataset of size ~150.
 #
 
 batch_size = 1
@@ -57,14 +71,11 @@ H = 128
 transform = transforms.Compose([transforms.Resize(H)])
 
 train_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=True, download=True
+    get_data_home(), transform=transform, train=True, download=True, train_percent=0.5
 )
 test_dataset = SimpleFastMRISliceDataset(
-    get_data_home(), transform=transform, train=False
+    get_data_home(), transform=transform, train=False, train_percent=0.5
 )
-
-train_dataset = Subset(train_dataset, torch.arange(5))
-test_dataset = Subset(test_dataset, torch.arange(30))
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

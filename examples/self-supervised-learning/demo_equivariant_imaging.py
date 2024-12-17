@@ -36,8 +36,18 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------
-# In this example, we use a subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
-# as the base image dataset. It consists of 973 knee images of size 320x320.
+# In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
+# as the base image dataset, consisting of knees of size 320x320.
+#
+# .. seealso::
+#
+#   Datasets :class:`deepinv.datasets.FastMRISliceDataset` :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+#       We provide convenient datasets to easily load both raw and reconstructed FastMRI images.
+#       You can download more data on the `FastMRI site <https://fastmri.med.nyu.edu/>`_.
+#
+# .. important::
+#
+#    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 #
 # .. note::
 #
@@ -73,7 +83,6 @@ num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
     900 if torch.cuda.is_available() else 5
 )  # number of images used for training
-# (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
 measurement_dir = DATA_DIR / "fastmri" / operation
@@ -118,7 +127,7 @@ model = demo_mri_model(device=device)
 # .. note::
 #
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
-#       for 150 epochs.
+#       for 150 epochs using a larger knee dataset of ~1000 images.
 
 epochs = 1  # choose training epochs
 learning_rate = 5e-4

@@ -41,7 +41,7 @@ rng = torch.Generator(device=device).manual_seed(0)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # You can get started with our simple
-# `FastMRI <https://fastmri.med.nyu.edu>`__ slice subsets which provide
+# `FastMRI <https://fastmri.med.nyu.edu>`__ mini slice subsets which provide
 # quick, easy-to-use, in-memory datasets which can be used for simulation
 # experiments.
 #
@@ -49,7 +49,13 @@ rng = torch.Generator(device=device).manual_seed(0)
 #
 #    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 #
-# Load knee and brain datasets (original data is 320x320 but we resize to
+# .. seealso::
+#
+#   Datasets :class:`deepinv.datasets.FastMRISliceDataset` :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+#       We provide convenient datasets to easily load both raw and reconstructed FastMRI images.
+#       You can download more data on the `FastMRI site <https://fastmri.med.nyu.edu/>`_.
+#
+# Load mini demo knee and brain datasets (original data is 320x320 but we resize to
 # 128 for speed):
 #
 
