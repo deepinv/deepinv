@@ -59,6 +59,7 @@ class ResNet(nn.Module):
             x = nn.ReLU()(x) if not self.relu_before_addition else x
         return x
 
+
 class PanNet(nn.Module):
     """PanNet architecture for pan-sharpening.
 
@@ -91,7 +92,9 @@ class PanNet(nn.Module):
         self.upsampler = self.create_sampler("up", self.hrms_shape)
 
         self.boxblur = Blur(
-            filter=torch.tensor(1. / highpass_kernel_size ** 2, device=device).expand(1, 1, highpass_kernel_size, highpass_kernel_size),
+            filter=torch.tensor(1.0 / highpass_kernel_size**2, device=device).expand(
+                1, 1, highpass_kernel_size, highpass_kernel_size
+            ),
             padding="reflect",
             device=device,
         ).A

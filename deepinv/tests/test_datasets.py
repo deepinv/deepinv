@@ -6,7 +6,16 @@ import pytest
 import torch
 from torch import Tensor
 
-from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, LsdirHR, FMD, Kohler, NBUDataset
+from deepinv.datasets import (
+    DIV2K,
+    Urban100HR,
+    Set14HR,
+    CBSD68,
+    LsdirHR,
+    FMD,
+    Kohler,
+    NBUDataset,
+)
 
 
 @pytest.fixture
@@ -221,6 +230,7 @@ def test_load_fmd_dataset(download_fmd):
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
 
+
 @pytest.fixture
 def download_nbu():
     """Downloads dataset for tests and removes it after test executions."""
@@ -242,4 +252,8 @@ def test_load_nbu_dataset(download_nbu):
     assert (
         len(dataset) == 5
     ), f"Dataset should have been of len 5, instead got {len(dataset)}."
-    assert isinstance(dataset[0], Tensor) and torch.all(dataset[0] <= 1) and torch.all(dataset[0] >= 0), "Dataset image should be Tensor between 0-1."
+    assert (
+        isinstance(dataset[0], Tensor)
+        and torch.all(dataset[0] <= 1)
+        and torch.all(dataset[0] >= 0)
+    ), "Dataset image should be Tensor between 0-1."

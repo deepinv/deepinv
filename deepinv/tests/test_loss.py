@@ -314,4 +314,5 @@ def test_loss_scheduler(scheduler_name):
         loss_total += l(None, None, None, None, None, None)
     assert loss_total > 20
 
+
 # TODO test stacked physics loss

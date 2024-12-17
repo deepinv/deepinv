@@ -597,14 +597,14 @@ def test_time_agnostic_net():
 
 
 def test_pannet():
-    hrms_shape = (8, 16, 16) # C,H,W
-    
+    hrms_shape = (8, 16, 16)  # C,H,W
+
     physics = dinv.physics.Pansharpen(hrms_shape, factor=4)
     model = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
-    
-    x = torch.rand((1,) + hrms_shape) # B,C,H,W
-    y = physics(x) # (MS, PAN)
-    
+
+    x = torch.rand((1,) + hrms_shape)  # B,C,H,W
+    y = physics(x)  # (MS, PAN)
+
     x_net = model(y, physics)
 
     assert x_net.shape == x.shape

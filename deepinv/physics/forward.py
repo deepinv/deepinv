@@ -817,12 +817,17 @@ class StackedPhysics(Physics):
 
     :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
     """
+
     def __init__(self, physics_list: list[Physics], **kwargs):
         super(StackedPhysics, self).__init__()
 
         self.physics_list = []
         for physics in physics_list:
-            self.physics_list.extend([physics] if not isinstance(physics, StackedPhysics) else physics.physics_list)
+            self.physics_list.extend(
+                [physics]
+                if not isinstance(physics, StackedPhysics)
+                else physics.physics_list
+            )
 
     def A(self, x: Tensor, **kwargs) -> TensorList:
         r"""
@@ -898,6 +903,7 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
     :param str reduction: how to combine tensorlist outputs of adjoint operators into single
         adjoint output. Choose between ``sum``, ``mean`` or ``None``.
     """
+
     def __init__(self, physics_list, reduction="sum", **kwargs):
         super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
         if reduction == "sum":
@@ -925,5 +931,3 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
                 for i, physics in enumerate(self.physics_list)
             ]
         )
-
-

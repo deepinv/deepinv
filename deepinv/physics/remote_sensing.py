@@ -86,7 +86,7 @@ class Pansharpen(StackedLinearPhysics):
         )
 
         super().__init__(physics_list=[downsampling, decolorize], **kwargs)
-        
+
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
@@ -103,7 +103,7 @@ class Pansharpen(StackedLinearPhysics):
 
         if self.use_brovey:
             if self.downsampling.filter is not None:
-                factor = self.downsampling.factor ** 2
+                factor = self.downsampling.factor**2
             else:
                 factor = 1
 
@@ -112,7 +112,9 @@ class Pansharpen(StackedLinearPhysics):
         else:
             A = lambda x: self.A_A_adjoint(x)
             b = y
-            x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1)
+            x = conjugate_gradient(
+                A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1
+            )
             x = self.A_adjoint(x)
 
         return x

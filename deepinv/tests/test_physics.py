@@ -335,7 +335,7 @@ def test_stacking(device):
     :return: asserts error is less than 1e-3
     """
     imsize = (2, 5, 5)
-    p1 = dinv.physics.Inpainting(mask=.5, tensor_size=imsize, device=device)
+    p1 = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
     p2 = dinv.physics.Physics(A=lambda x: x**2)
     p3 = p1.stack(p2)
 
@@ -360,6 +360,7 @@ def test_stacking(device):
     y = p5(x)
     assert len(p5) == 4
     assert len(y) == 4
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_adjointness(name, device):
@@ -940,4 +941,4 @@ def test_mri_fft():
     assert torch.all(xf1 == xf2)
 
 
-#TODO test stacked physics and stacked linear physics
+# TODO test stacked physics and stacked linear physics

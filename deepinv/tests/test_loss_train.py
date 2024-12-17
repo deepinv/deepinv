@@ -28,7 +28,7 @@ def test_generate_dataset(tmp_path, imsize, device, physics_name):
     if physics_name == "inpainting":
         physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
         y_shape = imsize
-    elif physics_name == "pansharpen": # proxy for StackedPhysics
+    elif physics_name == "pansharpen":  # proxy for StackedPhysics
         physics = Pansharpen(img_size=imsize, factor=2, device=device)
         C, H, W = imsize
         y_shape = [(C, ceil(H / 2), ceil(W / 2)), (1, H, W)]

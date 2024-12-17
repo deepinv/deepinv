@@ -347,20 +347,20 @@ def generate_dataset(
                     # Add new data to it
                     if isinstance(y, TensorList):
                         for i in range(len(y)):
-                            hf[f"y{i}_train"][index: index + bsize] = (
+                            hf[f"y{i}_train"][index : index + bsize] = (
                                 y[i][:bsize, :].to("cpu").numpy()
                             )
                     else:
-                        hf["y_train"][index: index + bsize] = (
+                        hf["y_train"][index : index + bsize] = (
                             y[:bsize, :].to("cpu").numpy()
                         )
                     if supervised:
-                        hf["x_train"][index: index + bsize] = (
+                        hf["x_train"][index : index + bsize] = (
                             x[:bsize, ...].to("cpu").numpy()
                         )
                     if save_physics_generator_params:
                         for p in params.keys():
-                            hf[f"{p}_train"][index: index + bsize] = (
+                            hf[f"{p}_train"][index : index + bsize] = (
                                 params[p][:bsize, ...].to("cpu").numpy()
                             )
                     index = index + bsize
@@ -402,7 +402,9 @@ def generate_dataset(
                             )
                     else:
                         hf.create_dataset(
-                            "y_test", (n_test_g,) + y.shape[1:], dtype=y.cpu().numpy().dtype
+                            "y_test",
+                            (n_test_g,) + y.shape[1:],
+                            dtype=y.cpu().numpy().dtype,
                         )
                     if save_physics_generator_params:
                         for k, p in params.items():
@@ -414,11 +416,11 @@ def generate_dataset(
 
                 if isinstance(y, TensorList):
                     for i in range(len(y)):
-                        hf[f"y{i}_test"][index: index + bsize] = y[i].to("cpu").numpy()
+                        hf[f"y{i}_test"][index : index + bsize] = y[i].to("cpu").numpy()
                 else:
-                    hf["y_test"][index: index + bsize] = y.to("cpu").numpy()
+                    hf["y_test"][index : index + bsize] = y.to("cpu").numpy()
 
-                hf["x_test"][index: index + bsize] = x.to("cpu").numpy()
+                hf["x_test"][index : index + bsize] = x.to("cpu").numpy()
 
                 if save_physics_generator_params:
                     for p in params.keys():
