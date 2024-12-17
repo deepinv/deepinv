@@ -306,7 +306,7 @@ def find_operator(name, device):
     elif name == "ptychography_linear":
         img_size = (1, 32, 32)
         dtype = torch.complex64
-        norm = 1.3917
+        norm = 1.29
         p = dinv.physics.PtychographyLinearOperator(
             img_size=img_size,
             probe=None,

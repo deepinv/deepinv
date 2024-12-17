@@ -69,14 +69,11 @@ physics = Ptychography(
 # ----------------------------
 # Calculates and displays the overlap of probe regions in the image, helping visualize the ptychography pattern.
 
-overlap_img = physics.B.get_overlap_img(physics.B.probe, physics.B.shifts).cpu()
-overlap2probe = physics.B.get_overlap_img(
-    physics.B.probe, physics.B.shifts[55:57]
-).cpu()
+overlap_img = physics.B.get_overlap_img(physics.B.shifts).cpu()
+overlap2probe = physics.B.get_overlap_img(physics.B.shifts[55:57]).cpu()
 plot(
     [overlap2probe.unsqueeze(0), overlap_img.unsqueeze(0)],
     titles=["Overlap 2 probe", "Overlap images"],
-    figsize=(10, 10),
 )
 
 
@@ -85,14 +82,12 @@ plot(
 # ----------------------------
 # Displays the ptychography probe and a sum of the generated measurement data.
 
-probe = physics.probe.cpu()
+probe = physics.probe[:, 1].cpu()
 y = physics(input)
 plot(
-    [torch.abs(probe.unsqueeze(0)), y[0].sum(dim=0).log().unsqueeze(0)],
+    [torch.abs(probe), y[0].sum(dim=0).log().unsqueeze(0)],
     titles=["Probe", "y"],
-    figsize=(20, 10),
-    fontsize=10,
-)  #
+)
 
 
 # %%
@@ -125,4 +120,4 @@ plt.show()
 
 x_est = x_est.detach().cpu()
 final_est = correct_global_phase(x_est, x)
-plot([x, torch.angle(final_est)], titles=["x", "Final estimate"], figsize=(20, 10))
+plot([x, torch.angle(final_est)], titles=["x", "Final estimate"])

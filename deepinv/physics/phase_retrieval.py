@@ -352,7 +352,7 @@ class PtychographyLinearOperator(LinearPhysics):
         probe=None,
         shifts=None,
         probe_type=None,
-        probe_radius=None,  # probe parameters
+        probe_radius=None,
         fov=None,
         n_img: int = 25,
         device="cpu",
@@ -369,9 +369,9 @@ class PtychographyLinearOperator(LinearPhysics):
             self.img_size = img_size
             self.probe_type = probe_type
             self.probe_radius = probe_radius
-            self.probe = self.build_probe(
-                type=probe_type, probe_radius=probe_radius
-            )
+            probe = self.build_probe(type=probe_type, probe_radius=probe_radius)
+
+        self.init_probe = probe.clone()
 
         if shifts is not None:
             self.shifts = shifts
@@ -381,9 +381,15 @@ class PtychographyLinearOperator(LinearPhysics):
             self.fov = fov
             self.shifts = self.generate_shifts(n_img=n_img, fov=fov)
 
-        self.probe = (
-            self.probe / self.get_overlap_img(self.probe, self.shifts).mean().sqrt()
-        )
+        self.probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
+
+        self.probe = torch.cat(
+            [
+                self.shift(self.probe, x_shift, y_shift)
+                for x_shift, y_shift in self.shifts
+            ],
+            dim=0,
+        ).unsqueeze(0)
 
     def A(self, x, **kwargs):
         """
@@ -394,12 +400,7 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Concatenated Fourier transformed tensors after applying shifted probes.
         """
         op_fft2 = partial(torch.fft.fft2, norm="ortho")
-        f = lambda x, x_shift, y_shift: op_fft2(
-            self.probe * self.shift(x, x_shift, y_shift)
-        )
-        return torch.cat(
-            [f(x, x_shift, y_shift) for (x_shift, y_shift) in self.shifts], dim=1
-        )
+        return op_fft2(self.probe * x)
 
     def A_adjoint(self, y, **kwargs):
         """
@@ -409,15 +410,7 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Reconstructed image tensor.
         """
         op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
-        g = lambda s, x_shift, y_shift: self.shift(
-            self.probe * op_ifft2(s), -x_shift, -y_shift
-        )
-        for i in range(len(self.shifts)):
-            if i == 0:
-                x = g(y[:, i, :, :].unsqueeze(1), self.shifts[i, 0], self.shifts[i, 1])
-            else:
-                x += g(y[:, i, :, :].unsqueeze(1), self.shifts[i, 0], self.shifts[i, 1])
-        return x
+        return (self.probe * op_ifft2(y)).sum(dim=1).unsqueeze(1)
 
     def build_probe(self, type="disk", probe_radius=10):
         """
@@ -490,17 +483,16 @@ class PtychographyLinearOperator(LinearPhysics):
                 x[..., :, 0:y_shift] = 0
         return x
 
-    def get_overlap_img(self, probe, shifts):
+    def get_overlap_img(self, shifts):
         """
         Computes the overlapping image intensities from probe shifts, used for normalization.
 
-        :param torch.Tensor probe: Probe tensor.
         :param array_like shifts: Array of probe shifts.
         :return: Tensor representing the overlap image.
         """
-        overlap_img = torch.zeros_like(probe, dtype=torch.float32)
+        overlap_img = torch.zeros_like(self.init_probe, dtype=torch.float32)
         for x_shift, y_shift in shifts:
-            overlap_img += torch.abs(self.shift(probe, x_shift, y_shift)) ** 2
+            overlap_img += torch.abs(self.shift(self.init_probe, x_shift, y_shift)) ** 2
         return overlap_img
 
 
