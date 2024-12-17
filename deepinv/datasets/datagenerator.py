@@ -202,11 +202,10 @@ def generate_dataset(
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    if not (type(physics) in [list, tuple]):
+    if not isinstance(physics, (list, tuple)):
         physics = [physics]
-        G = 1
-    else:
-        G = len(physics)
+
+    G = len(physics)
 
     save_physics_generator_params = (
         save_physics_generator_params and physics_generator is not None
@@ -248,7 +247,7 @@ def generate_dataset(
 
         hf.attrs["operator"] = physics[g].__class__.__name__
         if isinstance(physics[g], StackedPhysics):
-            hf.attrs["stacked"] = len(physics)
+            hf.attrs["stacked"] = len(physics[g])
 
         # get initial image for image size
         if train_dataset is not None:
