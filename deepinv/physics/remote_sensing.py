@@ -26,6 +26,8 @@ class Pansharpen(StackedLinearPhysics):
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
         See :class:`deepinv.physics.Decolorize` for parameter options.
+    :param bool use_brovey: if ``True``, use the `Brovey method <https://ieeexplore.ieee.org/document/6998089>`_
+        to compute the pansharpening, otherwise use the conjugate gradient method.
     :param torch.nn.Module noise_color: noise model for the RGB image.
     :param torch.nn.Module noise_gray: noise model for the grayscale image.
     :param torch.device, str device: torch device.
@@ -60,6 +62,7 @@ class Pansharpen(StackedLinearPhysics):
         srf=None,
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
+        use_brovey=True,
         device="cpu",
         padding="circular",
         **kwargs,
@@ -68,6 +71,7 @@ class Pansharpen(StackedLinearPhysics):
 
         noise_color = noise_color if noise_color is not None else lambda x: x
         noise_gray = noise_gray if noise_gray is not None else lambda x: x
+        self.use_brovey = use_brovey
 
         downsampling = Downsampling(
             img_size=img_size,
@@ -88,35 +92,30 @@ class Pansharpen(StackedLinearPhysics):
         self.decolorize = decolorize
 
     def A_dagger(self, y: TensorList, **kwargs) -> Tensor:
-        r"""
-        Computes the solution in :math:`x` to :math:`y = Ax` using the
-        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
-        see :meth:`deepinv.optim.utils.conjugate_gradient`.
-
-        :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :return: (torch.Tensor) The reconstructed image :math:`x`.
-
         """
-
-        A = lambda x: self.A_A_adjoint(x)
-        b = y
-        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1)
-
-        x = self.A_adjoint(x)
-        return x
-
-    def A_classical(self, y: TensorList, **kwargs) -> Tensor:
-        """
-        Compute the classical Brovey solution.
+        If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
 
         See `review paper <https://ieeexplore.ieee.org/document/6998089>`_ for details.
 
         :param TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
         """
-        hrms = self.downsampling.A_adjoint(y[0], **kwargs)
-        hrms *= y[1] / hrms.mean(axis=1)
-        return hrms
+
+        if self.use_brovey:
+            if self.downsampling.filter is not None:
+                factor = self.downsampling.factor ** 2
+            else:
+                factor = 1
+
+            x = self.downsampling.A_adjoint(y[0], **kwargs) * factor
+            x *= y[1] / x.mean(1, keepdim=True)
+        else:
+            A = lambda x: self.A_A_adjoint(x)
+            b = y
+            x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1)
+            x = self.A_adjoint(x)
+
+        return x
 
 
 # test code
