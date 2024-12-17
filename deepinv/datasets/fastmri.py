@@ -50,7 +50,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
     .. note ::
 
-        Since images are obtained from RSS, the imaginary part of each sample it 0.
+        Since images are obtained from RSS, the imaginary part of each sample is 0.
 
     These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
     You can use this to generate a custom dataset and load using the ``file_name`` argument.
