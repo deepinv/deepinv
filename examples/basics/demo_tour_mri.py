@@ -205,9 +205,7 @@ trainer = dinv.Trainer(
     model=model,
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters()),
-    train_dataloader=(
-        train_dataloader := torch.utils.data.DataLoader(train_dataset)
-    ),
+    train_dataloader=(train_dataloader := torch.utils.data.DataLoader(train_dataset)),
     epochs=1,
     show_progress_bar=False,
     save_path=None,
@@ -432,4 +430,4 @@ physics = dinv.physics.DynamicMRI(mask=mask, img_size=img_size, device=device)
 
 y = physics(x)
 
-print(x.shape, physics(x).shape) # B,C,T,H,W
+print(x.shape, physics(x).shape)  # B,C,T,H,W

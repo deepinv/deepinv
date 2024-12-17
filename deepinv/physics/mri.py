@@ -113,12 +113,12 @@ class MRIMixin:
 
         if odd_h:
             crop_size = (crop_size[0] + 1, crop_size[1])
-        
+
         cropped = CenterCrop(crop_size)(x)
 
         if odd_h:
             cropped = cropped[..., :-1, :]
-        
+
         return cropped if crop else x
 
     @staticmethod

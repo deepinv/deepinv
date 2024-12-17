@@ -323,5 +323,5 @@ def test_FastMRISliceDataset(download_fastmri):
 
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
-    assert len(subset) == 16 # 16 slices
+    assert len(subset) == 16  # 16 slices
     assert x.shape == (2, *rss_shape)

@@ -84,7 +84,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         file_name: Union[str, Path] = None,
         train: bool = True,
         sample_index: int = None,
-        train_percent: float = 1.,
+        train_percent: float = 1.0,
         transform: Optional[Callable] = None,
         download: bool = False,
     ):
