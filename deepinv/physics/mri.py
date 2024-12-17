@@ -72,6 +72,33 @@ class MRIMixin:
         x = torch.fft.fftn(x, dim=dim, norm=norm)
         return torch.fft.fftshift(x, dim=dim)
 
+
+    def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
+        """Convenience method that wraps fft.
+
+        :param Tensor x: input image of shape (B,2,...) of real dtype
+        :param bool three_d: whether MRI data is 3D or not, defaults to False
+        :return: Tensor: output measurements of shape (B,2,...) of real dtype
+        """
+        return self.from_torch_complex(
+            self.fft(
+                self.to_torch_complex(x), dim=(-3, -2, -1) if three_d else (-2, -1)
+            )
+        )
+
+    def kspace_to_im(self, y: Tensor, three_d: bool = False) -> Tensor:
+        """Convenience method that wraps inverse fft.
+
+        :param Tensor y: input measurements of shape (B,2,...) of real dtype
+        :param bool three_d: whether MRI data is 3D or not, defaults to False
+        :return: Tensor: output image of shape (B,2,...) of real dtype
+        """
+        return self.from_torch_complex(
+            self.ifft(
+                self.to_torch_complex(y), dim=(-3, -2, -1) if three_d else (-2, -1)
+            )
+        )
+
     def crop(self, x: Tensor, crop: bool = True) -> Tensor:
         """Center crop image according to ``img_size``.
 
@@ -199,18 +226,10 @@ class MRI(MRIMixin, DecomposablePhysics):
         self.update_parameters(mask=mask.to(self.device))
 
     def V_adjoint(self, x: Tensor) -> Tensor:
-        return self.from_torch_complex(
-            self.fft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
-            )
-        )
+        return self.im_to_kspace(x, three_d=self.three_d)
 
     def V(self, x: Tensor) -> Tensor:
-        return self.from_torch_complex(
-            self.ifft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
-            )
-        )
+        return self.kspace_to_im(x, three_d=self.three_d)
 
     def A_adjoint(
         self,
