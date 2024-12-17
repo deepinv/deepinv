@@ -14,8 +14,8 @@ dataset = dinv.datasets.NBUDataset(".", download=False, return_pan=False)
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 y = physics(x)
 
-# Pansharpen with classical
-x_hat = physics.A_classical(y)
+# Pansharpen with Brovey's method
+x_hat = physics.A_dagger(y)
 
 # Pansharpen with model
 model = dinv.models.PanNet(hrms_shape=(4, 256, 256))
