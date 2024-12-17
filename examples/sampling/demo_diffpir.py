@@ -61,7 +61,6 @@ plot(
     imgs,
     titles=["measurement", "ground-truth"],
 )
-# print(asdasd)
 # %%
 # The DiffPIR algorithm
 # ---------------------
@@ -340,7 +339,7 @@ with torch.no_grad():
         # Denoising step
         x_aux = x / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
         out = model(x_aux, sigma_cur / 2)
-        denoised = 2 * out - 1
+        denoised = 2 * out - 1  # back to [-1, 1]
         x0 = denoised.clamp(-1, 1)  # optional
 
         if not seq[i] == seq[-1]:
