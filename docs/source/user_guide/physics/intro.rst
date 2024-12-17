@@ -193,9 +193,9 @@ can be done by multiplying the operators:
     >>> import torch
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics1 = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(.2))
-    >>> physics2 = dinv.physics.Downsampling(img_size=(8, 8), factor=2)
-    >>> physics = physics1 * physics2
-    >>> y = physics(x) #
+    >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
+    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = physics2 * physics1
+    >>> y = physics(x) # equivalent to y = physics2(physics1.A(x))
     >>> print(y.shape)
     torch.Size([1, 1, 4, 4])

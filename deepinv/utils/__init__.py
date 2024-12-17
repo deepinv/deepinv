@@ -1,5 +1,4 @@
 from .logger import AverageMeter, ProgressMeter, get_timestamp
-from .nn import load_checkpoint, investigate_model
 from .metric import cal_psnr, cal_mse, cal_psnr_complex
 from .plotting import (
     rescale_img,
