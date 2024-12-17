@@ -49,18 +49,20 @@ input = torch.exp(1j * phase.to(torch.complex64)).to(device)
 # %%
 # Set up ptychography physics model
 # ----------------------------
-# Initializes the ptychography physics model with parameters like the probe shape and field of view.
+# Initializes the ptychography physics model with parameters like the probe and shifts.
 # This model will be used to simulate ptychography measurements.
 
+img_size = (1, size, size)
 n_img = 10**2
+probe = dinv.physics.phase_retrieval.build_probe(
+    img_size, type="disk", probe_radius=30, device=device
+)
+shifts = dinv.physics.phase_retrieval.generate_shifts(img_size, n_img=n_img, fov=170)
+
 physics = Ptychography(
-    in_shape=(1, size, size),
-    shifts=None,
-    n_img=n_img,
-    probe=None,
-    probe_type="disk",
-    probe_radius=30,
-    fov=170,
+    in_shape=img_size,
+    probe=probe,
+    shifts=shifts,
     device=device,
 )
 
@@ -82,7 +84,7 @@ plot(
 # ----------------------------
 # Displays the ptychography probe and a sum of the generated measurement data.
 
-probe = physics.probe[:, 1].cpu()
+probe = physics.probe[:, 55].cpu()
 y = physics(input)
 plot(
     [torch.abs(probe), y[0].sum(dim=0).log().unsqueeze(0)],

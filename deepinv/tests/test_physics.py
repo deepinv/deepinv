@@ -306,15 +306,11 @@ def find_operator(name, device):
     elif name == "ptychography_linear":
         img_size = (1, 32, 32)
         dtype = torch.complex64
-        norm = 1.29
+        norm = 1.32
         p = dinv.physics.PtychographyLinearOperator(
             img_size=img_size,
             probe=None,
             shifts=None,
-            probe_type="disk",
-            probe_radius=15,
-            fov=50,
-            n_img=25,
             device=device,
         )
     else:
@@ -363,12 +359,8 @@ def find_phase_retrieval_operator(name, device):
         img_size = (1, 32, 32)
         p = dinv.physics.Ptychography(
             in_shape=img_size,
-            shifts=None,
-            n_img=25,
             probe=None,
-            probe_type="disk",
-            probe_radius=15,
-            fov=50,
+            shifts=None,
             device=device,
         )
     elif name == "structured_random_phase_retrieval":

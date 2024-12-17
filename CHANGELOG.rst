@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
 
 Fixed
 ^^^^^
@@ -261,3 +262,4 @@ Authors
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
+.. _Victor Sechaud: https://github.com/vsechaud
