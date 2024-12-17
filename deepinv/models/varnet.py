@@ -111,7 +111,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
         if not self.estimate_x:
             # Convert estimate to image domain
-            hat = physics.A_adjoint(hat, mask=torch.ones_like(hat))
+            hat = physics.A_adjoint(hat, mask=torch.ones(hat.shape[-2:], dtype=hat.dtype, device=hat.device))
 
         physics.update_parameters(mask=mask)
 

@@ -641,5 +641,7 @@ def test_varnet(varnet_type, device):
     x_hat = model(y, physics)
     x_init = physics.A_adjoint(y)
 
+    assert x_hat.shape == x_init.shape
+
     psnr = dinv.metric.PSNR()
     assert psnr(x_init, x) < psnr(x_hat, x)

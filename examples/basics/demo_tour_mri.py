@@ -195,7 +195,7 @@ model = dinv.utils.demo.demo_mri_model(denoiser, num_iter=2, device=device).to(d
 # Imaging) loss.
 #
 # For the sake of speed in this example, we only use a very small 2-layer DnCNN inside an unrolled
-# network with 2 cascades, and train with 5 images for 1 epoch.
+# network with 2 cascades, and train with 2 images for 1 epoch.
 #
 
 loss = dinv.loss.SupLoss()
@@ -206,9 +206,7 @@ trainer = dinv.Trainer(
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters()),
     train_dataloader=(
-        train_dataloader := torch.utils.data.DataLoader(
-            torch.utils.data.Subset(train_dataset, range(5))
-        )
+        train_dataloader := torch.utils.data.DataLoader(train_dataset)
     ),
     epochs=1,
     show_progress_bar=False,
@@ -216,7 +214,7 @@ trainer = dinv.Trainer(
 )
 
 # %%
-# To improve results in the case of this very short training, we start training from a pretrained model state:
+# To improve results in the case of this very short training, we start training from a pretrained model state (trained on 900 images):
 
 url = dinv.models.utils.get_weights_url(
     model_name="demo", file_name="demo_tour_mri.pth"
@@ -238,9 +236,7 @@ trainer.plot_images = True
 
 _ = trainer.test(train_dataloader)
 
-_ = trainer.test(
-    torch.utils.data.DataLoader(torch.utils.data.Subset(test_dataset, range(5)))
-)
+_ = trainer.test(torch.utils.data.DataLoader(test_dataset))
 
 
 # %%
@@ -254,7 +250,7 @@ _ = trainer.test(
 #
 
 dinv.datasets.download_archive(
-    dinv.utils.get_image_url("fastmri_brain_multicoil_train_0.h5"),
+    dinv.utils.get_image_url("demo_fastmri_brain_multicoil.h5"),
     dinv.utils.get_data_home() / "brain" / "fastmri.h5",
 )
 
@@ -417,10 +413,10 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 # Finally, we show how to use the dynamic MRI for image sequence data of
 # shape ``(B, C, T, H, W)`` where ``T`` is the time dimension. Note that
 # this is also compatible with 3D MRI. We simulate an MRI image sequence
-# using the first 5 knees:
+# using the first 2 knees (T=2):
 #
 
-x = torch.stack([knee_dataset[i] for i in range(5)], dim=1).unsqueeze(0)
+x = torch.stack([knee_dataset[i] for i in range(2)], dim=1).unsqueeze(0)
 
 
 # %%
@@ -436,4 +432,4 @@ physics = dinv.physics.DynamicMRI(mask=mask, img_size=img_size, device=device)
 
 y = physics(x)
 
-print(x.shape, physics(x).shape)
+print(x.shape, physics(x).shape) # B,C,T,H,W

@@ -34,16 +34,18 @@ from deepinv.utils.demo import get_image_url
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
 
-    Loads a saved subset of 2D slices from the full FastMRI slice dataset.
+    Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset for quick loading.
 
     .. important::
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
+    These datasets are generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
+    You can use this to generate your own custom dataset and load using the ``file_name`` argument.
 
-    We provide a pregenerated saved subset for singlecoil FastMRI knees (total 973 images)
-    and RSS reconstructions of multicoil brains (total 455 images).
-    These originate from their respective fully-sampled train volumes converted to images via root-sum-of-square (RSS).
+    We provide a pregenerated mini saved subset for singlecoil FastMRI knees (total 2 images)
+    and RSS reconstructions of multicoil brains (total 2 images).
+    These originate from their respective fully-sampled volumes converted to images via root-sum-of-square (RSS).
     Each slice is the middle slice from one independent volume.
     The images are of shape (2x320x320) and are normalised per-sample (0-1) and padded.
     Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
@@ -52,15 +54,24 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         Since images are obtained from RSS, the imaginary part of each sample is 0.
 
-    These datasets were generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
-    You can use this to generate a custom dataset and load using the ``file_name`` argument.
+    |sep|
+
+    :Examples:
+
+        Load mini demo knee dataset:
+
+        >>> from deepinv.datasets import SimpleFastMRISliceDataset
+        >>> from deepinv.utils import get_data_home
+        >>> dataset = SimpleFastMRISliceDataset(get_data_home(), anatomy="knee", download=True)
+        >>> len(dataset)
+        2
 
     :param str, Path root_dir: dataset root directory
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
     :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param bool train: whether to use training set or test set, defaults to True
     :param int sample_index: if specified only load this sample, defaults to None
-    :param float train_percent: percentage train for train/test split, defaults to 0.925
+    :param float train_percent: percentage train for train/test split, defaults to 1.
     :param callable transform: optional transform for images, defaults to None
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
@@ -73,7 +84,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         file_name: Union[str, Path] = None,
         train: bool = True,
         sample_index: int = None,
-        train_percent: float = 0.925,
+        train_percent: float = 1.,
         transform: Optional[Callable] = None,
         download: bool = False,
     ):
@@ -87,7 +98,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         file_name = (
             file_name
             if file_name is not None
-            else Path(f"fastmri_{anatomy}_singlecoil.pt")
+            else Path(f"demo_mini_subset_fastmri_{anatomy}.pt")
         )
 
         try:
@@ -102,7 +113,6 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
                     "Local dataset not downloaded. Download by setting download=True."
                 )
 
-        x = x.squeeze()
         self.transform = Compose(
             [ToComplex()] + ([transform] if transform is not None else [])
         )
@@ -133,12 +143,12 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
 
 class FastMRISliceDataset(torch.utils.data.Dataset):
-    """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to MR image slices.
+    """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR image slices.
 
     This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.
     This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.
 
-    To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/`
+    To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the volumes as ``h5`` files.
     The fastMRI dataset includes two types of MRI scans: knee MRIs and the brain (neuro) MRIs, and containing training, validation, and masked test sets.
 
     The dataset is loaded as pairs ``(kspace, target)`` where ``kspace`` are the measurements of shape ``(2, (N,) H, W)``
@@ -158,7 +168,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                    |
                    -- xxxxxxxxxxx.h5
 
-    Each file contains the k-space data, ground truth and some metadata related to the scan.
+    Each file contains the k-space data, reconstructed images and some metadata related to the scan.
     When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.
 
     .. note::
@@ -187,26 +197,39 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instantiate dataset with sample data (from the multicoil brain train dataset) ::
+        Instantiate dataset with sample data (from a demo multicoil brain volume):
 
-            from deepinv.datasets import FastMRISliceDataset, download_archive
-            from deepinv.utils import get_image_url, get_data_home
-            url = get_image_url("fastmri_brain_multicoil_train_0.h5")
-            download_archive(url, get_data_home() / "brain" / "fastmri.h5")
-            dataset = FastMRISliceDataset(root=get_data_home() / "brain")
-            target, kspace = dataset[0]
-            print(target.shape) # 1, 320, 320
-            print(kspace.shape) # 2, 20, 640, 320
+        >>> from deepinv.datasets import FastMRISliceDataset, download_archive
+        >>> from deepinv.utils import get_image_url, get_data_home
+        >>> url = get_image_url("demo_fastmri_brain_multicoil.h5")
+        >>> root = get_data_home() / "fastmri" / "brain"
+        >>> download_archive(url, root / "demo.h5")
+        >>> dataset = FastMRISliceDataset(root=root, slice_index="all")
+        >>> len(dataset)
+        16
+        >>> target, kspace = dataset[0]
+        >>> target.shape # (1, W, W), varies per sample
+        torch.Size([1, 213, 213])
+        >>> kspace.shape # (2, N, H, W), varies per sample
+        torch.Size([2, 4, 512, 213])
 
-        Instantiate dataset with metadata cache (speeds up subsequent instantiation) ::
+        Normalise and pad images, and load one slice per volume:
 
-            dataset = FastMRISliceDataset(root=root, load_metadata_from_cache=True, save_metadata_to_cache=True)
+        >>> from torchvision.transforms import Compose, CenterCrop
+        >>> from deepinv.datasets.utils import Rescale
+        >>> dataset = FastMRISliceDataset(root=root, slice_index=0, transform_target=Compose([Rescale(), CenterCrop(320)]))
 
-        Normalise and pad images ::
+        Convert to a simple normalised padded in-memory slice dataset from the middle slices only:
 
-            from torchvision.transforms import Compose, CenterCrop
-            from deepinv.utils import Rescale
-            dataset = FastMRISliceDataset(root=root, transform_target=Compose([Rescale(), CenterCrop(320)]))
+        >>> simple_set = FastMRISliceDataset(root=root, slice_index="middle").save_simple_dataset(root.parent / "simple_set.pt")
+        >>> len(simple_set)
+        1
+
+        Instantiate dataset with metadata cache (speeds up subsequent instantiation):
+
+        >>> dataset = FastMRISliceDataset(root=root, load_metadata_from_cache=True, save_metadata_to_cache=True, metadata_cache_file=root.parent / "cache.pkl") # doctest: +ELLIPSIS
+        Saving dataset cache to ...
+        >>> import shutil; shutil.rmtree(root.parent)
 
     """
 

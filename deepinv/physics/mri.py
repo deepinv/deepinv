@@ -99,14 +99,27 @@ class MRIMixin:
         )
 
     def crop(self, x: Tensor, crop: bool = True) -> Tensor:
-        """Center crop image according to ``img_size``.
+        """Center crop 2D image according to ``img_size``.
 
-        This matches the original data of :class:`deepinv.datasets.FastMRISliceDataset`.
+        This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
+
+        If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
 
         :param Tensor x: input tensor of shape (...,H,W)
         :param bool crop: whether to perform crop, defaults to True
         """
-        return CenterCrop(self.img_size[-2:])(x) if crop else x
+        crop_size = self.img_size[-2:]
+        odd_h = crop_size[0] % 2 == 1
+
+        if odd_h:
+            crop_size = (crop_size[0] + 1, crop_size[1])
+        
+        cropped = CenterCrop(crop_size)(x)
+
+        if odd_h:
+            cropped = cropped[..., :-1, :]
+        
+        return cropped if crop else x
 
     @staticmethod
     def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:

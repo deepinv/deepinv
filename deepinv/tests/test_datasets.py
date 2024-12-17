@@ -264,14 +264,14 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri):
     x2 = dataset[1]
     assert x.shape == (2, 320, 320)
     assert not torch.all(x == x2)
-    assert len(dataset) == 973
+    assert len(dataset) == 2
 
 
 @pytest.fixture
 def download_fastmri():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "fastmri"
-    file_name = "fastmri_brain_multicoil_train_0.h5"
+    file_name = "demo_fastmri_brain_multicoil.h5"
 
     # Download single FastMRI volume
     os.makedirs(tmp_data_dir, exist_ok=True)
@@ -286,8 +286,13 @@ def download_fastmri():
 
 
 def test_FastMRISliceDataset(download_fastmri):
-    kspace_shape = (640, 320)
-    img_shape = (320, 320)
+    # Raw data shape
+    kspace_shape = (512, 213)
+    n_coils = 4
+    img_shape = (213, 213)
+
+    # Clean data shape
+    rss_shape = (320, 320)
 
     dataset = FastMRISliceDataset(
         root=download_fastmri,
@@ -297,7 +302,7 @@ def test_FastMRISliceDataset(download_fastmri):
     target2, kspace2 = dataset[1]
 
     assert target1.shape == (1, *img_shape)
-    assert kspace1.shape == (2, 20, *kspace_shape)
+    assert kspace1.shape == (2, n_coils, *kspace_shape)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
 
@@ -318,5 +323,5 @@ def test_FastMRISliceDataset(download_fastmri):
 
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
-
-    assert x.shape == (2, 320, 320)
+    assert len(subset) == 16 # 16 slices
+    assert x.shape == (2, *rss_shape)
