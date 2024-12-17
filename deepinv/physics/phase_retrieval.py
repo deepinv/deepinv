@@ -369,7 +369,7 @@ class PtychographyLinearOperator(LinearPhysics):
             self.img_size = img_size
             self.probe_type = probe_type
             self.probe_radius = probe_radius
-            self.probe = self.construct_probe(
+            self.probe = self.build_probe(
                 type=probe_type, probe_radius=probe_radius
             )
 
@@ -428,14 +428,14 @@ class PtychographyLinearOperator(LinearPhysics):
         :return: Tensor representing the constructed probe.
         """
         if type == "disk" or type is None:
-            x = torch.arange(self.img_size[0], dtype=torch.float64)
-            y = torch.arange(self.img_size[1], dtype=torch.float64)
+            x = torch.arange(self.img_size[1], dtype=torch.float64)
+            y = torch.arange(self.img_size[2], dtype=torch.float64)
             X, Y = torch.meshgrid(x, y, indexing="ij")
             probe = torch.zeros(self.img_size, device=self.device)
             probe[
                 torch.sqrt(
-                    (X - self.img_size[0] // 2) ** 2 + (Y - self.img_size[1] // 2) ** 2
-                )
+                    (X - self.img_size[1] // 2) ** 2 + (Y - self.img_size[2] // 2) ** 2
+                ).unsqueeze(0)
                 < probe_radius
             ] = 1
         else:
