@@ -817,16 +817,12 @@ class StackedPhysics(Physics):
 
     :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
     """
-    def __init__(self, physics_list, **kwargs):
+    def __init__(self, physics_list: list[Physics], **kwargs):
         super(StackedPhysics, self).__init__()
 
-        list = []
-        for p in physics_list:
-            if isinstance(p, StackedPhysics):
-                list += p.physics_list
-            else:
-                list.append(p)
-        self.physics_list = list
+        self.physics_list = []
+        for physics in physics_list:
+            self.physics_list.extend([physics] if not isinstance(physics, StackedPhysics) else physics.physics_list)
 
     def A(self, x: Tensor, **kwargs) -> TensorList:
         r"""
@@ -841,11 +837,7 @@ class StackedPhysics(Physics):
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
     def __str__(self):
-        str = "StackedPhysics("
-        for i, physics in enumerate(self.physics_list):
-            str += f"{physics}\n"
-        str += ")"
-        return str
+        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()
@@ -901,9 +893,21 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
     each entry corresponds to the measurements of the corresponding operator.
 
     See :ref:`physics_combining` for more information.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param str reduction: how to combine tensorlist outputs of adjoint operators into single
+        adjoint output. Choose between ``sum``, ``mean`` or ``None``.
     """
-    def __init__(self, physics_list, **kwargs):
+    def __init__(self, physics_list, reduction="sum", **kwargs):
         super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
+        if reduction == "sum":
+            self.reduction = sum
+        elif reduction == "mean":
+            self.reduction = lambda x: sum(x) / len(x)
+        elif reduction in ("none", None):
+            self.reduction = lambda x: x
+        else:
+            raise ValueError("reduction must be either sum, mean or none.")
 
     def A_adjoint(self, y: TensorList, **kwargs) -> Tensor:
         r"""
@@ -915,10 +919,11 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
 
         :param deepinv.utils.TensorList y: measurements
         """
-        out = 0
-        for i, physics in enumerate(self.physics_list):
-            out += physics.A_adjoint(y[i], **kwargs)
-        return out
-
+        return self.reduction(
+            [
+                physics.A_adjoint(y[i], **kwargs)
+                for i, physics in enumerate(self.physics_list)
+            ]
+        )
 
 
