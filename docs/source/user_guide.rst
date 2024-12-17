@@ -156,8 +156,8 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link: specific
         :link-type: ref
 
-        :octicon:`sparkles-fill` **Custom Methods**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        :octicon:`sparkles-fill` **Custom Reconstruction Networks**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Custom reconstruction methods and networks.
 
 

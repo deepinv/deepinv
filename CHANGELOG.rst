@@ -11,6 +11,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize, stacked physics, ... TODO (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -18,7 +19,7 @@ Fixed
 
 Changed
 ^^^^^^^
-
+- Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 v0.2.2
 ----------------
