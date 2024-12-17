@@ -14,6 +14,7 @@ New Features
 
 Fixed
 ^^^^^
+- Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 Changed
 ^^^^^^^
