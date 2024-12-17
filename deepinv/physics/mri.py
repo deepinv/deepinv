@@ -83,7 +83,7 @@ class MRIMixin:
         return CenterCrop(self.img_size[-2:])(x) if crop else x
 
     @staticmethod
-    def rss(x: Tensor, multicoil: bool = True) -> Tensor:
+    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
         """Perform root-sum-square reconstruction on multicoil data, defined as
 
         .. math::
@@ -101,9 +101,11 @@ class MRIMixin:
         assert (
             x.shape[1] == 2 and not x.is_complex()
         ), "x should be of shape (B,2,...) and not of complex dtype."
-        assert (len(x.shape) == 4 and not multicoil) or (
-            len(x.shape) == 5 and multicoil
-        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+        
+        mc_dim = 1 if multicoil else 0
+        th_dim = 1 if three_d else 0
+        assert len(x.shape) == 4 + mc_dim + th_dim, "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+        
         ss = x.pow(2).sum(dim=1, keepdim=True)
         return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
 
@@ -218,14 +220,16 @@ class MRI(MRIMixin, DecomposablePhysics):
         crop: bool = False,
         **kwargs,
     ):
-        """Optionally perform crop and magnitude to match FastMRI data.
+        """Adjoint operator.
+        
+        Optionally perform crop and magnitude to match FastMRI data.
 
         By default, crop and magnitude are not performed.
         By setting ``mag=crop=True``, the outputs will be consistent with :class:`deepinv.datasets.FastMRISliceDataset`.
 
         :param Tensor y: input kspace of shape (B,C,...,H,W)
         :param Tensor mask: optionally set mask on-the-fly.
-        :param bool magnitude: perform complex magnitude.
+        :param bool mag: perform complex magnitude.
             This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
             such that ``x = MRI().A_adjoint(y, mag=True)``.
         :param bool crop: if ``True``, crop last 2 dims of x to last 2 dims of img_size.
@@ -385,7 +389,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param bool crop: if ``True``, crop last 2 dims of x to last 2 dims of img_size.
             This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
             such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
-        :returns: (torch.Tensor) image with shape [B,2,...,H,W]
+        :returns: (torch.Tensor) image with shape [B,2,...,H,W] if not rss else [B,1,...,H,W]
         """
         assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
@@ -526,12 +530,20 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return y
 
-    def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def A_adjoint(self, y: Tensor, mask: Tensor = None, mag: bool = False, **kwargs) -> Tensor:
+        """Adjoint operator.
+        
+        Optionally perform magnitude to reduce channel dimension.
+
+        :param Tensor y: input kspace of shape (B,2,T,H,W)
+        :param Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
+        :param bool mag: perform complex magnitude.
+        """
         mask = self.check_mask(self.mask if mask is None else mask)
 
         mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
         x = self.unflatten(
-            super().A_adjoint(self.flatten(y), mask=mask_flatten, check_mask=False),
+            super().A_adjoint(self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag),
             batch_size=y.shape[0],
         )
 
