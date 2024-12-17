@@ -72,7 +72,6 @@ class MRIMixin:
         x = torch.fft.fftn(x, dim=dim, norm=norm)
         return torch.fft.fftshift(x, dim=dim)
 
-
     def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
         """Convenience method that wraps fft.
 
@@ -128,11 +127,13 @@ class MRIMixin:
         assert (
             x.shape[1] == 2 and not x.is_complex()
         ), "x should be of shape (B,2,...) and not of complex dtype."
-        
+
         mc_dim = 1 if multicoil else 0
         th_dim = 1 if three_d else 0
-        assert len(x.shape) == 4 + mc_dim + th_dim, "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
-        
+        assert (
+            len(x.shape) == 4 + mc_dim + th_dim
+        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+
         ss = x.pow(2).sum(dim=1, keepdim=True)
         return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
 
@@ -240,7 +241,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         **kwargs,
     ):
         """Adjoint operator.
-        
+
         Optionally perform crop and magnitude to match FastMRI data.
 
         By default, crop and magnitude are not performed.
@@ -549,9 +550,11 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return y
 
-    def A_adjoint(self, y: Tensor, mask: Tensor = None, mag: bool = False, **kwargs) -> Tensor:
+    def A_adjoint(
+        self, y: Tensor, mask: Tensor = None, mag: bool = False, **kwargs
+    ) -> Tensor:
         """Adjoint operator.
-        
+
         Optionally perform magnitude to reduce channel dimension.
 
         :param Tensor y: input kspace of shape (B,2,T,H,W)
@@ -562,7 +565,9 @@ class DynamicMRI(MRI, TimeMixin):
 
         mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
         x = self.unflatten(
-            super().A_adjoint(self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag),
+            super().A_adjoint(
+                self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag
+            ),
             batch_size=y.shape[0],
         )
 
