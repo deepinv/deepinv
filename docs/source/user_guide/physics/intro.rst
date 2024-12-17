@@ -184,7 +184,7 @@ Composing operators :math:`A_1` and :math:`A_2` into a single operator
 
 .. math::
 
-    A(x) = A_1(A_2(x))
+    A(x) = A_2(A_1(x))
 
 can be done by multiplying the operators:
 
