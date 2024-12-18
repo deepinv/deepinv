@@ -52,7 +52,9 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
+    "cassi"
 ]
+OPERATORS = ["cassi"]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
 
@@ -301,6 +303,8 @@ def find_operator(name, device):
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
+    elif name == "cassi":
+        p = dinv.physics.CASSI(img_size, device=device, rng=rng)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype

@@ -33,6 +33,7 @@ from .phase_retrieval import (
 from .radio import RadioInterferometry
 from .time import TimeMixin
 from .structured_random import StructuredRandom
+from .cassi import CASSI
 
 from . import generator
 from . import functional
