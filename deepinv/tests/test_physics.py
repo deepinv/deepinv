@@ -55,6 +55,7 @@ OPERATORS = [
     "radio_weighted",
     "structured_random",
 ]
+OPERATORS=["colorize"]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
 
@@ -107,7 +108,7 @@ def find_operator(name, device):
             rng=rng,
         )
     elif name == "colorize":
-        p = dinv.physics.Decolorize(device=device)
+        p = dinv.physics.Decolorize(device=device, srf="flat")
         norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(
