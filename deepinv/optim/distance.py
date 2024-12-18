@@ -67,8 +67,8 @@ class L2Distance(Distance):
         :param torch.Tensor y: Data :math:`y`.
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        z = (x - y) * self.norm
-        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2
+        z = (x - y)
+        d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
         return d
 
     def grad(self, x, y, *args, **kwargs):
@@ -88,7 +88,7 @@ class L2Distance(Distance):
 
     def prox(self, x, y, *args, gamma=1.0, **kwargs):
         r"""
-        Proximal operator of :math:`\gamma \distance{x}{y} = \frac{1}{2 \sigma^2} \|x-y\|^2`.
+        Proximal operator of :math:`\gamma \distance{x}{y} = \frac{\gamma}{2 \sigma^2} \|x-y\|^2`.
 
         Computes :math:`\operatorname{prox}_{\gamma \distancename}`, i.e.
 

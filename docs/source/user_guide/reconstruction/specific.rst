@@ -1,7 +1,7 @@
 .. _specific:
 
 Specific Networks
-================
+=================
 We provide some off-the-shelf network architectures for specific inverse problems,
 taken from the respective literatures.
 

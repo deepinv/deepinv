@@ -3,9 +3,9 @@ Pan-sharpening of satellite images
 ==================================
 
 In this example we demonstrate remote sensing inverse problems for multispectral satellite imaging.
-We will focus on pan-sharpening (recover high-resolution multispectral images from measurement pairs of
-low-resolution multispectral images and high-resolution panchromatic (single-band) images) using
-:class:`deepinv.physics.Pansharpen`.
+We will focus on pan-sharpening, i.e., recovering high-resolution multispectral images from measurement pairs of
+low-resolution multispectral images and high-resolution panchromatic (single-band) images with the forward
+operator :class:`deepinv.physics.Pansharpen`.
 
 These have important applications for image restoration in environmental monitoring, urban planning, disaster recovery etc.
 
@@ -16,16 +16,10 @@ For remote sensing experiments, DeepInverse provides the following:
 
 .. seealso::
 
-    :class:`deepinv.physics.Pansharpen` - pan-sharpening physics
-
-    :class:`deepinv.physics.HyperSpectralUnmixing` - hyperspectral unmixing physics
-
-    :class:`deepinv.physics.Downsampling` - superresolution physics
-
-    :class:`deepinv.datasets.NBUDataset` - satellite imagery dataset
-    
-    :class:`deepinv.loss.metric.QNR`, :class:`deepinv.loss.metric.SpectralAngleMapper`, :class:`deepinv.loss.metric.ERGAS`
-        Metrics for multispectral data and pan-sharpening
+    - :class:`Hyperspectral unmixing <deepinv.physics.HyperSpectralUnmixing>`
+    - :class:`Super resolution <deepinv.physics.Downsampling>`
+    - :class:`Satellite imagery dataset <deepinv.datasets.NBUDataset>`
+    - Metrics for multispectral data: :class:`QNR <deepinv.loss.metric.QNR>`, :class:`SpectralAngleMapper <deepinv.loss.metric.SpectralAngleMapper>`, :class:`ERGAS <deepinv.loss.metric.ERGAS>`
 
 
 """
