@@ -21,8 +21,8 @@ from deepinv.utils.tensorlist import TensorList
 class NBUDataset(Dataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
-    Returns Cx256x256 multispectral (MS) satellite images of urban scenes from 6 different satellites.
-    with C=4 for "gaofen-1" and C=8 for the rest.
+    Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
+    with ``C=4`` for ``"gaofen-1"`` and ``C=8`` for the rest.
 
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
@@ -31,16 +31,16 @@ class NBUDataset(Dataset):
     and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
     We perform no other processing other than to take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
 
-    - "gaofen-1": 5 images
-    - "ikonos": 60 images
-    - "quickbird": 150 images
-    - "worldview-2": 150 images
-    - "worldview-3": 55 images
-    - "worldview-4": 90 images
+    - ``"gaofen-1"``: 5 images
+    - ``"ikonos"``: 60 images
+    - ``"quickbird"``: 150 images
+    - ``"worldview-2"``: 150 images
+    - ``"worldview-3"``: 55 images
+    - ``"worldview-4"``: 90 images
 
     .. note::
 
-        Returns images as torch tensors normalised to 0-1 over the whole dataset.
+        Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
 
     |sep|
 

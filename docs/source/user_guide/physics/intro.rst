@@ -148,11 +148,11 @@ can be done with :func:`deepinv.physics.stack`. The stacked operator is
     >>> import torch
     >>> import deepinv as dinv
     >>> x = torch.rand((1, 1, 8, 8))
-    >>> physics1 = dinv.physics.BlurFFT(filter=dinv.physics.blur.gaussian_blur(.2))
-    >>> physics2 = dinv.physics.Downsampling(img_size=(8, 8), factor=2)
+    >>> physics1 = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
     >>> physics3 = dinv.physics.stack(physics1, physics2)
     >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
-    >>> y = physics(x) #
+    >>> y = physics3(x) #
     >>> print(y[0].shape)
     torch.Size([1, 1, 8, 8])
     >>> print(y[1].shape)
@@ -168,9 +168,9 @@ methods:
 
 .. doctest::
 
-    >>> print(physics[0](x).shape) # access the first operator only
+    >>> print(physics3[0](x).shape) # access the first operator only
     torch.Size([1, 1, 8, 8])
-    >>> print(physics[1](x).shape) # access the second operator only
+    >>> print(physics3[1](x).shape) # access the second operator only
     torch.Size([1, 1, 4, 4])
 
 

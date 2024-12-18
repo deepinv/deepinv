@@ -253,7 +253,7 @@ class L2(DataFidelity):
 
     def __init__(self, sigma=1.0):
         super().__init__()
-        self.d = L2Distance(sigma)
+        self.d = L2Distance(sigma=sigma)
         self.norm = 1 / (sigma**2)
 
     def prox(self, x, y, physics, *args, gamma=1.0, **kwargs):
