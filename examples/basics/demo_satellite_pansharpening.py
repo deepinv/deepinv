@@ -9,7 +9,8 @@ low-resolution multispectral images and high-resolution panchromatic (single-ban
 
 These have important applications for image restoration in environmental monitoring, urban planning, disaster recovery etc.
 
-We provide a convenient satellite image dataset for pan-sharpening :class:`deepinv.datasets.NBUDataset` provided in the paper `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_.
+We provide a convenient satellite image dataset for pan-sharpening :class:`deepinv.datasets.NBUDataset` provided in the paper `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_
+which includes data from several satellites such as WorldView satellites.
 
 For remote sensing experiments, DeepInverse provides the following:
 
@@ -21,13 +22,14 @@ For remote sensing experiments, DeepInverse provides the following:
 
     :class:`deepinv.datasets.NBUDataset` - satellite imagery dataset
     
-    :class:`deepinv.metric.QNR`, :class:`deepinv.metric.SpectralAngleMapper`, :class:`deepinv.metric.ERGAS`
+    :class:`deepinv.loss.metric.QNR`, :class:`deepinv.loss.metric.SpectralAngleMapper`, :class:`deepinv.loss.metric.ERGAS`
         Metrics for multispectral data and pan-sharpening
 
 
 """
 
 import deepinv as dinv
+import torch
 
 # %%
 # Load raw pan-sharpening measurements
@@ -48,9 +50,12 @@ import deepinv as dinv
 # Note also that the linear adjoint must assume the unknown spectral response function (SRF).
 #
 
-physics = dinv.physics.Pansharpen((4, 1024, 1024), factor=4)
-dataset = dinv.datasets.NBUDataset(".", return_pan=True)
+DATA_DIR = dinv.utils.get_data_home()
+dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=True, download=True)
+
 y = dataset[0].unsqueeze(0)  # MS (1,4,256,256), PAN (1,1,1024,1024)
+
+physics = dinv.physics.Pansharpen((4, 1024, 1024), factor=4)
 
 # Pansharpen with classical Brovey method
 x_hat = physics.A_dagger(y)  # shape (1,4,1024,1024)
@@ -85,10 +90,12 @@ print(qnr(x_net=x_hat, x=None, y=y, physics=physics))
 # but this can also be jointly learned. We simulate Gaussian noise on the panchromatic images.
 #
 
-physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, srf="flat")
-dataset = dinv.datasets.NBUDataset(".", download=False, return_pan=False)
+dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=False)
 
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
+
+physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, srf="flat")
+
 y = physics(x)
 
 # Pansharpen with classical Brovey method
@@ -107,6 +114,10 @@ x_hat = physics.A_dagger(y)
 #
 # For evaluation, we use the standard full-reference metrics (ERGAS, SAM) and no-reference (QNR).
 #
+# .. note::
+#
+#   This is a tiny example using 5 images. We demonstrate training for 1 epoch for speed, but you can train from scratch using 50 epochs.
+#
 
 model = dinv.models.PanNet(hrms_shape=(4, 256, 256))
 x_net = model(y, physics)
@@ -117,25 +128,45 @@ loss = dinv.loss.StackedPhysicsLoss(
     [dinv.loss.MCLoss(), dinv.loss.SureGaussianLoss(0.05)]
 )
 
-# Train using deepinv Trainer
-from torch.optim import Adam
-from torch.utils.data import DataLoader
-
-trainer = dinv.Trainer(
-    model=model,
-    physics=physics,
-    optimizer=Adam(model.parameters()),
-    losses=loss,
-    train_dataloader=DataLoader(dataset),
-    online_measurements=True,
-    epochs=5,
-)
-
 # Evaluate performance when ground-truth available
 sam = dinv.metric.distortion.SpectralAngleMapper()
 ergas = dinv.metric.distortion.ERGAS(factor=4)
 qnr = dinv.metric.QNR()
 print(sam(x_hat, x), ergas(x_hat, x), qnr(x_hat, x=None, y=y, physics=physics))
+
+# Load optimizer and pretrained model
+optimizer = torch.optim.Adam(model.parameters())
+
+from deepinv.models.utils import get_weights_url
+
+file_name = "demo_nbu_pansharpen.pth"
+url = get_weights_url(model_name="demo", file_name=file_name)
+ckpt = torch.hub.load_state_dict_from_url(
+    url, map_location=lambda storage, loc: storage, file_name=file_name
+)
+model.load_state_dict(ckpt["state_dict"])
+optimizer.load_state_dict(ckpt["optimizer"])
+
+# Train using deepinv Trainer
+from torch.utils.data import DataLoader
+
+trainer = dinv.Trainer(
+    model=model,
+    physics=physics,
+    optimizer=optimizer,
+    losses=loss,
+    metrics=[sam, ergas],
+    train_dataloader=DataLoader(dataset),
+    epochs=1,
+    online_measurements=True,
+    plot_images=False,
+    compare_no_learning=True,
+    no_learning_method="A_dagger",
+    show_progress_bar=False,
+)
+
+trainer.train()
+trainer.test(DataLoader(dataset))
 
 # Plot results
 dinv.utils.plot(
