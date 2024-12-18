@@ -55,7 +55,6 @@ OPERATORS = [
     "radio_weighted",
     "structured_random",
 ]
-OPERATORS=["colorize"]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
 
@@ -108,7 +107,7 @@ def find_operator(name, device):
             rng=rng,
         )
     elif name == "colorize":
-        p = dinv.physics.Decolorize(device=device, srf="flat")
+        p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
     elif name == "inpainting":
         p = dinv.physics.Inpainting(
@@ -400,7 +399,7 @@ def test_stacking(device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device):
+def test_operators_adjointness(name, device, rng):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -415,7 +414,7 @@ def test_operators_adjointness(name, device):
     if name == "radio":
         dtype = torch.cfloat
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
@@ -432,7 +431,7 @@ def test_operators_adjointness(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device):
+def test_operators_norm(name, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -450,7 +449,7 @@ def test_operators_norm(name, device):
 
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
@@ -488,7 +487,7 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device):
+def test_pseudo_inverse(name, device, rng):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -499,7 +498,7 @@ def test_pseudo_inverse(name, device):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
