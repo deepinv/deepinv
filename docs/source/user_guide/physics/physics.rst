@@ -20,66 +20,80 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
      - **Generators**
 
    * - Pixelwise
-     - | :class:`deepinv.physics.Denoising`
+     -
+       | :class:`deepinv.physics.Denoising`
        | :class:`deepinv.physics.Inpainting`
        | :class:`deepinv.physics.Demosaicing`
        | :class:`deepinv.physics.Decolorize`
-     - | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
+     -
+       | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
        | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
        | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
 
    * - Blur & Super-Resolution
-     - | :class:`deepinv.physics.Blur`
+     -
+       | :class:`deepinv.physics.Blur`
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
-     - | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
+     -
+       | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
        | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
-
+       | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
+       | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
 
    * - Magnetic Resonance Imaging (MRI)
-     - | :class:`deepinv.physics.MRIMixin`
+     -
+       | :class:`deepinv.physics.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
        | :class:`deepinv.physics.SequentialMRI`
        | The above all also natively support 3D MRI.
-     - | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
+     -
+       | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
        | The above all also support k+t dynamic sampling.
 
    * - Tomography
-     - :class:`deepinv.physics.Tomography`
+     -
+       | :class:`deepinv.physics.Tomography`
      -
 
-   * - Remote Sensing / Multispectral
-     - :class:`deepinv.physics.Pansharpen`
-     - :class:`deepinv.physics.HyperSpectralUnmixing`
+   * - Remote Sensing & Multispectral
+     -
+       | :class:`deepinv.physics.Pansharpen`
+       | :class:`deepinv.physics.HyperSpectralUnmixing`
      -
 
    * - Compressive
-     - | :class:`deepinv.physics.CompressedSensing`
+     -
+       | :class:`deepinv.physics.CompressedSensing`
        | :class:`deepinv.physics.StructuredRandom`
        | :class:`deepinv.physics.SinglePixelCamera`
      -
 
    * - Radio Interferometric Imaging
-     - :class:`deepinv.physics.RadioInterferometry`
+     -
+       | :class:`deepinv.physics.RadioInterferometry`
      -
 
    * - Single-Photon Lidar
-     - :class:`deepinv.physics.SinglePhotonLidar`
+     -
+       | :class:`deepinv.physics.SinglePhotonLidar`
      -
 
    * - Dehazing
-     - :class:`deepinv.physics.Haze`
+     -
+       | :class:`deepinv.physics.Haze`
      -
 
    * - Phase Retrieval
-     - | :class:`deepinv.physics.PhaseRetrieval`
+     -
+       | :class:`deepinv.physics.PhaseRetrieval`
        | :class:`RandomPhaseRetrieval <deepinv.physics.RandomPhaseRetrieval>`
        | :class:`StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
      -
