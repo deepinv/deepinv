@@ -120,4 +120,4 @@ We implement no-reference perceptual metrics, they only require the reconstructe
      - Calculates deviation of image from statistical regularities of natural images.
 
    * - :class:`deepinv.loss.metric.QNR`
-     - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
+     - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.

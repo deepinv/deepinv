@@ -27,13 +27,14 @@ class Decolorize(DecomposablePhysics):
 
         Decolorize a 3x3 image:
 
+        >>> import torch
         >>> from deepinv.physics import Decolorize
-        >>> x = torch.ones(1, 3, 3, 3) # Define constant 3x3 RGB image
+        >>> x = torch.ones((1, 3, 3, 3), requires_grad=False) # Define constant 3x3 RGB image
         >>> physics = Decolorize()
         >>> physics(x)
         tensor([[[[1.0000, 1.0000, 1.0000],
                   [1.0000, 1.0000, 1.0000],
-                  [1.0000, 1.0000, 1.0000]]]], grad_fn=<MulBackward0>)
+                  [1.0000, 1.0000, 1.0000]]]])
     """
 
     def __init__(self, channels=3, srf="rec601", device="cpu", **kwargs):

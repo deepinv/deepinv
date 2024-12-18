@@ -300,6 +300,8 @@ def test_optim_algo(name_algo, imsize, device):
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):
     from deepinv.datasets import PatchDataset
 
+    torch.manual_seed(0)
+
     imgs = dummy_dataset.x
     patch_dataset = PatchDataset(imgs)
     patch_dataloader = torch.utils.data.DataLoader(

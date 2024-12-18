@@ -161,6 +161,7 @@ def find_operator(name, device):
             filter=dinv.physics.blur.gaussian_blur(sigma=(1.0)),
         )
         p = p1 * p2
+        norm = 1 / 2**2
     elif name == "composition2":
         img_size = (3, 16, 16)
         p1 = dinv.physics.Downsampling(

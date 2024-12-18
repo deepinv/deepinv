@@ -42,6 +42,7 @@ class Pansharpen(StackedLinearPhysics):
         Pansharpen operator applied to a random 32x32 image:
 
         >>> from deepinv.physics import Pansharpen
+        >>> import torch
         >>> x = torch.randn(1, 3, 32, 32) # Define random 32x32 color image
         >>> physics = Pansharpen(img_size=x.shape[1:], device=x.device)
         >>> x.shape
