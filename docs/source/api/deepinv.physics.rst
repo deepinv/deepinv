@@ -60,6 +60,7 @@ Operators
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.StructuredRandomPhaseRetrieval
    deepinv.physics.Ptychography
+   deepinv.physics.PtychographyLinearOperator
 
 
 .. autosummary::
