@@ -124,6 +124,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (torch.Tensor) noisy measurements
 
         """
+        print('here', self.noise(self.A(x, **kwargs), **kwargs).max())
         return self.sensor(self.noise(self.A(x, **kwargs), **kwargs))
 
     def A(self, x, **kwargs):
@@ -503,12 +504,14 @@ class LinearPhysics(Physics):
             new_A_adj = lambda x, **kwargs: other.A_adjoint(
                 self.A_adjoint(x, **kwargs), **kwargs
             )
+            new_sensor = lambda x : self.sensor_model(other.sensor_model(x))
             new_noise_model = self.noise_model
         elif isinstance(other, float) or isinstance(
             other, torch.Tensor
         ):  # should be a float or a torch.Tensor
             new_A = lambda x: other * self.A(x)  # self.A is a function
             new_A_adj = lambda x: other * self.A_adj(x)  # self.A_adj is a function
+            new_sensor =  lambda x: other * self.sensor_model(x) 
             new_noise_model = (
                 other * self.noise_model
             )  # create a new object from the same class as self.noise_model
@@ -521,7 +524,7 @@ class LinearPhysics(Physics):
             A=new_A,
             A_adjoint=new_A_adj,
             noise_model=new_noise_model,
-            sensor_model=self.sensor_model,
+            sensor_model=new_sensor,
             max_iter=self.max_iter,
             tol=self.tol,
         )
