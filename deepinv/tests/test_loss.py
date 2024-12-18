@@ -320,11 +320,19 @@ def test_stacked_loss(device, imsize):
     f = dinv.models.ArtifactRemoval(backbone)
 
     # choose training losses
-    loss = dinv.loss.StackedPhysicsLoss([dinv.loss.MCLoss(), dinv.loss.MCLoss(), dinv.loss.MCLoss()])
+    loss = dinv.loss.StackedPhysicsLoss(
+        [dinv.loss.MCLoss(), dinv.loss.MCLoss(), dinv.loss.MCLoss()]
+    )
 
     # choose noise
     noise = dinv.physics.GaussianNoise(0.1)
-    physics = dinv.physics.StackedLinearPhysics([dinv.physics.Denoising(noise), dinv.physics.Denoising(noise), dinv.physics.Denoising(noise)])
+    physics = dinv.physics.StackedLinearPhysics(
+        [
+            dinv.physics.Denoising(noise),
+            dinv.physics.Denoising(noise),
+            dinv.physics.Denoising(noise),
+        ]
+    )
 
     # create a dummy image
     x = torch.ones((1,) + imsize, device=device)
@@ -339,4 +347,3 @@ def test_stacked_loss(device, imsize):
     loss_value = loss(x=x, y=y, x_net=x_net, physics=physics, model=f)
 
     assert loss_value > 0
-

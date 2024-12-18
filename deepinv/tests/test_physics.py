@@ -152,25 +152,43 @@ def find_operator(name, device):
         )
     elif name == "composition":
         img_size = (3, 16, 16)
-        p1 = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device, padding='same', filter=None)
-        p2 = dinv.physics.BlurFFT(img_size=img_size, device=device, filter=dinv.physics.blur.gaussian_blur(sigma=(1.)))
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, padding="same", filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=img_size,
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(1.0)),
+        )
         p = p1 * p2
     elif name == "composition2":
         img_size = (3, 16, 16)
-        p1 = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device, filter=None)
-        p2 = dinv.physics.BlurFFT(img_size=(3, 8, 8), device=device, filter=dinv.physics.blur.gaussian_blur(sigma=(.5)))
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=(3, 8, 8),
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.5)),
+        )
         p = p2 * p1
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
-            img_size=img_size, device=device, padding=padding, filter="bilinear", use_brovey=False,
+            img_size=img_size,
+            device=device,
+            padding=padding,
+            filter="bilinear",
+            use_brovey=False,
         )
         norm = 0.4
     elif name == "aliased_pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter=None, use_brovey=False)
+        p = dinv.physics.Pansharpen(
+            img_size=img_size, device=device, filter=None, use_brovey=False
+        )
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(

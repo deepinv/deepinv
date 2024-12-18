@@ -67,7 +67,7 @@ class L2Distance(Distance):
         :param torch.Tensor y: Data :math:`y`.
         :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
-        z = (x - y)
+        z = x - y
         d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
         return d
 
