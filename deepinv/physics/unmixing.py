@@ -1,3 +1,5 @@
+from math import sqrt
+
 import torch
 
 from deepinv.physics.forward import LinearPhysics, adjoint_function
@@ -61,8 +63,9 @@ class HyperSpectralUnmixing(LinearPhysics):
         self.device = device
 
         if M is None:
-            M = torch.rand((E, C), dtype=torch.float32)
             self.E, self.C = E, C
+            M = torch.rand((E, C), dtype=torch.float32)
+            M /= M.sum(dim=0, keepdim=True) * sqrt(self.C / self.E)
         else:
             self.E, self.C = M.shape
 
