@@ -25,7 +25,7 @@ class Pansharpen(StackedLinearPhysics):
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
-        See :class:`deepinv.physics.Decolorize` for parameter options.
+        See :class:`deepinv.physics.Decolorize` for parameter options. Defaults to ``flat`` i.e. simply average the bands.
     :param bool use_brovey: if ``True``, use the `Brovey method <https://ieeexplore.ieee.org/document/6998089>`_
         to compute the pansharpening, otherwise use the conjugate gradient method.
     :param torch.nn.Module noise_color: noise model for the RGB image.
@@ -59,7 +59,7 @@ class Pansharpen(StackedLinearPhysics):
         img_size,
         filter="bilinear",
         factor=4,
-        srf=None,
+        srf="flat",
         noise_color=GaussianNoise(sigma=0.0),
         noise_gray=GaussianNoise(sigma=0.05),
         use_brovey=True,

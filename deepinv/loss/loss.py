@@ -121,6 +121,6 @@ class StackedPhysicsLoss(Loss):
 
             loss += loss_fn(
                 x=x, y=y[i], x_net=x_net, physics=physics[i], model=model_aux, **kwargs
-            ).mean()  # TODO is mean appropriate here?
+            ).mean()
 
         return loss

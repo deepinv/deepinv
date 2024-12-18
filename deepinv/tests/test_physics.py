@@ -976,4 +976,19 @@ def test_mri_fft():
     assert torch.all(xf1 == xf2)
 
 
-# TODO test stacked physics and stacked linear physics
+@pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
+def test_decolorize(srf, device, imsize):
+    from numpy import allclose
+
+    channels = 7
+    if srf == "list":
+        srf = list(range(channels))
+        srf = [s / sum(srf) for s in srf]
+
+    physics = dinv.physics.Decolorize(channels=channels, srf=srf, device=device)
+    x = torch.ones((1, channels, *imsize[-2:]), device=device)
+    x2 = physics.A_adjoint_A(x)
+
+    assert x2.shape == x.shape
+    assert allclose(sum(physics.srf), 1.0, rtol=1e-4)
+    assert len(physics.srf) == channels
