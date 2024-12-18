@@ -23,6 +23,8 @@ OPERATORS = [
     "deblur_reflect",
     "deblur_replicate",
     "deblur_constant",
+    "composition",
+    "composition2",
     "space_deblur_valid",
     "space_deblur_circular",
     "space_deblur_reflect",
@@ -152,17 +154,46 @@ def find_operator(name, device):
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
+    elif name == "composition":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, padding="same", filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=img_size,
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(1.0)),
+        )
+        p = p1 * p2
+        norm = 1 / 2**2
+    elif name == "composition2":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=(3, 8, 8),
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.5)),
+        )
+        p = p2 * p1
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
-            img_size=img_size, device=device, padding=padding, filter="bilinear"
+            img_size=img_size,
+            device=device,
+            padding=padding,
+            filter="bilinear",
+            use_brovey=False,
         )
         norm = 0.4
     elif name == "aliased_pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter=None)
+        p = dinv.physics.Pansharpen(
+            img_size=img_size, device=device, filter=None, use_brovey=False
+        )
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
@@ -336,8 +367,43 @@ def find_nonlinear_operator(name, device):
     return p, x
 
 
+def test_stacking(device):
+    r"""
+    Tests if stacking physics operators is consistent with applying them sequentially.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts error is less than 1e-3
+    """
+    imsize = (2, 5, 5)
+    p1 = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    p2 = dinv.physics.Physics(A=lambda x: x**2)
+    p3 = p1.stack(p2)
+
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+    y1 = p1.A(x)
+    y2 = p2.A(x)
+    y = p3.A(x)
+
+    assert torch.allclose(y[0], y1)
+    assert torch.allclose(y[1], y2)
+
+    assert not isinstance(p3, dinv.physics.StackedLinearPhysics)
+    assert isinstance(p3, dinv.physics.StackedPhysics)
+
+    p4 = p1.stack(p1)
+    y = p4(x)
+    assert isinstance(p4, dinv.physics.StackedLinearPhysics)
+    assert len(y) == 2
+    assert p4.A_adjoint(y).shape == x.shape
+
+    p5 = p4.stack(p4)
+    y = p5(x)
+    assert len(p5) == 4
+    assert len(y) == 4
+
+
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device):
+def test_operators_adjointness(name, device, rng):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -352,7 +418,7 @@ def test_operators_adjointness(name, device):
     if name == "radio":
         dtype = torch.cfloat
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
@@ -369,7 +435,7 @@ def test_operators_adjointness(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device):
+def test_operators_norm(name, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -387,7 +453,7 @@ def test_operators_norm(name, device):
 
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
@@ -425,7 +491,7 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device):
+def test_pseudo_inverse(name, device, rng):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -436,7 +502,7 @@ def test_pseudo_inverse(name, device):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
@@ -579,7 +645,7 @@ def test_phase_retrieval_Avjp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
-def test_linear_physics_Avjp(device):
+def test_linear_physics_Avjp(device, rng):
     r"""
     Tests if the gradient computed with A_vjp method of linear physics is consistent with the autograd gradient.
 
@@ -588,7 +654,13 @@ def test_linear_physics_Avjp(device):
     """
     # essential to enable autograd
     torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
+    x = torch.randn(
+        (1, 1, 3, 3),
+        dtype=torch.float,
+        device=device,
+        generator=rng,
+        requires_grad=True,
+    )
     physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
@@ -914,5 +986,22 @@ def test_mri_fft():
 
     assert torch.all(xf1 == xf2)
 
-    def test_CASSI():
-        pass #TODO
+@pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
+def test_decolorize(srf, device, imsize):
+    from numpy import allclose
+
+    channels = 7
+    if srf == "list":
+        srf = list(range(channels))
+        srf = [s / sum(srf) for s in srf]
+
+    physics = dinv.physics.Decolorize(channels=channels, srf=srf, device=device)
+    x = torch.ones((1, channels, *imsize[-2:]), device=device)
+    x2 = physics.A_adjoint_A(x)
+
+    assert x2.shape == x.shape
+    assert allclose(sum(physics.srf), 1.0, rtol=1e-4)
+    assert len(physics.srf) == channels
+
+def test_CASSI():
+    pass #TODO

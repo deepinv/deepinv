@@ -3,7 +3,19 @@ import shutil
 import PIL
 import pytest
 
-from deepinv.datasets import DIV2K, Urban100HR, Set14HR, CBSD68, LsdirHR, FMD, Kohler
+import torch
+from torch import Tensor
+
+from deepinv.datasets import (
+    DIV2K,
+    Urban100HR,
+    Set14HR,
+    CBSD68,
+    LsdirHR,
+    FMD,
+    Kohler,
+    NBUDataset,
+)
 
 
 @pytest.fixture
@@ -217,3 +229,31 @@ def test_load_fmd_dataset(download_fmd):
     assert (
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_nbu():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "NBU"
+
+    # Download Urban100 raw dataset
+    NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_load_nbu_dataset(download_nbu):
+    """Check that dataset correct length and type."""
+    dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
+    assert (
+        len(dataset) == 5
+    ), f"Dataset should have been of len 5, instead got {len(dataset)}."
+    assert (
+        isinstance(dataset[0], Tensor)
+        and torch.all(dataset[0] <= 1)
+        and torch.all(dataset[0] >= 0)
+    ), "Dataset image should be Tensor between 0-1."

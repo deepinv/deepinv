@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -35,6 +35,7 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
+    verbose=False,
 ):
     """
     Standard conjugate gradient algorithm.
@@ -77,7 +78,11 @@ def conjugate_gradient(
         r = r - Ap * alpha
         rsnew = dot(r, r)
         assert rsnew.isfinite().all(), "Conjugate gradient diverged"
+        if verbose:
+            print(f"Residual: {rsnew.abs()}")
         if all(rsnew.abs() < tol**2):
+            if verbose:
+                print(f"Conjugate gradient converged after {_} iterations")
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
