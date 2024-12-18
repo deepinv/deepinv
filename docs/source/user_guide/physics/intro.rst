@@ -168,9 +168,9 @@ methods:
 
 .. doctest::
 
-    >>> print(physics[0](x).shape) # access the first operator only
+    >>> print(physics3[0](x).shape) # access the first operator only
     torch.Size([1, 1, 8, 8])
-    >>> print(physics[1](x).shape) # access the second operator only
+    >>> print(physics3[1](x).shape) # access the second operator only
     torch.Size([1, 1, 4, 4])
 
 
