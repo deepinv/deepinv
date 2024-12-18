@@ -3,6 +3,7 @@ from .compressed_sensing import CompressedSensing
 from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur
 from .range import Decolorize
 from .haze import Haze
+from .unmixing import HyperSpectralUnmixing
 from .forward import (
     Denoising,
     Physics,

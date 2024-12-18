@@ -28,6 +28,7 @@ OPERATORS = [
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
     "super_resolution_valid",
@@ -204,6 +205,10 @@ def find_operator(name, device):
             * 0.5,
             padding=padding,
         )
+    elif name == "hyperspectral_unmixing":
+        img_size = (15, 32, 32)  # x (E, H, W)
+        p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
+
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)
         h_size = (1, 1, 4, 3, 5)
