@@ -23,6 +23,8 @@ OPERATORS = [
     "deblur_reflect",
     "deblur_replicate",
     "deblur_constant",
+    "composition",
+    "composition2",
     "space_deblur_valid",
     "space_deblur_circular",
     "space_deblur_reflect",
@@ -147,6 +149,16 @@ def find_operator(name, device):
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
+    elif name == "composition":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device, padding='same', filter=None)
+        p2 = dinv.physics.BlurFFT(img_size=img_size, device=device, filter=dinv.physics.blur.gaussian_blur(sigma=(1.)))
+        p = p1 * p2
+    elif name == "composition2":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(img_size=img_size, factor=2, device=device, filter=None)
+        p2 = dinv.physics.BlurFFT(img_size=(3, 8, 8), device=device, filter=dinv.physics.blur.gaussian_blur(sigma=(.5)))
+        p = p2 * p1
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):

@@ -212,7 +212,6 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
 
     # train the network
     trainer.train()
-
     final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
@@ -315,4 +314,29 @@ def test_loss_scheduler(scheduler_name):
     assert loss_total > 20
 
 
-# TODO test stacked physics loss
+def test_stacked_loss(device, imsize):
+    # choose a reconstruction architecture
+    backbone = dinv.models.MedianFilter()
+    f = dinv.models.ArtifactRemoval(backbone)
+
+    # choose training losses
+    loss = dinv.loss.StackedPhysicsLoss([dinv.loss.MCLoss(), dinv.loss.MCLoss(), dinv.loss.MCLoss()])
+
+    # choose noise
+    noise = dinv.physics.GaussianNoise(0.1)
+    physics = dinv.physics.StackedLinearPhysics([dinv.physics.Denoising(noise), dinv.physics.Denoising(noise), dinv.physics.Denoising(noise)])
+
+    # create a dummy image
+    x = torch.ones((1,) + imsize, device=device)
+
+    # apply the forward operator
+    y = physics(x)
+
+    # apply the denoiser
+    x_net = f(y, physics)
+
+    # calculate the loss
+    loss_value = loss(x=x, y=y, x_net=x_net, physics=physics, model=f)
+
+    assert loss_value > 0
+
