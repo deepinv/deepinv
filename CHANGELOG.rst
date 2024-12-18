@@ -12,6 +12,7 @@ New Features
 ^^^^^^^^^^^^
 - Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize, stacked physics, ... TODO (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -26,6 +27,7 @@ v0.2.2
 
 New Features
 ^^^^^^^^^^^^
+
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
@@ -49,7 +51,6 @@ Fixed
 - Fixed sphinx warnings (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Fix cache file initialization in FastMRI Dataloader (:gh:`300` by `Pierre-Antoine Comby`_)
 - Fixed prox_l2 no learning option in Trainer (:gh:`304` by `Julian Tachella`_)
-
 - Fixed SSIM to use lightweight torchmetrics function + add MSE and NMSE as metrics + allow PSNR & SSIM to set max pixel on the fly (:gh:`296` by `Andrew Wang`_)
 - Fix generate_dataset error with physics_generator and batch_size != 1. (:gh:`315` by apolychronou)
 - Fix generate_dataset error not using random physics generator (:gh:`324` by `Andrew Wang`_)
@@ -243,6 +244,7 @@ Authors
 ^^^^^^^
 
 .. _Julian Tachella: https://github.com/tachella
+.. _Dongdong Chen: https://www.dongdongchen.com
 .. _Jérémy Scanvic: https://github.com/jscanvic
 .. _Samuel Hurault: https://github.com/samuro95
 .. _Matthieu Terris: https://github.com/matthieutrs
