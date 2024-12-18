@@ -63,10 +63,10 @@ class CASSI(DecomposablePhysics):
         return torch.cat([torch.roll(x[:, [c]], s.item() if not un else -s.item(), dims=self.shear_dim) for c, s in enumerate(shifts)], dim=1)
 
     def flatten(self, x: Tensor) -> Tensor:
-        return x.mean(axis=1, keepdim=True) * self.img_size[0]
+        return x.mean(axis=1, keepdim=True) #* self.img_size[0]
 
     def unflatten(self, y: Tensor) -> Tensor:
-        return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) #/ self.img_size[0]
+        return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / self.img_size[0]
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         if self.mode == "ss":

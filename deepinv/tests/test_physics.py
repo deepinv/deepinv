@@ -54,7 +54,6 @@ OPERATORS = [
     "structured_random",
     "cassi"
 ]
-OPERATORS = ["cassi"]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
 
