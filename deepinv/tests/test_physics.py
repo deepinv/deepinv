@@ -52,7 +52,7 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
-    "cassi"
+    "cassi",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
