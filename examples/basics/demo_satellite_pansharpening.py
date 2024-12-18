@@ -18,6 +18,8 @@ For remote sensing experiments, DeepInverse provides the following:
 
     :class:`deepinv.physics.Pansharpen` - pan-sharpening physics
 
+    :class:`deepinv.physics.HyperSpectralUnmixing` - hyperspectral unmixing physics
+
     :class:`deepinv.physics.Downsampling` - superresolution physics
 
     :class:`deepinv.datasets.NBUDataset` - satellite imagery dataset
