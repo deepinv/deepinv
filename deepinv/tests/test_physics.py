@@ -641,7 +641,7 @@ def test_phase_retrieval_Avjp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
-def test_linear_physics_Avjp(device):
+def test_linear_physics_Avjp(device, rng):
     r"""
     Tests if the gradient computed with A_vjp method of linear physics is consistent with the autograd gradient.
 
@@ -650,7 +650,13 @@ def test_linear_physics_Avjp(device):
     """
     # essential to enable autograd
     torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
+    x = torch.randn(
+        (1, 1, 3, 3),
+        dtype=torch.float,
+        device=device,
+        generator=rng,
+        requires_grad=True,
+    )
     physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]

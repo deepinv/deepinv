@@ -81,6 +81,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         Returns a :class:`deepinv.physics.StackedPhysics` object.
 
+        See :ref:`physics_combining` for more information.
+
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.StackedPhysics) stacked operator
 
@@ -256,13 +258,13 @@ class LinearPhysics(Physics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
-        Linear operators can also be added. The measurements produced by the resulting
+        Linear operators can also be stacked. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
-        measurements of the corresponding operator:
+        measurements of the corresponding operator (see :ref:`physics_combining` for more information):
 
         >>> physics1 = Blur(filter=w)
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
-        >>> physics = physics1 + physics2
+        >>> physics = physics1.stack(physics2)
         >>> y = physics(x)
 
         Linear operators can also be composed by multiplying them:
@@ -405,6 +407,8 @@ class LinearPhysics(Physics):
 
             When using the ``stack`` operator between two noise objects, the operation will retain only the second
             noise.
+
+        See :ref:`physics_combining` for more information.
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.StackedPhysics) stacked operator
