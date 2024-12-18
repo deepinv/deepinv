@@ -35,14 +35,18 @@ These were proposed in the papers:
 
 """
 
-import deepinv as dinv
 import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
 from torchvision.datasets.utils import download_and_extract_archive
 
+import deepinv as dinv
+from deepinv.utils.demo import get_data_home
+
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+ORIGINAL_DATA_DIR = get_data_home() / "Urban100"
 
 
 # %%
@@ -85,7 +89,7 @@ dinv.utils.plot(
 #
 
 dataset = dinv.datasets.Urban100HR(
-    root="Urban100",
+    root=ORIGINAL_DATA_DIR,
     download=True,
     transform=Compose([ToTensor(), Resize(256), CenterCrop(256)]),
 )

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Union, Callable, Tuple
 
 from tqdm import tqdm
 import os
+from warnings import warn
 import h5py
 import torch
 from torch import Tensor
@@ -103,17 +104,18 @@ def generate_dataset(
     physics: Physics,
     save_dir: str,
     test_dataset: Dataset = None,
-    device: Union[torch.device, str] = "cpu",
+    dataset_filename: str = "dinv_dataset",
+    overwrite_existing: bool = True,
     train_datapoints: int = None,
     test_datapoints: int = None,
     physics_generator: PhysicsGenerator = None,
     save_physics_generator_params: bool = True,
-    dataset_filename: str = "dinv_dataset",
     batch_size: int = 4,
     num_workers: int = 0,
     supervised: bool = True,
     verbose: bool = True,
     show_progress_bar: bool = False,
+    device: Union[torch.device, str] = "cpu",
 ):
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
@@ -130,6 +132,10 @@ def generate_dataset(
 
         We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
+    ..info::
+
+        By default, we overwrite existing datasets if they have been previously created. To avoid this, set ``overwrite_existing=False``.
+
     :param torch.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
         with images used for generating associated measurements
         via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
@@ -140,7 +146,9 @@ def generate_dataset(
     :param str save_dir: folder where the dataset and forward operator will be saved.
     :param torch.data.Dataset test_dataset: if included, the function will also generate measurements associated to the
         test dataset.
-    :param torch.device device: which indicates cpu or gpu.
+    :param str dataset_filename: desired filename of the dataset (without extension).
+    :param bool overwrite_existing: if ``True``, create new dataset file, overwriting any existing dataset with the same ``dataset_filename``.
+        If ``False`` and dataset file already exists, does not create new dataset.
     :param int, None train_datapoints: Desired number of datapoints in the training dataset. If set to ``None``, it will use the
         number of datapoints in the base dataset. This is useful for generating a larger train dataset via data
         augmentation (which should be chosen in the train_dataset).
@@ -149,24 +157,19 @@ def generate_dataset(
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
             the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
     :param bool save_physics_generator_params: save physics generator params too, ignored if ``physics_generator`` not used.
-    :param str dataset_filename: desired filename of the dataset.
     :param int batch_size: batch size for generating the measurement data
         (it affects the speed of the generating process, and the physics generator batch size)
     :param int num_workers: number of workers for generating the measurement data
         (it only affects the speed of the generating process)
-    :param bool supervised: Generates supervised pairs (x,y) of measurements and signals.
-        If set to ``False``, it will generate a training dataset with measurements only (y)
-        and a test dataset with pairs (x,y)
+    :param bool supervised: Generates supervised pairs ``(x,y)`` of measurements and signals.
+        If set to ``False``, it will generate a training dataset with measurements only ``(y)``
+        and a test dataset with pairs ``(x,y)``
     :param bool verbose: Output progress information in the console.
     :param bool show_progress_bar: Show progress bar during the generation
-        of the dataset (if verbose is set to True).
+        of the dataset (if verbose is set to ``True``).
+    :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.
 
     """
-    if os.path.exists(os.path.join(save_dir, dataset_filename)):
-        print(
-            "WARNING: Dataset already exists, this will overwrite the previous dataset."
-        )
-
     if test_dataset is None and train_dataset is None:
         raise ValueError("No train or test datasets provided.")
 
@@ -205,6 +208,16 @@ def generate_dataset(
     for g in range(G):
         hf_path = f"{save_dir}/{dataset_filename}{g}.h5"
         hf_paths.append(hf_path)
+
+        if os.path.exists(hf_path):
+            if overwrite_existing:
+                warn(
+                    f"Dataset {hf_path} already exists, this will overwrite the previous dataset."
+                )
+            else:
+                warn(f"Dataset {hf_path} already exists, skipping...")
+                continue
+
         hf = h5py.File(hf_path, "w")
 
         hf.attrs["operator"] = physics[g].__class__.__name__
@@ -361,7 +374,7 @@ def generate_dataset(
                 index = index + bsize
         hf.close()
 
-    if verbose:
-        print("Dataset has been saved in " + str(save_dir))
+        if verbose:
+            print(f"Dataset has been saved at {hf_path}")
 
     return hf_paths[0] if G == 1 else hf_paths

@@ -1,3 +1,5 @@
+from math import sqrt
+from typing import Optional, List
 import pytest
 import torch
 import numpy as np
@@ -38,6 +40,9 @@ OPERATORS = [
     "fast_singlepixel",
     "MRI",
     "DynamicMRI",
+    "MultiCoilMRI",
+    "3DMRI",
+    "3DMultiCoilMRI",
     "aliased_pansharpen",
     "pansharpen_valid",
     "pansharpen_circular",
@@ -46,6 +51,7 @@ OPERATORS = [
     "complex_compressed_sensing",
     "radio",
     "radio_weighted",
+    "structured_random",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -84,7 +90,7 @@ def find_operator(name, device):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, rng=rng
+            m=m, img_shape=img_size, device=device, compute_inverse=True, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -109,11 +115,34 @@ def find_operator(name, device):
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
     elif name == "MRI":
-        img_size = (2, 16, 8)
+        img_size = (2, 17, 11)  # C,H,W
         p = dinv.physics.MRI(img_size=img_size, device=device)
+    elif name == "3DMRI":
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
-        img_size = (2, 3, 16, 8)
+        img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
         p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+    elif name == "MultiCoilMRI":
+        img_size = (2, 17, 11)  # C,H,W
+        n_coils = 7
+        maps = torch.ones(
+            (1, n_coils, 17, 11), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,H,W where N is coil dimension
+        p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+    elif name == "3DMultiCoilMRI":
+        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        n_coils = 15
+        maps = torch.ones(
+            (1, n_coils, 5, 17, 11), dtype=torch.complex64, device=device
+        ) / sqrt(
+            n_coils
+        )  # B,N,D,H,W where N is coils and D is depth
+        p = dinv.physics.MultiCoilMRI(
+            coil_maps=maps, img_size=img_size, three_d=True, device=device
+        )
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -218,12 +247,17 @@ def find_operator(name, device):
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, dtype=torch.cfloat, device=device, rng=rng
+            m=m,
+            img_shape=img_size,
+            dtype=torch.cdouble,
+            device=device,
+            compute_inverse=True,
+            rng=rng,
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
     elif "radio" in name:
-        dtype = torch.complex64
+        dtype = torch.cfloat
         img_size = (1, 64, 64)
         pytest.importorskip(
             "torchkbnufft",
@@ -261,6 +295,11 @@ def find_operator(name, device):
             dtype=torch.float,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
+        )
+    elif name == "structured_random":
+        img_size = (1, 8, 8)
+        p = dinv.physics.StructuredRandom(
+            input_shape=img_size, output_shape=img_size, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -307,7 +346,7 @@ def test_operators_adjointness(name, device):
     physics, imsize, _, dtype = find_operator(name, device)
 
     if name == "radio":
-        dtype = torch.complex64
+        dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
@@ -407,7 +446,8 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
-def test_MRI(mri_img_size, device, rng):
+@pytest.mark.parametrize("mri", [dinv.physics.MRI, dinv.physics.DynamicMRI])
+def test_MRI(mri, mri_img_size, device, rng):
     r"""
     Test MRI and DynamicMRI functions
 
@@ -418,58 +458,57 @@ def test_MRI(mri_img_size, device, rng):
     :param rng: (torch.Generator)
     """
 
-    for mri in (dinv.physics.MRI, dinv.physics.DynamicMRI):
-        B, C, T, H, W = mri_img_size
-        if rng.device != device:
-            rng = torch.Generator(device=device)
-        x, y = (
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
-            torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    B, C, T, H, W = mri_img_size
+    if rng.device != device:
+        rng = torch.Generator(device=device).manual_seed(0)
+    x, y = (
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    )
+
+    if mri is dinv.physics.MRI:
+        x = x[:, :, 0, :, :]
+        y = y[:, :, 0, :, :]
+
+    for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+        # Remove time dim for static MRI
+        _mask_size = (
+            mask_size
+            if mri is dinv.physics.DynamicMRI
+            else mask_size[:-3] + mask_size[-2:]
         )
 
-        if mri is dinv.physics.MRI:
-            x = x[:, :, 0, :, :]
-            y = y[:, :, 0, :, :]
+        mask, mask2 = (
+            torch.ones(_mask_size, device=device)
+            - torch.eye(*_mask_size[-2:], device=device),
+            torch.zeros(_mask_size, device=device)
+            + torch.eye(*_mask_size[-2:], device=device),
+        )
 
-        for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
-            # Remove time dim for static MRI
-            _mask_size = (
-                mask_size
-                if mri is dinv.physics.DynamicMRI
-                else mask_size[:-3] + mask_size[-2:]
-            )
+        # Empty mask
+        physics = mri(img_size=x.shape, device=device)
+        y1 = physics(x)
+        x1 = physics.A_adjoint(y)
+        assert torch.sum(y1 == 0) == 0
+        assert torch.sum(x1 == 0) == 0
 
-            mask, mask2 = (
-                torch.ones(_mask_size, device=device)
-                - torch.eye(*_mask_size[-2:], device=device),
-                torch.zeros(_mask_size, device=device)
-                + torch.eye(*_mask_size[-2:], device=device),
-            )
+        # Set mask in constructor
+        physics = mri(mask=mask, device=device)
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask == 0))
 
-            # Empty mask
-            physics = mri(img_size=x.shape, device=device)
-            y1 = physics(x)
-            x1 = physics.A_adjoint(y)
-            assert torch.sum(y1 == 0) == 0
-            assert torch.sum(x1 == 0) == 0
+        # Set mask in forward
+        y1 = physics(x, mask=mask2)
+        assert torch.all((y1 == 0) == (mask2 == 0))
 
-            # Set mask in constructor
-            physics = mri(mask=mask, device=device)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
+        # Mask retained in previous forward
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask2 == 0))
 
-            # Set mask in forward
-            y1 = physics(x, mask=mask2)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Mask retained in previous forward
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask2 == 0))
-
-            # Set mask via update_parameters
-            physics.update_parameters(mask=mask)
-            y1 = physics(x)
-            assert torch.all((y1 == 0) == (mask == 0))
+        # Set mask via update_parameters
+        physics.update_parameters(mask=mask)
+        y1 = physics(x)
+        assert torch.all((y1 == 0) == (mask == 0))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -503,10 +542,18 @@ def test_phase_retrieval(device):
     physics = dinv.physics.RandomPhaseRetrieval(
         m=500, img_shape=(1, 10, 10), device=device
     )
+    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
+        input_shape=(1, 10, 10),
+        output_shape=(1, 10, 10),
+        n_layers=2,
+        device=device,
+    )
     # nonnegativity
     assert (physics(x) >= 0).all()
+    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
+    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):
@@ -567,12 +614,12 @@ def test_physics_Avjp(device):
         assert torch.allclose(physics.A_vjp(x, v), v)
 
 
-def choose_noise(noise_type):
+def choose_noise(noise_type, device="cpu"):
     gain = 0.1
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
-    l = 2.0
+    l = torch.ones((1), device=device)
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -601,7 +648,7 @@ def test_noise(device, noise_type):
     Tests noise models.
     """
     physics = dinv.physics.DecomposablePhysics(device=device)
-    physics.noise_model = choose_noise(noise_type)
+    physics.noise_model = choose_noise(noise_type, device)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
     y1 = physics(
@@ -616,7 +663,7 @@ def test_noise_domain(device):
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
     """
-    x = torch.ones((3, 12, 7), device=device).unsqueeze(0)
+    x = torch.ones((1, 3, 12, 7), device=device)
     mask = torch.ones_like(x[0])
     # mask[:, x.shape[-2]//2-3:x.shape[-2]//2+3, x.shape[-1]//2-3:x.shape[-1]//2+3] = 0
     mask[0, 0, 0] = 0
@@ -782,3 +829,84 @@ def test_downsampling_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+def test_mri_fft():
+    """
+    Test that our torch FFT is the same as FastMRI FFT implementation.
+    The following 5 functions are taken from
+    from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/fftc.py
+    """
+
+    def fft2c_new(data: torch.Tensor, norm: str = "ortho") -> torch.Tensor:
+        if not data.shape[-1] == 2:
+            raise ValueError("Tensor does not have separate complex dim.")
+
+        data = ifftshift(data, dim=[-3, -2])
+        data = torch.view_as_real(
+            torch.fft.fftn(  # type: ignore
+                torch.view_as_complex(data), dim=(-2, -1), norm=norm
+            )
+        )
+        data = fftshift(data, dim=[-3, -2])
+
+        return data
+
+    def roll_one_dim(x: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
+        shift = shift % x.size(dim)
+        if shift == 0:
+            return x
+
+        left = x.narrow(dim, 0, x.size(dim) - shift)
+        right = x.narrow(dim, x.size(dim) - shift, shift)
+
+        return torch.cat((right, left), dim=dim)
+
+    def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
+        if len(shift) != len(dim):
+            raise ValueError("len(shift) must match len(dim)")
+
+        for s, d in zip(shift, dim):
+            x = roll_one_dim(x, s, d)
+
+        return x
+
+    def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+        if dim is None:
+            # this weird code is necessary for toch.jit.script typing
+            dim = [0] * (x.dim())
+            for i in range(1, x.dim()):
+                dim[i] = i
+
+        # also necessary for torch.jit.script
+        shift = [0] * len(dim)
+        for i, dim_num in enumerate(dim):
+            shift[i] = x.shape[dim_num] // 2
+
+        return roll(x, shift, dim)
+
+    def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+        if dim is None:
+            # this weird code is necessary for toch.jit.script typing
+            dim = [0] * (x.dim())
+            for i in range(1, x.dim()):
+                dim[i] = i
+
+        # also necessary for torch.jit.script
+        shift = [0] * len(dim)
+        for i, dim_num in enumerate(dim):
+            shift[i] = (x.shape[dim_num] + 1) // 2
+
+        return roll(x, shift, dim)
+
+    x = torch.randn(4, 2, 16, 8)  # B,C,H,W
+
+    # Our FFT
+    xf1 = dinv.physics.MRIMixin.from_torch_complex(
+        dinv.physics.MRIMixin.fft(dinv.physics.MRIMixin.to_torch_complex(x))
+    )
+
+    # FastMRI FFT
+    xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)
+
+    assert torch.all(xf1 == xf2)

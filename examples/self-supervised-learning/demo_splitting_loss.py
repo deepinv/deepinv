@@ -18,14 +18,22 @@ See :class:`deepinv.loss.SplittingLoss` for full details.
 
 """
 
-import deepinv as dinv
-from torch.utils.data import DataLoader
+from pathlib import Path
+
 import torch
+from torch.utils.data import DataLoader
 from torchvision import transforms, datasets
+
+import deepinv as dinv
+from deepinv.utils.demo import get_data_home
 from deepinv.models.utils import get_weights_url
 
 torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
+BASE_DIR = Path(".")
+DATA_DIR = BASE_DIR / "measurements"
+ORIGINAL_DATA_HOME = get_data_home()
 
 
 # %%
@@ -72,8 +80,12 @@ loss = dinv.loss.SplittingLoss(split_ratio=0.6, eval_split_input=True, eval_n_sa
 
 transform = transforms.Compose([transforms.ToTensor()])
 
-train_dataset = datasets.MNIST(root=".", train=True, transform=transform, download=True)
-test_dataset = datasets.MNIST(root=".", train=False, transform=transform, download=True)
+train_dataset = datasets.MNIST(
+    root=ORIGINAL_DATA_HOME, train=True, transform=transform, download=True
+)
+test_dataset = datasets.MNIST(
+    root=ORIGINAL_DATA_HOME, train=False, transform=transform, download=True
+)
 
 physics = dinv.physics.Tomography(
     angles=28,
@@ -87,7 +99,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     test_dataset=test_dataset,
     physics=physics,
     device=device,
-    save_dir="MNIST",
+    save_dir=DATA_DIR,
     train_datapoints=100,
     test_datapoints=10,
 )

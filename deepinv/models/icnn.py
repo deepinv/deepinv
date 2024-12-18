@@ -49,6 +49,7 @@ class ICNN(nn.Module):
                     padding=self.padding,
                     padding_mode="circular",
                     bias=False,
+                    device=device,
                 )
                 for i in range(self.n_layers)
             ]
@@ -65,6 +66,7 @@ class ICNN(nn.Module):
                     padding=self.padding,
                     padding_mode="circular",
                     bias=False,
+                    device=device,
                 )
                 for i in range(self.n_layers + 1)
             ]
@@ -79,6 +81,7 @@ class ICNN(nn.Module):
                     padding=self.padding,
                     padding_mode="circular",
                     bias=True,
+                    device=device,
                 )
                 for i in range(self.n_layers + 1)
             ]
@@ -93,6 +96,7 @@ class ICNN(nn.Module):
             padding=self.padding,
             padding_mode="circular",
             bias=False,
+            device=device,
         )
 
         # slope of leaky-relu

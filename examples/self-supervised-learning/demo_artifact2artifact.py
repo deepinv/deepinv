@@ -40,7 +40,6 @@ from deepinv.physics.generator import (
 torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-
 # %%
 # Load data
 # ---------
@@ -56,12 +55,8 @@ H = 128
 
 transform = transforms.Compose([transforms.Resize(H)])
 
-train_dataset = load_dataset(
-    "fastmri_knee_singlecoil", Path("."), transform, train=True
-)
-test_dataset = load_dataset(
-    "fastmri_knee_singlecoil", Path("."), transform, train=False
-)
+train_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=True)
+test_dataset = load_dataset("fastmri_knee_singlecoil", transform, train=False)
 
 train_dataset = Subset(train_dataset, torch.arange(5))
 test_dataset = Subset(test_dataset, torch.arange(30))

@@ -7,9 +7,10 @@ from abc import abstractmethod
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from .base import Denoiser
 
 
-class DiffUNet(nn.Module):
+class DiffUNet(Denoiser):
     r"""
     Diffusion UNet model.
 
@@ -410,10 +411,8 @@ class DiffUNet(nn.Module):
             sigma = torch.tensor(sigma).to(x.device)
 
         alpha = 1 / (1 + 4 * sigma**2)
-        x = alpha.sqrt() * x
-        x += 0.5 - alpha.sqrt() * 0.5
+        x = alpha.sqrt() * (2 * x - 1)
         sigma = sigma * alpha.sqrt()
-        x = 2.0 * x - 1.0
         (
             reduced_alpha_cumprod,
             sqrt_recip_alphas_cumprod,

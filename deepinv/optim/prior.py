@@ -51,6 +51,11 @@ class Zero(Prior):
 
     def __init__(self):
         super().__init__()
+
+        def forward(x, *args, **kwargs):
+            return torch.tensor(0.0)
+
+        self._g = forward
         self.explicit_prior = True
 
     def fn(self, x, *args, **kwargs):
@@ -142,7 +147,7 @@ class ScorePrior(Prior):
 
     .. note::
 
-        If math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
+        If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
         `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
 
 
@@ -259,8 +264,8 @@ class WaveletPrior(Prior):
     :math:`\Psi` is an orthonormal wavelet transform, and :math:`\|\cdot\|_{p}` is the :math:`p`-norm, with
     :math:`p=0`, :math:`p=1`, or :math:`p=\infty`.
 
-    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{c_{\text{min}, c_{\text{max}}}(x)`,
-    where :math:`\iota_{c_{\text{min}, c_{\text{max}}}(x)` is the indicator function of the interval :math:`[c_{\text{min}}, c_{\text{max}}]`.
+    If clamping parameters are provided, the prior writes as :math:`\reg{x} = \|\Psi x\|_{p} + \iota_{[c_{\text{min}}, c_{\text{max}}]}(x)`,
+    where :math:`\iota_{[c_{\text{min}}, c_{\text{max}}]}(x)` is the indicator function of the interval :math:`[c_{\text{min}}, c_{\text{max}}]`.
 
     .. note::
         Following common practice in signal processing, only detail coefficients are regularized, and the approximation
@@ -589,10 +594,15 @@ class PatchNR(Prior):
 class L12Prior(Prior):
     r"""
     :math:`\ell_{1,2}` prior :math:`\reg{x} = \sum_i\| x_i \|_2`.
+
     The :math:`\ell_2` norm is computed over a tensor axis that can be defined by the user. By default, ``l2_axis=-1``.
+
+    :param int l2_axis: dimension in which the :math:`\ell_2` norm is computed.
+
     |sep|
 
     :Examples:
+
     >>> import torch
     >>> from deepinv.optim import L12Prior
     >>> seed = torch.manual_seed(0) # Random seed for reproducibility

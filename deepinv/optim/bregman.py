@@ -104,6 +104,7 @@ class BregmanL2(Bregman):
 class BurgEntropy(Bregman):
     r"""
     Module for the using Burg's entropy as Bregman potential :math:`\phi(x) = - \sum_i \log x_i`.
+
     The corresponding Bregman divergence is the Itakura-Saito distance :math:`D(x,y) = \sum_i x_i / y_i - \log(x_i / y_i) - 1`.
     As shown in https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
     """
@@ -154,6 +155,7 @@ class BurgEntropy(Bregman):
 class NegEntropy(Bregman):
     r"""
     Module for the using negative entropy as Bregman potential :math:`\phi(x) = \sum_i x_i \log x_i`.
+
     The corresponding Bregman divergence is the Kullback-Leibler divergence :math:`D(x,y) = \sum_i x_i \log(x_i / y_i) - x_i + y_i`.
     """
 
