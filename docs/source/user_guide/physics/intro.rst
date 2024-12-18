@@ -157,7 +157,7 @@ can be done with :func:`deepinv.physics.stack`. The stacked operator is
     torch.Size([1, 1, 8, 8])
     >>> print(y[1].shape)
     torch.Size([1, 1, 4, 4])
-    >>> physics4 = physics4.stack(physics1) # add a new operator to the stack
+    >>> physics4 = physics3.stack(physics1) # add a new operator to the stack
     >>> len(physics4)
     3
 
