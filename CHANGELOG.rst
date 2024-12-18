@@ -11,6 +11,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
+- Add CASSI operator (:gh:`377` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

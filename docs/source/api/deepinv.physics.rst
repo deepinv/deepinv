@@ -50,6 +50,7 @@ Operators
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
+   deepinv.physics.CompressiveSpectralImaging
    deepinv.physics.HyperSpectralUnmixing
    deepinv.physics.CompressedSensing
    deepinv.physics.StructuredRandom

@@ -58,6 +58,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
    * - Remote Sensing / Multispectral
      - :class:`deepinv.physics.Pansharpen`
      - :class:`deepinv.physics.HyperSpectralUnmixing`
+     - :class:`deepinv.physics.CompressiveSpectralImaging`
      -
 
    * - Compressive

@@ -108,6 +108,9 @@ def find_operator(name, device):
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
+    elif name == "cassi":
+        p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
+        norm = 1 / img_size[0]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(
             tensor_size=img_size, mask=0.5, device=device, rng=rng
@@ -302,8 +305,6 @@ def find_operator(name, device):
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
-    elif name == "cassi":
-        p = dinv.physics.CASSI(img_size, device=device, rng=rng)
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype

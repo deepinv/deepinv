@@ -6,8 +6,8 @@ from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 
 
-class CASSI(DecomposablePhysics):
-    """Codeed-aperture snapshot spectral imaging operator.
+class CompressiveSpectralImaging(DecomposablePhysics):
+    """Coded-aperture snapshot spectral imaging operator.
 
     :param Tuple[int, int, int] img_size: C,H,W
     :param Union[Tensor] mask: _description_, defaults to None
@@ -74,10 +74,10 @@ class CASSI(DecomposablePhysics):
         )
 
     def flatten(self, x: Tensor) -> Tensor:
-        return x.mean(axis=1, keepdim=True)  # * self.img_size[0]
+        return x.mean(axis=1, keepdim=True)
 
     def unflatten(self, y: Tensor) -> Tensor:
-        return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / self.img_size[0]
+        return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / (self.img_size[0])
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         if self.mode == "ss":
