@@ -1,6 +1,6 @@
 r"""
-Pan-sharpening of satellite images
-==================================
+Remote sensing with satellite images
+====================================
 
 In this example we demonstrate remote sensing inverse problems for multispectral satellite imaging.
 We will focus on pan-sharpening, i.e., recovering high-resolution multispectral images from measurement pairs of
