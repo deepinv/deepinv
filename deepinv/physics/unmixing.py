@@ -15,26 +15,23 @@ class HyperSpectralUnmixing(LinearPhysics):
     As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 
-    Please see the survey at https://core.ac.uk/download/pdf/12043173.pdf for more details.
+    Please see the survey `Hyperspectral Unmixing Overview: Geometrical, Statistical, and Sparse Regression-Based Approaches <https://core.ac.uk/download/pdf/12043173.pdf>`_ for more details.
 
     Hyperspectral mixing is modelled using a Linear Mixing Model (LMM).
 
     .. math::
 
-        \mathbf{y}= \mathbf{M}\cdot\mathbf{\alpha} + \mathbf{\epsilon}
+        \mathbf{y}= \mathbf{M}\cdot\mathbf{x} + \mathbf{\epsilon}
 
     where :math:`\mathbf{y}` is the resulting image of shape `(B, C, H, W)`. LMM assumes each pixel :math:`\mathbf{y}_i`'s spectrum
     is a linear combination of the spectra of pure materials (endmembers) in the scene, represented by a matrix :math:`\mathbf{M}` of shape :math:`(E,C)`,
-    weighted by their fractional abundances in the pixel :math:`\alpha_i` of shape :math:`(B, E, H, W)` where :math:`\epsilon` represents measurement noise.
+    weighted by their fractional abundances in the pixel :math:`x_i` of shape :math:`(B, E, H, W)` where :math:`\epsilon` represents measurement noise.
 
-    The HU inverse problem aims to recover the abundance vector :math:`\mathbf{\alpha}` for each pixel in the image, essentially separating the mixed signals.
+    The HU inverse problem aims to recover the abundance vector :math:`\mathbf{x}` for each pixel in the image, essentially separating the mixed signals.
     If the endmember matrix :math:`\mathbf{M}` is unknown, then this must be estimated too.
 
-    .. note::
-
-        We use :math:`\alpha` and :math:`x` interchangeably to refer to the abundances.
-
-    :param torch.Tensor M: Matrix of endmembers of shape :math:`(E,C)`. Overrides ``E`` and ``C`` parameters. If ``None``, then a random matrix created, default ``None``.
+    :param torch.Tensor M: Matrix of endmembers of shape :math:`(E,C)`. Overrides ``E`` and ``C`` parameters.
+        If ``None``, then a random normalised matrix is simulated from a uniform distribution. Default ``None``.
     :param int E: Number of endmembers (e.g. number of materials). Ignored if ``M`` is set.  Default: ``15``.
     :param int C: Number of hyperspectral bands. Ignored if ``M`` is set. Default: ``64``.
     :param torch.device, str device: torch device, cpu or gpu.
@@ -130,57 +127,3 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
-
-
-if __name__ == "__main__":
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    #
-    # physics = HyperSpectralUnmixing(device=device)
-    #
-    # E, C = 15, 64
-    # B, H, W = 4, 128, 128
-    #
-    # a = torch.zeros((B, E, H, W))
-    # a[...,0:120, 0:120]=1
-    #
-    # y = physics.A(a)
-    #
-    # x_adjoint = physics.A_adjoint(y)
-    # x_dagger = physics.A_dagger(y)
-    #
-    # print(physics.M.shape, a.shape, y.shape, x_adjoint.shape, x_dagger.shape)
-    #
-    # print(torch.norm(x_dagger - a))
-    # # torch.Size([15, 64]) torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128])
-    # import deepinv as dinv
-    #
-    # dinv.utils.plot(
-    #     [
-    #         y[0, 0:1, ...],
-    #         y[0, 1:2, ...],
-    #         y[0, 2:3, ...],
-    #         y[0, 3:4, ...],
-    #         y[0, 4:5, ...],
-    #     ],
-    #     ["C1", "C2", "C3", "C4", "C5"],
-    # )
-
-    # Device configuration
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float32
-
-    # Define image size and physics
-    B, E, H, W = 4, 15, 128, 128
-    C = 64
-    img_size = (B, E, H, W)
-    physics = HyperSpectralUnmixing(E=E, C=C, H=H, W=W, device=device)
-
-    # Generate random abundance matrix
-    x = torch.randn(img_size, device=device, dtype=dtype)
-
-    # Compute r, y, and the error
-    r = physics.A_adjoint(physics.A(x))
-    y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    print(f"Error: {error.item()}")  # Error: 3.477338239576966e-08
-    assert error < 0.01
