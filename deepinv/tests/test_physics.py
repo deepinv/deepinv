@@ -913,3 +913,6 @@ def test_mri_fft():
     xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)
 
     assert torch.all(xf1 == xf2)
+
+    def test_CASSI():
+        pass #TODO
