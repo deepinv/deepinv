@@ -107,105 +107,44 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
-def test_diffpir(device):
-    from deepinv.models import DiffUNet
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+def test_algo(name_algo, imsize, device):
+    test_sample = torch.ones((1, 3, 64, 64))
 
-    x = torch.ones((1, 3, 32, 32)).to(device)
+    sigma = 1
+    sigma_prior = 1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+    y = physics(test_sample)
 
-    sigma = 12.75 / 255.0  # noise level
+    likelihood = L2(sigma=sigma)
 
-    physics = dinv.physics.BlurFFT(
-        img_size=(3, x.shape[-2], x.shape[-1]),
-        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    )
+    if name_algo == "DiffPIR":
+        f = DiffPIR(
+            dinv.models.DiffUNet(),
+            likelihood,
+            max_iter=5,
+            verbose=False,
+            device=device,
+        )
+    elif name_algo == "DPS":
+        f = DPS(
+            dinv.models.DiffUNet(),
+            likelihood,
+            max_iter=5,
+            verbose=False,
+            device=device,
+        )
+    else:
+        raise Exception("The sampling algorithm doesnt exist")
 
-    y = physics(x)
+    x = f(y, physics)
 
-    model = DiffUNet().to(device)
-    likelihood = L2()
-
-    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device=device)
-
-    with torch.no_grad():
-        out = algorithm(y, physics)
-
-    assert out.shape == x.shape
-
-
-def test_diffpir_inpaint(device):
-    from deepinv.models import DiffUNet
-
-    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
-    x[:, 0, ...] = 0  # create a colored image
-
-    torch.manual_seed(10)
-
-    mask = torch.ones_like(x)
-    mask[:, :, 10:20, 10:20] = 0
-
-    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
-
-    y = physics(x)
-
-    model = DiffUNet().to(device)
-    likelihood = L2()
-
-    algorithm = DiffPIR(
-        model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
-    )
-
-    with torch.no_grad():
-        out = algorithm(y, physics)
-
-    assert out.shape == x.shape
-
-    list_imgs = [x, y, out]
-    titles = ["Sample", "Observed", "Reconstructed"]
-    dinv.utils.plot(list_imgs, titles=titles)
-
-    mean_crop = out[:, :, 10:20, 10:20].flatten().mean()
-
-    mask = mask.bool()
-    masked_out = out[mask]
-    mean_outside_crop = masked_out.mean()
-
-    masked_target = x[mask]
-    mean_target_masked = masked_target.mean()
-    mean_target_inmask = 1 / 3.0
-
-    assert (mean_target_inmask - mean_crop).abs() < 0.2
-    assert (mean_target_masked - mean_outside_crop).abs() < 0.01
+    assert x.shape == test_sample.shape
 
 
-def test_dps(device):
-    from deepinv.models import DiffUNet
-
-    x = torch.ones((1, 3, 32, 32)).to(device)
-
-    sigma = 12.75 / 255.0  # noise level
-
-    physics = dinv.physics.BlurFFT(
-        img_size=(3, x.shape[-2], x.shape[-1]),
-        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    )
-
-    y = physics(x)
-
-    model = DiffUNet().to(device)
-    likelihood = L2()
-
-    with torch.no_grad():
-        algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
-
-    out = algorithm(y, physics)
-    assert out.shape == x.shape
-
-
-def test_dps_inpaint(device):
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
     x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
@@ -223,7 +162,12 @@ def test_dps_inpaint(device):
     model = DiffUNet().to(device)
     likelihood = L2()
 
-    algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+    if name_algo == "DiffPIR":
+        algorithm = DiffPIR(
+            model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
+        )
+    elif name_algo == "DPS":
+        algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
 
     with torch.no_grad():
         out = algorithm(y, physics)
