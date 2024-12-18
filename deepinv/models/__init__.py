@@ -28,3 +28,4 @@ from .gan import (
 )
 from .complex import to_complex_denoiser
 from .dynamic import TimeAgnosticNet, TimeAveragingNet
+from .varnet import VarNet

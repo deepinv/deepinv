@@ -7,7 +7,7 @@ from deepinv.datasets.utils import calculate_md5
 
 error_import = None
 try:
-    from datasets import load_dataset, load_from_disk
+    from datasets import load_dataset as load_dataset_hf, load_from_disk
 except:
     error_import = ImportError(
         "datasets is not available. Please install the datasets package with `pip install datasets`."
@@ -74,7 +74,7 @@ class CBSD68(torch.utils.data.Dataset):
             if download:
                 # source : https://github.com/huggingface/datasets/issues/6703
                 # load_dataset : download from Internet, raw data formats like CSV are processed into Arrow format, then saved in a cache dir
-                hf_dataset = load_dataset("deepinv/CBSD68", split="train")
+                hf_dataset = load_dataset_hf("deepinv/CBSD68", split="train")
 
                 # '__url__' column contains absolute paths to raw data in the cache dir which is unnecessary when saving the dataset
                 if "__url__" in hf_dataset.column_names:

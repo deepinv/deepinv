@@ -14,7 +14,7 @@ Using huggingface dataset
 # ----------------------------------------------------------------------------------------
 #
 
-from datasets import load_dataset
+from datasets import load_dataset as load_dataset_hf
 from torch.utils.data import IterableDataset, DataLoader
 from torchvision import transforms
 
@@ -31,7 +31,7 @@ import deepinv as dinv
 
 # source : https://huggingface.co/datasets/deepinv/drunet_dataset
 # type : datasets.iterable_dataset.IterableDataset
-raw_hf_train_dataset = load_dataset(
+raw_hf_train_dataset = load_dataset_hf(
     "deepinv/drunet_dataset", split="train", streaming=True
 )
 print("Number of data files used to store raw data: ", raw_hf_train_dataset.n_shards)
