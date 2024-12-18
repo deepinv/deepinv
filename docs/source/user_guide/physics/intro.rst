@@ -152,7 +152,7 @@ can be done with :func:`deepinv.physics.stack`. The stacked operator is
     >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
     >>> physics3 = dinv.physics.stack(physics1, physics2)
     >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
-    >>> y = physics(x) #
+    >>> y = physics3(x) #
     >>> print(y[0].shape)
     torch.Size([1, 1, 8, 8])
     >>> print(y[1].shape)
