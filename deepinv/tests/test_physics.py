@@ -437,7 +437,6 @@ def test_pseudo_inverse(name, device):
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    print(f"sunscone, error={error:.4e}")
     assert error < 0.01
 
 
