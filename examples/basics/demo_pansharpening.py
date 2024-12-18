@@ -32,7 +32,7 @@ physics1 = dinv.physics.Downsampling(
     img_size=img_size, factor=factor, filter=filter, device=device
 )
 physics2 = dinv.physics.Decolorize(device=device)
-physics_stacked = physics2 + physics1
+physics_stacked = dinv.physics.LinearPhysics.stack(physics2, physics1)
 
 # %%
 # Generate toy image
