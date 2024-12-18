@@ -40,7 +40,7 @@ class NBUDataset(Dataset):
 
     .. note::
 
-        Returns images as torch tensors normalised to 0-1 over the whole dataset.
+        Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
 
     |sep|
 
