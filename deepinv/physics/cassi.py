@@ -19,7 +19,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
 
     .. math::
 
-        
+        y = x
 
     For more details see e.g. `this overview <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
 
@@ -33,7 +33,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         >>> y = physics(x)
         >>> y.shape
         torch.Size([1, 1, 32, 32])
-        
+
 
     :param tuple img_size: image size, must be of form (C,H,W) where C is number of bands.
     :param Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
