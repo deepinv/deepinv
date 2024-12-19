@@ -62,6 +62,8 @@ Operators
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.StructuredRandomPhaseRetrieval
+   deepinv.physics.Ptychography
+   deepinv.physics.PtychographyLinearOperator
 
 
 .. autosummary::
@@ -92,6 +94,8 @@ Operators
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
    deepinv.physics.blur.sinc_filter
+   deepinv.physics.phase_retrieval.build_probe
+   deepinv.physics.phase_retrieval.generate_shifts
 
 Noise distributions
 -------------------

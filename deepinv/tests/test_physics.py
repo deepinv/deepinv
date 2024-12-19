@@ -54,9 +54,16 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
+    "ptychography_linear",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
+
+PHASE_RETRIEVAL_OPERATORS = [
+    "random_phase_retrieval",
+    "structured_random_phase_retrieval",
+    "ptychography",
+]
 
 NOISES = [
     "Gaussian",
@@ -332,6 +339,16 @@ def find_operator(name, device):
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
+    elif name == "ptychography_linear":
+        img_size = (1, 32, 32)
+        dtype = torch.complex64
+        norm = 1.32
+        p = dinv.physics.PtychographyLinearOperator(
+            img_size=img_size,
+            probe=None,
+            shifts=None,
+            device=device,
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -361,6 +378,35 @@ def find_nonlinear_operator(name, device):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
+
+
+def find_phase_retrieval_operator(name, device):
+    r"""
+    Chooses operator
+
+    :param name: operator name
+    :param device: (torch.device) cpu or cuda
+    :return: (deepinv.physics.PhaseRetrieval) forward operator.
+    """
+    if name == "random_phase_retrieval":
+        img_size = (1, 10, 10)
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
+    elif name == "ptychography":
+        img_size = (1, 32, 32)
+        p = dinv.physics.Ptychography(
+            in_shape=img_size,
+            probe=None,
+            shifts=None,
+            device=device,
+        )
+    elif name == "structured_random_phase_retrieval":
+        img_size = (1, 10, 10)
+        p = dinv.physics.StructuredRandomPhaseRetrieval(
+            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+        )
+    else:
+        raise Exception("The inverse problem chosen doesn't exist")
+    return p, img_size
 
 
 def test_stacking(device):
@@ -596,29 +642,21 @@ def test_concatenation(name, device):
     assert error < 0.01
 
 
-def test_phase_retrieval(device):
+@pytest.mark.parametrize("name", PHASE_RETRIEVAL_OPERATORS)
+def test_phase_retrieval(name, device):
     r"""
     Tests to ensure the phase retrieval operator is behaving as expected.
 
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    x = torch.randn((1, 1, 10, 10), dtype=torch.cfloat, device=device)
-    physics = dinv.physics.RandomPhaseRetrieval(
-        m=500, img_shape=(1, 10, 10), device=device
-    )
-    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
-        input_shape=(1, 10, 10),
-        output_shape=(1, 10, 10),
-        n_layers=2,
-        device=device,
-    )
+    physics, imsize = find_phase_retrieval_operator(name, device)
+    x = torch.randn(imsize, dtype=torch.cfloat, device=device).unsqueeze(0)
+
     # nonnegativity
     assert (physics(x) >= 0).all()
-    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
-    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):
