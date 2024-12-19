@@ -349,6 +349,7 @@ print(
 )
 
 # plot images
+# sphinx_gallery_multi_image = "single"
 imgs = [
     to_logimage(image_gdth),
     to_logimage(back, rescale=True),

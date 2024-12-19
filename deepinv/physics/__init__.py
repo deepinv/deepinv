@@ -33,6 +33,8 @@ from .phase_retrieval import (
     PhaseRetrieval,
     RandomPhaseRetrieval,
     StructuredRandomPhaseRetrieval,
+    PtychographyLinearOperator,
+    Ptychography,
 )
 from .radio import RadioInterferometry
 from .time import TimeMixin
