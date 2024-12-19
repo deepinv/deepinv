@@ -2,6 +2,7 @@ import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.physics import GaussianNoise, Denoising
+from deepinv.loss.metric import MSE
 
 
 class RectifiedFlowModel(torch.nn.Module):
@@ -15,7 +16,7 @@ class RectifiedFlowModel(torch.nn.Module):
 
     where :math:`Z_0 = x` is an image of :math:`n` pixels,
     :math:`Z_1 = y` is the measurements of same shape :math:`n` pixels,
-    :math:`v(Z_t,t)` is an unknow vector field estimated by our RF model.
+    :math:`v(Z_t,t)` is a vector field estimated by our RF model.
 
     This formulation is a simpler form of Flow matching...
 
@@ -104,9 +105,10 @@ class RFLoss(Loss):
     TODO !!!
     """
 
-    def __init__(self):
+    def __init__(self, metric = MSE()):
         super().__init__()
         self.name = "Rectified Flow loss"
+        self.metric = metric
 
     def forward(self, x_net, x, y, **kwargs):
         r"""
@@ -119,9 +121,7 @@ class RFLoss(Loss):
         :param torch.Tensor y: Noisy measurements from x.
         :return: (torch.Tensor) Loss per data sample.
         """
-        # shape : (b,) with b, the batch_size
-        batchwise_mse = ((x - x_net) ** 2).mean(dim=list(range(1, len(x.shape))))
-        return batchwise_mse
+        return self.metric(x_net, x)
 
     def adapt_model(self, model):
         return RectifiedFlowModel(model)

@@ -56,7 +56,6 @@ def test_scalar_mult_gaussian_noise(device, dtype):
     gaussian_noise_model = choose_noise("Gaussian", device)
     new_noise_model = t * gaussian_noise_model
 
-    # check return type
     assert isinstance(
         new_noise_model, dinv.physics.GaussianNoise
     ), f"Expected to have a GaussianNoise, instead got {type(noise_model)}"
