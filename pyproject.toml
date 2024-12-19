@@ -31,6 +31,7 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
+    "natsort",
 ]
 
 [tool.setuptools]
@@ -63,7 +64,6 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinxcontrib-googleanalytics @ git+https://github.com/sphinx-contrib/googleanalytics.git",
 ]
 
 # optional dependencies for specific denoisers
@@ -77,7 +77,7 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft",
-    "libcpab @ git+https://github.com/Andrewwango/libcpab.git"
+    "libcpab"
 ]
 
 # optional dependencies for specific datasets

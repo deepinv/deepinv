@@ -38,6 +38,7 @@ Data Fidelity
    :nosignatures:
 
    deepinv.optim.DataFidelity
+   deepinv.optim.StackedPhysicsDataFidelity
    deepinv.optim.L1
    deepinv.optim.L2
    deepinv.optim.IndicatorL2

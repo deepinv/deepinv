@@ -347,18 +347,19 @@ def scatter_plot(
         xy = torch.randn(10, 2)
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
-    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
-    :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     :param tuple[int] figsize: size of the figure.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
-    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param int fontsize: fontsize for the plot. Default: 17
+    :param float s: size of the scattered points. Default: 0.1
+    :param float linewidths: width of the lines. Default: 1.5
+    :param str color: color of the points. Default: blue
     """
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
