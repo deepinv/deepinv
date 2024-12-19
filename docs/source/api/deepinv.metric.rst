@@ -30,10 +30,11 @@ Full Reference Metrics
         deepinv.loss.metric.MAE
         deepinv.loss.metric.PSNR
         deepinv.loss.metric.SSIM
-        deepinv.loss.metric.QNR
         deepinv.loss.metric.L1L2
         deepinv.loss.metric.LpNorm
         deepinv.loss.metric.LPIPS
+        deepinv.loss.metric.SpectralAngleMapper
+        deepinv.loss.metric.ERGAS
 
 
 No Reference Metrics
@@ -46,3 +47,4 @@ No Reference Metrics
    :nosignatures:
 
         deepinv.loss.metric.NIQE
+        deepinv.loss.metric.QNR

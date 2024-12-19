@@ -317,7 +317,7 @@ class BlurFFT(DecomposablePhysics):
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
-        >>> physics = BlurFFT(filter=filter, img_size=(1, 1, 16, 16))
+        >>> physics = BlurFFT(filter=filter, img_size=(1, 16, 16))
         >>> y = physics(x)
         >>> y[y<1e-5] = 0.
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image

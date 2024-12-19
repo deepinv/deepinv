@@ -90,7 +90,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link-type: ref
 
         :octicon:`telescope-fill` **Introduction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
@@ -107,7 +107,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link-type: ref
 
         :octicon:`law` **Artifact Removal**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Reconstruction networks from denoisers
         and other image-to-image networks.
 
@@ -116,7 +116,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link-type: ref
 
         :octicon:`rocket` **Optimization**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Priors and data-fidelity functions,
         and optimization algorithms.
 
@@ -125,7 +125,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         :link-type: ref
 
         :octicon:`diff-renamed` **Unfolded Algorithms**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Unfolded architectures.
 
     .. grid-item-card::
@@ -137,20 +137,28 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         Plug-and-play, RED, variational methods.
 
     .. grid-item-card::
-        :link: adversarial
-        :link-type: ref
-
-        :octicon:`webhook` **Adversarial Reconstruction**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Conditional, unconditional GANs and deep image prior.
-
-    .. grid-item-card::
         :link: sampling
         :link-type: ref
 
         :octicon:`flame` **Sampling**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Diffusion and MCMC algorithms.
+
+    .. grid-item-card::
+        :link: adversarial
+        :link-type: ref
+
+        :octicon:`webhook` **Adversarial Reconstruction**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Conditional, unconditional GANs and deep image prior.
+
+    .. grid-item-card::
+        :link: specific
+        :link-type: ref
+
+        :octicon:`sun` **Custom Reconstruction Networks**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Custom reconstruction methods and networks.
 
 
 .. toctree::
@@ -166,6 +174,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
+   user_guide/reconstruction/specific
    user_guide/reconstruction/weights
 
 

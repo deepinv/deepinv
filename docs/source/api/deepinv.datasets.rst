@@ -47,3 +47,4 @@ Image Datasets
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
     deepinv.datasets.Kohler
+    deepinv.datasets.NBUDataset
