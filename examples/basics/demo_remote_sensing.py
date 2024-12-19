@@ -77,7 +77,10 @@ dinv.utils.plot(
     dpi=1200,
 )
 
+# %%
 # Evaluate performance - note we can only use QNR as we have no GT
+#
+
 qnr = dinv.metric.QNR()
 print(qnr(x_net=x_hat, x=None, y=y, physics=physics))
 
@@ -86,28 +89,28 @@ print(qnr(x_net=x_hat, x=None, y=y, physics=physics))
 # Simulate remote-sensing measurements
 # ------------------------------------
 # We can also simulate measurements from various remote sensing inverse problems so that we have pairs of
-# measurements and ground truth. Now, the dataset loads ground truth images ``x``.
-#
-# For the **pansharpening** physics, we assume a flat spectral response function,
-# but this can also be jointly learned. We simulate Gaussian noise on the panchromatic images.
-#
-# For **compressive spectral imaging**, we use the coded-aperture snapshot spectral imaging (CASSI) model,
-# which is a popular hyperspectral imaging method. See :class:`deepinv.physics.CompressiveSpectralImaging`
-#
-# For **hyperspectral unmixing**, our images are the measurements and we seek to recover abundances
-# given the endmember matrix in the linear mixing model.
+# measurements and ground truth. Now, the dataset loads ground truth images ``x``:
 #
 
 dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=False)
 
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 
-# Compressive spectral imaging with SD-CASSI
+# %%
+# For **compressive spectral imaging**, we use the coded-aperture snapshot spectral imaging (CASSI) model,
+# which is a popular hyperspectral imaging method. See :class:`deepinv.physics.CompressiveSpectralImaging`
+#
+
 physics = dinv.physics.CompressiveSpectralImaging(x.shape[1:], mode="sd")
 y = physics(x)  # 1,1,256,256
 dinv.utils.plot([x[:, :3], y], titles=["Image x", "CASSI meas. y"])
 
-# Unmixing with 2 endmembers: one purely yellow and one purely blue
+# %%
+# For **hyperspectral unmixing**, our images are the measurements and we seek to recover abundances
+# given the endmember matrix in the linear mixing model.
+# In this toy example, we perform unmixing with 2 endmembers: one purely yellow and one purely blue.
+#
+
 physics = dinv.physics.HyperSpectralUnmixing(
     M=torch.tensor([[0.5, 0.5, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]])
 )
@@ -117,7 +120,11 @@ dinv.utils.plot(
     titles=["Mixed image", "Yellow abudance", "Blue abundance"],
 )
 
-# Pansharpening simulation with flat SRF
+# %%
+# For the **pansharpening** physics, we assume a flat spectral response function,
+# but this can also be jointly learned. We simulate Gaussian noise on the panchromatic images.
+#
+
 physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, srf="flat")
 
 y = physics(x)
@@ -146,19 +153,25 @@ x_hat = physics.A_dagger(y)
 model = dinv.models.PanNet(hrms_shape=(4, 256, 256))
 x_net = model(y, physics)
 
+# %%
 # Example training loss using measurement consistency on the multispectral images
 # and Stein's Unbiased Risk Estimate on the panchromatic images.
+# For metrics, we use standard full-reference and no-reference multispectral pan-sharpening metrics,
+# since ground-truth is now available.
+
 loss = dinv.loss.StackedPhysicsLoss(
     [dinv.loss.MCLoss(), dinv.loss.SureGaussianLoss(0.05)]
 )
 
-# Evaluate performance when ground-truth available
 sam = dinv.metric.distortion.SpectralAngleMapper()
 ergas = dinv.metric.distortion.ERGAS(factor=4)
 qnr = dinv.metric.QNR()
 print(sam(x_hat, x), ergas(x_hat, x), qnr(x_hat, x=None, y=y, physics=physics))
 
-# Load optimizer and pretrained model
+# %%
+# For training, we first load optimizer and pretrained model,
+# then train using the deepinv Trainer.
+
 optimizer = torch.optim.Adam(model.parameters())
 
 from deepinv.models.utils import get_weights_url
@@ -171,7 +184,6 @@ ckpt = torch.hub.load_state_dict_from_url(
 model.load_state_dict(ckpt["state_dict"])
 optimizer.load_state_dict(ckpt["optimizer"])
 
-# Train using deepinv Trainer
 from torch.utils.data import DataLoader
 
 trainer = dinv.Trainer(
@@ -192,7 +204,8 @@ trainer = dinv.Trainer(
 trainer.train()
 trainer.test(DataLoader(dataset))
 
-# Plot results
+# %%
+# Plot sample results:
 dinv.utils.plot(
     [
         x[:, :3],
