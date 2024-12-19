@@ -51,26 +51,30 @@ class BaseSDESolver(nn.Module):
 
     Currently only supported for fixed time steps for numerical integration.
 
-    :param deepinv.sampling.BaseSDE sde: the SDE to solve.
+    :param torch.Tensor timesteps: time steps at which the SDE will be discretized.
+    :param bool full_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     """
 
     def __init__(
         self,
-        sde,
+        timesteps: Union[Tensor, ndarray],
+        full_trajectory: bool = False,
         rng: Optional[torch.Generator] = None,
     ):
         super().__init__()
-        self.sde = sde
+        self.timesteps = timesteps
+        self.full_trajectory = full_trajectory
 
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
 
-    def step(self, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
+    def step(self, sde, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
         r"""
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
+        :param deepinv.sampling.BaseSDE sde: the SDE to solve.
         :param float or Tensor t0: Time at the start of the step, of size (,).
         :param float or Tensor t1: Time at the end of the step, of size (,).
         :param Tensor x0: Current state of the system, of size (batch_size, d).
@@ -85,10 +89,11 @@ class BaseSDESolver(nn.Module):
     @torch.no_grad()
     def sample(
         self,
+        sde,
         x_init: Tensor,
+        seed: int = None,
         *args,
         timesteps: Union[Tensor, ndarray] = None,
-        full_trajectory: bool = False,
         **kwargs,
     ) -> SDEOutput:
         r"""
@@ -97,22 +102,29 @@ class BaseSDESolver(nn.Module):
         This function iteratively applies the SDE solver step for each time interval
         defined by the provided timesteps.
 
+        :param deepinv.sampling.BaseSDE sde: the SDE to solve.
         :param Tensor x_init: The initial state of the system.
+        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
         :param Union[Tensor, ndarray] timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
 
         :return: SDEOutput
         """
+        self.rng_manual_seed(seed)
         x = x_init
         nfe = 0
-        trajectory = [x_init.clone()] if full_trajectory else []
+        trajectory = [x_init.clone()] if self.full_trajectory else []
+
+        if timesteps is None:
+            timesteps = self.timesteps
+
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
-            x, cur_nfe = self.step(t_cur, t_next, x, *args, **kwargs)
+            x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
-            if full_trajectory:
+            if self.full_trajectory:
                 trajectory.append(x.clone())
-        if full_trajectory:
+        if self.full_trajectory:
             trajectory = torch.stack(trajectory, dim=0)
         else:
             trajectory = x
@@ -165,30 +177,33 @@ class BaseSDESolver(nn.Module):
 
 
 class EulerSolver(BaseSDESolver):
-    def __init__(self, sde, rng: torch.Generator = None):
-        super().__init__(sde, rng=rng)
+    def __init__(
+        self, timesteps, full_trajectory: bool = False, rng: torch.Generator = None
+    ):
+        super().__init__(timesteps, full_trajectory, rng=rng)
 
-    def step(self, t0, t1, x0: Tensor, *args, **kwargs):
+    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
-        drift, diffusion = self.sde.discretize(x0, t0, *args, **kwargs)
+        drift, diffusion = sde.discretize(x0, t0, *args, **kwargs)
         return x0 + drift * dt + diffusion * dW, 1
 
 
 class HeunSolver(BaseSDESolver):
     def __init__(
         self,
-        sde,
+        timesteps,
+        full_trajectory: bool = False,
         rng: torch.Generator = None,
     ):
-        super().__init__(sde, rng=rng)
+        super().__init__(timesteps, full_trajectory, rng=rng)
 
-    def step(self, t0, t1, x0: Tensor, *args, **kwargs):
+    def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
         dW = self.randn_like(x0) * dt**0.5
-        drift_0, diffusion_0 = self.sde.discretize(x0, t0, *args, **kwargs)
+        drift_0, diffusion_0 = sde.discretize(x0, t0, *args, **kwargs)
         x_euler = x0 + drift_0 * dt + diffusion_0 * dW
-        drift_1, diffusion_1 = self.sde.discretize(x_euler, t1, *args, **kwargs)
+        drift_1, diffusion_1 = sde.discretize(x_euler, t1, *args, **kwargs)
 
         return (
             x0
@@ -196,12 +211,3 @@ class HeunSolver(BaseSDESolver):
             + 0.5 * (diffusion_0 + diffusion_1) * dW,
             2,
         )
-
-
-def select_solver(name: str = "euler") -> BaseSDESolver:
-    if name.lower() == "euler":
-        return EulerSolver
-    elif name.lower() == "heun":
-        return HeunSolver
-    else:
-        raise ValueError("Invalid SDE solver name.")

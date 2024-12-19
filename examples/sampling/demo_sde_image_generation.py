@@ -22,7 +22,7 @@ The reverse-time SDE is defined as follows, running backward in time:
 .. math::
     d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right( d\,t + g(t) d\, w_t.
 
-This reverse-time SDE can be used as a generative process. 
+This reverse-time SDE can be used as a generative process.
 The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
 
 .. math::
@@ -33,7 +33,7 @@ then
 .. math::
     \nabla \log p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
 
-Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
+Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 """
 
@@ -45,8 +45,7 @@ import torch
 import numpy as np
 
 import deepinv as dinv
-from deepinv.models.edm import NCSNpp, EDMPrecond, ADMUNet
-from deepinv.utils.plotting import plot
+from deepinv.models.edm import NCSNpp, EDMPrecond
 
 # device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device = "cpu"
@@ -71,18 +70,15 @@ denoiser = EDMPrecond(model=unet).to(device)
 #     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
 from deepinv.sampling.sde import VESDE
+from deepinv.sampling.sde_solver import EulerSolver
 
 sigma_min = 0.02
 sigma_max = 20
-
-# The reproducibility of the SDE class can be controlled by providing the pseudo-random number generator.
-rng = torch.Generator(device).manual_seed(42)
 
 sde = VESDE(
     denoiser=denoiser,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
-    rng=rng,
     device=device,
     use_backward_ode=False,
 )
@@ -93,19 +89,19 @@ sde = VESDE(
 #
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
-num_steps = 20
+num_steps = 100
 timesteps = np.linspace(0, 1, num_steps)[::-1]
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
-
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=1, full_trajectory=True
-)
+# The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
+rng = torch.Generator(device).manual_seed(42)
+solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
+solution = sde((1, 3, 64, 64), solver=solver, seed=1)
 
 sample_seed_1 = solution.sample
 
 dinv.utils.plot(
-    sample_seed_1, titles="VE-SDE sample", save_fn="sde_sample.png", show=False
+    sample_seed_1, titles="VE-SDE sample", save_fn="sde_sample.png", show=True
 )
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
@@ -153,9 +149,7 @@ except FileNotFoundError:
 # be generated when the same seed is used
 
 # By changing the seed, we can obtain different samples:
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=111, full_trajectory=True
-)
+solution = sde((1, 3, 64, 64), solver=solver, seed=111)
 sample_seed_111 = solution.sample
 
 dinv.utils.plot(
@@ -185,16 +179,13 @@ sde = VESDE(
     rescale=True,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
-    rng=rng,
     device=device,
     use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=101, full_trajectory=True
-)
+solution = sde((1, 3, 64, 64), solver=solver, seed=101)
 dinv.utils.plot(
     solution.sample, titles=["VE-SDE sample"], show=False, save_fn="sde_sample.png"
 )
@@ -245,7 +236,6 @@ except FileNotFoundError:
 # We can change its value as well.
 sigma_min = 0.02
 sigma_max = 20
-rng = torch.Generator(device)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VESDE(
@@ -253,16 +243,13 @@ sde = VESDE(
     rescale=True,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
-    rng=rng,
     device=device,
     use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=111, full_trajectory=True
-)
+solution = sde((1, 3, 64, 64), solver=solver, seed=111)
 
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
@@ -306,16 +293,13 @@ sde = VESDE(
     rescale=True,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
-    rng=rng,
     device=device,
     use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde(
-    (1, 3, 64, 64), timesteps=timesteps, method="Euler", seed=10, full_trajectory=True
-)
+solution = sde((1, 3, 64, 64), solver=solver, seed=10)
 
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
