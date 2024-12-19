@@ -48,11 +48,10 @@ class CompressiveSpectralImaging(DecomposablePhysics):
     :param tuple img_size: image size, must be of form (C,H,W) where C is number of bands.
     :param Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
         :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` with masking ratio
-        of 0.5, if mask is ``float``, sets mask ratio to this.
+        of 0.5, if mask is ``float``, sets mask ratio to this. If ``Tensor``, set mask to this,
+        must be of shape ``(B,C,H,W)``.
     :param str mode: 'sd' = single disperser (i.e. only spatial encoding) or
         'ss' = spatial-spectral encoding, defaults to 'ss'. See above for details.
-    :param float shear_factor: shear amount for spatial/spectral encoding. If 1, this equates
-        to integer pixel shear. Defaults to 0.5.
     :param str shear_dir: shear in H-C plane or W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
@@ -63,21 +62,17 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         img_size: Tuple[int, int, int],  # C,H,W
         mask: Union[Tensor, float] = None,
         mode: str = "ss",
-        shear_factor: float = 0.5,
         shear_dir: str = "h",
         device: torch.device = "cpu",
         rng: torch.Generator = None,
         **kwargs,
     ):
-
         super().__init__(**kwargs)
 
         if len(img_size) != 3:
             raise ValueError("img_size must be (C, H, W)")
-
         self.img_size = img_size  # C,H,W
         self.C = img_size[0]
-        self.shear_factor = shear_factor
 
         if shear_dir.lower() not in ("h", "w"):
             raise ValueError("shear_dir must be either 'h' or 'w'.")
@@ -88,27 +83,35 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         self.mode = mode.lower()
 
         if mask is None or isinstance(mask, float):
+            # B,C,H,W pixelwise
             mask = BernoulliSplittingMaskGenerator(
                 img_size,
                 split_ratio=0.5 if mask is None else mask,
                 device=device,
                 rng=rng,
-            ).step()[
-                "mask"
-            ]  # B,C,H,W pixelwise
+            ).step()["mask"]
 
         self.mask = mask
 
+        # In SS-CASSI, masking happens on the padded image after shearing
         if self.mode == "ss":
             self.mask = self.pad(self.mask)
 
-    def pad(self, x):
+    def pad(self, x: Tensor) -> Tensor:
+        """Pad image on bottom or on right.
+
+        :param Tensor x: input image
+        """
         if self.shear_dir == "h":
             return pad(x, (0, 0, 0, self.C - 1), value=1.0)
         elif self.shear_dir == "w":
             return pad(x, (0, self.C - 1), value=1.0)
 
-    def crop(self, x):
+    def crop(self, x: Tensor) -> Tensor:
+        """Crop image on bottom or on right.
+
+        :param Tensor x: input padded image
+        """
         if self.shear_dir == "h":
             return x[:, :, : (1 - self.C), :]
         elif self.shear_dir == "w":
@@ -122,14 +125,15 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         """
         H, W = x.shape[-2:]
 
-        w = torch.zeros_like(x)
+        # Construct kernel
+        ker = torch.zeros_like(x)
         for i in range(self.C):
             if self.shear_dir == "h":
-                w[:, i, (H - 1) // 2 - 0 + (-i if un else i), (W - 1) // 2 - 0] = 1
+                ker[:, i, (H - 1) // 2 - 0 + (-i if un else i), (W - 1) // 2 - 0] = 1
             elif self.shear_dir == "w":
-                w[:, i, (H - 1) // 2 - 0, (W - 1) // 2 - 0 + (-i if un else i)] = 1
+                ker[:, i, (H - 1) // 2 - 0, (W - 1) // 2 - 0 + (-i if un else i)] = 1
 
-        return conv2d(x, w, padding="constant")
+        return conv2d(x, ker, padding="constant")
 
     def flatten(self, x: Tensor) -> Tensor:
         """Average over channel dimension
