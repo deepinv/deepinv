@@ -1027,3 +1027,34 @@ def test_CASSI(shear_dim, imsize, device, multispectral_channels, rng, cassi_mod
     )
     y = physics(x)
     assert y.shape == (x.shape[0], 1, *x.shape[2:])
+
+
+def test_unmixing(device):
+    physics = dinv.physics.HyperSpectralUnmixing(
+        M=torch.tensor(
+            [
+                [0.5, 0.5, 0.0],  # yellow endmember
+                [0.0, 0.0, 1.0],  # blue endmember
+            ],
+            device=device,
+        ),
+        device=device,
+    )
+    # Image of shape B,C,H,W
+    # Image consists of 2 pixels, one yellow and one blue
+    y = (
+        torch.tensor(
+            [
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [0.0, 1.0],
+            ],
+            device=device,
+        )
+        .unsqueeze(-1)
+        .unsqueeze(0)
+    )
+    x_hat = physics.A_adjoint(y)
+
+    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
+    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))

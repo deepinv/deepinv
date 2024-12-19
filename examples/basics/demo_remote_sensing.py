@@ -3,19 +3,24 @@ Remote sensing with satellite images
 ====================================
 
 In this example we demonstrate remote sensing inverse problems for multispectral satellite imaging.
-We will focus on pan-sharpening, i.e., recovering high-resolution multispectral images from measurement pairs of
+
+These have important applications for image restoration in environmental monitoring, urban planning, disaster recovery etc.
+
+We will demonstrate pan-sharpening, i.e., recovering high-resolution multispectral images from measurement pairs of
 low-resolution multispectral images and high-resolution panchromatic (single-band) images with the forward
 operator :class:`deepinv.physics.Pansharpen`.
 
-These have important applications for image restoration in environmental monitoring, urban planning, disaster recovery etc.
+We will also demonstrate other inverse problems including compressive spectral imaging and hyperspectral unmixing.
 
 We provide a convenient satellite image dataset for pan-sharpening :class:`deepinv.datasets.NBUDataset` provided in the paper `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_
 which includes data from several satellites such as WorldView satellites.
 
-For remote sensing experiments, DeepInverse provides the following:
+.. tip::
 
-.. seealso::
+    For remote sensing experiments, DeepInverse provides the following classes:
 
+    - :class:`Pan-sharpening <deepinv.physics.Pansharpen>`
+    - :class:`Compressive spectral imaging <deepinv.physics.CompressiveSpectralImaging>`
     - :class:`Hyperspectral unmixing <deepinv.physics.HyperSpectralUnmixing>`
     - :class:`Super resolution <deepinv.physics.Downsampling>`
     - :class:`Satellite imagery dataset <deepinv.datasets.NBUDataset>`
@@ -78,18 +83,41 @@ print(qnr(x_net=x_hat, x=None, y=y, physics=physics))
 
 
 # %%
-# Simulate pan-sharpening measurements
+# Simulate remote-sensing measurements
 # ------------------------------------
-# We can also simulate pan-sharpening measurements so that we have pairs of
+# We can also simulate measurements from various remote sensing inverse problems so that we have pairs of
 # measurements and ground truth. Now, the dataset loads ground truth images ``x``.
-# For the pansharpening physics, we assume a flat spectral response function,
+#
+# For the **pansharpening** physics, we assume a flat spectral response function,
 # but this can also be jointly learned. We simulate Gaussian noise on the panchromatic images.
+#
+# For **compressive spectral imaging**, we use the coded-aperture snapshot spectral imaging (CASSI) model,
+# which is a popular hyperspectral imaging method. See :class:`deepinv.physics.CompressiveSpectralImaging`
+#
+# For **hyperspectral unmixing**, our images are the measurements and we seek to recover abundances
+# given the endmember matrix in the linear mixing model.
 #
 
 dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=False)
 
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 
+# Compressive spectral imaging with CASSI
+physics = dinv.physics.CompressiveSpectralImaging(x.shape[1:])
+y = physics(x)  # 1,1,256,256
+dinv.utils.plot([x[:, :3], y], titles=["Image x", "CASSI meas. y"])
+
+# Unmixing with 2 endmembers: one purely yellow and one purely blue
+physics = dinv.physics.HyperSpectralUnmixing(
+    M=torch.tensor([[0.5, 0.5, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]])
+)
+abundance = physics.A_adjoint(x)  # 1,2,256,256
+dinv.utils.plot(
+    [x[:, :3], abundance[:, [0]], abundance[:, [1]]],
+    titles=["Mixed image", "Yellow abudance", "Blue abundance"],
+)
+
+# Pansharpening simulation with flat SRF
 physics = dinv.physics.Pansharpen((4, 256, 256), factor=4, srf="flat")
 
 y = physics(x)
