@@ -111,6 +111,7 @@ def find_operator(name, device):
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
     elif name == "cassi":
+        img_size = (7, 37, 31)
         p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
         norm = 1 / img_size[0]
     elif name == "inpainting":
@@ -986,11 +987,17 @@ def test_mri_fft():
 
     assert torch.all(xf1 == xf2)
 
+
+@pytest.fixture
+def multispectral_channels():
+    return 7
+
+
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
-def test_decolorize(srf, device, imsize):
+def test_decolorize(srf, device, imsize, multispectral_channels):
     from numpy import allclose
 
-    channels = 7
+    channels = multispectral_channels
     if srf == "list":
         srf = list(range(channels))
         srf = [s / sum(srf) for s in srf]
@@ -1003,5 +1010,20 @@ def test_decolorize(srf, device, imsize):
     assert allclose(sum(physics.srf), 1.0, rtol=1e-4)
     assert len(physics.srf) == channels
 
-def test_CASSI():
-    pass #TODO
+
+@pytest.mark.parametrize("shear_dim", ["h", "w"])
+@pytest.mark.parametrize("cassi_mode", ["ss", "sd"])
+def test_CASSI(shear_dim, imsize, device, multispectral_channels, rng, cassi_mode):
+    channels = multispectral_channels
+
+    x = torch.ones(1, channels, *imsize[-2:])
+    physics = dinv.physics.CompressiveSpectralImaging(
+        (channels, *imsize[-2:]),
+        mask=None,
+        mode=cassi_mode,
+        shear_dim=shear_dim,
+        device=device,
+        rng=rng,
+    )
+    y = physics(x)
+    assert y.shape == (x.shape[0], 1, *x.shape[2:])
