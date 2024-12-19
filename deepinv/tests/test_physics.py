@@ -54,6 +54,7 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
+    "cassi",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
@@ -109,6 +110,10 @@ def find_operator(name, device):
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
+    elif name == "cassi":
+        img_size = (7, 37, 31)
+        p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
+        norm = 1 / img_size[0]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(
             tensor_size=img_size, mask=0.5, device=device, rng=rng
@@ -983,11 +988,16 @@ def test_mri_fft():
     assert torch.all(xf1 == xf2)
 
 
+@pytest.fixture
+def multispectral_channels():
+    return 7
+
+
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
-def test_decolorize(srf, device, imsize):
+def test_decolorize(srf, device, imsize, multispectral_channels):
     from numpy import allclose
 
-    channels = 7
+    channels = multispectral_channels
     if srf == "list":
         srf = list(range(channels))
         srf = [s / sum(srf) for s in srf]
@@ -999,3 +1009,52 @@ def test_decolorize(srf, device, imsize):
     assert x2.shape == x.shape
     assert allclose(sum(physics.srf), 1.0, rtol=1e-4)
     assert len(physics.srf) == channels
+
+
+@pytest.mark.parametrize("shear_dim", ["h", "w"])
+@pytest.mark.parametrize("cassi_mode", ["ss", "sd"])
+def test_CASSI(shear_dim, imsize, device, multispectral_channels, rng, cassi_mode):
+    channels = multispectral_channels
+
+    x = torch.ones(1, channels, *imsize[-2:])
+    physics = dinv.physics.CompressiveSpectralImaging(
+        (channels, *imsize[-2:]),
+        mask=None,
+        mode=cassi_mode,
+        shear_dim=shear_dim,
+        device=device,
+        rng=rng,
+    )
+    y = physics(x)
+    assert y.shape == (x.shape[0], 1, *x.shape[2:])
+
+
+def test_unmixing(device):
+    physics = dinv.physics.HyperSpectralUnmixing(
+        M=torch.tensor(
+            [
+                [0.5, 0.5, 0.0],  # yellow endmember
+                [0.0, 0.0, 1.0],  # blue endmember
+            ],
+            device=device,
+        ),
+        device=device,
+    )
+    # Image of shape B,C,H,W
+    # Image consists of 2 pixels, one yellow and one blue
+    y = (
+        torch.tensor(
+            [
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [0.0, 1.0],
+            ],
+            device=device,
+        )
+        .unsqueeze(-1)
+        .unsqueeze(0)
+    )
+    x_hat = physics.A_adjoint(y)
+
+    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
+    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
