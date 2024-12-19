@@ -11,9 +11,6 @@ Current
 New Features
 ^^^^^^^^^^^^
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
-- Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
-- StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
-- Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
 
 Fixed
 ^^^^^
