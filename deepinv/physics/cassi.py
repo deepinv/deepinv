@@ -1,9 +1,11 @@
 from typing import Tuple, Union
 import torch
 from torch import Tensor
+from torch.nn.functional import pad
 
 from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+from deepinv.physics.functional.convolution import conv2d
 
 
 class CompressiveSpectralImaging(DecomposablePhysics):
@@ -50,7 +52,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         'ss' = spatial-spectral encoding, defaults to 'ss'. See above for details.
     :param float shear_factor: shear amount for spatial/spectral encoding. If 1, this equates
         to integer pixel shear. Defaults to 0.5.
-    :param str shear_dim: shear in H-C plane or W-C plane where C is channel dim, defaults to "h"
+    :param str shear_dir: shear in H-C plane or W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
     """
@@ -61,7 +63,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         mask: Union[Tensor, float] = None,
         mode: str = "ss",
         shear_factor: float = 0.5,
-        shear_dim: str = "h",
+        shear_dir: str = "h",
         device: torch.device = "cpu",
         rng: torch.Generator = None,
         **kwargs,
@@ -73,14 +75,12 @@ class CompressiveSpectralImaging(DecomposablePhysics):
             raise ValueError("img_size must be (C, H, W)")
 
         self.img_size = img_size  # C,H,W
+        self.C = img_size[0]
         self.shear_factor = shear_factor
 
-        if shear_dim.lower() == "h":
-            self.shear_dim = 2
-        elif shear_dim.lower() == "w":
-            self.shear_dim = 3
-        else:
-            raise ValueError("shear_dim must be either 'h' or 'w'.")
+        if shear_dir.lower() not in ("h", "w"):
+            raise ValueError("shear_dir must be either 'h' or 'w'.")
+        self.shear_dir = shear_dir.lower()
 
         if mode.lower() not in ("ss", "sd"):
             raise ValueError("mode must be either 'ss' or 'sd'.")
@@ -98,22 +98,37 @@ class CompressiveSpectralImaging(DecomposablePhysics):
 
         self.mask = mask
 
+        if self.mode == "ss":
+            self.mask = self.pad(self.mask)
+
+    def pad(self, x):
+        if self.shear_dir == "h":
+            return pad(x, (0, 0, 0, self.C - 1), value=1.0)
+        elif self.shear_dir == "w":
+            return pad(x, (0, self.C - 1), value=1.0)
+
+    def crop(self, x):
+        if self.shear_dir == "h":
+            return x[:, :, : (1 - self.C), :]
+        elif self.shear_dir == "w":
+            return x[:, :, :, : (1 - self.C)]
+
     def shear(self, x: Tensor, un=False) -> Tensor:
-        """Pixel shear in channel-spatial plane
+        """Efficient pixel shear in channel-spatial plane
 
         :param Tensor x: input image of shape (B,C,H,W)
         :param bool un: if ``True``, unshear in opposite direction.
         """
-        shifts = (torch.arange(x.shape[1]) * self.shear_factor).floor().int()
-        return torch.cat(
-            [
-                torch.roll(
-                    x[:, [c]], s.item() if not un else -s.item(), dims=self.shear_dim
-                )
-                for c, s in enumerate(shifts)
-            ],
-            dim=1,
-        )
+        H, W = x.shape[-2:]
+
+        w = torch.zeros_like(x)
+        for i in range(self.C):
+            if self.shear_dir == "h":
+                w[:, i, (H - 1) // 2 - 0 + (-i if un else i), (W - 1) // 2 - 0] = 1
+            elif self.shear_dir == "w":
+                w[:, i, (H - 1) // 2 - 0, (W - 1) // 2 - 0 + (-i if un else i)] = 1
+
+        return conv2d(x, w, padding="constant")
 
     def flatten(self, x: Tensor) -> Tensor:
         """Average over channel dimension
@@ -130,25 +145,32 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / (self.img_size[0])
 
     def V_adjoint(self, x: Tensor) -> Tensor:
+        if x.shape[1:] != self.img_size:
+            raise ValueError("Input must be same shape as img_shape.")
+
         if self.mode == "ss":
-            return self.shear(x)
+            return self.shear(self.pad(x))
         elif self.mode == "sd":
             return x
 
     def U(self, x: Tensor) -> Tensor:
         if self.mode == "ss":
-            return self.flatten(self.shear(x, un=True))
+            return self.crop(self.flatten(self.shear(x, un=True)))
         elif self.mode == "sd":
-            return self.flatten(self.shear(x))
+            return self.flatten(self.shear(self.pad(x)))
 
     def U_adjoint(self, y: Tensor) -> Tensor:
         if self.mode == "ss":
-            return self.shear(self.unflatten(y))
+            return self.shear(self.pad(self.unflatten(y)))
         elif self.mode == "sd":
-            return self.shear(self.unflatten(y), un=True)
+            return self.crop(self.shear(self.unflatten(y), un=True))
 
     def V(self, y: Tensor) -> Tensor:
         if self.mode == "ss":
-            return self.shear(y, un=True)
+            x = self.crop(self.shear(y, un=True))
         elif self.mode == "sd":
-            return y
+            x = y
+
+        if x.shape[1:] != self.img_size:
+            raise ValueError("Output must be same shape as img_size.")
+        return x

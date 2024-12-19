@@ -1011,9 +1011,9 @@ def test_decolorize(srf, device, imsize, multispectral_channels):
     assert len(physics.srf) == channels
 
 
-@pytest.mark.parametrize("shear_dim", ["h", "w"])
+@pytest.mark.parametrize("shear_dir", ["h", "w"])
 @pytest.mark.parametrize("cassi_mode", ["ss", "sd"])
-def test_CASSI(shear_dim, imsize, device, multispectral_channels, rng, cassi_mode):
+def test_CASSI(shear_dir, imsize, device, multispectral_channels, rng, cassi_mode):
     channels = multispectral_channels
 
     x = torch.ones(1, channels, *imsize[-2:])
@@ -1021,12 +1021,21 @@ def test_CASSI(shear_dim, imsize, device, multispectral_channels, rng, cassi_mod
         (channels, *imsize[-2:]),
         mask=None,
         mode=cassi_mode,
-        shear_dim=shear_dim,
+        shear_dir=shear_dir,
         device=device,
         rng=rng,
     )
     y = physics(x)
-    assert y.shape == (x.shape[0], 1, *x.shape[2:])
+    if cassi_mode == "ss":
+        assert y.shape == (x.shape[0], 1, *x.shape[2:])
+    elif cassi_mode == "sd":
+        if shear_dir == "h":
+            assert y.shape == (x.shape[0], 1, x.shape[-2] + channels - 1, x.shape[-1])
+        elif shear_dir == "w":
+            assert y.shape == (x.shape[0], 1, x.shape[-2], x.shape[-1] + channels - 1)
+
+    x_hat = physics.A_adjoint(y)
+    assert x_hat.shape == x.shape
 
 
 def test_unmixing(device):

@@ -102,8 +102,8 @@ dataset = dinv.datasets.NBUDataset(DATA_DIR, return_pan=False)
 
 x = dataset[0].unsqueeze(0)  # just MS of shape 1,4,256,256
 
-# Compressive spectral imaging with CASSI
-physics = dinv.physics.CompressiveSpectralImaging(x.shape[1:])
+# Compressive spectral imaging with SD-CASSI
+physics = dinv.physics.CompressiveSpectralImaging(x.shape[1:], mode="sd")
 y = physics(x)  # 1,1,256,256
 dinv.utils.plot([x[:, :3], y], titles=["Image x", "CASSI meas. y"])
 
