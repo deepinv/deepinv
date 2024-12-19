@@ -7,19 +7,26 @@ from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 
 
 class CompressiveSpectralImaging(DecomposablePhysics):
-    """Compressive Hyperspectral Imaging operator.
+    r"""Compressive Hyperspectral Imaging operator.
 
     Coded-aperture snapshot spectral imaging (CASSI) operator, which is a popular
     approach for hyperspectral imaging.
 
     The CASSI operator performs a combination of masking ("coded aperture"), shearing,
     and flattening in the channel dim.
-    We provide two specific implementations of CASSI: Single-Disperser (i.e. only spatial encoding)
+    We provide two specific popular CASSI models: Single-Disperser (i.e. only spatial encoding)
     and Spatial-Spectral encoding:
 
     .. math::
 
-        y = x
+        y =
+        \begin{cases} 
+            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='ss'} \\ 
+            \Sigma_{c=1}^{C} SMx & \text{if mode='sd'}
+        \end{cases}
+
+    where :math:`M` is a binary mask (the "coded aperture") and :math:`S` is a pixel shear in the 2D
+    channel-height of channel-width plane.
 
     For more details see e.g. `this overview <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
 
@@ -91,7 +98,12 @@ class CompressiveSpectralImaging(DecomposablePhysics):
 
         self.mask = mask
 
-    def shear(self, x, un=False):
+    def shear(self, x: Tensor, un=False) -> Tensor:
+        """Pixel shear in channel-spatial plane
+
+        :param Tensor x: input image of shape (B,C,H,W)
+        :param bool un: if ``True``, unshear in opposite direction.
+        """
         shifts = (torch.arange(x.shape[1]) * self.shear_factor).floor().int()
         return torch.cat(
             [
@@ -104,9 +116,17 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         )
 
     def flatten(self, x: Tensor) -> Tensor:
+        """Average over channel dimension
+
+        :param Tensor x: input image of shape B,C,H,W
+        """
         return x.mean(axis=1, keepdim=True)
 
     def unflatten(self, y: Tensor) -> Tensor:
+        """Repeat over channel dimension
+
+        :param Tensor y: input image of shape B,C,H,W
+        """
         return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / (self.img_size[0])
 
     def V_adjoint(self, x: Tensor) -> Tensor:
