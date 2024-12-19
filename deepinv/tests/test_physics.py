@@ -379,6 +379,7 @@ def find_nonlinear_operator(name, device):
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
 
+
 def find_phase_retrieval_operator(name, device):
     r"""
     Chooses operator
@@ -406,7 +407,8 @@ def find_phase_retrieval_operator(name, device):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size
-  
+
+
 def test_stacking(device):
     r"""
     Tests if stacking physics operators is consistent with applying them sequentially.
@@ -440,7 +442,6 @@ def test_stacking(device):
     y = p5(x)
     assert len(p5) == 4
     assert len(y) == 4
-  
 
 
 @pytest.mark.parametrize("name", OPERATORS)
