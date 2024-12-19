@@ -50,9 +50,9 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` with masking ratio
         of 0.5, if mask is ``float``, sets mask ratio to this. If ``Tensor``, set mask to this,
         must be of shape ``(B,C,H,W)``.
-    :param str mode: 'sd' = single disperser (i.e. only spatial encoding) or
-        'ss' = spatial-spectral encoding, defaults to 'ss'. See above for details.
-    :param str shear_dir: shear in H-C plane or W-C plane where C is channel dim, defaults to "h"
+    :param str mode: 'sd' for SD-CASSI i.e. single disperser (only spatial encoding) or
+        'ss' for SS-CASSI i.e. spatial-spectral encoding. Defaults to 'ss'. See above for details.
+    :param str shear_dir: "h" for shear in H-C plane or "w" for shear in W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
     """
