@@ -1,13 +1,13 @@
 r"""
 Ptychography phase retrieval.
-===================================================
+=============================
 
 This example shows how to create a Ptychography phase retrieval operator and generate phaseless measurements from a given image.
 """
 
 # %%
 # General setup
-# ----------------------------
+# -------------
 # Imports the necessary libraries and modules, including ptychography phase retrieval function from `deepinv`.
 # It sets the device to GPU if available, otherwise uses the CPU.
 import matplotlib.pyplot as plt
@@ -39,7 +39,7 @@ plot([x], figsize=(10, 10))
 
 # %%
 # Prepare phase input
-# ----------------------------
+# -------------------
 # We use the original image as the phase information for the complex signal. The original value range is [0, 1], and we map it to the phase range [0, pi].
 
 phase = x / x.max() * np.pi  # between 0 and pi
@@ -48,7 +48,7 @@ input = torch.exp(1j * phase.to(torch.complex64)).to(device)
 
 # %%
 # Set up ptychography physics model
-# ----------------------------
+# ---------------------------------
 # Initializes the ptychography physics model with parameters like the probe and shifts.
 # This model will be used to simulate ptychography measurements.
 
@@ -68,7 +68,7 @@ physics = Ptychography(
 
 # %%
 # Display probe overlap
-# ----------------------------
+# ---------------------
 # Calculates and displays the overlap of probe regions in the image, helping visualize the ptychography pattern.
 
 overlap_img = physics.B.get_overlap_img(physics.B.shifts).cpu()
@@ -80,8 +80,8 @@ plot(
 
 
 # %%
-# Generate and visualize probe + measurements
-# ----------------------------
+# Generate and visualize probe and measurements
+# ---------------------------------------------
 # Displays the ptychography probe and a sum of the generated measurement data.
 
 probe = physics.probe[:, 55].cpu()
@@ -94,7 +94,7 @@ plot(
 
 # %%
 # Gradient descent for phase retrieval
-# ----------------------------
+# ------------------------------------
 # Implements a simple gradient descent algorithm to minimize the L1 data fidelity loss for phase retrieval.
 
 data_fidelity = L1()
@@ -116,7 +116,7 @@ plt.show()
 
 # %%
 # Display final estimated phase retrieval
-# ----------------------------
+# ---------------------------------------
 # Corrects the global phase of the estimated image to match the original phase and plots the result.
 # This final visualization shows the original image and the estimated phase after retrieval.
 
