@@ -174,10 +174,6 @@ def test_algo_inpaint(name_algo, device):
 
     assert out.shape == x.shape
 
-    list_imgs = [x, y, out]
-    titles = ["Sample", "Observed", "Reconstructed"]
-    dinv.utils.plot(list_imgs, titles=titles)
-
     mean_crop = out[:, :, 10:20, 10:20].flatten().mean()
 
     mask = mask.bool()
