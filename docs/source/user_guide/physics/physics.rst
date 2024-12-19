@@ -82,8 +82,9 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`RandomPhaseRetrieval <deepinv.physics.RandomPhaseRetrieval>`
        | :class:`StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
        | :class:`Ptychography <deepinv.physics.Ptychography>`
-       :class:`Ptychography <deepinv.physics.PtychographyLinearOperator>`
-     -
+       | :class:`PtychographyLinearOperator <deepinv.physics.PtychographyLinearOperator>`
+     - | :func:`Build_Probe <deepinv.physics.phase_retrieval.build_probe>`
+       | :func:`Generate_Shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
 
 .. _noise_list:

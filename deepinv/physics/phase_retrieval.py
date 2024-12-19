@@ -502,7 +502,8 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
 
 def generate_shifts(img_size, n_img=25, fov=None):
     """
-    Generates the array of probe shifts across the image, based on probe radius and field of view.
+    Generates the array of probe shifts across the image.
+    Based on probe radius and field of view.
 
     :param img_size: Size of the image.
     :param int n_img: Number of shifts (must be a perfect square).
