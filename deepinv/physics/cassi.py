@@ -16,21 +16,22 @@ class CompressiveSpectralImaging(DecomposablePhysics):
 
     The CASSI operator performs a combination of masking ("coded aperture"), shearing,
     and flattening in the channel dim.
-    We provide two specific popular CASSI models: Single-Disperser (i.e. only spatial encoding)
-    and Spatial-Spectral encoding:
+    We provide two specific popular CASSI models: single-disperser (i.e. only spatial encoding)
+    and spatial-spectral encoding:
 
     .. math::
 
         y =
         \begin{cases} 
-            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='ss'} \\ 
-            \Sigma_{c=1}^{C} SMx & \text{if mode='sd'}
+            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='spatial-spectral'} \\ 
+            \Sigma_{c=1}^{C} SMx & \text{if mode='single-disperser'}
         \end{cases}
 
-    where :math:`M` is a binary mask (the "coded aperture") and :math:`S` is a pixel shear in the 2D
-    channel-height of channel-width plane.
+    where :math:`M` is a binary mask (the "coded aperture"), :math:`S` is a pixel shear in the 2D
+    channel-height of channel-width plane and :math:`C` is number of channels. 
+    Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
-    For more details see e.g. `this overview <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
+    For more details see e.g. the paper `High-Quality Hyperspectral Reconstruction Using a Spectral Prior <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
 
     |sep|
 
