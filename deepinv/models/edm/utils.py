@@ -9,7 +9,7 @@ Elucidating the Design Space of Diffusion-Based Generative Models: https://arxiv
 import numpy as np
 import torch
 from torch.nn.functional import silu
-from typing import List
+from torch import Tensor
 
 # ----------------------------------------------------------------------------
 # Unified routine for initializing weights and biases.
@@ -106,7 +106,7 @@ class Conv2d(torch.nn.Module):
             else None
         )
         f = torch.as_tensor(resample_filter, dtype=torch.float32)
-        f = f.ger(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
+        f = f.outer(f).unsqueeze(0).unsqueeze(1) / f.sum().square()
         self.register_buffer("resample_filter", f if up or down else None)
 
     def forward(self, x):
@@ -358,13 +358,13 @@ class PositionalEmbedding(torch.nn.Module):
         self.max_positions = max_positions
         self.endpoint = endpoint
 
-    def forward(self, x):
+    def forward(self, x: Tensor):
         freqs = torch.arange(
             start=0, end=self.num_channels // 2, dtype=torch.float32, device=x.device
         )
         freqs = freqs / (self.num_channels // 2 - (1 if self.endpoint else 0))
         freqs = (1 / self.max_positions) ** freqs
-        x = x.ger(freqs.to(x.dtype))
+        x = x.outer(freqs.to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x
 
@@ -378,7 +378,7 @@ class FourierEmbedding(torch.nn.Module):
         super().__init__()
         self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
 
-    def forward(self, x):
-        x = x.ger((2 * np.pi * self.freqs).to(x.dtype))
+    def forward(self, x: Tensor):
+        x = x.outer((2 * np.pi * self.freqs).to(x.dtype))
         x = torch.cat([x.cos(), x.sin()], dim=1)
         return x

@@ -4,9 +4,7 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Callable, Union, Tuple, List, Any
 import numpy as np
-from numpy import ndarray
-import warnings
-from .sde_solver import select_solver, SDEOutput
+from .sde_solver import BaseSDESolver, SDEOutput
 
 
 class BaseSDE(nn.Module):
@@ -22,7 +20,6 @@ class BaseSDE(nn.Module):
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)`
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)`
-    :param torch.Generator rng: a random number generator for reproducibility, optional.
     :param torch.dtype dtype: the data type of the computations.
     :param str device: the device for the computations.
     """
@@ -31,7 +28,6 @@ class BaseSDE(nn.Module):
         self,
         drift: Callable,
         diffusion: Callable,
-        rng: torch.Generator = None,
         dtype=torch.float32,
         device=torch.device("cpu"),
         *args,
@@ -42,32 +38,25 @@ class BaseSDE(nn.Module):
         self.diffusion = diffusion
         self.dtype = dtype
         self.device = device
-        self.rng = rng
-        if rng is not None:
-            self.initial_random_state = rng.get_state()
 
     def sample(
         self,
         x_init: Tensor = None,
-        *args,
-        timesteps: Union[Tensor, ndarray] = None,
-        method: str = "euler",
+        solver: BaseSDESolver = None,
         seed: int = None,
+        *args,
         **kwargs,
     ) -> SDEOutput:
         r"""
         Solve the SDE with the given timesteps.
 
         :param torch.Tensor x_init: initial value.
-        :param timesteps: time steps at which to discretize the SDE, of shape `(n_steps,)`.
         :param str method: method for solving the SDE. One of the methods available in :func:`deepinv.sampling.sde_solver`.
 
         :return SDEOutput: a namespaced container of the output.
         """
-        self.rng_manual_seed(seed)
-        solver_fn = select_solver(method)
-        solver = solver_fn(sde=self, rng=self.rng)
-        solution = solver.sample(x_init, timesteps=timesteps, *args, **kwargs)
+        solver.rng_manual_seed(seed)
+        solution = solver.sample(self, x_init, *args, **kwargs)
         return solution
 
     def discretize(
@@ -84,47 +73,6 @@ class BaseSDE(nn.Module):
         :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
-
-    def rng_manual_seed(self, seed: int = None):
-        r"""
-        Sets the seed for the random number generator.
-
-        :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
-            Note: it will be ignored if the random number generator is not initialized.
-        """
-        if seed is not None:
-            if self.rng is not None:
-                self.rng = self.rng.manual_seed(seed)
-            else:
-                warnings.warn(
-                    "Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored."
-                )
-
-    def reset_rng(self):
-        r"""
-        Reset the random number generator to its initial state.
-        """
-        self.rng.set_state(self.initial_random_state)
-
-    def randn_like(self, input: torch.Tensor, seed: int = None):
-        r"""
-        Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
-
-        :param torch.Tensor input: The input tensor whose size will be used.
-        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
-
-        :return: A tensor of the same size as input filled with random numbers from a normal distribution.
-        :rtype: torch.Tensor
-
-        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
-        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
-        generating the random numbers.
-
-        .. note::
-           The :attr:`rng` attribute must be initialized for this method to work properly.
-        """
-        self.rng_manual_seed(seed)
-        return torch.empty_like(input).normal_(generator=self.rng)
 
 
 class DiffusionSDE(nn.Module):
@@ -163,7 +111,6 @@ class DiffusionSDE(nn.Module):
                         Should be set to `True` if the denoiser was trained on :math:`[0,1]`. Default to `False`.
 
     :param bool use_backward_ode: a boolean indicating whether to use the deterministic probability flow ODE for the backward process.
-    :param torch.Generator rng: pseudo-random number generator for reproducibility.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -177,7 +124,6 @@ class DiffusionSDE(nn.Module):
         use_backward_ode=False,
         denoiser: nn.Module = None,
         rescale: bool = False,
-        rng: torch.Generator = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -194,34 +140,46 @@ class DiffusionSDE(nn.Module):
                 * 2.0
                 - 1.0
             )
-        self.rng = rng
         self.device = device
         self.dtype = dtype
         self.use_backward_ode = use_backward_ode
-        forward_drift = lambda x, t, *args, **kwargs: drift(x, t, *args, **kwargs)
-        forward_diff = lambda t: diffusion(t)
+
+        def forward_drift(x, t, *args, **kwargs):
+            return drift(x, t, *args, **kwargs)
+
+        def forward_diff(t):
+            return diffusion(t)
+
         self.forward_sde = BaseSDE(
             drift=forward_drift,
             diffusion=forward_diff,
-            rng=rng,
             dtype=dtype,
             device=device,
         )
 
         if self.use_backward_ode:
-            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + 0.5 * (
-                diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
-            backward_diff = lambda t: 0.0
+
+            def backward_drift(x, t, *args, **kwargs):
+                return -drift(x, t) + 0.5 * diffusion(t) ** 2 * self.score(
+                    x, t, *args, **kwargs
+                )
+
+            def backward_diff(t):
+                return 0.0
+
         else:
-            backward_drift = lambda x, t, *args, **kwargs: -drift(x, t) + (
-                diffusion(t) ** 2
-            ) * self.score(x, t, *args, **kwargs)
-            backward_diff = lambda t: diffusion(t)
+
+            def backward_drift(x, t, *args, **kwargs):
+                return -drift(x, t) + diffusion(t) ** 2 * self.score(
+                    x, t, *args, **kwargs
+                )
+
+            def backward_diff(t):
+                return diffusion(t)
+
         self.backward_sde = BaseSDE(
             drift=backward_drift,
             diffusion=backward_diff,
-            rng=rng,
             dtype=dtype,
             device=device,
         )
@@ -230,8 +188,8 @@ class DiffusionSDE(nn.Module):
     def forward(
         self,
         x_init: Union[Tensor, Tuple],
-        timesteps: Union[Tensor, List, ndarray],
-        method: str = "Euler",
+        solver: BaseSDESolver,
+        seed: int = None,
         *args,
         **kwargs,
     ) -> SDEOutput:
@@ -242,29 +200,35 @@ class DiffusionSDE(nn.Module):
             If it is a :meth:`torch.Tensor`, ``x_init`` should follow the distribution of :math:`p_T`, which is usually :math:`\mathcal{N}(0, \sigma_{\mathrm{max}}^2 \mathrm{Id})`.
             If it is a tuple, it should be of the form ``(B, C, H, W)``. A sample from the distribution :math:`p_T` will be generated automatically.
 
-        :param torch.Tensor timesteps: The time steps at which to discretize the backward-SDE, should be of shape ``(n_steps,)``.
-        :param str method: The method to discretize the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
+        :param BaseSDESolver: The solver to solve the backward-SDE, can be one of the methods available in :meth:`deepinv.sampling.sde_solver`.
+        :param int seed: The seed for the random number generator, will be used in the solver and for the initial point if not given.
         :param args: additional arguments for the backward drift (passed to the `denoiser`).
         :param kwargs: additional keyword arguments for the backward drift (passed to the `denoiser`), e.g., `class_labels` for class-conditional models.
 
         :rtype: SDEOutput.
 
         """
-        self.rng_manual_seed(kwargs.pop("seed"))
+        solver.rng_manual_seed(seed)
+
         if isinstance(x_init, (Tuple, List, torch.Size)):
-            x_init = self.prior_sample(x_init)
-        return self.backward_sde.sample(
-            x_init, timesteps=timesteps, method=method, *args, **kwargs
+            x_init = self.prior_sample(x_init, rng=solver.rng)
+        return solver.sample(
+            self.backward_sde,
+            x_init,
+            *args,
+            **kwargs,
         )
 
-    def prior_sample(self, shape: Union[List, Tuple, torch.Size]) -> Tensor:
+    def prior_sample(
+        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
+    ) -> Tensor:
         r"""
         Sample from the end-point distribution :math:`p_T` of the forward-SDE.
 
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         return torch.randn(
-            shape, generator=self.rng, device=self.device, dtype=self.dtype
+            shape, generator=rng, device=self.device, dtype=self.dtype
         ) * self.sigma_t(1.0).view(-1, 1, 1, 1)
 
     def score(self, x: Tensor, t: Any, *args, **kwargs) -> Tensor:
@@ -304,47 +268,6 @@ class DiffusionSDE(nn.Module):
         t = self._handle_time_step(t)
         return torch.sqrt(1.0 - torch.exp(-2.0 * t))
 
-    def rng_manual_seed(self, seed: int = None) -> None:
-        r"""
-        Sets the seed for the random number generator.
-
-        :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
-            Note: it will be ignored if the random number generator is not initialized.
-        """
-        if seed is not None:
-            if self.rng is not None:
-                self.rng = self.rng.manual_seed(seed)
-            else:
-                warnings.warn(
-                    "Cannot set seed for random number generator because it is not initialized. The `seed` parameter is ignored."
-                )
-
-    def reset_rng(self) -> None:
-        r"""
-        Reset the random number generator to its initial state.
-        """
-        self.rng.set_state(self.initial_random_state)
-
-    def randn_like(self, input: torch.Tensor, seed: int = None) -> Tensor:
-        r"""
-        Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
-
-        :param torch.Tensor input: The input tensor whose size will be used.
-        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
-
-        :return: A tensor of the same size as input filled with random numbers from a normal distribution.
-        :rtype: torch.Tensor
-
-        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
-        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
-        generating the random numbers.
-
-        .. note::
-           The :attr:`rng` attribute must be initialized for this method to work properly.
-        """
-        self.rng_manual_seed(seed)
-        return torch.empty_like(input).normal_(generator=self.rng)
-
 
 class VESDE(DiffusionSDE):
     r"""
@@ -364,7 +287,6 @@ class VESDE(DiffusionSDE):
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         use_backward_ode: bool = False,
-        rng: torch.Generator = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -372,26 +294,30 @@ class VESDE(DiffusionSDE):
     ):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
-        forward_drift = lambda x, t, *args, **kwargs: 0.0
-        forward_diff = lambda t: self.sigma_t(t) * np.sqrt(
-            2 * (np.log(sigma_max) - np.log(sigma_min))
-        )
+
+        def forward_drift(x, t, *args, **kwargs):
+            return 0.0
+
+        def forward_diff(t):
+            return self.sigma_t(t) * np.sqrt(
+                2 * (np.log(sigma_max) - np.log(sigma_min))
+            )
+
         super().__init__(
             drift=forward_drift,
             diffusion=forward_diff,
             use_backward_ode=use_backward_ode,
             denoiser=denoiser,
             rescale=rescale,
-            rng=rng,
             dtype=dtype,
             device=device,
             *args,
             *kwargs,
         )
 
-    def prior_sample(self, shape) -> Tensor:
+    def prior_sample(self, shape, rng) -> Tensor:
         return (
-            torch.randn(shape, generator=self.rng, device=self.device, dtype=self.dtype)
+            torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
             * self.sigma_max
         )
 
