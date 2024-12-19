@@ -1,6 +1,6 @@
 r"""
-Ptychography phase retrieval.
-=============================
+Ptychography phase retrieval
+============================
 
 This example shows how to create a Ptychography phase retrieval operator and generate phaseless measurements from a given image.
 """
