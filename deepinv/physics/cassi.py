@@ -8,7 +8,7 @@ from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 
 class CompressiveSpectralImaging(DecomposablePhysics):
     """Compressive Hyperspectral Imaging operator.
-    
+
     Coded-aperture snapshot spectral imaging (CASSI) operator, which is a popular
     approach for hyperspectral imaging.
 
@@ -27,7 +27,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
 
     :Examples:
 
-    
+
 
     :param tuple img_size: image size, must be of form (C,H,W) where C is number of bands.
     :param Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
@@ -53,7 +53,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        
+
         super().__init__(**kwargs)
 
         if len(img_size) != 3:
