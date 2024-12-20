@@ -205,6 +205,7 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
+
 def test_deft(device):
     from deepinv.models import DiffUNet
 
@@ -234,4 +235,3 @@ def test_deft(device):
 
     out = algorithm(y, physics)
     assert out.shape == x.shape
-

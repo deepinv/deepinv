@@ -10,7 +10,7 @@ In this tutorial, we will go over the steps in the Doob's h-transform Efficient 
 # %%
 # Installing dependencies
 # -----------------------
-# Let us ``import`` the relevant packages, 
+# Let us ``import`` the relevant packages,
 #
 # .. note::
 #           We work with an image of size 128 x 128 to reduce the computational time of this example.
@@ -41,34 +41,36 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Subset
 
 transform = T.Compose(
-        [
-            T.Lambda(lambda img: F.center_crop(img, min(*img._size))),
-            T.Resize(
-                (image_size, image_size), interpolation=T.InterpolationMode.BILINEAR
-            ),
-            T.ToTensor(),
-            T.Normalize(0.5, 0.5),  # normalize to [-1, 1]
-        ]
-    )
+    [
+        T.Lambda(lambda img: F.center_crop(img, min(*img._size))),
+        T.Resize((image_size, image_size), interpolation=T.InterpolationMode.BILINEAR),
+        T.ToTensor(),
+        T.Normalize(0.5, 0.5),  # normalize to [-1, 1]
+    ]
+)
 
 dataset = CBSD68(root="CBSB68", download=True, transform=transform)
 x_true = dataset[0].unsqueeze(0).to(device)
 
-dataset = Subset(dataset, list(range(1, len(dataset)))) 
+dataset = Subset(dataset, list(range(1, len(dataset))))
 
 dataloader = DataLoader(dataset, batch_size=12, shuffle=True)
 
 # %%
 # In this tutorial we consider image super-resolution as the inverse problem, where the forward operator is implemented
-# in :meth:`deepinv.physics.Downsampling`. We consider 2x bilinear downsampling 
+# in :meth:`deepinv.physics.Downsampling`. We consider 2x bilinear downsampling
 # and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.75/255.
 
 sigma = 12.75 / 255.0  # noise level
 
-physics = dinv.physics.Downsampling(img_size=(3, image_size, image_size),
-                                    filter= "bilinear", factor = 2, padding ="replicate",
-                                    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-                                    device=device)
+physics = dinv.physics.Downsampling(
+    img_size=(3, image_size, image_size),
+    filter="bilinear",
+    factor=2,
+    padding="replicate",
+    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    device=device,
+)
 
 y = physics(x_true)
 
@@ -132,7 +134,7 @@ def compute_alpha(beta, t):
 betas = get_betas()
 
 # %%
-# Training the h-transform. For reduce computational times, we only train for 60 epochs, this 
+# Training the h-transform. For reduce computational times, we only train for 60 epochs, this
 # should be increased for real applications.
 
 from deepinv.sampling import DEFT
@@ -140,13 +142,15 @@ from deepinv.sampling import DEFT
 data_fidelity = L2()
 
 
-deft = DEFT(model,
-        data_fidelity,
-        physics=physics,
-        device=device,
-        verbose=True,
-        img_size=image_size,
-        max_iter=100)
+deft = DEFT(
+    model,
+    data_fidelity,
+    physics=physics,
+    device=device,
+    verbose=True,
+    img_size=image_size,
+    max_iter=100,
+)
 
 deft.fit(dataloader, num_epochs=60, save=False)
 
@@ -160,4 +164,3 @@ recon = deft.forward(y, physics)
 x = recon / 2 + 0.5
 imgs = [y, x, x_true]
 plot(imgs, titles=["measurement", "model output", "groundtruth"])
-

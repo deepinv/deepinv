@@ -806,7 +806,7 @@ class DEFT(Reconstructor):
     def fit(self, data_loader, num_epochs=40, save=True):
         r"""
 
-        Fitting the h-transform using the provided data loader. 
+        Fitting the h-transform using the provided data loader.
 
         :param torch.utils.data.DataLoader data_loader: dataset as a torch DataLoader.
         :param int num_epochs: number of training epochs.
