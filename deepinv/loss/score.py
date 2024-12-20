@@ -101,7 +101,9 @@ class ScoreLoss(Loss):
         if isinstance(model, self.ScoreModel):
             return model
         else:
-            return self.ScoreModel(model, self.noise_model, self.delta, self.total_batches)
+            return self.ScoreModel(
+                model, self.noise_model, self.delta, self.total_batches
+            )
 
     class ScoreModel(Reconstructor):
         r"""

@@ -41,9 +41,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialGenerator"
 
-    def forward(
-        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
-    ):
+    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial generator loss.
 
         :param torch.Tensor x: ground truth image
@@ -77,9 +75,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialDiscriminator"
 
-    def forward(
-        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
-    ):
+    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial discriminator loss.
 
         :param torch.Tensor x: ground truth image

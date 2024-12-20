@@ -857,6 +857,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     dict_keys(['filter', 'coeff_ill', 'coeff_coll'])
 
     """
+
     def __init__(
         self,
         psf_size: tuple,

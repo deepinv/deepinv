@@ -6,6 +6,7 @@ from deepinv.physics.functional.multiplier import (
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
 import torch
 
+
 def product_convolution2d(
     x: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
 ) -> torch.Tensor:

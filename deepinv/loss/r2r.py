@@ -124,7 +124,6 @@ class R2RLoss(Loss):
         else:
             return self.R2RModel(model, self.sigma, self.alpha, self.eval_n_samples)
 
-
     class R2RModel(Reconstructor):
         r"""
         R2R modified model.
@@ -142,6 +141,7 @@ class R2RLoss(Loss):
         :param float alpha: scaling factor of the perturbation.
         :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
         """
+
         def __init__(self, model, sigma, alpha, eval_n_samples):
             super().__init__()
             self.model = model

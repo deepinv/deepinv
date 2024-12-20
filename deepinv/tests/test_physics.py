@@ -1020,6 +1020,7 @@ def test_mri_fft():
 
     assert torch.all(xf1 == xf2)
 
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_decomposable(name, device, rng):
     physics, imsize, _, dtype = find_operator(name, device)

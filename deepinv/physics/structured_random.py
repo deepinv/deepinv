@@ -99,8 +99,6 @@ def generate_diagonal(
     return diag.to(device)
 
 
-
-
 class StructuredRandom(LinearPhysics):
     r"""
     Structured random linear operator model corresponding to the operator

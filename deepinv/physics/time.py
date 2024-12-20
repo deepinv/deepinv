@@ -3,6 +3,7 @@ from torch import zeros_like
 from torch.nn import Module
 import torch
 
+
 class TimeMixin:
     r"""
     Base class for temporal capabilities for physics and models.
@@ -68,7 +69,9 @@ class TimeMixin:
         return wrapped
 
     @staticmethod
-    def average(x: torch.Tensor, mask: torch.Tensor = None, dim: int = 2) -> torch.Tensor:
+    def average(
+        x: torch.Tensor, mask: torch.Tensor = None, dim: int = 2
+    ) -> torch.Tensor:
         """Flatten time dim of x by averaging across frames.
         If mask is non-overlapping in time dim, then this will simply be the sum across frames.
 

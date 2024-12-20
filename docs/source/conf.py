@@ -9,7 +9,7 @@ from sphinx_gallery.sorting import ExplicitOrder
 import sys
 import os
 
-basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
 # -- Project information -----------------------------------------------------
@@ -58,6 +58,7 @@ nitpicky = True
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.addnodes import pending_xref
+
 
 class UserGuideMacro(Directive):
     required_arguments = 1  # The reference name (ref_name)
@@ -174,7 +175,7 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
-html_sidebars = { # pages with no sidebar
+html_sidebars = {  # pages with no sidebar
     "quickstart": [],
     "contributing": [],
     "finding_help": [],

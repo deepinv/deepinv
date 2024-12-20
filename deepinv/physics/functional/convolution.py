@@ -222,7 +222,9 @@ def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> torch.Tensor
     return fft.irfft2(x_f * filter_f).real
 
 
-def conv_transpose2d_fft(y: Tensor, filter: Tensor, real_fft: bool = True) -> torch.Tensor:
+def conv_transpose2d_fft(
+    y: Tensor, filter: Tensor, real_fft: bool = True
+) -> torch.Tensor:
     r"""
     A helper function performing the 2d transposed convolution 2d of ``x`` and ``filter`` using FFT. The adjoint of this operation is :func:`deepinv.physics.functional.conv2d_fft`.
 

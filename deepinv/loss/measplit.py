@@ -159,9 +159,7 @@ class SplittingLoss(Loss):
 
         return loss_ms / mask2.mean()  # normalize loss
 
-    def adapt_model(
-        self, model: torch.nn.Module, eval_n_samples=None
-    ):
+    def adapt_model(self, model: torch.nn.Module, eval_n_samples=None):
         r"""
         Apply random splitting to input.
 
@@ -200,7 +198,6 @@ class SplittingLoss(Loss):
                 eval_split_output=self.eval_split_output,
                 pixelwise=self.pixelwise,
             )
-
 
     class SplittingModel(Reconstructor):
         """
@@ -269,7 +266,11 @@ class SplittingLoss(Loss):
                 if not self.eval_split_input and not self.training:
                     # No splitting
                     return self.model(y, physics)
-                elif self.eval_split_output and self.eval_split_input and not self.training:
+                elif (
+                    self.eval_split_output
+                    and self.eval_split_input
+                    and not self.training
+                ):
                     return self._forward_split_input_output(y, physics)
                 else:
                     return self._forward_split_input(
