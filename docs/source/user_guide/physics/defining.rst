@@ -22,3 +22,6 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
     You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
 
+.. tip::
+
+    You can also define a new operator by :ref:`combining existing operators <physics_combining>`.

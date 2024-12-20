@@ -8,14 +8,16 @@ from torch.nn import MSELoss, L1Loss
 from torchmetrics.functional import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,
+    spectral_angle_mapper,
+    error_relative_global_dimensionless_synthesis,
 )
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
-from deepinv.utils.nn import TensorList
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
+    from deepinv.utils.tensorlist import TensorList
 
 
 class MAE(Metric):
@@ -335,7 +337,7 @@ class QNR(Metric):
     >>> physics = Pansharpen((3, 64, 64))
     >>> y = physics(x) #[BCH'W', B1HW]
     >>> m(x_net=x_net, y=y, physics=physics) # doctest: +ELLIPSIS
-    tensor([...], grad_fn=<MulBackward0>)
+    tensor([...])
 
     :param float alpha: weight for spectral quality, defaults to 1
     :param float beta: weight for structural quality, defaults to 1
@@ -389,7 +391,15 @@ class QNR(Metric):
             )
         return (out / n_bands) ** (1 / self.q)
 
-    def metric(self, x_net, x, y: TensorList, physics: Pansharpen, *args, **kwargs):
+    def metric(
+        self,
+        x_net: Tensor,
+        x: None,
+        y: TensorList,
+        physics: Pansharpen,
+        *args,
+        **kwargs,
+    ):
         r"""Calculate QNR on data.
 
         .. note::
@@ -425,3 +435,74 @@ class QNR(Metric):
         qnr = (1 - d_lambda) ** self.alpha * (1 - d_s) ** self.beta
 
         return qnr
+
+
+class SpectralAngleMapper(Metric):
+    r"""
+    Spectral Angle Mapper (SAM).
+
+    Calculates spectral similarity between estimated and target multispectral images.
+
+    Wraps the ``torchmetrics`` `Spectral Angle Mapper <https://lightning.ai/docs/torchmetrics/stable/image/spectral_angle_mapper.html>`_ function.
+    Note that our ``reduction`` parameter follows our uniform convention (see below).
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import SpectralAngleMapper
+    >>> m = SpectralAngleMapper()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def metric(self, x_net, x, *args, **kwargs):
+        return spectral_angle_mapper(x_net, x, reduction="none").mean(
+            dim=tuple(range(1, x.ndim - 1)), keepdim=False
+        )
+
+
+class ERGAS(Metric):
+    r"""
+    Error relative global dimensionless synthesis metric.
+
+    Calculates the ERGAS metric on a multispectral image and a target.
+    ERGAS is a popular metric for pan-sharpening of multispectral images.
+
+    Wraps the ``torchmetrics`` `ERGAS <https://lightning.ai/docs/torchmetrics/stable/image/error_relative_global_dimensionless_synthesis.html>`_ function.
+    Note that our ``reduction`` parameter follows our uniform convention (see below).
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import ERGAS
+    >>> m = ERGAS(factor=4)
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param int factor: pansharpening factor.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def __init__(self, factor: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._metric = self._metric = (
+            lambda x_hat, x, *args, **kwargs: error_relative_global_dimensionless_synthesis(
+                x_hat, x, ratio=factor, reduction="none"
+            )
+        )
