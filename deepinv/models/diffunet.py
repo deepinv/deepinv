@@ -54,19 +54,19 @@ class AttentionUNet(Denoiser):
         img_size,
         model_channels,
         num_res_blocks,
-        attention_resolutions, 
-        dropout, 
+        attention_resolutions,
+        dropout,
         channel_mult,
         conv_resample,
-        num_classes, 
+        num_classes,
         use_checkpoint,
         use_fp16,
         num_heads,
         num_head_channels,
-        num_heads_upsample
+        num_heads_upsample,
     ):
         super().__init__()
-        
+
         self.img_size = img_size
         self.in_channels = in_channels
         self.model_channels = model_channels
@@ -403,12 +403,15 @@ class AttentionUNet(Denoiser):
 
 
 class DiffUNet(AttentionUNet):
-    def __init__(self, in_channels=3,
-                out_channels=3,
-                large_model=False,
-                use_fp16=False,
-                pretrained="download"):
-        
+    def __init__(
+        self,
+        in_channels=3,
+        out_channels=3,
+        large_model=False,
+        use_fp16=False,
+        pretrained="download",
+    ):
+
         if large_model:
             model_channels = 256
             num_res_blocks = 2
@@ -434,26 +437,27 @@ class DiffUNet(AttentionUNet):
         channel_mult = (1, 1, 2, 2, 4, 4)
 
         img_size = 256
-        
 
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
 
-        super().__init__(in_channels=in_channels,
-                        out_channels=out_channels,
-                        img_size=256,
-                        model_channels=model_channels,
-                        num_res_blocks=num_res_blocks,
-                        attention_resolutions=attention_resolutions, 
-                        dropout=dropout, 
-                        channel_mult=channel_mult,
-                        conv_resample=conv_resample,
-                        num_classes=num_classes, 
-                        use_checkpoint=use_checkpoint,
-                        use_fp16=use_fp16,
-                        num_heads=num_heads,
-                        num_head_channels=num_head_channels,
-                        num_heads_upsample=num_heads_upsample)
+        super().__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            img_size=256,
+            model_channels=model_channels,
+            num_res_blocks=num_res_blocks,
+            attention_resolutions=attention_resolutions,
+            dropout=dropout,
+            channel_mult=channel_mult,
+            conv_resample=conv_resample,
+            num_classes=num_classes,
+            use_checkpoint=use_checkpoint,
+            use_fp16=use_fp16,
+            num_heads=num_heads,
+            num_head_channels=num_head_channels,
+            num_heads_upsample=num_heads_upsample,
+        )
 
         if pretrained is not None:
             if pretrained == "download":
@@ -474,8 +478,6 @@ class DiffUNet(AttentionUNet):
 
             self.load_state_dict(ckpt, strict=True)
             self.eval()
-
-
 
 
 class AttentionPool2d(nn.Module):
@@ -597,8 +599,6 @@ class Downsample(nn.Module):
     def forward(self, x):
         assert x.shape[1] == self.channels
         return self.op(x)
-
-
 
 
 class ResBlock(TimestepBlock):
