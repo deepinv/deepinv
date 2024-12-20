@@ -3,6 +3,7 @@ from typing import Union
 import torch
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
+from deepinv.models.base import Reconstructor
 
 
 class R2RLoss(Loss):
@@ -34,7 +35,8 @@ class R2RLoss(Loss):
 
     .. warning::
 
-        The model should be adapted before training using the method :meth:`adapt_model` to include the additional noise at the input.
+        The model should be adapted before training using the method :func:`adapt_model <deepinv.loss.R2RLoss.adapt_model>`
+        to include the additional noise at the input.
 
     .. note::
 
@@ -44,7 +46,7 @@ class R2RLoss(Loss):
 
         To obtain the best test performance, the trained model should be averaged at test time
         over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)`
-        where :math:`N>1`. This can be achieved using :meth:`adapt_model`.
+        where :math:`N>1`. This can be achieved using :func:`adapt_model <deepinv.loss.R2RLoss.adapt_model>`.
 
     :param Metric, torch.nn.Module metric: metric for calculating loss, defaults to MSE.
     :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
@@ -99,11 +101,8 @@ class R2RLoss(Loss):
         y_minus = y - pert / self.alpha
         return self.metric(physics.A(x_net), y_minus)
 
-    def adapt_model(self, model: torch.nn.Module) -> R2RModel:
+    def adapt_model(self, model: torch.nn.Module, **kwargs):
         r"""
-        Adds noise to model input.
-
-
         This method modifies a reconstruction
         model :math:`R` to include the splitting mechanism at the input:
 
@@ -118,38 +117,64 @@ class R2RLoss(Loss):
         :param torch.nn.Module model: Reconstruction model.
         :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
         :param float alpha: scaling factor of the perturbation.
-        :return: (torch.nn.Module) Modified model.
+        :return: :class:`deepinv.loss.R2RLoss.R2RModel` Modified model.
         """
-        if isinstance(model, R2RModel):
+        if isinstance(model, self.R2RModel):
             return model
         else:
-            return R2RModel(model, self.sigma, self.alpha, self.eval_n_samples)
+            return self.R2RModel(model, self.sigma, self.alpha, self.eval_n_samples)
 
 
-class R2RModel(torch.nn.Module):
-    def __init__(self, model, sigma, alpha, eval_n_samples):
-        super(R2RModel, self).__init__()
-        self.model = model
-        self.extra_noise = 0
-        self.sigma = sigma
-        self.alpha = alpha
-        self.eval_n_samples = eval_n_samples
+    class R2RModel(Reconstructor):
+        r"""
+        R2R modified model.
 
-    def forward(self, y, physics, update_parameters=False):
-        eval_n_samples = 1 if self.training else self.eval_n_samples
+        .. math::
 
-        out = 0
-        with torch.set_grad_enabled(self.training):
-            for i in range(eval_n_samples):
-                extra_noise = torch.randn_like(y) * self.sigma
-                y_plus = y + extra_noise * self.alpha
-                out += self.model(y_plus, physics)
+            \hat{R}(y) = \frac{1}{N}\sum_{i=1}^N R(y+\alpha z_i)
 
-            if self.training and update_parameters:  # save the noise
-                self.extra_noise = extra_noise
+        where :math:`N\geq 1` are the number of samples used for the Monte Carlo approximation.
+        During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`
+        for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
-            out = out / eval_n_samples
-        return out
+        :param torch.nn.Module model: Reconstruction model.
+        :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
+        :param float alpha: scaling factor of the perturbation.
+        :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
+        """
+        def __init__(self, model, sigma, alpha, eval_n_samples):
+            super().__init__()
+            self.model = model
+            self.extra_noise = 0
+            self.sigma = sigma
+            self.alpha = alpha
+            self.eval_n_samples = eval_n_samples
 
-    def get_noise(self):
-        return self.extra_noise
+        def forward(self, y, physics, update_parameters=False):
+            r"""
+            Apply the Monte Carlo R2R denoiser
+
+            :param torch.Tensor y: Measurements.
+            :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+            :param bool update_parameters: if ``True``, the noise is saved.
+            """
+            eval_n_samples = 1 if self.training else self.eval_n_samples
+
+            out = 0
+            with torch.set_grad_enabled(self.training):
+                for i in range(eval_n_samples):
+                    extra_noise = torch.randn_like(y) * self.sigma
+                    y_plus = y + extra_noise * self.alpha
+                    out += self.model(y_plus, physics)
+
+                if self.training and update_parameters:  # save the noise
+                    self.extra_noise = extra_noise
+
+                out = out / eval_n_samples
+            return out
+
+        def get_noise(self):
+            r"""
+            Returns the last extra noise added to the input.
+            """
+            return self.extra_noise

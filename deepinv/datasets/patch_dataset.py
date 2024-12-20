@@ -7,7 +7,7 @@ class PatchDataset(data.Dataset):
 
     :param torch.Tensor imgs: Tensor of images, size: batch size x channels x height x width
     :param int patch_size: size of patches
-    :param callable transforms: data augmentation. callable object, None for no augmentation.
+    :param Callable transforms: data augmentation. callable object, None for no augmentation.
     :param tuple shape: shape of the returned tensor. None returns C x patch_size x patch_size.
             The default shape is (-1,).
     """

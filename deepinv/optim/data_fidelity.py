@@ -14,9 +14,10 @@ import torch
 class DataFidelity(Potential):
     r"""
     Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`.
+    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function,
+    from the class :class:`deepinv.optim.Distance`.
 
-    :param callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
+    :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
     """
 
     def __init__(self, d=None):
@@ -58,7 +59,7 @@ class DataFidelity(Potential):
         Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
 
         Note that this is the gradient of
-        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :meth:`deepinv.optim.Distance.grad` for the
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
         specific distance function :math:`\distancename`.
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
@@ -72,7 +73,7 @@ class DataFidelity(Potential):
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
 
         Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
-        This function directly calls :meth:`deepinv.optim.Distance.prox` for the
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
         specific distance function :math:`\distancename`.
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
@@ -85,7 +86,7 @@ class DataFidelity(Potential):
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
 
-        This function directly calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
+        This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
         specific distance function :math:`\distancename`.
         """
         return self.d.prox_conjugate(u, y, *args, **kwargs)
@@ -93,17 +94,17 @@ class DataFidelity(Potential):
 
 class StackedPhysicsDataFidelity(DataFidelity):
     r"""
-    Stacked data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i})`.
+    Stacked data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
 
     Adapted to :class:`deepinv.physics.StackedPhysics` physics composed of multiple physics operators.
 
-    :param list[dinv.optim.DataFidelity] data_fidelity_list: list of data fidelity terms, one per physics operator.
+    :param list[deepinv.optim.DataFidelity] data_fidelity_list: list of data fidelity terms, one per physics operator.
 
     |sep|
 
     :Examples:
 
-        Define a stacked data fidelity term with two data fidelity terms :math:`\datafid{x}{y_1} + \datafid{x}{y_2}`:
+        Define a stacked data fidelity term with two data fidelity terms :math:`f_1(A_1(x),y_1) + f_2(A_2(x,y_2)`:
 
         >>> import torch
         >>> import deepinv as dinv
@@ -126,7 +127,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
 
     def fn(self, x, y, physics, *args, **kwargs):
         r"""
-        Computes the data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i})`.
+        Computes the data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
 
         :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
@@ -153,7 +154,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         The multiplication is computed using the ``A_vjp`` method of each physics.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :param dinv.utils.TensorList y: Stacked measurements :math:`y`.
+        :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
         :param deepinv.physics.StackedPhysics physics: Stacked physics model.
         :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
@@ -167,7 +168,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
 
         Note that this is the gradient of
-        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :meth:`deepinv.optim.Distance.grad` for the
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
         specific distance function :math:`\distancename_i`.
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
@@ -184,7 +185,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
 
         Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
-        This function directly calls :meth:`deepinv.optim.Distance.prox` for the
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
         specific distance function :math:`\distancename`.
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
@@ -200,7 +201,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
 
-        This function directly calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
+        This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
         specific distance function :math:`\distancename`.
         """
         out = 0
@@ -448,7 +449,7 @@ class L1(DataFidelity):
 
 class AmplitudeLoss(DataFidelity):
     r"""
-    Amplitude loss as the data fidelity term for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction.
+    Amplitude loss as the data fidelity term for :func:`deepinv.physics.PhaseRetrieval` reconstrunction.
 
     In this case, the data fidelity term is defined as
 

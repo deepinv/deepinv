@@ -9,7 +9,8 @@ from sphinx_gallery.sorting import ExplicitOrder
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, basedir)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -40,15 +41,23 @@ copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "torch": ("https://pytorch.org/docs/2.0/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
 }
+
+# for python3 type hints
+autodoc_typehints = "description"
+autodoc_typehints_description_target = "documented"
+# to handle functions as default input arguments
+autodoc_preserve_defaults = True
+# Warn about broken links
+nitpicky = True
 
 ####  userguide directive ###
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.addnodes import pending_xref
-
 
 class UserGuideMacro(Directive):
     required_arguments = 1  # The reference name (ref_name)
@@ -165,13 +174,12 @@ numfig_secnum_depth = 3
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
-html_sidebars = {
+html_sidebars = { # pages with no sidebar
     "quickstart": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
 }
-# html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
     "logo": {
         "image_light": "figures/deepinv_logolarge.png",

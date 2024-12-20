@@ -119,9 +119,9 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
     :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
-    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
+    :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
     |sep|
@@ -203,7 +203,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str transform: structured transform to use. Default is 'fft'.
     :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
     :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.
-    :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
+    :param torch.dtype dtype: Signals are processed in dtype. Default is torch.cfloat.
     :param str device: Device for computation. Default is `cpu`.
     """
 
@@ -427,7 +427,7 @@ class PtychographyLinearOperator(LinearPhysics):
         """
         Computes the overlapping image intensities from probe shifts, used for normalization.
 
-        :param array_like shifts: Array of probe shifts.
+        :param torch.Tensor shifts: Tensor of probe shifts.
         :return: Tensor representing the overlap image.
         """
         overlap_img = torch.zeros_like(self.init_probe, dtype=torch.float32)
@@ -438,7 +438,9 @@ class PtychographyLinearOperator(LinearPhysics):
 
 class Ptychography(PhaseRetrieval):
     r"""
-    Ptychography forward operator. Corresponding to the operator
+    Ptychography forward operator.
+
+    Corresponding to the operator
 
     .. math::
 
@@ -447,8 +449,10 @@ class Ptychography(PhaseRetrieval):
     where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
 
     :param tuple in_shape: Shape of the input image.
-    :param None,torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
-    :param None,array_like shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe. If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
+    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.
+        If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
+    :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
+        If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 

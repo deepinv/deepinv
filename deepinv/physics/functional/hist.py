@@ -10,7 +10,7 @@ from torch import Size, Tensor, BoolTensor
 from typing import Union, Sequence
 
 
-def ravel_multi_index(coords: Tensor, shape: Size) -> Tensor:
+def ravel_multi_index(coords: Tensor, shape: Size) -> torch.Tensor:
     r"""
     Converts a tensor of coordinate vectors into a tensor of flat indices.
 
@@ -28,7 +28,7 @@ def ravel_multi_index(coords: Tensor, shape: Size) -> Tensor:
     return (coords * coefs).sum(dim=-1)
 
 
-def unravel_index(indices: Tensor, shape: Size) -> Tensor:
+def unravel_index(indices: Tensor, shape: Size) -> torch.Tensor:
     r"""
     Converts a tensor of flat indices into a tensor of coordinate vectors.
 
@@ -64,7 +64,7 @@ def out_of_bounds(x: Tensor, low: Tensor, upp: Tensor) -> BoolTensor:
     return torch.logical_or(a, b)
 
 
-def quantize(x: Tensor, bins: Tensor, low: Tensor, upp: Tensor) -> Tensor:
+def quantize(x: Tensor, bins: Tensor, low: Tensor, upp: Tensor) -> torch.Tensor:
     r"""
     Maps the values of x to integers.
 
@@ -91,7 +91,7 @@ def histogramdd(
     weights: Tensor = None,
     sparse: bool = False,
     edges: Union[Tensor, Sequence[Tensor]] = None,
-) -> Tensor:
+) -> torch.Tensor:
     r"""
     Computes the multidimensional histogram of a tensor.
 
@@ -104,17 +104,17 @@ def histogramdd(
 
 
     :param torch.Tensor x: A tensor, (\*, D).
-    :param int, sequence[int] bins: The number of bins in each dimension, scalar or (D,).
-    :param float, sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is ``None``,
+    :param int, list[int] bins: The number of bins in each dimension, scalar or (D,).
+    :param float, list[float] low: The lower bound in each dimension, scalar or (D,). If `low` is ``None``,
             the min of `x` is used instead.
-    :param float, sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is ``None``,
+    :param float, list[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is ``None``,
             the max of `x` is used instead.
     :param bool bounded: Whether `x` is bounded by `low` and `upp`, included.
             If `False`, out-of-bounds values are filtered out.
     :param torch.Tensor weights: A tensor of weights, ``(\*,)``. Each sample of `x` contributes
             its associated weight towards the bin count (instead of 1).
     :param bool sparse: Whether the histogram is returned as a sparse tensor or not.
-    :param torch.Tensor, sequence[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
+    :param torch.Tensor, list[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
             If provided, ``bins``, ``low`` and ``upp`` are inferred from ``edges``.
 
     :return: (torch.Tensor) : the histogram
@@ -207,7 +207,7 @@ def histogram(
     low: float = None,
     upp: float = None,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""Computes the histogram of a tensor.
 
     This is a `torch` implementation of `numpy.histogram`.

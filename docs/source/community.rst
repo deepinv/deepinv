@@ -20,6 +20,6 @@ Future events
 
 Past events
 ~~~~~~~~~~~
-- Nov 26, 2024: the library obtained the 'documentation award' of the ` French Open Source Software for Science Awards <https://www.ouvrirlascience.fr/deepinverse/>`_.
-- Oct 28-30, 2024: deepinverse Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
+- Nov 26, 2024: the library obtained the documentation award at the `French Open Source Software for Science Awards <https://www.ouvrirlascience.fr/deepinverse>`_.
+- Oct 28-30, 2024: Hackathon at `CIRM <https://conferences.cirm-math.fr/3396.html>`_ in Marseille, France.
 - June 10-11, 2024: Summer school tutorial at `Mathematics and Machine Learning for Image Analysis <https://site.unibo.it/mathematical-ml-imaging/en/overview>`_ in Bologna, Italy.

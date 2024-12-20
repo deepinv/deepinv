@@ -6,6 +6,7 @@ import os
 from warnings import warn
 import h5py
 import torch
+
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
 from torch.utils import data
@@ -27,14 +28,15 @@ class HDF5Dataset(data.Dataset):
 
     Optionally also return physics generator params as a dict per sample ``(x, y, params)``, if one was used during data generation.
 
-    ..note::
+    .. note::
 
         We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
     :param str path: Path to the folder containing the dataset (one or multiple HDF5 files).
     :param bool train: Set to ``True`` for training and ``False`` for testing.
     :param Transform, Callable transform: A deepinv or torchvision transform to apply to the data.
-    :param bool load_physics_generator_params: load physics generator params from dataset if they exist (e.g. if dataset created with :meth:`deepinv.datasets.generate_dataset`)
+    :param bool load_physics_generator_params: load physics generator params from dataset if they exist
+        (e.g. if dataset created with :func:`deepinv.datasets.generate_dataset`)
     :param torch.dtype, str dtype: cast all real-valued data to this dtype.
     :param torch.dtype, str complex_dtype: cast all complex-valued data to this dtype.
     """
@@ -147,22 +149,22 @@ def generate_dataset(
     Generates dataset of signal/measurement pairs from base dataset.
 
     It generates the measurement data using the forward operator provided by the user.
-    The dataset is saved in HD5 format and can be easily loaded using the :class:`deepinv.datasets.HD5Dataset` class.
+    The dataset is saved in HD5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.
     The generated dataset contains a train and test splits.
 
     Optionally, if random physics generator is used to generate data, also save physics generator params.
     This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,
     or for measurement consistency/data fidelity, and require knowledge of the params when constructing the loss.
 
-    ..note::
+    .. note::
 
         We support all dtypes supported by ``h5py`` including complex numbers, which will be stored as complex dtype.
 
-    ..info::
+    .. note::
 
         By default, we overwrite existing datasets if they have been previously created. To avoid this, set ``overwrite_existing=False``.
 
-    :param torch.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
+    :param torch.utils.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
         with images used for generating associated measurements
         via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
         HD5Dataset class.
@@ -170,7 +172,7 @@ def generate_dataset(
         It can be either a single operator or a list of forward operators. In the latter case, the dataset will be
         assigned evenly across operators.
     :param str save_dir: folder where the dataset and forward operator will be saved.
-    :param torch.data.Dataset test_dataset: if included, the function will also generate measurements associated to the
+    :param torch.utils.data.Dataset test_dataset: if included, the function will also generate measurements associated to the
         test dataset.
     :param str dataset_filename: desired filename of the dataset (without extension).
     :param bool overwrite_existing: if ``True``, create new dataset file, overwriting any existing dataset with the same ``dataset_filename``.

@@ -27,8 +27,8 @@ class EILoss(Loss):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param deepinv.transform.Transform, torchvision.transforms transform: Transform to generate the virtually
-        augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
+    :param deepinv.transform.Transform transform: Transform to generate the virtually augmented measurement.
+        It can be any torch-differentiable function (e.g., a ``torch.nn.Module``) including `torchvision transforms <https://pytorch.org/vision/stable/transforms.html>`_.
     :param Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
         image.
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model

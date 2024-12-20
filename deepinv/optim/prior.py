@@ -36,7 +36,7 @@ class Prior(Potential):
         not raise an error.
 
 
-    :param callable g: Prior function :math:`g(x)`.
+    :param Callable g: Prior function :math:`g(x)`.
     """
 
     def __init__(self, g=None):
@@ -88,7 +88,7 @@ class PnP(Prior):
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`.
 
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -112,7 +112,7 @@ class RED(Prior):
     Regularization-by-Denoising (RED) prior :math:`\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)`.
 
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -450,7 +450,7 @@ class PatchPrior(Prior):
     Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
     the NLLs of all (overlapping) patches in the image.
 
-    :param callable negative_patch_log_likelihood: NLL function on the patch space
+    :param Callable negative_patch_log_likelihood: NLL function on the patch space
     :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
     :param int patch_size: size of the patches
     :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
@@ -503,7 +503,7 @@ class PatchNR(Prior):
 
     The forward method evaluates its negative log likelihood.
 
-    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :meth:`torch.nn.Module`
+    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`
         supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
         as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
         If `rev=True`, it considers the inverse of the normalizing flow.
