@@ -17,6 +17,7 @@ Diffusion
     deepinv.sampling.DiffPIR
     deepinv.sampling.DPS
     deepinv.sampling.DiffusionSampler
+    deepinv.sampling.DEFT
 
 Markov Chain Monte Carlo Langevin
 ---------------------------------
