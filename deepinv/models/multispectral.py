@@ -69,7 +69,7 @@ class PanNet(nn.Module):
     where MS is the low-resolution multispectral image of shape (B, C, H, W) and PAN is the
     high-resolution panchromatic image of shape (B, 1, H*r, W*r) where r is the pan-sharpening factor.
 
-    :param nn.Module backbone_net: Backbone neural network, e.g. ResNet. If ``None``, defaults to a simple ResNet.
+    :param torch.nn.Module backbone_net: Backbone neural network, e.g. ResNet. If ``None``, defaults to a simple ResNet.
     :param tuple[int] hrms_shape: shape of high-resolution multispectral images (C,H,W), defaults to (4,900,900)
     :param int scale_factor: pansharpening downsampling ratio HR/LR, defaults to 4
     :param int highpass_kernel_size: square kernel size for extracting high-frequency features, defaults to 5
@@ -147,6 +147,12 @@ class PanNet(nn.Module):
         return x - self.boxblur(x)  # kornia.filters.BoxBlur((5, 5))(x)
 
     def forward(self, y: TensorList, physics: Pansharpen, *args, **kwargs):
+        r"""
+        Evaluate the pansharpening model
+
+        :param deepinv.utils.TensorList y: (MS,PAN) images
+        :param deepinv.physics.Pansharpen physics: Pansharpening operator
+        """
         lr, pan = y
 
         lr_highpass = self.highpass(lr)

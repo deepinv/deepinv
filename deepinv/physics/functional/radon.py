@@ -127,7 +127,7 @@ class Radon(nn.Module):
 
 
     :param int in_size: the size of the input image. If None, the size is inferred from the input image.
-    :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is torch.arange(180).
+    :param torch.Tensor theta: the angles at which the Radon transform is computed. Default is ``torch.arange(180)``.
     :param bool circle: if ``True``, the input image is assumed to be a circle. Default is ``False``.
     :param bool parallel_computation: if ``True``, all projections are performed in parallel. Requires more memory but is faster on GPUs.
     :param bool fan_beam: If ``True``, use fan beam geometry, if ``False`` use parallel beam
@@ -195,6 +195,10 @@ class Radon(nn.Module):
                 )
 
     def forward(self, x):
+        r"""
+
+        :param torch.Tensor x: the input image.
+        """
         N, C, W, H = x.shape
         assert W == H, "Input image must be square"
 
@@ -323,6 +327,11 @@ class IRadon(nn.Module):
         )
 
     def forward(self, x, filtering=True):
+        r"""
+
+        :param torch.Tensor x: the input image.
+        :param bool filtering: if True, the ramp filter is applied to the input image. Default is True.
+        """
         it_size = x.shape[2]
         ch_size = x.shape[1]
 

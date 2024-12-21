@@ -31,7 +31,7 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
     >>> y2 = physics.A(x) # compute the A operator (no noise)
 
 Linear operators
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`deepinv.physics.LinearPhysics` class.
 They have important specific properties such as the existence of an adjoint :math:`A^{\top}:\yset\mapsto \xset`.
@@ -88,9 +88,10 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
 
+.. _physics_generators:
 
 Physics Generators
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
 Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGenerator` class:
 

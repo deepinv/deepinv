@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class OptimIterator(nn.Module):
     r"""
-    Base class for all :meth:`Optim` iterators.
+    Base class for optimization iterators.
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
     :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
@@ -24,7 +24,7 @@ class OptimIterator(nn.Module):
         PGD algorithm).
 
 
-    The implementation of the fixed point algorithm in :meth:`deepinv.optim`  is split in two steps, alternating between
+    The implementation of the fixed point algorithm in :class:`deepinv.optim.FixedPoint` is split in two steps, alternating between
     a step on :math:`f` and a step on :math:`\regname`, that is for :math:`k=1,2,...`
 
     .. math::
@@ -72,10 +72,10 @@ class OptimIterator(nn.Module):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev = X["est"][0]
@@ -120,7 +120,7 @@ class fStep(nn.Module):
             :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
             :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             :param torch.Tensor y: Input data.
-            :param deepinv.physics physics: Instance of the physics modeling the observation.
+            :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
             """
             pass
 
@@ -142,7 +142,7 @@ class gStep(nn.Module):
             Single iteration step on the prior term :math:`\regname`.
 
             :param torch.Tensor x: Current iterate.
-            :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+            :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
             :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             """
             pass

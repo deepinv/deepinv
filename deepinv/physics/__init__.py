@@ -15,6 +15,7 @@ from .forward import (
     stack,
 )
 from .noise import (
+    NoiseModel,
     GaussianNoise,
     PoissonNoise,
     PoissonGaussianNoise,

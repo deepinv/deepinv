@@ -15,7 +15,14 @@ Base Class
    :nosignatures:
 
    deepinv.optim.optim_builder
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
    deepinv.optim.BaseOptim
+
 
 Potentials
 ----------
@@ -143,9 +150,17 @@ Utils
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
     deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
-    deepinv.optim.utils.GaussianMixtureModel
+    deepinv.optim.phase_retrieval.correct_global_phase
+    deepinv.optim.phase_retrieval.spectral_methods
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.optim.utils.GaussianMixtureModel

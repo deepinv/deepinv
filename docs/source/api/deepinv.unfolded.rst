@@ -14,6 +14,13 @@ Unfolded
    :nosignatures:
 
    deepinv.unfolded.unfolded_builder
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
    deepinv.unfolded.BaseUnfold
 
 
@@ -27,6 +34,12 @@ Deep Equilibrium
    :nosignatures:
 
     deepinv.unfolded.DEQ_builder
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
     deepinv.unfolded.BaseDEQ
 
 

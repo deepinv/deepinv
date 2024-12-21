@@ -11,8 +11,23 @@ Please refer to the :ref:`user guide <trainer>` for more information.
    :template: myclass_template.rst
    :nosignatures:
 
-        deepinv.Trainer
-        deepinv.training.AdversarialTrainer
-        deepinv.train
-        deepinv.test
+    deepinv.Trainer
 
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.train
+    deepinv.test
+
+Adversarial Training
+--------------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.training.AdversarialTrainer
+    deepinv.training.AdversarialOptimizer

@@ -27,14 +27,20 @@ TensorList
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myclas_template.rst
    :nosignatures:
 
-        deepinv.utils.TensorList
-        deepinv.utils.zeros_like
-        deepinv.utils.ones_like
-        deepinv.utils.randn_like
-        deepinv.utils.rand_like
+    deepinv.utils.TensorList
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+    deepinv.utils.zeros_like
+    deepinv.utils.ones_like
+    deepinv.utils.randn_like
+    deepinv.utils.rand_like
 
 
 Other
@@ -46,8 +52,17 @@ Other
    :template: myfunc_template.rst
    :nosignatures:
 
-        deepinv.utils.get_freer_gpu
-        deepinv.utils.load_url_image
-        deepinv.utils.get_data_home
-        deepinv.utils.load_image
-        deepinv.utils.demo.demo_mri_model
+    deepinv.utils.get_freer_gpu
+    deepinv.utils.load_url_image
+    deepinv.utils.get_data_home
+    deepinv.utils.load_image
+    deepinv.utils.demo.demo_mri_model
+    deepinv.utils.dirac_like
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.utils.AverageMeter
+    deepinv.utils.ProgressMeter

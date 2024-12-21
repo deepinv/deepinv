@@ -22,7 +22,7 @@ from deepinv.optim.optim_iterators import OptimIterator, fStep, gStep
 # Define a custom optimization algorithm
 # ----------------------------------------------------------------------------------------
 # Creating your optimization algorithm only requires the definition of an iteration step.
-# The iterator should be a subclass of :class:`deepinv.optim.optim_iterators.OptimIterator`.
+# The iterator should be a subclass of :class:`deepinv.optim.OptimIterator`.
 #
 # The Condat-Vu Primal-Dual algorithm is defined as follows:
 #

@@ -59,9 +59,9 @@ class FMD(torch.utils.data.Dataset):
     :param List[int] fovs: "Field of view", value between 1 and 20.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a noisy PIL image
+    :param Callable transform:: (optional) A function/transform that takes in a noisy PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
-    :param callable, optional target_transform: A function/transform that takes in a clean PIL image
+    :param Callable target_transform: (optional) A function/transform that takes in a clean PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|

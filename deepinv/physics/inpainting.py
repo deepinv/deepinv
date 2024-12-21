@@ -139,7 +139,7 @@ class Inpainting(DecomposablePhysics):
         Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
         If the second operator is an Inpainting or MRI operator, the masks are multiplied elementwise,
-        otherwise the default implementation of LinearPhysics is used (see :meth:`deepinv.physics.LinearPhysics.__mul__`).
+        otherwise the default implementation of LinearPhysics is used (see :func:`deepinv.physics.LinearPhysics.__mul__`).
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
         :return: (deepinv.physics.Physics) concantenated operator

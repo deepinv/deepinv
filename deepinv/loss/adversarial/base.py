@@ -19,7 +19,7 @@ class DiscriminatorMetric:
 
     See `Are GANs Created Equal? <https://arxiv.org/abs/1711.10337>`_ for a comparison.
 
-    :param torch.nn.Module metric: loss with which to compare outputs, defaults to :meth:`torch.nn.MSELoss()`
+    :param torch.nn.Module metric: loss with which to compare outputs, defaults to :class:`torch.nn.MSELoss`
     :param float real_label: value for ideal real image, defaults to 1.
     :param float fake_label: value for ideal fake image, defaults to 0.
     :param bool no_grad: whether to no_grad the metric computation, defaults to ``False``
@@ -39,7 +39,7 @@ class DiscriminatorMetric:
         self.no_grad = no_grad
         self.metric = metric
 
-    def __call__(self, pred: Tensor, real: bool = None) -> Tensor:
+    def __call__(self, pred: Tensor, real: bool = None) -> torch.Tensor:
         r"""Call discriminator loss.
 
         :param torch.Tensor pred: discriminator classification output
@@ -73,12 +73,12 @@ class GeneratorLoss(Loss):
 
     def adversarial_loss(
         self, real: Tensor, fake: Tensor, D: nn.Module = None
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""Typical adversarial loss in GAN generators.
 
-        :param Tensor real: image labelled as real, typically one originating from training set
-        :param Tensor fake: image labelled as fake, typically a reconstructed image
-        :param nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor real: image labelled as real, typically one originating from training set
+        :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
+        :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
         :return Tensor: generator adversarial loss
         """
         D = self.D if D is None else D
@@ -86,7 +86,7 @@ class GeneratorLoss(Loss):
         pred_fake = D(fake)
         return self.metric_gan(pred_fake, real=True) * self.weight_adv
 
-    def forward(self, *args, D: nn.Module = None, **kwargs) -> Tensor:
+    def forward(self, *args, D: nn.Module = None, **kwargs) -> torch.Tensor:
         return NotImplementedError()
 
 
@@ -119,9 +119,9 @@ class DiscriminatorLoss(Loss):
     def adversarial_loss(self, real: Tensor, fake: Tensor, D: nn.Module = None):
         r"""Typical adversarial loss in GAN discriminators.
 
-        :param Tensor real: image labelled as real, typically one originating from training set
-        :param Tensor fake: image labelled as fake, typically a reconstructed image
-        :param nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor real: image labelled as real, typically one originating from training set
+        :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
+        :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
         :return Tensor: discriminator adversarial loss
         """
         D = self.D if D is None else D
@@ -134,5 +134,5 @@ class DiscriminatorLoss(Loss):
 
         return (adv_loss_real + adv_loss_fake) * self.weight_adv
 
-    def forward(self, *args, D: nn.Module = None, **kwargs) -> Tensor:
+    def forward(self, *args, D: nn.Module = None, **kwargs) -> torch.Tensor:
         return NotImplementedError()

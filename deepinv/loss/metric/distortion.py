@@ -24,7 +24,7 @@ class MAE(Metric):
     r"""
     Mean Absolute Error metric.
 
-    Calculates the MAE :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
 
@@ -32,7 +32,7 @@ class MAE(Metric):
 
     .. note::
 
-        :class:`deepinv.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
+        :class:`deepinv.loss.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
 
     :Example:
@@ -58,7 +58,7 @@ class MSE(Metric):
     r"""
     Mean Squared Error metric.
 
-    Calculates the MSE :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
 
@@ -66,7 +66,7 @@ class MSE(Metric):
 
     .. note::
 
-        :class:`deepinv.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
+        :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
     :Example:
@@ -92,7 +92,7 @@ class NMSE(MSE):
     r"""
     Normalised Mean Squared Error metric.
 
-    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
@@ -131,7 +131,7 @@ class SSIM(Metric):
     r"""
     Structural Similarity Index (SSIM) metric using torchmetrics.
 
-    Calculates the SSIM :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
@@ -186,7 +186,7 @@ class PSNR(Metric):
     r"""
     Peak Signal-to-Noise Ratio (PSNR) metric.
 
-    Calculates the PSNR :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     If the tensors have size ``(B, C, H, W)``, then the PSNR is computed as
 
     .. math::
@@ -270,7 +270,7 @@ class LpNorm(Metric):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
 
-    Calculates the Lp norm :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
@@ -317,7 +317,7 @@ class QNR(Metric):
     r"""
     Quality with No Reference (QNR) metric for pansharpening.
 
-    Calculates the no-reference QNR :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    Calculates the no-reference :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
 
     QNR was proposed in Alparone et al., "Multispectral and Panchromatic Data Fusion Assessment Without Reference".
 

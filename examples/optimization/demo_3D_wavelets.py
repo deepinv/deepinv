@@ -242,7 +242,7 @@ dinv.utils.plot(
 # %%
 # Using the Dykstra-like algorithm for wavelet denoising.
 # -------------------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.models.WaveletDictDenoiser` class.
+# You can readily use this algorithm via the :class:`deepinv.models.WaveletDictDenoiser` class.
 #
 # ::
 #

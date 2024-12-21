@@ -1,7 +1,6 @@
 from typing import Union
 
 import torch
-import torch.nn as nn
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 

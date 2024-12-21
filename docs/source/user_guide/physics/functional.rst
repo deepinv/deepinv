@@ -5,7 +5,7 @@ Functional
 
 The toolbox is based on efficient PyTorch implementations of basic operations such as diagonal multipliers,
 Fourier transforms, convolutions, product-convolutions, Radon transform, interpolation mappings.
-Similar to the PyTorch structure, they are available within :mod:`deepinv.physics.functional`.
+Similar to the PyTorch structure, they are available within ``deepinv.physics.functional``.
 
 .. doctest::
 

@@ -23,7 +23,7 @@ class Rotate(Transform):
         When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
     :param int n_trans: number of transformed versions generated per input image.
-    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     """
 
     def __init__(

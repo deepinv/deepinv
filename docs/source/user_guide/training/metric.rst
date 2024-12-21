@@ -9,7 +9,7 @@ Metrics are generally used to evaluate the performance of a model, or as the dis
 
 Introduction
 ------------
-All metrics inherit from the base class :meth:`deepinv.loss.metric.Metric`, which is a :class:`torch.nn.Module`.
+All metrics inherit from the base class :class:`deepinv.loss.metric.Metric`, which is a :class:`torch.nn.Module`.
 All metrics take either ``x_net, x`` for a full-reference metric or ``x_net`` for a no-reference metric.
 
 All metrics can perform a standard set of pre and post processing, including
@@ -20,7 +20,7 @@ operating on complex numbers, normalisation and reduction. See :class:`deepinv.l
     By default, metrics do not reduce over the batch dimension, as the usual usage is to average the metrics over a dataset yourself.
     This discourages averaging over metrics which might in turn have averaged over uneven batch sizes.
     Note we provide :class:`deepinv.utils.AverageMeter` to easily keep track of the average of metrics.
-    For example, we use this in our trainer :class:`deepinv.training.Trainer`.
+    For example, we use this in our trainer :class:`deepinv.Trainer`.
 
     However, you can use the ``reduction`` argument to perform reduction, e.g. if you want a single metric calculation rather than over a dataset.
 

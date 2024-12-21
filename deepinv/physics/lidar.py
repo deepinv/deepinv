@@ -26,7 +26,8 @@ class SinglePhotonLidar(Physics):
     :param float sigma: Standard deviation of the Gaussian impulse response function.
     :param int bins: Number of histogram bins per pixel.
     :param str device: Device to use (gpu or cpu).
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the Poisson noise model :meth:`deepinv.physics.noise.PoissonNoise`
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for
+        the Poisson noise model :class:`deepinv.physics.PoissonNoise`
     """
 
     def __init__(self, sigma=1.0, bins=50, device="cpu", rng: torch.Generator = None):

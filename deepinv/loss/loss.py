@@ -15,7 +15,7 @@ class Loss(torch.nn.Module):
     Base class for all loss functions.
 
     Sets a template for the loss functions, whose forward method must follow the input parameters in
-    :meth:`deepinv.loss.Loss.forward`.
+    :func:`deepinv.loss.Loss.forward`.
     """
 
     def __init__(self):
@@ -29,7 +29,7 @@ class Loss(torch.nn.Module):
         physics: Physics,
         model: Module,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Computes the loss.
 
@@ -45,7 +45,7 @@ class Loss(torch.nn.Module):
             "The method 'forward' must be implemented in the subclass."
         )
 
-    def adapt_model(self, model: Module, **kwargs) -> Module:
+    def adapt_model(self, model: Module, **kwargs) -> torch.nn.Module:
         r"""
         Some loss functions require the model forward call to be adapted before the forward pass.
 
@@ -97,7 +97,7 @@ class StackedPhysicsLoss(Loss):
         physics: StackedPhysics,
         model: Module,
         **kwargs,
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Computes the loss as
 

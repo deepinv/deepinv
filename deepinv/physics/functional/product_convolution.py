@@ -4,11 +4,12 @@ from deepinv.physics.functional.multiplier import (
     multiplier_adjoint,
 )
 from deepinv.physics.functional.convolution import conv2d, conv_transpose2d
+import torch
 
 
 def product_convolution2d(
     x: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
-) -> Tensor:
+) -> torch.Tensor:
     r"""
 
     Product-convolution operator in 2d. Details available in the following paper:
@@ -46,7 +47,7 @@ def product_convolution2d(
 
 def product_convolution2d_adjoint(
     y: Tensor, w: Tensor, h: Tensor, padding: str = "valid"
-) -> Tensor:
+) -> torch.Tensor:
     r"""
 
     Product-convolution adjoint operator in 2d.

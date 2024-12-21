@@ -13,7 +13,7 @@ class Distance(Potential):
     .. warning::
         All variables have a batch dimension as first dimension.
 
-    :param callable d: distance function :math:`\distance{x}{y}`. Outputs a tensor of size `B`, the size of the batch. Default: None.
+    :param Callable d: distance function :math:`\distance{x}{y}`. Outputs a tensor of size `B`, the size of the batch. Default: None.
     """
 
     def __init__(self, d=None):
@@ -185,7 +185,9 @@ class PoissonLikelihoodDistance(Distance):
 
     :param float gain: gain of the measurement :math:`y`. Default: 1.0.
     :param float bkg: background level :math:`\beta`. Default: 0.
-    :param bool denormalize: if True, the measurement is divided by the gain. By default, in the class :class:`physics.noise.PoissonNoise`, the measurements are multiplied by the gain after being sampled by the Poisson distribution. Default: True.
+    :param bool denormalize: if True, the measurement is divided by the gain. By default, in the
+        :class:`deepinv.physics.PoissonNoise`, the measurements are multiplied by the gain after being sampled by
+        the Poisson distribution. Default: True.
     """
 
     def __init__(self, gain=1.0, bkg=0, denormalize=False):
@@ -298,7 +300,7 @@ class L1Distance(Distance):
 
 class AmplitudeLossDistance(Distance):
     r"""
-    Amplitude loss for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction, defined as
+    Amplitude loss for :class:`deepinv.physics.PhaseRetrieval` reconstruction, defined as
 
     .. math::
 

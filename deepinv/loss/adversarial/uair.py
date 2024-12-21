@@ -34,7 +34,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
-    :param nn.Module metric: metric for measurement consistency, defaults to nn.MSELoss
+    :param torch.nn.Module metric: metric for measurement consistency, defaults to :class:`torch.nn.MSELoss`
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
     """
@@ -64,11 +64,11 @@ class UAIRGeneratorLoss(GeneratorLoss):
     ):
         r"""Forward pass for UAIR generator's adversarial loss.
 
-        :param Tensor y: input measurement
-        :param Tensor y_hat: re-measured reconstruction
-        :param Physics physics: forward physics
-        :param nn.Module model: reconstruction network
-        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor y: input measurement
+        :param torch.Tensor y_hat: re-measured reconstruction
+        :param deepinv.physics.Physics physics: forward physics
+        :param torch.nn.Module model: reconstruction network
+        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         D = self.D if D is None else D
 

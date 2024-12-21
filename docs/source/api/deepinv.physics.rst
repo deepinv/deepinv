@@ -19,15 +19,6 @@ Base Classes
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
 
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.PhysicsGenerator
-   deepinv.physics.generator.GeneratorMixture
-
-
 Operators
 ---------
 .. userguide:: physics_list
@@ -47,6 +38,7 @@ Operators
    deepinv.physics.Downsampling
    deepinv.physics.MRI
    deepinv.physics.MRIMixin
+   deepinv.physics.TimeMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
@@ -66,19 +58,27 @@ Operators
    deepinv.physics.PtychographyLinearOperator
 
 
+Generators
+----------
+.. userguide:: physics_generators
+
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.PhysicsGenerator
+   deepinv.physics.generator.GeneratorMixture
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
    deepinv.physics.generator.GaussianSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
+   deepinv.physics.generator.ConfocalBlurGenerator3D
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
@@ -87,7 +87,7 @@ Operators
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
@@ -106,6 +106,7 @@ Noise distributions
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.NoiseModel
    deepinv.physics.GaussianNoise
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
@@ -118,10 +119,9 @@ Noise distributions
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.physics.TimeMixin
     deepinv.physics.adjoint_function
     deepinv.physics.stack
 
@@ -132,7 +132,7 @@ Functional
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
    deepinv.physics.functional.conv2d
@@ -144,7 +144,15 @@ Functional
    deepinv.physics.functional.product_convolution2d
    deepinv.physics.functional.multiplier
    deepinv.physics.functional.multiplier_adjoint
-   deepinv.physics.functional.Radon
-   deepinv.physics.functional.IRadon
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
+   deepinv.physics.functional.dst1
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon

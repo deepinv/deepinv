@@ -231,7 +231,7 @@ class LinearPhysics(Physics):
 
         .. note::
 
-            A_adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function`
+            A_adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function`
             method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
 
     :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
@@ -259,7 +259,7 @@ class LinearPhysics(Physics):
         >>> y = physics(x)
 
         Linear operators can also be stacked. The measurements produced by the resulting
-        model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
+        model are :class:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator (see :ref:`physics_combining` for more information):
 
         >>> physics1 = Blur(filter=w)
@@ -283,7 +283,7 @@ class LinearPhysics(Physics):
         >>> PSNR()(x, x_dagger) > PSNR()(x, y) # Should be closer to the orginal
         tensor([True])
 
-        The adjoint can be generated automatically using the :meth:`deepinv.physics.adjoint_function` method
+        The adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function` method
         which relies on automatic differentiation, at the cost of a few extra computations per adjoint call:
 
         >>> from deepinv.physics import LinearPhysics, adjoint_function
@@ -352,7 +352,7 @@ class LinearPhysics(Physics):
         A helper function that computes :math:`A A^{\top}y`.
 
         This function can speed up computation when :math:`A A^{\top}` is available in closed form.
-        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+        Otherwise it just calls :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
 
         :param torch.Tensor y: measurement.
         :return: (torch.Tensor) the product :math:`AA^{\top}y`.
@@ -364,7 +364,7 @@ class LinearPhysics(Physics):
         A helper function that computes :math:`A^{\top}Ax`.
 
         This function can speed up computation when :math:`A^{\top}A` is available in closed form.
-        Otherwise it just cals :meth:`deepinv.physics.LinearPhysics.A` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+        Otherwise it just cals :func:`deepinv.physics.Physics.A` and :func:`deepinv.physics.LinearPhysics.A_adjoint`.
 
         :param torch.Tensor x: signal/image.
         :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
@@ -502,7 +502,7 @@ class LinearPhysics(Physics):
         r"""
         Computes the solution in :math:`x` to :math:`y = Ax` using the
         `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
-        see :meth:`deepinv.optim.utils.conjugate_gradient`.
+        see :func:`deepinv.optim.utils.conjugate_gradient`.
 
         If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
         otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
@@ -550,7 +550,7 @@ class DecomposablePhysics(LinearPhysics):
     :param Callable U_adjoint: transpose of U
     :param Callable V: orthonormal transformation
     :param Callable V_adjoint: transpose of V
-    :param torch.nn.Parameter, float params: Singular values of the transform
+    :param torch.nn.parameter.Parameter, float params: Singular values of the transform
 
     |sep|
 
@@ -605,7 +605,7 @@ class DecomposablePhysics(LinearPhysics):
         and also stored as the current mask/singular values.
 
         :param torch.Tensor x: input tensor
-        :param torch.nn.Parameter, float mask: singular values.
+        :param torch.nn.parameter.Parameter, float mask: singular values.
         :return: (torch.Tensor) output tensor
 
         """
@@ -622,7 +622,7 @@ class DecomposablePhysics(LinearPhysics):
         and also stored as the current mask/singular values.
 
         :param torch.Tensor y: input tensor
-        :param torch.nn.Parameter, float mask: singular values.
+        :param torch.nn.parameter.Parameter, float mask: singular values.
         :return: (torch.Tensor) output tensor
         """
 
@@ -770,7 +770,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     True
 
 
-    :param callable A: linear operator :math:`A`.
+    :param Callable A: linear operator :math:`A`.
     :param tuple input_size: size of the input tensor e.g. (B, C, H, W).
         The first dimension, i.e. batch size, should be equal or lower than the batch size B
         of the input tensor to the adjoint operator.
@@ -833,7 +833,7 @@ class StackedPhysics(Physics):
                 else physics.physics_list
             )
 
-    def A(self, x: Tensor, **kwargs) -> TensorList:
+    def A(self, x: Tensor, **kwargs):
         r"""
         Computes forward of stacked operator
 
@@ -842,6 +842,7 @@ class StackedPhysics(Physics):
             y = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}
 
         :param torch.Tensor x: signal/image
+        :return: (deepinv.utils.TensorList) measurements
         """
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
@@ -859,11 +860,13 @@ class StackedPhysics(Physics):
         """
         return self.physics_list[item]
 
-    def sensor(self, y: TensorList, **kwargs) -> TensorList:
+    def sensor(self, y: TensorList, **kwargs):
         r"""
         Applies sensor non-linearities to the measurements per physics operator
         in the stacked operator.
 
+        :param deepinv.utils.TensorList y: measurements
+        :return: (deepinv.utils.TensorList) measurements
         """
         for i, physics in enumerate(self.physics_list):
             y[i] = physics.sensor(y[i], **kwargs)
@@ -876,10 +879,12 @@ class StackedPhysics(Physics):
         """
         return len(self.physics_list)
 
-    def noise(self, y: TensorList, **kwargs) -> TensorList:
+    def noise(self, y: TensorList, **kwargs):
         r"""
         Applies noise to the measurements per physics operator in the stacked operator.
 
+        :param deepinv.utils.TensorList y: measurements
+        :return: (deepinv.utils.TensorList) noisy measurements
         """
         for i, physics in enumerate(self.physics_list):
             y[i] = physics.noise(y[i], **kwargs)
@@ -919,7 +924,7 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         else:
             raise ValueError("reduction must be either sum, mean or none.")
 
-    def A_adjoint(self, y: TensorList, **kwargs) -> Tensor:
+    def A_adjoint(self, y: TensorList, **kwargs) -> torch.Tensor:
         r"""
         Computes the adjoint of the stacked operator, defined as
 

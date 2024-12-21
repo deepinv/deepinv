@@ -44,11 +44,11 @@ class BaseLossScheduler(Loss):
 
         When called, subselect losses based on defined schedule to be used at this pass, and apply to inputs.
 
-        :param Tensor x_net: model output
-        :param Tensor x: ground truth
-        :param Tensor y: measurement
+        :param torch.Tensor x_net: model output
+        :param torch.Tensor x: ground truth
+        :param torch.Tensor y: measurement
         :param Physics physics: measurement operator
-        :param Module model: reconstruction model
+        :param torch.nn.Module model: reconstruction model
         :param int epoch: current epoch
         """
         losses = self.schedule(epoch)
@@ -73,7 +73,7 @@ class BaseLossScheduler(Loss):
 
         Some loss functions require the model forward call to be adapted before the forward pass.
 
-        :param Module model: reconstruction model
+        :param torch.nn.Module model: reconstruction model
         """
         for l in self.losses:
             model = l.adapt_model(model, **kwargs)

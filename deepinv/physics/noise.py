@@ -6,11 +6,11 @@ import warnings
 
 class NoiseModel(nn.Module):
     r"""
+    Base class for noise model.
 
-    Base class for noise  model.
-    NoiseModel can be combined via :meth:`deepinv.physics.noise.NoiseModel.__mul__`,
+    NoiseModel can be combined via :func:`deepinv.physics.NoiseModel.__mul__`,
 
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation. If is provided, it should be on the same device as the input.
+    | a pseudorandom random number generator for the parameter generation. If is provided, it should be on the same device as the input.
     """
 
     def __init__(self, noise_model: Callable = None, rng: torch.Generator = None):
@@ -37,8 +37,8 @@ class NoiseModel(nn.Module):
 
         The resulting operator will add the noise from both noise models and keep the `rng` of :math:`N_1`.
 
-        :param deepinv.physics.noise.NoiseModel other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.noise.NoiseModel) concatenated operator
+        :param deepinv.physics.NoiseModel other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.NoiseModel) concatenated operator
 
         """
         noise_model = lambda x: self.noise_model(other.noise_model(x))
@@ -107,7 +107,7 @@ class GaussianNoise(NoiseModel):
         >>> y = physics(x)
 
     :param float sigma: Standard deviation of the noise.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
@@ -166,7 +166,7 @@ class UniformGaussianNoise(NoiseModel):
 
     :param float sigma_min: minimum standard deviation of the noise.
     :param float sigma_max: maximum standard deviation of the noise.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     """
 
@@ -224,7 +224,7 @@ class PoissonNoise(NoiseModel):
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
     :param bool clip_positive: clip the input to be positive before adding noise. This may be needed when a NN outputs negative values e.g. when using LeakyReLU.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     """
 
@@ -331,7 +331,7 @@ class PoissonGaussianNoise(NoiseModel):
 
     :param float gain: gain of the noise.
     :param float sigma: Standard deviation of the noise.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, gain=1.0, sigma=0.1, rng: torch.Generator = None):
@@ -389,7 +389,7 @@ class UniformNoise(NoiseModel):
         >>> y = physics(x)
 
     :param float a: amplitude of the noise.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, a=0.1, rng: torch.Generator = None):
@@ -448,7 +448,7 @@ class LogPoissonNoise(NoiseModel):
 
 
     :param float mu: normalization constant
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):

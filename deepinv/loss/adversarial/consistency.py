@@ -41,14 +41,12 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialGenerator"
 
-    def forward(
-        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
-    ) -> Tensor:
+    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial generator loss.
 
-        :param Tensor x: ground truth image
-        :param Tensor x_net: reconstructed image
-        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor x: ground truth image
+        :param torch.Tensor x_net: reconstructed image
+        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         return self.adversarial_loss(x, x_net, D)
 
@@ -77,14 +75,12 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "SupAdversarialDiscriminator"
 
-    def forward(
-        self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs
-    ) -> Tensor:
+    def forward(self, x: Tensor, x_net: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for supervised adversarial discriminator loss.
 
-        :param Tensor x: ground truth image
-        :param Tensor x_net: reconstructed image
-        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor x: ground truth image
+        :param torch.Tensor x_net: reconstructed image
+        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         return self.adversarial_loss(x, x_net, D) * 0.5
 
@@ -131,9 +127,9 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for unsupervised adversarial generator loss.
 
-        :param Tensor y: input measurement
-        :param Tensor y_hat: re-measured reconstruction
-        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor y: input measurement
+        :param torch.Tensor y_hat: re-measured reconstruction
+        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         return self.adversarial_loss(y, y_hat, D)
 
@@ -163,8 +159,8 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     def forward(self, y: Tensor, y_hat: Tensor, D: nn.Module = None, **kwargs):
         r"""Forward pass for unsupervised adversarial discriminator loss.
 
-        :param Tensor y: input measurement
-        :param Tensor y_hat: re-measured reconstruction
-        :param nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
+        :param torch.Tensor y: input measurement
+        :param torch.Tensor y_hat: re-measured reconstruction
+        :param torch.nn.Module D: discriminator model. If None, then D passed from __init__ used. Defaults to None.
         """
         return self.adversarial_loss(y, y_hat, D)

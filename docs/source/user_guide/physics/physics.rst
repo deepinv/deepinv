@@ -41,6 +41,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
        | :class:`ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
+       | :class:`ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
        | :class:`gaussian_blur <deepinv.physics.blur.gaussian_blur>`, :class:`sinc_filter <deepinv.physics.blur.sinc_filter>`
        | :class:`bilinear_filter <deepinv.physics.blur.bilinear_filter>`, :class:`bicubic_filter <deepinv.physics.blur.bicubic_filter>`
 

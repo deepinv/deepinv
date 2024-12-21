@@ -19,7 +19,7 @@ class MRIMixin:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
-        :param torch.nn.Parameter, torch.Tensor mask: MRI subsampling mask.
+        :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI subsampling mask.
         :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
         :param torch.device, str device: mask intended device.
         """
@@ -52,7 +52,7 @@ class MRIMixin:
 
         :param torch.Tensor x: input kspace of complex dtype of shape [B,...] where ... is all dims to be transformed
         :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :meth:`torch.fft.fftn`, defaults to "ortho"
+        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
         """
         x = torch.fft.ifftshift(x, dim=dim)
         x = torch.fft.ifftn(x, dim=dim, norm=norm)
@@ -64,7 +64,7 @@ class MRIMixin:
 
         :param torch.Tensor x: input image of complex dtype of shape [B,...] where ... is all dims to be transformed
         :param tuple dim: fft transform dims, defaults to (-2, -1)
-        :param str norm: fft norm, see docs for :meth:`torch.fft.fftn`, defaults to "ortho"
+        :param str norm: fft norm, see docs for :func:`torch.fft.fftn`, defaults to "ortho"
         """
         x = torch.fft.ifftshift(x, dim=dim)
         x = torch.fft.fftn(x, dim=dim, norm=norm)
@@ -83,7 +83,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
     where :math:`M` applies a mask (subsampling operator), and :math:`F` is the 2D or 3D discrete Fourier Transform.
     This operator has a simple singular value decomposition, so it inherits the structure of
-    :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
+    :class:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
     The complex images :math:`x` and measurements :math:`y` should be of size (B, C,..., H, W) with C=2, where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part. The ``...`` is an optional depth dimension for 3D MRI data.
@@ -154,14 +154,14 @@ class MRI(MRIMixin, DecomposablePhysics):
         # Check and update mask
         self.update_parameters(mask=mask.to(self.device))
 
-    def V_adjoint(self, x: Tensor) -> Tensor:
+    def V_adjoint(self, x: Tensor) -> torch.Tensor:
         return self.from_torch_complex(
             self.fft(
                 self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
             )
         )
 
-    def V(self, x: Tensor) -> Tensor:
+    def V(self, x: Tensor) -> torch.Tensor:
         return self.from_torch_complex(
             self.ifft(
                 self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
@@ -171,7 +171,7 @@ class MRI(MRIMixin, DecomposablePhysics):
     def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
         """Update MRI subsampling mask.
 
-        :param torch.nn.Parameter, torch.Tensor mask: MRI mask
+        :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI mask
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
@@ -309,8 +309,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     ):
         """Update MRI subsampling mask and coil sensitivity maps.
 
-        :param torch.nn.Parameter, torch.Tensor mask: MRI mask
-        :param torch.nn.Parameter, torch.Tensor coil_maps: MRI coil sensitivity maps
+        :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI mask
+        :param torch.nn.parameter.Parameter, torch.Tensor coil_maps: MRI coil sensitivity maps
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
@@ -368,7 +368,7 @@ class DynamicMRI(MRI, TimeMixin):
 
     where :math:`M_t` applies a time-varying mask, and :math:`F` is the 2D discrete Fourier Transform.
     This operator has a simple singular value decomposition, so it inherits the structure of
-    :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
+    :class:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
 
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, T, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
@@ -412,7 +412,7 @@ class DynamicMRI(MRI, TimeMixin):
 
     """
 
-    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
         mask = self.check_mask(self.mask if mask is None else mask)
 
         mask_flatten = self.flatten(mask.expand(*x.shape)).to(x.device)
@@ -424,7 +424,7 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return y
 
-    def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
         mask = self.check_mask(self.mask if mask is None else mask)
 
         mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
@@ -436,14 +436,14 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return x
 
-    def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
         return self.A_adjoint(y, mask=mask, **kwargs)
 
     def check_mask(self, mask: torch.Tensor = None, **kwargs) -> None:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,T,H,W.
 
-        :param torch.nn.Parameter, float MRI subsampling mask.
+        :param torch.nn.parameter.Parameter, float MRI subsampling mask.
         """
         while mask is not None and len(mask.shape) < 5:  # to B,C,T,H,W
             mask = mask.unsqueeze(0)
@@ -487,9 +487,11 @@ class SequentialMRI(DynamicMRI):
     where :math:`F` is the 2D discrete Fourier Transform, the image :math:`x` is of shape (B, 2, H, W) and measurements :math:`y` is of shape (B, 2, T, H, W)
     where the first channel corresponds to the real part and the second channel corresponds to the imaginary part.
 
-    This operator has a simple singular value decomposition, so it inherits the structure of :meth:`deepinv.physics.DecomposablePhysics` and thus have a fast pseudo-inverse and prox operators.
+    This operator has a simple singular value decomposition, so it inherits the structure of :class:`deepinv.physics.DecomposablePhysics`
+    and thus have a fast pseudo-inverse and prox operators.
 
-    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
+    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``)
+    or using ``update_parameters``.
 
     .. note::
 
@@ -516,19 +518,19 @@ class SequentialMRI(DynamicMRI):
 
     """
 
-    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
         return super().A(
             self.repeat(x, self.mask if mask is None else mask), mask, **kwargs
         )
 
     def A_adjoint(
         self, y: Tensor, mask: Tensor = None, keep_time_dim=False, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Computes the adjoint of the forward operator :math:`\tilde{x} = A^{\top}y`.
 
         :param torch.Tensor y: input tensor
-        :param torch.nn.Parameter, float mask: input mask
+        :param torch.nn.parameter.Parameter, float mask: input mask
         :param bool keep_time_dim: if ``True``, adjoint is calculated frame-by-frame. Used for visualisation. If ``False``, flatten the time dimension before calculating.
         :return: (torch.Tensor) output tensor
         """

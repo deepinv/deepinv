@@ -114,7 +114,7 @@ class FNEJacobianSpectralNorm(Loss):
         \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
     as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
-    This spectral norm is computed with the :meth:`deepinv.loss.JacobianSpectralNorm` module.
+    This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
     :param int max_iter: maximum numer of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.

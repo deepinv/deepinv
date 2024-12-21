@@ -44,7 +44,7 @@ def conjugate_gradient(
 
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
-    :param (callable) A: Linear operator as a callable function, has to be square!
+    :param Callable A: Linear operator as a callable function, has to be square!
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
@@ -94,7 +94,7 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     """
     Standard gradient descent algorithm`.
 
-    :param callable grad_f: gradient of function to bz minimized as a callable function.
+    :param Callable grad_f: gradient of function to bz minimized as a callable function.
     :param torch.Tensor x: input tensor.
     :param torch.Tensor, float step_size: (constant) step size of the gradient descent algorithm.
     :param int max_iter: maximum number of iterations.

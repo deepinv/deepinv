@@ -58,7 +58,7 @@ class NBUDataset(Dataset):
             print(dataset.check_dataset_exists())
             print(len(dataset))
 
-    :param str, Path root_dir: NBU dataset root directory
+    :param str, pathlib.Path root_dir: NBU dataset root directory
     :param str satellite: satellite name, choose from the options above, defaults to "gaofen-1".
     :param bool return_pan: if ``True``, return panchromatic images as TensorList of (MS, PAN), if ``False``, just return multispectral images.
     :param Callable transform_ms: optional transform for multispectral images

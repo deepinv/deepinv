@@ -28,7 +28,7 @@ class Flickr2kHR(torch.utils.data.Dataset):
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a PIL image
+    :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|

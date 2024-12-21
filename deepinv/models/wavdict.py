@@ -324,7 +324,7 @@ class WaveletDictDenoiser(Denoiser):
     :math:`\Psi=[\Psi_1,\Psi_2,\dots,\Psi_L]`, :math:`\lambda>0` is a hyperparameter, and where
     :math:`\|\cdot\|_n` is either the :math:`\ell_1` norm (``non_linearity="soft"``),
     the :math:`\ell_0` norm (``non_linearity="hard"``) or a variant of the :math:`\ell_0` norm
-    (``non_linearity="topk"``) where only the top-k coefficients are kept; see :meth:`deepinv.models.WaveletDenoiser` for
+    (``non_linearity="topk"``) where only the top-k coefficients are kept; see :class:`deepinv.models.WaveletDenoiser` for
     more details.
 
     The solution is not available in closed-form, thus the denoiser runs an optimization algorithm for each test image.

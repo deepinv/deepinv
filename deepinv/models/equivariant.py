@@ -34,7 +34,7 @@ class EquivariantDenoiser(Denoiser):
 
     See :ref:`sphx_glr_auto_examples_basics_demo_transforms.py` for an example.
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
         See :ref:`docs <transform>` for list of available transforms.
     :param bool random: if True, the denoiser is applied to a randomly transformed version of the input image

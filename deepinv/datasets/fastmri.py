@@ -45,27 +45,27 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     | 4) For single-coil MRIs, k-space data has the following shape:
     | (number of slices, height, width)
 
-    :param Union[str, Path] root: Path to the dataset.
+    :param Union[str, pathlib.Path] root: Path to the dataset.
     :param bool test: Whether the split is the "test" set.
     :param str challenge: "singlecoil" or "multicoil" depending on the type of mri scan.
     :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
-    :param Union[str, Path] metadata_cache_file: A file used to cache dataset
+    :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset
         information for faster load times.
-    :param callable, optional sample_filter: A callable object that takes a
-        :meth:`SliceSampleFileIdentifier` as input and returns a boolean indicating
-        whether the sample should be included in the dataset.
-    :param float, optional sample_rate: A float between 0 and 1. This controls what
+    :param Callable sample_filter: (optional) A callable object that takes a
+        :class:`SliceSampleFileIdentifier <deepinv.datasets.FastMRISliceDataset.SliceSampleFileIdentifier>`
+        as input and returns a boolean indicating whether the sample should be included in the dataset.
+    :param float sample_rate: (optional) A float between 0 and 1. This controls what
         fraction of all slices should be loaded. Defaults to 1.
         When creating a sampled dataset either set sample_rate (sample by slices)
         or volume_sample_rate (sample by volumes) but not both.
-    :param float, optional volume_sample_rate: A float between 0 and 1. This controls
+    :param float volume_sample_rate: (optional) A float between 0 and 1. This controls
         what fraction of the volumes should be loaded. Defaults to 1 if no value is given.
         When creating a sampled dataset either set sample_rate (sample by slices)
         or volume_sample_rate (sample by volumes) but not both.
-    :param callable, optional transform_kspace: A function/transform that takes in the
+    :param Callable transform_kspace: (optional) A function/transform that takes in the
         kspace and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
-    :param callable, optional transform_target: A function/transform that takes in the
+    :param Callable transform_target: (optional) A function/transform that takes in the
         target and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|

@@ -53,7 +53,7 @@ Markov Chain Monte Carlo
 ------------------------
 
 The negative log likelihood from :ref:`this list <data-fidelity>`:, which includes Gaussian noise,
-Poisson noise, etc. The negative log prior can be approximated using :meth:`deepinv.optim.ScorePrior` with a
+Poisson noise, etc. The negative log prior can be approximated using :class:`deepinv.optim.ScorePrior` with a
 :ref:`pretrained denoiser <denoisers>`, which leverages Tweedie's formula, i.e.,
 
 .. math::
@@ -67,7 +67,7 @@ which is typically set to a low value.
 .. note::
 
     The approximation of the prior obtained via
-    :meth:`deepinv.optim.ScorePrior` is also valid for maximum-a-posteriori (MAP) denoisers,
+    :class:`deepinv.optim.ScorePrior` is also valid for maximum-a-posteriori (MAP) denoisers,
     but :math:`p_{\sigma}(x)` is not given by the convolution with a Gaussian kernel, but rather
     given by the Moreau-Yosida envelope of :math:`p(x)`, i.e.,
 
