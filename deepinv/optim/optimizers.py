@@ -2,6 +2,7 @@ import sys
 import warnings
 from collections.abc import Iterable
 import torch
+from optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.loss.metric.distortion import PSNR
