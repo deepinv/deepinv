@@ -182,6 +182,8 @@ class GaussianNoise(NoiseModel):
         elif isinstance(other, float) or isinstance(
             other, torch.Tensor
         ):  # should be a float or a torch.Tensor
+            if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
+                self.sigma.reshape((self.sigma.size(0),) + (1,) * (other.dim() - 1))
             return GaussianNoise(sigma=self.sigma * other)
         else:
             raise NotImplementedError(
