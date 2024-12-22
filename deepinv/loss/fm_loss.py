@@ -37,7 +37,7 @@ class FlowMatchingModel(torch.nn.Module):
         """
         ### COMPUTE INTERMEDIATE PHYSICS
         gaussian_noise = GaussianNoise(sigma=0.01)
-        physics_clean = Denoising(noise_model=gaussian_noise, device=x_gt.device)
+        physics_clean = type(physics)(noise_model=gaussian_noise)
         # timestep t between 0 and 1
         # if t == 0 then z_t == x_gt
         # if t == 0 then z_t == y
