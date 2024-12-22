@@ -330,6 +330,7 @@ class BlurFFT(DecomposablePhysics):
         super().__init__(**kwargs)
         self.device = device
         self.img_size = img_size
+        self.angle = 0.
         self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
