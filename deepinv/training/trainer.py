@@ -440,7 +440,7 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, backward=True):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None, backward=False):
         r"""
         Compute the loss and perform the backward pass.
 
