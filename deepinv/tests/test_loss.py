@@ -252,8 +252,7 @@ def test_loss_fm(loss_name, tmp_path, dataset, physics, imsize, device):
 
     from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
 
-    # generator = MotionBlurGenerator((31, 31), l=0.6, sigma=1, device=device) + SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
-    generator = SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
+    generator = MotionBlurGenerator((31, 31), l=0.6, sigma=1, device=device) + SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
     filter = torch.tensor([[[[0., 0., 0.],
                              [0., 1., 0.],
                              [0., 0., 0.]]]]).to(device)
@@ -284,11 +283,15 @@ def test_loss_fm(loss_name, tmp_path, dataset, physics, imsize, device):
         verbose=False,
     )
 
-    # # test the untrained model
-    # initial_test = trainer.test(test_dataloader=test_dataloader)
+    # test the untrained model
+    initial_test = trainer.test(test_dataloader=test_dataloader)
 
     # train the network
     trainer.train()
+
+    final_test = trainer.test(test_dataloader=test_dataloader)
+
+    assert final_test["PSNR"] > initial_test["PSNR"]
 
 
 def test_sure_losses(device):
