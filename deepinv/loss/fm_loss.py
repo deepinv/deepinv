@@ -76,7 +76,7 @@ class FlowMatchingModel(torch.nn.Module):
         dt = 1.0 / sample_steps
         dt = torch.full((b, *[1] * len(y.shape[1:])), dt, device=y.device)
 
-        images = [y]
+        images = [physics.A_adjoint(y)]
         for i in range(sample_steps, 0, -1):
             # t.shape == (b,1,1,1) if y.shape == (b,c,h,w)
             curr_step = float(i / sample_steps)
@@ -87,10 +87,18 @@ class FlowMatchingModel(torch.nn.Module):
             physics_clean = Denoising(noise_model=gaussian_noise, device=y.device)
             t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
+            # Initial
             # estimation of x
-            x_hat = model(y=y, physics=t_diffusion_physics)
+            # x_hat = model(y=y, physics=t_diffusion_physics)
             # estimation of the velocity from y to x
-            vc = (x_hat - y) / t
+            # vc = (x_hat - y) / t
+
+            # Proposed (not very elegant)
+            if i == sample_steps:
+                x_hat = model(y=y, physics=t_diffusion_physics)
+            else:
+                x_hat = model(y=t_diffusion_physics.A(y), physics=t_diffusion_physics)
+            vc = (x_hat - physics.A_adjoint(y)) / t
 
             y = y + dt * vc
             images.append(y)

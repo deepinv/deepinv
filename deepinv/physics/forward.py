@@ -119,10 +119,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
                 y = N(A(x), \sigma)
 
-
         :param torch.Tensor, list[torch.Tensor] x: signal/image
         :return: (torch.Tensor) noisy measurements
-
         """
         return self.sensor(self.noise(self.A(x, **kwargs), **kwargs))
 
