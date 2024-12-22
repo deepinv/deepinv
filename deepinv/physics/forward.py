@@ -124,7 +124,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (torch.Tensor) noisy measurements
 
         """
-        print('here', self.noise(self.A(x, **kwargs), **kwargs).max())
         return self.sensor(self.noise(self.A(x, **kwargs), **kwargs))
 
     def A(self, x, **kwargs):

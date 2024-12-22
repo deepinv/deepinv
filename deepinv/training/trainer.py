@@ -483,9 +483,11 @@ class Trainer:
                     cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
-            meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+                meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+                meters.update(loss_total.item())
+                logs[f"TotalLoss"] = meters.avg
+        else:  # question: what do we want to do at test time?
+            loss_total = 0
 
         if train and backward:
             loss_total.backward()  # Backward the total loss

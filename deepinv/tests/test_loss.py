@@ -10,7 +10,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r", "fm"]
 LIST_SURE = [
     "Gaussian",
     "Poisson",
@@ -66,6 +66,9 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
+    elif loss_name == "fm":
+        metric = torch.nn.L1Loss(reduction='mean')
+        loss.append(dinv.loss.FMLoss(metric=metric))
     else:
         raise Exception("The loss doesnt exist")
 
@@ -132,7 +135,7 @@ def imsize():
 @pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device)
+    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device, noise_model=dinv.physics.GaussianNoise(0.))
 
 
 @pytest.fixture
@@ -191,6 +194,10 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
 
     dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
+
+    # check elements of the dataloader
+    for x, y in dataloader:
+        assert x.shape == y.shape
 
     trainer = dinv.Trainer(
         model=model,

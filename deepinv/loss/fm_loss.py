@@ -5,11 +5,11 @@ from deepinv.physics import GaussianNoise, Denoising
 from deepinv.loss.metric import MSE
 
 
-class RectifiedFlowModel(torch.nn.Module):
+class FlowMatchingModel(torch.nn.Module):
     r"""
-    `Rectified Flow <https://arxiv.org/pdf/2209.03003>`_
+    `Flow Macthing loss <https://arxiv.org/pdf/2209.03003>`_
 
-    Rectified Flow is a method to solve the following ODE:
+    Flow Matching is a method to solve the following ODE:
     .. math:
 
         dZt = v(Zt,t)dt
@@ -27,7 +27,7 @@ class RectifiedFlowModel(torch.nn.Module):
         super().__init__()
         self.nn_model = model
 
-    def forward(self, y, physics, x_gt, **kwargs):
+    def forward(self, y, physics, x_gt=None, **kwargs):
         r"""
         Generate the forward process at timestep t for the Rectified Flow model and get output of the model.
 
@@ -98,9 +98,9 @@ class RectifiedFlowModel(torch.nn.Module):
         return images
 
 
-class RFLoss(Loss):
+class FMLoss(Loss):
     r"""
-    `Standard Rectified Flow loss <https://github.com/cloneofsimo/minRF>`_
+    Standard `Flow Matching loss <https://github.com/cloneofsimo/minRF>`_
 
     TODO !!!
     """
@@ -124,4 +124,6 @@ class RFLoss(Loss):
         return self.metric(x_net, x)
 
     def adapt_model(self, model):
-        return RectifiedFlowModel(model)
+        if not isinstance(model, FlowMatchingModel):
+            return FlowMatchingModel(model)
+        return model
