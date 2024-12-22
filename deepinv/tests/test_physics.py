@@ -86,7 +86,7 @@ def find_operator(name, device, sf=1):
     :param sf: (float) scale factor for multiscale tests
     :return: (deepinv.physics.Physics) forward operator.
     """
-    img_size = (3, sf*16, sf*8)
+    img_size = (3, sf * 16, sf * 8)
     norm = 1
     dtype = torch.float
     padding = None
@@ -212,9 +212,11 @@ def find_operator(name, device, sf=1):
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
     elif name.startswith("deblur"):
-        img_size = (3, sf*17, sf*19)
+        img_size = (3, sf * 17, sf * 19)
         p = dinv.physics.Blur(
-            filter=dinv.physics.blur.gaussian_blur(sigma=(sf*0.25, sf*0.1), angle=45.0),
+            filter=dinv.physics.blur.gaussian_blur(
+                sigma=(sf * 0.25, sf * 0.1), angle=45.0
+            ),
             padding=padding,
             device=device,
         )
@@ -283,7 +285,7 @@ def find_operator(name, device, sf=1):
             dtype=dtype,
         )
     elif name == "complex_compressed_sensing":
-        img_size = (1, sf*8, sf*8)
+        img_size = (1, sf * 8, sf * 8)
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
@@ -336,7 +338,7 @@ def find_operator(name, device, sf=1):
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
     elif name == "structured_random":
-        img_size = (1, sf*8, sf*8)
+        img_size = (1, sf * 8, sf * 8)
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
@@ -1050,9 +1052,9 @@ def test_coarse_physics_validity(name, device):
     """
     physics, imsize, _, dtype = find_operator(name, device, sf=2)
     if not isinstance(physics, dinv.physics.LinearPhysics):
-        pytest.skip("Skip "+name+" : not LinearPhysics")
+        pytest.skip("Skip " + name + " : not LinearPhysics")
     if not len(imsize) == 3:
-        pytest.skip("Skip "+name+" : not proper data shape")
+        pytest.skip("Skip " + name + " : not proper data shape")
 
     x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
     x_coarse = physics.downsample_signal(x)
