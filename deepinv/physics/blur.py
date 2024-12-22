@@ -393,7 +393,7 @@ class Blur(LinearPhysics):
         # downsample the blur filter
         filt = torch.nn.functional.conv2d(pf, df, groups=pf.shape[1], padding="valid")
         filt = filt[:, :, ::2, ::2]
-        filt = filt / torch.sum(filt)
+        filt = filt / torch.sum(filt) * torch.sum(in_filt)
 
         return Blur(filter=filt, padding=self.padding, device=self.filter.device)
 
