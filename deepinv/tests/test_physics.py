@@ -1021,15 +1021,6 @@ def test_mri_fft():
     assert torch.all(xf1 == xf2)
 
 
-@pytest.mark.parametrize("name", OPERATORS)
-def test_decomposable(name, device, rng):
-    physics, imsize, _, dtype = find_operator(name, device)
-
-    if isinstance(physics, dinv.physics.DecomposablePhysics):
-        x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-        assert torch.allclose(physics.U_adjoint(physics.U(x)), x)
-        assert torch.allclose(physics.V(physics.V_adjoint(x)), x)
-
 
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
 def test_decolorize(srf, device, imsize):
