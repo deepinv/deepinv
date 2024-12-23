@@ -67,7 +67,7 @@ def choose_loss(loss_name):
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
     elif loss_name == "fm":
-        metric = torch.nn.L1Loss(reduction='mean')
+        metric = torch.nn.L1Loss(reduction="mean")
         loss.append(dinv.loss.FMLoss(metric=metric))
     else:
         raise Exception("The loss doesnt exist")
@@ -135,7 +135,12 @@ def imsize():
 @pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device, noise_model=dinv.physics.GaussianNoise(0.))
+    return dinv.physics.Inpainting(
+        tensor_size=imsize,
+        mask=0.5,
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(0.0),
+    )
 
 
 @pytest.fixture
@@ -252,15 +257,19 @@ def test_loss_fm(loss_name, tmp_path, dataset, physics, imsize, device):
 
     from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
 
-    generator = MotionBlurGenerator((31, 31), l=0.6, sigma=1, device=device) + SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
-    filter = torch.tensor([[[[0., 0., 0.],
-                             [0., 1., 0.],
-                             [0., 0., 0.]]]]).to(device)
+    generator = MotionBlurGenerator(
+        (31, 31), l=0.6, sigma=1, device=device
+    ) + SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
+    filter = torch.tensor([[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]]).to(
+        device
+    )
 
-    physics = dinv.physics.BlurFFT(img_size=(imsize[0], imsize[1], imsize[2]),
-                                   filter=filter,
-                                   noise_model=dinv.physics.GaussianNoise(sigma=.05),
-                                   device=device)
+    physics = dinv.physics.BlurFFT(
+        img_size=(imsize[0], imsize[1], imsize[2]),
+        filter=filter,
+        noise_model=dinv.physics.GaussianNoise(sigma=0.05),
+        device=device,
+    )
 
     # check elements of the dataloader
     for x, y in dataloader:

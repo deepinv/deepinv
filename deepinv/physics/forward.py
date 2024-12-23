@@ -383,7 +383,6 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-
         return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
@@ -423,6 +422,30 @@ class LinearPhysics(Physics):
         :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
         """
         return self.A_adjoint(self.A(x, **kwargs), **kwargs)
+
+    def symmetric(self, x, **kwargs):
+        r"""
+        A function that computes :math:`A^{\top}(Ax+e)`.
+
+        It just cals :meth:`deepinv.physics.LinearPhysics.forward` and :meth:`deepinv.physics.LinearPhysics.A_adjoint`.
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        return self.A_adjoint(self.forward(x, **kwargs), **kwargs)
+
+    def symmetric_grad(self, x, **kwargs):
+        r"""
+        A function that computes the gradient of :math:`\|A^{\top}(Ax+e)\|^2`, i.e.
+
+        .. math::
+
+            \nabla_x \|A^{\top}(Ax+e)\|^2 = (A^{\top}A)^2
+
+        :param torch.Tensor x: signal/image.
+        :return: (torch.Tensor) the product :math:`A^{\top}Ax`.
+        """
+        return self.A_adjoint_A(self.A_adjoint_A(x, **kwargs), **kwargs)
 
     def get_transpose_physics(self):
         r"""
@@ -466,7 +489,7 @@ class LinearPhysics(Physics):
 
         return LinearPhysics(
             A=new_A,
-            A_adj=new_A_adj,
+            A_adjoint=new_A_adj,
             noise_model=new_noise_model,
             sensor_model=new_sensor_model,
             max_iter=self.max_iter,
@@ -501,14 +524,14 @@ class LinearPhysics(Physics):
             new_A_adj = lambda x, **kwargs: other.A_adjoint(
                 self.A_adjoint(x, **kwargs), **kwargs
             )
-            new_sensor = lambda x : self.sensor_model(other.sensor_model(x))
+            new_sensor = lambda x: self.sensor_model(other.sensor_model(x))
             new_noise_model = self.noise_model
         elif isinstance(other, float) or isinstance(
             other, torch.Tensor
         ):  # should be a float or a torch.Tensor
             new_A = lambda x: other * self.A(x)  # self.A is a function
-            new_A_adj = lambda x: other * self.A_adj(x)  # self.A_adj is a function
-            new_sensor =  lambda x: other * self.sensor_model(x) 
+            new_A_adj = lambda x: other * self.A_adjoint(x)  # self.A_adj is a function
+            new_sensor = lambda x: other * self.sensor_model(x)
             new_noise_model = (
                 other * self.noise_model
             )  # create a new object from the same class as self.noise_model

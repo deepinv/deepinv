@@ -440,7 +440,9 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None, backward=False):
+    def compute_loss(
+        self, physics, x, y, train=True, epoch: int = None, backward=False
+    ):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -483,7 +485,9 @@ class Trainer:
                     cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-                meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+                meters = (
+                    self.logs_total_loss_train if train else self.logs_total_loss_eval
+                )
                 meters.update(loss_total.item())
                 logs[f"TotalLoss"] = meters.avg
         else:  # question: what do we want to do at test time?
@@ -580,7 +584,9 @@ class Trainer:
 
         return x_nl
 
-    def step(self, epoch, progress_bar, train=True, last_batch=False, backward_all=True):
+    def step(
+        self, epoch, progress_bar, train=True, last_batch=False, backward_all=True
+    ):
         r"""
         Train/Eval a batch.
 
@@ -601,7 +607,9 @@ class Trainer:
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            loss_cur, x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch, backward=not backward_all)
+            loss_cur, x_net, logs = self.compute_loss(
+                physics_cur, x, y, train=train, epoch=epoch, backward=not backward_all
+            )
             loss += loss_cur
 
             # detach the network output for metrics and plotting

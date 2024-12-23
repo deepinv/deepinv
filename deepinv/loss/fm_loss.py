@@ -116,7 +116,7 @@ class FMLoss(Loss):
     TODO !!!
     """
 
-    def __init__(self, metric = MSE()):
+    def __init__(self, metric=MSE()):
         super().__init__()
         self.name = "Rectified Flow loss"
         self.metric = metric

@@ -14,6 +14,7 @@ from deepinv.physics.functional import (
     conv3d_fft,
     conv_transpose3d_fft,
 )
+from deepinv.utils.nn import dirac
 
 
 class Downsampling(LinearPhysics):
@@ -234,6 +235,8 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
+        if filter is None:
+            filter = dirac((1, 1, 1, 1))
         self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
@@ -330,7 +333,9 @@ class BlurFFT(DecomposablePhysics):
         super().__init__(**kwargs)
         self.device = device
         self.img_size = img_size
-        self.angle = 0.
+        self.angle = 0.0
+        if filter is None:
+            filter = dirac((1, 1, *img_size[-2:]))
         self.update_parameters(filter=filter, **kwargs)
 
     def A(self, x, filter=None, **kwargs):
