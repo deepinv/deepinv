@@ -89,7 +89,7 @@ class FlowMatchingModel(torch.nn.Module):
             # compute intermediate physics required by the rf model
             gaussian_noise = GaussianNoise(sigma=0.01)
             physics_clean = Denoising(noise_model=gaussian_noise, device=y.device)
-            t_diffusion_physics = (1 - t) * physics_clean + t * physics
+            # t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
             # Initial
             # estimation of x
@@ -98,9 +98,9 @@ class FlowMatchingModel(torch.nn.Module):
             # vc = (x_hat - y) / t
 
             # Proposed (not very elegant)
-            xt = t_diffusion_physics.symmetric(x)
-            x_hat = model(x_in=xt, y=y, physics=t_diffusion_physics)
-            vc = (x_hat - physics.A_adjoint(y)) / t
+            # xt = t_diffusion_physics.symmetric(x)
+            x_hat = model(x_in=x, y=y, physics=physics)
+            vc = (x_hat - x) / t
 
             x = x + dt * vc
             images.append(x)

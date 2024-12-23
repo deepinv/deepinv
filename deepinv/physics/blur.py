@@ -68,7 +68,7 @@ class Downsampling(LinearPhysics):
         self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
         # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
-        self.imsize = img_size
+        self.img_size = img_size
         self.padding = padding
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(device)
@@ -126,20 +126,20 @@ class Downsampling(LinearPhysics):
         if filter is not None:
             self.filter = torch.nn.Parameter(filter, requires_grad=False)
 
-        imsize = self.imsize
+        imsize = self.img_size
 
         if self.filter is not None:
             if self.padding == "valid":
                 imsize = (
-                    self.imsize[0],
-                    self.imsize[1] - self.filter.shape[-2] + 1,
-                    self.imsize[2] - self.filter.shape[-1] + 1,
+                    self.img_size[0],
+                    self.img_size[1] - self.filter.shape[-2] + 1,
+                    self.img_size[2] - self.filter.shape[-1] + 1,
                 )
             else:
                 imsize = (
-                    self.imsize[0],
-                    self.imsize[1],
-                    self.imsize[2],
+                    self.img_size[0],
+                    self.img_size[1],
+                    self.img_size[2],
                 )
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
