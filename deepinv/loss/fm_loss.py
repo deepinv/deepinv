@@ -51,10 +51,10 @@ class FlowMatchingModel(torch.nn.Module):
         t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
         ### COMPUTE "INTERMEDIATE REPRESENTATION" FOR FLOW MODEL
-        z_t = t_diffusion_physics(x_gt)
+        z_t = t_diffusion_physics.symmetric(x_gt)
 
         # For reconstruction network
-        x_net = self.nn_model(x_in=z_t, physics=t_diffusion_physics, y=y)
+        x_net = self.nn_model(x_in=z_t, physics=physics, y=y)
 
         return x_net
 
@@ -79,7 +79,8 @@ class FlowMatchingModel(torch.nn.Module):
         dt = 1.0 / sample_steps
         dt = torch.full((b, *[1] * len(y.shape[1:])), dt, device=y.device)
 
-        images = [physics.A_adjoint(y)]
+        x = physics.A_adjoint(y)
+        images = [x]
         for i in range(sample_steps, 0, -1):
             # t.shape == (b,1,1,1) if y.shape == (b,c,h,w)
             curr_step = float(i / sample_steps)
@@ -97,14 +98,12 @@ class FlowMatchingModel(torch.nn.Module):
             # vc = (x_hat - y) / t
 
             # Proposed (not very elegant)
-            if i == sample_steps:
-                x_hat = model(y=y, physics=t_diffusion_physics)
-            else:
-                x_hat = model(y=t_diffusion_physics.A(y), physics=t_diffusion_physics)
+            xt = t_diffusion_physics.symmetric(x)
+            x_hat = model(x_in=xt, y=y, physics=t_diffusion_physics)
             vc = (x_hat - physics.A_adjoint(y)) / t
 
-            y = y + dt * vc
-            images.append(y)
+            x = x + dt * vc
+            images.append(x)
 
         return images
 
