@@ -54,7 +54,10 @@ class FlowMatchingModel(torch.nn.Module):
         z_t = t_diffusion_physics.symmetric(x_gt)
 
         # For reconstruction network
-        x_net = self.nn_model(x_in=z_t, physics=physics, y=y)
+        x_net = self.nn_model(x_in=z_t, physics=t_diffusion_physics, y=y)
+
+        # # Classical loss (for comparison)
+        # x_net = self.nn_model(x_in=y, physics=physics)
 
         return x_net
 
@@ -79,8 +82,8 @@ class FlowMatchingModel(torch.nn.Module):
         dt = 1.0 / sample_steps
         dt = torch.full((b, *[1] * len(y.shape[1:])), dt, device=y.device)
 
-        x = physics.A_adjoint(y)
-        images = [x]
+        z_t = physics.A_adjoint(y)
+        images = [z_t]
         for i in range(sample_steps, 0, -1):
             # t.shape == (b,1,1,1) if y.shape == (b,c,h,w)
             curr_step = float(i / sample_steps)
@@ -89,7 +92,7 @@ class FlowMatchingModel(torch.nn.Module):
             # compute intermediate physics required by the rf model
             gaussian_noise = GaussianNoise(sigma=0.01)
             physics_clean = Denoising(noise_model=gaussian_noise, device=y.device)
-            # t_diffusion_physics = (1 - t) * physics_clean + t * physics
+            t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
             # Initial
             # estimation of x
@@ -99,11 +102,11 @@ class FlowMatchingModel(torch.nn.Module):
 
             # Proposed (not very elegant)
             # xt = t_diffusion_physics.symmetric(x)
-            x_hat = model(x_in=x, y=y, physics=physics)
-            vc = (x_hat - x) / t
+            x_hat = model(x_in=z_t, y=y, physics=t_diffusion_physics)
+            vc = (x_hat - z_t) / t
 
-            x = x + dt * vc
-            images.append(x)
+            z_t = z_t + dt * vc
+            images.append(z_t)
 
         return images
 
