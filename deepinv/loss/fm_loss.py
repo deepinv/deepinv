@@ -54,7 +54,7 @@ class FlowMatchingModel(torch.nn.Module):
         z_t = t_diffusion_physics(x_gt)
 
         # For reconstruction network
-        x_net = self.nn_model(y=z_t, physics=t_diffusion_physics)
+        x_net = self.nn_model(x_in=z_t, physics=t_diffusion_physics, y=y)
 
         return x_net
 
