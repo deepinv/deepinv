@@ -102,7 +102,7 @@ class FlowMatchingModel(torch.nn.Module):
 
             # Proposed (not very elegant)
             # xt = t_diffusion_physics.symmetric(x)
-            x_hat = model(x_in=z_t, y=y, physics=t_diffusion_physics)
+            x_hat = model(x_in=z_t, y=y, physics=t_diffusion_physics, physics_t=t_diffusion_physics)
             vc = (x_hat - z_t) / t
 
             z_t = z_t + dt * vc
