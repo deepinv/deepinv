@@ -48,13 +48,14 @@ class FlowMatchingModel(torch.nn.Module):
         t = torch.rand((x_gt.size(0),) + (1,) * (x_gt.dim() - 1), device=x_gt.device)
         # for each timestep t, we have an "intermediate physics" that is used as conditioning
         # to guide the flow model, it is also the physics that generate our training samples
-        t_diffusion_physics = (1 - t) * physics_clean + t * physics
+        # t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
         ### COMPUTE "INTERMEDIATE REPRESENTATION" FOR FLOW MODEL
-        z_t = t_diffusion_physics.symmetric(x_gt)
+        # z_t = t_diffusion_physics.symmetric(x_gt)  # TODO: this seems buggy, let's try without
+        z_t = (1-t) * x_gt + t * physics.A_adjoint(y)
 
         # For reconstruction network
-        x_net = self.nn_model(x_in=z_t, physics=physics, physics_t=t_diffusion_physics, y=y)
+        x_net = self.nn_model(x_in=z_t, physics=physics, t=t, y=y)
 
         # # Classical loss (for comparison)
         # x_net = self.nn_model(x_in=y, physics=physics)
@@ -92,7 +93,7 @@ class FlowMatchingModel(torch.nn.Module):
             # compute intermediate physics required by the rf model
             gaussian_noise = GaussianNoise(sigma=0.01)
             physics_clean = Denoising(noise_model=gaussian_noise, device=y.device)
-            t_diffusion_physics = (1 - t) * physics_clean + t * physics
+            # t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
             # Initial
             # estimation of x
@@ -102,7 +103,7 @@ class FlowMatchingModel(torch.nn.Module):
 
             # Proposed (not very elegant)
             # xt = t_diffusion_physics.symmetric(x)
-            x_hat = model(x_in=z_t, y=y, physics=physics, physics_t=t_diffusion_physics)
+            x_hat = model(x_in=z_t, y=y, physics=physics, t=t)
             vc = (x_hat - z_t) / t
 
             z_t = z_t + dt * vc
