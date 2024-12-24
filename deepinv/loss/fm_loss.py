@@ -132,10 +132,10 @@ class FMLoss(Loss):
     TODO !!!
     """
 
-    def __init__(self, loss_fn=MSE()):
+    def __init__(self, metric=MSE()):
         super().__init__()
         self.name = "Flow Matching loss"
-        self.loss_fn = loss_fn
+        self.loss_fn = metric
 
     def forward(self, x_net, x_gt, **kwargs):
         r"""
