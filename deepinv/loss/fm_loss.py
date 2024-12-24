@@ -5,53 +5,78 @@ from deepinv.physics import GaussianNoise, Denoising
 from deepinv.loss.metric import MSE
 
 
-class FlowMatchingModel(torch.nn.Module):
+class PhysicFlowMatchingModel(torch.nn.Module):
     r"""
-    `Flow Macthing loss <https://arxiv.org/pdf/2209.03003>`_
+    `Flow Matching <https://arxiv.org/pdf/2210.02747>`_ with conditioning on physics of inverse image problems.
 
-    Flow Matching is a method to solve the following ODE:
+    In Flow Matching, we modelize a probability flow from y to x with the following ODE:
     .. math:
+        dZ_t = v(Z_t,t)dt
+    where :math:`Z_0 = x`
+          :math:`Z_1 = y`
+          :math:`v(Z_t,t)` is a velocity field estimated by our neural network model.
+    
+    The method works in 2 parts:
+        - a training part where our neural network learns an estimation of `v(Z_t,t)`
+        - a sampling part which solves the ODE defined above
 
-        dZt = v(Zt,t)dt
+    Specifically in case of inverse image problems:
+        - we introduce a conditioning on the physics 
+        - x represents the clean image
+        - y represents the noisy measurement which can be computed from x
 
-    where :math:`Z_0 = x` is an image of :math:`n` pixels,
-    :math:`Z_1 = y` is the measurements of same shape :math:`n` pixels,
-    :math:`v(Z_t,t)` is a vector field estimated by our RF model.
-
-    This formulation is a simpler form of Flow matching...
-
-    TODO: complete this and missing example of usage
+    :param torch.nn.Module nn_model: Neural network model that estimates the velocity field `v(Z_t,t)`.
     """
 
     def __init__(self, model):
         super().__init__()
         self.nn_model = model
 
-    def forward(self, y, physics, x_gt=None, **kwargs):
+    @classmethod
+    @torch.no_grad()
+    def compute_training_samples(cls, x_gt, physics):
         r"""
-        Generate the forward process at timestep t for the Rectified Flow model and get output of the model.
+        Prepare training samples for Physics-conditioned Flow Matching.
+
+        :math:`Z_t = (1-t)x_{gt} + ty`
+        where :math:`y = physics(x_{gt})`.
 
         :param torch.Tensor x_gt: Target (ground-truth) image.
-        :param torch.Tensor y: Noisy measurements derived from `x_gt`, not used in the method.
-        :return: (torch.Tensor) Output of `nn_model`.
+        :param deepinv.physics.Physics physics: Physics model.
+        :return: ???
         """
         ### COMPUTE INTERMEDIATE PHYSICS
-        gaussian_noise = GaussianNoise(sigma=0.01)
-
         params = physics.__dict__
-        physics_clean = type(physics)(**params)
-        physics_clean.noise_model = gaussian_noise
-        # timestep t between 0 and 1
-        # if t == 0 then z_t == x_gt
-        # if t == 0 then z_t == y
+        physics_clean = type(physics)(**params)  # ???
+        physics_clean.noise_model = GaussianNoise(sigma=0.001)  # ???
+
+        # for each image in x_gt, uniformely sample a timestep t in [0,1]
         # t.shape == (b, 1, 1, 1) if x_gt.shape == (b, c, h, w)
         t = torch.rand((x_gt.size(0),) + (1,) * (x_gt.dim() - 1), device=x_gt.device)
-        # for each timestep t, we have an "intermediate physics" that is used as conditioning
-        # to guide the flow model, it is also the physics that generate our training samples
+        
+        # for each timestep t, we have an "intermediate physics" that generates stochastically a training sample
+        # the model will use this information as a guiding signal to effectively learn how to reconstruct from a partially degraded image
+        # sample z_t in [x_gt + noise1, A*x_gt + noise2]
         t_diffusion_physics = (1 - t) * physics_clean + t * physics
 
+
         ### COMPUTE "INTERMEDIATE REPRESENTATION" FOR FLOW MODEL
-        z_t = t_diffusion_physics.symmetric(x_gt)
+        z_t = t_diffusion_physics.symmetric(x_gt)  # ???
+
+        return z_t, t_diffusion_physics
+
+    def forward(self, y, physics, x_gt=None, **kwargs):
+        r"""
+        Define the forward pass during the training of Flow model.
+
+        This method prepare the training samples before passing to `nn_model.forward`.
+
+        :param torch.Tensor y: Noisy measurements derived from `x_gt`, not used in the method.
+        :param deepinv.physics.Physics physics: Physics model.
+        :param torch.Tensor x_gt: Ground-truth in the image domain.
+        :return: (torch.Tensor) Output of `nn_model`.
+        """
+        z_t, t_diffusion_physics = self.__class__.compute_training_samples(x_gt, physics)
 
         # For reconstruction network
         x_net = self.nn_model(x_in=z_t, physics=physics, physics_t=t_diffusion_physics, y=y)
@@ -65,14 +90,8 @@ class FlowMatchingModel(torch.nn.Module):
     @torch.no_grad()
     def sample(cls, model, y, physics, sample_steps=50, cfg=2.0):
         r"""
-        ODE solver for the RF model.
-
-        Rectified Flow is a met
-        .. math::
-
-            y = S (h*x)
-
-        TODO:
+        ODE solver for the FM model.
+        TODO ???
 
         :param torch.Tensor y: Batch of measurements with shape ==(b, ...)
         """
@@ -82,7 +101,7 @@ class FlowMatchingModel(torch.nn.Module):
         dt = 1.0 / sample_steps
         dt = torch.full((b, *[1] * len(y.shape[1:])), dt, device=y.device)
 
-        z_t = physics.A_adjoint(y)
+        z_t = physics.A_adjoint(y)  # measurements -> image domain
         images = [z_t]
         for i in range(sample_steps, 0, -1):
             # t.shape == (b,1,1,1) if y.shape == (b,c,h,w)
@@ -90,16 +109,10 @@ class FlowMatchingModel(torch.nn.Module):
             t = torch.full((b, *[1] * len(y.shape[1:])), curr_step, device=y.device)
 
             # compute intermediate physics required by the rf model
-            gaussian_noise = GaussianNoise(sigma=0.01)
+            gaussian_noise = GaussianNoise(sigma=0.001)
             physics_clean = Denoising(noise_model=gaussian_noise, device=y.device)
             t_diffusion_physics = (1 - t) * physics_clean + t * physics
-
-            # Initial
-            # estimation of x
-            # x_hat = model(y=y, physics=t_diffusion_physics)
-            # estimation of the velocity from y to x
-            # vc = (x_hat - y) / t
-
+    
             # Proposed (not very elegant)
             # xt = t_diffusion_physics.symmetric(x)
             x_hat = model(x_in=z_t, y=y, physics=physics, physics_t=t_diffusion_physics)
@@ -113,28 +126,33 @@ class FlowMatchingModel(torch.nn.Module):
 
 class FMLoss(Loss):
     r"""
-    Standard `Flow Matching loss <https://github.com/cloneofsimo/minRF>`_
+    Slightly modified`Flow Matching loss <https://github.com/cloneofsimo/minRF>`_
+
+    :Examples:
+
+        Using this class to train a Flow Matching model:
+
+        TODO !!!
 
     TODO !!!
     """
 
-    def __init__(self, metric=MSE()):
+    def __init__(self, loss_fn=MSE()):
         super().__init__()
-        self.name = "Rectified Flow loss"
-        self.metric = metric
+        self.name = "Flow Matching loss"
+        self.loss_fn = loss_fn
 
-    def forward(self, x_net, x, y, **kwargs):
+    def forward(self, x_net, x_gt, **kwargs):
         r"""
         Computes the loss.
 
         TODO: explain why we are doing not (y - x - x_net) ** 2
 
         :param torch.Tensor x_net: Output of the model.
-        :param torch.Tensor x: Target (ground-truth) image.
-        :param torch.Tensor y: Noisy measurements from x.
+        :param torch.Tensor x_gt: Ground-truth in the image domain.
         :return: (torch.Tensor) Loss per data sample.
         """
-        return self.metric(x_net, x)
+        return self.loss_fn(x_net, x_gt)
 
     def adapt_model(self, model):
         if not isinstance(model, FlowMatchingModel):
