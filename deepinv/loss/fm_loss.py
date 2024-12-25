@@ -137,7 +137,7 @@ class FMLoss(Loss):
         self.name = "Flow Matching loss"
         self.loss_fn = metric
 
-    def forward(self, x_net, x_gt, **kwargs):
+    def forward(self, x_net, x, **kwargs):
         r"""
         Computes the loss.
 
@@ -147,7 +147,7 @@ class FMLoss(Loss):
         :param torch.Tensor x_gt: Ground-truth in the image domain.
         :return: (torch.Tensor) Loss per data sample.
         """
-        return self.loss_fn(x_net, x_gt)
+        return self.loss_fn(x_net, x)
 
     def adapt_model(self, model):
         if not isinstance(model, PhysicsFlowMatchingModel):
