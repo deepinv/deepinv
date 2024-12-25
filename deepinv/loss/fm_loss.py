@@ -61,7 +61,7 @@ class PhysicsFlowMatchingModel(torch.nn.Module):
         # z_t = t_diffusion_physics.symmetric(x_gt)  # ???
 
         # Manual version
-        z_t = (1-t)*x_gt + t*physics.A_adjoint(y)
+        z_t = (1-t)*x_gt + t*physics.A_adjoint(physics(x_gt))
 
         return z_t, t
 
