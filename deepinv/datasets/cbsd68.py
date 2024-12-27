@@ -40,7 +40,7 @@ class CBSD68(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import CBSD68
@@ -108,7 +108,7 @@ class CBSD68(torch.utils.data.Dataset):
     def check_dataset_exists(self) -> bool:
         """Verify that the HuggingFace dataset folder exists and contains the raw data file.
 
-        `self.root` should have the following structure: ::
+        ``self.root`` should have the following structure: ::
 
             self.root --- data-00000-of-00001.arrow
                        -- xxx

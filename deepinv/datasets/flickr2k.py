@@ -110,7 +110,7 @@ class Flickr2kHR(torch.utils.data.Dataset):
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
 
-        `self.root` should have the following structure: ::
+        ``self.root`` should have the following structure: ::
 
             self.root --- Flickr2K --- 000001.png
                        |            |

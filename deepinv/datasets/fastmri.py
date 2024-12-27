@@ -35,7 +35,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                    |
                    -- xxxxxxxxxxx.h5
 
-    | 0) To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/`
+    | 0) To download raw data, please go to the bottom of the page https://fastmri.med.nyu.edu/
     | 1) Each MRI scan is stored in a HDF5 file and can be read with the h5py package.
     | Each file contains the k-space data, ground truth and some meta data related to the scan.
     | 2) MRI scans can either be single-coil or multi-coil with each coil in
@@ -72,7 +72,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset without transform ::
+        Instantiate dataset without transform ::
 
             from deepinv.datasets import FastMRISliceDataset
             root = "/path/to/dataset/fastMRI/knee_singlecoil/train"
@@ -81,7 +81,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             print(target.shape)
             print(kspace.shape)
 
-        Instanciate dataset with transform ::
+        Instantiate dataset with transform ::
 
             from torchvision import transforms
             transform = transforms.Compose([
