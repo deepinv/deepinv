@@ -64,9 +64,9 @@ test_dataset = datasets.MNIST(
 
 # defined physics
 predefined_noise_models = dict(
-    gaussian = dinv.physics.GaussianNoise,
-    poisson = dinv.physics.PoissonNoise,
-    gamma = dinv.physics.GammaNoise,
+    gaussian=dinv.physics.GaussianNoise,
+    poisson=dinv.physics.PoissonNoise,
+    gamma=dinv.physics.GammaNoise,
 )
 
 noise_name = "gamma"

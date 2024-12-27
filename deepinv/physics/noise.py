@@ -297,7 +297,9 @@ class GammaNoise(NoiseModel):
         :returns: noisy measurements
         """
         self.update_parameters(l=l)
-        d = torch.distributions.gamma.Gamma(self.l.to(x.device), self.l.to(x.device) / x)
+        d = torch.distributions.gamma.Gamma(
+            self.l.to(x.device), self.l.to(x.device) / x
+        )
         return d.sample()
 
     def update_parameters(self, l=None, **kwargs):
