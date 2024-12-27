@@ -14,7 +14,7 @@ from .measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
-from .loss import Loss
+from .loss import Loss, StackedPhysicsLoss
 from .scheduler import (
     BaseLossScheduler,
     RandomLossScheduler,

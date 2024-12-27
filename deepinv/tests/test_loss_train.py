@@ -1,3 +1,4 @@
+from math import ceil
 import pytest
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.physics import Inpainting, GaussianNoise, Blur
+from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
 from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     SigmaGenerator,
@@ -17,13 +18,22 @@ from deepinv.physics.generator import (
 )
 
 
-def test_generate_dataset(tmp_path, imsize, device):
+@pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
+def test_generate_dataset(tmp_path, imsize, device, physics_name):
     N = 10
     max_N = 10
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    if physics_name == "inpainting":
+        physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
+        y_shape = imsize
+    elif physics_name == "pansharpen":  # proxy for StackedPhysics
+        physics = Pansharpen(img_size=imsize, factor=2, device=device)
+        C, H, W = imsize
+        y_shape = [(C, ceil(H / 2), ceil(W / 2)), (1, H, W)]
+    else:
+        raise ValueError(f"Unknown physics {physics_name}")
 
     dinv.datasets.generate_dataset(
         train_dataset,
@@ -41,6 +51,7 @@ def test_generate_dataset(tmp_path, imsize, device):
 
     x, y = dataset[0]
     assert x.shape == imsize
+    assert y.shape == y_shape
 
 
 @pytest.mark.parametrize(
@@ -288,6 +299,8 @@ def test_optim_algo(name_algo, imsize, device):
 
 def test_epll_parameter_estimation(imsize, dummy_dataset, device):
     from deepinv.datasets import PatchDataset
+
+    torch.manual_seed(0)
 
     imgs = dummy_dataset.x
     patch_dataset = PatchDataset(imgs)

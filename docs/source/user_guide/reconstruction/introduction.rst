@@ -64,7 +64,11 @@ description of their reconstruction performance and speed.
      - No
      - Yes
      - Depends
-
+   * - :ref:`Specific network architectures <specific>`
+     - Off-the-shelf architectures for specific inverse problems.
+     - Yes
+     - No
+     - No
 
 
 .. note::
