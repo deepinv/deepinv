@@ -5,7 +5,6 @@ from .sup import SupLoss
 from .score import ScoreLoss
 from .tv import TVLoss
 from .r2r import R2RLoss
-from .gr2r import GeneralizedR2RLoss
 from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from .measplit import (

@@ -124,7 +124,7 @@ learning_rate = 1e-4
 batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
-loss = dinv.loss.GeneralizedR2RLoss(noise_model=noise_model)
+loss = dinv.loss.R2RLoss(noise_model=noise_model)
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
