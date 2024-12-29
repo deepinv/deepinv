@@ -39,7 +39,7 @@ class R2RLoss(Loss):
     :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.
 
 
-    This loss generalizes the Recorrupted-to-Recorrupted (R2R) loss for the exponential family of noise models
+    This loss generalizes the Recorrupted-to-Recorrupted (R2R) loss for the natural exponential family of noise models
     as presented in https://arxiv.org/abs/2412.04648. For the gaussian noise model, the R2R loss is recovered
     and is statistically equivalent to the supervised loss function defined on noisy/clean image pairs
     according to authors in https://ieeexplore.ieee.org/document/9577798.
@@ -59,7 +59,7 @@ class R2RLoss(Loss):
         The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model`` parameter instead.
 
     :param Metric, torch.nn.Module metric: metric for calculating loss, defaults to MSE.
-    :param NoiseModel noise_model: noise model of the exponential family, defaults to Gaussian.
+    :param NoiseModel noise_model: noise model of the natural exponential family, defaults to Gaussian.
     :param float alpha: scaling factor of the corruption.
     :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
 
@@ -120,8 +120,8 @@ class R2RLoss(Loss):
         for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param float sigma: standard deviation of the Gaussian noise used for the perturbation.
-        :param float alpha: scaling factor of the perturbation.
+        :param NoiseModel noise_model: noise model of the natural exponential family.
+        :param float alpha: scaling factor of the corruption.
         :return: (torch.nn.Module) Modified model.
         """
 
