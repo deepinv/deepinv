@@ -63,6 +63,25 @@ class R2RLoss(Loss):
     :param float alpha: scaling factor of the corruption.
     :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
 
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> sigma = 0.1
+    >>> noise_model = dinv.physics.GaussianNoise(sigma)
+    >>> physics = dinv.physics.Denoising(noise_model)
+    >>> model = dinv.models.MedianFilter()
+    >>> loss = dinv.loss.R2RLoss(noise_model=noise_model, eval_n_samples=2)
+    >>> model = loss.adapt_model(model) # important step!
+    >>> x = torch.ones((1, 1, 8, 8))
+    >>> y = physics(x)
+    >>> x_net = model(y, physics, update_parameters=True) # save extra noise in forward pass
+    >>> l = loss(x_net, y, physics, model)
+    >>> print(l.item() > 0)
+    True
+
     """
 
     def __init__(

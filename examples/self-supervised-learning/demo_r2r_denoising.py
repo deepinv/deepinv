@@ -91,7 +91,7 @@ deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_datapoints=n_images_max,
     test_datapoints=n_images_max,
     num_workers=num_workers,
-    dataset_filename="demo_sure",
+    dataset_filename="demo_r2r",
 )
 
 train_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=True)
@@ -119,7 +119,7 @@ model = dinv.models.ArtifactRemoval(
 # .. note::
 #
 
-epochs = 2  # choose training epochs
+epochs = 1  # choose training epochs
 learning_rate = 1e-4
 batch_size = 32 if torch.cuda.is_available() else 1
 
