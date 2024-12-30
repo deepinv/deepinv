@@ -13,13 +13,13 @@ class R2RLoss(Loss):
     Generalized Recorrupted-to-Recorrupted (GR2R) Loss
 
     This loss can be used for unsupervised image denoising with unorganized noisy images, where
-    the noise model :math:`y\sim p(y\vert x)` belongs to the exponential family as
+    the noise model :math:`y\sim p(y\vert x)` belongs to the exponential family as:
 
     .. math::
 
-        p(y\vert x) =  h(x) \exp \left( y^\top \eta(x) - \phi(x) \right)
+        p(y\vert x) =  h(x) \exp \left( y^\top \eta(x) - \phi(x) \right).
 
-    For this family of noisy measurements, we genealize the corruption strategy as
+    For this family of noisy measurements, we genealize the corruption strategy as:
 
     .. math::
 
@@ -33,9 +33,9 @@ class R2RLoss(Loss):
 
     .. math::
 
-        \| AR(y_1) - y_2 \|_2^2
+        \| AR(y_1) - y_2 \|_2^2,
 
-    where :math:`R` is the trainable network, :math:`A` is the forward operator,
+    where, :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.
 
 
@@ -51,17 +51,17 @@ class R2RLoss(Loss):
     .. note::
 
         To obtain the best test performance, the trained model should be averaged at test time
-        over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})`
+        over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})`,
         where :math:`N>1`. This can be achieved using :meth:`adapt_model`.
 
     .. deprecated:: 0.2.3
 
         The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model`` parameter instead.
 
-    :param Metric, torch.nn.Module metric: metric for calculating loss, defaults to MSE.
-    :param NoiseModel noise_model: noise model of the natural exponential family, defaults to Gaussian.
-    :param float alpha: scaling factor of the corruption.
-    :param int eval_n_samples: number of samples used for the Monte Carlo approximation.
+    :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.
+    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to Gaussian.
+    :param float alpha: Scaling factor of the corruption.
+    :param int eval_n_samples: Number of samples used for the Monte Carlo approximation.
 
     |sep|
 
@@ -115,7 +115,7 @@ class R2RLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.Tensor) GR2R loss.
+        :return: (torch.Tensor) R2R loss.
         """
 
         y1 = model.get_corruption()
@@ -132,15 +132,15 @@ class R2RLoss(Loss):
 
         .. math::
 
-            \hat{R}(y) = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})
+            \hat{R}(y) = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)}),
 
         where :math:`y_1^{(i)} \sim p(y_1 \vert y, \alpha)` are i.i.d samples, and :math:`N\geq 1` are the number of samples used for the Monte Carlo approximation.
         During training (i.e. when ``model.train()``), we use only one sample, i.e. :math:`N=1`
         for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param NoiseModel noise_model: noise model of the natural exponential family.
-        :param float alpha: scaling factor of the corruption.
+        :param NoiseModel noise_model: Noise model of the natural exponential family.
+        :param float alpha: Scaling factor of the corruption.
         :return: (torch.nn.Module) Modified model.
         """
 
