@@ -53,7 +53,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 val_transform = transforms.Compose([transforms.ToTensor()])
 
 dataset_name = "set3c"
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, val_transform, data_dir=ORIGINAL_DATA_DIR)
 dataloader = DataLoader(dataset, batch_size=3, num_workers=1, shuffle=False)
 
 # set the data-fidelity and the prior
