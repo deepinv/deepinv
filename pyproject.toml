@@ -19,9 +19,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
-    "numpy<=1.26",
+    "numpy",
     "matplotlib",
     "hdf5storage",
     "tqdm",
@@ -31,6 +31,7 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
+    "natsort",
 ]
 
 [tool.setuptools]
@@ -58,11 +59,11 @@ test = [
 doc = [
     "sphinx",
     "sphinx_gallery",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
     "sphinxemoji",
     "sphinx_copybutton",
-    "sphinx_autoapi"
-
+    "sphinx_autoapi",
+    "sphinx-design",
 ]
 
 # optional dependencies for specific denoisers
@@ -76,7 +77,7 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft",
-    "libcpab @ git+https://github.com/Andrewwango/libcpab.git"
+    "libcpab"
 ]
 
 # optional dependencies for specific datasets
@@ -98,7 +99,7 @@ testpaths = [
 
 [tool.coverage.run]
 branch = true
-# omit = examples/*,src/db/versions/*  # define paths to omit
+omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
 show_missing = true

@@ -20,7 +20,6 @@ from deepinv.utils.demo import load_dataset
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
 
@@ -48,8 +47,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 
-train_dataset = load_dataset(train_dataset_name, ORIGINAL_DATA_DIR, train_transform)
-test_dataset = load_dataset(test_dataset_name, ORIGINAL_DATA_DIR, test_transform)
+train_dataset = load_dataset(train_dataset_name, train_transform)
+test_dataset = load_dataset(test_dataset_name, test_transform)
 
 # %%
 # Define forward operator and generate dataset

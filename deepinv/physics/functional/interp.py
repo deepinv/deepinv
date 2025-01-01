@@ -4,7 +4,8 @@ import torch
 class ThinPlateSpline:
     r"""Solve the Thin Plate Spline interpolation problem
 
-    Given a set of control points :math:`X_c` in :math:`\mathbb{R}^{n_c \times d_s}` and target points :math:`X_t` in :math:`\mathbb{R}^{n_c \times d_t}`,
+    Given a set of control points :math:`X_c` in :math:`\mathbb{R}^{n_c \times d_s}` and target points
+    :math:`X_t` in :math:`\mathbb{R}^{n_c \times d_t}`,
     it learns a transformation :math:`f` that maps :math:`X_c` to :math:`X_t` with some regularization.
 
     The mapping is defined by:
@@ -27,14 +28,17 @@ class ThinPlateSpline:
                                 + 2\left({\frac{\partial^2 f}{\partial x_1\partial x_2}}\right)^2
                                 +  \left({\frac{\partial^2 f}{\partial x_2^2}}\right)^2 \right]{dx_1\,dx_2}
 
-    Let :math:`X \in \mathbb{R}^{n \times d_s}` be :math:`n` point from the source space. Then :math:`\Phi(X)` is the radial distance of those points
+    Let :math:`X \in \mathbb{R}^{n \times d_s}` be :math:`n` point from the source space. Then :math:`\Phi(X)`
+    is the radial distance of those points
     to the control points in :math:`\mathbb{R}^{n \times n_c}`:
     with :math:`d_{ij} = ||X_{t_i} - X_{c_j}||_2, \Phi(X)_{ij} = d_{ij}^2 \log d_{ij}`
 
     Then :math:`f(X) = A + X \cdot B + \Phi(X) \cdot C`
-    with :math:`A \in \mathbb{R}^{d_t}`, :math:`B \in \mathbb{R}^{d_s \times d_t}`, :math:`C \in \mathbb{R}^{n_c \times d_t}` the parameters to learn.
+    with :math:`A \in \mathbb{R}^{d_t}`, :math:`B \in \mathbb{R}^{d_s \times d_t}`,
+    :math:`C \in \mathbb{R}^{n_c \times d_t}` the parameters to learn.
 
-    Learning :math:`A`, :math:`B`, :math:`C` is done by solving a linear system so that :math:`f` minimizes the energy :eq:`formula` to transform :math:`X_c` in :math:`X_t`.
+    Learning :math:`A`, :math:`B`, :math:`C` is done by solving a linear system so that :math:`f` minimizes
+    the energy :eq:`formula` to transform :math:`X_c` in :math:`X_t`.
 
     The equation to solve is:
 
@@ -62,7 +66,8 @@ class ThinPlateSpline:
             \end{bmatrix}
         \end{align*}
 
-    with :math:`X'_c = [1_{n_c}, X_c]  \in \mathbb{R}^{n_c \times (1+d_s)}`, :math:`B'` = :math:`[A, B^T]`  in :math:`\mathbb{R}^{d_t \times (1+d_s)}`
+    with :math:`X'_c = [1_{n_c}, X_c]  \in \mathbb{R}^{n_c \times (1+d_s)}`, :math:`B'` = :math:`[A, B^{\top}]`
+    in :math:`\mathbb{R}^{d_t \times (1+d_s)}`
     and :math:`K = \Phi(X_c) + \alpha I_{n_c}`
 
     :math:`A \in \mathbb{R}^{(n_c + d_s + 1)\times(n_c + d_s + 1)}`,

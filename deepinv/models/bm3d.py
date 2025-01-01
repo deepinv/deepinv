@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.nn as nn
+from .base import Denoiser
 
 # Compat for optional dependency on BM3D
 try:
@@ -9,20 +9,23 @@ except:
     bm3d = ImportError("The bm3d package is not installed.")
 
 
-class BM3D(nn.Module):
-    """
+class BM3D(Denoiser):
+    r"""
     BM3D denoiser.
 
-    This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
-
     The BM3D denoiser was introduced in "Image denoising by sparse 3D transform-domain collaborative filtering", by
-    Davob et al., IEEE Transactions on Image Processing (2007).
+    Dabov et al., IEEE Transactions on Image Processing (2007).
 
 
     .. note::
 
         Unlike other denoisers from the library, this denoiser is applied sequentially to each noisy image in the batch
         (no parallelization). Furthermore, it does not support backpropagation.
+
+    .. warning::
+
+        This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
+        It can be installed with ``pip install bm3d``.
 
     """
 
@@ -33,12 +36,12 @@ class BM3D(nn.Module):
                 "BM3D denoiser not available. Please install the bm3d package with `pip install bm3d`."
             ) from bm3d
 
-    def forward(self, x, sigma):
+    def forward(self, x, sigma, **kwargs):
         r"""
         Run the denoiser on image with noise level :math:`\sigma`.
 
         :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
+        :param float sigma: noise level
         """
 
         out = torch.zeros_like(x)

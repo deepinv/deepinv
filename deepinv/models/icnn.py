@@ -6,142 +6,153 @@ from torch import nn
 
 class ICNN(nn.Module):
     r"""
-    Input Convex Neural Network.
+    Convolutional Input Convex Neural Network (ICNN). The network is built to be convex in its input.
+    The model is fully convolutional and thus can be applied to images of any size.
 
-    Mostly based on the implementation from the paper
-    `What's in a Prior? Learned Proximal Networks for Inverse Problems <https://openreview.net/pdf?id=kNPcOaqC5r>`_,
-    and from the implementation from the `OOT libreary <https://ott-jax.readthedocs.io/en/latest/neural/_autosummary/ott.neural.networks.icnn.ICNN.html>`_.
+    Based on the implementation from the paper
+    `"Data-Driven Mirror Descent with Input-Convex Neural Networks <https://arxiv.org/abs/2206.06733>`_.
 
     :param int in_channels: Number of input channels.
-    :param int dim_hidden: Number of hidden units.
-    :param float beta_softplus: Beta parameter for the softplus activation function.
-    :param float alpha: Strongly convex parameter.
+    :param int num_filters: Number of hidden units.
+    :param kernel_dim: dimension of the convolutional kernels.
+    :param int num_layers: Number of layers.
+    :param float strong_convexity: Strongly convex parameter.
     :param bool pos_weights: Whether to force positive weights in the forward pass.
-    :param torch.nn.Module rectifier_fn: Activation function to use to force postive weight.
     :param str device: Device to use for the model.
     """
 
     def __init__(
         self,
         in_channels=3,
-        dim_hidden=256,
-        beta_softplus=100,
-        alpha=0.0,
-        pos_weights=False,
-        rectifier_fn=torch.nn.ReLU(),
+        num_filters=64,
+        kernel_dim=5,
+        num_layers=10,
+        strong_convexity=0.5,
+        pos_weights=True,
         device="cpu",
     ):
-        super().__init__()
+        super(ICNN, self).__init__()
+        self.n_in_channels = in_channels
+        self.n_layers = num_layers
+        self.n_filters = num_filters
+        self.kernel_size = kernel_dim
+        self.padding = (self.kernel_size - 1) // 2
 
-        self.hidden = dim_hidden
-        self.lin = nn.ModuleList(
+        # these layers should have non-negative weights
+        self.wz = nn.ModuleList(
             [
                 nn.Conv2d(
-                    in_channels, dim_hidden, 3, bias=True, stride=1, padding=1
-                ),  # 128
-                nn.Conv2d(
-                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
-                ),  # 64
-                nn.Conv2d(
-                    dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1
-                ),  # 64
-                nn.Conv2d(
-                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
-                ),  # 32
-                nn.Conv2d(
-                    dim_hidden, dim_hidden, 3, bias=False, stride=1, padding=1
-                ),  # 32
-                nn.Conv2d(
-                    dim_hidden, dim_hidden, 3, bias=False, stride=2, padding=1
-                ),  # 16
-                nn.Conv2d(dim_hidden, 64, 16, bias=False, stride=1, padding=0),  # 1
-                nn.Linear(64, 1),
+                    self.n_filters,
+                    self.n_filters,
+                    self.kernel_size,
+                    stride=1,
+                    padding=self.padding,
+                    padding_mode="circular",
+                    bias=False,
+                    device=device,
+                )
+                for i in range(self.n_layers)
             ]
         )
 
-        self.res = nn.ModuleList(
+        # these layers can have arbitrary weights
+        self.wx_quad = nn.ModuleList(
             [
-                nn.Conv2d(in_channels, dim_hidden, 3, stride=2, padding=1),  # 64
-                nn.Conv2d(in_channels, dim_hidden, 3, stride=1, padding=1),  # 64
-                nn.Conv2d(in_channels, dim_hidden, 3, stride=2, padding=1),  # 32
-                nn.Conv2d(in_channels, dim_hidden, 3, stride=1, padding=1),  # 32
-                nn.Conv2d(in_channels, dim_hidden, 3, stride=2, padding=1),  # 16
-                nn.Conv2d(in_channels, 64, 16, stride=1, padding=0),  # 1
+                nn.Conv2d(
+                    self.n_in_channels,
+                    self.n_filters,
+                    self.kernel_size,
+                    stride=1,
+                    padding=self.padding,
+                    padding_mode="circular",
+                    bias=False,
+                    device=device,
+                )
+                for i in range(self.n_layers + 1)
+            ]
+        )
+        self.wx_lin = nn.ModuleList(
+            [
+                nn.Conv2d(
+                    self.n_in_channels,
+                    self.n_filters,
+                    self.kernel_size,
+                    stride=1,
+                    padding=self.padding,
+                    padding_mode="circular",
+                    bias=True,
+                    device=device,
+                )
+                for i in range(self.n_layers + 1)
             ]
         )
 
-        self.act = nn.Softplus(beta=beta_softplus)
-        self.alpha = alpha
+        # one final conv layer with nonnegative weights
+        self.final_conv2d = nn.Conv2d(
+            self.n_filters,
+            self.n_in_channels,
+            self.kernel_size,
+            stride=1,
+            padding=self.padding,
+            padding_mode="circular",
+            bias=False,
+            device=device,
+        )
+
+        # slope of leaky-relu
+        self.negative_slope = 0.2
+        self.strong_convexity = strong_convexity
+
         self.pos_weights = pos_weights
-        if pos_weights:
-            self.rectifier_fn = rectifier_fn
-
-        if device is not None:
-            self.to(device)
+        self.device = device
 
     def forward(self, x):
-        bsize = x.shape[0]
-        # assert x.shape[-1] == x.shape[-2]
-        image_size = np.array([x.shape[-2], x.shape[-1]])
-        y = x.clone()
-        y = self.act(self.lin[0](y))
-        size = [
-            image_size,
-            image_size // 2,
-            image_size // 2,
-            image_size // 4,
-            image_size // 4,
-            image_size // 8,
-        ]
-
         if self.pos_weights:
-            for core in self.lin[1:]:
-                core.weight.data = self.rectifier_fn(core.weight.data)
+            self.zero_clip_weights()
+        z = torch.nn.functional.leaky_relu(
+            self.wx_quad[0](x) ** 2 + self.wx_lin[0](x),
+            negative_slope=self.negative_slope,
+        )
+        for layer in range(self.n_layers):
+            z = torch.nn.functional.leaky_relu(
+                self.wz[layer](z)
+                + self.wx_quad[layer + 1](x) ** 2
+                + self.wx_lin[layer + 1](x),
+                negative_slope=self.negative_slope,
+            )
+        z = self.final_conv2d(z)
+        z_avg = torch.nn.functional.avg_pool2d(z, z.size()[2:]).view(z.size()[0], -1)
 
-        for core, res, (s_x, s_y) in zip(self.lin[1:-2], self.res[:-1], size[:-1]):
-            x_scaled = nn.functional.interpolate(x, (s_x, s_y), mode="bilinear")
-            y = self.act(core(y) + res(x_scaled))
-
-        x_scaled = nn.functional.interpolate(x, tuple(size[-1]), mode="bilinear")
-        y = self.lin[-2](y) + self.res[-1](x_scaled)
-        y = self.act(y)
-        # avg pooling
-        y = torch.mean(y, dim=(2, 3))
-
-        y = y.reshape(bsize, 64)
-        y = self.lin[-1](y)  # (batch, 1)
-
-        # strongly convex
-        y = y + self.alpha * x.reshape(x.shape[0], -1).pow(2).sum(1, keepdim=True)
-
-        # return shape: (batch, 1)
-        return y
-
-    def init_weights(self, mean, std):
-        print("init weights")
-        with torch.no_grad():
-            for core in self.lin[1:]:
-                core.weight.data.normal_(mean, std).exp_()
-
-    # this clips the weights to be non-negative to preserve convexity
-    def wclip(self):
-        with torch.no_grad():
-            for core in self.lin[1:]:
-                core.weight.data.clamp_(0)
+        return z_avg + 0.5 * self.strong_convexity * (x**2).sum(
+            dim=[1, 2, 3]
+        ).reshape(-1, 1)
 
     def grad(self, x):
-        with torch.enable_grad():
-            if not x.requires_grad:
-                x.requires_grad = True
-            y = self.forward(x)
-            grad = torch.autograd.grad(
-                y.sum(), x, retain_graph=True, create_graph=True
-            )[0]
+        x = x.requires_grad_(True)
+        out = self.forward(x)
+        return torch.autograd.grad(
+            outputs=out,
+            inputs=x,
+            grad_outputs=torch.ones_like(out),
+            create_graph=True,
+            retain_graph=True,
+            only_inputs=True,
+        )[0]
 
-        return grad
+    # a weight initialization routine for the ICNN, with positive weights
+    def initialize_weights(self, min_val=0.0, max_val=0.001):
+        for layer in range(self.n_layers):
+            self.wz[layer].weight.data = min_val + (max_val - min_val) * torch.rand(
+                self.n_filters, self.n_filters, self.kernel_size, self.kernel_size
+            ).to(self.device)
+        self.final_conv2d.weight.data = min_val + (max_val - min_val) * torch.rand(
+            1, self.n_filters, self.kernel_size, self.kernel_size
+        ).to(self.device)
+        return self
 
-
-# if __name__ == "__main__":
-#     net = ICNN(pos_weights=True)
-#     x = torch.randn((1, 3, 128, 128))
-#     x = net.grad(x)
+    # a zero clipping functionality for the ICNN (set negative weights to 0)
+    def zero_clip_weights(self):
+        for layer in range(self.n_layers):
+            self.wz[layer].weight.data.clamp_(0)
+        self.final_conv2d.weight.data.clamp_(0)
+        return self

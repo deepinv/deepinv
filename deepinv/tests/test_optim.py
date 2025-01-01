@@ -47,9 +47,9 @@ def test_data_fidelity_l2(device):
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
     assert torch.allclose(
-        data_fidelity.prox_d(x, y, gamma), (x + gamma * y) / (1 + gamma)
+        data_fidelity.d.prox(x, y, gamma), (x + gamma * y) / (1 + gamma)
     )
-    assert torch.allclose(data_fidelity.grad_d(x, y), x - y)
+    assert torch.allclose(data_fidelity.d.grad(x, y), x - y)
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
@@ -82,14 +82,14 @@ def test_data_fidelity_l2(device):
         return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
-    torch_loss_grad = torch_loss.grad_d(x, y)
+    torch_loss_grad = torch_loss.d.grad(x, y)
     grad_manual = B.transpose(0, 1) @ (B @ (x - y))
     assert torch.allclose(torch_loss_grad, grad_manual)
 
     # 6. Testing the torch autograd implementation of the prox
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
-    torch_loss_prox = torch_loss.prox_d(
+    torch_loss_prox = torch_loss.d.prox(
         x, y, gamma=gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
     )
 
@@ -98,6 +98,19 @@ def test_data_fidelity_l2(device):
     )
 
     assert torch.allclose(torch_loss_prox, manual_prox)
+
+    # 7. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
 
 
 def test_data_fidelity_indicator(device):
@@ -125,7 +138,7 @@ def test_data_fidelity_indicator(device):
 
     # 2. Testing trivial operations on f (and not f \circ A)
     x_proj = torch.Tensor([[[1.0], [1 + radius]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y), x_proj)
+    assert torch.allclose(data_fidelity.d.prox(x, y), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
@@ -143,6 +156,12 @@ def test_data_fidelity_indicator(device):
     dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
     assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
+
+    # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
 
 
 def test_data_fidelity_l1(device):
@@ -162,14 +181,27 @@ def test_data_fidelity_l1(device):
     Ax = A_forward(x)
     assert data_fidelity(x, y, physics) == (Ax - y).abs().sum()
 
-    # Check subdifferential
+    # Check sub-differential
     grad_manual = torch.sign(x - y)
-    assert torch.allclose(data_fidelity.grad_d(x, y), grad_manual)
+    assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
 
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
 
 
 def test_zero_prior():
@@ -688,7 +720,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    physics = dinv.physics.LinearPhysics()
     y = physics(x)
 
     data_fidelity = L2()  # The data fidelity term
@@ -739,7 +771,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     subdiff = prior.grad(x)
 
     grad_deepinv = A_adjoint(
-        data_fidelity.grad_d(A_forward(x), y)
+        data_fidelity.d.grad(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
         grad_deepinv, -lamb * subdiff, atol=1e-12
@@ -785,3 +817,23 @@ def test_patch_prior(imsize, dummy_dataset, device):
             x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)
+
+
+def test_datafid_stacking(imsize, device):
+    physics = dinv.physics.StackedLinearPhysics(
+        [dinv.physics.Denoising(), dinv.physics.Denoising()]
+    )
+    data_fid = dinv.optim.StackedPhysicsDataFidelity(
+        [dinv.optim.L2(2.0), dinv.optim.L2(1.0)]
+    )
+
+    x = torch.ones((1, 1, 1, 1), device=device)
+    y = physics.A(x)
+    y2 = dinv.utils.TensorList([3 * y[0], 2 * y[1]])
+
+    assert (
+        data_fid(x, y2, physics)
+        == (y2[0] - y[0]) ** 2 / (4 * 2) + (y2[1] - y[1]) ** 2 / 2
+    )
+
+    assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])

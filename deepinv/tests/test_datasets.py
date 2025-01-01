@@ -3,6 +3,9 @@ import shutil
 import PIL
 import pytest
 
+import torch
+from torch import Tensor
+
 from deepinv.datasets import (
     DIV2K,
     Urban100HR,
@@ -10,6 +13,8 @@ from deepinv.datasets import (
     CBSD68,
     LsdirHR,
     FMD,
+    Kohler,
+    NBUDataset,
 )
 
 
@@ -125,6 +130,50 @@ def test_load_cbsd68_dataset(download_cbsd68):
 
 
 @pytest.fixture
+def download_Kohler():
+    """Download the Köhler dataset before a test and remove it after completion."""
+    root = "Kohler"
+    Kohler.download(root)
+
+    # Return the control flow to the test function
+    yield root
+
+    # Clean up the created directory
+    shutil.rmtree(root)
+
+
+@pytest.mark.skip(reason="Downloading Kohler dataset is unreliable for testing.")
+def test_load_Kohler_dataset(download_Kohler):
+    """Check that the Köhler dataset contains 48 PIL images."""
+    root = download_Kohler
+
+    dataset = Kohler(
+        root=root, frames="middle", ordering="printout_first", download=False
+    )
+    x1, y1 = dataset.get_item(1, 1, "middle")
+    x2, y2 = dataset[0]
+
+    assert (
+        len(dataset) == 48
+    ), f"The dataset should have been of len 48, instead got {len(dataset)}."
+
+    assert (
+        type(x1) == PIL.PngImagePlugin.PngImageFile
+    ), "The sharp frame is unexpectedly not a PIL image."
+
+    assert (
+        type(y1) == PIL.PngImagePlugin.PngImageFile
+    ), "The blurry frame is unexpectedly not a PIL image."
+
+    assert (
+        type(x2) == PIL.PngImagePlugin.PngImageFile
+    ), "The sharp frame is unexpectedly not a PIL image."
+
+    assert (
+        type(y2) == PIL.PngImagePlugin.PngImageFile
+    ), "The blurry frame is unexpectedly not a PIL image."
+
+
 def download_lsdir():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "LSDIR"
@@ -180,3 +229,31 @@ def test_load_fmd_dataset(download_fmd):
     assert (
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_nbu():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "NBU"
+
+    # Download Urban100 raw dataset
+    NBUDataset(tmp_data_dir, satellite="gaofen-1", download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_load_nbu_dataset(download_nbu):
+    """Check that dataset correct length and type."""
+    dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
+    assert (
+        len(dataset) == 5
+    ), f"Dataset should have been of len 5, instead got {len(dataset)}."
+    assert (
+        isinstance(dataset[0], Tensor)
+        and torch.all(dataset[0] <= 1)
+        and torch.all(dataset[0] >= 0)
+    ), "Dataset image should be Tensor between 0-1."

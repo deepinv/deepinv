@@ -13,7 +13,9 @@ import itertools
 import os
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-torch.use_deterministic_algorithms(True)
+if not torch.cuda.is_available() and torch.__version__ >= "2.1.0":
+    torch.use_deterministic_algorithms(True)
+
 torch.backends.cudnn.deterministic = True
 
 # Generators to test (make sure they appear in find_generator as well)
