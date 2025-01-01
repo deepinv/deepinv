@@ -71,7 +71,7 @@ physics = Inpainting(
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # set values of the PnP parameters
-max_iter = 200
+max_iter = 10
 params_algo = {"stepsize": 1.0, "g_param": 0.05}
 
 
@@ -106,7 +106,7 @@ test(
 )
 
 # %%
-# Multiscale case : use a coarse setting to initialize the fine setting.
+# Multiscale case: use a coarse setting to initialize the fine setting.
 # ----------------------------------------------------------------------------------------
 # The PnP algorithm iterates on a coarse scale to obtain a first estimate.
 # This estimate is then upsampled and used as initialization in the fine scale.

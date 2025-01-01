@@ -221,7 +221,7 @@ def find_operator(name, device, sf=1):
             device=device,
         )
     elif name == "fftdeblur":
-        img_size = (3, 17, 19)
+        img_size = (3, sf * 17, sf * 19)
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.bicubic_filter(),
