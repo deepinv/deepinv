@@ -67,8 +67,8 @@ class DownSamplingGenerator(PhysicsGenerator):
         self.rng_manual_seed(seed)
 
         idx = torch.randint(0, len(self.list_factors), (2,), generator=self.rng, **self.factory_kwargs)
-        factor = self.list_factors[idx[0]]
-        filter_str = self.list_filters[idx[1]]
+        factor = self.list_factors[idx[0].detach().cpu()]
+        filter_str = self.list_filters[idx[1].detach().cpu()]
         filters = self.get_kernel(filter_str, factor)
         return {
             "filter": filters,
