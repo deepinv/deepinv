@@ -54,10 +54,13 @@ autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
 
+
 ####  userguide directive ###
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.addnodes import pending_xref
+
+default_role = "code"  # default role for single backticks
 
 
 class UserGuideMacro(Directive):
