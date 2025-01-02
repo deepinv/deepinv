@@ -62,6 +62,7 @@ class Downsampling(LinearPhysics):
         factor=2,
         device="cpu",
         padding="circular",
+        normalize=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -72,6 +73,7 @@ class Downsampling(LinearPhysics):
         self.padding = padding
         self.device = device
         self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.normalize = normalize
 
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
@@ -124,6 +126,9 @@ class Downsampling(LinearPhysics):
                 x = conv_transpose2d_fft(x, self.filter)
             else:  # this may be slow
                 x = conv_transpose2d(x, self.filter, padding=self.padding)
+
+        if self.normalize:
+            x = x * self.factor**2
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
