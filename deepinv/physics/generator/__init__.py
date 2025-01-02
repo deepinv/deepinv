@@ -21,3 +21,4 @@ from .inpainting import (
     Artifact2ArtifactSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
 )
+from .downsampling import DownSamplingGenerator

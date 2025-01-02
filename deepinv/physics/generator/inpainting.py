@@ -153,9 +153,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         if self.random_split_ratio:
             self.split_ratio = (
-                torch.rand(batch_size, generator=self.rng, **self.factory_kwargs)
-                * (self.sigma_max - self.sigma_min)
-                + self.sigma_min
+                torch.rand(1, generator=self.rng, **self.factory_kwargs)
+                * (self.max_split_ratio - self.min_split_ratio)
+                + self.min_split_ratio
             )
 
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
