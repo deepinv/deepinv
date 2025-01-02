@@ -220,9 +220,8 @@ class GaussianNoise(NoiseModel):
         :returns: noisy measurements
         """
         self.update_parameters(sigma=sigma)
-
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma[(...,) + (None,) * (x.dim() - 1)]
+        if isinstance(self.sigma, torch.Tensor):
+            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
         else:
             sigma = self.sigma
         return x + self.randn_like(x, seed=seed) * sigma
