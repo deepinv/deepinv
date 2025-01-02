@@ -45,6 +45,7 @@ class DiffUNet(Denoiser):
         (only available for 3 input and output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class DiffUNet(Denoiser):
         large_model=False,
         use_fp16=False,
         pretrained="download",
+        device=None,
     ):
         super().__init__()
 
@@ -273,6 +275,9 @@ class DiffUNet(Denoiser):
 
             self.load_state_dict(ckpt, strict=True)
             self.eval()
+
+        if device is not None:
+            self.to(device)
 
     def convert_to_fp16(self):
         """

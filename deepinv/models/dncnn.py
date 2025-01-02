@@ -28,7 +28,7 @@ class DnCNN(Denoiser):
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str device: gpu or cpu.
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(

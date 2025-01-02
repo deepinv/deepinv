@@ -20,6 +20,9 @@ except ImportError as e:
     timm = e
 
 
+URL_WEIGHTS = "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/"
+
+
 class Mlp(nn.Module):
     def __init__(
         self,
@@ -825,6 +828,7 @@ class SwinIR(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -852,14 +856,14 @@ class SwinIR(Denoiser):
         resi_connection="1conv",
         pretrained="download",
         pretrained_noise_level=15,
-        **kwargs,
+        device=None,
     ):
         if isinstance(timm, ImportError):
             raise ImportError(
                 "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
             ) from timm
 
-        super(SwinIR, self).__init__()
+        super().__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans
         num_feat = 64
@@ -1009,18 +1013,9 @@ class SwinIR(Denoiser):
                 assert depths == [6, 6, 6, 6, 6, 6]
                 assert num_heads == [6, 6, 6, 6, 6, 6]
 
-                if in_chans == 1:
-                    weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/004_grayDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
-                    )
-                elif in_chans == 3:
-                    weights_url = (
-                        "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise"
-                        + str(pretrained_noise_level)
-                        + ".pth"
-                    )
+                # Get URL for the weights
+                code = "004_gray" if in_chans == 1 else "005_color"
+                weights_url = f"{URL_WEIGHTS}/{code}DN_DFWB_s128w8_SwinIR-M_noise{pretrained_noise_level}.pth"
 
                 pretrained_weights = torch.hub.load_state_dict_from_url(
                     weights_url, map_location=lambda storage, loc: storage
@@ -1037,6 +1032,9 @@ class SwinIR(Denoiser):
             )
             self.load_state_dict(pretrained_weights, strict=True)
             self.eval()
+
+        if device is not None:
+            self.to(device)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):

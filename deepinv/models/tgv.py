@@ -43,7 +43,7 @@ class TGVDenoiser(Denoiser):
     def __init__(
         self, verbose=False, n_it_max=1000, crit=1e-5, x2=None, u2=None, r2=None
     ):
-        super(TGVDenoiser, self).__init__()
+        super().__init__()
 
         self.verbose = verbose
         self.n_it_max = n_it_max
@@ -68,7 +68,7 @@ class TGVDenoiser(Denoiser):
         left = torch.sqrt(torch.sum(r**2, axis=-1)) / (self.tau * lambda1)
         tmp = r - r / (
             torch.maximum(
-                left, torch.tensor([1], device=left.device).type(left.dtype)
+                left, torch.tensor([1], device=left.device, dtype=left.dtype)
             ).unsqueeze(-1)
         )
         return tmp
@@ -77,7 +77,7 @@ class TGVDenoiser(Denoiser):
         return u / (
             torch.maximum(
                 torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device).type(u.dtype),
+                torch.tensor([1], device=u.device, dtype=u.dtype),
             ).unsqueeze(-1)
         )
 
@@ -89,19 +89,15 @@ class TGVDenoiser(Denoiser):
         :param float, torch.Tensor ths: Regularization parameter.
         :return: Denoised image.
         """
-        restart = (
-            True
-            if (self.restart or self.x2 is None or self.x2.shape != y.shape)
-            else False
-        )
+        restart = self.restart or self.x2 is None or self.x2.shape != y.shape
 
         if restart:
             self.x2 = y.clone()
-            self.r2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(
-                self.x2.dtype
+            self.r2 = torch.zeros(
+                (*self.x2.shape, 2), device=self.x2.device, dtype=self.x2.dtype
             )
-            self.u2 = torch.zeros((*self.x2.shape, 4), device=self.x2.device).type(
-                self.x2.dtype
+            self.u2 = torch.zeros(
+                (*self.x2.shape, 4), device=self.x2.device, dtype=self.x2.dtype
             )
             self.restart = False
 
@@ -153,7 +149,7 @@ class TGVDenoiser(Denoiser):
                     torch.sqrt(torch.sum(self.epsilon_adjoint(u) ** 2, axis=-1))
                 )  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(
-                    tmp / lambda1, torch.tensor([1], device=tmp.device).type(tmp.dtype)
+                    tmp / lambda1, torch.tensor([1], device=tmp.device, dtype=tmp.dtype)
                 )  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = (
                     cy
@@ -201,7 +197,7 @@ class TGVDenoiser(Denoiser):
         Applies the jacobian of a vector field.
         """
         b, c, h, w, _ = I.shape
-        G = torch.zeros((b, c, h, w, 4), device=I.device).type(I.dtype)
+        G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
         G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
         G[..., 0] = G[..., 0] + I[..., 0]
         G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
@@ -218,7 +214,7 @@ class TGVDenoiser(Denoiser):
         Applies the adjoint of the jacobian of a vector field.
         """
         b, c, h, w, _ = G.shape
-        I = torch.zeros((b, c, h, w, 2), device=G.device).type(G.dtype)
+        I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
         I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
         I[..., 0] = I[..., 0] + G[..., 0]
         I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]

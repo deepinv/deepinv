@@ -19,10 +19,6 @@ class Denoiser(torch.nn.Module):
 
     """
 
-    def __init__(self, device="cpu"):
-        super().__init__()
-        self.to(device)
-
     def forward(self, x, sigma, **kwargs):
         r"""
         Applies denoiser :math:`\denoiser{x}{\sigma}`.
@@ -46,10 +42,6 @@ class Reconstructor(torch.nn.Module):
     The base class inherits from :class:`torch.nn.Module`.
 
     """
-
-    def __init__(self, device="cpu"):
-        super().__init__()
-        self.to(device)
 
     def forward(self, y, physics, **kwargs):
         r"""
