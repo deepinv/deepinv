@@ -73,8 +73,8 @@ class DownSamplingGenerator(PhysicsGenerator):
             generator=self.rng,
             **self.factory_kwargs
         )
-        factor = self.list_factors[random_indices[0].item()]
-        filter_str = self.list_filters[random_indices[1].item()]
+        factor = self.list_factors[int(random_indices[0].item())]
+        filter_str = self.list_filters[int(random_indices[1].item())]
         filters = self.get_kernel(filter_str, factor)
         return {
             "filter": filters,
