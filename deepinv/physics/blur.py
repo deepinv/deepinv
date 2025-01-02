@@ -72,13 +72,6 @@ class Downsampling(LinearPhysics):
         self.device = device
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
-        if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
-            self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = self.Fhc * self.Fh
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
-
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
@@ -223,6 +216,13 @@ class Downsampling(LinearPhysics):
             ).to(self.device)
         else:
             raise Exception(f"The chosen downsampling filter {filter} doesn't exist")
+
+        if self.filter is not None:
+            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device)
+            self.Fhc = torch.nn.Parameter(torch.conj(self.Fh), requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
