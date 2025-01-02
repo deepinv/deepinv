@@ -8,6 +8,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
+    conv_transpose2d_fft,
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
@@ -119,7 +120,10 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(x, self.filter, padding=self.padding)
+            if self.padding == 'circular':
+                x = conv_transpose2d_fft(x, self.filter)
+            else:  # this may be slow
+                x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):

@@ -14,7 +14,7 @@ class DownSamplingGenerator(PhysicsGenerator):
     def __init__(
         self,
         filters: [str, List[str]] = ['gaussian', 'bilinear', 'bicubic'],
-        factors: [int, List[int]] = [2, 3, 4],
+        factors: [int, List[int]] = [2, 4],
         rng: torch.Generator = None,
         device: str = "cpu",
         dtype: type = torch.float32,
