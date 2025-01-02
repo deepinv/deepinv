@@ -91,7 +91,12 @@ class TVDenoiser(Denoiser):
         :return: Denoised image.
         """
 
-        restart = self.restart or self.x2 is None or self.u2 is None or self.x2.shape != y.shape
+        restart = (
+            self.restart
+            or self.x2 is None
+            or self.u2 is None
+            or self.x2.shape != y.shape
+        )
 
         if restart:
             x2 = y.clone()
