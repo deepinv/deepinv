@@ -91,13 +91,13 @@ class PatchGANDiscriminator(nn.Module):
 
         self.model = nn.Sequential(*sequence)
 
-    def forward(self, input):
+    def forward(self, x: Tensor):
         r"""
         Forward pass of discriminator model.
 
-        :param torch.Tensor input: input image
+        :param torch.Tensor x: input image
         """
-        return self.model(input)
+        return self.model(x)
 
 
 class ESRGANDiscriminator(nn.Module):
@@ -146,13 +146,13 @@ class ESRGANDiscriminator(nn.Module):
 
         self.model = nn.Sequential(*layers)
 
-    def forward(self, img):
+    def forward(self, x: Tensor):
         r"""
         Forward pass of discriminator model.
 
-        :param torch.Tensor img: input image
+        :param torch.Tensor x: input image
         """
-        return self.model(img)
+        return self.model(x)
 
 
 class DCGANDiscriminator(nn.Module):
@@ -191,12 +191,12 @@ class DCGANDiscriminator(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, input):
+    def forward(self, x: Tensor):
         r"""Forward pass of discriminator model.
 
-        :param torch.Tensor input: input image
+        :param torch.Tensor x: input image
         """
-        return self.model(input)
+        return self.model(x)
 
 
 class DCGANGenerator(nn.Module):
@@ -255,13 +255,13 @@ class DCGANGenerator(nn.Module):
         ]
         self.model = nn.Sequential(*layers)
 
-    def forward(self, input, *args, **kwargs):
+    def forward(self, z: Tensor, *args, **kwargs):
         r"""
         Generate an image
 
-        :param torch.Tensor input: latent vector
+        :param torch.Tensor z: latent vector
         """
-        return self.model(input, *args, **kwargs)
+        return self.model(z, *args, **kwargs)
 
 
 class CSGMGenerator(Reconstructor):
@@ -338,7 +338,7 @@ class CSGMGenerator(Reconstructor):
         :param torch.Tensor z: initial latent variable guess
         :param torch.Tensor y: measurement with which to compare reconstructed image
         :param Physics physics: forward model
-        :return: torch.Tensor optimized z
+        :return: optimized latent z
         """
         z = nn.Parameter(z)
         optimizer = Adam([z], lr=self.inf_lr)
@@ -369,7 +369,7 @@ class CSGMGenerator(Reconstructor):
         At test time, CSGM/AmbientGAN runs an optimisation to find the best latent vector that fits the input
         measurements y, then outputs the corresponding reconstruction.
 
-        :param torch.Tensor y: measurement to reconstruct
+        :param y: measurement to reconstruct
         :param deepinv.physics.Physics physics: forward model
         """
         z = self.random_latent(y.device)

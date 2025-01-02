@@ -54,7 +54,7 @@ class PhaseRetrieval(Physics):
         We use the spectral methods defined in :class:`deepinv.optim.phase_retrieval.spectral_methods` to obtain an initial inverse.
 
         :param torch.Tensor y: measurements.
-        :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
+        :return: (:class:`torch.Tensor`) an initial reconstruction for image :math:`x`.
         """
         return spectral_methods(y, self, **kwargs)
 
@@ -69,7 +69,7 @@ class PhaseRetrieval(Physics):
         Computes the linear pseudo-inverse of :math:`B`.
 
         :param torch.Tensor y: measurements.
-        :return: (torch.Tensor) the reconstruction image :math:`x`.
+        :return: (:class:`torch.Tensor`) the reconstruction image :math:`x`.
         """
         return self.B.A_dagger(y)
 
@@ -78,7 +78,7 @@ class PhaseRetrieval(Physics):
         Applies the phase retrieval measurement operator, i.e. :math:`y = \noise{|Bx|^2}` (with noise :math:`N` and/or sensor non-linearities).
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
-        :return: (torch.Tensor) noisy measurements
+        :return: (:class:`torch.Tensor`) noisy measurements
         """
         return self.sensor(self.noise(self.A(x, **kwargs)))
 
@@ -92,7 +92,7 @@ class PhaseRetrieval(Physics):
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
         """
         return 2 * self.B_adjoint(self.B(x) * v)
 

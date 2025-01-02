@@ -25,7 +25,7 @@ class Distance(Potential):
 
         :param torch.Tensor x: Variable :math:`x`.
         :param torch.Tensor y: Observation :math:`y`.
-        :return: (torch.Tensor) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
+        :return: (:class:`torch.Tensor`) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
         """
         return self._fn(x, y, *args, **kwargs)
 
@@ -35,7 +35,7 @@ class Distance(Potential):
 
         :param torch.Tensor x: Variable :math:`x`.
         :param torch.Tensor y: Observation :math:`y`.
-        :return: (torch.Tensor) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
+        :return: (:class:`torch.Tensor`) distance :math:`\distance{x}{y}` of size `B` with `B` the size of the batch.
         """
         return self.fn(x, y, *args, **kwargs)
 
@@ -65,7 +65,7 @@ class L2Distance(Distance):
 
         :param torch.Tensor u: Variable :math:`x` at which the data fidelity is computed.
         :param torch.Tensor y: Data :math:`y`.
-        :return: (torch.Tensor) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{u}{y}` of size `B` with `B` the size of the batch.
         """
         z = x - y
         d = 0.5 * torch.norm(z.reshape(z.shape[0], -1), p=2, dim=-1) ** 2 * self.norm
@@ -82,7 +82,7 @@ class L2Distance(Distance):
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Observation :math:`y`.
-        :return: (torch.Tensor) gradient of the distance function :math:`\nabla_{x}\distance{x}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of the distance function :math:`\nabla_{x}\distance{x}{y}`.
         """
         return (x - y) * self.norm
 
@@ -100,7 +100,7 @@ class L2Distance(Distance):
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param float gamma: thresholding parameter.
-        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \distancename}(x)`.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \distancename}(x)`.
         """
         return (x + self.norm * gamma * y) / (1 + gamma * self.norm)
 
@@ -136,7 +136,7 @@ class IndicatorL2Distance(Distance):
         :param torch.Tensor x: Variable :math:`x` at which the indicator is computed. :math:`u` is assumed to be of shape (B, ...) where B is the batch size.
         :param torch.Tensor y: Observation :math:`y` of the same dimension as :math:`u`.
         :param float radius: radius of the :math:`\ell_2` ball. If `radius` is None, the radius of the ball is set to `self.radius`. Default: None.
-        :return: (torch.Tensor) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
+        :return: (:class:`torch.Tensor`) indicator of :math:`\ell_2` ball with radius `radius`. If the point is inside the ball, the output is 0, else it is 1e16.
         """
         diff = x - y
         dist = torch.norm(diff.reshape(diff.shape[0], -1), p=2, dim=-1)
@@ -160,7 +160,7 @@ class IndicatorL2Distance(Distance):
         :param torch.Tensor y: Observation :math:`y` of the same dimension as :math:`x`.
         :param float gamma: step-size. Note that this parameter is not used in this function.
         :param float radius: radius of the :math:`\ell_2` ball.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
         diff = x - y
@@ -271,7 +271,7 @@ class L1Distance(Distance):
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`x`.
-        :return: (torch.Tensor) gradient of the :math:`\ell_1` norm at `x`.
+        :return: (:class:`torch.Tensor`) gradient of the :math:`\ell_1` norm at `x`.
         """
         return torch.sign(x - y)
 
@@ -289,7 +289,7 @@ class L1Distance(Distance):
         :param torch.Tensor u: Variable :math:`u` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`x`.
         :param float gamma: stepsize (or soft-thresholding parameter).
-        :return: (torch.Tensor) soft-thresholding of `u` with parameter `gamma`.
+        :return: (:class:`torch.Tensor`) soft-thresholding of `u` with parameter `gamma`.
         """
         d = u - y
         aux = torch.sign(d) * torch.maximum(
@@ -319,7 +319,7 @@ class AmplitudeLossDistance(Distance):
 
         :param torch.Tensor u: estimated measurements.
         :param torch.Tensor y: true measurements.
-        :return: (torch.Tensor) the amplitude loss of shape B where B is the batch size.
+        :return: (:class:`torch.Tensor`) the amplitude loss of shape B where B is the batch size.
         """
         x = torch.sqrt(u) - torch.sqrt(y)
         d = torch.norm(x.reshape(x.shape[0], -1), p=2, dim=-1) ** 2
@@ -337,7 +337,7 @@ class AmplitudeLossDistance(Distance):
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param float epsilon: small value to avoid division by zero.
-        :return: (torch.Tensor) gradient of the amplitude loss function.
+        :return: (:class:`torch.Tensor`) gradient of the amplitude loss function.
         """
         return (torch.sqrt(u + epsilon) - torch.sqrt(y)) / torch.sqrt(u + epsilon)
 

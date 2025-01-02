@@ -101,7 +101,7 @@ class MOILoss(Loss):
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param Physics physics: measurement physics.
         :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         physics_cur = self.next_physics(physics)
 
@@ -164,7 +164,7 @@ class MOEILoss(EILoss, MOILoss):
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         physics_cur = self.next_physics(physics)
         return EILoss.forward(x_net, physics_cur, model, **kwargs)

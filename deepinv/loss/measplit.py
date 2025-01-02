@@ -146,7 +146,7 @@ class SplittingLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
         mask = model.get_mask() * getattr(physics, "mask", 1.0)
@@ -726,7 +726,7 @@ class Neighbor2Neighbor(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
 
         assert len(y.shape) == 4, "Input measurements should be images"

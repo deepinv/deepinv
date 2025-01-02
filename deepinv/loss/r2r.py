@@ -94,7 +94,7 @@ class R2RLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.Tensor) R2R loss.
+        :return: (:class:`torch.Tensor`) R2R loss.
         """
 
         pert = model.get_noise()

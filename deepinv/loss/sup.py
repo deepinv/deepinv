@@ -36,6 +36,6 @@ class SupLoss(Loss):
 
         :param torch.Tensor x_net: Reconstructed image :math:\inverse{y}.
         :param torch.Tensor x: Target (ground-truth) image.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         return self.metric(x_net, x)

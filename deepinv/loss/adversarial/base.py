@@ -39,12 +39,13 @@ class DiscriminatorMetric:
         self.no_grad = no_grad
         self.metric = metric
 
-    def __call__(self, pred: Tensor, real: bool = None) -> torch.Tensor:
-        r"""Call discriminator loss.
+    def __call__(self, pred: Tensor, real: bool = None) -> Tensor:
+        r"""
+        Call discriminator loss.
 
         :param torch.Tensor pred: discriminator classification output
-        :param bool real: whether image should be real or not, defaults to None
-        :return torch.Tensor: loss value
+        :param bool real: whether image should be real or not, defaults to `None`
+        :return: loss value
         """
         target = (self.real if real else self.fake).expand_as(pred)
         with torch.no_grad() if self.no_grad else nullcontext():
@@ -52,15 +53,18 @@ class DiscriminatorMetric:
 
 
 class GeneratorLoss(Loss):
-    r"""Base generator adversarial loss. Override the forward function to
-    call `adversarial_loss` with quantities depending on your specific GAN model.
-    For examples, see :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`, :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
+    r"""Base generator adversarial loss.
+
+    Override the forward function to call :func:`adversarial_loss <deepinv.loss.adversarial.GeneratorLoss.adversarial_loss>`
+    with quantities depending on your specific GAN model.
+    For examples, see :class:`SupAdversarialGeneratorLoss <deepinv.loss.adversarial.SupAdversarialGeneratorLoss>`
+    and :class:`UnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss>`
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formulae.
 
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
-    :param str device: torch device, defaults to "cpu"
+    :param float weight_adv: weight for adversarial loss, defaults to 1.
+    :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
+    :param str device: torch device, defaults to `"cpu"`
     """
 
     def __init__(
@@ -78,8 +82,9 @@ class GeneratorLoss(Loss):
 
         :param torch.Tensor real: image labelled as real, typically one originating from training set
         :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
-        :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
-        :return Tensor: generator adversarial loss
+        :param torch.nn.Module D: discriminator/critic/classifier model. If `None`, then `D` passed from `__init__` used.
+            Defaults to `None`.
+        :return: generator adversarial loss
         """
         D = self.D if D is None else D
 
@@ -102,10 +107,10 @@ class DiscriminatorLoss(Loss):
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formulae.
 
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
+    :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network.
         If not specified, ``D`` must be provided in ``forward``, defaults to ``None``.
-    :param str device: torch device, defaults to "cpu"
+    :param str device: torch device, defaults to `"cpu"`.
     """
 
     def __init__(
@@ -122,7 +127,7 @@ class DiscriminatorLoss(Loss):
         :param torch.Tensor real: image labelled as real, typically one originating from training set
         :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
         :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
-        :return Tensor: discriminator adversarial loss
+        :return: (class:`torch.Tensor`) discriminator adversarial loss
         """
         D = self.D if D is None else D
 

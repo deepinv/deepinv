@@ -27,7 +27,7 @@ def conv2d(
 
     :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
         ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
-    :return: (torch.Tensor) : the output
+    :return: (:class:`torch.Tensor`) : the output
 
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -85,7 +85,7 @@ def conv_transpose2d(
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
-    :return: (torch.Tensor) : the output
+    :return: (:class:`torch.Tensor`) : the output
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"

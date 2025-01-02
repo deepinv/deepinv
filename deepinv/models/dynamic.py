@@ -37,8 +37,8 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
         r"""
         Reconstructs a signal estimate from measurements y
 
-        :param torch.Tensor y: measurements [B,C,T,H,W]
-        :param deepinv.physics.Physics physics: forward operator acting on dynamic inputs
+        :param y: measurements `(B,C,T,H,W)`
+        :param physics: forward operator acting on dynamic inputs
         """
         return self.unflatten(self.backbone_net(self.flatten(y), physics, **kwargs))
 
@@ -81,8 +81,8 @@ class TimeAveragingNet(
         r"""
         Evaluate the network
 
-        :param torch.Tensor y: measurements
-        :parameter deepinv.physics.TimeMixin physics: forward operator acting on dynamic inputs
+        :param y: measurements
+        :parameter physics: forward operator acting on dynamic inputs
         """
         return self.backbone_net(
             self.average(y, getattr(physics, "mask", None)),

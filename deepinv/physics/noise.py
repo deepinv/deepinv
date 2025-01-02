@@ -8,9 +8,11 @@ class NoiseModel(nn.Module):
     r"""
     Base class for noise model.
 
-    NoiseModel can be combined via :func:`deepinv.physics.NoiseModel.__mul__`,
+    Noise models can be combined via :func:`deepinv.physics.NoiseModel.__mul__`.
 
-    | a pseudorandom random number generator for the parameter generation. If is provided, it should be on the same device as the input.
+    :param Callable noise_model: noise model function :math:`N(y)`.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+        If provided, it should be on the same device as the input.
     """
 
     def __init__(self, noise_model: Callable = None, rng: torch.Generator = None):
@@ -25,6 +27,7 @@ class NoiseModel(nn.Module):
     def forward(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
         r"""
         Add noise to the input
+
         :param torch.Tensor input: input tensor
         :param int seed: the seed for the random number generator.
         """
@@ -52,7 +55,9 @@ class NoiseModel(nn.Module):
         Sets the seed for the random number generator.
 
         :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
-            Note: it will be ignored if the random number generator is not initialized.
+            .. note::
+                The seed will be ignored if the random number generator is not initialized.
+
         """
         if seed is not None:
             if self.rng is not None:
@@ -71,8 +76,8 @@ class NoiseModel(nn.Module):
     def rand_like(self, input: torch.Tensor, seed: int = None):
         r"""
         Equivalent to `torch.rand_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
 
+        :param int seed: the seed for the random number generator, if `rng` is provided.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).uniform_(generator=self.rng)
@@ -80,8 +85,8 @@ class NoiseModel(nn.Module):
     def randn_like(self, input: torch.Tensor, seed: int = None):
         r"""
         Equivalent to `torch.randn_like` but supports a pseudorandom number generator argument.
-        :param int seed: the seed for the random number generator, if `rng` is provided.
 
+        :param int seed: the seed for the random number generator, if `rng` is provided.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
@@ -89,7 +94,6 @@ class NoiseModel(nn.Module):
 
 class GaussianNoise(NoiseModel):
     r"""
-
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
     |sep|
@@ -120,7 +124,7 @@ class GaussianNoise(NoiseModel):
 
         :param torch.Tensor x: measurements
         :param float, torch.Tensor sigma: standard deviation of the noise.
-            If not None, it will overwrite the current noise level.
+            If not `None`, it will overwrite the current noise level.
         :param int seed: the seed for the random number generator, if `rng` is provided.
 
         :returns: noisy measurements
@@ -181,7 +185,6 @@ class UniformGaussianNoise(NoiseModel):
 
         :param torch.Tensor x: measurements.
         :param int seed: the seed for the random number generator, if `rng` is provided.
-
         :returns: noisy measurements.
         """
         self.rng_manual_seed(seed)
@@ -223,7 +226,8 @@ class PoissonNoise(NoiseModel):
 
     :param float gain: gain of the noise.
     :param bool normalize: normalize the output.
-    :param bool clip_positive: clip the input to be positive before adding noise. This may be needed when a NN outputs negative values e.g. when using LeakyReLU.
+    :param bool clip_positive: clip the input to be positive before adding noise.
+        This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     """
@@ -243,7 +247,6 @@ class PoissonNoise(NoiseModel):
         :param torch.Tensor x: measurements
         :param None, float, torch.Tensor gain: gain of the noise. If not None, it will overwrite the current noise level.
         :param int seed: the seed for the random number generator, if `rng` is provided.
-
         :returns: noisy measurements
         """
         self.update_parameters(gain=gain)
@@ -270,7 +273,7 @@ class GammaNoise(NoiseModel):
     r"""
     Gamma noise :math:`y = \mathcal{G}(\ell, x/\ell)`
 
-    Follows the shape, scale parameterization of the Gamma distribution,
+    Follows the (shape, scale) parameterization of the Gamma distribution,
     where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
     see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 

@@ -83,7 +83,7 @@ def find_operator(name, device):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     img_size = (3, 16, 8)
     norm = 1
@@ -360,7 +360,7 @@ def find_nonlinear_operator(name, device):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     if name == "haze":
         x = dinv.utils.TensorList(
@@ -1019,7 +1019,6 @@ def test_mri_fft():
     xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)
 
     assert torch.all(xf1 == xf2)
-
 
 
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))

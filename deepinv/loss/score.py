@@ -87,7 +87,7 @@ class ScoreLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.Tensor) Score loss.
+        :return: (:class:`torch.Tensor`) Score loss.
         """
         return model.get_error()
 

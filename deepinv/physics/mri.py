@@ -275,7 +275,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         Optionally update MRI mask or coil sensitivity maps on the fly.
 
         :param torch.Tensor x: image with shape [B,2,...,H,W].
-        :returns: (torch.Tensor) multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :returns: (:class:`torch.Tensor`) multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         """
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
@@ -291,7 +291,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         Optionally update MRI mask or coil sensitivity maps on the fly.
 
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
-        :returns: (torch.Tensor) image with shape [B,2,...,H,W]
+        :returns: (:class:`torch.Tensor`) image with shape [B,2,...,H,W]
         """
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
@@ -532,7 +532,7 @@ class SequentialMRI(DynamicMRI):
         :param torch.Tensor y: input tensor
         :param torch.nn.parameter.Parameter, float mask: input mask
         :param bool keep_time_dim: if ``True``, adjoint is calculated frame-by-frame. Used for visualisation. If ``False``, flatten the time dimension before calculating.
-        :return: (torch.Tensor) output tensor
+        :return: (:class:`torch.Tensor`) output tensor
         """
         if keep_time_dim:
             return super().A_adjoint(y, mask, **kwargs)

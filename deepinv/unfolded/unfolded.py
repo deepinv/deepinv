@@ -97,7 +97,7 @@ class BaseUnfold(BaseOptim):
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
         :param torch.Tensor x_gt: (optional) ground truth image, for plotting the PSNR across optim iterations.
         :param bool compute_metrics: whether to compute the metrics or not. Default: ``False``.
-        :return: If ``compute_metrics`` is ``False``,  returns (torch.Tensor) the output of the algorithm.
+        :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
         X, metrics = self.fixed_point(

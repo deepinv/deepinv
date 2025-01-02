@@ -117,7 +117,7 @@ def histogramdd(
     :param torch.Tensor, list[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
             If provided, ``bins``, ``low`` and ``upp`` are inferred from ``edges``.
 
-    :return: (torch.Tensor) : the histogram
+    :return: (:class:`torch.Tensor`) : the histogram
     """
 
     # Preprocess

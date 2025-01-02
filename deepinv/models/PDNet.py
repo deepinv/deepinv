@@ -55,7 +55,7 @@ class PDNet_PrimalBlock(nn.Module):
 
         :param torch.Tensor x: current primal variable.
         :param torch.Tensor Atu: backprojected dual variable.
-        :return: (torch.Tensor) the current primal variable.
+        :return: (:class:`torch.Tensor`) the current primal variable.
         """
         x_in = torch.cat((x, Atu), dim=1)
 

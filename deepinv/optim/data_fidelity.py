@@ -31,7 +31,7 @@ class DataFidelity(Potential):
         :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}`.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
         """
         return self.d(physics.A(x), y, *args, **kwargs)
 
@@ -50,7 +50,7 @@ class DataFidelity(Potential):
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
 
@@ -64,7 +64,7 @@ class DataFidelity(Potential):
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         return self.d.grad(u, y, *args, **kwargs)
 
@@ -78,7 +78,7 @@ class DataFidelity(Potential):
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         return self.d.prox(u, y, *args, **kwargs)
 
@@ -132,7 +132,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
         :param deepinv.physics.StackedPhysics physics: physics model.
-        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}`.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -156,7 +156,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
         :param deepinv.physics.StackedPhysics physics: Stacked physics model.
-        :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -173,7 +173,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -190,7 +190,7 @@ class StackedPhysicsDataFidelity(DataFidelity):
 
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         out = 0
         for i, data_fidelity in enumerate(self.data_fidelity_list):
@@ -272,7 +272,7 @@ class L2(DataFidelity):
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
         """
         return physics.prox_l2(x, y, self.norm * gamma)
 
@@ -330,7 +330,7 @@ class IndicatorL2(DataFidelity):
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
                             operator since the indicator is scale invariant. Default: None.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
 
@@ -429,7 +429,7 @@ class L1(DataFidelity):
         :param float stepsize: step-size of the dual-forward-backward algorithm.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         norm_AtA = physics.compute_norm(x)
         stepsize = 1.0 / norm_AtA if stepsize is None else stepsize

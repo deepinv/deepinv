@@ -39,7 +39,7 @@ class Loss(torch.nn.Module):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
 
-        :return: (torch.Tensor) loss, the tensor size might be (1,) or (batch size,).
+        :return: (:class:`torch.Tensor`) loss, the tensor size might be (1,) or (batch size,).
         """
         raise NotImplementedError(
             "The method 'forward' must be implemented in the subclass."
