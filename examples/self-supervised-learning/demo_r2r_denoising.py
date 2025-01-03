@@ -3,7 +3,8 @@ Self-supervised denoising with the Generalized R2R loss.
 ====================================================================================================
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
-i.e., using noisy images only via the GR2R loss, which exploits knowledge about the noise distribution.
+using noisy images only via the `Generalized Recorrupted2Recorrupted (GR2R) loss <https://arxiv.org/abs/2412.04648>`_, 
+which exploits knowledge about the noise distribution.
 
 """
 
@@ -69,8 +70,9 @@ predefined_noise_models = dict(
     gamma=dinv.physics.GammaNoise,
 )
 
-noise_name = "gamma"
-noise_model = predefined_noise_models[noise_name]()
+noise_name = "poisson"
+noise_level = 0.5  # noise level, default for Poisson noise
+noise_model = predefined_noise_models[noise_name](noise_level)
 physics = dinv.physics.Denoising(noise_model)
 
 # Use parallel dataloader if using a GPU to fasten training,
@@ -78,7 +80,7 @@ physics = dinv.physics.Denoising(noise_model)
 num_workers = 4 if torch.cuda.is_available() else 0
 
 n_images_max = (
-    1000 if torch.cuda.is_available() else 5
+    100 if torch.cuda.is_available() else 5
 )  # number of images used for training
 
 measurement_dir = DATA_DIR / train_dataset_name / operation
@@ -125,20 +127,23 @@ batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
 loss = dinv.loss.R2RLoss(noise_model=noise_model)
+model = loss.adapt_model(model)  # important step!
 
 # choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # # start with a pretrained model to reduce training time
-# file_name = "ckp_10_demo_sure.pth"
-# url = get_weights_url(model_name="demo", file_name=file_name)
-# ckpt = torch.hub.load_state_dict_from_url(
-#     url, map_location=lambda storage, loc: storage, file_name=file_name
-# )
-# # load a checkpoint to reduce training time
-# model.load_state_dict(ckpt["state_dict"])
-# optimizer.load_state_dict(ckpt["optimizer"])
+
+# if noise_name == "poisson":
+#     file_name = "ckp_10_demo_r2r_poisson.pth"
+#     url = get_weights_url(model_name="demo", file_name=file_name)
+#     ckpt = torch.hub.load_state_dict_from_url(
+#         url, map_location=lambda storage, loc: storage, file_name=file_name
+#     )
+#     # load a checkpoint to reduce training time
+#     model.load_state_dict(ckpt["state_dict"])
+#     optimizer.load_state_dict(ckpt["optimizer"])
 
 # %%
 # Train the network
