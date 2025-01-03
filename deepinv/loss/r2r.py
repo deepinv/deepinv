@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Union
 import torch
 import math
+import warnings
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.noise import GaussianNoise, PoissonNoise, GammaNoise
@@ -17,8 +18,10 @@ class R2RLoss(Loss):
 
     .. math::
 
-        p(y\vert x) =  h(x) \exp \left( y^\top \eta(x) - \phi(x) \right).
+        p(y\vert x) =  h(x) \exp \left( y^\top \eta(x) - \phi(x) \right),
 
+    which includes the popular Gaussian, Poisson and Gamma noise distributions
+    (see https://en.wikipedia.org/wiki/Exponential_family for more details on the exponential family).
     For this family of noisy measurements, we genealize the corruption strategy as:
 
     .. math::
@@ -38,11 +41,12 @@ class R2RLoss(Loss):
     where, :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.
 
-
-    This loss generalizes the Recorrupted-to-Recorrupted (R2R) loss for the natural exponential family of noise models
-    as presented in https://arxiv.org/abs/2412.04648. For the gaussian noise model, the R2R loss is recovered
-    and is statistically equivalent to the supervised loss function defined on noisy/clean image pairs
-    according to authors in https://ieeexplore.ieee.org/document/9577798.
+    The loss was first introduced in the `Recorrupted2Recorrupted <https://ieeexplore.ieee.org/document/9577798>`_ paper
+    for the specific case of Gaussian noise, formalizing the `Noise2Noisier <https://arxiv.org/abs/1910.11908>`_ loss
+    such that it is statistically equivalent to the supervised loss function defined on noisy/clean image pairs.
+    The loss was later extended to other exponential family noise distributions in
+    `Generalized Recorrupted2Recorrupted <https://arxiv.org/abs/2412.04648>`_ paper, including Poisson,
+    Gamma and Binomial noise distributions.
 
     .. warning::
 
@@ -56,10 +60,10 @@ class R2RLoss(Loss):
 
     .. deprecated:: 0.2.3
 
-        The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model`` parameter instead.
+        The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model=deepinv.physics.GaussianNoise(sigma=sigma)`` parameter instead.
 
     :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.
-    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to Gaussian.
+    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to Gaussian. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
     :param float alpha: Scaling factor of the corruption.
     :param int eval_n_samples: Number of samples used for the Monte Carlo approximation.
 
@@ -101,7 +105,7 @@ class R2RLoss(Loss):
 
         if sigma is not None:
 
-            print(
+            warnings.warn(
                 "The sigma parameter is deprecated and will be removed in future versions. "
                 "Please use the noise_model parameter instead."
             )
@@ -139,7 +143,7 @@ class R2RLoss(Loss):
         for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param NoiseModel noise_model: Noise model of the natural exponential family.
+        :param NoiseModel noise_model: Noise model of the natural exponential family. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
         :param float alpha: Scaling factor of the corruption.
         :return: (torch.nn.Module) Modified model.
         """
