@@ -90,6 +90,10 @@ class Downsampling(LinearPhysics):
             x = conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
+
+        if self.normalize:
+            x = x * self.factor
+
         return x
 
     def A_adjoint(self, y, filter=None, factor=None, **kwargs):
@@ -128,7 +132,7 @@ class Downsampling(LinearPhysics):
                 x = conv_transpose2d(x, self.filter, padding=self.padding)
 
         if self.normalize:
-            x = x * self.factor**2
+            x = x * self.factor
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
