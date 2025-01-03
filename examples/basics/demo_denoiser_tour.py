@@ -8,12 +8,12 @@ Basically, it solves the following problem:
 
 .. math::
 
-    \min\|x -  D(x + \sigma \epsilon; \sigma)\|_2^2
+    \underset{x}{\min}\|x -  \denoiser{x + \sigma \epsilon}{\sigma}\|_2^2.
 
 The denoisers in DeepInv comes with different flavors, depending on whether they are derived from
 analytical image processing techniques or learned from data.
 This example will show how to use the different denoisers in DeepInv, compare their performances,
-and highlights the different tradeofs they offer.
+and highlights the different tradeoffs they offer.
 """
 
 import time
@@ -23,7 +23,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import deepinv as dinv
-from deepinv.utils.plotting import plot
+from deepinv.utils.plotting import plot_inset
 from deepinv.utils.demo import load_url_image, get_image_url
 
 
@@ -47,8 +47,11 @@ torch.manual_seed(0)
 torch.cuda.manual_seed(0)
 
 # Finally, create a noisy version of the image with a fixed noise level sigma.
-sigma = 0.06
+sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
+
+# Compute the PSNR of the noisy image
+psnr_noisy = dinv.metric.cal_psnr(image, noisy_image)
 
 # %%
 # We are now ready to explore the different denoisers.
@@ -56,8 +59,8 @@ noisy_image = image + sigma * torch.randn_like(image)
 # Classical Denoisers
 # -------------------
 #
-# DeepInv provides a set of classical denoisers such as :class:`dinv.models.BM3D`,
-# :class:`dinv.models.TGVDenoiser`, or :class:`deepinv.models.WaveletDenoiser`.
+# DeepInv provides a set of classical denoisers such as :class:`deepinv.models.BM3D`,
+# :class:`deepinv.models.TGVDenoiser`, or :class:`deepinv.models.WaveletDenoiser`.
 #
 # They can be easily used simply by instanciating their corresponding class,
 # and calling them with the noisy image and the noise level.
@@ -81,7 +84,7 @@ plot(to_plot, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 #
 # DeepInv also provides a set of deep denoisers.
 # Most of these denoisers are available with pretrained weights, so they can be used readily.
-# To instanciate them, you can simply call their corresponding class with default
+# To instantiate them, you can simply call their corresponding class with default
 # parameters and ``pretrained="download"`` to load their weights.
 # You can then apply them by calling the model with the noisy image and the noise level.
 dncnn = dinv.models.DnCNN()
@@ -101,22 +104,22 @@ plot(to_plot, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 # Comparing denoisers
 # -------------------
 #
-# These denoisers don't have the same training or expected behavior depending on
+# As we have seen, these denoisers don't have the same training or expected behavior depending on
 # the noise level. Indeed, there are three classes of denoisers:
 #
-# - *Fixed-level denoisers:* Some denoisers are trained to be able to recover
+# - *Fixed-noise level denoisers:* Some denoisers are trained to be able to recover
 #   images from noisy input with a fixed noise levels. Typically, this is the case
-#   of :class:`dinv.models.DnCNN` or :class:`dinv.models.SwinIR`.
+#   of :class:`deepinv.models.DnCNN` or :class:`deepinv.models.SwinIR`.
 # - *Adaptive-level denoisers:* These denoisers are able to adapt to the noise level
-#   of a given image. Basically, these denosiers performance vary strognly with the
-#   value ``sigma`` given as an input. This is typically the case for :class:`dinv.models.BM3D`,
-#   :class:`dinv.models.SCUNet`, or :class:`dinv.models.DRUNet`, but also for denoisers based on regularisations
-#   like :class:`dinv.models.WaveletDictDenoiser`.
+#   of a given image. Basically, these denoisers' performance vary strognly with the
+#   value ``sigma`` given as an input. This is typically the case for :class:`deepinv.models.BM3D`,
+#   :class:`deepinv.models.SCUNet`, or :class:`deepinv.models.DRUNet`, but also for denoisers based on regularisations
+#   like :class:`deepinv.models.WaveletDictDenoiser`.
 #   A typical caveat of regularisation-based denoisers is that the second parameter doesn't
 #   correspond to ``sigma`` but to a threshold value, which needs to be adapted to the noise level.
 # - *Blind denoisers:* These denoisers estimate the level of noise in the input image
-#   to output the cleanest image possible. Example of blind denoisers are :class:`dinv.models.SCUNet`
-#   or :class:`dinv.models.Restformer`.
+#   to output the cleanest image possible. Example of blind denoisers are :class:`deepinv.models.SCUNet`
+#   or :class:`deepinv.models.Restformer`.
 #
 # Let us generate a set of noisy images with varying noise levels.
 
