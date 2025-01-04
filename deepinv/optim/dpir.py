@@ -1,7 +1,8 @@
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import create_iterator, BaseOptim
+from deepinv.optim.optimizers import create_iterator
+from deepinv.optim import BaseOptim
 import numpy as np
 
 

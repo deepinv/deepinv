@@ -54,10 +54,9 @@ class NoiseModel(nn.Module):
         r"""
         Sets the seed for the random number generator.
 
-        :param int seed: the seed to set for the random number generator. If not provided, the current state of the random number generator is used.
-            .. note::
-                The seed will be ignored if the random number generator is not initialized.
-
+        :param int seed: the seed to set for the random number generator.
+            If not provided, the current state of the random number generator is used.
+            .. note:: The seed will be ignored if the random number generator is not initialized.
         """
         if seed is not None:
             if self.rng is not None:
