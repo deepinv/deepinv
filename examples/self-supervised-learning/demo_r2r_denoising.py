@@ -4,8 +4,8 @@ Self-supervised denoising with the Generalized R2R loss.
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
 using noisy images only via the `Generalized Recorrupted2Recorrupted (GR2R) loss <https://arxiv.org/abs/2412.04648>`_, 
-which exploits knowledge about the noise distribution.
-
+which exploits knowledge about the noise distribution. You can change the noise distribution by selecting 
+from predefined noise models such as Gaussian, Poisson, and Gamma noise.
 """
 
 from pathlib import Path
@@ -56,8 +56,9 @@ test_dataset = datasets.MNIST(
 # Generate a dataset of noisy images
 # ----------------------------------------------------------------------------------
 #
-# We generate a dataset of noisy images corrupted by Poisson noise.
-#
+# Generate a dataset of noisy images corrupted by Poisson noise.
+# The predefined noise models in the physics module include Gaussian, Poisson, and Gamma noise.
+# Here, we use Poisson noise as an example, but you can also use Gaussian or Gamma noise.
 # .. note::
 #
 #       We use a subset of the whole training set to reduce the computational load of the example.
@@ -65,14 +66,13 @@ test_dataset = datasets.MNIST(
 
 # defined physics
 predefined_noise_models = dict(
-    gaussian=dinv.physics.GaussianNoise,
-    poisson=dinv.physics.PoissonNoise,
-    gamma=dinv.physics.GammaNoise,
+    gaussian=dinv.physics.GaussianNoise(sigma=0.1),
+    poisson=dinv.physics.PoissonNoise(gain=0.5),
+    gamma=dinv.physics.GammaNoise(l=10.0),
 )
 
 noise_name = "poisson"
-noise_level = 0.5  # noise level, default for Poisson noise
-noise_model = predefined_noise_models[noise_name](noise_level)
+noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
 
 # Use parallel dataloader if using a GPU to fasten training,
