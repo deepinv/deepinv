@@ -1911,6 +1911,22 @@ def test_physics_warn_extra_kwargs():
 
 
 @pytest.mark.parametrize("name", OPERATORS)
+def test_coarse_physics_adjointness(name, device):
+    physics, imsize, _, dtype = find_operator(name, device, sf=2)
+    if not isinstance(physics, dinv.physics.LinearPhysics):
+        pytest.skip("Skip " + name + " : not LinearPhysics")
+    if not len(imsize) == 3:
+        pytest.skip("Skip " + name + " : not proper data shape")
+
+    x = torch.rand(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x_coarse = physics.downsample_signal(x)
+    p_coarse = physics.to_coarse()
+
+    error = p_coarse.adjointness_test(x_coarse).abs()
+    assert error < 1e-3
+
+
+@pytest.mark.parametrize("name", OPERATORS)
 def test_coarse_physics_validity(name, device):
     r"""
     Tests the similarity between a linear physics and its coarse version.

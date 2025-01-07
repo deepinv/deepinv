@@ -317,29 +317,20 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         return copy.deepcopy(self, memo=memo)
 
-    def initialize_downsampling_operator(self, shape, device, dtype):
-        r"""
-        Create the antialiasing filter to be used for downsampling.
-
-        :param shape: shape of the signal.
-        :param device: device of the signal.
-        """
-        if self.downsampling_operator is None:
-            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
-            filter = filter.to(dtype)
-            self.downsampling_operator = deepinv.physics.Downsampling(
-                img_size=shape[1:], filter=filter, device=device
-            )
-
     def downsample_signal(self, x):
         r"""
         Downsamples the signal using an antialiasing filter.
+        Creates a default downsampling operator if not initialized.
 
         :param torch.Tensor x: signal to be downsampled.
         :return: torch.Tensor downsampled signal.
         """
         if self.downsampling_operator is None:
-            self.initialize_downsampling_operator(x.shape, x.device, x.dtype)
+            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
+            filter = filter.to(x.dtype)
+            self.downsampling_operator = deepinv.physics.Downsampling(
+                img_size=x.shape[1:], filter=filter, device=x.device
+            )
         return self.downsampling_operator(x)
 
     def upsample_signal(self, x):
@@ -351,8 +342,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param torch.Tensor x: signal to be upsampled.
         :return: torch.Tensor upsampled signal.
         """
-        factor = self.downsampling_operator.factor
-        return (factor**2) * self.downsampling_operator.A_adjoint(x)
+        factor = self.get_downsampling_operator().factor
+        return (factor**2) * self.get_downsampling_operator().A_adjoint(x)
 
     def downsample_measurement(self, y, coarse_physics):
         r"""
@@ -375,21 +366,26 @@ class Physics(torch.nn.Module):  # parent class for forward models
         x_coarse = self.downsample_signal(self.A_dagger(y))
         return coarse_physics(x_coarse)
 
+    def get_downsampling_operator(self):
+        r"""
+        Returns the downsampling operator if it was initialized, else raises an error.
+        """
+
+        if self.downsampling_operator is None:
+            raise ValueError(
+                "No downsampling operator, set downsampling_operator or use downsample_signal first."
+            )
+        return self.downsampling_operator
+
     def to_coarse(self):
         r"""
         Returns a coarse version of the current physics.
         """
-        if self.downsampling_operator is None:
-            raise ValueError(
-                "No downsampling operator, use initialize_downsampling_operator before."
-            )
 
-        ds = self.downsampling_operator
-
-        # factor**2 is only valid if x is an image.
-        # In this case, image space is coarse but measurement space stays the same
-        # since there is no explicit way to retrieve the image.
-        A_coarse = lambda x: self.A(ds.factor**2 * ds.A_adjoint(x))
+        ds = self.get_downsampling_operator()
+        A_coarse = lambda x: ds.factor * self.A(
+            ds.A_adjoint(x)
+        )  # same forward operator as for LinearPhysics
         return Physics(A=A_coarse)
 
 
@@ -827,16 +823,10 @@ class ComposedPhysics(Physics):
         r"""
         Returns a coarse version of the current physics.
         """
-        if self.downsampling_operator is None:
-            raise ValueError(
-                "No downsampling operator, use initialize_downsampling_operator before."
-            )
 
-        ds = self.downsampling_operator
-
-        # factor**2 is only valid if x is an image
-        A_coarse = lambda x: self.A(ds.factor**2 * ds.A_adjoint(x))
-        A_coarse_adj = lambda y: ds.A(self.A_adjoint(y))
+        ds = self.get_downsampling_operator()
+        A_coarse = lambda x: ds.factor * self.A(ds.A_adjoint(x))
+        A_coarse_adj = lambda y: ds.factor * ds.A(self.A_adjoint(y))
         return LinearPhysics(A=A_coarse, A_adjoint=A_coarse_adj)
 
 

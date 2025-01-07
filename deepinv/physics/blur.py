@@ -376,8 +376,8 @@ class Blur(LinearPhysics):
 
         :return: deepinv.physics.Blur: coarse blur physics.
         """
-
-        filt = coarse_blur_filter(self.filter, self.downsampling_operator.filter)
+        ds = self.get_downsampling_operator()
+        filt = coarse_blur_filter(self.filter, ds.filter)
         return Blur(filter=filt, padding=self.padding, device=self.filter.device)
 
 
@@ -512,11 +512,11 @@ class BlurFFT(DecomposablePhysics):
 
         :return: deepinv.physics.Blur: coarse blur physics.
         """
-        filt = coarse_blur_filter(self.filter, self.downsampling_operator.filter)
+        ds = self.get_downsampling_operator()
+        filt = coarse_blur_filter(self.filter, ds.filter)
         fine_shape = self.img_size
-        factor = self.downsampling_operator.factor
-        coarse_shape = [int(np.ceil(s / factor)) for s in fine_shape]
-        coarse_shape[0] = fine_shape[0]  # keep nb of channels intact
+        coarse_shape = [int(np.ceil(s / ds.factor)) for s in fine_shape]
+        coarse_shape[0] = fine_shape[0]  # keep the same nb of channels
         return BlurFFT(filter=filt, img_size=coarse_shape, device=self.filter.device)
 
 
