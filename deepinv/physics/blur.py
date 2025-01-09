@@ -169,7 +169,7 @@ class Downsampling(LinearPhysics):
 
     def A_dagger(self, y, filter=None, factor=None, use_fft=True, **kwargs):
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of
+        If the padding is circular, it computes the pseudo inverse with a  closed-formula similar to the one in
         https://arxiv.org/abs/1510.00143.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
