@@ -126,7 +126,7 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            if self.padding == 'circular':
+            if self.padding == "circular":
                 x = conv_transpose2d_fft(x, self.filter)
             else:  # this may be slow
                 x = conv_transpose2d(x, self.filter, padding=self.padding)
@@ -212,7 +212,9 @@ class Downsampling(LinearPhysics):
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(self.device)
         if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(self.device)
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                self.device
+            )
         # elif filter is None:  # TODO: check if filter can be None
         #     self.filter = filter
         elif filter == "gaussian":
@@ -231,7 +233,9 @@ class Downsampling(LinearPhysics):
             self.filter = filter
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device)
+            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
+                self.device
+            )
             self.Fhc = torch.nn.Parameter(torch.conj(self.Fh), requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)

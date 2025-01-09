@@ -13,7 +13,7 @@ class DownSamplingGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        filters: [str, List[str]] = ['gaussian', 'bilinear', 'bicubic'],
+        filters: [str, List[str]] = ["gaussian", "bilinear", "bicubic"],
         factors: [int, List[int]] = [2, 4],
         rng: torch.Generator = None,
         device: str = "cpu",
@@ -27,12 +27,7 @@ class DownSamplingGenerator(PhysicsGenerator):
             "list_filters": filters,
             "list_factors": factors,
         }
-        super().__init__(
-            device=device,
-            dtype=dtype,
-            rng=rng,
-            **kwargs
-        )
+        super().__init__(device=device, dtype=dtype, rng=rng, **kwargs)
 
     def str2filter(self, filter_name: str, factor: int):
         if filter_name == "gaussian":
@@ -44,9 +39,9 @@ class DownSamplingGenerator(PhysicsGenerator):
                 bilinear_filter(factor), requires_grad=False
             ).to(self.device)
         elif filter_name == "bicubic":
-            filter = torch.nn.Parameter(
-                bicubic_filter(factor), requires_grad=False
-            ).to(self.device)
+            filter = torch.nn.Parameter(bicubic_filter(factor), requires_grad=False).to(
+                self.device
+            )
         return filter
 
     def get_kernel(self, filter_str: str = None, factor=None):
@@ -71,7 +66,7 @@ class DownSamplingGenerator(PhysicsGenerator):
             high=len(self.list_factors),
             size=(2,),
             generator=self.rng,
-            **self.factory_kwargs
+            **self.factory_kwargs,
         )
         factor = self.list_factors[int(random_indices[0].item())]
         filter_str = self.list_filters[int(random_indices[1].item())]
@@ -80,5 +75,3 @@ class DownSamplingGenerator(PhysicsGenerator):
             "filter": filters,
             "factor": factor,
         }
-
-

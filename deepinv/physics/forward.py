@@ -687,7 +687,9 @@ class DecomposablePhysics(LinearPhysics):
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:
-            if isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim():  # may be the case when mask is fft related
+            if (
+                isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
+            ):  # may be the case when mask is fft related
                 gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)

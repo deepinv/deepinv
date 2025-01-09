@@ -439,9 +439,7 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None
-    ):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -573,9 +571,7 @@ class Trainer:
 
         return x_nl
 
-    def step(
-        self, epoch, progress_bar, train=True, last_batch=False
-    ):
+    def step(self, epoch, progress_bar, train=True, last_batch=False):
         r"""
         Train/Eval a batch.
 

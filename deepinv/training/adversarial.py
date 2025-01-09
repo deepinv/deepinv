@@ -279,10 +279,7 @@ class AdversarialTrainer(Trainer):
 
         return x_net, logs
 
-
-    def step(
-        self, epoch, progress_bar, train=True, last_batch=False
-    ):
+    def step(self, epoch, progress_bar, train=True, last_batch=False):
         r"""
         Train/Eval a batch.
 
@@ -303,9 +300,7 @@ class AdversarialTrainer(Trainer):
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(
-                physics_cur, x, y, train=train, epoch=epoch
-            )
+            x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
