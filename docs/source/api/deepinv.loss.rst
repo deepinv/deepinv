@@ -15,6 +15,7 @@ Base class
    :nosignatures:
 
     deepinv.loss.Loss
+    deepinv.loss.StackedPhysicsLoss
 
 
 Supervised Learning

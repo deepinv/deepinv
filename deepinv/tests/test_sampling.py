@@ -6,7 +6,6 @@ import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
 
-
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
 
@@ -108,51 +107,82 @@ def test_sampling_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
-def test_diffpir(device):
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+def test_algo(name_algo, imsize, device):
+    test_sample = torch.ones((1, 3, 64, 64))
+
+    sigma = 1
+    sigma_prior = 1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+    y = physics(test_sample)
+
+    likelihood = L2(sigma=sigma)
+
+    if name_algo == "DiffPIR":
+        f = DiffPIR(
+            dinv.models.DiffUNet(),
+            likelihood,
+            max_iter=5,
+            verbose=False,
+            device=device,
+        )
+    elif name_algo == "DPS":
+        f = DPS(
+            dinv.models.DiffUNet(),
+            likelihood,
+            max_iter=5,
+            verbose=False,
+            device=device,
+        )
+    else:
+        raise Exception("The sampling algorithm doesnt exist")
+
+    x = f(y, physics)
+
+    assert x.shape == test_sample.shape
+
+
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
-    x = torch.ones((1, 3, 32, 32)).to(device)
+    x = torch.ones((1, 3, 32, 32)).to(device) / 2.0
+    x[:, 0, ...] = 0  # create a colored image
 
-    sigma = 12.75 / 255.0  # noise level
+    torch.manual_seed(10)
 
-    physics = dinv.physics.BlurFFT(
-        img_size=(3, x.shape[-2], x.shape[-1]),
-        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    )
+    mask = torch.ones_like(x)
+    mask[:, :, 10:20, 10:20] = 0
+
+    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
 
     y = physics(x)
 
     model = DiffUNet().to(device)
     likelihood = L2()
 
-    algorithm = DiffPIR(model, likelihood, max_iter=5, verbose=False, device=device)
+    if name_algo == "DiffPIR":
+        algorithm = DiffPIR(
+            model, likelihood, max_iter=20, verbose=False, device=device, sigma=0.01
+        )
+    elif name_algo == "DPS":
+        algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
 
-    out = algorithm(y, physics)
+    with torch.no_grad():
+        out = algorithm(y, physics)
+
     assert out.shape == x.shape
 
+    mean_crop = out[:, :, 10:20, 10:20].flatten().mean()
 
-def test_dps(device):
-    from deepinv.models import DiffUNet
+    mask = mask.bool()
+    masked_out = out[mask]
+    mean_outside_crop = masked_out.mean()
 
-    x = torch.ones((1, 3, 32, 32)).to(device)
+    masked_target = x[mask]
+    mean_target_masked = masked_target.mean()
+    mean_target_inmask = 1 / 3.0
 
-    sigma = 12.75 / 255.0  # noise level
-
-    physics = dinv.physics.BlurFFT(
-        img_size=(3, x.shape[-2], x.shape[-1]),
-        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
-    )
-
-    y = physics(x)
-
-    model = DiffUNet().to(device)
-    likelihood = L2()
-
-    algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
-
-    out = algorithm(y, physics)
-    assert out.shape == x.shape
+    assert (mean_target_inmask - mean_crop).abs() < 0.2
+    assert (mean_target_masked - mean_outside_crop).abs() < 0.01

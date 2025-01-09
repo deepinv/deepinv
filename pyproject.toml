@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -31,6 +31,7 @@ dependencies = [
     "einops",
     "wandb",
     "scipy",
+    "natsort",
 ]
 
 [tool.setuptools]
@@ -63,7 +64,6 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinxcontrib-googleanalytics @ git+https://github.com/sphinx-contrib/googleanalytics.git",
 ]
 
 # optional dependencies for specific denoisers
@@ -77,7 +77,7 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft",
-    "libcpab @ git+https://github.com/Andrewwango/libcpab.git"
+    "libcpab"
 ]
 
 # optional dependencies for specific datasets
@@ -93,14 +93,13 @@ dataset = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-# pythonpath = ["deepinv"]
 testpaths = [
     "deepinv/tests",
 ]
 
 [tool.coverage.run]
 branch = true
-# omit = examples/*,src/db/versions/*  # define paths to omit
+omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
 show_missing = true
