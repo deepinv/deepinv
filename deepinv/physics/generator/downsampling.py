@@ -1,5 +1,5 @@
 import torch
-from typing import List, Tuple
+from typing import List
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
 
@@ -8,7 +8,23 @@ class DownSamplingGenerator(PhysicsGenerator):
     r"""
     Random downsampling generator.
 
-    TODO: docstring
+    Generates random downsampling factors and filters.
+
+    >>> from deepinv.physics.generator import DownSamplingGenerator
+    >>> list_filters = ["bilinear", "bicubic", "gaussian"]
+    >>> list_factors = [2, 4]
+    >>> generator = DownSamplingGenerator(filters=list_filters, factors=list_factors)
+    >>> blur = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
+    >>> print(blur['filter'].shape)
+
+    .. note::
+        Each batch element has the same downsampling factor and filter, but these can vary from batch to batch.
+
+    :param List[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
+    :param List[int] factors: list of factors to use for downsampling. Default is [2, 4].
+    :param rng: random number generator. Default is None.
+    :param device: device to use. Default is "cpu".
+    :param dtype: data type to use. Default is torch.float32.
     """
 
     def __init__(
@@ -30,6 +46,9 @@ class DownSamplingGenerator(PhysicsGenerator):
         super().__init__(device=device, dtype=dtype, rng=rng, **kwargs)
 
     def str2filter(self, filter_name: str, factor: int):
+        r"""
+        Returns the filter associated to a given filter name and factor.
+        """
         if filter_name == "gaussian":
             filter = torch.nn.Parameter(
                 gaussian_blur(sigma=(factor, factor)), requires_grad=False
@@ -46,7 +65,10 @@ class DownSamplingGenerator(PhysicsGenerator):
 
     def get_kernel(self, filter_str: str = None, factor=None):
         r"""
-        TODO: docstring
+        Returns a batched tensor of filters associated to a given filter name and factor.
+
+        :param str filter_str: filter name. Default is None.
+        :param int factor: downsampling factor. Default is None.
         """
         batched_kernels = self.str2filter(filter_str, factor)
         return batched_kernels
@@ -57,7 +79,10 @@ class DownSamplingGenerator(PhysicsGenerator):
         seed: int = None,
     ):
         r"""
-        TODO: docstring
+        Generates a random downsampling factor and filter.
+
+        :param int batch_size: batch size. Default is 1.
+        :param int seed: seed for random number generator. Default is None.
         """
         self.rng_manual_seed(seed)
 
