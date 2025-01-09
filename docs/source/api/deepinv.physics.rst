@@ -18,6 +18,7 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.NoiseModel
 
 Operators
 ---------
