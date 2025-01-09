@@ -258,16 +258,15 @@ class LinearPhysics(Physics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
-        Linear operators can also be added. The measurements produced by the resulting
+        Linear operators can also be stacked. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
         measurements of the corresponding operator (see :ref:`physics_combining` for more information):
 
         >>> physics1 = Blur(filter=w)
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
         >>> stacked_physics = LinearPhysics.stack(physics1, physics2)
-        >>> y = stacked_physics(x)
-        >>> assert y[0].shape == (1, 1, 30, 30), "Wrong output shape of the Blur op"
-        >>> assert y[1].shape == (1, 1, 8, 8), "Wrong output shape of the Downsampling op"
+        >>> physics = physics1.stack(physics2)
+        >>> y = physics(x)
 
         Linear operators can also be composed by multiplying them:
 
