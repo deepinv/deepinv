@@ -14,8 +14,9 @@ class DownSamplingGenerator(PhysicsGenerator):
     >>> list_filters = ["bilinear", "bicubic", "gaussian"]
     >>> list_factors = [2, 4]
     >>> generator = DownSamplingGenerator(filters=list_filters, factors=list_factors)
-    >>> blur = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
-    >>> print(blur['filter'].shape)
+    >>> ds = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
+    >>> filter = ds['filter']
+    >>> factor = ds['fact']
 
     .. note::
         Each batch element has the same downsampling factor and filter, but these can vary from batch to batch.
