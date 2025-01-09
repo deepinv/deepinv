@@ -893,7 +893,6 @@ def test_tomography(device):
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
                     assert error < 0.2
 
-
 def test_downsampling_adjointness(device):
     r"""
     Tests downsampling+blur operator adjointness for various image and filter sizes

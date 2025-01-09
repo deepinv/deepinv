@@ -435,13 +435,12 @@ class Trainer:
                 y, physics, x_gt=x, compute_metrics=True, **kwargs
             )
         else:
-            kwargs["x_gt"] = x  # some models may need x_gt for the forward
             x_net = self.model(y, physics, **kwargs)
 
         return x_net
 
     def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, backward=False
+        self, physics, x, y, train=True, epoch: int = None
     ):
         r"""
         Compute the loss and perform the backward pass.
@@ -492,16 +491,6 @@ class Trainer:
                 logs[f"TotalLoss"] = meters.avg
         else:  # question: what do we want to do at test time?
             loss_total = 0
-
-        if train and backward:
-            loss_total.backward()  # Backward the total loss
-
-            norm = self.check_clip_grad()  # Optional gradient clipping
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
-
-            # Optimizer step
-            self.optimizer.step()
 
         return loss_total, x_net, logs
 
@@ -585,7 +574,7 @@ class Trainer:
         return x_nl
 
     def step(
-        self, epoch, progress_bar, train=True, last_batch=False, backward_all=True
+        self, epoch, progress_bar, train=True, last_batch=False
     ):
         r"""
         Train/Eval a batch.
@@ -608,7 +597,7 @@ class Trainer:
 
             # Compute loss and perform backprop
             loss_cur, x_net, logs = self.compute_loss(
-                physics_cur, x, y, train=train, epoch=epoch, backward=not backward_all
+                physics_cur, x, y, train=train, epoch=epoch
             )
             loss += loss_cur
 
@@ -623,7 +612,7 @@ class Trainer:
             # Update the progress bar
             progress_bar.set_postfix(logs)
 
-        if train and backward_all:
+        if train:  # TODO: perform backward before summing the losses
             loss.backward()
 
             norm = self.check_clip_grad()  # Optional gradient clipping

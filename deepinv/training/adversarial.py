@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
 
+import numpy as np
 import torch
 from torch.nn import Module
 
@@ -277,6 +278,70 @@ class AdversarialTrainer(Trainer):
                 self.optimizer.D.step()
 
         return x_net, logs
+
+
+    def step(
+        self, epoch, progress_bar, train=True, last_batch=False
+    ):
+        r"""
+        Train/Eval a batch.
+
+        It performs the forward pass, the backward pass, and the evaluation at each iteration.
+
+        :param int epoch: Current epoch.
+        :param tqdm progress_bar: Progress bar.
+        :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
+        :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
+        """
+
+        # random permulation of the dataloaders
+        G_perm = np.random.permutation(self.G)
+        loss = 0
+
+        for g in G_perm:  # for each dataloader
+            x, y, physics_cur = self.get_samples(self.current_iterators, g)
+
+            # Compute loss and perform backprop
+            x_net, logs = self.compute_loss(
+                physics_cur, x, y, train=train, epoch=epoch
+            )
+
+            # detach the network output for metrics and plotting
+            x_net = x_net.detach()
+
+            # Log metrics
+            logs = self.compute_metrics(
+                x, x_net, y, physics_cur, logs, train=train, epoch=epoch
+            )
+
+            # Update the progress bar
+            progress_bar.set_postfix(logs)
+
+        if last_batch:
+            if self.verbose and not self.show_progress_bar:
+                if self.verbose_individual_losses:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}:"
+                        f" {', '.join([f'{k}={round(v, 3)}' for (k, v) in logs.items()])}"
+                    )
+                else:
+                    print(
+                        f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
+                    )
+
+            if train:
+                logs["step"] = epoch
+
+            self.log_metrics_wandb(logs, epoch, train)  # Log metrics to wandb
+            self.plot(
+                epoch,
+                physics_cur,
+                x,
+                y,
+                x_net,
+                train=train,
+            )  # plot images
 
     def check_clip_grad_D(self):
         r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.

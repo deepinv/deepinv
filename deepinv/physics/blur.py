@@ -228,7 +228,7 @@ class Downsampling(LinearPhysics):
                 bicubic_filter(self.factor), requires_grad=False
             ).to(self.device)
         else:
-            raise Exception(f"The chosen downsampling filter {filter} doesn't exist")
+            self.filter = filter
 
         if self.filter is not None:
             self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device)
