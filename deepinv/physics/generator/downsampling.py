@@ -16,7 +16,7 @@ class DownSamplingGenerator(PhysicsGenerator):
     >>> generator = DownSamplingGenerator(filters=list_filters, factors=list_factors)
     >>> ds = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
     >>> filter = ds['filter']
-    >>> factor = ds['fact']
+    >>> factor = ds['factor']
 
     .. note::
         Each batch element has the same downsampling factor and filter, but these can vary from batch to batch.
