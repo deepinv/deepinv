@@ -10,7 +10,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r", "fm"]
+LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 LIST_SURE = [
     "Gaussian",
     "Poisson",
@@ -66,9 +66,6 @@ def choose_loss(loss_name):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
-    elif loss_name == "fm":
-        metric = torch.nn.L1Loss(reduction="mean")
-        loss.append(dinv.loss.FMLoss(metric=metric))
     else:
         raise Exception("The loss doesnt exist")
 
@@ -211,79 +208,6 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device):
         scheduler=scheduler,
         losses=loss,
         physics=physics,
-        optimizer=optimizer,
-        device=device,
-        ckp_interval=int(epochs / 2),
-        save_path=save_dir / "dinv_test",
-        plot_images=False,
-        verbose=False,
-    )
-
-    # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
-
-    # train the network
-    trainer.train()
-
-    final_test = trainer.test(test_dataloader=test_dataloader)
-
-    assert final_test["PSNR"] > initial_test["PSNR"]
-
-
-@pytest.mark.parametrize("loss_name", ["fm"])
-def test_loss_fm(loss_name, tmp_path, dataset, physics, imsize, device):
-    """
-    Debugging the fm loss that seems to show incompatible sigma shapes in the forward pass
-    """
-    # choose training losses
-    loss = choose_loss(loss_name)
-
-    save_dir = tmp_path / "dataset"
-    # choose backbone denoiser
-    backbone = dinv.models.AutoEncoder(
-        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=128, dim_hid=32
-    ).to(device)
-
-    # choose a reconstruction architecture
-    model = dinv.models.ArtifactRemoval(backbone)
-
-    # choose optimizer and scheduler
-    epochs = 50
-    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
-
-    dataloader = DataLoader(dataset[0], batch_size=2, shuffle=True, num_workers=0)
-    test_dataloader = DataLoader(dataset[1], batch_size=2, shuffle=False, num_workers=0)
-
-    from deepinv.physics.generator import MotionBlurGenerator, SigmaGenerator
-
-    generator = MotionBlurGenerator(
-        (31, 31), l=0.6, sigma=1, device=device
-    ) + SigmaGenerator(sigma_min=0.001, sigma_max=0.1, device=device)
-    filter = torch.tensor([[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]]).to(
-        device
-    )
-
-    physics = dinv.physics.BlurFFT(
-        img_size=(imsize[0], imsize[1], imsize[2]),
-        filter=filter,
-        noise_model=dinv.physics.GaussianNoise(sigma=0.05),
-        device=device,
-    )
-
-    # check elements of the dataloader
-    for x, y in dataloader:
-        assert x.shape == y.shape
-
-    trainer = dinv.Trainer(
-        model=model,
-        train_dataloader=dataloader,
-        physics=physics,
-        physics_generator=generator,
-        online_measurements=True,
-        epochs=epochs,
-        scheduler=scheduler,
-        losses=loss,
         optimizer=optimizer,
         device=device,
         ckp_interval=int(epochs / 2),

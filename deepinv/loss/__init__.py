@@ -11,7 +11,6 @@ from .measplit import (
 from .moi import MOILoss, MOEILoss
 from .r2r import R2RLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
-from .fm_loss import FMLoss
 from .score import ScoreLoss
 from .sup import SupLoss
 from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
