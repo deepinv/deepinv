@@ -66,6 +66,7 @@ class Pansharpen(StackedLinearPhysics):
         use_brovey=True,
         device="cpu",
         padding="circular",
+        normalize=False,
         **kwargs,
     ):
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
@@ -73,6 +74,7 @@ class Pansharpen(StackedLinearPhysics):
         noise_color = noise_color if noise_color is not None else lambda x: x
         noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.use_brovey = use_brovey
+        self.normalize = normalize
 
         downsampling = Downsampling(
             img_size=img_size,
@@ -81,6 +83,7 @@ class Pansharpen(StackedLinearPhysics):
             noise_model=noise_color,
             device=device,
             padding=padding,
+            normalize=normalize,
         )
         decolorize = Decolorize(
             srf=srf, noise_model=noise_gray, channels=img_size[0], device=device
@@ -103,7 +106,7 @@ class Pansharpen(StackedLinearPhysics):
         """
 
         if self.use_brovey:
-            if self.downsampling.filter is not None:
+            if self.downsampling.filter is not None and not self.normalize:
                 factor = self.downsampling.factor**2
             else:
                 factor = 1
