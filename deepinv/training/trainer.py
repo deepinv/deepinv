@@ -1,5 +1,5 @@
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves, TensorList
 import os
 import numpy as np
 from tqdm import tqdm
@@ -665,8 +665,10 @@ class Trainer:
             else:
                 x_nl = None
 
+            y_plot = y[1] if isinstance(y, TensorList) else y
+
             imgs, titles, grid_image, caption = prepare_images(
-                x, y, x_net, x_nl, rescale_mode=self.rescale_mode
+                x, y_plot, x_net, x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:
