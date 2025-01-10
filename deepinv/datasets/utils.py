@@ -1,3 +1,4 @@
+from typing import Dict
 import hashlib
 import os
 import shutil
@@ -10,6 +11,8 @@ from tqdm.auto import tqdm
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
+from scipy.io import loadmat as scipy_loadmat
+from numpy import ndarray
 
 from deepinv.utils.plotting import rescale_img
 
@@ -86,6 +89,24 @@ def extract_tarball(file_path, extract_dir) -> None:
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
+def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
+    """Load MATLAB array from file.
+
+    :param str fname: filename to load
+    :param bool mat73: if file is MATLAB 7.3 or above, load with ``mat73``. Requires
+        ``mat73``, install with ``pip install mat73``.
+    :return: dict with str keys and array values.
+    """
+    if mat73:
+        try:
+            from mat73 import loadmat as loadmat73
+            #TODO read as HDF?
+            return loadmat73(fname)
+        except ImportError:
+            raise ImportError("mat73 is required, install with 'pip install mat73'.")
+        except TypeError:
+            pass
+    return scipy_loadmat(fname)
 
 class PlaceholderDataset(Dataset):
     """

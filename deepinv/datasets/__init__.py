@@ -6,6 +6,7 @@ from .set14 import Set14HR
 
 from .cbsd68 import CBSD68
 from .fastmri import FastMRISliceDataset, SimpleFastMRISliceDataset
+from .cmrxrecon import CMRxReconSliceDataset
 from .lidc_idri import LidcIdriSliceDataset
 from .flickr2k import Flickr2kHR
 from .lsdir import LsdirHR

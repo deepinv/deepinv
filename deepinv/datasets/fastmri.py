@@ -18,7 +18,8 @@ Key modifications:
 """
 
 from pathlib import Path
-from typing import Any, Callable, NamedTuple, Optional, Union, Tuple
+from contextlib import contextmanager
+from typing import Any, Callable, NamedTuple, Optional, Union, Tuple, Dict
 from collections import defaultdict
 import pickle
 import warnings
@@ -27,7 +28,8 @@ import h5py
 from tqdm import tqdm
 import torch
 from torchvision.transforms import Compose, CenterCrop
-from deepinv.datasets.utils import ToComplex, Rescale, download_archive
+
+from deepinv.datasets.utils import ToComplex, Rescale, download_archive, loadmat
 from deepinv.utils.demo import get_image_url
 
 
@@ -242,6 +244,44 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         fname: Path
         slice_ind: int
+        metadata: Dict[str, Any]
+
+    @contextmanager
+    @staticmethod
+    def metadata_cache_manager(
+        root,
+        sample_identifiers,
+        metadata_cache_file, 
+        load_metadata_from_cache, 
+        save_metadata_to_cache
+    ):
+        if load_metadata_from_cache and os.path.exists(metadata_cache_file):
+            with open(metadata_cache_file, "rb") as f:
+                dataset_cache = pickle.load(f)
+                if dataset_cache.get(root) is None:
+                    raise ValueError(
+                        "`metadata_cache_file` doesn't contain the metadata. Please"
+                        + "either deactivate `load_dataset_from_cache` OR set `metadata_cache_file` properly."
+                    )
+                print(f"Using dataset cache from {metadata_cache_file}.")
+                sample_identifiers = dataset_cache[root]
+            
+            yield sample_identifiers
+
+        else:
+            if load_metadata_from_cache and not os.path.exists(metadata_cache_file):
+                warnings.warn(
+                    f"Couldn't find dataset cache at {metadata_cache_file}. Loading dataset from scratch."
+                )
+
+            yield sample_identifiers
+
+            if save_metadata_to_cache:
+                dataset_cache = {}
+                dataset_cache[root] = sample_identifiers
+                print(f"Saving dataset cache to {metadata_cache_file}.")
+                with open(metadata_cache_file, "wb") as cache_f:
+                    pickle.dump(dataset_cache, cache_f)
 
     def __init__(
         self,
@@ -277,38 +317,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             raise ValueError('slice_index must be "all", "random", "middle", or int.')
 
         # Load all slices
-        self.sample_identifiers = defaultdict(list)
         all_fnames = sorted(list(Path(root).iterdir()))
-
-        if load_metadata_from_cache and os.path.exists(metadata_cache_file):
-            with open(metadata_cache_file, "rb") as f:
-                dataset_cache = pickle.load(f)
-                if dataset_cache.get(root) is None:
-                    raise ValueError(
-                        "`metadata_cache_file` doesn't contain the metadata. Please"
-                        + "either deactivate `load_dataset_from_cache` OR set `metadata_cache_file` properly."
-                    )
-                print(f"Using dataset cache from {metadata_cache_file}.")
-                self.sample_identifiers = dataset_cache[root]
-        else:
-            if load_metadata_from_cache and not os.path.exists(metadata_cache_file):
-                warnings.warn(
-                    f"Couldn't find dataset cache at {metadata_cache_file}. Loading dataset from scratch."
-                )
-
+        
+        with self.metadata_cache_manager(root, defaultdict(list), metadata_cache_file, load_metadata_from_cache, save_metadata_to_cache) as sample_identifiers:
             for fname in tqdm(all_fnames):
-                with h5py.File(fname, "r") as hf:
-                    for i in range(hf["kspace"].shape[0]):
-                        self.sample_identifiers[str(fname)].append(
-                            self.SliceSampleFileIdentifier(fname, i)
-                        )
-
-            if save_metadata_to_cache:
-                dataset_cache = {}
-                dataset_cache[root] = self.sample_identifiers
-                print(f"Saving dataset cache to {metadata_cache_file}.")
-                with open(metadata_cache_file, "wb") as cache_f:
-                    pickle.dump(dataset_cache, cache_f)
+                metadata = self._retrieve_metadata(fname)
+                for slice_ind in range(metadata["num_slices"]):
+                    sample_identifiers[str(fname)].append(
+                        self.SliceSampleFileIdentifier(fname, slice_ind, metadata)
+                    )
+            
+            self.sample_identifiers = sample_identifiers
 
         # Random slice subsampling
         if slice_index != "all":
@@ -334,6 +353,20 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         self.sample_identifiers = [
             samp for samps in self.sample_identifiers.values() for samp in samps
         ]
+
+    @staticmethod
+    def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> Dict[str, Any]:
+        """Open file and retrieve metadata.
+        Metadata includes number of slices in volume.
+
+        :param Union[str, Path, os.PathLike] fname: filename to open
+        :return: metadata dict of key-value pairs.
+        """
+        with h5py.File(fname, "r") as hf:
+            metadata = {
+                "num_slices": hf["kspace"].shape[0]
+            }
+        return metadata
 
     def __len__(self) -> int:
         return len(self.sample_identifiers)
