@@ -179,7 +179,7 @@ class SplittingLoss(Loss):
 
         :param torch.nn.Module model: Reconstruction model.
         :param int eval_n_samples: deprecated. Pass ``eval_n_samples`` at class initialisation instead.
-        :return: (torch.nn.Module) Model modified for evaluation.
+        :return: (:class:`torch.nn.Module`) Model modified for evaluation.
         """
         if eval_n_samples is not None:
             warn(
