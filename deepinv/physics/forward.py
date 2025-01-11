@@ -897,6 +897,14 @@ class StackedPhysics(Physics):
         """
         self.physics_list[item].set_noise_model(noise_model)
 
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the stacked operator.
+
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
+
 
 class StackedLinearPhysics(StackedPhysics, LinearPhysics):
     r"""
