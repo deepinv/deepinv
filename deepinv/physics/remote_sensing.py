@@ -94,7 +94,8 @@ class Pansharpen(StackedLinearPhysics):
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
-
+        self.noise_color = noise_color
+        self.noise_gray = noise_gray
 
     def A(self, x, **kwargs):
         return TensorList(
@@ -113,7 +114,6 @@ class Pansharpen(StackedLinearPhysics):
                 self.noise_gray(self.colorize(x, **kwargs)),
             ]
         )
-
 
     def A_dagger(self, y: TensorList, **kwargs) -> Tensor:
         """
