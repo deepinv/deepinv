@@ -95,6 +95,26 @@ class Pansharpen(StackedLinearPhysics):
         self.downsampling = downsampling
         self.decolorize = decolorize
 
+
+    def A(self, x, **kwargs):
+        return TensorList(
+            [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
+        )
+
+    def A_adjoint(self, y, **kwargs):
+        return self.downsampling.A_adjoint(y[0], **kwargs) + self.colorize.A_adjoint(
+            y[1], **kwargs
+        )
+
+    def forward(self, x, **kwargs):
+        return TensorList(
+            [
+                self.noise_color(self.downsampling(x, **kwargs)),
+                self.noise_gray(self.colorize(x, **kwargs)),
+            ]
+        )
+
+
     def A_dagger(self, y: TensorList, **kwargs) -> Tensor:
         """
         If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
