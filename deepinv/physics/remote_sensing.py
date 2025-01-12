@@ -99,11 +99,11 @@ class Pansharpen(StackedLinearPhysics):
 
     def A(self, x, **kwargs):
         return TensorList(
-            [self.downsampling.A(x, **kwargs), self.colorize.A(x, **kwargs)]
+            [self.downsampling.A(x, **kwargs), self.decolorize.A(x, **kwargs)]
         )
 
     def A_adjoint(self, y, **kwargs):
-        return self.downsampling.A_adjoint(y[0], **kwargs) + self.colorize.A_adjoint(
+        return self.downsampling.A_adjoint(y[0], **kwargs) + self.decolorize.A_adjoint(
             y[1], **kwargs
         )
 
@@ -111,7 +111,7 @@ class Pansharpen(StackedLinearPhysics):
         return TensorList(
             [
                 self.noise_color(self.downsampling(x, **kwargs)),
-                self.noise_gray(self.colorize(x, **kwargs)),
+                self.noise_gray(self.decolorize(x, **kwargs)),
             ]
         )
 
