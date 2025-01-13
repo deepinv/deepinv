@@ -224,7 +224,7 @@ class GaussianNoise(NoiseModel):
             sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
         else:
             sigma = self.sigma
-        return x + self.randn_like(x, seed=seed) * sigma
+        return x + self.randn_like(x, seed=seed) * sigma.to(x.device)
 
     def update_parameters(self, sigma=None, **kwargs):
         r"""
