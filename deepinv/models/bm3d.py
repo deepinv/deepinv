@@ -46,9 +46,12 @@ class BM3D(Denoiser):
 
         out = torch.zeros_like(x)
 
+        if not torch.is_tensor(sigma):
+            sigma = torch.tensor(sigma).repeat(x.shape[0])
+
         for i in range(x.shape[0]):
             out[i, :, :, :] = array2tensor(
-                bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma)
+                bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma[i].item())
             )
         return out
 
