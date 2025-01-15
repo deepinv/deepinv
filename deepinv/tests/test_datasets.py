@@ -256,6 +256,7 @@ def download_simplefastmri():
     shutil.rmtree(tmp_data_dir)
 
 
+@pytest.fixture
 def download_nbu():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "NBU"
