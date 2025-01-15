@@ -157,7 +157,7 @@ def load_degradation(
         print(f"{name} degradation downloaded in {data_dir}")
 
     deg = np.load(path, allow_pickle=True)
-    return torch.from_numpy(deg[index])  # .unsqueeze(0).unsqueeze(0)
+    return torch.from_numpy(deg[index])
 
 
 def load_image(
