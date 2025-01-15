@@ -55,6 +55,7 @@ Deep Denoisers
    deepinv.models.Restormer
    deepinv.models.ICNN
    deepinv.models.VarNet
+   deepinv.models.PanNet
 
 
 

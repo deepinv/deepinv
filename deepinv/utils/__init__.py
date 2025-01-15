@@ -1,5 +1,4 @@
-from .logger import AverageMeter, get_timestamp
-from .nn import load_checkpoint, investigate_model
+from .logger import AverageMeter, ProgressMeter, get_timestamp
 from .metric import cal_psnr, cal_mse, cal_psnr_complex
 from .plotting import (
     rescale_img,
@@ -25,6 +24,7 @@ from .demo import (
     get_image_url,
     get_degradation_url,
 )
-from .nn import get_freer_gpu, TensorList, rand_like, zeros_like, randn_like, ones_like
+from .nn import get_freer_gpu
+from .tensorlist import TensorList, rand_like, zeros_like, randn_like, ones_like
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor

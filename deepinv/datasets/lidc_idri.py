@@ -57,7 +57,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset ::
+        Instantiate dataset ::
 
             import torch
             from deepinv.datasets import LidcIdriSliceDataset

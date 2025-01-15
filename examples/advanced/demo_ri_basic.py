@@ -21,7 +21,7 @@ import torchkbnufft as tkbn
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
 from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
-from deepinv.utils.nn import dirac_like
+from deepinv.utils.tensorlist import dirac_like
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -349,6 +349,7 @@ print(
 )
 
 # plot images
+# sphinx_gallery_multi_image = "single"
 imgs = [
     to_logimage(image_gdth),
     to_logimage(back, rescale=True),

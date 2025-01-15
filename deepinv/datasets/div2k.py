@@ -40,7 +40,7 @@ class DIV2K(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
@@ -135,8 +135,8 @@ class DIV2K(torch.utils.data.Dataset):
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
 
-        This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within
-        `self.root` exists and validates the integrity of its contents by comparing
+        This method checks if ``DIV2K_train_HR`` or ``DIV2K_valid_HR`` folder within
+        ``self.root`` exists and validates the integrity of its contents by comparing
         the MD5 checksum of the folder with the expected checksum.
 
         The expected structure of the dataset directory is as follows: ::
