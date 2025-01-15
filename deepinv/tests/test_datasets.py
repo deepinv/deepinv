@@ -255,6 +255,7 @@ def download_simplefastmri():
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
 
+
 def download_nbu():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "NBU"
@@ -267,6 +268,7 @@ def download_nbu():
 
     # After the test function complete, any code after the yield statement will run
     shutil.rmtree(tmp_data_dir)
+
 
 def test_load_nbu_dataset(download_nbu):
     """Check that dataset correct length and type."""
