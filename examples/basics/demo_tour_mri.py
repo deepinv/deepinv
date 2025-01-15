@@ -347,18 +347,21 @@ class RawFastMRITrainer(dinv.Trainer):
 # comparing to the cropped magnitude RSS targets:
 #
 
+transform = torchvision.transforms.Compose(
+    [
+        torchvision.transforms.CenterCrop(x.shape[-2:]),
+        dinv.metric.functional.complex_abs,
+    ]
+)
 
-class CropMSE(torch.nn.MSELoss):
-    def forward(self, input, target):
-        transform = torchvision.transforms.CenterCrop(target.shape[-2:])
-        return super().forward(
-            dinv.metric.functional.complex_abs(transform(input)), target
-        )
+
+class CropMSE(dinv.metric.MSE):
+    def forward(self, x_net=None, x=None, *args, **kwargs):
+        return super().forward(transform(x_net), x, *args, **kwargs)
 
 
 class CropPSNR(dinv.metric.PSNR):
     def forward(self, x_net=None, x=None, *args, **kwargs):
-        transform = torchvision.transforms.CenterCrop(x.shape[-2:])
         return super().forward(transform(x_net), x, *args, **kwargs)
 
 
@@ -369,7 +372,7 @@ trainer = RawFastMRITrainer(
     online_measurements=True,
     loop_physics_generator=True,
     losses=dinv.loss.SupLoss(metric=CropMSE()),
-    metrics=CropPSNR(complex_abs=True),
+    metrics=CropPSNR(),
     optimizer=torch.optim.Adam(model.parameters()),
     train_dataloader=torch.utils.data.DataLoader(dataset, shuffle=False),
     epochs=1,
