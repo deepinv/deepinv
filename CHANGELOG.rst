@@ -15,6 +15,13 @@ New Features
 - StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
 
+- Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
+- Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
+- Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
+- FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
+- Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
+
+
 Fixed
 ^^^^^
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)

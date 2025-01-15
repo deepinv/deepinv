@@ -13,9 +13,7 @@ import torch
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_ortho3D
 from deepinv.utils.demo import load_np_url
-import matplotlib.pyplot as plt
 import numpy as np
-import imageio.v2 as io
 
 
 # First, let's load some test images.
