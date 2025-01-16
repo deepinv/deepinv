@@ -102,12 +102,12 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         )
 
         try:
-            x = torch.load(root_dir / file_name)
+            x = torch.load(root_dir / file_name, weights_only=True)
         except FileNotFoundError:
             if download:
                 url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
-                x = torch.load(root_dir / file_name)
+                x = torch.load(root_dir / file_name, weights_only=True)
             else:
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
