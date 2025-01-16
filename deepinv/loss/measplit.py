@@ -159,7 +159,9 @@ class SplittingLoss(Loss):
 
         return loss_ms / mask2.mean()  # normalize loss
 
-    def adapt_model(self, model: torch.nn.Module, eval_n_samples=None):
+    def adapt_model(
+        self, model: torch.nn.Module, eval_n_samples=None
+    ) -> SplittingModel:
         r"""
         Apply random splitting to input.
 
@@ -482,12 +484,14 @@ class Phase2PhaseLoss(SplittingLoss):
 
         return y_split_reduced, physics_split_reduced
 
-    def adapt_model(self, model: torch.nn.Module) -> torch.nn.Module:
+    def adapt_model(
+        self, model: Reconstructor, **kwargs
+    ) -> SplittingLoss.SplittingModel:
         r"""
         Apply Phase2Phase splitting to model input. Also perform time-averaging if a static model is used.
 
-        :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.nn.Module) Model modified for evaluation.
+        :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction model.
+        :return: (:class:`deepinv.loss.SplittingLoss.SplittingModel`) Model modified for evaluation.
         """
 
         class Phase2PhaseModel(self.SplittingModel):

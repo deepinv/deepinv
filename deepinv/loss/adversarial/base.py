@@ -127,7 +127,7 @@ class DiscriminatorLoss(Loss):
         :param torch.Tensor real: image labelled as real, typically one originating from training set
         :param torch.Tensor fake: image labelled as fake, typically a reconstructed image
         :param torch.nn.Module D: discriminator/critic/classifier model. If None, then D passed from __init__ used. Defaults to None.
-        :return: (class:`torch.Tensor`) discriminator adversarial loss
+        :return: (:class:`torch.Tensor`) discriminator adversarial loss
         """
         D = self.D if D is None else D
 
