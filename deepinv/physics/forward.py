@@ -1,5 +1,6 @@
 from typing import Union
 
+import deepinv
 import torch
 from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
@@ -32,6 +33,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
+    :param deepinv.physics.Downsampling downsampling_operator: downsampling operator to apply in the signal space.
 
     """
 
@@ -42,6 +44,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-3,
+        downsampling_operator=None,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -50,6 +53,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.SVD = False  # flag indicating SVD available
         self.max_iter = max_iter
         self.tol = tol
+        self.downsampling_operator = downsampling_operator
 
     def __mul__(self, other):  #  physics3 = physics1 \circ physics2
         r"""
@@ -208,6 +212,77 @@ class Physics(torch.nn.Module):  # parent class for forward models
         # check if noise model has a method named update_parameters
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
+
+    def downsample_signal(self, x):
+        r"""
+        Downsamples the signal using an antialiasing filter.
+        Creates a default downsampling operator if not initialized.
+
+        :param torch.Tensor x: signal to be downsampled.
+        :return: torch.Tensor downsampled signal.
+        """
+        if self.downsampling_operator is None:
+            filter = deepinv.physics.blur.sinc_filter()  # sinc is the ideal low-pass
+            filter = filter.to(x.dtype)
+            self.downsampling_operator = deepinv.physics.Downsampling(
+                img_size=x.shape[1:], filter=filter, device=x.device
+            )
+        return self.downsampling_operator(x)
+
+    def upsample_signal(self, x):
+        r"""
+        Upsamples the signal using an antialiasing filter.
+        It computes the transpose of the downsampling operator
+        and multiply such that the operator norm is one.
+
+        :param torch.Tensor x: signal to be upsampled.
+        :return: torch.Tensor upsampled signal.
+        """
+        factor = self.get_downsampling_operator().factor
+        return (factor**2) * self.get_downsampling_operator().A_adjoint(x)
+
+    def downsample_measurement(self, y, coarse_physics):
+        r"""
+        Downsamples a measurement according to the following formalism
+
+        .. math::
+
+            A_c \downarrow ( A_f^{\dagger} y)
+
+        where :math: `y` is the provided measurement to be downsampled,
+        :math:`A_f^{\dagger}` is this physics pseudo-inverse,
+        :math:`A_c` is the provided coarse-space physics,
+        :math: `\downarrow` is this physics' downsampling_operator applied in the signal space.
+
+        :param torch.Tensor y: measurement to be downsampled.
+        :param deepinv.physics.Physics coarse_physics: physics to use the coarse space
+        :return: torch.Tensor downsampled measurement.
+        """
+
+        x_coarse = self.downsample_signal(self.A_dagger(y))
+        return coarse_physics(x_coarse)
+
+    def get_downsampling_operator(self):
+        r"""
+        Returns the downsampling operator if it was initialized, else raises an error.
+        """
+
+        if self.downsampling_operator is None:
+            raise ValueError(
+                "No downsampling operator, set downsampling_operator or use downsample_signal first."
+            )
+        return self.downsampling_operator
+
+    def to_coarse(self):
+        r"""
+        Returns a coarse version of the current physics.
+        """
+
+        ds = self.get_downsampling_operator()
+        A_coarse = lambda x: ds.factor * self.A(
+            ds.A_adjoint(x)
+        )  # same forward operator as for LinearPhysics
+        return Physics(A=A_coarse)
 
 
 class LinearPhysics(Physics):
@@ -530,6 +605,16 @@ class LinearPhysics(Physics):
             x = self.A_adjoint(x)
 
         return x
+
+    def to_coarse(self):
+        r"""
+        Returns a coarse version of the current physics.
+        """
+
+        ds = self.get_downsampling_operator()
+        A_coarse = lambda x: ds.factor * self.A(ds.A_adjoint(x))
+        A_coarse_adj = lambda y: ds.factor * ds.A(self.A_adjoint(y))
+        return LinearPhysics(A=A_coarse, A_adjoint=A_coarse_adj)
 
 
 class DecomposablePhysics(LinearPhysics):
