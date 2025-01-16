@@ -1,9 +1,12 @@
 import pytest
-import deepinv as dinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+import deepinv as dinv
+from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from deepinv.training.trainer import Trainer
+from deepinv.physics.generator.base import PhysicsGenerator
+from deepinv.physics.forward import Physics
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -105,3 +108,69 @@ def test_get_samples(
     else:
         assert not torch.all(y1 == y2)
         assert not torch.all(param1 == param2)
+
+
+@pytest.mark.parametrize("loop_physics_generator_params", [True, False])
+def test_trainer_physics_generator_params(imsize, loop_physics_generator_params):
+    N = 10
+
+    class DummyDataset(Dataset):
+        # Dummy dataset that returns equal blank images
+        def __getitem__(self, i):
+            return torch.ones(imsize)
+
+        def __len__(self):
+            return N
+
+    class DummyPhysics(Physics):
+        # Dummy physics which sums images, and multiplies by a parameter f
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.f = 1
+
+        def A(self, x: torch.Tensor, f: float = None, **kwargs) -> float:
+            # NOTE for training with get_samples_online, this following line is technically redundant
+            self.update_parameters(f=f)
+            return x.sum().item() * self.f
+
+        def update_parameters(self, f=None, **kwargs):
+            self.f = f if f is not None else self.f
+
+    class DummyPhysicsGenerator(PhysicsGenerator):
+        # Dummy generator that outputs random factors
+        def step(self, batch_size=1, seed=None, **kwargs):
+            self.rng_manual_seed(seed)
+            return {"f": torch.rand((batch_size,), generator=self.rng).item()}
+
+    class SkeletonTrainer(Trainer):
+        # hijack the step method to output samples to list
+        ys = []
+        fs = []
+
+        def step(self, *args, **kwargs):
+            x, y, physics_cur = self.get_samples(self.current_iterators, 0)
+            self.ys += [y]
+            self.fs += [physics_cur.f]
+
+    trainer = SkeletonTrainer(
+        model=torch.nn.Module(),
+        physics=DummyPhysics(),
+        optimizer=None,
+        train_dataloader=DataLoader(DummyDataset()),  # NO SHUFFLE
+        online_measurements=True,
+        physics_generator=DummyPhysicsGenerator(rng=torch.Generator().manual_seed(0)),
+        loop_physics_generator=loop_physics_generator_params,
+        epochs=2,
+        device="cpu",
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+    )
+
+    trainer.train()
+    if loop_physics_generator_params:
+        assert all([a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
+        assert all([a == b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
+    else:
+        assert all([a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
+        assert all([a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
