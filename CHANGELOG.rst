@@ -30,6 +30,7 @@ Changed
 ^^^^^^^
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Changed the R2R loss to handle multiple noise distributions (:gh:`380` by `Brayan Monroy`_)
+- `Trainer.get_samples_online` using physics generator now updates physics params via both `update_parameters` and forward pass (:gh:`386` by `Andrew Wang`_)
 
 v0.2.2
 ----------------
