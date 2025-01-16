@@ -563,7 +563,6 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return y
 
-
     def A_adjoint(
         self, y: Tensor, mask: Tensor = None, mag: bool = False, **kwargs
     ) -> Tensor:
