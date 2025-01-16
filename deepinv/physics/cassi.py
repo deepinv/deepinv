@@ -3,12 +3,12 @@ import torch
 from torch import Tensor
 from torch.nn.functional import pad
 
-from deepinv.physics.forward import DecomposablePhysics
+from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from deepinv.physics.functional.convolution import conv2d
 
 
-class CompressiveSpectralImaging(DecomposablePhysics):
+class CompressiveSpectralImaging(LinearPhysics):
     r"""Compressive Hyperspectral Imaging operator.
 
     Coded-aperture snapshot spectral imaging (CASSI) operator, which is a popular
@@ -32,6 +32,8 @@ class CompressiveSpectralImaging(DecomposablePhysics):
     Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
     For more details see e.g. the paper `High-Quality Hyperspectral Reconstruction Using a Spectral Prior <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
+
+    The implementation is a type of linear physics as it is not completely decomposable due to edge effects and different scaling.
 
     |sep|
 
@@ -91,7 +93,7 @@ class CompressiveSpectralImaging(DecomposablePhysics):
                 rng=rng,
             ).step()["mask"]
 
-        self.mask = mask
+        self.update_parameters(mask=mask, **kwargs)
 
         # In SS-CASSI, masking happens on the padded image after shearing
         if self.mode == "ss":
@@ -149,33 +151,76 @@ class CompressiveSpectralImaging(DecomposablePhysics):
         """
         return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / (self.img_size[0])
 
-    def V_adjoint(self, x: Tensor) -> Tensor:
+    def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        r"""
+        Applies the CASSI forward operator.
+
+        If a mask is provided, it updates the class attribute ``mask`` on the fly.
+
+        :param Tensor x: input image
+        :param Tensor mask: CASSI mask
+        :return: (torch.Tensor) output measurements
+        """
         if x.shape[1:] != self.img_size:
             raise ValueError("Input must be same shape as img_shape.")
 
-        if self.mode == "ss":
-            return self.shear(self.pad(x))
-        elif self.mode == "sd":
-            return x
+        self.update_parameters(mask=mask)
 
-    def U(self, x: Tensor) -> Tensor:
+        # fmt: off
         if self.mode == "ss":
-            return self.crop(self.flatten(self.shear(x, un=True)))
+            y = self.crop(self.flatten(
+                self.shear(
+                    self.mask * self.shear(
+                        self.pad(x)
+                    ),
+                un=True)
+            ))
+        
         elif self.mode == "sd":
-            return self.flatten(self.shear(self.pad(x)))
+            y = self.flatten(
+                self.shear(
+                    self.pad(self.mask * x)
+                )
+            )
 
-    def U_adjoint(self, y: Tensor) -> Tensor:
+        # fmt: on
+        return y
+
+    def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> Tensor:
+        r"""
+        Applies the CASSI adjoint operator.
+
+        If a mask is provided, it updates the class attribute ``mask`` on the fly.
+
+        :param Tensor x: input measurements
+        :param Tensor mask: CASSI mask
+        :return: (torch.Tensor) output image
+        """
+        self.update_parameters(mask=mask)
+
+        # fmt: off
         if self.mode == "ss":
-            return self.shear(self.pad(self.unflatten(y)))
-        elif self.mode == "sd":
-            return self.crop(self.shear(self.unflatten(y), un=True))
+            x = self.crop(
+                self.shear(
+                    self.mask * self.shear(
+                        self.pad(
+                            self.unflatten(y)
+                        )
+                    ),
+                un=True)
+            )
 
-    def V(self, y: Tensor) -> Tensor:
-        if self.mode == "ss":
-            x = self.crop(self.shear(y, un=True))
         elif self.mode == "sd":
-            x = y
+            x = self.mask * self.crop(
+                self.shear(
+                    self.unflatten(y),
+                un=True)
+            )
 
+        # fmt: on
         if x.shape[1:] != self.img_size:
             raise ValueError("Output must be same shape as img_size.")
         return x
+
+    def update_parameters(self, mask: Tensor, **kwargs):
+        self.mask = mask if mask is not None else self.mask
