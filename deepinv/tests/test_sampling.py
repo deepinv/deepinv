@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, DEFT
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -184,5 +184,54 @@ def test_algo_inpaint(name_algo, device):
     mean_target_masked = masked_target.mean()
     mean_target_inmask = 1 / 3.0
 
+    sigma = 12.75 / 255.0  # noise level
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(3, x.shape[-2], x.shape[-1]),
+        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    )
+
+    y = physics(x)
+
+    model = DiffUNet().to(device)
+    likelihood = L2()
+
+    algorithm = DPS(model, likelihood, max_iter=5, verbose=False, device=device)
+
+    out = algorithm(y, physics)
+    assert out.shape == x.shape
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
+
+
+def test_deft(device):
+    from deepinv.models import DiffUNet
+
+    x = torch.ones((1, 3, 32, 32)).to(device)
+
+    sigma = 12.75 / 255.0  # noise level
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(3, x.shape[-2], x.shape[-1]),
+        filter=torch.ones((1, 1, 5, 5), device=device) / 25,
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+    )
+
+    y = physics(x)
+    model = DiffUNet().to(device)
+    likelihood = L2()
+    algorithm = DEFT(
+        model,
+        likelihood,
+        physics=physics,
+        max_iter=5,
+        verbose=False,
+        device=device,
+        img_size=x.shape[-1],
+    )
+
+    out = algorithm(y, physics)
+    assert out.shape == x.shape

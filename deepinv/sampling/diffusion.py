@@ -4,8 +4,11 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor
 
+from itertools import chain
+
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
+from deepinv.models.diffunet import AttentionUNet, timestep_embedding
 from deepinv.utils.plotting import plot
 
 
@@ -642,6 +645,330 @@ class DPS(Reconstructor):
                 + c2 * xt / (1 - at).sqrt()
                 - norm_grad
             )
+
+            if self.save_iterates:
+                xs.append(xt_next.to("cpu"))
+            xt = xt_next.clone()
+
+        if self.save_iterates:
+            return xs
+        else:
+            return xt
+
+
+class DEFT(Reconstructor):
+    r"""
+    Doob's h-transform Efficient FineTuning (DEFT).
+
+    This class implements the supervised training of the h-transform described in
+    https://openreview.net/forum?id=AKBTFQhCjm
+
+    In this context, the h-transform can be interpreted as an correction for the denoised estimate.
+
+    DEFT learns the h-transform from data with minimal assumptions on the forward model. The only restriction is that
+    the measurement model has to be differentiable, which is generally the case.
+
+    Given the forward noising process in DDPM :math:`\mathbf{x}_t = \sqrt{\bar \alpha_t} \mathbf{x}_0 + \sqrt{1 - \bar \alpha_t} \epsilon` with
+    :math:`\epsilon \sim \mathcal{N}(0, \mathbf{I})` the pre-trained denoiser can be written as:
+
+    .. math::
+
+        \begin{equation*}
+        D_\theta(\mathbf{x}_t, t) = \frac{\mathbf{x}_t - \sqrt{1 - \bar \alpha_t} \epsilon_\theta(\mathbf{x}_t, t)}{\sqrt{1\bar \alpha_t}}
+        \end{equation*}
+
+    where :math:`\epsilon_\theta(\mathbf{x}_t, t) \approx \epsilon` is trained to approximate the noise. Given such a pre-trained epsilon matching model, the h-transform
+    can be recovered my minimising
+
+    .. math::
+
+        \begin{equation*}
+        \min_h \mathbb{E}_{(\mathbf{x}_0, \mathbf{y}), \epsilon}[(\epsilon_\theta(\mathbf{x}_t, t) + h(\mathbf{x}_t, t)) - \epsilon]
+        \end{equation*}
+
+    After training samples are simply drawn using DDIM (https://arxiv.org/abs/2010.02502) with the combined model.
+
+    The h-transform is parametrised as
+
+    .. math::
+
+        \begin{equation*}
+        h(\mathbf{x}_t, t) = \text{NN}_1(\mathbf{x}_t, \hat{\mathbf{x}}_0, y, t) + \text{NN}_2(t) \nabla_{\hat{\mathbf{x}}_0} d(A(\hat{\mathbf{x}}_0), \mathbf{y})
+        \end{equation*}
+
+    with a forward operator :math:`A` and data fidelty term :math:`d`.
+
+    :param torch.nn.Module model: a denoiser network that can handle different noise levels
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param deepinv.physics.Physics: the forward operator
+    :param int max_iter: the number of diffusion iterations to run the algorithm (default: 100)
+    :param float eta: DDIM hyperparameter which controls the stochasticity
+    :param bool verbose: if True, print progress
+    :param str device: the device to use for the computations
+    """
+
+    def __init__(
+        self,
+        model,
+        data_fidelity,
+        physics: deepinv.physics.Physics,
+        img_size=256,
+        max_iter=100,
+        eta=1.0,
+        verbose=False,
+        device="cpu",
+        save_iterates=False,
+    ):
+        super(DEFT, self).__init__()
+        self.model = model
+        self.model.requires_grad_(True)
+
+        self.img_size = img_size
+        self.h_transform_base = AttentionUNet(
+            in_channels=9,
+            out_channels=3,
+            img_size=img_size,
+            model_channels=32,
+            num_res_blocks=1,
+            attention_resolutions="16",
+            dropout=0.0,
+            channel_mult=(1, 1, 2, 2, 2),
+            conv_resample=True,
+            num_classes=None,
+            use_checkpoint=None,
+            use_fp16=False,
+            num_heads=4,
+            num_head_channels=32,
+            num_heads_upsample=-1,
+        )
+        self.h_transform_base.to(device)
+
+        self.h_transform_scaling = nn.Sequential(
+            nn.Linear(
+                self.h_transform_base.model_channels,
+                self.h_transform_base.model_channels * 4,
+            ),
+            nn.SiLU(),
+            nn.Linear(
+                self.h_transform_base.model_channels * 4,
+                self.h_transform_base.model_channels * 4,
+            ),
+            nn.SiLU(),
+            nn.Linear(self.h_transform_base.model_channels * 4, 1),
+        )
+        self.h_transform_scaling.to(device)
+
+        self.h_transform_scaling[-1].weight.data.fill_(0.0)
+        self.h_transform_scaling[-1].bias.data.fill_(1.0)
+
+        self.data_fidelity = data_fidelity
+        self.max_iter = max_iter
+        self.eta = eta
+        self.verbose = verbose
+        self.device = device
+        self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
+        self.num_train_timesteps = 1000
+        self.save_iterates = save_iterates
+
+        self.physics = physics
+
+        self.betas, self.alpha_cumprod = self.compute_alpha_betas()
+
+    def compute_alpha_betas(self):
+        r"""
+
+        Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
+
+        """
+        betas = np.linspace(
+            self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
+        )
+        betas = torch.from_numpy(betas).to(self.device)
+
+        alpha_cumprod = (
+            1 - torch.cat([torch.zeros(1).to(betas.device), betas], dim=0)
+        ).cumprod(dim=0)
+        return betas, alpha_cumprod
+
+    def get_alpha(self, alpha_cumprod, t):
+        a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
+        return a
+
+    def h_transform_diffusion(self, xt, t):
+
+        t_emb = timestep_embedding(t, self.h_transform_base.model_channels)
+        et_scaling = self.h_transform_scaling(t_emb)[:, 0]
+
+        et_base = self.h_transform_base.forward_diffusion(xt, t)
+
+        return et_base, et_scaling
+
+    def fit(self, data_loader, num_epochs=40, save=True):
+        r"""
+
+        Fitting the h-transform using the provided data loader.
+
+        :param torch.utils.data.DataLoader data_loader: dataset as a torch DataLoader.
+        :param int num_epochs: number of training epochs.
+        :param bool save: if the trained model should be saved.
+        """
+
+        self.h_transform_base.train()
+        self.h_transform_scaling.train()
+
+        lr = 1e-3
+        optimizer = torch.optim.Adam(
+            chain(
+                self.h_transform_base.parameters(),
+                self.h_transform_scaling.parameters(),
+            ),
+            lr=lr,
+        )
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=num_epochs, eta_min=lr / 100
+        )
+        for epoch in tqdm(range(num_epochs)):
+            mean_loss = []
+            for batch in data_loader:
+                optimizer.zero_grad()
+                x = batch
+                x = x.to(self.device)
+                y = self.physics(x)
+                y_adjoint = self.physics.A_adjoint(y)
+
+                b = x.shape[0]
+                i = torch.randint(
+                    0, self.num_train_timesteps, (b,), device=self.device
+                ).long()
+
+                at = self.get_alpha(self.alpha_cumprod, i.long())
+                # z is unbounded
+                z = torch.randn_like(x)
+
+                # x is in [-1, 1]
+                xi = at.sqrt() * x + (1 - at).sqrt() * z
+
+                with torch.no_grad():
+                    z2 = self.model.forward_diffusion(xi, 1.0 * i)[:, :3]
+
+                    # z2 is unbounded in [-5, 4], x0hat is in [-a, b]
+                    x0hat = (xi - z2 * (1 - at).sqrt()) / at.sqrt()
+
+                    with torch.enable_grad():
+                        l2_loss = self.data_fidelity(
+                            x0hat.requires_grad_(), y, self.physics
+                        )
+                        norm_grad = torch.autograd.grad(
+                            outputs=l2_loss.sum(), inputs=x0hat
+                        )[0]
+                        norm_grad = norm_grad.detach()
+
+                    xi_condition = torch.cat([xi, x0hat, y_adjoint], dim=1)
+
+                # z1 also unbounded
+                z1_base, z1_scaling = self.h_transform_diffusion(xi_condition, 1.0 * i)
+                z1 = z1_base + z1_scaling[:, None, None, None] * norm_grad
+                # zhat is unbounded
+                zhat = z1 + z2
+
+                if zhat.ndim == 4:
+                    loss = torch.mean(torch.sum((z - zhat) ** 2, dim=(1, 2, 3)))
+                mean_loss.append(loss.item())
+                loss.backward()
+                optimizer.step()
+            # print("mean loss: ", np.mean(mean_loss))
+            scheduler.step()
+            # print("LR: ", scheduler.get_last_lr()[0])
+        if save:
+            torch.save(
+                {
+                    "base": self.h_transform_base.state_dict(),
+                    "scaling": self.h_transform_scaling.state_dict(),
+                },
+                "htransform.pt",
+            )
+
+    def load_state_dict(self, path):
+
+        checkpoint = torch.load(path, weights_only=False)
+        # print(checkpoint.keys())
+        self.h_transform_base.load_state_dict(checkpoint["base"])
+        self.h_transform_scaling.load_state_dict(checkpoint["scaling"])
+
+    def forward(
+        self,
+        y,
+        physics: deepinv.physics.Physics,
+        seed=None,
+        x_init=None,
+    ):
+        r"""
+        Runs the diffusion to obtain a random sample of the posterior distribution.
+
+        :param torch.Tensor y: the measurements.
+        :param deepinv.physics.LinearPhysics physics: the physics operator.
+        :param int seed: the seed for the random number generator.
+        :param torch.Tensor x_init: the initial guess for the reconstruction, not used here.
+        """
+        self.h_transform_base.eval()
+        self.h_transform_scaling.eval()
+
+        if seed:
+            torch.manual_seed(seed)
+
+        skip = self.num_train_timesteps // self.max_iter
+        batch_size = y.shape[0]
+
+        seq = range(0, self.num_train_timesteps, skip)
+        seq_next = [-1] + list(seq[:-1])
+        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        x = torch.randn([y.shape[0], 3, self.img_size, self.img_size])
+        if self.save_iterates:
+            xs = [x]
+
+        xt = x.to(self.device)
+
+        y_adjoint = physics.A_adjoint(y)
+        eta = 1.0
+        for i, j in tqdm(time_pairs, disable=(not self.verbose)):
+            t = (torch.ones(batch_size) * i).to(self.device)
+            next_t = (torch.ones(batch_size) * j).to(self.device)
+
+            at = self.get_alpha(self.alpha_cumprod, t.long())
+            at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
+
+            with torch.no_grad():
+
+                eps_uncond = self.model.forward_diffusion(xt, t)[:, :3]
+
+                x0hat = (xt - eps_uncond * (1 - at).sqrt()) / at.sqrt()
+
+                with torch.enable_grad():
+                    l2_loss = self.data_fidelity(
+                        x0hat.requires_grad_(), y, self.physics
+                    )
+                    norm_grad = torch.autograd.grad(
+                        outputs=l2_loss.sum(), inputs=x0hat
+                    )[0]
+                    norm_grad = norm_grad.detach()
+
+                xi_condition = torch.cat([xt, x0hat, y_adjoint], dim=1)
+
+                et_base, et_scaling = self.h_transform_diffusion(xi_condition, t)
+                eps_lkhd = et_base + et_scaling[:, None, None, None] * norm_grad
+
+                et = eps_uncond + eps_lkhd
+
+                x0_t = (xt - et * (1 - at).sqrt()) / at.sqrt()
+
+            # 3. noise step
+            epsilon = torch.randn_like(xt)
+
+            sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
+            c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
+            # 4. DDPM(IM) step
+            xt_next = at_next.sqrt() * x0_t + c2 * et + sigma_tilde * epsilon
 
             if self.save_iterates:
                 xs.append(xt_next.to("cpu"))
