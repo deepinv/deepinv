@@ -68,4 +68,8 @@ In this case, to update the :meth:`deepinv.physics.Physics` parameters according
 
             return x.to(self.device), y.to(self.device), physics
 
+..note ::
 
+    When using a dataset that has loads data as a 3-tuple, this is assumed to be ``(x, y, params)``
+    where ``params`` is assumed to be a dict of parameters, e.g. generated from :class:`deepinv.datasets.generate_dataset`.
+    Trainer will automatically load the parameters into the physics each iteration.
