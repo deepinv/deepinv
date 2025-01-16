@@ -6,6 +6,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
+from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -125,13 +126,13 @@ def find_operator(name, device):
         norm = 1.0
     elif name == "MRI":
         img_size = (2, 17, 11)  # C,H,W
-        p = dinv.physics.MRI(img_size=img_size, device=device)
+        p = MRI(img_size=img_size, device=device)
     elif name == "3DMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
-        p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
+        p = MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
         img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
-        p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+        p = DynamicMRI(img_size=img_size, device=device)
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11)  # C,H,W
         n_coils = 7
@@ -140,7 +141,7 @@ def find_operator(name, device):
         ) / sqrt(
             n_coils
         )  # B,N,H,W where N is coil dimension
-        p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
     elif name == "3DMultiCoilMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         n_coils = 15
@@ -149,9 +150,7 @@ def find_operator(name, device):
         ) / sqrt(
             n_coils
         )  # B,N,D,H,W where N is coils and D is depth
-        p = dinv.physics.MultiCoilMRI(
-            coil_maps=maps, img_size=img_size, three_d=True, device=device
-        )
+        p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
@@ -557,7 +556,7 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
-@pytest.mark.parametrize("mri", [dinv.physics.MRI, dinv.physics.DynamicMRI])
+@pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI(mri, mri_img_size, device, rng):
     r"""
     Test MRI and DynamicMRI functions
@@ -577,17 +576,19 @@ def test_MRI(mri, mri_img_size, device, rng):
         torch.rand(mri_img_size, generator=rng, device=device) + 1,
     )
 
-    if mri is dinv.physics.MRI:
+    coil_maps_kwarg = {}
+
+    if mri is MRI:
         x = x[:, :, 0, :, :]
         y = y[:, :, 0, :, :]
+    elif mri is MultiCoilMRI:
+        # y treat T as coil dim for tests
+        x = x[:, :, 0, :, :]
+        coil_maps_kwarg = {"coil_maps": T}
 
     for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
         # Remove time dim for static MRI
-        _mask_size = (
-            mask_size
-            if mri is dinv.physics.DynamicMRI
-            else mask_size[:-3] + mask_size[-2:]
-        )
+        _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
 
         mask, mask2 = (
             torch.ones(_mask_size, device=device)
@@ -597,29 +598,52 @@ def test_MRI(mri, mri_img_size, device, rng):
         )
 
         # Empty mask
-        physics = mri(img_size=x.shape, device=device)
+        physics = mri(img_size=x.shape, device=device, **coil_maps_kwarg)
         y1 = physics(x)
         x1 = physics.A_adjoint(y)
         assert torch.sum(y1 == 0) == 0
         assert torch.sum(x1 == 0) == 0
 
         # Set mask in constructor
-        physics = mri(mask=mask, device=device)
+        physics = mri(
+            mask=mask, img_size=mri_img_size, device=device, **coil_maps_kwarg
+        )
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask == 0))
 
         # Set mask in forward
         y1 = physics(x, mask=mask2)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask2 == 0))
 
         # Mask retained in previous forward
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask2 == 0))
 
         # Set mask via update_parameters
         physics.update_parameters(mask=mask)
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask == 0))
+
+        # Check mag/rss reduces channel dim
+        x_hat = physics.A_adjoint(
+            y, **{("rss" if isinstance(physics, MultiCoilMRI) else "mag"): True}
+        )
+        # (B, 2, ...) -> (B, 1, ...)
+        assert x_hat.shape[:2] == (x.shape[0], 1) and y.shape[1] == 2
+
+        # Check rss works for multi-coil
+        if isinstance(physics, MultiCoilMRI):
+            assert y.shape[:3] == (x.shape[0], 2, T)  # B,C,N(=T)
+            xrss = physics.A_adjoint(y, rss=True)
+            assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -1011,9 +1035,7 @@ def test_mri_fft():
     x = torch.randn(4, 2, 16, 8)  # B,C,H,W
 
     # Our FFT
-    xf1 = dinv.physics.MRIMixin.from_torch_complex(
-        dinv.physics.MRIMixin.fft(dinv.physics.MRIMixin.to_torch_complex(x))
-    )
+    xf1 = MRIMixin.from_torch_complex(MRIMixin.fft(MRIMixin.to_torch_complex(x)))
 
     # FastMRI FFT
     xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)

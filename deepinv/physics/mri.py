@@ -1,7 +1,9 @@
+from typing import List, Optional, Union
+
 import torch
 from torch import Tensor
-from typing import List, Optional, Union
-import warnings
+from torchvision.transforms import CenterCrop
+
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
 from deepinv.physics.time import TimeMixin
 
@@ -70,6 +72,84 @@ class MRIMixin:
         x = torch.fft.fftn(x, dim=dim, norm=norm)
         return torch.fft.fftshift(x, dim=dim)
 
+    def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
+        """Convenience method that wraps fft.
+
+        :param Tensor x: input image of shape (B,2,...) of real dtype
+        :param bool three_d: whether MRI data is 3D or not, defaults to False
+        :return: Tensor: output measurements of shape (B,2,...) of real dtype
+        """
+        return self.from_torch_complex(
+            self.fft(
+                self.to_torch_complex(x), dim=(-3, -2, -1) if three_d else (-2, -1)
+            )
+        )
+
+    def kspace_to_im(self, y: Tensor, three_d: bool = False) -> Tensor:
+        """Convenience method that wraps inverse fft.
+
+        :param Tensor y: input measurements of shape (B,2,...) of real dtype
+        :param bool three_d: whether MRI data is 3D or not, defaults to False
+        :return: Tensor: output image of shape (B,2,...) of real dtype
+        """
+        return self.from_torch_complex(
+            self.ifft(
+                self.to_torch_complex(y), dim=(-3, -2, -1) if three_d else (-2, -1)
+            )
+        )
+
+    def crop(self, x: Tensor, crop: bool = True) -> Tensor:
+        """Center crop 2D image according to ``img_size``.
+
+        This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
+
+        If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
+
+        :param Tensor x: input tensor of shape (...,H,W)
+        :param bool crop: whether to perform crop, defaults to True
+        """
+        crop_size = self.img_size[-2:]
+        odd_h = crop_size[0] % 2 == 1
+
+        if odd_h:
+            crop_size = (crop_size[0] + 1, crop_size[1])
+
+        cropped = CenterCrop(crop_size)(x)
+
+        if odd_h:
+            cropped = cropped[..., :-1, :]
+
+        return cropped if crop else x
+
+    @staticmethod
+    def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
+        """Perform root-sum-square reconstruction on multicoil data, defined as
+
+        .. math::
+
+                \operatorname{RSS}(x) = \sqrt{\sum_{n=1}^N |x_n|^2}
+
+        where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
+        and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
+
+        :param Tensor x: input image of shape (B,2,...) where 2 represents
+            real and imaginary channels
+        :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
+            and reduce over coil dimension N too.
+        """
+        assert (
+            x.shape[1] == 2 and not x.is_complex()
+        ), "x should be of shape (B,2,...) and not of complex dtype."
+
+        mc_dim = 1 if multicoil else 0
+        th_dim = 1 if three_d else 0
+        assert (
+            len(x.shape) == 4 + mc_dim + th_dim
+        ), "x should be of shape (B,2,...) for singlecoil data or (B,2,N,...) for multicoil data."
+
+        ss = x.pow(2).sum(dim=1, keepdim=True)
+        return ss.sum(dim=2).sqrt() if multicoil else ss.sqrt()
+
 
 class MRI(MRIMixin, DecomposablePhysics):
     r"""
@@ -94,6 +174,11 @@ class MRI(MRIMixin, DecomposablePhysics):
 
         We provide various random mask generators (e.g. Cartesian undersampling) that can be used directly with this physics. See e.g. :class:`deepinv.physics.generator.mri.RandomMaskGenerator`
         If mask is not passed, a mask full of ones is used (i.e. no acceleration).
+
+    .. note::
+
+        This physics is directly compatible with FastMRI data using :class:`deepinv.datasets.FastMRISliceDataset`.
+        The dataset loads pairs of magnitude images and kspace ``(x, y)`` where ``x = MRI().A_adjoint(y, mag=True, crop=True)``.
 
     :param torch.Tensor mask: binary mask, where 1s represent sampling locations, and 0s otherwise.
         The mask size can either be (H,W), (C,H,W), (B,C,H,W), (B,C,...,H,W) where H, W are the image height and width, C is channels (which should be 2) and B is batch size.
@@ -154,19 +239,42 @@ class MRI(MRIMixin, DecomposablePhysics):
         # Check and update mask
         self.update_parameters(mask=mask.to(self.device))
 
-    def V_adjoint(self, x: Tensor) -> torch.Tensor:
-        return self.from_torch_complex(
-            self.fft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
-            )
-        )
+    def V_adjoint(self, x: Tensor) -> Tensor:
+        return self.im_to_kspace(x, three_d=self.three_d)
 
-    def V(self, x: Tensor) -> torch.Tensor:
-        return self.from_torch_complex(
-            self.ifft(
-                self.to_torch_complex(x), dim=(-3, -2, -1) if self.three_d else (-2, -1)
-            )
-        )
+    def V(self, x: Tensor) -> Tensor:
+        return self.kspace_to_im(x, three_d=self.three_d)
+
+    def A_adjoint(
+        self,
+        y: Tensor,
+        mask: Tensor = None,
+        mag: bool = False,
+        crop: bool = False,
+        **kwargs,
+    ):
+        """Adjoint operator.
+
+        Optionally perform crop and magnitude to match FastMRI data.
+
+        By default, crop and magnitude are not performed.
+        By setting ``mag=crop=True``, the outputs will be consistent with :class:`deepinv.datasets.FastMRISliceDataset`.
+
+        :param Tensor y: input kspace of shape (B,C,...,H,W)
+        :param Tensor mask: optionally set mask on-the-fly.
+        :param bool mag: perform complex magnitude.
+            This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
+            such that ``x = MRI().A_adjoint(y, mag=True)``.
+        :param bool crop: if ``True``, crop last 2 dims of x to last 2 dims of img_size.
+            This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
+            such that ``x = MRI().A_adjoint(y, crop=True)``.
+        """
+        x = super().A_adjoint(y, mask, **kwargs)
+        if mag:
+            x = self.rss(x, multicoil=False)
+        if crop:
+            x = self.crop(x, crop=crop)
+        return x  # (B,C,...,H,W) where C=1 if mag else 2
 
     def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
         """Update MRI subsampling mask.
@@ -214,8 +322,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         You can also simulate basic `birdcage coil sensitivity maps <https://mriquestions.com/birdcage-coil.html>` by passing instead an integer to ``coil_maps``
         using ``MultiCoilMRI(coil_maps=N, img_size=x.shape)`` (note this requires installing the ``sigpy`` library).
 
+    .. note::
+
+        This physics is directly compatible with FastMRI data using :class:`deepinv.datasets.FastMRISliceDataset`.
+        The dataset loads pairs of RSS images and multicoil kspace ``(x, y)`` where ``x = MultiCoilMRI().A_adjoint(y, rss=True, crop=True)``.
+
     :param torch.Tensor mask: binary sampling mask which should have shape (H,W), (C,H,W), (B,C,H,W), or (B,C,...,H,W). If None, generate mask of ones with ``img_size``.
-    :param torch.Tensor, str coil_maps: complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
+    :param torch.Tensor, str coil_maps: either ``Tensor``, integer, or ``None``. If complex valued (i.e. of complex dtype) coil sensitvity maps which should have shape (H,W), (N,H,W), (B,N,H,W) or (B,N,...,H,W).
         If None, generate flat coil maps of ones with ``img_size``. If integer, simulate birdcage coil maps with integer number of coils (this requires ``sigpy`` installed).
     :param tuple img_size: if ``mask`` or ``coil_maps`` not specified, flat ``mask`` or ``coil_maps`` of ones are created using ``img_size``,
         where ``img_size`` can be of any shape specified above. If ``mask`` or ``coil_maps`` provided, ``img_size`` is ignored.
@@ -274,8 +387,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         Optionally update MRI mask or coil sensitivity maps on the fly.
 
-        :param torch.Tensor x: image with shape [B,2,...,H,W].
-        :returns: (:class:`torch.Tensor`) multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :param torch.Tensor x: image with shape `(B,2,...,H,W)`.
+        :param torch.Tensor mask: optionally set the mask on-the-fly.
+        :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
+        :returns: (:class:`torch.Tensor`) multi-coil kspace measurements with shape `(B,2,N,...,H,W)` where `N` is coil dimension.
         """
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
@@ -284,21 +399,45 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         MFSx = self.mask[:, :, None] * self.from_torch_complex(FSx)  # [B,2,N,...,H,W]
         return MFSx
 
-    def A_adjoint(self, y, mask=None, coil_maps=None, **kwargs):
+    def A_adjoint(
+        self,
+        y,
+        mask=None,
+        coil_maps=None,
+        rss: bool = False,
+        crop: bool = False,
+        **kwargs,
+    ):
         r"""
         Applies adjoint linear operator.
 
         Optionally update MRI mask or coil sensitivity maps on the fly.
 
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
-        :returns: (:class:`torch.Tensor`) image with shape [B,2,...,H,W]
+        :param torch.Tensor mask: optionally set the mask on-the-fly.
+        :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
+        :param bool rss: perform root-sum-square reconstruction.
+            This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
+            such that ``x = MultiCoilMRI().A_adjoint(y, rss=True)``.
+        :param bool crop: if ``True``, crop last 2 dims of x to last 2 dims of img_size.
+            This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
+            such that ``x = MultiCoilMRI().A_adjoint(y, crop=True)``.
+        :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)` if not rss else `(B,1,...,H,W)`
         """
+        assert y.shape[1] == 2, "y must be of shape (B,2,N,...,H,W)"
         self.update_parameters(mask=mask, coil_maps=coil_maps, **kwargs)
 
         My = self.to_torch_complex(self.mask[:, :, None] * y)  # [B,N,...,H,W]
         FiMy = self.ifft(My, dim=(-3, -2, -1) if self.three_d else (-2, -1))
-        SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
-        return self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
+
+        if rss:
+            x = self.from_torch_complex(FiMy)
+            x = self.rss(x, multicoil=True)  # [B,1,...,H,W]
+        else:
+            SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
+            x = self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
+
+        return self.crop(x, crop=crop)
 
     def update_parameters(
         self,
@@ -424,12 +563,25 @@ class DynamicMRI(MRI, TimeMixin):
         self.update_parameters(mask=mask, **kwargs)
         return y
 
-    def A_adjoint(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
+
+    def A_adjoint(
+        self, y: Tensor, mask: Tensor = None, mag: bool = False, **kwargs
+    ) -> Tensor:
+        """Adjoint operator.
+
+        Optionally perform magnitude to reduce channel dimension.
+
+        :param Tensor y: input kspace of shape `(B,2,T,H,W)`
+        :param Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
+        :param bool mag: perform complex magnitude.
+        """
         mask = self.check_mask(self.mask if mask is None else mask)
 
         mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
         x = self.unflatten(
-            super().A_adjoint(self.flatten(y), mask=mask_flatten, check_mask=False),
+            super().A_adjoint(
+                self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag
+            ),
             batch_size=y.shape[0],
         )
 

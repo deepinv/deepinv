@@ -61,7 +61,8 @@ class Trainer:
         If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
         If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
         Caveat: this requires ``shuffle=False`` in your dataloaders.
-        An alternative solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
+        An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
+        The params dict will then be automatically updated every time data is loaded.
 
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
@@ -342,7 +343,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator[g].step(x.size(0))
+            params = self.physics_generator[g].step(batch_size=x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)
@@ -367,9 +368,9 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) != 2:
+        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
             raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y)"
+                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
 
         if len(data) == 2:
@@ -841,15 +842,15 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader, save_path=None, compare_no_learning=True):
+    def test(self, test_dataloader, save_path=None, compare_no_learning=True) -> dict:
         r"""
-        Test the model.
+        Test the model, compute metrics and plot images.
 
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) should provide a
             a signal x or a tuple of (x, y) signal/measurement pairs.
-        :param str save_path: Directory in which to save the trained model.
+        :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
-        :returns: The trained model.
+        :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
         self.setup_train(train=False)

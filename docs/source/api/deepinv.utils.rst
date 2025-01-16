@@ -42,6 +42,17 @@ TensorList
     deepinv.utils.randn_like
     deepinv.utils.rand_like
 
+Logging
+-------
+.. userguide:: logging
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.utils.AverageMeter
+        deepinv.utils.get_timestamp
 
 Other
 -----
@@ -53,11 +64,14 @@ Other
    :nosignatures:
 
     deepinv.utils.get_freer_gpu
-    deepinv.utils.load_url_image
     deepinv.utils.get_data_home
+    deepinv.utils.get_image_url
+    deepinv.utils.get_degradation_url
+    deepinv.utils.load_url_image
     deepinv.utils.load_image
+    deepinv.utils.load_dataset
+    deepinv.utils.load_degradation
     deepinv.utils.demo.demo_mri_model
-    deepinv.utils.dirac_like
 
 .. autosummary::
    :toctree: stubs

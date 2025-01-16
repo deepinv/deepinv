@@ -9,13 +9,14 @@ The equivariant imaging loss is presented in `"Equivariant Imaging: Learning Bey
 
 """
 
-import deepinv as dinv
-from torch.utils.data import DataLoader
-import torch
 from pathlib import Path
+import torch
+from torch.utils.data import DataLoader
 from torchvision import transforms
-from deepinv.optim.prior import PnP
-from deepinv.utils.demo import load_dataset, load_degradation, demo_mri_model
+
+import deepinv as dinv
+from deepinv.datasets import SimpleFastMRISliceDataset
+from deepinv.utils.demo import get_data_home, load_degradation, demo_mri_model
 from deepinv.models.utils import get_weights_url
 
 # %%
@@ -35,8 +36,18 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------
-# In this example, we use a subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
-# as the base image dataset. It consists of 973 knee images of size 320x320.
+# In this example, we use a mini demo subset of the single-coil `FastMRI dataset <https://fastmri.org/>`_
+# as the base image dataset, consisting of 2 knee images of size 320x320.
+#
+# .. seealso::
+#
+#   Datasets :class:`deepinv.datasets.FastMRISliceDataset` :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+#       We provide convenient datasets to easily load both raw and reconstructed FastMRI images.
+#       You can download more data on the `FastMRI site <https://fastmri.med.nyu.edu/>`_.
+#
+# .. important::
+#
+#    By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 #
 # .. note::
 #
@@ -44,13 +55,16 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 #
 
 operation = "MRI"
-train_dataset_name = "fastmri_knee_singlecoil"
 img_size = 128
 
 transform = transforms.Compose([transforms.Resize(img_size)])
 
-train_dataset = load_dataset(train_dataset_name, transform, train=True)
-test_dataset = load_dataset(train_dataset_name, transform, train=False)
+train_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train_percent=0.5, train=True, download=True
+)
+test_dataset = SimpleFastMRISliceDataset(
+    get_data_home(), transform=transform, train_percent=0.5, train=False
+)
 
 # %%
 # Generate a dataset of knee images and load it.
@@ -63,16 +77,15 @@ mask = load_degradation("mri_mask_128x128.npy")
 # defined physics
 physics = dinv.physics.MRI(mask=mask, device=device)
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (
     900 if torch.cuda.is_available() else 5
 )  # number of images used for training
-# (the dataset has up to 973 images, however here we use only 900)
 
 my_dataset_name = "demo_equivariant_imaging"
-measurement_dir = DATA_DIR / train_dataset_name / operation
+measurement_dir = DATA_DIR / "fastmri" / operation
 deepinv_datasets_path = dinv.datasets.generate_dataset(
     train_dataset=train_dataset,
     test_dataset=test_dataset,
@@ -114,7 +127,7 @@ model = demo_mri_model(device=device)
 # .. note::
 #
 #       We use a pretrained model to reduce training time. You can get the same results by training from scratch
-#       for 150 epochs.
+#       for 150 epochs using a larger knee dataset of ~1000 images.
 
 epochs = 1  # choose training epochs
 learning_rate = 5e-4

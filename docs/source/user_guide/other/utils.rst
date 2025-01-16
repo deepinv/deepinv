@@ -40,28 +40,47 @@ We provide other plotting functions that are useful for inverse problems:
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
 
+.. _logging:
+
+Logging
+-------
+.. list-table:: Logging functionality
+   :header-rows: 1
+
+   * - **Function/class**
+     - **Description**
+   * - :func:`deepinv.utils.AverageMeter`
+     - Store values and keep track of average and std.
+   * - :func:`deepinv.utils.get_timestamp`
+     - Get current timestamp string.
 
 .. _other-utils:
 
 Other
 -----
-We provide some useful utility functions:
+We provide some useful utility and demo functions:
 
-.. list-table:: Utility Functions and Descriptions
+.. list-table:: Utility and demo Functions
    :header-rows: 1
 
    * - **Function**
      - **Description**
    * - :func:`deepinv.utils.get_freer_gpu`
-     - Finds the GPU with the most available memory for optimized computation allocation.
-   * - :func:`deepinv.utils.load_url_image`
-     - Loads an image directly from a URL for use in experiments or demos.
+     - Finds the GPU with the most available memory.
    * - :func:`deepinv.utils.get_data_home`
-     - Retrieves the path to the default directory for storing datasets.
+     - Get the path to the default directory for storing datasets.
+   * - :func:`deepinv.utils.get_image_url`
+     - Get URL for image from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.get_degradation_url`
+     - Get URL for degradation from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.load_url_image`
+     - Loads an image directly from a URL for experiments or demos.
    * - :func:`deepinv.utils.load_image`
-     - Loads a local image file for processing and analysis.
-   * - :func:`deepinv.utils.demo.demo_mri_model`
-     - Demo MRI reconstruction model for use in relevant examples.
+     - Loads a local image file for experiments or demos.
+   * - :func:`deepinv.utils.load_dataset`
+     - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
+   * - :func:`deepinv.utils.load_degradation`
+     - Loads a degradation tensor from DeepInverse HuggingFace repository.
 
 
 .. _tensorlist:

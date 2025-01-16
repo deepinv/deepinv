@@ -176,6 +176,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/adversarial
    user_guide/reconstruction/specific
    user_guide/reconstruction/weights
+   user_guide/reconstruction/specific
 
 
 Training, Testing and Utilities

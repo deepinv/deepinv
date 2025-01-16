@@ -140,6 +140,7 @@ class MotionBlurGenerator(PSFGenerator):
         sigma: float = None,
         l: float = None,
         seed: int = None,
+        **kwargs,
     ):
         r"""
         Generate a random motion blur PSF with parameters :math:`\sigma` and :math:`l`
@@ -306,7 +307,13 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
-    def step(self, batch_size: int = 1, coeff: torch.Tensor = None, seed: int = None):
+    def step(
+        self,
+        batch_size: int = 1,
+        coeff: torch.Tensor = None,
+        seed: int = None,
+        **kwargs,
+    ):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 
@@ -771,7 +778,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.generator2d.rho = self.generator2d.rho.to(**self.factory_kwargs)
         self.generator2d.Z = self.generator2d.Z.to(**self.factory_kwargs)
 
-    def step(self, batch_size: int = 1, coeff: torch.Tensor = None):
+    def step(self, batch_size: int = 1, coeff: torch.Tensor = None, **kwargs):
         r"""
         Generate a batch of PSF with a batch of Zernike coefficients
 
@@ -950,6 +957,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         batch_size: int = 1,
         coeff_ill: torch.Tensor = None,
         coeff_coll: torch.Tensor = None,
+        **kwargs,
     ):
         r"""
         Generate a batch of 3D confocal PSF with a batch of Zernike coefficients
