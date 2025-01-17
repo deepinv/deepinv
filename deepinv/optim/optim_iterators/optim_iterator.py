@@ -16,7 +16,7 @@ def objective_function(x, data_fidelity, prior, cur_params, y, physics):
     :param deepinv.physics physics: Instance of the physics modeling the observation.
     """
     if prior.explicit_prior:
-        prior_value = prior(x, cur_params["g_param"], reduce=False)
+        prior_value = prior(x, cur_params["g_param"])
         if prior_value.dim() == 0:
             reg_value = cur_params["lambda"] * prior_value
         else:
