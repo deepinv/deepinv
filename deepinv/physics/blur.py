@@ -8,6 +8,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
+    conv_transpose2d_fft,
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
@@ -61,6 +62,7 @@ class Downsampling(LinearPhysics):
         factor=2,
         device="cpu",
         padding="circular",
+        normalize=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -69,35 +71,11 @@ class Downsampling(LinearPhysics):
         # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
         self.imsize = img_size
         self.padding = padding
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(device)
-        if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
-        elif filter is None:
-            self.filter = filter
-        elif filter == "gaussian":
-            self.filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(device)
-        elif filter == "bilinear":
-            self.filter = torch.nn.Parameter(
-                bilinear_filter(self.factor), requires_grad=False
-            ).to(device)
-        elif filter == "bicubic":
-            self.filter = torch.nn.Parameter(
-                bicubic_filter(self.factor), requires_grad=False
-            ).to(device)
-        else:
-            raise Exception("The chosen downsampling filter doesn't exist")
+        self.device = device
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.normalize = normalize
 
-        if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
-            self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = self.Fhc * self.Fh
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
-
-    def A(self, x, filter=None, **kwargs):
+    def A(self, x, filter=None, factor=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
 
@@ -105,16 +83,20 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        if filter is not None or factor is not None:
+            self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
+
+        if self.normalize:
+            x = x * self.factor
+
         return x
 
-    def A_adjoint(self, y, filter=None, **kwargs):
+    def A_adjoint(self, y, filter=None, factor=None, **kwargs):
         r"""
         Adjoint operator of the downsampling operator.
 
@@ -122,8 +104,8 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        if filter is not None or factor is not None:
+            self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         imsize = self.imsize
 
@@ -144,7 +126,13 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(x, self.filter, padding=self.padding)
+            if self.padding == "circular":
+                x = conv_transpose2d_fft(x, self.filter)
+            else:  # this may be slow
+                x = conv_transpose2d(x, self.filter, padding=self.padding)
+
+        if self.normalize:
+            x = x * self.factor
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
@@ -178,6 +166,83 @@ class Downsampling(LinearPhysics):
             return (z_hat - r) * gamma
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma)
+
+    def A_dagger(self, y, filter=None, factor=None, use_fft=True, **kwargs):
+        r"""
+        If the padding is circular, it computes the pseudo inverse with a  closed-formula similar to the one in
+        https://arxiv.org/abs/1510.00143.
+
+        Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
+        """
+        if filter is not None or factor is not None:
+            self.update_parameters(filter=filter, factor=factor, **kwargs)
+
+        if use_fft and self.padding == "circular":  # Formula from (Zhao, 2016)
+            z_hat = self.A_adjoint(y)
+            Fz_hat = fft.fft2(z_hat)
+
+            def splits(a, sf):
+                """split a into sfxsf distinct blocks
+                Args:
+                    a: NxCxWxH
+                    sf: split factor
+                Returns:
+                    b: NxCx(W/sf)x(H/sf)x(sf^2)
+                """
+                b = torch.stack(torch.chunk(a, sf, dim=2), dim=4)
+                b = torch.cat(torch.chunk(b, sf, dim=3), dim=4)
+                return b
+
+            top = torch.mean(splits(self.Fh * Fz_hat, self.factor), dim=-1)
+            below = torch.mean(splits(self.Fh2, self.factor), dim=-1)
+            rc = self.Fhc * (top / below).repeat(1, 1, self.factor, self.factor)
+            r = torch.real(fft.ifft2(rc))
+            return r
+        else:
+            return LinearPhysics.A_dagger(self, y, **kwargs)
+
+    def update_parameters(self, filter=None, factor=None, **kwargs):
+        r"""
+        Updates the current filter.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        """
+        if factor is not None:
+            self.factor = factor
+        if isinstance(filter, torch.nn.Parameter):
+            self.filter = filter.requires_grad_(False).to(self.device)
+        if isinstance(filter, torch.Tensor):
+            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                self.device
+            )
+        # elif filter is None:  # TODO: check if filter can be None
+        #     self.filter = filter
+        elif filter == "gaussian":
+            self.filter = torch.nn.Parameter(
+                gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
+            ).to(self.device)
+        elif filter == "bilinear":
+            self.filter = torch.nn.Parameter(
+                bilinear_filter(self.factor), requires_grad=False
+            ).to(self.device)
+        elif filter == "bicubic":
+            self.filter = torch.nn.Parameter(
+                bicubic_filter(self.factor), requires_grad=False
+            ).to(self.device)
+        else:
+            self.filter = filter
+
+        if self.filter is not None:
+            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
+                self.device
+            )
+            self.Fhc = torch.nn.Parameter(torch.conj(self.Fh), requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
+
+        if hasattr(self.noise_model, "update_parameters"):
+            self.noise_model.update_parameters(**kwargs)
 
 
 class Blur(LinearPhysics):

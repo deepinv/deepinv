@@ -1,5 +1,5 @@
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves, TensorList
 import os
 import numpy as np
 from tqdm import tqdm
@@ -424,8 +424,6 @@ class Trainer:
         """
         y = y.to(self.device)
 
-        kwargs = {}
-
         # check if the forward has 'update_parameters' method, and if so, update the parameters
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
@@ -486,21 +484,15 @@ class Trainer:
                     cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
-            meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+                meters = (
+                    self.logs_total_loss_train if train else self.logs_total_loss_eval
+                )
+                meters.update(loss_total.item())
+                logs[f"TotalLoss"] = meters.avg
+        else:  # question: what do we want to do at test time?
+            loss_total = 0
 
-        if train:
-            loss_total.backward()  # Backward the total loss
-
-            norm = self.check_clip_grad()  # Optional gradient clipping
-            if norm is not None:
-                logs["gradient_norm"] = self.check_grad_val.avg
-
-            # Optimizer step
-            self.optimizer.step()
-
-        return x_net, logs
+        return loss_total, x_net, logs
 
     def compute_metrics(
         self, x, x_net, y, physics, logs, train=True, epoch: int = None
@@ -596,12 +588,16 @@ class Trainer:
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
+        loss = 0
 
         for g in G_perm:  # for each dataloader
             x, y, physics_cur = self.get_samples(self.current_iterators, g)
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
+            loss_cur, x_net, logs = self.compute_loss(
+                physics_cur, x, y, train=train, epoch=epoch
+            )
+            loss += loss_cur
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -613,6 +609,16 @@ class Trainer:
 
             # Update the progress bar
             progress_bar.set_postfix(logs)
+
+        if train:  # TODO: perform backward before summing the losses
+            loss.backward()
+
+            norm = self.check_clip_grad()  # Optional gradient clipping
+            if norm is not None:
+                logs["gradient_norm_all"] = self.check_grad_val.avg
+
+            # Optimizer step
+            self.optimizer.step()
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
@@ -661,8 +667,10 @@ class Trainer:
             else:
                 x_nl = None
 
+            y_plot = y[1] if isinstance(y, TensorList) else y
+
             imgs, titles, grid_image, caption = prepare_images(
-                x, y, x_net, x_nl, rescale_mode=self.rescale_mode
+                x, y_plot, x_net, x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:
