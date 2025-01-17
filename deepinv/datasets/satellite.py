@@ -4,7 +4,6 @@ import os
 
 from natsort import natsorted
 import numpy as np
-from scipy.io import loadmat
 
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
@@ -13,6 +12,7 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
     calculate_md5_for_folder,
+    loadmat,
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
