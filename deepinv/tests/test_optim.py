@@ -250,7 +250,10 @@ def test_data_fidelity_amplitude_loss(device):
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize("name_algo", ["GradientDescent", "ProximalGradientDescent", "ADMM", "DRS", "HQS", "FISTA"])
+@pytest.mark.parametrize(
+    "name_algo",
+    ["GradientDescent", "ProximalGradientDescent", "ADMM", "DRS", "HQS", "FISTA"],
+)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
@@ -286,7 +289,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        optimalgo = getattr(optim,name_algo)(
+        optimalgo = getattr(optim, name_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -370,7 +373,10 @@ def test_denoiser(imsize, dummy_dataset, device):
 
 
 # GD not implemented for this one
-@pytest.mark.parametrize("pnp_algo", ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
@@ -406,7 +412,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 
     custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-    pnp = getattr(optim,pnp_algo)(
+    pnp = getattr(optim, pnp_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -461,7 +467,10 @@ def get_prior(prior_name, device="cpu"):
     return prior
 
 
-@pytest.mark.parametrize("pnp_algo", ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
         "L1Prior",
@@ -506,7 +515,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
 
         custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-        opt_algo = getattr(optim,pnp_algo)(
+        opt_algo = getattr(optim, pnp_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -536,7 +545,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         assert opt_algo.has_converged
 
 
-@pytest.mark.parametrize("red_algo", ["GradientDescent", "ProximalGradientDescent", "FISTA"])
+@pytest.mark.parametrize(
+    "red_algo", ["GradientDescent", "ProximalGradientDescent", "FISTA"]
+)
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
@@ -563,7 +574,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
-    red = getattr(optim,red_algo)(
+    red = getattr(optim, red_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
