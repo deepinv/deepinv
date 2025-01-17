@@ -3,7 +3,7 @@ import torch.nn as nn
 import warnings
 
 
-def F_fn(x, data_fidelity, prior, cur_params, y, physics):
+def objective_function(x, data_fidelity, prior, cur_params, y, physics):
     r"""
     Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
     and :math:`\regname` is a regularizer.
@@ -76,6 +76,8 @@ class OptimIterator(nn.Module):
         self.g_first = g_first
         self.has_cost = has_cost
         if F_fn is None and self.has_cost:
+            self.F_fn = objective_function
+        else:
             self.F_fn = F_fn
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)

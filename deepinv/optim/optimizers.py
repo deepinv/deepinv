@@ -9,7 +9,6 @@ from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
 
-
 class BaseOptim(Reconstructor):
     r"""
     Class for optimization algorithms, consists in iterating a fixed-point operator.
@@ -164,6 +163,7 @@ class BaseOptim(Reconstructor):
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
         verbose=False,
+        **kwargs
     ):
         super(BaseOptim, self).__init__()
 
@@ -196,7 +196,7 @@ class BaseOptim(Reconstructor):
             self.data_fidelity = data_fidelity
 
         self.has_cost = (
-            prior[0].explicit_prior if isinstance(prior, list) else prior.explicit_prior
+            self.prior[0].explicit_prior if isinstance(self.prior, list) else self.prior.explicit_prior
         )
         iterator.has_cost = self.has_cost
 
