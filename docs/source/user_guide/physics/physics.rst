@@ -68,6 +68,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
      -
        | :class:`deepinv.physics.Pansharpen`
        | :class:`deepinv.physics.HyperSpectralUnmixing`
+       | :class:`deepinv.physics.CompressiveSpectralImaging`
      -
 
    * - Compressive
