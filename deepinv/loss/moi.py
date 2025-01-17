@@ -140,7 +140,7 @@ class MOEILoss(EILoss, MOILoss):
 
     See :class:`deepinv.loss.EILoss` for all parameter details for EI.
 
-    :param deepinv.transform.Transform, torchvision.transforms transform: Transform to generate the virtually
+    :param deepinv.transform.Transform transform: Transform to generate the virtually
         augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
     :param list[Physics], Physics physics: list of physics containing the :math:`G` different forward operators
             associated with the measurements, or single physics, or None. If single physics or None, physics generator must be used.

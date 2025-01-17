@@ -71,9 +71,9 @@ class ArtifactRemoval(Reconstructor):
         By default, treats backbone network as a denoiser.
         Override for different inference e.g. for an unrolled network.
 
-        :param Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
+        :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
-        :param Tensor y: input measurements y
+        :param torch.Tensor y: input measurements y
         :return: Tensor: reconstructed image
         """
         if hasattr(physics.noise_model, "sigma"):

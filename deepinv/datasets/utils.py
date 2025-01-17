@@ -121,6 +121,11 @@ class Rescale(Module):
         self.rescale_mode = rescale_mode
 
     def forward(self, x: Tensor):
+        r"""
+        Rescale image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
         return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
 
 
@@ -131,4 +136,9 @@ class ToComplex(Module):
     """
 
     def forward(self, x: Tensor):
+        r"""
+        Convert real image to complex image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
         return stack([x, zeros_like(x)], dim=-3)

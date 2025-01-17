@@ -91,9 +91,9 @@ class VarNet(ArtifactRemoval, MRIMixin):
         Uses physics and y for data consistency.
         If necessary, perform fully-sampled MRI IFFT on model output.
 
-        :param Tensor tensor_in: input tensor as dictated by VarNet mode (either k-space or image)
+        :param torch.Tensor tensor_in: input tensor as dictated by VarNet mode (either k-space or image)
         :param Physics physics: forward physics for data consistency
-        :param Tensor y: input measurements y for data consistency
+        :param torch.Tensor y: input measurements y for data consistency
         :return: Tensor: reconstructed image
         """
         if self.sensitivity_model is not None:
@@ -144,9 +144,9 @@ class VarNetBlock(nn.Module):
 
         The following arguments should be passed in as a tuple ``args_in``.
 
-        :param Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
+        :param torch.Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
         :param MRI physics: forward physics including updated mask
-        :param Tensor y: input kspace measurements.
+        :param torch.Tensor y: input kspace measurements.
         :param Optional[Tensor] coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
         :return: ``(tensor_out, physics, y, coil_maps)``, where tensor_out is either images ``x`` or kspaces ``y``.
         """

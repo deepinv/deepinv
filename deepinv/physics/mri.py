@@ -75,7 +75,7 @@ class MRIMixin:
     def im_to_kspace(self, x: Tensor, three_d: bool = False) -> Tensor:
         """Convenience method that wraps fft.
 
-        :param Tensor x: input image of shape (B,2,...) of real dtype
+        :param torch.Tensor x: input image of shape (B,2,...) of real dtype
         :param bool three_d: whether MRI data is 3D or not, defaults to False
         :return: Tensor: output measurements of shape (B,2,...) of real dtype
         """
@@ -88,7 +88,7 @@ class MRIMixin:
     def kspace_to_im(self, y: Tensor, three_d: bool = False) -> Tensor:
         """Convenience method that wraps inverse fft.
 
-        :param Tensor y: input measurements of shape (B,2,...) of real dtype
+        :param torch.Tensor y: input measurements of shape (B,2,...) of real dtype
         :param bool three_d: whether MRI data is 3D or not, defaults to False
         :return: Tensor: output image of shape (B,2,...) of real dtype
         """
@@ -105,7 +105,7 @@ class MRIMixin:
 
         If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
 
-        :param Tensor x: input tensor of shape (...,H,W)
+        :param torch.Tensor x: input tensor of shape (...,H,W)
         :param bool crop: whether to perform crop, defaults to True
         """
         crop_size = self.img_size[-2:]
@@ -132,7 +132,7 @@ class MRIMixin:
         where :math:`x_n` are the coil images of :math:`x`, :math:`|\cdot|` denotes the magnitude
         and :math:`N` is the number of coils. Note that the sum is performed voxel-wise.
 
-        :param Tensor x: input image of shape (B,2,...) where 2 represents
+        :param torch.Tensor x: input image of shape (B,2,...) where 2 represents
             real and imaginary channels
         :param bool multicoil: if ``True``, assume ``x`` is of shape (B,2,N,...),
             and reduce over coil dimension N too.
@@ -260,8 +260,8 @@ class MRI(MRIMixin, DecomposablePhysics):
         By default, crop and magnitude are not performed.
         By setting ``mag=crop=True``, the outputs will be consistent with :class:`deepinv.datasets.FastMRISliceDataset`.
 
-        :param Tensor y: input kspace of shape (B,C,...,H,W)
-        :param Tensor mask: optionally set mask on-the-fly.
+        :param torch.Tensor y: input kspace of shape (B,C,...,H,W)
+        :param torch.Tensor mask: optionally set mask on-the-fly.
         :param bool mag: perform complex magnitude.
             This option is provided to match the original data of :class:`deepinv.datasets.FastMRISliceDataset`,
             such that ``x = MRI().A_adjoint(y, mag=True)``.
@@ -570,8 +570,8 @@ class DynamicMRI(MRI, TimeMixin):
 
         Optionally perform magnitude to reduce channel dimension.
 
-        :param Tensor y: input kspace of shape `(B,2,T,H,W)`
-        :param Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
+        :param torch.Tensor y: input kspace of shape `(B,2,T,H,W)`
+        :param torch.Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
         :param bool mag: perform complex magnitude.
         """
         mask = self.check_mask(self.mask if mask is None else mask)
