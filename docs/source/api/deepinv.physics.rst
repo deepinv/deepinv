@@ -1,5 +1,5 @@
 deepinv.physics
-================
+===============
 
 This module provides a set of forward operators for various imaging modalities.
 Please refer to the :ref:`physics` section for more details.
@@ -16,6 +16,9 @@ Base Classes
    deepinv.physics.Physics
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
+   deepinv.physics.StackedPhysics
+   deepinv.physics.StackedLinearPhysics
+   deepinv.physics.NoiseModel
 
 .. autosummary::
    :toctree: stubs
@@ -50,6 +53,7 @@ Operators
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
+   deepinv.physics.HyperSpectralUnmixing
    deepinv.physics.CompressedSensing
    deepinv.physics.StructuredRandom
    deepinv.physics.SinglePixelCamera
@@ -59,6 +63,8 @@ Operators
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.StructuredRandomPhaseRetrieval
+   deepinv.physics.Ptychography
+   deepinv.physics.PtychographyLinearOperator
 
 
 .. autosummary::
@@ -89,6 +95,8 @@ Operators
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
    deepinv.physics.blur.sinc_filter
+   deepinv.physics.phase_retrieval.build_probe
+   deepinv.physics.phase_retrieval.generate_shifts
 
 Noise distributions
 -------------------
@@ -116,6 +124,7 @@ Noise distributions
 
     deepinv.physics.TimeMixin
     deepinv.physics.adjoint_function
+    deepinv.physics.stack
 
 
 Functional

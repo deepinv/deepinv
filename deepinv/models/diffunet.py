@@ -429,7 +429,7 @@ class DiffUNet(Denoiser):
             x, torch.tensor([timesteps]).to(x.device), y=y
         )
         noise_est = noise_est_sample_var[:, :3, ...]
-        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps].sqrt()
+        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps]
         denoised = denoised.clamp(-1, 1)
 
         return (denoised + 1) / 2

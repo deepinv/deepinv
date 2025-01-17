@@ -1,6 +1,9 @@
+from typing import Union
+
 import torch
+from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
-from deepinv.utils import randn_like, TensorList
+from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import conjugate_gradient
 
 
@@ -69,47 +72,22 @@ class Physics(torch.nn.Module):  # parent class for forward models
             tol=self.tol,
         )
 
-    def __add__(self, other):
+    def stack(self, other):
         r"""
-        Stacks two linear forward operators :math:`A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}`
-        via the add operation.
+        Stacks two forward operators :math:`A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}`
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
 
+        Returns a :class:`deepinv.physics.StackedPhysics` object.
+
+        See :ref:`physics_combining` for more information.
+
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.Physics) stacked operator
+        :return: (deepinv.physics.StackedPhysics) stacked operator
 
         """
-        A = lambda x: TensorList(self.A(x)).append(TensorList(other.A(x)))
-
-        class noise(torch.nn.Module):
-            def __init__(self, noise1, noise2):
-                super().__init__()
-                self.noise1 = noise1
-                self.noise2 = noise2
-
-            def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(
-                    self.noise2(x[-1], **kwargs)
-                )
-
-        class sensor(torch.nn.Module):
-            def __init__(self, sensor1, sensor2):
-                super().__init__()
-                self.sensor1 = sensor1
-                self.sensor2 = sensor2
-
-            def forward(self, x):
-                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
-
-        return Physics(
-            A=A,
-            noise_model=noise(self.noise_model, other.noise_model),
-            sensor_model=sensor(self.sensor_model, other.sensor_model),
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return stack(self, other)
 
     def forward(self, x, **kwargs):
         r"""
@@ -280,13 +258,13 @@ class LinearPhysics(Physics):
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
 
-        Linear operators can also be added. The measurements produced by the resulting
+        Linear operators can also be stacked. The measurements produced by the resulting
         model are :meth:`deepinv.utils.TensorList` objects, where each entry corresponds to the
-        measurements of the corresponding operator:
+        measurements of the corresponding operator (see :ref:`physics_combining` for more information):
 
         >>> physics1 = Blur(filter=w)
         >>> physics2 = Downsampling(img_size=((1, 32, 32)), filter="gaussian", factor=4)
-        >>> physics = physics1 + physics2
+        >>> physics = physics1.stack(physics2)
         >>> y = physics(x)
 
         Linear operators can also be composed by multiplying them:
@@ -418,62 +396,25 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
-    def __add__(self, other):
+    def stack(self, other):
         r"""
-        Stacks two linear forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}` via the add operation.
+        Stacks forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
 
         The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
         each entry corresponds to the measurements of the corresponding operator.
 
         .. note::
 
-            When using the ``__add__`` operator between two noise objects, the operation will retain only the second
+            When using the ``stack`` operator between two noise objects, the operation will retain only the second
             noise.
 
-        :param deepinv.physics.LinearPhysics other: Physics operator :math:`A_2`
-        :return: (deepinv.physics.LinearPhysics) stacked operator
+        See :ref:`physics_combining` for more information.
+
+        :param deepinv.physics.Physics other: Physics operator :math:`A_2`
+        :return: (deepinv.physics.StackedPhysics) stacked operator
 
         """
-        A = lambda x, **kwargs: TensorList(self.A(x, **kwargs)).append(
-            TensorList(other.A(x, **kwargs))
-        )
-
-        def A_adjoint(y, **kwargs):
-            at1 = (
-                self.A_adjoint(y[:-1], **kwargs)
-                if len(y) > 2
-                else self.A_adjoint(y[0], **kwargs)
-            )
-            return at1 + other.A_adjoint(y[-1], **kwargs)
-
-        class noise(torch.nn.Module):
-            def __init__(self, noise1, noise2):
-                super().__init__()
-                self.noise1 = noise1
-                self.noise2 = noise2
-
-            def forward(self, x, **kwargs):
-                return TensorList(self.noise1(x[:-1], **kwargs)).append(
-                    self.noise2(x[-1], **kwargs)
-                )
-
-        class sensor(torch.nn.Module):
-            def __init__(self, sensor1, sensor2):
-                super().__init__()
-                self.sensor1 = sensor1
-                self.sensor2 = sensor2
-
-            def forward(self, x):
-                return TensorList(self.sensor1(x[:-1])).append(self.sensor2(x[-1]))
-
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
-            noise_model=noise(self.noise_model, other.noise_model),
-            sensor_model=sensor(self.sensor_model, other.sensor_model),
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return stack(self, other)
 
     def compute_norm(self, x0, max_iter=100, tol=1e-3, verbose=True, **kwargs):
         r"""
@@ -852,3 +793,145 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
             return vjpfunc(y)[0]
 
     return adjoint
+
+
+def stack(*physics: Union[Physics, LinearPhysics]):
+    r"""
+    Stacks multiple forward operators :math:`A = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}`.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be stacked.
+    """
+    if all(isinstance(phys, LinearPhysics) for phys in physics):
+        return StackedLinearPhysics(physics)
+    else:
+        return StackedPhysics(physics)
+
+
+class StackedPhysics(Physics):
+    r"""
+    Stacks multiple physics operators into a single operator.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    See :ref:`physics_combining` for more information.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    """
+
+    def __init__(self, physics_list: list[Physics], **kwargs):
+        super(StackedPhysics, self).__init__()
+
+        self.physics_list = []
+        for physics in physics_list:
+            self.physics_list.extend(
+                [physics]
+                if not isinstance(physics, StackedPhysics)
+                else physics.physics_list
+            )
+
+    def A(self, x: Tensor, **kwargs) -> TensorList:
+        r"""
+        Computes forward of stacked operator
+
+        .. math::
+
+            y = \begin{bmatrix} A_1(x) \\ A_2(x) \\ \vdots \\ A_n(x) \end{bmatrix}
+
+        :param torch.Tensor x: signal/image
+        """
+        return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
+
+    def __str__(self):
+        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __getitem__(self, item):
+        r"""
+        Returns the physics operator at index `item`.
+
+        :param int item: index of the physics operator
+        """
+        return self.physics_list[item]
+
+    def sensor(self, y: TensorList, **kwargs) -> TensorList:
+        r"""
+        Applies sensor non-linearities to the measurements per physics operator
+        in the stacked operator.
+
+        """
+        for i, physics in enumerate(self.physics_list):
+            y[i] = physics.sensor(y[i], **kwargs)
+        return y
+
+    def __len__(self):
+        r"""
+        Returns the number of physics operators in the stacked operator
+
+        """
+        return len(self.physics_list)
+
+    def noise(self, y: TensorList, **kwargs) -> TensorList:
+        r"""
+        Applies noise to the measurements per physics operator in the stacked operator.
+
+        """
+        for i, physics in enumerate(self.physics_list):
+            y[i] = physics.noise(y[i], **kwargs)
+        return y
+
+    def set_noise_model(self, noise_model, item):
+        r"""
+        Sets the noise model for the physics operator at index `item`.
+
+        :param list[Callable] noise_model: noise models
+        """
+        self.physics_list[item].set_noise_model(noise_model)
+
+
+class StackedLinearPhysics(StackedPhysics, LinearPhysics):
+    r"""
+    Stacks multiple linear physics operators into a single operator.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    See :ref:`physics_combining` for more information.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to stack.
+    :param str reduction: how to combine tensorlist outputs of adjoint operators into single
+        adjoint output. Choose between ``sum``, ``mean`` or ``None``.
+    """
+
+    def __init__(self, physics_list, reduction="sum", **kwargs):
+        super(StackedLinearPhysics, self).__init__(physics_list, **kwargs)
+        if reduction == "sum":
+            self.reduction = sum
+        elif reduction == "mean":
+            self.reduction = lambda x: sum(x) / len(x)
+        elif reduction in ("none", None):
+            self.reduction = lambda x: x
+        else:
+            raise ValueError("reduction must be either sum, mean or none.")
+
+    def A_adjoint(self, y: TensorList, **kwargs) -> Tensor:
+        r"""
+        Computes the adjoint of the stacked operator, defined as
+
+        .. math::
+
+            A^{\top}y = \sum_{i=1}^{n} A_i^{\top}y_i.
+
+        :param deepinv.utils.TensorList y: measurements
+        """
+        return self.reduction(
+            [
+                physics.A_adjoint(y[i], **kwargs)
+                for i, physics in enumerate(self.physics_list)
+            ]
+        )

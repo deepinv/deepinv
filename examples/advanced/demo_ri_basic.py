@@ -20,8 +20,8 @@ import torchkbnufft as tkbn
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
-from deepinv.utils.demo import load_np_url, get_image_dataset_url, get_degradation_url
-from deepinv.utils.nn import dirac_like
+from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
+from deepinv.utils.tensorlist import dirac_like
 from deepinv.optim import FISTA
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -155,7 +155,7 @@ class RadioInterferometry(LinearPhysics):
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
-image_gdth = load_np_url(get_image_dataset_url("3c353_gdth", file_type="npy"))
+image_gdth = load_np_url(get_image_url("3c353_gdth.npy"))
 image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
 
 
@@ -348,6 +348,7 @@ print(
 )
 
 # plot images
+# sphinx_gallery_multi_image = "single"
 imgs = [
     to_logimage(image_gdth),
     to_logimage(back, rescale=True),

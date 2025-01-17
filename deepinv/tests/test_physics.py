@@ -6,6 +6,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
+from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -23,11 +24,14 @@ OPERATORS = [
     "deblur_reflect",
     "deblur_replicate",
     "deblur_constant",
+    "composition",
+    "composition2",
     "space_deblur_valid",
     "space_deblur_circular",
     "space_deblur_reflect",
     "space_deblur_replicate",
     "space_deblur_constant",
+    "hyperspectral_unmixing",
     "3Ddeblur_valid",
     "3Ddeblur_circular",
     "super_resolution_valid",
@@ -51,9 +55,16 @@ OPERATORS = [
     "radio",
     "radio_weighted",
     "structured_random",
+    "ptychography_linear",
 ]
 
 NONLINEAR_OPERATORS = ["haze", "lidar"]
+
+PHASE_RETRIEVAL_OPERATORS = [
+    "random_phase_retrieval",
+    "structured_random_phase_retrieval",
+    "ptychography",
+]
 
 NOISES = [
     "Gaussian",
@@ -115,13 +126,13 @@ def find_operator(name, device):
         norm = 1.0
     elif name == "MRI":
         img_size = (2, 17, 11)  # C,H,W
-        p = dinv.physics.MRI(img_size=img_size, device=device)
+        p = MRI(img_size=img_size, device=device)
     elif name == "3DMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
-        p = dinv.physics.MRI(img_size=img_size, three_d=True, device=device)
+        p = MRI(img_size=img_size, three_d=True, device=device)
     elif name == "DynamicMRI":
         img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
-        p = dinv.physics.DynamicMRI(img_size=img_size, device=device)
+        p = DynamicMRI(img_size=img_size, device=device)
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11)  # C,H,W
         n_coils = 7
@@ -130,7 +141,7 @@ def find_operator(name, device):
         ) / sqrt(
             n_coils
         )  # B,N,H,W where N is coil dimension
-        p = dinv.physics.MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
     elif name == "3DMultiCoilMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         n_coils = 15
@@ -139,25 +150,52 @@ def find_operator(name, device):
         ) / sqrt(
             n_coils
         )  # B,N,D,H,W where N is coils and D is depth
-        p = dinv.physics.MultiCoilMRI(
-            coil_maps=maps, img_size=img_size, three_d=True, device=device
-        )
+        p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
+    elif name == "composition":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, padding="same", filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=img_size,
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(1.0)),
+        )
+        p = p1 * p2
+        norm = 1 / 2**2
+    elif name == "composition2":
+        img_size = (3, 16, 16)
+        p1 = dinv.physics.Downsampling(
+            img_size=img_size, factor=2, device=device, filter=None
+        )
+        p2 = dinv.physics.BlurFFT(
+            img_size=(3, 8, 8),
+            device=device,
+            filter=dinv.physics.blur.gaussian_blur(sigma=(0.5)),
+        )
+        p = p2 * p1
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
-            img_size=img_size, device=device, padding=padding, filter="bilinear"
+            img_size=img_size,
+            device=device,
+            padding=padding,
+            filter="bilinear",
+            use_brovey=False,
         )
         norm = 0.4
     elif name == "aliased_pansharpen":
         img_size = (3, 30, 32)
-        p = dinv.physics.Pansharpen(img_size=img_size, device=device, filter=None)
+        p = dinv.physics.Pansharpen(
+            img_size=img_size, device=device, filter=None, use_brovey=False
+        )
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
@@ -204,6 +242,10 @@ def find_operator(name, device):
             * 0.5,
             padding=padding,
         )
+    elif name == "hyperspectral_unmixing":
+        img_size = (15, 32, 32)  # x (E, H, W)
+        p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
+
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)
         h_size = (1, 1, 4, 3, 5)
@@ -296,6 +338,16 @@ def find_operator(name, device):
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
         )
+    elif name == "ptychography_linear":
+        img_size = (1, 32, 32)
+        dtype = torch.complex64
+        norm = 1.32
+        p = dinv.physics.PtychographyLinearOperator(
+            img_size=img_size,
+            probe=None,
+            shifts=None,
+            device=device,
+        )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, img_size, norm, dtype
@@ -327,8 +379,72 @@ def find_nonlinear_operator(name, device):
     return p, x
 
 
+def find_phase_retrieval_operator(name, device):
+    r"""
+    Chooses operator
+
+    :param name: operator name
+    :param device: (torch.device) cpu or cuda
+    :return: (deepinv.physics.PhaseRetrieval) forward operator.
+    """
+    if name == "random_phase_retrieval":
+        img_size = (1, 10, 10)
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
+    elif name == "ptychography":
+        img_size = (1, 32, 32)
+        p = dinv.physics.Ptychography(
+            in_shape=img_size,
+            probe=None,
+            shifts=None,
+            device=device,
+        )
+    elif name == "structured_random_phase_retrieval":
+        img_size = (1, 10, 10)
+        p = dinv.physics.StructuredRandomPhaseRetrieval(
+            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+        )
+    else:
+        raise Exception("The inverse problem chosen doesn't exist")
+    return p, img_size
+
+
+def test_stacking(device):
+    r"""
+    Tests if stacking physics operators is consistent with applying them sequentially.
+
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts error is less than 1e-3
+    """
+    imsize = (2, 5, 5)
+    p1 = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    p2 = dinv.physics.Physics(A=lambda x: x**2)
+    p3 = p1.stack(p2)
+
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+    y1 = p1.A(x)
+    y2 = p2.A(x)
+    y = p3.A(x)
+
+    assert torch.allclose(y[0], y1)
+    assert torch.allclose(y[1], y2)
+
+    assert not isinstance(p3, dinv.physics.StackedLinearPhysics)
+    assert isinstance(p3, dinv.physics.StackedPhysics)
+
+    p4 = p1.stack(p1)
+    y = p4(x)
+    assert isinstance(p4, dinv.physics.StackedLinearPhysics)
+    assert len(y) == 2
+    assert p4.A_adjoint(y).shape == x.shape
+
+    p5 = p4.stack(p4)
+    y = p5(x)
+    assert len(p5) == 4
+    assert len(y) == 4
+
+
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device):
+def test_operators_adjointness(name, device, rng):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -343,7 +459,7 @@ def test_operators_adjointness(name, device):
     if name == "radio":
         dtype = torch.cfloat
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
@@ -360,7 +476,7 @@ def test_operators_adjointness(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_norm(name, device):
+def test_operators_norm(name, device, rng):
     r"""
     Tests if a linear physics operator has a norm close to 1.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -378,7 +494,7 @@ def test_operators_norm(name, device):
 
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     norm = physics.compute_norm(x, max_iter=1000, tol=1e-6)
     bound = 1e-2
     # if theoretical bound relies on Marcenko-Pastur law, or if pansharpening, relax the bound
@@ -416,7 +532,7 @@ def test_nonlinear_operators(name, device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_pseudo_inverse(name, device):
+def test_pseudo_inverse(name, device, rng):
     r"""
     Tests if a linear physics operator has a well-defined pseudoinverse.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -427,7 +543,7 @@ def test_pseudo_inverse(name, device):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
@@ -440,7 +556,7 @@ def mri_img_size():
     return 1, 2, 3, 16, 16  # B, C, T, H, W
 
 
-@pytest.mark.parametrize("mri", [dinv.physics.MRI, dinv.physics.DynamicMRI])
+@pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI(mri, mri_img_size, device, rng):
     r"""
     Test MRI and DynamicMRI functions
@@ -460,17 +576,19 @@ def test_MRI(mri, mri_img_size, device, rng):
         torch.rand(mri_img_size, generator=rng, device=device) + 1,
     )
 
-    if mri is dinv.physics.MRI:
+    coil_maps_kwarg = {}
+
+    if mri is MRI:
         x = x[:, :, 0, :, :]
         y = y[:, :, 0, :, :]
+    elif mri is MultiCoilMRI:
+        # y treat T as coil dim for tests
+        x = x[:, :, 0, :, :]
+        coil_maps_kwarg = {"coil_maps": T}
 
     for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
         # Remove time dim for static MRI
-        _mask_size = (
-            mask_size
-            if mri is dinv.physics.DynamicMRI
-            else mask_size[:-3] + mask_size[-2:]
-        )
+        _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
 
         mask, mask2 = (
             torch.ones(_mask_size, device=device)
@@ -480,29 +598,52 @@ def test_MRI(mri, mri_img_size, device, rng):
         )
 
         # Empty mask
-        physics = mri(img_size=x.shape, device=device)
+        physics = mri(img_size=x.shape, device=device, **coil_maps_kwarg)
         y1 = physics(x)
         x1 = physics.A_adjoint(y)
         assert torch.sum(y1 == 0) == 0
         assert torch.sum(x1 == 0) == 0
 
         # Set mask in constructor
-        physics = mri(mask=mask, device=device)
+        physics = mri(
+            mask=mask, img_size=mri_img_size, device=device, **coil_maps_kwarg
+        )
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask == 0))
 
         # Set mask in forward
         y1 = physics(x, mask=mask2)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask2 == 0))
 
         # Mask retained in previous forward
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask2 == 0))
 
         # Set mask via update_parameters
         physics.update_parameters(mask=mask)
         y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask == 0))
+
+        # Check mag/rss reduces channel dim
+        x_hat = physics.A_adjoint(
+            y, **{("rss" if isinstance(physics, MultiCoilMRI) else "mag"): True}
+        )
+        # (B, 2, ...) -> (B, 1, ...)
+        assert x_hat.shape[:2] == (x.shape[0], 1) and y.shape[1] == 2
+
+        # Check rss works for multi-coil
+        if isinstance(physics, MultiCoilMRI):
+            assert y.shape[:3] == (x.shape[0], 2, T)  # B,C,N(=T)
+            xrss = physics.A_adjoint(y, rss=True)
+            assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -525,29 +666,21 @@ def test_concatenation(name, device):
     assert error < 0.01
 
 
-def test_phase_retrieval(device):
+@pytest.mark.parametrize("name", PHASE_RETRIEVAL_OPERATORS)
+def test_phase_retrieval(name, device):
     r"""
     Tests to ensure the phase retrieval operator is behaving as expected.
 
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    x = torch.randn((1, 1, 10, 10), dtype=torch.cfloat, device=device)
-    physics = dinv.physics.RandomPhaseRetrieval(
-        m=500, img_shape=(1, 10, 10), device=device
-    )
-    physics2 = dinv.physics.StructuredRandomPhaseRetrieval(
-        input_shape=(1, 10, 10),
-        output_shape=(1, 10, 10),
-        n_layers=2,
-        device=device,
-    )
+    physics, imsize = find_phase_retrieval_operator(name, device)
+    x = torch.randn(imsize, dtype=torch.cfloat, device=device).unsqueeze(0)
+
     # nonnegativity
     assert (physics(x) >= 0).all()
-    assert (physics2(x) >= 0).all()
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
-    assert torch.equal(physics2(x), physics2(-x))
 
 
 def test_phase_retrieval_Avjp(device):
@@ -570,7 +703,7 @@ def test_phase_retrieval_Avjp(device):
     assert torch.isclose(grad_value[0], jvp_value, rtol=1e-5).all()
 
 
-def test_linear_physics_Avjp(device):
+def test_linear_physics_Avjp(device, rng):
     r"""
     Tests if the gradient computed with A_vjp method of linear physics is consistent with the autograd gradient.
 
@@ -579,7 +712,13 @@ def test_linear_physics_Avjp(device):
     """
     # essential to enable autograd
     torch.set_grad_enabled(True)
-    x = torch.randn((1, 1, 3, 3), dtype=torch.float, device=device, requires_grad=True)
+    x = torch.randn(
+        (1, 1, 3, 3),
+        dtype=torch.float,
+        device=device,
+        generator=rng,
+        requires_grad=True,
+    )
     physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
@@ -896,11 +1035,27 @@ def test_mri_fft():
     x = torch.randn(4, 2, 16, 8)  # B,C,H,W
 
     # Our FFT
-    xf1 = dinv.physics.MRIMixin.from_torch_complex(
-        dinv.physics.MRIMixin.fft(dinv.physics.MRIMixin.to_torch_complex(x))
-    )
+    xf1 = MRIMixin.from_torch_complex(MRIMixin.fft(MRIMixin.to_torch_complex(x)))
 
     # FastMRI FFT
     xf2 = fft2c_new(x.moveaxis(1, -1).contiguous()).moveaxis(-1, 1)
 
     assert torch.all(xf1 == xf2)
+
+
+@pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
+def test_decolorize(srf, device, imsize):
+    from numpy import allclose
+
+    channels = 7
+    if srf == "list":
+        srf = list(range(channels))
+        srf = [s / sum(srf) for s in srf]
+
+    physics = dinv.physics.Decolorize(channels=channels, srf=srf, device=device)
+    x = torch.ones((1, channels, *imsize[-2:]), device=device)
+    x2 = physics.A_adjoint_A(x)
+
+    assert x2.shape == x.shape
+    assert allclose(sum(physics.srf), 1.0, rtol=1e-4)
+    assert len(physics.srf) == channels

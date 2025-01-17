@@ -17,6 +17,8 @@ METRICS = [
     "QNR",
     "LPIPS",
     "NIQE",
+    "ERGAS",
+    "SAM",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
@@ -55,6 +57,10 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         return metric.NIQE(**kwargs, device=device)
     elif metric_name == "QNR":
         return metric.QNR()
+    elif metric_name == "ERGAS":
+        return metric.ERGAS(factor=4)
+    elif metric_name == "SAM":
+        return metric.SpectralAngleMapper()
 
 
 @pytest.mark.parametrize("metric_name", METRICS)

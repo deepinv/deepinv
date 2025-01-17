@@ -34,7 +34,7 @@ class Metric(Module):
     The metric function must reduce over all dims except the batch dim (see example).
 
     :param Callable metric: metric function, it must reduce over all dims except batch dim. It must not reduce over batch dim.
-        This is unused if the ``metric`` method is overrifden.
+        This is unused if the ``metric`` method is overridden.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.

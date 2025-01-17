@@ -15,6 +15,12 @@ or install the latest version of ``deepinv`` directly from the github repository
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
+Since ``deepinv`` is under active development, you can update to the latest version easily using:
+
+.. code-block:: bash
+
+    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
 
 Once installed, you can try out the following image inpainting example:
 
