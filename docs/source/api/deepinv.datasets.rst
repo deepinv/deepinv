@@ -49,7 +49,7 @@ Image Datasets
 
 
 Other Datasets
-------------
+--------------
 
 .. autosummary::
    :toctree: stubs
