@@ -39,7 +39,7 @@ class Prior(Potential):
     :param callable g: Prior function :math:`g(x)`.
     """
 
-    def __init__(self, g=None,  *args, **kwargs):
+    def __init__(self, g=None, *args, **kwargs):
         super().__init__(*args, fn=g, **kwargs)
         self.explicit_prior = False if self._fn is None else True
 
