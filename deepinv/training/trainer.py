@@ -587,7 +587,7 @@ class Trainer:
         It performs the forward pass, the backward pass, and the evaluation at each iteration.
 
         :param int epoch: Current epoch.
-        :param tqdm.tqdm progress_bar: progress bar.
+        :param progress_bar: `tqdm <https://tqdm.github.io/docs/tqdm/>`_ progress bar.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.

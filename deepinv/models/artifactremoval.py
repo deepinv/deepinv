@@ -74,7 +74,7 @@ class ArtifactRemoval(Reconstructor):
         :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
         :param torch.Tensor y: input measurements y
-        :return: Tensor: reconstructed image
+        :return: (:class:`torch.Tensor`): reconstructed image
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma = physics.noise_model.sigma

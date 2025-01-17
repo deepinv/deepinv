@@ -40,7 +40,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
-    These datasets are generated using :func:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
+    These datasets are generated using :func:`deepinv.datasets.FastMRISliceDataset.save_simple_dataset`.
     You can use this to generate your own custom dataset and load using the ``file_name`` argument.
 
     We provide a pregenerated mini saved subset for singlecoil FastMRI knees (total 2 images)
