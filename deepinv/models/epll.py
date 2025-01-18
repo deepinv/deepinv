@@ -25,7 +25,7 @@ class EPLLDenoiser(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
-    :param str device: defines device (``cpu`` or ``cuda``)
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -35,13 +35,14 @@ class EPLLDenoiser(Denoiser):
         pretrained="download",
         patch_size=6,
         channels=1,
-        device="cpu",
+        device=None,
     ):
-        super(EPLLDenoiser, self).__init__()
-        self.PatchGMM = EPLL(
-            GMM, n_components, pretrained, patch_size, channels, device
-        )
+        super().__init__()
+        self.PatchGMM = EPLL(GMM, n_components, pretrained, patch_size, channels)
         self.denoising_operator = Denoising(GaussianNoise(0))
+
+        if device is not None:
+            self.to(device)
 
     def forward(self, x, sigma, betas=None, batch_size=-1):
         r"""

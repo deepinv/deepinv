@@ -36,8 +36,7 @@ class DRUNet(Denoiser):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param str device: gpu or cpu.
-
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -52,7 +51,7 @@ class DRUNet(Denoiser):
         pretrained="download",
         device=None,
     ):
-        super(DRUNet, self).__init__()
+        super().__init__()
         in_channels = in_channels + 1  # accounts for the input noise channel
         self.m_head = conv(in_channels, nc[0], bias=False, mode="C")
 
@@ -65,26 +64,26 @@ class DRUNet(Denoiser):
             downsample_block = downsample_strideconv
         else:
             raise NotImplementedError(
-                "downsample mode [{:s}] is not found".format(downsample_mode)
+                f"downsample mode [{downsample_mode}] is not found"
             )
 
         self.m_down1 = sequential(
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
             downsample_block(nc[0], nc[1], bias=False, mode="2"),
         )
         self.m_down2 = sequential(
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
             downsample_block(nc[1], nc[2], bias=False, mode="2"),
         )
         self.m_down3 = sequential(
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
             downsample_block(nc[2], nc[3], bias=False, mode="2"),
@@ -92,7 +91,7 @@ class DRUNet(Denoiser):
 
         self.m_body = sequential(
             *[
-                ResBlock(nc[3], nc[3], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[3], nc[3], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ]
         )
@@ -112,21 +111,21 @@ class DRUNet(Denoiser):
         self.m_up3 = sequential(
             upsample_block(nc[3], nc[2], bias=False, mode="2"),
             *[
-                ResBlock(nc[2], nc[2], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[2], nc[2], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
         )
         self.m_up2 = sequential(
             upsample_block(nc[2], nc[1], bias=False, mode="2"),
             *[
-                ResBlock(nc[1], nc[1], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[1], nc[1], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
         )
         self.m_up1 = sequential(
             upsample_block(nc[1], nc[0], bias=False, mode="2"),
             *[
-                ResBlock(nc[0], nc[0], bias=False, mode="C" + act_mode + "C")
+                ResBlock(nc[0], nc[0], bias=False, mode=f"C{act_mode}C")
                 for _ in range(nb)
             ],
         )

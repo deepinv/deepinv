@@ -23,7 +23,7 @@ class WMSA(nn.Module):
             raise ImportError(
                 "timm is needed to use the SCUNet class. Please install it with `pip install timm`"
             ) from timm
-        super(WMSA, self).__init__()
+        super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.head_dim = head_dim
@@ -173,7 +173,7 @@ class Block(nn.Module):
         input_resolution=None,
     ):
         """SwinTransformer Block"""
-        super(Block, self).__init__()
+        super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         assert type in ["W", "SW"]
@@ -289,8 +289,7 @@ class SCUNet(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
-    :param str device: gpu or cpu. Default: 'cpu'.
-
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -301,9 +300,9 @@ class SCUNet(Denoiser):
         drop_path_rate=0.0,
         input_resolution=256,
         pretrained="download",
-        device="cpu",
+        device=None,
     ):
-        super(SCUNet, self).__init__()
+        super().__init__()
         self.config = config
         self.dim = dim
         self.head_dim = 32
