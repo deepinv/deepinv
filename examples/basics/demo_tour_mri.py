@@ -311,7 +311,7 @@ model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(devic
 
 # %%
 # Note that we require overriding the base
-# :class:`deepinv.training.Trainer` to deal with raw measurements, as we
+# :class:`deepinv.Trainer` to deal with raw measurements, as we
 # do not want to generate k-space measurements, only mask it.
 #
 # .. note ::

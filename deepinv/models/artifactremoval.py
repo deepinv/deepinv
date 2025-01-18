@@ -65,7 +65,7 @@ class ArtifactRemoval(Reconstructor):
 
     def backbone_inference(
         self, tensor_in: Tensor, physics: Physics, y: Tensor
-    ) -> Tensor:
+    ) -> torch.Tensor:
         """Perform inference on the backbone network.
 
         By default, treats backbone network as a denoiser.

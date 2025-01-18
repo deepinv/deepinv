@@ -48,7 +48,7 @@ class CompressiveSpectralImaging(LinearPhysics):
 
 
     :param tuple img_size: image size, must be of form (C,H,W) where C is number of bands.
-    :param Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
+    :param torch.Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
         :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` with masking ratio
         of 0.5, if mask is ``float``, sets mask ratio to this. If ``Tensor``, set mask to this,
         must be of shape ``(B,C,H,W)``.
