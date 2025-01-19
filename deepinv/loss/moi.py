@@ -9,6 +9,7 @@ from deepinv.loss.ei import EILoss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
+from deepinv.transform.base import Transform
 
 
 class MOILoss(Loss):
@@ -52,11 +53,13 @@ class MOILoss(Loss):
         physics: Optional[Union[list[Physics], Physics]] = None,
         physics_generator: Optional[PhysicsGenerator] = None,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
-        apply_noise=True,
-        weight=1.0,
-        rng=None,
+        apply_noise: bool = True,
+        weight: float = 1.0,
+        rng: Optional[torch.Generator] = None,
+        *args,
+        **kwargs
     ):
-        super(MOILoss, self).__init__()
+        super(MOILoss, self).__init__(*args, **kwargs)
         self.name = "moi"
         self.physics = physics
         self.physics_generator = physics_generator
@@ -146,18 +149,30 @@ class MOEILoss(EILoss, MOILoss):
             associated with the measurements, or single physics, or None. If single physics or None, physics generator must be used.
             If None, physics taken during ``forward``.
     :param PhysicsGenerator physics_generator: random physics generator that generates new params, if physics is not a list.
+    :param Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
+        image.
+    :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
+        :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
+        otherwise is generated as :math:`\forw{\hat{x}}`.
+    :param float weight: Weight of the loss.
+    :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
+        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
+    :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
     """
 
     def __init__(
         self,
-        *args,
+        transform: Transform,
         physics: Optional[Union[list[Physics], Physics]] = None,
         physics_generator: PhysicsGenerator = None,
-        **kwargs,
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
+        apply_noise: bool = True,
+        weight: float = 1.0,
+        no_grad: bool = False,
+        rng: Optional[torch.Generator] = None,
     ):
-        EILoss.__init__(*args, **kwargs)
-        self.physics = physics
-        self.physics_generator = physics_generator
+        super().__init__(transform=transform, metric=metric, apply_noise=apply_noise, weight=weight, no_grad=no_grad, physics=physics, physics_generator=physics_generator, rng=rng)
+        self.name = "moei"
 
     def forward(self, x_net, physics, model, **kwargs):
         r"""
@@ -169,4 +184,4 @@ class MOEILoss(EILoss, MOILoss):
         :return: (torch.Tensor) loss.
         """
         physics_cur = self.next_physics(physics)
-        return EILoss.forward(x_net, physics_cur, model, **kwargs)
+        return EILoss.forward(self, x_net, physics_cur, model, **kwargs)
