@@ -57,7 +57,7 @@ class MOILoss(Loss):
         weight: float = 1.0,
         rng: Optional[torch.Generator] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super(MOILoss, self).__init__(*args, **kwargs)
         self.name = "moi"
@@ -171,7 +171,16 @@ class MOEILoss(EILoss, MOILoss):
         no_grad: bool = False,
         rng: Optional[torch.Generator] = None,
     ):
-        super().__init__(transform=transform, metric=metric, apply_noise=apply_noise, weight=weight, no_grad=no_grad, physics=physics, physics_generator=physics_generator, rng=rng)
+        super().__init__(
+            transform=transform,
+            metric=metric,
+            apply_noise=apply_noise,
+            weight=weight,
+            no_grad=no_grad,
+            physics=physics,
+            physics_generator=physics_generator,
+            rng=rng,
+        )
         self.name = "moei"
 
     def forward(self, x_net, physics, model, **kwargs):

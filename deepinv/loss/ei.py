@@ -47,7 +47,7 @@ class EILoss(Loss):
         weight=1.0,
         no_grad=False,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
