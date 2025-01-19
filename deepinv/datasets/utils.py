@@ -7,6 +7,8 @@ import tarfile
 import requests
 from tqdm.auto import tqdm
 
+from scipy.io import loadmat as scipy_loadmat
+
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
@@ -85,6 +87,15 @@ def extract_tarball(file_path, extract_dir) -> None:
         # Thus the progress bar will not move linearly with time
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
+
+
+def loadmat(fname: str) -> dict:
+    """Load MATLAB array from file.
+
+    :param str fname: filename to load
+    :return: dict with str keys and array values.
+    """
+    return scipy_loadmat(fname)
 
 
 class PlaceholderDataset(Dataset):
