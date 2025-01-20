@@ -56,8 +56,8 @@ class Kohler(Dataset):
 
     :param Union[int, str, list[Union[int, str]]] frames: Can be the frame number, ``"first"``, ``"middle"``, ``"last"``, or ``"all"``. If a list is provided, the method will return a list of sharp frames.
     :param str ordering: Ordering of the dataset. Can be ``"printout_first"`` or ``"trajectory_first"``.
-    :param Union[str, Path] root: Root directory of the dataset.
-    :param callable, optional transform: A function used to transform both the blurry shots and the sharp frames.
+    :param Union[str, pathlib.Path] root: Root directory of the dataset.
+    :param Callable transform:: (optional)  A function used to transform both the blurry shots and the sharp frames.
     :param bool download: Download the dataset.
 
     |sep|
@@ -131,7 +131,7 @@ class Kohler(Dataset):
     def download(cls, root: Union[str, Path], remove_finished: bool = False) -> None:
         """Download the dataset.
 
-        :param Union[str, Path] root: Root directory of the dataset.
+        :param Union[str, pathlib.Path] root: Root directory of the dataset.
         :param bool remove_finished: Remove the archives after extraction.
 
         |sep|

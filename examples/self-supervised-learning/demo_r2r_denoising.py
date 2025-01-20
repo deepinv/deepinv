@@ -113,12 +113,11 @@ model = dinv.models.ArtifactRemoval(
 # %%
 # Set up the training parameters
 # --------------------------------------------
-# We set :class:`deepinv.loss.GeneralizedR2RLoss` as the training loss.
+# We set :class:`deepinv.loss.R2RLoss` as the training loss.
 #
 # .. note::
 #
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
-# .. note::
 #
 
 epochs = 1  # choose training epochs

@@ -65,16 +65,16 @@ class ArtifactRemoval(Reconstructor):
 
     def backbone_inference(
         self, tensor_in: Tensor, physics: Physics, y: Tensor
-    ) -> Tensor:
+    ) -> torch.Tensor:
         """Perform inference on the backbone network.
 
         By default, treats backbone network as a denoiser.
         Override for different inference e.g. for an unrolled network.
 
-        :param Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
+        :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
         :param Physics physics: forward physics
-        :param Tensor y: input measurements y
-        :return: Tensor: reconstructed image
+        :param torch.Tensor y: input measurements y
+        :return: (:class:`torch.Tensor`): reconstructed image
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma = physics.noise_model.sigma
