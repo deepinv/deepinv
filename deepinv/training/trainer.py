@@ -275,7 +275,8 @@ class Trainer:
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
             ckpt_pretrained = self.ckpt_pretrained
-        elif ckpt_pretrained is not None:
+
+        if ckpt_pretrained is not None:
             checkpoint = torch.load(
                 self.ckpt_pretrained, map_location=self.device, weights_only=True
             )
