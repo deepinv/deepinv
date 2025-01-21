@@ -48,7 +48,7 @@ class CompressiveSpectralImaging(LinearPhysics):
 
 
     :param tuple img_size: image size, must be of form (C,H,W) where C is number of bands.
-    :param Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
+    :param torch.Tensor, float mask: coded-aperture mask. If ``None``, generate random mask using
         :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` with masking ratio
         of 0.5, if mask is ``float``, sets mask ratio to this. If ``Tensor``, set mask to this,
         must be of shape ``(B,C,H,W)``.
@@ -102,7 +102,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     def pad(self, x: Tensor) -> Tensor:
         """Pad image on bottom or on right.
 
-        :param Tensor x: input image
+        :param torch.Tensor x: input image
         """
         if self.shear_dir == "h":
             return pad(x, (0, 0, 0, self.C - 1), value=1.0)
@@ -112,7 +112,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     def crop(self, x: Tensor) -> Tensor:
         """Crop image on bottom or on right.
 
-        :param Tensor x: input padded image
+        :param torch.Tensor x: input padded image
         """
         if self.shear_dir == "h":
             return x[:, :, : (1 - self.C), :]
@@ -122,7 +122,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     def shear(self, x: Tensor, un=False) -> Tensor:
         """Efficient pixel shear in channel-spatial plane
 
-        :param Tensor x: input image of shape (B,C,H,W)
+        :param torch.Tensor x: input image of shape (B,C,H,W)
         :param bool un: if ``True``, unshear in opposite direction.
         """
         H, W = x.shape[-2:]
@@ -140,14 +140,14 @@ class CompressiveSpectralImaging(LinearPhysics):
     def flatten(self, x: Tensor) -> Tensor:
         """Average over channel dimension
 
-        :param Tensor x: input image of shape B,C,H,W
+        :param torch.Tensor x: input image of shape B,C,H,W
         """
         return x.mean(axis=1, keepdim=True)
 
     def unflatten(self, y: Tensor) -> Tensor:
         """Repeat over channel dimension
 
-        :param Tensor y: input image of shape B,C,H,W
+        :param torch.Tensor y: input image of shape B,C,H,W
         """
         return y.expand(y.shape[0], self.img_size[0], *y.shape[2:]) / (self.img_size[0])
 
@@ -157,9 +157,9 @@ class CompressiveSpectralImaging(LinearPhysics):
 
         If a mask is provided, it updates the class attribute ``mask`` on the fly.
 
-        :param Tensor x: input image
-        :param Tensor mask: CASSI mask
-        :return: (torch.Tensor) output measurements
+        :param torch.Tensor x: input image
+        :param torch.Tensor mask: CASSI mask
+        :return: (:class:`torch.Tensor`) output measurements
         """
         if x.shape[1:] != self.img_size:
             raise ValueError("Input must be same shape as img_shape.")
@@ -192,9 +192,9 @@ class CompressiveSpectralImaging(LinearPhysics):
 
         If a mask is provided, it updates the class attribute ``mask`` on the fly.
 
-        :param Tensor x: input measurements
-        :param Tensor mask: CASSI mask
-        :return: (torch.Tensor) output image
+        :param torch.Tensor x: input measurements
+        :param torch.Tensor mask: CASSI mask
+        :return: (:class:`torch.Tensor`) output image
         """
         self.update_parameters(mask=mask)
 

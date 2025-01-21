@@ -35,9 +35,9 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     Code loosely adapted from E2E-VarNet implementation from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/models/varnet.py.
 
-    :param Denoiser, nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
+    :param Denoiser, torch.nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
         If ``None``, a small DnCNN is used.
-    :param nn.Module sensitivity_model: network to jointly estimate coil sensitivity maps for multi-coil MRI. If ``None``, do not perform any map estimation. For single-coil MRI, unused.
+    :param torch.nn.Module sensitivity_model: network to jointly estimate coil sensitivity maps for multi-coil MRI. If ``None``, do not perform any map estimation. For single-coil MRI, unused.
     :param int num_cascades: number of unrolled iterations ('cascades').
     :param str mode: if 'varnet', perform iterates on the images x as in original VarNet.
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
@@ -85,16 +85,16 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     def backbone_inference(
         self, tensor_in: Tensor, physics: Union[MRI, MultiCoilMRI], y: Tensor
-    ) -> Tensor:
+    ) -> torch.Tensor:
         """Perform inference on input tensor.
 
         Uses physics and y for data consistency.
         If necessary, perform fully-sampled MRI IFFT on model output.
 
-        :param Tensor tensor_in: input tensor as dictated by VarNet mode (either k-space or image)
+        :param torch.Tensor tensor_in: input tensor as dictated by VarNet mode (either k-space or image)
         :param Physics physics: forward physics for data consistency
-        :param Tensor y: input measurements y for data consistency
-        :return: Tensor: reconstructed image
+        :param torch.Tensor y: input measurements y for data consistency
+        :return: (:class:`torch.Tensor`) reconstructed image
         """
         if self.sensitivity_model is not None:
             if self.mode != "e2e-varnet":
@@ -125,7 +125,7 @@ class VarNetBlock(nn.Module):
     One unrolled iteration ("cascade") of VarNet or E2E-VarNet.
     See :class:`deepinv.models.VarNet` for details.
 
-    :param Denoiser, nn.Module denoiser: backbone denoiser network.
+    :param Denoiser, torch.nn.Module denoiser: backbone denoiser network.
     :param bool estimate_x: whether estimate images x, or kspaces y.
     """
 
@@ -144,10 +144,10 @@ class VarNetBlock(nn.Module):
 
         The following arguments should be passed in as a tuple ``args_in``.
 
-        :param Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
+        :param torch.Tensor tensor_in: input tensor, either images ``x`` or kspaces ``y`` depending on ``self.estimate_x``.
         :param MRI physics: forward physics including updated mask
-        :param Tensor y: input kspace measurements.
-        :param Optional[Tensor] coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
+        :param torch.Tensor y: input kspace measurements.
+        :param Optional[torch.Tensor] coil_maps: if ``sensitivity_model is not None``, this will contain coil map estimates for E2E-VarNet. Otherwise, it will be ``None``.
         :return: ``(tensor_out, physics, y, coil_maps)``, where tensor_out is either images ``x`` or kspaces ``y``.
         """
         tensor_in, physics, y, coil_maps = args_in

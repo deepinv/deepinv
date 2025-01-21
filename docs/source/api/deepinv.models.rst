@@ -69,10 +69,15 @@ Denoisers Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
-   deepinv.models.complex.to_complex_denoiser
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
 
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
 
 Artifact Removal
 ----------------

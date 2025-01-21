@@ -100,7 +100,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded PnP algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :meth:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
+# We use the helper function :func:`deepinv.unfolded.unfolded_builder` to defined the Unfolded architecture.
 # The chosen algorithm is here DRS (Douglas-Rachford Splitting).
 # Note that if the prior (resp. a parameter) is initialized with a list of lenght max_iter,
 # then a distinct model (resp. parameter) is trained for each iteration.
@@ -174,7 +174,7 @@ test_dataloader = DataLoader(
 # %%
 # Train the network
 # ----------------------------------------------------------------------------------------
-# We train the network using the :meth:`deepinv.Trainer` class.
+# We train the network using the :class:`deepinv.Trainer` class.
 
 trainer = dinv.Trainer(
     model,

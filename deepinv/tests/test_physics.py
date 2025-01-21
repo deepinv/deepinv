@@ -85,7 +85,7 @@ def find_operator(name, device):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     img_size = (3, 16, 8)
     norm = 1
@@ -364,7 +364,7 @@ def find_nonlinear_operator(name, device):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     if name == "haze":
         x = dinv.utils.TensorList(

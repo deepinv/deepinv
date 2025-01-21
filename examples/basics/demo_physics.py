@@ -73,8 +73,8 @@ dinv.utils.plot([x, y, xlin], titles=["image", "meas.", "linear rec."])
 # --------------------------------------------
 #
 #     If the operator is linear, it is recommended to verify that the transpose well-defined using
-#     :meth:`deepinv.physics.LinearPhysics.adjointness_test()`,
-#     and that it has a unit norm using :meth:`deepinv.physics.LinearPhysics.compute_norm()`.
+#     :func:`deepinv.physics.LinearPhysics.adjointness_test`,
+#     and that it has a unit norm using :func:`deepinv.physics.LinearPhysics.compute_norm`.
 
 print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 
@@ -86,7 +86,7 @@ if physics.adjointness_test(x) < 1e-5:
 # Creating a decomposable forward operator.
 # --------------------------------------------
 # If the forward operator has a closed form singular value decomposition (SVD),
-# it is recommended to implement the operator using the :meth:`deepinv.physics.DecomposablePhysics` method.
+# it is recommended to implement the operator using the :class:`deepinv.physics.DecomposablePhysics` method.
 #
 # The operator in this example is decomposable, so we can implement it using
 # :class:`deepinv.physics.DecomposablePhysics`.

@@ -107,7 +107,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # As a reconstruction network, we use an unrolled network (half-quadratic splitting)
 # with a trainable denoising prior based on the DnCNN architecture as an example
 # of a model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-# See :meth:`deepinv.utils.demo.demo_mri_model` for details.
+# See :func:`deepinv.utils.demo.demo_mri_model` for details.
 
 model = demo_mri_model(device=device)
 
