@@ -22,7 +22,7 @@ New Features
 - Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
-
+- Trainer now can log train progress per batch or per epoch (:gh:`387` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

@@ -114,6 +114,9 @@ class Trainer:
     :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
         Used in conjunction with ``physics_generator``.
+    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
+        This is useful for visualising train progress inside an epoch, not just over epochs.
+        If ``False`` (default), log average over dataset per epoch (standard training).
     """
 
     model: torch.nn.Module
@@ -150,6 +153,7 @@ class Trainer:
     compare_no_learning: bool = False
     no_learning_method: str = "A_adjoint"
     loop_physics_generator: bool = False
+    log_train_batch: bool = False
 
     def setup_train(self, train=True, **kwargs):
         r"""
@@ -279,21 +283,28 @@ class Trainer:
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"]
 
-    def log_metrics_wandb(self, logs, epoch, train=True):
+    def log_metrics_wandb(
+        self, logs: dict, step: int, train: bool = True, commit: bool = None
+    ):
         r"""
         Log the metrics to wandb.
 
         It logs the metrics to wandb.
 
         :param dict logs: Dictionary containing the metrics to log.
-        :param int epoch: Current epoch.
+        :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param bool commit: commit the wandb log. Set to ``False`` if you will also log to this ``step`` later.
+            Defaults to ``None`` to match ``wandb.log`` default.
         """
+        if step is None:
+            raise ValueError("wandb logging step must be specified.")
+
         if not train:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
-            wandb.log(logs, step=epoch)
+            wandb.log(logs, step=step, commit=commit)
 
     def check_clip_grad(self):
         r"""
@@ -580,7 +591,7 @@ class Trainer:
 
         return x_nl
 
-    def step(self, epoch, progress_bar, train=True, last_batch=False):
+    def step(self, epoch, progress_bar, train_ite=None, train=True, last_batch=False):
         r"""
         Train/Eval a batch.
 
@@ -588,6 +599,7 @@ class Trainer:
 
         :param int epoch: Current epoch.
         :param progress_bar: `tqdm <https://tqdm.github.io/docs/tqdm/>`_ progress bar.
+        :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
@@ -596,8 +608,14 @@ class Trainer:
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
 
+        if self.log_train_batch and train:
+            self.reset_metrics()
+
         for g in G_perm:  # for each dataloader
-            x, y, physics_cur = self.get_samples(self.current_iterators, g)
+            x, y, physics_cur = self.get_samples(
+                self.current_train_iterators if train else self.current_eval_iterators,
+                g,
+            )
 
             # Compute loss and perform backprop
             x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
@@ -613,6 +631,14 @@ class Trainer:
             # Update the progress bar
             progress_bar.set_postfix(logs)
 
+        if self.log_train_batch and train:
+            perform_eval = self.eval_dataloader and (
+                epoch % self.eval_interval == 0 or epoch + 1 == self.epochs
+            )
+            self.log_metrics_wandb(
+                logs, step=train_ite, train=train, commit=not perform_eval
+            )
+
         if last_batch:
             if self.verbose and not self.show_progress_bar:
                 if self.verbose_individual_losses:
@@ -625,10 +651,17 @@ class Trainer:
                         f"{'Train' if train else 'Eval'} epoch {epoch}: Total loss: {logs['TotalLoss']}"
                     )
 
-            if train:
+            if self.log_train_batch and train:
+                logs["step"] = train_ite
+            elif train:
                 logs["step"] = epoch
+                self.log_metrics_wandb(logs, step=epoch, train=train)
+            elif self.log_train_batch:  # train=False
+                logs["step"] = train_ite
+                self.log_metrics_wandb(logs, step=train_ite, train=train, commit=True)
+            else:
+                self.log_metrics_wandb(logs, step=epoch, train=train)
 
-            self.log_metrics_wandb(logs, epoch, train)  # Log metrics to wandb
             self.plot(
                 epoch,
                 physics_cur,
@@ -774,7 +807,9 @@ class Trainer:
             self.reset_metrics()
 
             ## Training
-            self.current_iterators = [iter(loader) for loader in self.train_dataloader]
+            self.current_train_iterators = [
+                iter(loader) for loader in self.train_dataloader
+            ]
 
             batches = min(
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
@@ -793,45 +828,58 @@ class Trainer:
                 )
             ):
                 progress_bar.set_description(f"Train epoch {epoch + 1}/{self.epochs}")
+                last_batch = i == batches - 1
+                train_ite = (epoch * batches) + i
                 self.step(
-                    epoch, progress_bar, train=True, last_batch=(i == batches - 1)
+                    epoch,
+                    progress_bar,
+                    train_ite=train_ite,
+                    train=True,
+                    last_batch=last_batch,
                 )
+
+                perform_eval = self.eval_dataloader and (
+                    epoch % self.eval_interval == 0 or epoch + 1 == self.epochs
+                )
+                if perform_eval and (last_batch or self.log_train_batch):
+                    ## Evaluation
+                    self.current_eval_iterators = [
+                        iter(loader) for loader in self.eval_dataloader
+                    ]
+
+                    eval_batches = min(
+                        [
+                            len(loader) - loader.drop_last
+                            for loader in self.eval_dataloader
+                        ]
+                    )
+
+                    self.model.eval()
+                    for j in (
+                        eval_progress_bar := tqdm(
+                            range(eval_batches),
+                            ncols=150,
+                            disable=(not self.verbose or not self.show_progress_bar),
+                        )
+                    ):
+                        eval_progress_bar.set_description(
+                            f"Eval epoch {epoch + 1}/{self.epochs}"
+                        )
+                        self.step(
+                            epoch,
+                            eval_progress_bar,
+                            train_ite=train_ite,
+                            train=False,
+                            last_batch=(j == eval_batches - 1),
+                        )
+
+                    for l in self.logs_losses_eval:
+                        self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             self.loss_history.append(self.logs_total_loss_train.avg)
 
             if self.scheduler:
                 self.scheduler.step()
-
-            ## Evaluation
-            perform_eval = self.eval_dataloader and (
-                epoch % self.eval_interval == 0 or epoch + 1 == self.epochs
-            )
-            if perform_eval:
-                self.current_iterators = [
-                    iter(loader) for loader in self.eval_dataloader
-                ]
-
-                batches = min(
-                    [len(loader) - loader.drop_last for loader in self.eval_dataloader]
-                )
-
-                self.model.eval()
-                for i in (
-                    progress_bar := tqdm(
-                        range(batches),
-                        ncols=150,
-                        disable=(not self.verbose or not self.show_progress_bar),
-                    )
-                ):
-                    progress_bar.set_description(
-                        f"Eval epoch {epoch + 1}/{self.epochs}"
-                    )
-                    self.step(
-                        epoch, progress_bar, train=False, last_batch=(i == batches - 1)
-                    )
-
-                for l in self.logs_losses_eval:
-                    self.eval_metrics_history[l.__class__.__name__] = l.avg
 
             # Saving the model
             self.save_model(epoch, self.eval_metrics_history if perform_eval else None)
@@ -856,15 +904,16 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = self.wandb_vis
+        aux = (self.wandb_vis, self.log_train_batch)
         self.wandb_vis = False
+        self.log_train_batch = False
 
         self.reset_metrics()
 
         if not isinstance(test_dataloader, list):
             test_dataloader = [test_dataloader]
 
-        self.current_iterators = [iter(loader) for loader in test_dataloader]
+        self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 
         batches = min([len(loader) - loader.drop_last for loader in test_dataloader])
 
@@ -879,7 +928,7 @@ class Trainer:
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        self.wandb_vis = aux
+        self.wandb_vis, self.log_train_batch = aux
 
         if self.verbose:
             print("Test results:")
