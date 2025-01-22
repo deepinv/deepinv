@@ -10,7 +10,8 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+
 LIST_SURE = [
     "Gaussian",
     "Poisson",
@@ -68,7 +69,7 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
         loss.append(dinv.loss.ScoreLoss(dinv.physics.GaussianNoise(0.1), 100))
-    elif loss_name == "sup":
+    elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
@@ -252,6 +253,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
+        eval_dataloader=test_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         losses=loss,
@@ -262,6 +264,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         save_path=save_dir / "dinv_test",
         plot_images=False,
         verbose=False,
+        log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model
