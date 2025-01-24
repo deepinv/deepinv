@@ -68,10 +68,10 @@ class FISTAIteration(OptimIterator):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
@@ -112,7 +112,7 @@ class fStepPGD(fStep):
          :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
          :param torch.Tensor y: Input data.
-         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
@@ -198,7 +198,7 @@ class fStepPMD(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
         """
         if not self.g_first:

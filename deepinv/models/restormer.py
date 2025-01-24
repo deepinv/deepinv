@@ -30,11 +30,7 @@ class Restormer(Denoiser):
     This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
-    |
-    |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
-    |  Usage :
-    |       model = Restormer()
-    |       output = model(input)
+    By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
@@ -51,10 +47,11 @@ class Restormer(Denoiser):
     :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the ``TransformerBlock``.
         ``LayerNorm_type = 'BiasFree' / 'WithBias'``.
     :param bool dual_pixel_task: Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-    :param NoneType, str pretrained: Default to ``'denoising'``.
-        ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub.
-        ``if pretrained = '\*.pth'``, will load weights from a local pth file.
+    :param None, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param None, str pretrained: Default to ``'denoising'``.
+        If ``pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``,
+        will download weights from the HuggingFace Hub.
+        If ``pretrained = '\*.pth'``, will load weights from a local pth file.
     :param bool train: training or testing mode.
 
     .. note::

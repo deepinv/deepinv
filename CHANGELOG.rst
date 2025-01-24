@@ -10,10 +10,12 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
 - Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
+- Add CASSI operator (:gh:`377` by `Andrew Wang`_)
 
 - Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
 - Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
@@ -24,10 +26,13 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+- Set sphinx warnings as errors (:gh:`379` by `Julian Tachella`_)
+- Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Changed the R2R loss to handle multiple noise distributions (:gh:`380` by `Brayan Monroy`_)
 

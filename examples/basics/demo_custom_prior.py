@@ -164,7 +164,7 @@ model = ADMM(
 # Evaluate the reconstruction algorithm on the problem.
 # ---------------------------------------------------------------
 #
-# We can use the :func:`deepinv.utils.test` function to evaluate the reconstruction algorithm on a test set.
+# We can use the :func:`deepinv.test` function to evaluate the reconstruction algorithm on a test set.
 
 
 batch_size = 1

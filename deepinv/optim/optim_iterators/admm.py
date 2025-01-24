@@ -39,10 +39,10 @@ class ADMMIteration(OptimIterator):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x, z = X["est"]
@@ -81,7 +81,7 @@ class fStepADMM(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         """
         if self.g_first:
             p = x + z
@@ -104,7 +104,7 @@ class gStepADMM(gStep):
 
         :param torch.Tensor x: current first variable
         :param torch.Tensor z: current second variable
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         if self.g_first:

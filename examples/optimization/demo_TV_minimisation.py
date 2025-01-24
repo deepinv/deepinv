@@ -82,7 +82,7 @@ y = physics(x)
 # Exploring the total variation prior.
 # ------------------------------------
 #
-# In this example, we will use the total variation prior, which can be done with the :meth:`deepinv.optim.prior.Prior`
+# In this example, we will use the total variation prior, which can be done with the :class:`deepinv.optim.prior.Prior`
 # class. The prior object represents the cost function of the prior (TV in this case), as well as convenient methods,
 # such as its proximal operator :math:`\text{prox}_{\tau g}`.
 

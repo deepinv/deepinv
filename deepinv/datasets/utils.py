@@ -7,6 +7,8 @@ import tarfile
 import requests
 from tqdm.auto import tqdm
 
+from scipy.io import loadmat as scipy_loadmat
+
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
@@ -87,6 +89,15 @@ def extract_tarball(file_path, extract_dir) -> None:
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
+def loadmat(fname: str) -> dict:
+    """Load MATLAB array from file.
+
+    :param str fname: filename to load
+    :return: dict with str keys and array values.
+    """
+    return scipy_loadmat(fname)
+
+
 class PlaceholderDataset(Dataset):
     """
     A placeholder dataset for test purposes.
@@ -121,6 +132,11 @@ class Rescale(Module):
         self.rescale_mode = rescale_mode
 
     def forward(self, x: Tensor):
+        r"""
+        Rescale image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
         return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
 
 
@@ -131,4 +147,9 @@ class ToComplex(Module):
     """
 
     def forward(self, x: Tensor):
+        r"""
+        Convert real image to complex image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
         return stack([x, zeros_like(x)], dim=-3)

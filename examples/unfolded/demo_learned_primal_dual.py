@@ -63,7 +63,7 @@ physics = dinv.physics.Tomography(
 # %%
 # Define a custom iterator for the PDNet learned primal-dual algorithm.
 # ---------------------------------------------------------------------
-# The iterator is a subclass of the Chambolle-Pock iterator :meth:`deepinv.optim.optim_iterators.PDIteration`.
+# The iterator is a subclass of the Chambolle-Pock iterator :class:`deepinv.optim.optim_iterators.CPIteration`.
 # In PDNet, the primal (gStep) and dual (fStep) updates are directly replaced by neural networks.
 # We thus redefine the fStep and gStep classes as simple proximal operators of the data fidelity and prior, respectively.
 # Afterwards, both the data fidelity and the prior proximal operators are defined as trainable models.
@@ -123,7 +123,7 @@ class gStepPDNet(gStep):
 # %%
 # Define the trainable prior and data fidelity terms.
 # ---------------------------------------------------
-# Prior and data-fidelity are respectively defined as subclass of :meth:`deepinv.optim.Prior` and :meth:`deepinv.optim.DataFidelity`.
+# Prior and data-fidelity are respectively defined as subclass of :class:`deepinv.optim.Prior` and :class:`deepinv.optim.DataFidelity`.
 # Their proximal operators are replaced by trainable models.
 
 

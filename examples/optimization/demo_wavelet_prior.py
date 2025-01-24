@@ -84,7 +84,7 @@ y = physics(x)
 # Exploring the wavelet prior.
 # ------------------------------------
 #
-# In this example, we will use the wavelet prior, which can be done with the :meth:`deepinv.optim.prior.WaveletPrior`
+# In this example, we will use the wavelet prior, which can be done with the :class:`deepinv.optim.prior.WaveletPrior`
 # class. The prior object represents the cost function of the prior, as well as convenient methods,
 # such as its proximal operator :math:`\text{prox}_{\tau \regname}`.
 

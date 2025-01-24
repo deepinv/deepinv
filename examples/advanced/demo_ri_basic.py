@@ -243,7 +243,7 @@ print("Operator norm: ", opnorm)
 
 # %%
 # The PSF, defined as :math:`\operatorname{PSF} = A \delta` (where :math:`\delta` is a Dirac), can be computed
-# with the help of the :meth:`deepinv.utils.nn.dirac_like` function.
+# with the help of the :func:`deepinv.utils.dirac_like` function.
 
 dirac = dirac_like(image_gdth).to(device)
 PSF = physics.A_adjoint(physics.A(dirac))

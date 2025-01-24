@@ -47,7 +47,7 @@ class fStepHQS(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
         return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
 
