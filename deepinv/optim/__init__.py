@@ -9,6 +9,7 @@ from .data_fidelity import (
     LogPoissonLikelihood,
 )
 from .optimizers import (
+    optim_builder,
     BaseOptim,
     ADMM,
     DRS,
