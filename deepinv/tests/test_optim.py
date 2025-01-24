@@ -252,7 +252,16 @@ def test_data_fidelity_amplitude_loss(device):
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
 @pytest.mark.parametrize(
     "name_algo",
-    ["GradientDescent", "ProximalGradientDescent", "ADMM", "DRS", "HQS", "FISTA"],
+    [
+        "GradientDescent",
+        "ProximalGradientDescent",
+        "ADMM",
+        "DRS",
+        "HQS",
+        "FISTA",
+        "MirrorDescent",
+        "ProximalMirrorDescent",
+    ],
 )
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:

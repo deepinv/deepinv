@@ -117,7 +117,7 @@ class OptimIterator(nn.Module):
             )
             x = self.g_step(z, cur_prior, cur_params, *args, **kwargs)
         else:
-            z = self.g_step(x_prev, cur_prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params, *args, **kwargs)
             x = self.f_step(
                 z, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
             )

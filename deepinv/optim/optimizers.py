@@ -666,7 +666,7 @@ class ProximalMirrorDescent(BaseOptim):
     def __init__(
         self, bregman_potential=BregmanL2(), g_first=False, F_fn=None, **kwargs
     ):
-        super(ProximalGradientDescent, self).__init__(
+        super(ProximalMirrorDescent, self).__init__(
             PMDIteration(
                 bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
             ),

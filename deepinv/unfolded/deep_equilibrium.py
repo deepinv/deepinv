@@ -27,7 +27,7 @@ class BaseDEQ(BaseUnfold):
 
     .. note::
 
-        For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+        For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
 
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
@@ -99,7 +99,7 @@ class BaseDEQ(BaseUnfold):
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
                 def __init__(self, **kwargs):
-                    super().__init__(**kwargs)
+                    super().__init__(has_cost=False, **kwargs)
 
                 def forward(self, X, *args, **kwargs):
                     return {
@@ -189,3 +189,22 @@ def DEQ_builder(
         params_algo=params_algo,
         **kwargs,
     )
+
+
+class DEQ_GradientDescent(BaseDEQ):
+    def __init__(self, F_fn=None, **kwargs):
+        super(DEQ_GradientDescent, self).__init__(GDIteration(F_fn=F_fn), **kwargs)
+
+
+class DEQ_HQS(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
+
+
+class DEQ_ProximalGradientDescent(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
