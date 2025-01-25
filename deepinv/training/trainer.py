@@ -24,8 +24,8 @@ class Trainer:
 
     See the :ref:`User Guide <trainer>` for more details on how to adapt the trainer to your needs.
 
-    Training can be done by calling the :meth:`deepinv.Trainer.train` method, whereas
-    testing can be done by calling the :meth:`deepinv.Trainer.test` method.
+    Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
+    testing can be done by calling the :func:`deepinv.Trainer.test` method.
 
     Training details are saved every ``ckp_interval`` epochs in the following format
 
@@ -37,8 +37,8 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    - Use :meth:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.
-    - Use :meth:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
+    - Use :func:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.
+    - Use :func:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
 
     .. note::
 
@@ -61,13 +61,14 @@ class Trainer:
         If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
         If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
         Caveat: this requires ``shuffle=False`` in your dataloaders.
-        An alternative solution is to generate and save params offline using :meth:`deepinv.datasets.generate_dataset`.
+        An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
+        The params dict will then be automatically updated every time data is loaded.
 
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
-    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.
+    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
         a signal x or a tuple of (x, y) signal/measurement pairs.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
@@ -76,7 +77,7 @@ class Trainer:
         Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
-    :param None, torch.optim.lr_scheduler scheduler: Torch scheduler for changing the learning rate across iterations.
+    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
@@ -109,7 +110,7 @@ class Trainer:
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
-        :meth:`deepinv.Trainer.no_learning_inference` method.
+        :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method.
     :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
         Used in conjunction with ``physics_generator``.
@@ -124,7 +125,7 @@ class Trainer:
         SupLoss()
     )
     eval_dataloader: torch.utils.data.DataLoader = None
-    scheduler: torch.optim.lr_scheduler = None
+    scheduler: torch.optim.lr_scheduler.LRScheduler = None
     metrics: Union[Metric, List[Metric]] = PSNR()
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
@@ -342,7 +343,7 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
-            params = self.physics_generator[g].step(x.size(0))
+            params = self.physics_generator[g].step(batch_size=x.size(0))
             y = physics(x, **params)
         else:
             y = physics(x)
@@ -367,9 +368,9 @@ class Trainer:
         :returns: a dictionary containing at least: the ground truth, the measurement, and the current physics operator.
         """
         data = next(iterators[g])
-        if (type(data) is not tuple and type(data) is not list) or len(data) != 2:
+        if (type(data) is not tuple and type(data) is not list) or len(data) < 2:
             raise ValueError(
-                "If online_measurements=False, the dataloader should output a tuple (x, y)"
+                "If online_measurements=False, the dataloader should output a tuple (x, y) or (x, y, params)"
             )
 
         if len(data) == 2:
@@ -586,7 +587,7 @@ class Trainer:
         It performs the forward pass, the backward pass, and the evaluation at each iteration.
 
         :param int epoch: Current epoch.
-        :param tqdm progress_bar: Progress bar.
+        :param progress_bar: `tqdm <https://tqdm.github.io/docs/tqdm/>`_ progress bar.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
@@ -841,15 +842,15 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader, save_path=None, compare_no_learning=True):
+    def test(self, test_dataloader, save_path=None, compare_no_learning=True) -> dict:
         r"""
-        Test the model.
+        Test the model, compute metrics and plot images.
 
         :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) should provide a
             a signal x or a tuple of (x, y) signal/measurement pairs.
-        :param str save_path: Directory in which to save the trained model.
+        :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
-        :returns: The trained model.
+        :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
         self.setup_train(train=False)
@@ -928,15 +929,15 @@ def train(
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
-    :param torch.nn.optim.Optimizer optimizer: Torch optimizer for training the network.
+    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
         a signal x or a tuple of (x, y) signal/measurement pairs.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
-    :param args: Other positional arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
-    :param kwargs: Keyword arguments to pass to Trainer constructor. See :meth:`deepinv.Trainer`.
+    :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
+    :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
     """
     trainer = Trainer(

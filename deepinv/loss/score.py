@@ -1,11 +1,12 @@
 import torch
 import deepinv.physics
 from deepinv.loss.loss import Loss
+from deepinv.models.base import Reconstructor
 
 
 class ScoreLoss(Loss):
     r"""
-    Learns score of noise distribution.
+    Learns score of distribution in the context of Noise2Score.
 
     Approximates the score of the measurement distribution :math:`S(y)\approx \nabla \log p(y)`
     https://proceedings.neurips.cc/paper_files/paper/2021/file/077b83af57538aa183971a2fe0971ec1-Paper.pdf.
@@ -32,7 +33,7 @@ class ScoreLoss(Loss):
     .. warning::
 
         The user should provide a backbone model :math:`S`
-        to :meth:`adapt_model` which returns the full reconstruction network
+        to :func:`adapt_model <deepinv.loss.ScoreLoss.adapt_model>` which returns the full reconstruction network
         :math:`R`, which is mandatory to compute the loss properly.
 
     .. warning::
@@ -86,99 +87,98 @@ class ScoreLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.Tensor) Score loss.
+        :return: (:class:`torch.Tensor`) Score loss.
         """
         return model.get_error()
 
     def adapt_model(self, model, **kwargs):
         r"""
-        Transforms score backbone net :meth:`S` into :meth:`R` for training and evaluation.
+        Transforms score backbone net :math:`S` into :math:`R` for training and evaluation.
 
         :param torch.nn.Module model: Backbone model approximating the score.
-        :return: (torch.nn.Module) Adapted reconstruction model.
+        :return: :class:`deepinv.loss.ScoreLoss.ScoreModel` adapted reconstruction model.
         """
-        if isinstance(model, ScoreModel):
+        if isinstance(model, self.ScoreModel):
             return model
         else:
-            return ScoreModel(model, self.noise_model, self.delta, self.total_batches)
+            return self.ScoreModel(
+                model, self.noise_model, self.delta, self.total_batches
+            )
 
-
-class ScoreModel(torch.nn.Module):
-    r"""
-    Score model for the ScoreLoss.
-
-
-    :param torch.nn.Module model: Backbone model approximating the score.
-    :param None, torch.nn.Module noise_model: Noise distribution corrupting the measurements
-        (see :ref:`the physics docs <physics>`). Options are :class:`deepinv.physics.GaussianNoise`,
-        :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
-        :class:`deepinv.physics.UniformGaussianNoise`. By default, it uses the noise model associated with
-        the physics operator provided in the forward method.
-    :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
-        which are annealed during training.
-    :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
-
-    """
-
-    def __init__(self, model, noise_model, delta, total_batches):
-        super(ScoreModel, self).__init__()
-        self.base_model = model
-        self.min = delta[0]
-        self.max = delta[1]
-        self.noise_model = noise_model
-        self.counter = 0
-        self.total_batches = total_batches
-
-    def forward(self, y, physics, update_parameters=False):
+    class ScoreModel(Reconstructor):
         r"""
-        Computes the reconstruction of the noisy measurements.
+        Score model for the ScoreLoss.
 
-        :param torch.Tensor y: Measurements.
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
-        :param bool update_parameters: If True, updates the parameters of the model.
+        :param torch.nn.Module model: Backbone model approximating the score.
+        :param None, torch.nn.Module noise_model: Noise distribution corrupting the measurements
+            (see :ref:`the physics docs <physics>`). Options are :class:`deepinv.physics.GaussianNoise`,
+            :class:`deepinv.physics.PoissonNoise`, :class:`deepinv.physics.GammaNoise` and
+            :class:`deepinv.physics.UniformGaussianNoise`. By default, it uses the noise model associated with
+            the physics operator provided in the forward method.
+        :param tuple delta: Tuple of two floats representing the minimum and maximum noise level,
+            which are annealed during training.
+        :param int total_batches: Total number of training batches (epochs * number of batches per epoch).
         """
 
-        if self.noise_model is None:
-            noise_model = physics.noise_model
-        else:
-            noise_model = self.noise_model
+        def __init__(self, model, noise_model, delta, total_batches):
+            super().__init__()
+            self.base_model = model
+            self.min = delta[0]
+            self.max = delta[1]
+            self.noise_model = noise_model
+            self.counter = 0
+            self.total_batches = total_batches
 
-        noise_class = noise_model.__class__.__name__
+        def forward(self, y, physics, update_parameters=False):
+            r"""
+            Computes the reconstruction of the noisy measurements.
 
-        if self.training:
-            self.counter += 1
-            w = self.counter / self.total_batches
-            delta = self.max * (1 - w) + self.min * w
-            sigma = (
-                torch.randn((y.size(0),) + (1,) * (y.dim() - 1), device=y.device)
-                * delta
-            )
-        else:
-            sigma = self.min
+            :param torch.Tensor y: Measurements.
+            :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
+            :param bool update_parameters: If True, updates the parameters of the model.
+            """
 
-        extra_noise = torch.randn_like(y)
+            if self.noise_model is None:
+                noise_model = physics.noise_model
+            else:
+                noise_model = self.noise_model
 
-        y_plus = y + extra_noise * sigma
+            noise_class = noise_model.__class__.__name__
 
-        grad = self.base_model(y_plus, physics)
+            if self.training:
+                self.counter += 1
+                w = self.counter / self.total_batches
+                delta = self.max * (1 - w) + self.min * w
+                sigma = (
+                    torch.randn((y.size(0),) + (1,) * (y.dim() - 1), device=y.device)
+                    * delta
+                )
+            else:
+                sigma = self.min
 
-        if update_parameters:
-            error = extra_noise + grad * sigma
-            self.error = error.pow(2).mean()
+            extra_noise = torch.randn_like(y)
 
-        if noise_class in ["GaussianNoise", "UniformGaussianNoise"]:
-            out = y + noise_model.sigma**2 * grad
-        elif noise_class == "PoissonNoise":
-            if not noise_model.normalize:
-                y *= noise_model.gain
-            out = y + noise_model.gain * y * grad
-        elif noise_class == "GammaNoise":
-            l = noise_model.l
-            out = l * y / ((l - 1.0) - y * grad)
-        else:
-            raise NotImplementedError(f"Noise model {noise_class} not implemented")
+            y_plus = y + extra_noise * sigma
 
-        return out
+            grad = self.base_model(y_plus, physics)
 
-    def get_error(self):
-        return self.error
+            if update_parameters:
+                error = extra_noise + grad * sigma
+                self.error = error.pow(2).mean()
+
+            if noise_class in ["GaussianNoise", "UniformGaussianNoise"]:
+                out = y + noise_model.sigma**2 * grad
+            elif noise_class == "PoissonNoise":
+                if not noise_model.normalize:
+                    y *= noise_model.gain
+                out = y + noise_model.gain * y * grad
+            elif noise_class == "GammaNoise":
+                l = noise_model.l
+                out = l * y / ((l - 1.0) - y * grad)
+            else:
+                raise NotImplementedError(f"Noise model {noise_class} not implemented")
+
+            return out
+
+        def get_error(self):
+            return self.error

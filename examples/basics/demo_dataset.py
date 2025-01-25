@@ -58,7 +58,7 @@ dinv.utils.plot(dataset[0][0].unsqueeze(0))
 # We use a simple denoising forward operator with Gaussian noise.
 #
 # .. note::
-#      :func:`dinv.datasets.generate_dataset` will ignore other attributes than the image,
+#      :func:`deepinv.datasets.generate_dataset` will ignore other attributes than the image,
 #      e.g. the class labels if there are any.
 
 
@@ -94,7 +94,7 @@ dinv.utils.plot([x.unsqueeze(0), y.unsqueeze(0)])
 #
 # .. note::
 #
-#     You can adapt this code to build your custom train function, in case that :func:`dinv.train`
+#     You can adapt this code to build your custom train function, in case :func:`deepinv.train`
 #     doesn't meet your needs.
 
 batch_size = 2
