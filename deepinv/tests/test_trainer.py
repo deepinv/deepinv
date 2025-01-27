@@ -174,3 +174,22 @@ def test_trainer_physics_generator_params(imsize, loop_physics_generator_params)
     else:
         assert all([a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
         assert all([a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
+
+
+def test_trainer_load_model(tmp_path):
+    class TempModel(torch.nn.Module):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.a = torch.nn.Parameter(torch.Tensor([1]), requires_grad=False)
+
+    trainer = dinv.Trainer(
+        model=TempModel(),
+        physics=dinv.physics.Physics(),
+        optimizer=None,
+        train_dataloader=None,
+    )
+
+    torch.save({"state_dict": trainer.model.state_dict()}, tmp_path / "temp.pth")
+    trainer.model.a *= 3
+    trainer.load_model(tmp_path / "temp.pth")
+    assert trainer.model.a == 1
