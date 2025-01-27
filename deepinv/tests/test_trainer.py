@@ -148,7 +148,7 @@ def test_trainer_physics_generator_params(imsize, loop_physics_generator_params)
         fs = []
 
         def step(self, *args, **kwargs):
-            x, y, physics_cur = self.get_samples(self.current_iterators, 0)
+            x, y, physics_cur = self.get_samples(self.current_train_iterators, 0)
             self.ys += [y]
             self.fs += [physics_cur.f]
 
