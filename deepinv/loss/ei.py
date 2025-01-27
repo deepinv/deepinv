@@ -47,8 +47,10 @@ class EILoss(Loss):
         apply_noise=True,
         weight=1.0,
         no_grad=False,
+        *args,
+        **kwargs,
     ):
-        super(EILoss, self).__init__()
+        super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
         self.metric = metric
         self.weight = weight

@@ -282,9 +282,18 @@ class Trainer:
 
         self.load_model()
 
-    def load_model(self):
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
+    def load_model(self, ckpt_pretrained: str = None):
+        """Load model from checkpoint.
+
+        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class. If not `None`, override checkpoint passed to class.
+        """
+        if ckpt_pretrained is None and self.ckpt_pretrained is not None:
+            ckpt_pretrained = self.ckpt_pretrained
+
+        if ckpt_pretrained is not None:
+            checkpoint = torch.load(
+                self.ckpt_pretrained, map_location=self.device, weights_only=True
+            )
             self.model.load_state_dict(checkpoint["state_dict"])
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
@@ -362,6 +371,8 @@ class Trainer:
 
         if self.physics_generator is not None:
             params = self.physics_generator[g].step(batch_size=x.size(0))
+            # Update parameters both via update_parameters and, if implemented in physics, via forward pass
+            physics.update_parameters(**params)
             y = physics(x, **params)
         else:
             y = physics(x)
