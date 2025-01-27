@@ -270,7 +270,7 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
-    :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'` and `'BiCGStab'`. See :func:`deepinv.optim.utils.least_squares` for more details.
 
     |sep|
 

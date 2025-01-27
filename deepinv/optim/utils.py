@@ -217,7 +217,7 @@ def bicgstab(
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
     :param Callable right_precon: right preconditioner as a callable function.
-    :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...)
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
     if init is not None:
         x = init
@@ -300,7 +300,7 @@ def lsqr(
     b,
     eta=0.0,
     x0=None,
-    atol=0.,
+    atol=0.0,
     tol=1e-6,
     conlim=1e8,
     max_iter=100,

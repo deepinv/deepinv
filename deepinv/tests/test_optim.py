@@ -844,8 +844,10 @@ def test_least_square_solvers(device):
 
     filter = torch.ones((1, 1, 2, 20), device=device)
     filter = filter / filter.sum()
-    noise = .0
-    physics = dinv.physics.Blur(filter=filter, device=device, noise_model=dinv.physics.GaussianNoise(noise))
+    noise = 0.0
+    physics = dinv.physics.Blur(
+        filter=filter, device=device, noise_model=dinv.physics.GaussianNoise(noise)
+    )
 
     x = torch.zeros((1, 1, 64, 64), device=device)
 
@@ -856,15 +858,15 @@ def test_least_square_solvers(device):
     xhats = []
     for solver in solvers:
         x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-        assert (physics.A(x_hat) - y).pow(2).mean()/y.pow(2).mean() < tol
+        assert (physics.A(x_hat) - y).pow(2).mean() / y.pow(2).mean() < tol
         xhats.append(x_hat)
 
     for x_hat in xhats:
         for r_hat in xhats:
-            assert (x_hat - r_hat).abs().pow(2).mean()/r_hat.pow(2).mean() < 3*tol
+            assert (x_hat - r_hat).abs().pow(2).mean() / r_hat.pow(2).mean() < 3 * tol
 
     z = x.clone()
-    gamma = 1.
+    gamma = 1.0
 
     xhats = []
     for solver in solvers:
@@ -873,4 +875,4 @@ def test_least_square_solvers(device):
 
     for x_hat in xhats:
         for r_hat in xhats:
-            assert (x_hat - r_hat).abs().pow(2).mean()/r_hat.pow(2).mean() < 3*tol
+            assert (x_hat - r_hat).abs().pow(2).mean() / r_hat.pow(2).mean() < 3 * tol
