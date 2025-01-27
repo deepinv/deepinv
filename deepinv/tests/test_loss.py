@@ -90,7 +90,9 @@ def test_jacobian_spectral_values(toymatrix):
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
 
     assert math.isclose(regl2.item(), toy_operators.sum(), rel_tol=1e-3)
-    assert math.isclose(regfnel2.item(), 2 * toy_operators.sum() - toy_operators.shape[0], rel_tol=1e-3)
+    assert math.isclose(
+        regfnel2.item(), 2 * toy_operators.sum() - toy_operators.shape[0], rel_tol=1e-3
+    )
 
     # Mean
     reg_l2 = JacobianSpectralNorm(
@@ -104,7 +106,11 @@ def test_jacobian_spectral_values(toymatrix):
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
 
     assert math.isclose(regl2.item(), toy_operators.mean(), rel_tol=1e-3)
-    assert math.isclose(regfnel2.item(), 2 * toy_operators.sum() / toy_operators.shape[0] - 1, rel_tol=1e-3)
+    assert math.isclose(
+        regfnel2.item(),
+        2 * toy_operators.sum() / toy_operators.shape[0] - 1,
+        rel_tol=1e-3,
+    )
 
 
 def choose_loss(loss_name):
