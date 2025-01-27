@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
-from deepinv.optim.utils import conjugate_gradient
+from deepinv.optim.utils import least_squares
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -32,7 +32,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the absolute tolerance of the gradient descent algorithm.
-
+    :param str solver: least squares solver to use. Only gradient descent is available for non-linear operators.
     """
 
     def __init__(
@@ -40,8 +40,9 @@ class Physics(torch.nn.Module):  # parent class for forward models
         A=lambda x, **kwargs: x,
         noise_model=lambda x, **kwargs: x,
         sensor_model=lambda x: x,
+        solver="gradient_descent",
         max_iter=50,
-        tol=1e-3,
+        tol=1e-2,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -50,6 +51,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.SVD = False  # flag indicating SVD available
         self.max_iter = max_iter
         self.tol = tol
+        self.solver = solver
 
     def __mul__(self, other):  #  physics3 = physics1 \circ physics2
         r"""
@@ -159,20 +161,45 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         """
 
-        if x_init is None:
-            x_init = self.A_adjoint(y)
+        if self.solver == "gradient_descent":
+            if x_init is None:
+                x_init = self.A_adjoint(y)
 
-        x = x_init
+            x = x_init
 
-        lr = 1e-1
-        loss = torch.nn.MSELoss()
-        for _ in range(self.max_iter):
-            x = x - lr * self.A_vjp(x, self.A(x) - y)
-            err = loss(self.A(x), y)
-            if err < self.tol:
-                break
+            lr = 1e-1
+            loss = torch.nn.MSELoss()
+            for _ in range(self.max_iter):
+                x = x - lr * self.A_vjp(x, self.A(x) - y)
+                err = loss(self.A(x), y)
+                if err < self.tol:
+                    break
+        else:
+            raise NotImplementedError(
+                f"Solver {self.solver} not implemented for A_dagger"
+            )
 
         return x.clone()
+
+    def set_ls_solver(self, solver, max_iter=None, tol=None):
+        r"""
+        Change default solver for computing the least squares solution:
+
+        .. math::
+
+            x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
+
+        :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
+            For linear operators, the options are `'CG'`, `'lsqr'` and `'BiCGStab'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+        :param int max_iter: maximum number of iterations for the solver.
+        :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
+        """
+
+        if max_iter is not None:
+            self.max_iter = max_iter
+        if tol is not None:
+            self.tol = tol
+        self.solver = solver
 
     def A_vjp(self, x, v):
         r"""
@@ -241,8 +268,9 @@ class LinearPhysics(Physics):
         :math:`y=\eta\left(N(A(x))\right)`. By default, the sensor_model is set to the identity :math:`\eta(z)=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
-    :param float tol: If the operator does not have a closed form pseudoinverse, the conjugate gradient algorithm
-        is used for computing it, and this parameter fixes the absolute tolerance of the conjugate gradient algorithm.
+    :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
+        is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
+    :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
 
     |sep|
 
@@ -304,6 +332,7 @@ class LinearPhysics(Physics):
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-3,
+        solver="CG",
         **kwargs,
     ):
         super().__init__(
@@ -311,6 +340,7 @@ class LinearPhysics(Physics):
             noise_model=noise_model,
             sensor_model=sensor_model,
             max_iter=max_iter,
+            solver=solver,
             tol=tol,
         )
         self.A_adj = A_adjoint
@@ -479,7 +509,9 @@ class LinearPhysics(Physics):
 
         return s1.conj() - s2
 
-    def prox_l2(self, z, y, gamma, **kwargs):
+    def prox_l2(
+        self, z, y, gamma, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
+    ):
         r"""
         Computes proximal operator of :math:`f(x) = \frac{1}{2}\|Ax-y\|^2`, i.e.,
 
@@ -493,43 +525,60 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) estimated signal tensor
 
         """
-        b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
-        H = lambda x: self.A_adjoint_A(x, **kwargs) + 1 / gamma * x
-        x = conjugate_gradient(H, b, self.max_iter, self.tol)
-        return x
+        if max_iter is not None:
+            self.max_iter = max_iter
+        if tol is not None:
+            self.tol = tol
+        if solver is not None:
+            self.solver = solver
 
-    def A_dagger(self, y, **kwargs):
+        return least_squares(
+            self.A,
+            self.A_adjoint,
+            y,
+            solver=solver,
+            gamma=gamma,
+            verbose=verbose,
+            z=z,
+            ATA=self.A_adjoint_A,
+            AAT=self.A_A_adjoint,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            **kwargs,
+        )
+
+    def A_dagger(
+        self, y, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
+    ):
         r"""
-        Computes the solution in :math:`x` to :math:`y = Ax` using the
-        `conjugate gradient method <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_,
-        see :func:`deepinv.optim.utils.conjugate_gradient`.
-
-        If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
-        otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
+        Computes the solution in :math:`x` to :math:`y = Ax` using a least squares solver.
 
         This function can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
+        :param str solver: least squares solver to use. Choose between 'CG', 'lsqr' and 'BiCGStab'. See :func:`deepinv.optim.utils.least_squares` for more details.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-        Aty = self.A_adjoint(y)
+        if max_iter is not None:
+            self.max_iter = max_iter
+        if tol is not None:
+            self.tol = tol
+        if solver is not None:
+            self.solver = solver
 
-        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
-
-        if not overcomplete:
-            A = lambda x: self.A_A_adjoint(x)
-            b = y
-        else:
-            A = lambda x: self.A_adjoint(self.A(x))
-            b = Aty
-
-        x = conjugate_gradient(A=A, b=b, max_iter=self.max_iter, tol=self.tol)
-
-        if not overcomplete:
-            x = self.A_adjoint(x)
-
-        return x
+        return least_squares(
+            self.A,
+            self.A_adjoint,
+            y,
+            AAT=self.A_A_adjoint,
+            verbose=verbose,
+            ATA=self.A_adjoint_A,
+            max_iter=self.max_iter,
+            tol=self.tol,
+            solver=self.solver,
+            **kwargs,
+        )
 
 
 class DecomposablePhysics(LinearPhysics):

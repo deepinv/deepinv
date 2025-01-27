@@ -837,3 +837,40 @@ def test_datafid_stacking(imsize, device):
     )
 
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
+
+
+def test_least_square_solvers(device):
+    solvers = ["CG", "BiCGStab", "lsqr"]
+
+    filter = torch.ones((1, 1, 2, 20), device=device)
+    filter = filter / filter.sum()
+    noise = .0
+    physics = dinv.physics.Blur(filter=filter, device=device, noise_model=dinv.physics.GaussianNoise(noise))
+
+    x = torch.zeros((1, 1, 64, 64), device=device)
+
+    x[0, 0, 20:30, 20:30] = 1
+
+    tol = 0.01
+    y = physics(x)
+    xhats = []
+    for solver in solvers:
+        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+        assert (physics.A(x_hat) - y).pow(2).mean()/y.pow(2).mean() < tol
+        xhats.append(x_hat)
+
+    for x_hat in xhats:
+        for r_hat in xhats:
+            assert (x_hat - r_hat).abs().pow(2).mean()/r_hat.pow(2).mean() < 3*tol
+
+    z = x.clone()
+    gamma = 1.
+
+    xhats = []
+    for solver in solvers:
+        x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+        xhats.append(x_hat)
+
+    for x_hat in xhats:
+        for r_hat in xhats:
+            assert (x_hat - r_hat).abs().pow(2).mean()/r_hat.pow(2).mean() < 3*tol
