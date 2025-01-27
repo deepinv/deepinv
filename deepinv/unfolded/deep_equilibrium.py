@@ -29,7 +29,7 @@ class BaseDEQ(BaseUnfold):
 
         For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
-    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``. 
+    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``.
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
     :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.
@@ -40,7 +40,7 @@ class BaseDEQ(BaseUnfold):
     def __init__(
         self,
         *args,
-        jacobian_free = False,
+        jacobian_free=False,
         max_iter_backward=50,
         anderson_acceleration_backward=False,
         history_size_backward=5,
@@ -71,7 +71,7 @@ class BaseDEQ(BaseUnfold):
             X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
-        
+
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
         cur_data_fidelity = (
             self.update_data_fidelity_fn(self.max_iter - 1)
@@ -100,6 +100,7 @@ class BaseDEQ(BaseUnfold):
             physics,
             **kwargs,
         )["est"][0]
+
         # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
         def backward_hook(grad):
             class backward_iterator(OptimIterator):
@@ -120,7 +121,7 @@ class BaseDEQ(BaseUnfold):
             def init_iterate_fn(y, physics, F_fn=None):
                 return {"est": (grad,)}  # initialize the fixed point algorithm.
 
-            if not self.jacobian_free : 
+            if not self.jacobian_free:
                 backward_FP = FixedPoint(
                     backward_iterator(),
                     init_iterate_fn=init_iterate_fn,
@@ -132,7 +133,7 @@ class BaseDEQ(BaseUnfold):
                     eps_anderson_acc=self.eps_anderson_acc,
                 )
                 return backward_FP({"est": (grad,)}, None)[0]["est"][0]
-            else :
+            else:
                 return grad
 
         if x.requires_grad:
