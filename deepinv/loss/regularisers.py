@@ -253,37 +253,3 @@ class FNEJacobianSpectralNorm(Loss):
         y = 2.0 * x_out - x
 
         return self.spectral_norm_module(y, x)
-
-
-# if __name__ == '__main__':
-#     import torch
-#     from deepinv.loss.regularisers import JacobianSpectralNorm
-#     torch.manual_seed(0)
-#
-#     reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-5, eval_mode=False, verbose=True)
-#     A = torch.diag(torch.Tensor(range(1, 51))).unsqueeze(0)  # creates a diagonal matrix with largest eigenvalue = 50
-#     x = torch.randn((1, A.shape[1])).unsqueeze(0).requires_grad_()
-#     out = x @ A
-#     regval = reg_l2(out, x)
-#     print(regval) # returns approx 50
-#
-#     reg_fne = FNEJacobianSpectralNorm(max_iter=100, tol=1e-5, eval_mode=False, verbose=True)
-#     A = torch.diag(torch.Tensor(range(1, 51))).unsqueeze(0)  # creates a diagonal matrix with largest eigenvalue = 50
-#
-#     def model_base(x):
-#         return x @ A
-#
-#     def FNE_model(x):
-#         A_bis = torch.linalg.inv((A + torch.eye(A.shape[1])))  # Creates the resolvent of A, which is firmly nonexpansive
-#         return x @ A_bis
-#
-#     x = torch.randn((1, A.shape[1])).unsqueeze(0)
-#
-#     out = model_base(x)
-#     regval = reg_fne(out, x, model_base)
-#     print(regval) # returns approx 50
-#
-#     out = FNE_model(x)
-#     regval = reg_fne(out, x, FNE_model)
-#     print(regval) # returns approx 1
-#
