@@ -1,0 +1,9 @@
+﻿test
+====
+
+.. currentmodule:: deepinv
+
+.. autofunction:: test
+
+.. minigallery:: deepinv.test
+    :add-heading: Examples using ``test``:
