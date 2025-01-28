@@ -292,7 +292,7 @@ class Trainer:
 
         if ckpt_pretrained is not None:
             checkpoint = torch.load(
-                self.ckpt_pretrained, map_location=self.device, weights_only=True
+                ckpt_pretrained, map_location=self.device, weights_only=True
             )
             self.model.load_state_dict(checkpoint["state_dict"])
             if "optimizer" in checkpoint and self.optimizer is not None:
