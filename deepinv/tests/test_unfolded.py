@@ -2,15 +2,21 @@ import pytest
 import torch
 
 import deepinv as dinv
-from deepinv.optim.prior import PnP
+from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded_builder, DEQ_builder
+from deepinv.unfolded import unfolded, deep_equilibrium
 
 
-OPTIM_ALGO = ["PGD", "HQS"]
+UNFOLDED_ALGO = [
+    "Unfolded_ProximalGradientDescent",
+    "Unfolded_HQS",
+    "Unfolded_GradientDescent",
+    "Unfolded_ADMM",
+    "Unfolded_FISTA",
+]
 
 
-@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
+@pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
@@ -23,10 +29,24 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
-    prior = [
-        PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=level, device=device))
-        for i in range(max_iter)
-    ]
+    if not unfolded_algo == "Unfolded_GradientDescent":
+        prior = [
+            PnP(
+                denoiser=dinv.models.WaveletDenoiser(
+                    wv="db8", level=level, device=device
+                )
+            )
+            for i in range(max_iter)
+        ]
+    else:
+        prior = [
+            RED(
+                denoiser=dinv.models.WaveletDenoiser(
+                    wv="db8", level=level, device=device
+                )
+            )
+            for i in range(max_iter)
+        ]
 
     # Unrolled optimization algorithm parameters
     lamb = [
@@ -51,8 +71,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     ]  # define which parameters from 'params_algo' are trainable
 
     # Define the unfolded trainable model.
-    model = unfolded_builder(
-        unfolded_algo,
+    model = getattr(unfolded, unfolded_algo)(
         params_algo=params_algo,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,
@@ -64,8 +83,39 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
         assert param.requires_grad
         assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
+    # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+    batch_size = 5
+    n_channels, img_size_w, img_size_h = imsize
+    noise_level = 0.01
 
-@pytest.mark.parametrize("unfolded_algo", OPTIM_ALGO)
+    torch.manual_seed(0)
+    test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(device)
+    groundtruth_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
+        device
+    )
+
+    physics = dinv.physics.BlurFFT(
+        img_size=(n_channels, img_size_w, img_size_h),
+        filter=dinv.physics.blur.gaussian_blur(),
+        device=device,
+        noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+    )
+
+    y = physics(test_sample).type(test_sample.dtype).to(device)
+
+    out = model(y, physics=physics)
+
+    assert out.shape == test_sample.shape
+
+    loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
+    loss = loss_fn(groundtruth_sample, out)
+    loss.backward()
+
+
+DEQ_ALGO = ["DEQ_ProximalGradientDescent", "DEQ_HQS"]
+
+
+@pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
     torch.set_grad_enabled(
@@ -112,8 +162,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     for and_acc in [False, True]:
         # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
-        model = DEQ_builder(
-            unfolded_algo,
+        model = getattr(deep_equilibrium, unfolded_algo)(
             params_algo=params_algo,
             trainable_params=trainable_params,
             data_fidelity=data_fidelity,
