@@ -242,21 +242,6 @@ def test_load_fmd_dataset(download_fmd):
 
 
 @pytest.fixture
-def download_simplefastmri():
-    """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "fastmri"
-
-    # Download simple FastMRI slice dataset
-    SimpleFastMRISliceDataset(tmp_data_dir, download=True)
-
-    # This will return control to the test function
-    yield tmp_data_dir
-
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
-
-
-@pytest.fixture
 def download_nbu():
     """Downloads dataset for tests and removes it after test executions."""
     tmp_data_dir = "NBU"
@@ -282,6 +267,21 @@ def test_load_nbu_dataset(download_nbu):
         and torch.all(dataset[0] <= 1)
         and torch.all(dataset[0] >= 0)
     ), "Dataset image should be Tensor between 0-1."
+
+
+@pytest.fixture
+def download_simplefastmri():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "fastmri"
+
+    # Download simple FastMRI slice dataset
+    SimpleFastMRISliceDataset(tmp_data_dir, download=True)
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
 
 
 def test_SimpleFastMRISliceDataset(download_simplefastmri):
