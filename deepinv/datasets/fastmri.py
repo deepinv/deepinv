@@ -252,9 +252,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def metadata_cache_manager(
         root,
         sample_identifiers,
-        metadata_cache_file, 
-        load_metadata_from_cache, 
-        save_metadata_to_cache
+        metadata_cache_file,
+        load_metadata_from_cache,
+        save_metadata_to_cache,
     ):
         if load_metadata_from_cache and os.path.exists(metadata_cache_file):
             with open(metadata_cache_file, "rb") as f:
@@ -266,7 +266,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                     )
                 print(f"Using dataset cache from {metadata_cache_file}.")
                 sample_identifiers = dataset_cache[root]
-            
+
             yield sample_identifiers
 
         else:
@@ -319,15 +319,21 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         # Load all slices
         all_fnames = sorted(list(Path(root).iterdir()))
-        
-        with self.metadata_cache_manager(root, defaultdict(list), metadata_cache_file, load_metadata_from_cache, save_metadata_to_cache) as sample_identifiers:
+
+        with self.metadata_cache_manager(
+            root,
+            defaultdict(list),
+            metadata_cache_file,
+            load_metadata_from_cache,
+            save_metadata_to_cache,
+        ) as sample_identifiers:
             for fname in tqdm(all_fnames):
                 metadata = self._retrieve_metadata(fname)
                 for slice_ind in range(metadata["num_slices"]):
                     sample_identifiers[str(fname)].append(
                         self.SliceSampleFileIdentifier(fname, slice_ind, metadata)
                     )
-            
+
             self.sample_identifiers = sample_identifiers
 
         # Random slice subsampling
@@ -364,9 +370,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         :return: metadata dict of key-value pairs.
         """
         with h5py.File(fname, "r") as hf:
-            metadata = {
-                "num_slices": hf["kspace"].shape[0]
-            }
+            metadata = {"num_slices": hf["kspace"].shape[0]}
         return metadata
 
     def __len__(self) -> int:
@@ -408,7 +412,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         to_complex: bool = False,
     ) -> SimpleFastMRISliceDataset:
         """Convert dataset to a 2D singlecoil dataset and save as pickle file.
-        
+
         This allows the dataset to be loaded in memory with :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.
 
         :Example:

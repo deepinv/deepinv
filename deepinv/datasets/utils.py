@@ -91,6 +91,7 @@ def extract_tarball(file_path, extract_dir) -> None:
         for file_to_be_extracted in tqdm(tar_ref.getmembers(), desc="Extracting"):
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
+
 def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
     """Load MATLAB array from file.
 
@@ -102,13 +103,15 @@ def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
     if mat73:
         try:
             from mat73 import loadmat as loadmat73
-            #TODO read as HDF?
+
+            # TODO read as HDF?
             return loadmat73(fname)
         except ImportError:
             raise ImportError("mat73 is required, install with 'pip install mat73'.")
         except TypeError:
             pass
     return scipy_loadmat(fname)
+
 
 def loadmat(fname: str) -> dict:
     """Load MATLAB array from file.

@@ -174,8 +174,4 @@ We provide some torchvision-style transforms for use when loading data:
    * - :class:`deepinv.datasets.utils.Rescale`
      - Min-max or clip value rescaling.
    * - :class:`deepinv.datasets.utils.ToComplex`
-<<<<<<< HEAD
      - Add empty imaginary dimension to image.
-=======
-     - Add empty imaginary dimension to image.
->>>>>>> main
