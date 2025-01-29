@@ -10,6 +10,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
+- Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
+- Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
+- Add CASSI operator (:gh:`377` by `Andrew Wang`_)
+
+- Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
+- Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
+- Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
+- FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
+- Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
+- Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 
 - Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
 - Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
@@ -20,10 +33,17 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
+- Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 
 Changed
 ^^^^^^^
-
+- Set sphinx warnings as errors (:gh:`379` by `Julian Tachella`_)
+- Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
+- Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Changed the R2R loss to handle multiple noise distributions (:gh:`380` by `Brayan Monroy`_)
+- `Trainer.get_samples_online` using physics generator now updates physics params via both `update_parameters` and forward pass (:gh:`386` by `Andrew Wang`_)
+- Deprecate Trainer freq_plot in favour of plot_interval (:gh:`388` by `Andrew Wang`_)
 
 v0.2.2
 ----------------
@@ -268,3 +288,4 @@ Authors
 .. _Tobias Liaudat: https://github.com/tobias-liaudat
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
+.. _Victor Sechaud: https://github.com/vsechaud

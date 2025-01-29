@@ -9,7 +9,7 @@ Metrics are generally used to evaluate the performance of a model, or as the dis
 
 Introduction
 ------------
-All metrics inherit from the base class :meth:`deepinv.loss.metric.Metric`, which is a :class:`torch.nn.Module`.
+All metrics inherit from the base class :class:`deepinv.loss.metric.Metric`, which is a :class:`torch.nn.Module`.
 All metrics take either ``x_net, x`` for a full-reference metric or ``x_net`` for a no-reference metric.
 
 All metrics can perform a standard set of pre and post processing, including
@@ -20,7 +20,7 @@ operating on complex numbers, normalisation and reduction. See :class:`deepinv.l
     By default, metrics do not reduce over the batch dimension, as the usual usage is to average the metrics over a dataset yourself.
     This discourages averaging over metrics which might in turn have averaged over uneven batch sizes.
     Note we provide :class:`deepinv.utils.AverageMeter` to easily keep track of the average of metrics.
-    For example, we use this in our trainer :class:`deepinv.training.Trainer`.
+    For example, we use this in our trainer :class:`deepinv.Trainer`.
 
     However, you can use the ``reduction`` argument to perform reduction, e.g. if you want a single metric calculation rather than over a dataset.
 
@@ -95,6 +95,13 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.LPIPS`
      - Uses a pretrained network to calculate the perceptual similarity between two images.
 
+   * - :class:`deepinv.loss.metric.SpectralAngleMapper`
+     - Multispectral image metric that calculates spectral similarity between bands.
+
+   * - :class:`deepinv.loss.metric.ERGAS`
+     - "Error relative global dimensionless synthesis" multispectral image metric for pan-sharpening problems.
+
+
 
 .. _no-reference-metrics:
 
@@ -113,4 +120,4 @@ We implement no-reference perceptual metrics, they only require the reconstructe
      - Calculates deviation of image from statistical regularities of natural images.
 
    * - :class:`deepinv.loss.metric.QNR`
-     - :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions
+     - Multispectral image metric :math:`\text{QNR}(\hat{x}) = (1-D_\lambda)^\alpha(1 - D_s)^\beta`, where :math:`D_\lambda` and :math:`D_s` are spectral and spatial distortions.

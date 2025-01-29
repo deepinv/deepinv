@@ -181,7 +181,7 @@ def test_data_fidelity_l1(device):
     Ax = A_forward(x)
     assert data_fidelity(x, y, physics) == (Ax - y).abs().sum()
 
-    # Check subdifferential
+    # Check sub-differential
     grad_manual = torch.sign(x - y)
     assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
 
@@ -817,3 +817,23 @@ def test_patch_prior(imsize, dummy_dataset, device):
             x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)
+
+
+def test_datafid_stacking(imsize, device):
+    physics = dinv.physics.StackedLinearPhysics(
+        [dinv.physics.Denoising(), dinv.physics.Denoising()]
+    )
+    data_fid = dinv.optim.StackedPhysicsDataFidelity(
+        [dinv.optim.L2(2.0), dinv.optim.L2(1.0)]
+    )
+
+    x = torch.ones((1, 1, 1, 1), device=device)
+    y = physics.A(x)
+    y2 = dinv.utils.TensorList([3 * y[0], 2 * y[1]])
+
+    assert (
+        data_fid(x, y2, physics)
+        == (y2[0] - y[0]) ** 2 / (4 * 2) + (y2[1] - y[1]) ** 2 / 2
+    )
+
+    assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])

@@ -42,7 +42,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
-    These datasets are generated using :meth:`deepinv.datasets.fastmri.FastMRISliceDataset.save_simple_dataset`.
+    These datasets are generated using :func:`deepinv.datasets.FastMRISliceDataset.save_simple_dataset`.
     You can use this to generate your own custom dataset and load using the ``file_name`` argument.
 
     We provide a pregenerated mini saved subset for singlecoil FastMRI knees (total 2 images)
@@ -68,13 +68,13 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         >>> len(dataset)
         2
 
-    :param str, Path root_dir: dataset root directory
+    :param str, pathlib.Path root_dir: dataset root directory
     :param str anatomy: load either fastmri "knee" or "brain" slice datasets.
-    :param str, Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
+    :param str, pathlib.Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.
     :param bool train: whether to use training set or test set, defaults to True
     :param int sample_index: if specified only load this sample, defaults to None
     :param float train_percent: percentage train for train/test split, defaults to 1.
-    :param callable transform: optional transform for images, defaults to None
+    :param Callable transform: optional transform for images, defaults to None
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     """
@@ -104,12 +104,12 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         )
 
         try:
-            x = torch.load(root_dir / file_name)
+            x = torch.load(root_dir / file_name, weights_only=True)
         except FileNotFoundError:
             if download:
                 url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
-                x = torch.load(root_dir / file_name)
+                x = torch.load(root_dir / file_name, weights_only=True)
             else:
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
@@ -183,16 +183,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
-    :param Union[str, Path] root: Path to the dataset.
-    :param bool test: Whether the split is the "test" set, if yes, only return kspace measurements.
+
+    :param Union[str, pathlib.Path] root: Path to the dataset.
+    :param bool test: Whether the split is the `"test"` set, if yes, only return kspace measurements.
     :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
-    :param Union[str, Path] metadata_cache_file: A file used to cache dataset information for faster load times.
-    :param float, optional subsample_volumes: proportion of volumes to be randomly subsampled (float between 0 and 1).
-    :param str, int, tuple slice_index: if "all", keep all slices per volume, if ``int``, keep only that indexed slice per volume,
-        if "middle", keep the middle slice. If "random", select random slice. Defaults to "all".
-    :param callable, optional transform_kspace: transform function for (multicoil) kspace operating on images of shape (..., 2, H, W).
-    :param callable, optional transform_target: transform function for ground truth recon targets operating on single-channel images of shape (1, H, W).
+    :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset information for faster load times.
+    :param float subsample_volumes: (optional) proportion of volumes to be randomly subsampled (float between 0 and 1).
+    :param str, int, tuple slice_index: if `"all"`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,
+        if `"middle"`, keep the middle slice. If `"random"`, select random slice. Defaults to `"all"`.
+    :param Callable transform_kspace: optional transform function for (multicoil) kspace operating on images of shape (..., 2, H, W).
+    :param Callable transform_target: optional transform function for ground truth recon targets operating on single-channel images of shape (1, H, W).
     :param torch.Generator, None rng: optional torch random generator for shuffle slice indices
 
     |sep|
@@ -407,16 +408,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         to_complex: bool = False,
     ) -> SimpleFastMRISliceDataset:
         """Convert dataset to a 2D singlecoil dataset and save as pickle file.
+        
         This allows the dataset to be loaded in memory with :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.
 
         :Example:
 
-            from deepinv.datasets import FastMRISliceDataset
-            root = "/path/to/dataset/fastMRI/brain/multicoil_train"
-            dataset = FastMRISliceDataset(root=root, slice_index="middle")
-            subset = dataset.save_simple_dataset(
-                root + "/fastmri_brain_singlecoil.pt"
-            )
+            Load local brain dataset and convert to simple dataset ::
+
+                from deepinv.datasets import FastMRISliceDataset
+                root = "/path/to/dataset/fastMRI/brain/multicoil_train"
+                dataset = FastMRISliceDataset(root=root, slice_index="middle")
+                subset = dataset.save_simple_dataset(root + "/fastmri_brain_singlecoil.pt")
 
         :param str dataset_path: desired path of dataset to be saved with file extension e.g. ``fastmri_knee_singlecoil.pt``.
         :param bool pad_to_size: if not None, normalise images to 0-1 then pad to provided shape. Must be set if images are of varying size,

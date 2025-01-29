@@ -218,18 +218,22 @@ def plot(
         If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
         and plot at your desired location using ``fig.show()``.
 
-    :param list[torch.Tensor], dict[str -> torch.Tensor], torch.Tensor img_list: list of images, single image, or dict of titles: images to plot.
+    :param list[torch.Tensor], dict[str,torch.Tensor], torch.Tensor img_list: list of images, single image,
+        or dict of titles: images to plot.
     :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).
-    :param None, str, Path save_dir: path to save the plots as individual images.
+    :param None, str, pathlib.Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
-    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param str interpolation: interpolation to use for the images.
+        See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
+        Default: none
     :param int dpi: DPI to save images.
     :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
     :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
@@ -347,18 +351,19 @@ def scatter_plot(
         xy = torch.randn(10, 2)
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
-    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
+    :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
-    :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
     :param tuple[int] figsize: size of the figure.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
-    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param int fontsize: fontsize for the plot. Default: 17
+    :param float s: size of the scattered points. Default: 0.1
+    :param float linewidths: width of the lines. Default: 1.5
+    :param str color: color of the points. Default: blue
     """
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
@@ -505,8 +510,8 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param torch.nn.Module model: the model whose parameters are plotted. The parameters are contained in the dictionary
         ``params_algo`` attribute of the model.
     :param dict init_params: the initial parameters of the model, before training. Defaults to ``None``.
-    :param str, Path save_dir: the directory where to save the plot. Defaults to ``None``.
-    :param show bool: whether to show the plot. Defaults to ``True``.
+    :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
+    :param bool show: whether to show the plot. Defaults to ``True``.
     """
 
     if save_dir:
@@ -702,11 +707,12 @@ def plot_videos(
 ):
     r"""Plots and animates a list of image sequences.
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :meth:`deepinv.utils.plot`
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
+    This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
     vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
 
-    Per frame of the videos, this function calls :meth:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
 
@@ -723,18 +729,20 @@ def plot_videos(
         >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
-    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
-    :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
+    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above.
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to None.
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1.
+        After indexing this dimension, the resulting images should be of shape (B,C,H,W). Defaults to 2.
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
     :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
+    :param str save_fn: if not None, save the animation to this filename.
+        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
     :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
     :param bool return_anim: return matplotlib animation object, defaults to False
     :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
-    :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
+    :param plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -823,7 +831,7 @@ def plot_ortho3D(
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).

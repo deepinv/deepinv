@@ -1,5 +1,5 @@
 deepinv.physics
-================
+===============
 
 This module provides a set of forward operators for various imaging modalities.
 Please refer to the :ref:`physics` section for more details.
@@ -16,15 +16,9 @@ Base Classes
    deepinv.physics.Physics
    deepinv.physics.LinearPhysics
    deepinv.physics.DecomposablePhysics
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.physics.generator.PhysicsGenerator
-   deepinv.physics.generator.GeneratorMixture
-
+   deepinv.physics.StackedPhysics
+   deepinv.physics.StackedLinearPhysics
+   deepinv.physics.NoiseModel
 
 Operators
 ---------
@@ -45,11 +39,14 @@ Operators
    deepinv.physics.Downsampling
    deepinv.physics.MRI
    deepinv.physics.MRIMixin
+   deepinv.physics.TimeMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
    deepinv.physics.Pansharpen
+   deepinv.physics.CompressiveSpectralImaging
+   deepinv.physics.HyperSpectralUnmixing
    deepinv.physics.CompressedSensing
    deepinv.physics.StructuredRandom
    deepinv.physics.SinglePixelCamera
@@ -59,21 +56,31 @@ Operators
    deepinv.physics.PhaseRetrieval
    deepinv.physics.RandomPhaseRetrieval
    deepinv.physics.StructuredRandomPhaseRetrieval
+   deepinv.physics.Ptychography
+   deepinv.physics.PtychographyLinearOperator
 
+
+Generators
+----------
+.. userguide:: physics_generators
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.generator.PhysicsGenerator
+   deepinv.physics.generator.GeneratorMixture
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
    deepinv.physics.generator.GaussianSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
+   deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
+   deepinv.physics.generator.ConfocalBlurGenerator3D
    deepinv.physics.generator.BaseMaskGenerator
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
@@ -82,13 +89,15 @@ Operators
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
    deepinv.physics.blur.gaussian_blur
    deepinv.physics.blur.bilinear_filter
    deepinv.physics.blur.bicubic_filter
    deepinv.physics.blur.sinc_filter
+   deepinv.physics.phase_retrieval.build_probe
+   deepinv.physics.phase_retrieval.generate_shifts
 
 Noise distributions
 -------------------
@@ -99,6 +108,7 @@ Noise distributions
    :template: myclass_template.rst
    :nosignatures:
 
+   deepinv.physics.NoiseModel
    deepinv.physics.GaussianNoise
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
@@ -111,11 +121,11 @@ Noise distributions
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.physics.TimeMixin
     deepinv.physics.adjoint_function
+    deepinv.physics.stack
 
 
 Functional
@@ -124,7 +134,7 @@ Functional
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
    deepinv.physics.functional.conv2d
@@ -136,7 +146,15 @@ Functional
    deepinv.physics.functional.product_convolution2d
    deepinv.physics.functional.multiplier
    deepinv.physics.functional.multiplier_adjoint
-   deepinv.physics.functional.Radon
-   deepinv.physics.functional.IRadon
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
+   deepinv.physics.functional.dst1
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.physics.functional.Radon
+   deepinv.physics.functional.IRadon

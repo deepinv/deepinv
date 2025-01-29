@@ -15,7 +15,14 @@ Generating Datasets
    :nosignatures:
 
     deepinv.datasets.HDF5Dataset
-    deepinv.datasets.generate_dataset
+
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.datasets.generate_dataset
 
 
 Image Datasets
@@ -38,10 +45,11 @@ Image Datasets
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
     deepinv.datasets.Kohler
+    deepinv.datasets.NBUDataset
 
 
 Other Datasets
-------------
+--------------
 
 .. autosummary::
    :toctree: stubs

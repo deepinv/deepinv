@@ -198,7 +198,7 @@ model = dinv.utils.demo.demo_mri_model(denoiser, num_iter=2, device=device).to(d
 
 # %%
 # Now that we have our architecture defined, we can train it with supervised or self-supervised (using Equivariant
-# Imaging) loss.
+# Imaging) loss. We use the PSNR metric on the complex magnitude.
 #
 # For the sake of speed in this example, we only use a very small 2-layer DnCNN inside an unrolled
 # network with 2 cascades, and train with 2 images for 1 epoch.
@@ -212,6 +212,7 @@ trainer = dinv.Trainer(
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters()),
     train_dataloader=(train_dataloader := torch.utils.data.DataLoader(train_dataset)),
+    metrics=dinv.metric.PSNR(complex_abs=True),
     epochs=1,
     show_progress_bar=False,
     save_path=None,
@@ -310,7 +311,7 @@ model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(devic
 
 # %%
 # Note that we require overriding the base
-# :class:`deepinv.training.Trainer` to deal with raw measurements, as we
+# :class:`deepinv.Trainer` to deal with raw measurements, as we
 # do not want to generate k-space measurements, only mask it.
 #
 # .. note ::
@@ -346,18 +347,21 @@ class RawFastMRITrainer(dinv.Trainer):
 # comparing to the cropped magnitude RSS targets:
 #
 
+transform = torchvision.transforms.Compose(
+    [
+        torchvision.transforms.CenterCrop(x.shape[-2:]),
+        dinv.metric.functional.complex_abs,
+    ]
+)
 
-class CropMSE(torch.nn.MSELoss):
-    def forward(self, input, target):
-        transform = torchvision.transforms.CenterCrop(target.shape[-2:])
-        return super().forward(
-            dinv.metric.functional.complex_abs(transform(input)), target
-        )
 
-
-class CropPSNR(dinv.loss.PSNR):
+class CropMSE(dinv.metric.MSE):
     def forward(self, x_net=None, x=None, *args, **kwargs):
-        transform = torchvision.transforms.CenterCrop(x.shape[-2:])
+        return super().forward(transform(x_net), x, *args, **kwargs)
+
+
+class CropPSNR(dinv.metric.PSNR):
+    def forward(self, x_net=None, x=None, *args, **kwargs):
         return super().forward(transform(x_net), x, *args, **kwargs)
 
 

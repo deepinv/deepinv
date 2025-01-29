@@ -71,7 +71,6 @@ description of their reconstruction performance and speed.
      - No
 
 
-
 .. note::
 
         Some algorithms might be better at reconstructing images with good perceptual quality (e.g. diffusion methods)

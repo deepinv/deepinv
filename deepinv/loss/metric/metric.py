@@ -24,17 +24,17 @@ class Metric(Module):
     r"""
     Base class for metrics.
 
-    See docs for ``forward()`` below for more details.
+    See docs for :func:`forward <deepinv.loss.metric.Metric.forward>` below for more details.
 
-    To create a new metric, inherit from this class, override the function :meth:`deepinv.metric.Metric.metric`,
-    set lower_better attribute and optionally override the ``invert_metric`` method.
+    To create a new metric, inherit from this class, override the :func:`metric method <deepinv.loss.metric.Metric.metric>`,
+    set ``lower_better`` attribute and optionally override the ``invert_metric`` method.
 
     You can also directly use this baseclass to wrap an existing metric function, e.g. from
     `torchmetrics <https://lightning.ai/docs/torchmetrics/stable>`_, to benefit from our preprocessing.
     The metric function must reduce over all dims except the batch dim (see example).
 
     :param Callable metric: metric function, it must reduce over all dims except batch dim. It must not reduce over batch dim.
-        This is unused if the ``metric`` method is overrifden.
+        This is unused if the ``metric`` method is overridden.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
@@ -123,7 +123,7 @@ class Metric(Module):
     def invert_metric(self, m: Tensor):
         """Invert metric. Used where a higher=better metric is to be used in a training loss.
 
-        :param Tensor m: calculated metric
+        :param torch.Tensor m: calculated metric
         """
         return -m
 

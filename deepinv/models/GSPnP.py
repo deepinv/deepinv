@@ -19,7 +19,7 @@ class GSPnP(Denoiser):
     See https://arxiv.org/pdf/2110.03220.pdf.
     Code from https://github.com/samuro95/GSPnP.
 
-    :param nn.Module denoiser: Denoiser model.
+    :param torch.nn.Module denoiser: Denoiser model.
     :param float alpha: Relaxation parameter
     """
 

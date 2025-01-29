@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deepinv.loss import MCLoss
+from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
 
@@ -25,7 +25,6 @@ class ConvDecoder(nn.Module):
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
-
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
@@ -83,6 +82,12 @@ class ConvDecoder(nn.Module):
         self.net.add(nn.Conv2d(channels, output_channels, 1, 1, padding=0, bias=True))
 
     def forward(self, x, scale_out=1):
+        r"""
+        Forward pass through the ConvDecoder network.
+
+        :param torch.Tensor x: Input tensor.
+        :param float scale_out: Output scaling factor.
+        """
         return self.net(x) * scale_out
 
 
@@ -141,7 +146,7 @@ class DeepImagePrior(Reconstructor):
         self.re_init = re_init
         self.input_size = input_size
 
-    def forward(self, y, physics):
+    def forward(self, y, physics, **kwargs):
         r"""
         Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimiza
         problem.

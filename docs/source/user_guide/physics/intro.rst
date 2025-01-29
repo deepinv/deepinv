@@ -31,7 +31,7 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
     >>> y2 = physics.A(x) # compute the A operator (no noise)
 
 Linear operators
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`deepinv.physics.LinearPhysics` class.
 They have important specific properties such as the existence of an adjoint :math:`A^{\top}:\yset\mapsto \xset`.
@@ -88,9 +88,10 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
 
+.. _physics_generators:
 
 Physics Generators
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
 Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGenerator` class:
 
@@ -126,3 +127,76 @@ it is possible to sum generators as follows:
         It is also possible to mix generators of physics parameters through the
         :class:`deepinv.physics.generator.GeneratorMixture` class.
 
+
+.. _physics_combining:
+
+Combining Physics
+^^^^^^^^^^^^^^^^^
+
+It is possible to stack and compose multiple physics operators into a single operator.
+
+
+Stacking operators :math:`A_1` and :math:`A_2` into a single operator
+
+.. math::
+
+    A(x) = \begin{bmatrix} A_1(x) \\ A_2(x) \end{bmatrix}
+
+can be done with :func:`deepinv.physics.stack`. The stacked operator is
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> x = torch.rand((1, 1, 8, 8))
+    >>> physics1 = dinv.physics.BlurFFT(img_size=(1, 8, 8), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics2 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
+    >>> physics3 = dinv.physics.stack(physics1, physics2)
+    >>> physics3 = physics1.stack(physics2) # equivalent to the previous line
+    >>> y = physics3(x) #
+    >>> print(y[0].shape)
+    torch.Size([1, 1, 8, 8])
+    >>> print(y[1].shape)
+    torch.Size([1, 1, 4, 4])
+    >>> physics4 = physics3.stack(physics1) # add a new operator to the stack
+    >>> len(physics4)
+    3
+
+The measurements are stored as :class:`deepinv.utils.TensorList` objects, which can be accessed by index
+(see the :ref:`tensorlist` user guide for more details).
+The resulting stacked operator is a :class:`deepinv.physics.StackedPhysics` object, and has some useful
+methods:
+
+.. doctest::
+
+    >>> print(physics3[0](x).shape) # access the first operator only
+    torch.Size([1, 1, 8, 8])
+    >>> print(physics3[1](x).shape) # access the second operator only
+    torch.Size([1, 1, 4, 4])
+
+
+.. tip::
+
+    See also the custom classes :class:`deepinv.optim.StackedPhysicsDataFidelity` and :class:`deepinv.loss.StackedPhysicsLoss`
+    provide easy ways to build data fidelity terms and self-supervised losses with stacked operators.
+
+
+Composing operators :math:`A_1` and :math:`A_2` into a single operator
+
+.. math::
+
+    A(x) = A_2(A_1(x))
+
+can be done by multiplying the operators:
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> x = torch.rand((1, 1, 8, 8))
+    >>> physics1 = dinv.physics.Downsampling(img_size=(1, 8, 8), factor=2)
+    >>> physics2 = dinv.physics.BlurFFT(img_size=(1, 4, 4), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> physics = physics2 * physics1
+    >>> y = physics(x) # equivalent to y = physics2(physics1.A(x))
+    >>> print(y.shape)
+    torch.Size([1, 1, 4, 4])

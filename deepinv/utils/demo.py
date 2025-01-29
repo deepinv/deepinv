@@ -79,11 +79,11 @@ def load_dataset(
 ) -> Dataset:
     """Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
 
-    :param str, Path dataset_name: dataset name without file extension.
+    :param str, pathlib.Path dataset_name: dataset name without file extension.
     :param Callable transform: optional transform to pass to torchvision dataset.
-    :param str, Path data_dir: dataset root directory, defaults to None
+    :param str, pathlib.Path data_dir: dataset root directory, defaults to None
     :param bool download: whether to download, defaults to True
-    :param str url: download URL, if ``None``, gets URL using :meth:`deepinv.utils.demo.get_image_url`
+    :param str url: download URL, if ``None``, gets URL using :func:`deepinv.utils.get_image_url`
     :param str file_type: file extension, defaults to "zip"
     :return: torchvision ImageFolder dataset.
     """
@@ -134,11 +134,11 @@ def load_degradation(
 ) -> torch.Tensor:
     """Loads a degradation tensor from DeepInverse HuggingFace repository.
 
-    :param str, Path name: degradation name with file extension
-    :param str, Path data_dir: dataset root directory, defaults to None
+    :param str, pathlib.Path name: degradation name with file extension
+    :param str, pathlib.Path data_dir: dataset root directory, defaults to None
     :param int index: degradation index, defaults to 0
     :param bool download: whether to download, defaults to True
-    :return: Tensor containing degradation.
+    :return: (:class:`torch.Tensor`) containing degradation.
     """
     if data_dir is None:
         data_dir = get_data_home()
@@ -157,7 +157,7 @@ def load_degradation(
         print(f"{name} degradation downloaded in {data_dir}")
 
     deg = np.load(path, allow_pickle=True)
-    return torch.from_numpy(deg[index])  # .unsqueeze(0).unsqueeze(0)
+    return torch.from_numpy(deg[index])
 
 
 def load_image(
@@ -273,7 +273,7 @@ def demo_mri_model(
     with a trainable denoising prior based on the DnCNN architecture, as an example of a
     model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
 
-    :param Denoiser, Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
+    :param Denoiser, torch.nn.Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
     :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
     :param str, torch.device device: device
 

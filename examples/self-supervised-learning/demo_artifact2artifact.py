@@ -173,7 +173,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 # (half-quadratic splitting) with a trainable denoising prior based on the
 # DnCNN architecture as an example of a model-based deep learning architecture
 # from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-# See :meth:`deepinv.utils.demo.demo_mri_model` for details.
+# See :func:`deepinv.utils.demo.demo_mri_model` for details.
 #
 
 model = demo_mri_model(device=device)

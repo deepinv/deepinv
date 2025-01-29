@@ -8,7 +8,7 @@ class Bregman(Potential):
     Module for the Bregman framework with convex Bregman potential :math:`\phi`.
     Comes with methods to compute the potential, its gradient, its conjugate, its gradient and its Bregman divergence.
 
-    :param callable h: Potential function :math:`\phi(x)` to be used in the Bregman framework.
+    :param Callable h: Potential function :math:`\phi(x)` to be used in the Bregman framework.
     """
 
     def __init__(self, phi=None):

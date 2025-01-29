@@ -33,14 +33,14 @@ class CBSD68(torch.utils.data.Dataset):
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a PIL image
+    :param Callable transform: (optional) A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import CBSD68
@@ -108,7 +108,7 @@ class CBSD68(torch.utils.data.Dataset):
     def check_dataset_exists(self) -> bool:
         """Verify that the HuggingFace dataset folder exists and contains the raw data file.
 
-        `self.root` should have the following structure: ::
+        ``self.root`` should have the following structure: ::
 
             self.root --- data-00000-of-00001.arrow
                        -- xxx

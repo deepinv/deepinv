@@ -6,7 +6,7 @@ This example shows you how to train various networks using adversarial
 training for deblurring problems. We demonstrate running training and
 inference using a conditional GAN (i.e. DeblurGAN), CSGM, AmbientGAN and
 UAIR implemented in the library, and how to simply train
-your own GAN by using :meth:`deepinv.training.AdversarialTrainer`. These
+your own GAN by using :class:`deepinv.training.AdversarialTrainer`. These
 examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
@@ -60,8 +60,8 @@ ORGINAL_DATA_DIR = get_data_home() / "Urban100"
 # ~~~~~~~~~~~~~~~~
 # In this example we use the Urban100 dataset resized to 128x128. We apply random
 # motion blur physics using
-# :meth:`deepinv.physics.generator.MotionBlurGenerator`, and save the data
-# using :meth:`deepinv.datasets.generate_dataset`.
+# :class:`deepinv.physics.generator.MotionBlurGenerator`, and save the data
+# using :func:`deepinv.datasets.generate_dataset`.
 #
 
 physics = dinv.physics.Blur(padding="circular", device=device)
@@ -171,7 +171,7 @@ loss_d = adversarial.SupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# We are now ready to train the networks using :meth:`deepinv.training.AdversarialTrainer`.
+# We are now ready to train the networks using :class:`deepinv.training.AdversarialTrainer`.
 # We load the pretrained models that were trained in the exact same way after 50 epochs,
 # and fine-tune the model for 1 epoch for a quick demo.
 # You can find the pretrained models on HuggingFace https://huggingface.co/deepinv/adversarial-demo.
@@ -243,7 +243,7 @@ loss_d = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
 
 
 # %%
-# We are now ready to train the networks using :meth:`deepinv.training.AdversarialTrainer`.
+# We are now ready to train the networks using :class:`deepinv.training.AdversarialTrainer`.
 # Like above, we load a pretrained model trained in the exact same way for 50 epochs,
 # and fine-tune here for a quick demo with 1 epoch.
 #

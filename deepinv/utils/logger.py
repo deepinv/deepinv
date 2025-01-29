@@ -30,7 +30,7 @@ class AverageMeter(object):
     def update(self, val: Union[np.ndarray, float, int], n: int = 1) -> None:
         """Update average meter.
 
-        :param np.ndarray, float, int val: either array (i.e. batch) of values or single value
+        :param numpy.ndarray, float, int val: either array (i.e. batch) of values or single value
         :param int n: weight, defaults to 1
         """
         if isinstance(val, np.ndarray):

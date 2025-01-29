@@ -3,7 +3,7 @@ import torch
 from tqdm import tqdm
 import torch.nn as nn
 from typing import Callable
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=False):
@@ -35,6 +35,7 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
+    verbose=False,
 ):
     """
     Standard conjugate gradient algorithm.
@@ -43,7 +44,7 @@ def conjugate_gradient(
 
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
-    :param (callable) A: Linear operator as a callable function, has to be square!
+    :param Callable A: Linear operator as a callable function, has to be square!
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
@@ -77,7 +78,11 @@ def conjugate_gradient(
         r = r - Ap * alpha
         rsnew = dot(r, r)
         assert rsnew.isfinite().all(), "Conjugate gradient diverged"
+        if verbose:
+            print(f"Residual: {rsnew.abs()}")
         if all(rsnew.abs() < tol**2):
+            if verbose:
+                print(f"Conjugate gradient converged after {_} iterations")
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
@@ -89,7 +94,7 @@ def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
     """
     Standard gradient descent algorithm`.
 
-    :param callable grad_f: gradient of function to bz minimized as a callable function.
+    :param Callable grad_f: gradient of function to bz minimized as a callable function.
     :param torch.Tensor x: input tensor.
     :param torch.Tensor, float step_size: (constant) step size of the gradient descent algorithm.
     :param int max_iter: maximum number of iterations.
