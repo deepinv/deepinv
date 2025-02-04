@@ -65,7 +65,7 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
+def prepare_images(x, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
@@ -81,7 +81,7 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
         imgs = [x]
         titles = ["Ground truth"]
         caption = "From left to right: Ground truth, "
-        if y.shape == x.shape:
+        if y is not None and y.shape == x.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
@@ -91,9 +91,10 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
             titles.append("No learning")
             caption += "No learning, "
 
-        imgs.append(x_net)
-        titles.append("Reconstruction")
-        caption += "Reconstruction"
+        if x_net is not None:
+            imgs.append(x_net)
+            titles.append("Reconstruction")
+            caption += "Reconstruction"
 
         vis_array = torch.cat(imgs, dim=0)
         for i in range(len(vis_array)):

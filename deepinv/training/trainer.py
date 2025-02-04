@@ -666,9 +666,10 @@ class Trainer:
                 x_nl = None
 
             y_plot = y[1] if isinstance(y, TensorList) else y
+            y_plot = None if 'mri' in physics.__class__.__name__.lower() else y_plot
 
             imgs, titles, grid_image, caption = prepare_images(
-                x, y_plot, x_net, x_nl, rescale_mode=self.rescale_mode
+                x, y=y_plot, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:
