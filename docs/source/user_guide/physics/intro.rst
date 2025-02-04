@@ -52,6 +52,12 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
+.. tip::
+
+    Linear operators come with useful methods for approximating the :func:`operator norm <deepinv.physics.LinearPhysics.compute_norm>`
+    :math:`\|A\|` and the :func:`condition number <deepinv.physics.LinearPhysics.condition_number>` :math:`\kappa(A)`.
+    These values can be useful to set optimization hyperparameters, and understand the difficulty of the inverse problem.
+
 More details can be found in the doc of each class.
 
 
