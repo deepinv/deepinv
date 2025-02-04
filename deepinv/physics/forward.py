@@ -830,7 +830,7 @@ class DecomposablePhysics(LinearPhysics):
 
         """
         for key, value in kwargs.items():
-            if value is not None and hasattr(self, key):
+            if value is not None and hasattr(self, key) and isinstance(value, torch.Tensor):
                 setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
