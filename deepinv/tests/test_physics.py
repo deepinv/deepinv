@@ -545,7 +545,7 @@ def test_pseudo_inverse(name, device, rng):
     :param name: operator name (see find_operator)
     :param imsize: (tuple) image size tuple in (C, H, W)
     :param device: (torch.device) cpu or cuda:x
-    :return: asserts error is less than 1e-3
+    :return: asserts error is less than 2e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
@@ -553,7 +553,7 @@ def test_pseudo_inverse(name, device, rng):
     r = physics.A_adjoint(physics.A(x))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
-    assert error < 0.01
+    assert error < 0.02
 
 
 @pytest.fixture

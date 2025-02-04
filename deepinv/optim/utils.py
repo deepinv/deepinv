@@ -156,12 +156,15 @@ def least_squares(
 
 
 def dot(a, b, dim):
-    dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
-    if isinstance(dot, TensorList):
+    if isinstance(a, TensorList):
         aux = 0
-        for d in dot:
-            aux += d
+        for ai, bi in zip(a.x, b.x):
+            aux += (ai.conj() * bi).sum(
+                dim=dim, keepdim=True
+            )  # performs batched dot product
         dot = aux
+    else:
+        dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
     return dot
 
 
@@ -196,7 +199,11 @@ def conjugate_gradient(
 
     if parallel_dim is None:
         parallel_dim = []
-    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if isinstance(b, TensorList):
+        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
+    else:
+        dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     if init is not None:
         x = init
@@ -263,7 +270,11 @@ def bicgstab(
 
     if parallel_dim is None:
         parallel_dim = []
-    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if isinstance(b, TensorList):
+        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
+    else:
+        dim = [i for i in range(b.ndim) if i not in parallel_dim]
 
     if init is not None:
         x = init
