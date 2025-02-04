@@ -34,7 +34,9 @@ def least_squares(
     AT,
     y,
     z=0.0,
+    init=None,
     gamma=None,
+    parallel_dim=None,
     AAT=None,
     ATA=None,
     solver="CG",
@@ -73,6 +75,7 @@ def least_squares(
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm.
+    :param None, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
@@ -84,49 +87,76 @@ def least_squares(
         else:
             eta = 0
 
-        x = lsqr(A, AT, y, x0=z, eta=eta, max_iter=max_iter, tol=tol, **kwargs)
+        x, _ = lsqr(
+            A,
+            AT,
+            y,
+            x0=z,
+            eta=eta,
+            max_iter=max_iter,
+            tol=tol,
+            parallel_dim=parallel_dim,
+            **kwargs,
+        )
 
-    else:  # squared solvers
-
-        if AAT is None:
-            AAT = lambda x: A(AT(x))
-        if ATA is None:
-            ATA = lambda x: AT(A(x))
-
+    else:
         Aty = AT(y)
+        complete = Aty.shape == y.shape
+        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
-        overcomplete = False
-        if gamma is not None:
-            b = AT(y) + 1 / gamma * z
-            H = lambda x: ATA(x) + 1 / gamma * x
+        if complete and solver == "BiCGStab":
+            H = lambda x: A(x)
+            b = y
         else:
-            overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
-            if not overcomplete:
-                H = lambda x: AAT(x)
-                b = y
+            if AAT is None:
+                AAT = lambda x: A(AT(x))
+            if ATA is None:
+                ATA = lambda x: AT(A(x))
+
+            if gamma is not None:
+                b = AT(y) + 1 / gamma * z
+                H = lambda x: ATA(x) + 1 / gamma * x
+                overcomplete = False
             else:
-                H = lambda x: ATA(x)
-                b = Aty
+                if not overcomplete:
+                    H = lambda x: AAT(x)
+                    b = y
+                else:
+                    H = lambda x: ATA(x)
+                    b = Aty
+
         if solver == "CG":
-            x = conjugate_gradient(A=H, b=b, max_iter=max_iter, tol=tol, **kwargs)
+            x = conjugate_gradient(
+                A=H,
+                b=b,
+                init=init,
+                max_iter=max_iter,
+                tol=tol,
+                parallel_dim=parallel_dim,
+                **kwargs,
+            )
         elif solver == "BiCGStab":
-            x = bicgstab(A=H, b=b, max_iter=max_iter, tol=tol, **kwargs)
+            x = bicgstab(
+                A=H,
+                b=b,
+                init=init,
+                max_iter=max_iter,
+                tol=tol,
+                parallel_dim=parallel_dim,
+                **kwargs,
+            )
         else:
             raise ValueError(
                 f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
             )
 
-        if gamma is None and not overcomplete:
+        if gamma is None and not overcomplete and not complete:
             x = AT(x)
-
     return x
 
 
-def dot(a, b):
-    ndim = a[0].ndim if isinstance(a, TensorList) else a.ndim
-    dot = (a.conj() * b).sum(
-        dim=tuple(range(1, ndim)), keepdim=True
-    )  # performs batched dot product
+def dot(a, b, dim):
+    dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
     if isinstance(dot, TensorList):
         aux = 0
         for d in dot:
@@ -141,6 +171,8 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
+    parallel_dim=None,
+    init=None,
     verbose=False,
 ):
     """
@@ -155,37 +187,44 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
+    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param torch.Tensor init: Optional initial guess.
+    :param bool verbose: Output progress information in the console.
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
 
-    x = zeros_like(b)
+    if parallel_dim is None:
+        parallel_dim = []
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if init is not None:
+        x = init
+    else:
+        x = zeros_like(b)
 
     r = b - A(x)
     p = r
-    rsold = dot(r, r)
-
-    bnorm = dot(b, b).real
-
-    tol = tol**2
-    flag = False
+    rsold = dot(r, r, dim=dim).real
+    flag = True
+    tol = dot(b, b, dim=dim).real * (tol**2)
     for _ in range(int(max_iter)):
         Ap = A(p)
-        alpha = rsold / (dot(p, Ap) + eps)
+        alpha = rsold / (dot(p, Ap, dim=dim) + eps)
         x = x + p * alpha
         r = r - Ap * alpha
-        rsnew = dot(r, r)
-        assert rsnew.isfinite().all(), "Conjugate gradient diverged"
-        if all(rsnew.abs() < tol * bnorm):
-            flag = True
+        rsnew = dot(r, r, dim=dim).real
+        if torch.all(rsnew < tol):
             if verbose:
-                print(f"Conjugate gradient converged after {_} iterations")
+                print("CG Converged at iteration", _)
+            flag = False
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
+        # print(rsnew[0].item())
 
-    if not flag and verbose:
-        print("Conjugate gradient did not converge")
+    if flag and verbose:
+        print("CG did not converge")
 
     return x
 
@@ -196,6 +235,7 @@ def bicgstab(
     init=None,
     max_iter=1e2,
     tol=1e-5,
+    parallel_dim=None,
     verbose=False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
@@ -214,47 +254,51 @@ def bicgstab(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
+    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
     :param Callable right_precon: right preconditioner as a callable function.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
+
+    if parallel_dim is None:
+        parallel_dim = []
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
     if init is not None:
         x = init
     else:
         x = torch.zeros_like(b)
 
     r = b - A(x)
-    r_hat = r.clone()  # torch.rand_like(r) # torch.ones_like(r)
-    rho = dot(r, r_hat)
+    r_hat = r.clone()  # torch.ones_like(r) #torch.rand_like(r) #r.clone()
+    rho = dot(r, r_hat, dim=dim)
     p = r
     max_iter = int(max_iter)
 
-    bnorm = dot(b, b).real
-
-    tol = tol**2
+    tol = dot(b, b, dim=dim).real * (tol**2)
     flag = False
     for i in range(max_iter):
         y = right_precon(left_precon(p))
         v = A(y)
-        alpha = rho / dot(r_hat, v)
+        alpha = rho / dot(r_hat, v, dim=dim)
         h = x + alpha * y
         s = r - alpha * v
         z = right_precon(left_precon(s))
         t = A(z)
-        omega = dot(left_precon(t), left_precon(s)) / dot(
-            left_precon(t), left_precon(t)
+        omega = dot(left_precon(t), left_precon(s), dim=dim) / dot(
+            left_precon(t), left_precon(t), dim=dim
         )
 
         x = h + omega * z
         r = s - omega * t
-        if dot(r, r).real < tol * bnorm:
+        if torch.all(dot(r, r, dim=dim).real < tol):
             flag = True
             if verbose:
                 print("BiCGSTAB Converged at iteration", i)
             break
 
-        rho_new = dot(r, r_hat)
+        rho_new = dot(r, r_hat, dim=dim)
         beta = (rho_new / rho) * (alpha / omega)
         p = r + beta * (p - omega * v)
         rho = rho_new
@@ -277,11 +321,11 @@ def _sym_ortho(a, b):
     ``1/eps`` in some important places.
 
     """
-    if b == 0:
+    if torch.any(b == 0):
         return torch.sign(a), 0, a.abs()
-    elif a == 0:
+    elif torch.any(a == 0):
         return 0, torch.sign(b), b.abs()
-    elif b.abs() > a.abs():
+    elif torch.any(b.abs() > a.abs()):
         tau = a / b
         s = torch.sign(b) / torch.sqrt(1 + tau * tau)
         c = s * tau
@@ -300,10 +344,10 @@ def lsqr(
     b,
     eta=0.0,
     x0=None,
-    atol=0.0,
     tol=1e-6,
     conlim=1e8,
     max_iter=100,
+    parallel_dim=None,
     verbose=False,
     **kwargs,
 ):
@@ -322,26 +366,36 @@ def lsqr(
     :param torch.Tensor b: input tensor of shape (B, ...)
     :param float eta: damping parameter :math:`eta \geq 0`.
     :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
-    :param float atol: absolute tolerance for stopping the LSQR algorithm.
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
+    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
+    :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
+
+    if parallel_dim is None:
+        parallel_dim = []
+
+    dim = [i for i in range(b.ndim) if i not in parallel_dim]
+    normf = lambda u: torch.linalg.vector_norm(u, dim=dim, keepdim=True)
 
     xt = AT(b)
     # m = b.size(0)
     # n = xt.numel()/xt.size(0)
 
-    itn = 0
-    istop = 0
+    # var = torch.zeros_like(xt) if calc_var else None
+
+    if eta > 0:
+        if isinstance(eta, torch.Tensor):
+            eta_sqrt = torch.sqrt(eta)
+        else:
+            eta_sqrt = torch.tensor(eta, device=b.device).sqrt()
+
     # ctol = 1 / conlim if conlim > 0 else 0
     anorm = 0.0
-    # acond = 0.0
-    if isinstance(eta, float) or isinstance(eta, int):
-        eta = torch.tensor(eta, device=b.device)
+    acond = torch.zeros(1, device=b.device)
     dampsq = eta
-    damp = torch.sqrt(eta)
     ddnorm = 0.0
     # res2 = 0.0
     # xnorm = 0.0
@@ -351,7 +405,7 @@ def lsqr(
     sn2 = 0.0
 
     u = b.clone()
-    bnorm = torch.norm(b)
+    bnorm = normf(b)
 
     if x0 is None:
         x = torch.zeros_like(xt)
@@ -363,45 +417,44 @@ def lsqr(
             x = x0.clone()
 
         u -= A(x)
-        beta = torch.norm(u)
+        beta = normf(u)
 
-    if beta > 0:
-        u /= beta
+    if torch.all(beta > 0):
+        u = u / beta
         v = AT(u)
-        alfa = torch.norm(v)
+        alfa = normf(v)
     else:
         v = torch.zeros_like(x)
-        alfa = 0.0
+        alfa = torch.zeros(1, device=b.device)
 
-    if alfa > 0:
-        v /= alfa
+    if torch.all(alfa > 0):
+        v = v / alfa
 
     w = v.clone()
     rhobar = alfa
     phibar = beta
     arnorm = alfa * beta
 
-    if arnorm == 0:
-        return x
+    if torch.any(arnorm == 0):
+        return x, acond
 
     flag = False
-    while itn < max_iter:
-        itn += 1
+    for itn in range(max_iter):
         u = A(v) - alfa * u
-        beta = torch.norm(u)
+        beta = normf(u)
 
-        if beta > 0:
-            u /= beta
+        if torch.all(beta > 0):
+            u = u / beta
             anorm = torch.sqrt(anorm**2 + alfa**2 + beta**2 + dampsq)
             v = AT(u) - beta * v
-            alfa = torch.norm(v)
-            if alfa > 0:
-                v /= alfa
+            alfa = normf(v)
+            if torch.all(alfa > 0):
+                v = v / alfa
 
         if eta > 0:
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
             cs1 = rhobar / rhobar1
-            sn1 = damp / rhobar1
+            sn1 = eta_sqrt / rhobar1
             psi = sn1 * phibar
             phibar = cs1 * phibar
         else:
@@ -413,48 +466,49 @@ def lsqr(
         rhobar = -cs * alfa
         phi = cs * phibar
         phibar = sn * phibar
-        tau = sn * phi
+        # tau = sn * phi
 
         t1 = phi / rho
         t2 = -theta / rho
         dk = (1 / rho) * w
 
-        x += t1 * w
+        x = x + t1 * w
         w = v + t2 * w
-        ddnorm += torch.norm(dk) ** 2
+        ddnorm = ddnorm + normf(dk) ** 2
+
+        # if calc_var:
+        #    var = var + dk ** 2
 
         delta = sn2 * rho
         gambar = -cs2 * rho
         rhs = phi - delta * z
-        zbar = rhs / gambar
-        xnorm = torch.sqrt(xxnorm + zbar**2)
+        # zbar = rhs / gambar
+        # xnorm = torch.sqrt(xxnorm + zbar ** 2)
         gamma = torch.sqrt(gambar**2 + theta**2)
         cs2 = gambar / gamma
         sn2 = theta / gamma
         z = rhs / gamma
-        xxnorm += z**2
+        xxnorm = xxnorm + z**2
 
-        acond = anorm * torch.sqrt(ddnorm)
+        acond = anorm * torch.sqrt(ddnorm).mean()
         rnorm = torch.sqrt(phibar**2 + psi**2)
         # arnorm = alfa * abs(tau)
 
-        if rnorm <= tol * bnorm + atol * anorm * xnorm:
-            istop = 1
-        elif acond >= conlim:
-            istop = 4
-        elif itn >= max_iter:
-            istop = 7
-
-        if istop > 0:
+        if torch.all(rnorm <= tol * bnorm):
             flag = True
             if verbose:
                 print("LSQR converged at iteration", itn)
+            break
+        elif torch.any(acond > conlim):
+            flag = True
+            if verbose:
+                print(f"LSQR reached condition number limit {conlim} at iteration", itn)
             break
 
     if not flag and verbose:
         print("LSQR did not converge")
 
-    return x
+    return x, acond.sqrt()
 
 
 def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):

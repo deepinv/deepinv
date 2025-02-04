@@ -839,40 +839,66 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-def test_least_square_solvers(device):
-    solvers = ["CG", "BiCGStab", "lsqr"]
+solvers = ["CG", "BiCGStab", "lsqr"]
 
-    filter = torch.ones((1, 1, 2, 20), device=device)
-    filter = filter / filter.sum()
+
+@pytest.mark.parametrize("solver", solvers)
+def test_least_square_solvers(device, solver):
+
+    # test batching physics
+    filter = torch.ones((4, 1, 2, 20), device=device)
+    filter = filter / filter.sum(dim=(1, 2, 3), keepdim=True)
     noise = 0.0
     physics = dinv.physics.Blur(
         filter=filter, device=device, noise_model=dinv.physics.GaussianNoise(noise)
     )
 
-    x = torch.zeros((1, 1, 64, 64), device=device)
-
+    x = torch.ones((4, 1, 64, 64), device=device)
     x[0, 0, 20:30, 20:30] = 1
 
     tol = 0.01
     y = physics(x)
-    xhats = []
-    for solver in solvers:
-        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-        assert (physics.A(x_hat) - y).pow(2).mean() / y.pow(2).mean() < tol
-        xhats.append(x_hat)
-
-    for x_hat in xhats:
-        for r_hat in xhats:
-            assert (x_hat - r_hat).abs().pow(2).mean() / r_hat.pow(2).mean() < 3 * tol
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    assert (
+        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < tol
+    ).all()
 
     z = x.clone()
     gamma = 1.0
 
-    xhats = []
-    for solver in solvers:
-        x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
-        xhats.append(x_hat)
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
 
-    for x_hat in xhats:
-        for r_hat in xhats:
-            assert (x_hat - r_hat).abs().pow(2).mean() / r_hat.pow(2).mean() < 3 * tol
+    assert (
+        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < 3 * tol
+    ).all()
+
+    # test backprop
+    y.requires_grad = True
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    assert y.grad.norm() > 0
+
+
+def test_condition_number(device):
+    imsize = (2, 1, 32, 32)
+
+    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def A(self, x, **kwargs):
+            return x * c
+
+        def A_adjoint(self, y, **kwargs):
+            return y * c
+
+    physics = DummyPhysics()
+    x = torch.randn(imsize, device=device)
+    cond = physics.condition_number(x)
+    gt_cond = c.max() / c.min()
+    rel_error = (cond - gt_cond).abs() / gt_cond
+    assert rel_error < 0.1

@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
-from deepinv.optim.utils import least_squares
+from deepinv.optim.utils import least_squares, lsqr
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -509,6 +509,32 @@ class LinearPhysics(Physics):
 
         return s1.conj() - s2
 
+    def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
+        r"""
+        Computes approximation of the condition number of the linear operator :math:`A`.
+
+        Uses the LSQR algorithm, see :func:`deepinv.optim.utils.lsqr` for more details.
+
+        :param torch.Tensor x: Any input tensor (e.g. random)
+        :param int max_iter: maximum number of iterations
+        :param float tol: relative variation criterion for convergence
+        :param bool verbose: print information
+        :return: (:class:`torch.Tensor`) condition number of the operator
+        """
+        y = self.A(x, **kwargs)
+        _, cond = lsqr(
+            self.A,
+            self.A_adjoint,
+            y,
+            max_iter=max_iter,
+            verbose=verbose,
+            tol=tol,
+            parallel_dim=None,
+            **kwargs,
+        )
+
+        return cond
+
     def prox_l2(
         self, z, y, gamma, solver="CG", max_iter=None, tol=None, verbose=False, **kwargs
     ):
@@ -540,6 +566,7 @@ class LinearPhysics(Physics):
             gamma=gamma,
             verbose=verbose,
             z=z,
+            parallel_dim=[0],
             ATA=self.A_adjoint_A,
             AAT=self.A_A_adjoint,
             max_iter=self.max_iter,
@@ -571,6 +598,7 @@ class LinearPhysics(Physics):
             self.A,
             self.A_adjoint,
             y,
+            parallel_dim=[0],
             AAT=self.A_A_adjoint,
             verbose=verbose,
             ATA=self.A_adjoint_A,
