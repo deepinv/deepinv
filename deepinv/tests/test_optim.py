@@ -9,6 +9,7 @@ from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
+from deepinv.tests.test_physics import find_operator
 
 
 def custom_init_CP(y, physics):
@@ -845,43 +846,48 @@ solvers = ["CG", "BiCGStab", "lsqr"]
 @pytest.mark.parametrize("solver", solvers)
 def test_least_square_solvers(device, solver):
 
-    # test batching physics
-    filter = torch.ones((4, 1, 2, 20), device=device)
-    filter = filter / filter.sum(dim=(1, 2, 3), keepdim=True)
-    noise = 0.0
-    physics = dinv.physics.Blur(
-        filter=filter, device=device, noise_model=dinv.physics.GaussianNoise(noise)
-    )
+    physics_names = [
+        "deblur_valid",
+        "fftdeblur",
+        "inpainting",
+        "MRI",
+        "super_resolution_circular",
+    ]
 
-    x = torch.ones((4, 1, 64, 64), device=device)
-    x[0, 0, 20:30, 20:30] = 1
+    batch_size = 4
 
-    tol = 0.01
-    y = physics(x)
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-    assert (
-        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < tol
-    ).all()
+    for physics_name in physics_names:
+        physics, img_size, _, _ = find_operator(physics_name, device=device)
 
-    z = x.clone()
-    gamma = 1.0
+        x = torch.randn((batch_size, *img_size), device=device)
 
-    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+        tol = 0.01
+        y = physics(x)
+        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+        assert (
+            (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+            / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+            < tol
+        ).all()
 
-    assert (
-        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-        < 3 * tol
-    ).all()
+        z = x.clone()
+        gamma = 1.0
 
-    # test backprop
-    y.requires_grad = True
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-    loss = (x_hat - x).pow(2).mean()
-    loss.backward()
-    assert y.grad.norm() > 0
+        x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+
+        assert (
+            (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+            / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+            < 3 * tol
+        ).all()
+
+        # test backprop
+        y.requires_grad = True
+        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+        loss = (x_hat - x).pow(2).mean()
+        loss.backward()
+        if not "inpainting" in physics_name:
+            assert y.grad.norm() > 0
 
 
 def test_condition_number(device):
