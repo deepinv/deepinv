@@ -52,8 +52,9 @@ class FlowUNet(Denoiser):
                  act=Swish(),
                  normalize=group_norm,
                  pretrained="download",
+                 device='cuda'
                  ):
-        super().__init__()
+        super().__init__(device=device)
         self.input_channels = input_channels
         self.input_height = input_height
         self.ch = ch
@@ -65,6 +66,7 @@ class FlowUNet(Denoiser):
         self.resamp_with_conv = resamp_with_conv
         self.act = act
         self.normalize = normalize
+        self.device = device
 
         # init
         self.num_resolutions = num_resolutions = len(ch_mult)
@@ -185,14 +187,15 @@ class FlowUNet(Denoiser):
                 import gdown
                 gdown.download(url,  './model_final_celeba.pt')
                 ckpt = torch.load('./model_final_celeba.pt',
-                                  map_location=torch.device('cpu'))
+                                  map_location=torch.device(self.device))
             else:
                 ckpt = torch.load('./model_final_celeba.pt',
-                                  map_location=torch.device('cpu'))
+                                  map_location=torch.device(self.device))
                 # ckpt = torch.load(
                 #     pretrained, map_location=lambda storage, loc: storage)
 
             self.load_state_dict(ckpt, strict=True)
+            self.to(self.device)
             self.eval()
 
     # noinspection PyMethodMayBeStatic
