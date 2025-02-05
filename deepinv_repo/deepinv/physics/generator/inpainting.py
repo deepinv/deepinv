@@ -295,7 +295,7 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         Return a mask of size img_size i.e ()
         """
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-            input_mask = input_mask.to(self.device)
+            input_mask = input_mask.to(self.device) # to device
             # rng should be shuffled for each batch
             # get mask from pdf
             mask_lambda = self.poly_generator.step(batch_size=1)["mask"].squeeze(0)
