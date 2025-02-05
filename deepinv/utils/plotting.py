@@ -96,9 +96,11 @@ def prepare_images(x, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
             titles.append("Reconstruction")
             caption += "Reconstruction"
 
-        vis_array = torch.cat(imgs, dim=0)
-        for i in range(len(vis_array)):
-            vis_array[i] = rescale_img(vis_array[i], rescale_mode=rescale_mode)
+        vis_array = []
+        for img in imgs:
+            out = preprocess_img(img, rescale_mode=rescale_mode)
+            vis_array.append(out)
+        vis_array = torch.cat(vis_array)
         grid_image = make_grid(vis_array, nrow=x.shape[0])
 
     for k in range(len(imgs)):
