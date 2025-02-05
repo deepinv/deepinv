@@ -168,6 +168,20 @@ class MRI(MRIMixin, DecomposablePhysics):
             )
         )
 
+    def noise(self, x, **kwargs):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        noise = self.U(
+            self.V_adjoint(
+                self.V(self.U_adjoint(self.noise_model(x, **kwargs)) * self.mask)
+            )
+        )
+        return noise
+
     def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
         """Update MRI subsampling mask.
 
