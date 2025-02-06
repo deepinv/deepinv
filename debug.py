@@ -12,13 +12,25 @@ device = 'cuda'
 mynet = FlowUNet(input_channels=3,
                  input_height=128, pretrained=True, device=device)
 
-print(mynet.device)
 pnpflow = PnPFlow(mynet, data_fidelity=L2(),
                   verbose=True, max_iter=100, device=device, lr=1.0)
 
-url = get_image_url("69037.png")
+# url = get_image_url("69037.png")
+# x_true = load_url_image(url=url, img_size=256, device=device)
 
-x_true = load_url_image(url=url, img_size=256, device=device)
+from PIL import Image
+ori_img = Image.open('example.jpg')
+import torchvision.transforms as v2
+
+
+# Define the transformation
+transform = v2.Compose([
+    v2.ToTensor(),
+    v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+])
+
+# Apply the transformation
+x_true = transform(ori_img).unsqueeze(0).to(device)
 
 x = x_true.clone()
 mask = torch.ones_like(x)
@@ -33,7 +45,7 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(2*x-1)
+y = physics(x)
 
 
 imgs = [y, x_true]
