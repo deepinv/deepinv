@@ -16,19 +16,6 @@ pnpflow = PnPFlow(mynet, data_fidelity=L2(),
                   verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.6)
 
 
-# from PIL import Image
-# ori_img = Image.open('example.jpg')
-# import torchvision.transforms as v2
-
-
-# # Define the transformation
-# transform = v2.Compose([
-#     v2.ToTensor(),
-#     v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-# ])
-
-# # Apply the transformation
-# x_true = transform(ori_img).unsqueeze(0).to(device)
 url = get_image_url("celeba_example.jpg")
 
 x_true = load_url_image(url=url, img_size=128,
@@ -46,7 +33,7 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(x)
+y = physics(2*x -1)
 
 
 imgs = [y, x_true]
