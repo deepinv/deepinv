@@ -17,6 +17,7 @@ class PnPFlow(Reconstructor):
         max_iter=100,
         n_avg=2,
         lr=1e-3,
+        lr_exp=0.5,
         device='cuda',
         verbose=False,
     ):
@@ -26,6 +27,7 @@ class PnPFlow(Reconstructor):
         self.data_fidelity = data_fidelity
         self.n_avg = n_avg
         self.lr = lr
+        self.lr_exp = lr_exp
         self.verbose = verbose
         self.device = device
 
@@ -53,15 +55,15 @@ class PnPFlow(Reconstructor):
             else:
                 mask = torch.cat([physics.mask.abs()] * y.shape[0], dim=0)
 
-            y_bar = physics.U_adjoint(y)
+            y_bar = physics.A_adjoint(y)
             x = y_bar
 
             delta = 1 / self.max_iter
 
-            for iter in tqdm(range(1, self.max_iter), disable=(not self.verbose)):
+            for iter in tqdm(range(self.max_iter), disable=(not self.verbose)):
                 t = torch.ones(
                     len(x), device=self.device) * delta * iter
-                lr_t = self.lr * (1 - t.view(-1, 1, 1, 1))
+                lr_t = self.lr * (1 - t.view(-1, 1, 1, 1))**self.lr_exp
                 z = x - lr_t * self.data_fidelity.grad(x, y, physics)
                 x_new = torch.zeros_like(x)
                 for _ in range(self.n_avg):
