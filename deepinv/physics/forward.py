@@ -42,7 +42,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         sensor_model=lambda x: x,
         solver="gradient_descent",
         max_iter=50,
-        tol=1e-2,
+        tol=1e-3,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -565,6 +565,7 @@ class LinearPhysics(Physics):
             solver=solver,
             gamma=gamma,
             verbose=verbose,
+            init=z,
             z=z,
             parallel_dim=[0],
             ATA=self.A_adjoint_A,
