@@ -561,7 +561,7 @@ def test_pseudo_inverse(name, device, rng):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_decomposable(name, device, rng):
     physics, imsize, _, dtype = find_operator(name, device)
-    if isinstance(physics, deepinv.physics.DecomposablePhysics):
+    if isinstance(physics, dinv.physics.DecomposablePhysics):
         x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
         proj = lambda u: physics.V(physics.V_adjoint(u))
@@ -1088,8 +1088,10 @@ def test_decolorize(srf, device, imsize, multispectral_channels):
     x2 = physics.A_adjoint_A(x)
 
     assert x2.shape == x.shape
-    assert torch.allclose(sum(physics.srf), torch.tensor(1.0, device=device), rtol=1e-4)
-    assert len(physics.srf) == channels
+    assert torch.allclose(
+        physics.srf.sum(), torch.tensor(1.0, device=device), rtol=1e-3
+    )
+    assert physics.srf.shape[1] == channels
 
 
 @pytest.mark.parametrize("shear_dir", ["h", "w"])

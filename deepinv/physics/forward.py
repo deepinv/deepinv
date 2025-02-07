@@ -281,7 +281,7 @@ class LinearPhysics(Physics):
 
         >>> from deepinv.physics.blur import Blur, Downsampling
         >>> x = torch.zeros((1, 1, 32, 32)) # Define black image of size 32x32
-        >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
+        >>> x[:, :, 16, 16] = 1 # Define one white pixel in the middle
         >>> w = torch.ones((1, 1, 3, 3)) / 9 # Basic 3x3 averaging filter
         >>> physics = Blur(filter=w)
         >>> y = physics(x)
@@ -303,11 +303,10 @@ class LinearPhysics(Physics):
         Linear operators also come with an adjoint, a pseudoinverse, and proximal operators in a given norm:
 
         >>> from deepinv.loss.metric import PSNR
-        >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
         >>> physics = Blur(filter=w, padding='circular')
         >>> y = physics(x) # Compute measurements
-        >>> x_ = physics.A_dagger(y) # Compute pseudoinverse, unstable if noisy
-        >>> x_prox = physics.prox_l2(y, torch.zeros_like(x), 1.) # Compute prox at x=0
+        >>> x_dagger = physics.A_dagger(y) # Compute linear pseudoinverse
+        >>> x_prox = physics.prox_l2(torch.zeros_like(x), y, 1.) # Compute prox at x=0
         >>> PSNR()(x, x_prox) > PSNR()(x, y) # Should be closer to the original
         tensor([True])
 
