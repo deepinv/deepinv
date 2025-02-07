@@ -388,8 +388,23 @@ def lsqr(
     if parallel_dim is None:
         parallel_dim = []
 
-    dim = [i for i in range(b.ndim) if i not in parallel_dim]
-    normf = lambda u: torch.linalg.vector_norm(u, dim=dim, keepdim=True)
+    if isinstance(b, TensorList):
+        device = b[0].device
+    else:
+        device = b.device
+
+    def normf(u):
+        total = 0.0
+        if isinstance(u, TensorList):
+            dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
+            for k in range(len(u)):
+                total += torch.linalg.vector_norm(
+                    u[k], dim=dims[k], keepdim=False
+                )  # don't keep dim as dims might be different
+            return total
+        else:
+            dim = [i for i in range(u.ndim) if i not in parallel_dim]
+            return torch.linalg.vector_norm(u, dim=dim, keepdim=True)
 
     xt = AT(b)
     # m = b.size(0)
@@ -401,11 +416,11 @@ def lsqr(
         if isinstance(eta, torch.Tensor):
             eta_sqrt = torch.sqrt(eta)
         else:
-            eta_sqrt = torch.tensor(eta, device=b.device).sqrt()
+            eta_sqrt = torch.tensor(eta, device=device).sqrt()
 
     # ctol = 1 / conlim if conlim > 0 else 0
     anorm = 0.0
-    acond = torch.zeros(1, device=b.device)
+    acond = torch.zeros(1, device=device)
     dampsq = eta
     ddnorm = 0.0
     # res2 = 0.0
@@ -419,11 +434,11 @@ def lsqr(
     bnorm = normf(b)
 
     if x0 is None:
-        x = torch.zeros_like(xt)
+        x = zeros_like(xt)
         beta = bnorm
     else:
         if isinstance(x0, float):
-            x = x0 * torch.zeros_like(xt)
+            x = x0 * zeros_like(xt)
         else:
             x = x0.clone()
 
@@ -436,7 +451,7 @@ def lsqr(
         alfa = normf(v)
     else:
         v = torch.zeros_like(x)
-        alfa = torch.zeros(1, device=b.device)
+        alfa = torch.zeros(1, device=device)
 
     if torch.all(alfa > 0):
         v = v / alfa
