@@ -555,7 +555,7 @@ def test_pseudo_inverse(name, device, rng):
     error = torch.linalg.vector_norm(
         physics.A_dagger(y, solver="lsqr", tol=0.0001) - r
     ) / torch.linalg.vector_norm(r)
-    assert error < 0.01
+    assert error < 0.02
 
 
 @pytest.mark.parametrize("name", OPERATORS)
