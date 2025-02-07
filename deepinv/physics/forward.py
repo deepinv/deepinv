@@ -722,7 +722,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) the product :math:`AA^{\top}y`.
         """
         self.update_parameters(mask=mask, **kwargs)
-        return self.U(self.mask * self.mask * self.U_adjoint(y))
+        return self.U(self.mask.conj() * self.mask * self.U_adjoint(y))
 
     def A_adjoint_A(self, x, mask=None, **kwargs):
         r"""
@@ -734,7 +734,7 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) the product :math:`A^{\top}Ax`.
         """
         self.update_parameters(mask=mask, **kwargs)
-        return self.V(self.mask * self.mask * self.V_adjoint(x))
+        return self.V(self.mask.conj() * self.mask * self.V_adjoint(x))
 
     def U(self, x):
         r"""
