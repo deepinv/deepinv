@@ -306,9 +306,9 @@ class LinearPhysics(Physics):
         >>> x = torch.randn((1, 1, 16, 16)) # Define random 16x16 image
         >>> physics = Blur(filter=w, padding='circular')
         >>> y = physics(x) # Compute measurements
-        >>> x_dagger = physics.A_dagger(y) # Compute pseudoinverse
-        >>> x_ = physics.prox_l2(y, torch.zeros_like(x), 0.1) # Compute prox at x=0
-        >>> PSNR()(x, x_dagger) > PSNR()(x, y) # Should be closer to the orginal
+        >>> x_ = physics.A_dagger(y) # Compute pseudoinverse, unstable if noisy
+        >>> x_prox = physics.prox_l2(y, torch.zeros_like(x), 1.) # Compute prox at x=0
+        >>> PSNR()(x, x_prox) > PSNR()(x, y) # Should be closer to the original
         tensor([True])
 
         The adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function` method
