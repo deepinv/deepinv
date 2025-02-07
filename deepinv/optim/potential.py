@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import deepinv
 from deepinv.optim.utils import gradient_descent
 
 
@@ -153,9 +154,24 @@ class Potential(nn.Module):
         :param float tol_inter: internal gradient descent has converged when the L2 distance between two consecutive iterates is smaller than tol_inter.
         :return: (torch.tensor) proximity operator :math:`\operatorname{prox}^h_{\gamma \regname}(x)`, computed in :math:`x`.
         """
-        grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
-            bregman_potential.grad(u) - bregman_potential.grad(x)
-        )
-        return gradient_descent(
-            grad, x, step_size=stepsize_inter, max_iter=max_iter_inter, tol=tol_inter
-        )
+        if isinstance(bregman_potential, deepinv.optim.BregmanL2):
+            return self.prox(
+                x,
+                *args,
+                gamma=gamma,
+                stepsize_inter=stepsize_inter,
+                max_iter_inter=max_iter_inter,
+                tol_inter=tol_inter,
+                **kwargs,
+            )
+        else:
+            grad = lambda u: gamma * self.grad(u, *args, **kwargs) + (
+                bregman_potential.grad(u) - bregman_potential.grad(x)
+            )
+            return gradient_descent(
+                grad,
+                x,
+                step_size=stepsize_inter,
+                max_iter=max_iter_inter,
+                tol=tol_inter,
+            )

@@ -28,7 +28,6 @@ class GDIteration(OptimIterator):
         super(GDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
-        self.requires_grad_g = True
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -51,7 +50,7 @@ class GDIteration(OptimIterator):
         x = x_prev - grad
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+            if self.F_fn is not None and self.has_cost
             else None
         )
         return {"est": (x,), "cost": F}
@@ -77,15 +76,13 @@ class MDIteration(OptimIterator):
 
     where :math:`\gamma` is a stepsize.
 
-    The potential :math:`h` should be specified in the cur_params dictionary.
-
+    :param deepinv.optim.Bregman bregman_potential: Instance of the Bregman class defining the Bregman potential used to compute the mirror descent step.
     """
 
     def __init__(self, bregman_potential=BregmanL2(), **kwargs):
         super(MDIteration, self).__init__(**kwargs)
         self.g_step = gStepGD(**kwargs)
         self.f_step = fStepGD(**kwargs)
-        self.requires_grad_g = True
         self.bregman_potential = bregman_potential
 
     def forward(
@@ -111,7 +108,7 @@ class MDIteration(OptimIterator):
         x = self.bregman_potential.grad_conj(self.bregman_potential.grad(x_prev) - grad)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+            if self.F_fn is not None and self.has_cost
             else None
         )
         return {"est": (x,), "cost": F}

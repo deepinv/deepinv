@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import HQS
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.optim.dpir import get_DPIR_params
@@ -121,8 +121,7 @@ data_fidelity = L2()
 prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="HQS",
+model = HQS(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
