@@ -67,21 +67,21 @@ class BaseSample(Reconstructor):
 
         # Initialization
         if X_init is None:
-            x = physics.A_adjoint(y)
+            X_t = physics.A_adjoint(y)
         else:
-            x = X_init
+            X_t = X_init
 
-        self.history = deque([x], maxlen=self.history_size)
+        self.history = deque([X_t], maxlen=self.history_size)
 
         # Initialize Welford trackers for each g_statistic
         statistics = []
         for g in self.g_statistics:
-            statistics.append(Welford(g(x)))
+            statistics.append(Welford(g(X_t)))
 
         # Run the chain
         for i in tqdm(range(self.num_iter), disable=(not self.verbose)):
-            x = self.iterator(
-                x,
+            X_t = self.iterator(
+                X_t,
                 y,
                 physics,
                 self.data_fidelity,
@@ -91,10 +91,10 @@ class BaseSample(Reconstructor):
             )
 
             if i >= (self.num_iter * self.burnin_ratio) and i % self.thinning == 0:
-                self.history.append(x)
+                self.history.append(X_t)
 
                 for j, (g, stat) in enumerate(zip(self.g_statistics, statistics)):
-                    stat.update(g(x))
+                    stat.update(g(X_t))
 
             if self.verbose and i % (self.num_iter // 10) == 0:
                 print(f"Iteration {i}/{self.num_iter}")
@@ -116,4 +116,3 @@ class BaseSample(Reconstructor):
             list[torch.Tensor]: List of stored samples from oldest to newest.
         """
         return list(self.history)
-

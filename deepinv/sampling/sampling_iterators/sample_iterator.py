@@ -6,10 +6,11 @@ from deepinv.optim import DataFidelity
 from typing import Dict, Any
 import torch
 
+
 class SamplingIterator(nn.Module):
     r"""
     Base class for sampling iterators.
-    
+
     All samplers should implement the forward method which performs a single sampling step.
     """
 
@@ -25,7 +26,7 @@ class SamplingIterator(nn.Module):
         cur_prior: Prior,
         cur_params: Dict[str, Any],
         *args,
-        **kwargs
+        **kwargs,
     ):
         r"""
         Performs a single sampling step: X_t -> X_{t+1}
