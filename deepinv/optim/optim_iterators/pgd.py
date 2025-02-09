@@ -195,7 +195,7 @@ class PMDIteration(OptimIterator):
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
-        """
+        r"""
         Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda \reg{x}`.
         The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`\regname`.
 
