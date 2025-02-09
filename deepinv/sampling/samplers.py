@@ -4,6 +4,7 @@ from collections import deque
 from collections.abc import Iterable
 import torch
 from tqdm import tqdm
+from deepinv.physics import Physics
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero, Prior
@@ -29,8 +30,6 @@ class BaseSample(Reconstructor):
         verbose=False,
     ):
         super(BaseSample, self).__init__()
-        # NOTE: maybe take in kwargs here and have BaseSample actually initialise the iterator?
-        # would let us pass extra things like proposal dists easily
         self.iterator = iterator
         self.data_fidelity = data_fidelity
         self.prior = prior
@@ -41,10 +40,17 @@ class BaseSample(Reconstructor):
         self.g_statistics = g_statistics
         self.verbose = verbose
         self.history_size = history_size
-        # Stores last history_size samples
+        # Stores last history_size samples note float('inf') => we store the whole chain
         self.history = deque(maxlen=history_size)
 
-    def forward(self, y, physics, X_init=None, **kwargs):
+    def forward(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        X_init: torch.Tensor | None = None,
+        seed: int | None = None,
+        **kwargs,
+    ):
         """
         Run the sampling chain to generate samples from the posterior and return averages of relevant statistics.
 
@@ -55,36 +61,40 @@ class BaseSample(Reconstructor):
         :return: Mean and variance of g_statistics. If single g_statistic, returns (mean, var) as tensors.
                 If multiple g_statistics, returns (means, vars) as lists of tensors.
         """
+        # Set random seed if provided
+        if seed is not None:
+            torch.manual_seed(seed)
+
         # Initialization
         if X_init is None:
-            X = physics.A_adjoint(y)
+            x = physics.A_adjoint(y)
         else:
-            X = X_init
+            x = X_init
 
-        self.history = deque([X], maxlen=self.history_size)
+        self.history = deque([x], maxlen=self.history_size)
 
         # Initialize Welford trackers for each g_statistic
         statistics = []
         for g in self.g_statistics:
-            statistics.append(Welford(g(X)))
+            statistics.append(Welford(g(x)))
 
         # Run the chain
         for i in tqdm(range(self.num_iter), disable=(not self.verbose)):
-            X = self.iterator(
-                X,
+            x = self.iterator(
+                x,
+                y,
+                physics,
                 self.data_fidelity,
                 self.prior,
                 self.params_algo,
-                y,
-                physics,
-                **kwargs
+                **kwargs,
             )
 
             if i >= (self.num_iter * self.burnin_ratio) and i % self.thinning == 0:
-                self.history.append(X)
+                self.history.append(x)
 
                 for j, (g, stat) in enumerate(zip(self.g_statistics, statistics)):
-                    stat.update(g(X))
+                    stat.update(g(x))
 
             if self.verbose and i % (self.num_iter // 10) == 0:
                 print(f"Iteration {i}/{self.num_iter}")
@@ -106,3 +116,4 @@ class BaseSample(Reconstructor):
             list[torch.Tensor]: List of stored samples from oldest to newest.
         """
         return list(self.history)
+

@@ -1,5 +1,6 @@
 import torch
 
+
 class Welford:
     """
     Welford's online algorithm for calculating mean and variance.
@@ -23,5 +24,3 @@ class Welford:
 
     def var(self):
         return self.S / (self.k - 1) if self.k > 1 else self.S
-
-
