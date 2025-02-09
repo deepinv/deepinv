@@ -171,8 +171,32 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
         return mask
 
+
 class PolyOrderMaskGenerator(BaseMaskGenerator):
-    """Generator for MRI Cartesian acceleration masks using polynomial variable density."""
+    """
+    Generator for MRI Cartesian acceleration masks using polynomial variable density.
+    
+    Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
+    Polynomial sampling varies as r^poly_order where r is the distance from the centre.
+
+    The mask is repeated across channels and randomly varies across batch dimension.
+
+    Algorithmn taken from Millard and Chiew `A Theoretical Framework for Self-Supervised MR Image Reconstruction Using Sub-Sampling via Variable Density Noisier2Noise`
+
+    :Examples:
+        Polynomial random sampling for 2x128x128 images
+
+        >>> from deepinv.physics.generator.mri import PolyOrderMaskGenerator
+        >>> generator = PolyOrderMaskGenerator((2, 128, 128), acceleration=8, center_fraction=0.04, poly_order=8)
+        >>> params = generator.step(batch_size=1)
+        >>> mask = params["mask"]
+        >>> mask.shape
+        torch.Size([1, 2, 128, 128])
+
+    :param int poly_order: polynomial order of the sampling pdf (should be the same poly_order used for input_mask)
+    :
+
+    """
 
     def __init__(
         self,
@@ -192,14 +216,18 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
             rng=rng,
             device=device,
             *args,
-            **kwargs
+            **kwargs,
         )
         self.poly_order = poly_order
-        # generate a pdf that is cached?
+        # generate a pdf that is cached
         self.pdf = self.get_pdf()
 
     def get_pdf(self) -> torch.Tensor:
-        """Create a 1D polynomial variable probability density function across k-space columns."""
+        """
+        Create a 1D polynomial variable probability density function across k-space columns that varies as (1-r)**poly_order
+        Central lines are always sampled.
+        : return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        """
         # Distance from the center (normalized to [-1, 1])
         r = torch.linspace(-1, 1, self.W, device=self.device).abs()
 
@@ -207,7 +235,9 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
         pdf = (1 - r) ** self.poly_order
 
         # Sample the central lines
-        pdf[self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)] = 1
+        pdf[
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)
+        ] = 1
 
         # Using binary search to scale the prob_mask to the desired acceleration factor
         eta = 1e-3  # Tolerance
@@ -219,7 +249,11 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
             c = (a + b) / 2  # Midpoint of search range
             scaled_pdf = pdf + c  # Adjust probabilities
             scaled_pdf.clamp_(0, 1)  # Keep values in range [0, 1]
-            scaled_pdf[self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)] = 1  # Ensure center is fully sampled
+            scaled_pdf[
+                self.W // 2
+                - self.n_center // 2 : self.W // 2
+                + ceildiv(self.n_center, 2)
+            ] = 1  # Ensure center is fully sampled
 
             # Calculate the current sampling fraction
             current_fraction = scaled_pdf.mean().item()
@@ -239,15 +273,21 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
 
         return scaled_pdf
 
-
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        """
+        Samples from Bernoulli distribution from self.pdf to create a 1D mask
+        :return torch.Tensor: 2D mask
+        """
         for b in range(mask.shape[0]):  # Iterate over batch
             for t in range(mask.shape[2]):  # Iterate over time steps
                 # Sample from Bernoulli and reshape to match (H, W)
                 mask_1d = torch.bernoulli(self.pdf)  # Shape: [W]
                 # assumes pixelwise which is not good
-                mask[b, :, t, :, :] = mask_1d.unsqueeze(0).expand(self.H, self.W)  # Match (H, W)
+                mask[b, :, t, :, :] = mask_1d.unsqueeze(0).expand(
+                    self.H, self.W
+                )  # Match (H, W)
         return mask
+
 
 class GaussianMaskGenerator(RandomMaskGenerator):
     """Generator for MRI Cartesian acceleration masks using Gaussian undersampling.
