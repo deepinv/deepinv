@@ -618,7 +618,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-def kaiser_window(beta, length):
+def kaiser_window(beta, length, device='cpu'):
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
         raise ValueError("beta must be greater than 0")
@@ -627,12 +627,12 @@ def kaiser_window(beta, length):
     if length == 1:
         return torch.tensor([1.0])
     half = (length - 1) / 2
-    n = torch.arange(length)
-    beta = torch.tensor(beta)
+    n = torch.arange(length, device=device)
+    beta = torch.tensor(beta, device=device)
     return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
-def sinc_filter(factor=2, length=11, windowed=True):
+def sinc_filter(factor=2, length=11, windowed=True, device='cpu'):
     r"""
     Anti-aliasing sinc filter multiplied by a Kaiser window.
 
@@ -659,7 +659,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
     """
     deltaf = 1 / factor
 
-    n = torch.arange(length) - (length - 1) / 2
+    n = torch.arange(length, device=device) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
@@ -671,7 +671,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
         else:
             beta = 0.1102 * (A - 8.7)
 
-        filter = filter * kaiser_window(beta, length)
+        filter = filter * kaiser_window(beta, length, device=device)
 
     filter = filter.unsqueeze(0)
     filter = filter * filter.T
