@@ -104,7 +104,7 @@ epll_batch_size = 10000
 #            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
 
-retrain = True
+retrain = False
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,
