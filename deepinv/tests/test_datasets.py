@@ -17,11 +17,13 @@ from deepinv.datasets import (
     Kohler,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
+    CMRxReconSliceDataset,
     NBUDataset,
 )
-from deepinv.datasets.utils import download_archive
+from deepinv.datasets.utils import download_archive, extract_zipfile
 from deepinv.utils.demo import get_image_url
-from deepinv.physics.mri import MultiCoilMRI, MRI
+from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
+from deepinv.physics.generator import GaussianMaskGenerator
 
 
 @pytest.fixture
@@ -326,10 +328,24 @@ def test_FastMRISliceDataset(download_fastmri):
     # Clean data shape
     rss_shape = (320, 320)
 
-    dataset = FastMRISliceDataset(
-        root=download_fastmri,
+    data_dir = download_fastmri
+
+    # Test metadata caching
+    _ = FastMRISliceDataset(
+        root=data_dir,
         slice_index="all",
+        save_metadata_to_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
+
+    # Test data shapes
+    dataset = FastMRISliceDataset(
+        root=data_dir,
+        slice_index="all",
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )
+
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
 
@@ -338,6 +354,7 @@ def test_FastMRISliceDataset(download_fastmri):
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
 
+    # Test compatible with MultiCoilMRI
     physics = MultiCoilMRI(
         mask=torch.ones(kspace_shape),
         coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
@@ -346,14 +363,97 @@ def test_FastMRISliceDataset(download_fastmri):
     rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
     assert torch.allclose(target1.unsqueeze(0), rss1)
 
-    if False:
-        # This code can be used to test singlecoil data (e.g. singlecoil knee data)
-        # But we omit this for downloading speed.
-        physics = MRI(mask=torch.ones(kspace_shape), img_size=img_shape)
-        mag1 = physics.A_adjoint(kspace1.unsqueeze(0), mag=True, crop=True)
-        assert torch.allclose(target1.unsqueeze(0), mag1)
+    # Test singlecoil MRI mag works
+    physics = MRI(mask=torch.ones(kspace_shape), img_size=img_shape)
+    mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True, crop=True)
+    assert target1.unsqueeze(0).shape == mag1.shape
 
+    # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
     assert len(subset) == 16  # 16 slices
     assert x.shape == (2, *rss_shape)
+
+
+@pytest.fixture
+def download_CMRxRecon():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "CMRxRecon"
+
+    # Download single CMRxRecon volume
+    os.makedirs(tmp_data_dir, exist_ok=True)
+    download_archive(get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip")
+    extract_zipfile(f"{tmp_data_dir}/CMRxRecon.zip", tmp_data_dir)
+
+    # This will return control to the test function
+    yield f"{tmp_data_dir}/CMRxRecon"
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_CMRxReconSliceDataset(download_CMRxRecon):
+    from math import prod
+
+    img_shape = (12, 512, 256)
+
+    physics_generator = GaussianMaskGenerator(img_shape)
+
+    data_dir = download_CMRxRecon
+
+    # Test metadata caching
+    _ = CMRxReconSliceDataset(
+        root=data_dir,
+        save_metadata_to_cache=True,
+        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        apply_mask=False,
+    )
+
+    # Test data shapes
+    dataset = CMRxReconSliceDataset(
+        root=data_dir,
+        load_metadata_from_cache=True,
+        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        mask_generator=physics_generator,
+        mask_dir=None,
+        apply_mask=True,
+    )
+    target1, kspace1, params1 = dataset[0]
+    target2, kspace2, params2 = dataset[1]
+
+    assert target1.shape == kspace1.shape == (2, *img_shape)
+    assert not torch.all(target1 == target2)
+    assert not torch.all(kspace1 == kspace2)
+    assert not torch.all(params1["mask"] == params2["mask"])
+    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+
+    # Test reproducibility
+    _, _, params1_again = dataset[0]
+    assert torch.all(params1_again["mask"] == params1["mask"])
+
+    # Loaded kspace is directly compatible with deepinv physics
+    physics = DynamicMRI(img_size=img_shape)
+    kspace1_dinv = physics(
+        target1.unsqueeze(0), mask=params1["mask"].unsqueeze(0)
+    ).squeeze(0)
+    assert torch.all(kspace1 == kspace1_dinv)
+
+    # Test loading mask
+    dataset = CMRxReconSliceDataset(
+        root=data_dir,
+        load_metadata_from_cache=True,
+        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        apply_mask=True,
+    )
+    target1, kspace1, params1 = dataset[0]
+    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+
+    # Test no apply mask
+    dataset = CMRxReconSliceDataset(
+        root=data_dir,
+        load_metadata_from_cache=True,
+        metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        apply_mask=False,
+    )
+    target1, kspace1, params1 = dataset[0]
+    assert (kspace1 == 0).sum() == 0
