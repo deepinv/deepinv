@@ -9,12 +9,11 @@ import requests
 from tqdm.auto import tqdm
 
 from scipy.io import loadmat as scipy_loadmat
+from numpy import ndarray
 
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
-from scipy.io import loadmat as scipy_loadmat
-from numpy import ndarray
 
 from deepinv.utils.plotting import rescale_img
 
@@ -104,21 +103,11 @@ def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
         try:
             from mat73 import loadmat as loadmat73
 
-            # TODO read as HDF?
             return loadmat73(fname)
         except ImportError:
             raise ImportError("mat73 is required, install with 'pip install mat73'.")
         except TypeError:
             pass
-    return scipy_loadmat(fname)
-
-
-def loadmat(fname: str) -> dict:
-    """Load MATLAB array from file.
-
-    :param str fname: filename to load
-    :return: dict with str keys and array values.
-    """
     return scipy_loadmat(fname)
 
 
