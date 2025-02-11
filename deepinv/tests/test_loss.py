@@ -338,23 +338,28 @@ def test_measplit(device):
     assert split_loss > 0 and n2n_loss > 0
 
 
-LOSS_SCHEDULERS = ["random", "interleaved"]
+LOSS_SCHEDULERS = ["random", "interleaved", "random_weighted"]
 
 
 @pytest.mark.parametrize("scheduler_name", LOSS_SCHEDULERS)
 def test_loss_scheduler(scheduler_name):
+    # Skeleton model
+    class TestModel:
+        def __init__(self):
+            self.a = 0
+
     # Skeleton loss function
     class TestLoss(dinv.loss.Loss):
         def __init__(self, a=1):
             super().__init__()
-            self.adapted = False
             self.a = a
 
         def forward(self, x_net, x, y, physics, model, epoch, **kwargs):
             return self.a
 
-        def adapt_model(self, model, **kwargs):
-            self.adapted = True
+        def adapt_model(self, model: TestModel, **kwargs):
+            model.a += self.a
+            return model
 
     rng = torch.Generator().manual_seed(0)
 
@@ -362,16 +367,27 @@ def test_loss_scheduler(scheduler_name):
         l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
     elif scheduler_name == "interleaved":
         l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+    elif scheduler_name == "random_weighted":
+        l = RandomLossScheduler(
+            [TestLoss(0), TestLoss(2)], TestLoss(1), generator=rng, weightings=[4, 1]
+        )
 
     # Loss scheduler adapts all inside losses
-    l.adapt_model(None)
-    assert l.losses[0].adapted == True
+    model = TestModel()
+    l.adapt_model(model)
+    assert model.a == 3
 
-    # Scheduler calls both losses eventually
+    # Scheduler calls all losses eventually
     loss_total = 0
+    loss_log = []
     for _ in range(20):
-        loss_total += l(None, None, None, None, None, None)
+        loss = l(None, None, None, None, None, None)
+        loss_total += loss
+        loss_log += [loss]
     assert loss_total > 20
+
+    if scheduler_name == "random_weighted":
+        assert loss_log.count(2) > loss_log.count(1)
 
 
 def test_stacked_loss(device, imsize):
