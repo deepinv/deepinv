@@ -604,7 +604,7 @@ class Trainer:
             x_nl = y
         else:
             raise ValueError(
-                f"No learning reconstruction method {self.no_learning_method} not recognized"
+                f"No learning reconstruction method {self.no_learning_method} not recognized or physics does not implement it"
             )
 
         return x_nl
