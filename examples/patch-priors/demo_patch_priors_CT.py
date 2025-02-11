@@ -104,7 +104,7 @@ epll_batch_size = 10000
 #            :math:`P_Z`, data distribution :math:`P_X` and push-forward measure :math:`{\mathcal{T}_\theta}_\#P_Z`.
 
 
-retrain = False
+retrain = True
 if retrain:
     model_patchnr = PatchNR(
         pretrained=None,
@@ -120,7 +120,7 @@ if retrain:
     )
 
     class NFTrainer(Trainer):
-        def compute_loss(self, physics, x, y, train=True):
+        def compute_loss(self, physics, x, y, train=True, epoch=None):
             logs = {}
 
             self.optimizer.zero_grad()  # Zero the gradients
