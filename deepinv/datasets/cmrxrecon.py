@@ -3,249 +3,216 @@ from pathlib import Path
 import os
 from natsort import natsorted
 from tqdm import tqdm
+from warnings import warn
 
 from numpy import ndarray
+import numpy as np
 from torch import Tensor
+import torch
+import torch.nn.functional as F
 
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.datasets.utils import loadmat
 from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 
+
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
+    """CMRxRecon dynamic MRI dataset.
+
+    Return tuples `(x, y)` of target and kspace respectively.
+
+    Optionally, apply mask to measurements to get undersampled measurements.
+    Then the dataset returns tuples `(x, y, params)` where `params` is a dict `{'mask': mask}`.
+    This can be directly used with :class:`deepinv.Trainer` to train with undersampled measurements.
+    If masks are present in the data folders (in file format `cine_xax_mask.mat`) then these will be loaded.
+    If not, unique masks will be generated using a `mask_generator`, for example :class:`deepinv.physics.generator.RandomMaskGenerator`.
+
+    Directly compatible with deepinv physics, i.e. TODO
+
+    TODO test that CMRxRecon original data AccFactor04 folders contain GT in and how it's loaded
+    TODO check original data compatible with dataset
+    TODO we provide demo file...
+
+    TODO example
+
+    :param Union[str, Path] root: _description_
+    :param str data_dir: _description_, defaults to 'SingleCoil/Cine/TrainingSet/FullSample'
+    :param bool load_metadata_from_cache: _description_, defaults to False
+    :param bool save_metadata_to_cache: _description_, defaults to False
+    :param Union[str, Path] metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
+    :param Optional[Callable] transform: _description_, defaults to None
+    :param bool apply_mask: if `False`, return data `(x,y)`, if `True`, return `(x,y,{'mask':mask})` where mask is either
+        loaded from `data_folder` or generated using `mask_generator`.
+    :param Optional[BaseMaskGenerator] mask_generator: _description_, defaults to None
+    """
 
     def __init__(
         self,
         root: Union[str, Path],
-        data_folders: List[str] = ['SingleCoil/Cine/FullSample'],
+        data_dir: str = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
-        transform: Optional[Callable] = None,
+        apply_mask: bool = True,
+        mask_dir: str = "SingleCoil/Cine/TrainingSet/AccFactor04",
         mask_generator: Optional[BaseMaskGenerator] = None,
+        transform: Optional[Callable] = None,
     ):
-        self.root = Path(root)
-        self.data_dirs = natsorted([self.root / d for d in data_folders])
-        self.transform = self.norm_pad_transform if transform is None else transform
-        self.mask_generator = mask_generator
 
-        if not all([os.path.isdir(d) for d in self.data_dirs]):
-            raise ValueError(
-                f"One or more data folder does not exist. Please set `root` and `data_folders` properly. Current values {self.data_dirs}."
+        self.root = Path(root)
+        self.data_dir = data_dir
+        self.mask_dir = mask_dir
+        self.transform = transform
+        self.mask_generator = mask_generator
+        self.apply_mask = apply_mask
+        self.load_metadata_from_cache = load_metadata_from_cache
+        self.save_metadata_to_cache = save_metadata_to_cache
+        self.metadata_cache_file = metadata_cache_file
+
+        if not self.apply_mask and (
+            self.mask_generator is not None or self.mask_dir is not None
+        ):
+            warn(
+                "mask_generator or mask_dir specified but apply_mask is False. mask_generator or mask_dir will not be used."
             )
-                
-        with self.metadata_cache_manager(self.root, [], metadata_cache_file, load_metadata_from_cache, save_metadata_to_cache) as sample_identifiers:
-            for fname in tqdm(natsorted([d.rglob("**/*.mat") for d in self.data_dirs])):
-                if fname.endswith("_mask.mat"):
-                    # TODO add this into regex above
-                    continue
-                metadata = self._retrieve_metadata(fname)
-                for slice_ind in range(metadata["num_slices"]):
-                    self.sample_identifiers.append(self.SliceSampleFileIdentifier(fname, slice_ind, metadata))
-            
+            self.mask_dir = self.mask_generator = None
+
+        if (
+            self.apply_mask
+            and self.mask_generator is not None
+            and self.mask_dir is not None
+        ):
+            raise ValueError(
+                "Only one of mask_generator or mask_dir should be specified."
+            )
+
+        if not os.path.isdir(self.root / self.data_dir) or (
+            self.mask_dir is not None and not os.path.isdir(self.root / self.mask_dir)
+        ):
+            raise ValueError(
+                f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
+            )
+
+        all_fnames = natsorted(
+            f
+            for f in (self.root / self.data_dir).rglob("**/*.mat")
+            if not str(f).endswith("_mask.mat")
+        )
+
+        with self.metadata_cache_manager(self.root, []) as sample_identifiers:
+            if len(sample_identifiers) == 0:
+                for fname in tqdm(all_fnames):
+                    metadata = self._retrieve_metadata(fname)
+                    for slice_ind in range(metadata["num_slices"]):
+                        sample_identifiers.append(
+                            self.SliceSampleFileIdentifier(fname, slice_ind, metadata)
+                        )
+
             self.sample_identifiers = sample_identifiers
 
-    @staticmethod
-    def _loadmat(fname: Union[str, Path, os.PathLike]) -> ndarray:
-        return next(v for k, v in loadmat(fname).items() if not k.startswith('__'))
+    def _loadmat(self, fname: Union[str, Path, os.PathLike]) -> ndarray:
+        """Load matrix from MATLAB 7.3 file and parse headers."""
+        return next(
+            v for k, v in loadmat(fname, mat73=True).items() if not k.startswith("__")
+        )
 
-    @staticmethod
-    def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> Dict[str, Any]:
+    def _retrieve_metadata(
+        self, fname: Union[str, Path, os.PathLike]
+    ) -> Dict[str, Any]:
         """Open file and retrieve metadata
-        
+
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
 
         :param Union[str, Path, os.PathLike] fname: filename to open
         :return: metadata dict of key-value pairs.
         """
-        shape = CMRxReconSliceDataset._loadmat(fname).shape #WH(N)DT
+        shape = self._loadmat(fname).shape  # WH(N)DT
         return {
-            "width": shape[0], #W
-            "height": shape[1], #H
-            "slices": shape[-2], #D (depth)
-            "timeframes": shape[-1], #T
-        } | {
-            "coils": shape[2], #N (coils)
-        } if len(shape) == 5 else {}
+            "width": shape[0],  # W
+            "height": shape[1],  # H
+            "num_slices": shape[-2],  # D (depth)
+            "timeframes": shape[-1],  # T
+        } | (
+            {
+                "coils": shape[2],  # N (coils)
+            }
+            if len(shape) == 5
+            else {}
+        )
 
     def __getitem__(self, i: int) -> Tuple[Tensor]:
-        fname, slice_index, metadata = self.sample_identifiers[i]
-        kspace = self._loadmat(fname) # shape WH(N)DT
-        kspace = kspace[..., slice_index, :] # shape WH(N)T
+        fname, slice_ind, metadata = self.sample_identifiers[i]
+
+        kspace = self._loadmat(fname)  # shape WH(N)DT
+        kspace = kspace[..., slice_ind, :]  # shape WH(N)T
 
         if len(kspace.shape) == 5:
-            kspace = kspace[:, :, 0] # shape WHT
+            kspace = kspace[:, :, 0]  # shape WHT
 
-        if self.mask_generator is None:
-            mask = self._loadmat(fname)
-        else:
-            mask = self.mask_generator.step(
-                seed=seed(fname + str(slice_index)),
-                img_size=kspace.shape[:2]
-            )
+        kspace = torch.from_numpy(
+            np.stack((kspace.real, kspace.imag), axis=0)
+        )  # shape CWHT
+        kspace = kspace.moveaxis(-1, 1)  # shape CTWH
+        target = self.kspace_to_im(kspace.unsqueeze(0)).squeeze(0)  # shape CTWH
 
-        return self.transform(kspace, mask)
+        # Apply target transform
+        if self.transform is not None:
+            target = self.transform(target)
 
-    def to_tensor(self, data: ndarray) -> Tensor:
-        return torch.from_numpy(np.stack((data.real, data.imag), axis=-1))
-
-    def norm_pad_transform(self, kspace: ndarray, mask: ndarray) -> Tuple[Tensor]:
-        target = self.to_tensor(kspace) # shape WHTC        
-        input_kspace = self.to_tensor(kspace) # shape WHTC
-        mask = self.to_tensor(mask if len(mask.shape) > 2 else np.expand_dims(mask, axis=-1)) # shape WH(1 or T)
-        # mask shape [w, h, 1 or t]
-
-        #! 2. Convert to image
-        target_image = ifftnc(target)
-        # target_image shape [w, h, t, ch]
-        input_image = ifftnc(input_kspace)
-        # input_image shape [w, h, t, ch]
-            
-        #! 3. Padding
-        padded_input, padded_mask = pad_size_tensor(input_image, mask, self.padding_size)
-        # print(padded_input.shape, padded_mask.shape)
-        # padded_input shape [512, 256, t, ch]
-        # padded_mask shape [512, 256, 1 or t]
-        padded_target, _ = pad_size_tensor(target_image, mask, self.padding_size)
-        # print(padded_target.shape)
-        # padded_target shape [512, 256, t, ch]
-        
-        # data is already masked
-        
-        #! 6. Apply time window
-        seed = None if not self.use_seed else str(tuple(map(ord, fname)))
-        start_time = random.Random(seed).randint(0, 12 - self.time_window)
-        
-        padded_input = padded_input[:, :, start_time:start_time + self.time_window, :]
-        #padded_input_kspace = padded_input_kspace[:, :, start_time:start_time + self.time_window, :]
-        padded_target = padded_target[:, :, start_time:start_time + self.time_window, :]
-        
-        #! 7. normalization
-        if self.normalize:
-            padded_input, mean, std = normalize_instance(padded_input, eps=1e-11)
-            padded_target = normalize(padded_target, mean, std, eps=1e-11)
-        else:
-            mean, std = 0, 1
-        
-        #! 4. Apply fft to get related k-space
-        padded_input_kspace = fftnc(padded_input)
-        # padded_input_kspace shape [512, 256, t, ch]
-
-        #! 5. Apply mask
+        # Load mask
         if self.apply_mask:
-            padded_input_kspace *= padded_mask[..., None]
-            padded_input_kspace += 0.0 # remove signs of zeros
+            if self.mask_generator is None:
+                try:
+                    mask = self._loadmat(
+                        str(fname)
+                        .replace(str(Path(self.data_dir)), str(Path(self.mask_dir)))
+                        .replace(".mat", "_mask.mat")
+                    )
+                    mask = self.check_mask(mask, three_d=True)[0]  # shape CTWH
+                except FileNotFoundError:
+                    raise FileNotFoundError(
+                        "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
+                    )
+            else:
+                mask = self.mask_generator.step(
+                    seed=str(fname) + str(slice_ind),
+                    img_size=kspace.shape[-2:],
+                    batch_size=0,
+                )["mask"]
+        else:
+            mask = torch.ones_like(kspace)
 
-        image = padded_input.permute(3, 2, 0, 1)  # HWTC->CTWH
-        target = padded_target.permute(3, 2, 0, 1)  # HWTC->CTWH
-        kspace = padded_input_kspace.permute(3, 2, 0, 1)
-        mask = padded_mask[..., None].permute(3, 2, 0, 1).float()
+        # Pad
+        target, mask = self.pad(target, mask, (512, 256))
 
-        if self.noise_level is not None and self.noise_level > 0:
-            kspace = GaussianNoise(sigma=self.noise_level, rng=self.generator)(kspace) * mask
+        # Normalise
+        target = (target - target.mean()) / (target.std() + 1e-11)
 
-        return target, kspace, mask
+        kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)
 
+        if self.apply_mask:
+            kspace = kspace * mask + 0.0
 
+        # if self.noise_level is not None and self.noise_level > 0:
+        #     kspace = GaussianNoise(sigma=self.noise_level, rng=self.generator)(kspace) * mask
 
+        return (target, kspace, {"mask": mask.float()})
 
+    def pad(
+        self, img1: Tensor, img2: Tensor, shape: Tuple[int, int] = (512, 256)
+    ) -> Tuple[Tensor, Tensor]:
+        """Pad images to shape. Assume images have same shape.
 
-
-def normalize(
-    data: torch.Tensor,
-    mean: Union[float, torch.Tensor],
-    stddev: Union[float, torch.Tensor],
-    eps: Union[float, torch.Tensor] = 0.0,
-) -> torch.Tensor:
-    """
-    Normalize the given tensor.
-
-    Applies the formula (data - mean) / (stddev + eps).
-
-    Args:
-        data: Input data to be normalized.
-        mean: Mean value.
-        stddev: Standard deviation.
-        eps: Added to stddev to prevent dividing by zero.
-
-    Returns:
-        Normalized tensor.
-    """
-    return (data - mean) / (stddev + eps)
-
-def normalize_instance(
-    data: torch.Tensor, eps: Union[float, torch.Tensor] = 0.0
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Normalize the given tensor  with instance norm/
-
-    Applies the formula (data - mean) / (stddev + eps), where mean and stddev
-    are computed from the data itself.
-
-    Args:
-        data: Input data to be normalized
-        eps: Added to stddev to prevent dividing by zero.
-
-    Returns:
-        torch.Tensor: Normalized tensor
-    """
-    mean = data.mean()
-    std = data.std()
-
-    return normalize(data, mean, std, eps), mean, std
-
-def pad_size_tensor(data: torch.Tensor, mask: torch.Tensor, desired_shape: Tuple[int, int]= (512, 256)): 
-    # shape: [batch, width, height, t, channels]
-    w_, h_ = desired_shape #desired shapes
-    h, w = data.shape[-3], data.shape[-4] #actual original shapes #TODO dims -3 and -4
-    h_pad, w_pad = (h_-h), (w_-w)
-    
-    if data.dim() == 4:
-        pad = (0, 0,
-               0, 0,
-                h_pad//2, h_pad//2,
-                w_pad//2, w_pad//2
-            )        
-    elif data.dim() == 5:
-        pad = (0, 0,
-               0, 0,
-               0, 0,
-                h_pad // 2, h_pad // 2,
-                w_pad // 2, w_pad // 2,
-            )
-
-    pad_4_mask = (0, 0,
-                h_pad // 2, h_pad // 2,
-                w_pad // 2, w_pad // 2,
-                
-                )
-    
-    data_padded = F.pad(data, pad, mode='constant', value=0)
-    mask_padded = F.pad(mask, pad_4_mask, mode='constant', value=0)
-    
-    # print("pad_size_tensor data_padded: ", data_padded.size())
-    # print("pad_size_tensor mask_padded: ", mask_padded.size())
-    
-    return data_padded, mask_padded
-
-def crop_to_depad(data, metadata):
-    
-    ori_height, ori_width = metadata['height'], metadata['width']    
-    # print(ori_height, ori_width)
-    data = data.permute(0, 3, 4, 2, 1)
-    w_crop = (data.shape[-1] - ori_width) // 2
-    h_crop = (data.shape[-2] - ori_height) // 2
-    
-    data = torchvision.transforms.functional.crop(data, h_crop, w_crop, ori_height, ori_width)    
-
-    return data.permute(0, 4, 3, 1, 2)
-
-def new_crop(data, metadata):
-    ori_height, ori_width = metadata['height'], metadata['width']
-    data = data.permute(0, 1, 3, 2)
-    w_crop = (data.shape[-1] - ori_width) // 2
-    h_crop = (data.shape[-2] - ori_height) // 2
-
-    data = torchvision.transforms.functional.crop(data, h_crop, w_crop, ori_height, ori_width)
-
-    return data.permute(0, 1, 3, 2)
+        :param torch.Tensor img1: input image 1 of shape [..., W, H]
+        :param torch.Tensor img2: input image 2 of shape [..., W, H]
+        :param tuple shape: pad to shape, defaults to (512, 256)
+        :return: padded images.
+        """
+        assert img1.shape[-2:] == img2.shape[-2:]
+        w_pad, h_pad = (shape[0] - img1.shape[-2]), (shape[1] - img1.shape[-1])
+        pad = (h_pad // 2, h_pad // 2, w_pad // 2, w_pad // 2)
+        return (
+            F.pad(img1, pad, mode="constant", value=0),
+            F.pad(img2, pad, mode="constant", value=0),
+        )
