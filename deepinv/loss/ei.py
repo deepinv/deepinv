@@ -27,8 +27,9 @@ class EILoss(Loss):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param deepinv.transform.Transform, torchvision.transforms transform: Transform to generate the virtually
-        augmented measurement. It can be any torch-differentiable function (e.g., a ``torch.nn.Module``).
+    :param deepinv.transform.Transform transform: Transform to generate the virtually augmented measurement.
+        It can be any torch-differentiable function (e.g., a :class:`torch.nn.Module`)
+        including `torchvision transforms <https://pytorch.org/vision/stable/transforms.html>`_.
     :param Metric, torch.nn.Module metric: Metric used to compute the error between the reconstructed augmented measurement and the reference
         image.
     :param bool apply_noise: if ``True``, the augmented measurement is computed with the full sensing model
@@ -46,8 +47,10 @@ class EILoss(Loss):
         apply_noise=True,
         weight=1.0,
         no_grad=False,
+        *args,
+        **kwargs,
     ):
-        super(EILoss, self).__init__()
+        super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
         self.metric = metric
         self.weight = weight
@@ -62,7 +65,7 @@ class EILoss(Loss):
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
 
         if self.no_grad:

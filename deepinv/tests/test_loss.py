@@ -10,13 +10,20 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+
 LIST_SURE = [
     "Gaussian",
     "Poisson",
     "PoissonGaussian",
     "GaussianUnknown",
     "PoissonGaussianUnknown",
+]
+
+LIST_R2R = [
+    "Gaussian",
+    "Poisson",
+    "Gamma",
 ]
 
 
@@ -62,7 +69,7 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
         loss.append(dinv.loss.ScoreLoss(dinv.physics.GaussianNoise(0.1), 100))
-    elif loss_name == "sup":
+    elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
@@ -122,6 +129,57 @@ def test_sure(noise_type, device):
 
     rel_error = (sure - mse).abs() / mse
     assert rel_error < 0.9
+
+
+def choose_r2r(noise_type):
+    gain = 1.0
+    sigma = 0.1
+    l = 10.0
+
+    if noise_type == "Poisson":
+        noise_model = dinv.physics.PoissonNoise(gain)
+        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.9999)
+    elif noise_type == "Gaussian":
+        noise_model = dinv.physics.GaussianNoise(sigma)
+        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+    elif noise_type == "Gamma":
+        noise_model = dinv.physics.GammaNoise(l)
+        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+    else:
+        raise Exception("The R2R loss doesnt exist")
+
+    return loss, noise_model
+
+
+@pytest.mark.parametrize("noise_type", LIST_R2R)
+def test_r2r(noise_type, device):
+    imsize = (3, 256, 256)  # a bigger image reduces the error
+    # choose backbone denoiser
+    backbone = dinv.models.MedianFilter()
+
+    # choose a reconstruction architecture
+    f = dinv.models.ArtifactRemoval(backbone)
+
+    # choose training losses
+    loss, noise = choose_r2r(noise_type)
+    f = loss.adapt_model(f)
+
+    # choose noise
+    torch.manual_seed(0)  # for reproducibility
+    physics = dinv.physics.Denoising(noise)
+
+    batch_size = 1
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
+
+    x_net = f(y, physics, update_parameters=True)
+    mse = deepinv.metric.MSE()(x, x_net)
+    r2r = loss(y=y, x_net=x_net, physics=physics, model=f)
+
+    rel_error = (r2r - mse).abs() / mse
+    rel_error = rel_error.item()
+    print(rel_error)
+    assert rel_error < 1.0
 
 
 @pytest.fixture
@@ -195,6 +253,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
+        eval_dataloader=test_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         losses=loss,
@@ -205,6 +264,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         save_path=save_dir / "dinv_test",
         plot_images=False,
         verbose=False,
+        log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model

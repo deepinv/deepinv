@@ -59,7 +59,7 @@ description of their reconstruction performance and speed.
      - No
      - Yes
      - Yes
-   * - :ref:`Unconditional GANs, deep image prior  <adversarial>`
+   * - :ref:`Generative Adversarial Networks and Deep Image Prior  <adversarial>`
      - Uses a generator network to model the set of possible images.
      - No
      - Yes

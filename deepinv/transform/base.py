@@ -93,7 +93,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
 
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
-    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     :param bool constant_shape: if ``True``, transformed images are assumed to be same shape as input.
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
         If False, for certain transforms including :class:`deepinv.transform.Rotate`,

@@ -15,8 +15,23 @@ from .plotting import (
     scatter_plot,
     plot_ortho3D,
 )
-from .demo import load_url_image, load_image, get_data_home
+from .demo import (
+    load_url_image,
+    load_image,
+    load_dataset,
+    load_degradation,
+    get_data_home,
+    get_image_url,
+    get_degradation_url,
+)
 from .nn import get_freer_gpu
-from .tensorlist import TensorList, rand_like, zeros_like, randn_like, ones_like
+from .tensorlist import (
+    TensorList,
+    rand_like,
+    zeros_like,
+    randn_like,
+    ones_like,
+    dirac_like,
+)
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
