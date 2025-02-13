@@ -14,9 +14,10 @@ import torch
 class DataFidelity(Potential):
     r"""
     Base class for the data fidelity term :math:`\distance{A(x)}{y}` where :math:`A` is the forward operator,
-    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function, from the class :meth:`deepinv.optim.Distance`.
+    :math:`x\in\xset` is a variable and :math:`y\in\yset` is the data, and where :math:`d` is a distance function,
+    from the class :class:`deepinv.optim.Distance`.
 
-    :param callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
+    :param Callable d: distance function :math:`d(x, y)` between a variable :math:`x` and an observation :math:`y`. Default None.
     """
 
     def __init__(self, d=None):
@@ -30,7 +31,7 @@ class DataFidelity(Potential):
         :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.Tensor) data fidelity :math:`\datafid{x}{y}`.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
         """
         return self.d(physics.A(x), y, *args, **kwargs)
 
@@ -49,40 +50,164 @@ class DataFidelity(Potential):
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
-        :return: (torch.Tensor) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
         """
         return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
 
     def grad_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`. Note that this is the gradient of
-        :math:`\distancename` and not :math:`\datafidname`. This function direclty calls :meth:`deepinv.optim.Distance.grad` for the
-        speficic distance function :math:`\distance`.
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
+
+        Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
+        specific distance function :math:`\distancename`.
+
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         return self.d.grad(u, y, *args, **kwargs)
 
     def prox_d(self, u, y, *args, **kwargs):
         r"""
-        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`. Note
-        that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
-        This function direclty calls :meth:`deepinv.optim.Distance.prox` for the
-        speficic distance function :math:`\distance`.
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
+        specific distance function :math:`\distancename`.
+
         :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
-        :return: (torch.Tensor) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
         """
         return self.d.prox(u, y, *args, **kwargs)
 
     def prox_d_conjugate(self, u, y, *args, **kwargs):
         r"""
         Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
-        This function direclty calls :meth:`deepinv.optim.Distance.prox_conjugate` for the
-        speficic distance function :math:`\distance`.
+
+        This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
+        specific distance function :math:`\distancename`.
         """
         return self.d.prox_conjugate(u, y, *args, **kwargs)
+
+
+class StackedPhysicsDataFidelity(DataFidelity):
+    r"""
+    Stacked data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
+
+    Adapted to :class:`deepinv.physics.StackedPhysics` physics composed of multiple physics operators.
+
+    :param list[deepinv.optim.DataFidelity] data_fidelity_list: list of data fidelity terms, one per physics operator.
+
+    |sep|
+
+    :Examples:
+
+        Define a stacked data fidelity term with two data fidelity terms :math:`f_1(A_1(x),y_1) + f_2(A_2(x,y_2)`:
+
+        >>> import torch
+        >>> import deepinv as dinv
+        >>> # define two observations, one with Gaussian noise and one with Poisson noise
+        >>> physics1 = dinv.physics.Denoising(dinv.physics.GaussianNoise(.1))
+        >>> physics2 = dinv.physics.Denoising(dinv.physics.PoissonNoise(.1))
+        >>> physics = dinv.physics.StackedLinearPhysics([physics1, physics2])
+        >>> fid1 = dinv.optim.L2()
+        >>> fid2 = dinv.optim.PoissonLikelihood()
+        >>> data_fidelity = dinv.optim.StackedPhysicsDataFidelity([fid1, fid2])
+        >>> x = torch.ones(1, 1, 3, 3) # image
+        >>> y = physics(x) # noisy measurements
+        >>> d = data_fidelity(x, y, physics)
+
+    """
+
+    def __init__(self, data_fidelity_list):
+        super(StackedPhysicsDataFidelity, self).__init__()
+        self.data_fidelity_list = data_fidelity_list
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        r"""
+        Computes the data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
+        :param deepinv.physics.StackedPhysics physics: physics model.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.fn(x, y[i], physics[i], *args, **kwargs)
+        return out
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{\forw{x}}{y} = \sum_i \left. \frac{\partial A_i}{\partial x} \right|_x^\top \nabla_u \distance{u}{y_i},
+
+        where :math:`\left. \frac{\partial A_i}{\partial x} \right|_x` is the Jacobian of :math:`A_i` at :math:`x`,
+        and :math:`\nabla_u \distance{u}{y_i}` is computed using ``grad_d`` with :math:`u = \forw{x}`.
+        The multiplication is computed using the ``A_vjp`` method of each physics.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param deepinv.utils.TensorList y: Stacked measurements :math:`y`.
+        :param deepinv.physics.StackedPhysics physics: Stacked physics model.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.grad(x, y[i], physics[i], *args, **kwargs)
+        return out
+
+    def grad_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the gradient :math:`\nabla_u\distance{u}{y}`, computed in :math:`u`.
+
+        Note that this is the gradient of
+        :math:`\distancename` and not :math:`\datafidname`. This function directly calls :func:`deepinv.optim.Potential.grad` for the
+        specific distance function :math:`\distancename_i`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.grad_d(u, y[i], *args, **kwargs)
+        return out
+
+    def prox_d(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator :math:`\operatorname{prox}_{\gamma\distance{\cdot}{y}}(u)`, computed in :math:`u`.
+
+        Note that this is the proximity operator of :math:`\distancename` and not :math:`\datafidname`.
+        This function directly calls :func:`deepinv.optim.Potential.prox` for the
+        specific distance function :math:`\distancename`.
+
+        :param torch.Tensor u: Variable :math:`u` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`u`.
+        :return: (:class:`torch.Tensor`) gradient of :math:`d` in :math:`u`, i.e. :math:`\nabla_u\distance{u}{y}`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.prox_d(u, y[i], *args, **kwargs)
+        return out
+
+    def prox_d_conjugate(self, u, y, *args, **kwargs):
+        r"""
+        Computes the proximity operator of the convex conjugate of the distance function :math:`\distance{u}{y}`.
+
+        This function directly calls :func:`deepinv.optim.Potential.prox_conjugate` for the
+        specific distance function :math:`\distancename`.
+        """
+        out = 0
+        for i, data_fidelity in enumerate(self.data_fidelity_list):
+            out += data_fidelity.prox_d_conjugate(u, y[i], *args, **kwargs)
+        return out
 
 
 class L2(DataFidelity):
@@ -129,7 +254,7 @@ class L2(DataFidelity):
 
     def __init__(self, sigma=1.0):
         super().__init__()
-        self.d = L2Distance()
+        self.d = L2Distance(sigma=sigma)
         self.norm = 1 / (sigma**2)
 
     def prox(self, x, y, physics, *args, gamma=1.0, **kwargs):
@@ -147,7 +272,7 @@ class L2(DataFidelity):
         :param torch.Tensor y: Data :math:`y`.
         :param deepinv.physics.Physics physics: physics model.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
+        :return: (:class:`torch.Tensor`) proximity operator :math:`\operatorname{prox}_{\gamma \datafidname}(x)`.
         """
         return physics.prox_l2(x, y, self.norm * gamma)
 
@@ -205,7 +330,7 @@ class IndicatorL2(DataFidelity):
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
         :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
                             operator since the indicator is scale invariant. Default: None.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         radius = self.radius if radius is None else radius
 
@@ -304,7 +429,7 @@ class L1(DataFidelity):
         :param float stepsize: step-size of the dual-forward-backward algorithm.
         :param float crit_conv: convergence criterion of the dual-forward-backward algorithm.
         :param int max_iter: maximum number of iterations of the dual-forward-backward algorithm.
-        :return: (torch.Tensor) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+        :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
         """
         norm_AtA = physics.compute_norm(x)
         stepsize = 1.0 / norm_AtA if stepsize is None else stepsize
@@ -324,7 +449,7 @@ class L1(DataFidelity):
 
 class AmplitudeLoss(DataFidelity):
     r"""
-    Amplitude loss as the data fidelity term for :meth:`deepinv.physics.PhaseRetrieval` reconstrunction.
+    Amplitude loss as the data fidelity term for :func:`deepinv.physics.PhaseRetrieval` reconstrunction.
 
     In this case, the data fidelity term is defined as
 

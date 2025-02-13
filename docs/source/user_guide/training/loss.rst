@@ -69,7 +69,7 @@ of the forward operator (e.g., incomplete operators with less measurements than 
      - Poisson-Gaussian noise
      - Yes
    * - :class:`deepinv.loss.R2RLoss`
-     - Gaussian noise
+     - Poisson, Gaussian or Gamma noise
      - Yes
    * - :class:`deepinv.loss.ScoreLoss`
      - Poisson, Gaussian or Gamma noise

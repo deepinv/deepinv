@@ -1,6 +1,6 @@
 import torch
 from deepinv.physics.forward import Physics
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 
 
 class Haze(Physics):

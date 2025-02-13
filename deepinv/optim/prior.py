@@ -37,7 +37,7 @@ class Prior(Potential):
         not raise an error.
 
 
-    :param callable g: Prior function :math:`g(x)`.
+    :param Callable g: Prior function :math:`g(x)`.
     """
 
     def __init__(self, g=None):
@@ -89,7 +89,7 @@ class PnP(Prior):
     Plug-and-play prior :math:`\operatorname{prox}_{\gamma \regname}(x) = \operatorname{D}_{\sigma}(x)`.
 
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -113,7 +113,7 @@ class RED(Prior):
     Regularization-by-Denoising (RED) prior :math:`\nabla \reg{x} = x - \operatorname{D}_{\sigma}(x)`.
 
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -220,7 +220,7 @@ class Tikhonov(Prior):
         Computes the Tikhonov regularizer :math:`\reg{x} = \frac{1}{2}\| x \|_2^2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`\reg{x}`.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
         return 0.5 * torch.norm(x.contiguous().view(x.shape[0], -1), p=2, dim=-1) ** 2
 
@@ -229,7 +229,7 @@ class Tikhonov(Prior):
         Calculates the gradient of the Tikhonov regularization term :math:`\regname` at :math:`x`.
 
         :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
-        :return: (torch.Tensor) gradient at :math:`x`.
+        :return: (:class:`torch.Tensor`) gradient at :math:`x`.
         """
         return x
 
@@ -239,7 +239,7 @@ class Tikhonov(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return (1 / (gamma + 1)) * x
 
@@ -259,7 +259,7 @@ class L1Prior(Prior):
         Computes the regularizer :math:`\reg{x} = \| x \|_1`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`\reg{x}`.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
         return torch.norm(x.contiguous().view(x.shape[0], -1), p=1, dim=-1)
 
@@ -385,7 +385,7 @@ class WaveletPrior(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
         :param bool reduce: if True, the prior is summed over all detail coefficients. Default is True.
-        :return: (torch.Tensor) prior :math:`g(x)`.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
         list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
@@ -400,7 +400,7 @@ class WaveletPrior(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         out = self.WaveletDenoiser(x, ths=gamma)
         if self.clamp_min is not None:
@@ -443,7 +443,7 @@ class TVPrior(Prior):
         and the 2-norm is taken on the dimension of the differences.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`g(x)`.
+        :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         y = torch.sqrt(torch.sum(self.nabla(x) ** 2, dim=-1))
         return torch.sum(y.reshape(x.shape[0], -1), dim=-1)
@@ -453,7 +453,7 @@ class TVPrior(Prior):
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param float gamma: stepsize of the proximity operator.
-        :return: (torch.Tensor) proximity operator at :math:`x`.
+        :return: (:class:`torch.Tensor`) proximity operator at :math:`x`.
         """
         return self.TVModel(x, ths=gamma)
 
@@ -477,7 +477,7 @@ class PatchPrior(Prior):
     Given a negative log likelihood (NLL) function on the patch space, this builds a prior by summing
     the NLLs of all (overlapping) patches in the image.
 
-    :param callable negative_patch_log_likelihood: NLL function on the patch space
+    :param Callable negative_patch_log_likelihood: NLL function on the patch space
     :param int n_patches: number of randomly selected patches for prior evaluation. -1 for taking all patches
     :param int patch_size: size of the patches
     :param bool pad: whether to use mirror padding on the boundary to avoid undesired boundary effects
@@ -530,7 +530,7 @@ class PatchNR(Prior):
 
     The forward method evaluates its negative log likelihood.
 
-    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :meth:`torch.nn.Module`
+    :param torch.nn.Module normalizing_flow: describes the normalizing flow of the model. Generally it can be any :class:`torch.nn.Module`
         supporting backpropagation. It takes a (batched) tensor of flattened patches and the boolean rev (default `False`)
         as input and provides the value and the log-determinant of the Jacobian of the normalizing flow as an output
         If `rev=True`, it considers the inverse of the normalizing flow.
@@ -659,7 +659,7 @@ class L12Prior(Prior):
         Computes the regularizer :math:`\reg{x} = \sum_i\| x_i \|_2`.
 
         :param torch.Tensor x: Variable :math:`x` at which the prior is computed.
-        :return: (torch.Tensor) prior :math:`\reg{x}`.
+        :return: (:class:`torch.Tensor`) prior :math:`\reg{x}`.
         """
         x_l2 = torch.norm(x, p=2, dim=self.l2_axis)
         return torch.norm(x_l2.reshape(x.shape[0], -1), p=1, dim=-1)

@@ -1,5 +1,5 @@
 import math
-
+from deepinv.physics.functional import dst1
 import numpy as np
 import torch
 
@@ -35,7 +35,7 @@ def padding(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
     :param tuple input_shape: shape of the input tensor.
     :param tuple output_shape: shape of the output tensor.
 
-    :return: (torch.Tensor) the zero-padded tensor.
+    :return: (:class:`torch.Tensor`) the zero-padded tensor.
     """
     change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
     change_bottom = math.floor(abs(input_shape[1] - output_shape[1]) / 2)
@@ -56,7 +56,7 @@ def trimming(tensor: torch.Tensor, input_shape: tuple, output_shape: tuple):
     :param tuple input_shape: shape of the input tensor.
     :param tuple output_shape: shape of the output tensor.
 
-    :return: (torch.Tensor) the trimmed tensor.
+    :return: (:class:`torch.Tensor`) the trimmed tensor.
     """
     change_top = math.ceil(abs(input_shape[1] - output_shape[1]) / 2)
     change_bottom = math.floor(abs(input_shape[1] - output_shape[1]) / 2)
@@ -99,29 +99,6 @@ def generate_diagonal(
     return diag.to(device)
 
 
-def dst1(x):
-    r"""
-    Orthogonal Discrete Sine Transform, Type I
-    The transform is performed across the last dimension of the input signal
-    Due to orthogonality we have ``dst1(dst1(x)) = x``.
-
-    :param torch.Tensor x: the input signal
-    :return: (torch.tensor) the DST-I of the signal over the last dimension
-
-    """
-    x_shape = x.shape
-
-    b = int(np.prod(x_shape[:-1]))
-    n = x_shape[-1]
-    x = x.view(-1, n)
-
-    z = torch.zeros(b, 1, device=x.device)
-    x = torch.cat([z, x, z, -x.flip([1])], dim=1)
-    x = torch.view_as_real(torch.fft.rfft(x, norm="ortho"))
-    x = x[:, 1:-1, 1]
-    return x.view(*x_shape)
-
-
 class StructuredRandom(LinearPhysics):
     r"""
     Structured random linear operator model corresponding to the operator
@@ -135,8 +112,8 @@ class StructuredRandom(LinearPhysics):
     :param tuple input_shape: input shape. If (C, H, W), i.e., the input is a 2D signal with C channels, then zero-padding will be used for oversampling and cropping will be used for undersampling.
     :param tuple output_shape: shape of outputs.
     :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`. Default is 1.
-    :param function transform_func: structured transform function. Default is :meth:`deepinv.physics.structured_random.dst1`.
-    :param function transform_func_inv: structured inverse transform function. Default is :meth:`deepinv.physics.structured_random.dst1`.
+    :param Callable transform_func: structured transform function. Default is :func:`deepinv.physics.functional.dst1`.
+    :param Callable transform_func_inv: structured inverse transform function. Default is :func:`deepinv.physics.functional.dst1`.
     :param list diagonals: list of diagonal matrices. If None, a random :math:`{-1,+1}` mask matrix will be used. Default is None.
     :param str device: device of the physics. Default is 'cpu'.
     :param torch.Generator rng: Random number generator. Default is None.
@@ -154,7 +131,6 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-
         if len(input_shape) == 3:
             mode = compare(input_shape, output_shape)
         else:

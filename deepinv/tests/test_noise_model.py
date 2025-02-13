@@ -20,13 +20,11 @@ if torch.cuda.is_available():
 DTYPES = [torch.float32, torch.float64]
 
 
-def choose_noise(noise_type, device):
+def choose_noise(noise_type, rng):
     gain = 0.1
     sigma = 0.1
     mu = 0.2
     N0 = 1024.0
-    l = 2.0
-    rng = torch.Generator(device)
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain, rng=rng)
     elif noise_type == "Gaussian":
@@ -47,12 +45,12 @@ def choose_noise(noise_type, device):
 
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_concatenation(device, dtype):
+def test_concatenation(device, rng, dtype):
     imsize = (1, 3, 7, 16)
     for name_1 in NOISES:
         for name_2 in NOISES:
-            noise_model_1 = choose_noise(name_1, device)
-            noise_model_2 = choose_noise(name_2, device)
+            noise_model_1 = choose_noise(name_1, rng=rng)
+            noise_model_2 = choose_noise(name_2, rng=rng)
             noise_model = noise_model_1 * noise_model_2
             x = torch.rand(imsize, device=device, dtype=dtype)
             y = noise_model(x)
@@ -62,10 +60,10 @@ def test_concatenation(device, dtype):
 @pytest.mark.parametrize("name", NOISES)
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_rng(name, device, dtype):
+def test_rng(name, device, rng, dtype):
     imsize = (1, 3, 7, 16)
     x = torch.rand(imsize, device=device, dtype=dtype)
-    noise_model = choose_noise(name, device)
+    noise_model = choose_noise(name, rng=rng)
     y_1 = noise_model(x, seed=0)
     y_2 = noise_model(x, seed=1)
     y_3 = noise_model(x, seed=0)

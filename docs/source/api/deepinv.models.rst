@@ -54,6 +54,8 @@ Deep Denoisers
    deepinv.models.DiffUNet
    deepinv.models.Restormer
    deepinv.models.ICNN
+   deepinv.models.VarNet
+   deepinv.models.PanNet
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp
 
@@ -69,10 +71,15 @@ Denoisers Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
-   deepinv.models.complex.to_complex_denoiser
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
 
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.models.complex.to_complex_denoiser
 
 Artifact Removal
 ----------------

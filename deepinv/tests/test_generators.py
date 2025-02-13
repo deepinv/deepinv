@@ -13,7 +13,9 @@ import itertools
 import os
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-torch.use_deterministic_algorithms(True)
+if not torch.cuda.is_available() and torch.__version__ >= "2.1.0":
+    torch.use_deterministic_algorithms(True)
+
 torch.backends.cudnn.deterministic = True
 
 # Generators to test (make sure they appear in find_generator as well)
@@ -58,7 +60,7 @@ def find_generator(name, size, num_channels, device, dtype):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda:0
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     if name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(

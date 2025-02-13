@@ -51,13 +51,13 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
     | 4) Each slice is represented as an (512, 512) array.
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-    :param callable, optional transform: A function/transform that takes in a data sample and returns a transformed version.
+    :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
 
     |sep|
 
     :Examples:
 
-        Instanciate dataset ::
+        Instantiate dataset ::
 
             import torch
             from deepinv.datasets import LidcIdriSliceDataset

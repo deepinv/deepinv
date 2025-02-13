@@ -9,7 +9,8 @@ from sphinx_gallery.sorting import ExplicitOrder
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join("..", "..")))
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, basedir)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -35,20 +36,31 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinxcontrib.googleanalytics",
 ]
 copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
-    "torch": ("https://pytorch.org/docs/2.0/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
 }
+
+# for python3 type hints
+autodoc_typehints = "description"
+autodoc_typehints_description_target = "documented"
+# to handle functions as default input arguments
+autodoc_preserve_defaults = True
+# Warn about broken links
+nitpicky = True
+
 
 ####  userguide directive ###
 from docutils import nodes
 from docutils.parsers.rst import Directive
 from sphinx.addnodes import pending_xref
+
+default_role = "code"  # default role for single backticks
 
 
 class UserGuideMacro(Directive):
@@ -165,17 +177,13 @@ numfig_secnum_depth = 3
 
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
-html_static_path = ["_static"]
-html_css_files = [
-    "custom.css",
-]
-html_sidebars = {
+html_static_path = []
+html_sidebars = {  # pages with no sidebar
     "quickstart": [],
     "contributing": [],
     "finding_help": [],
     "community": [],
 }
-# html_logo = "figures/deepinv_logolarge.png"
 html_theme_options = {
     "logo": {
         "image_light": "figures/deepinv_logolarge.png",
@@ -191,10 +199,9 @@ html_theme_options = {
             "sg_launcher_links",
         ],
     },
+    "analytics": {"google_analytics_id": "G-NSEKFKYSGR"},
 }
 
-
-googleanalytics_id = "G-NSEKFKYSGR"
 
 # Separator substition : Writing |sep| in the rst file will display a horizontal line.
 rst_prolog = """

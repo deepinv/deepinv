@@ -15,6 +15,7 @@ Base class
    :nosignatures:
 
     deepinv.loss.Loss
+    deepinv.loss.StackedPhysicsLoss
 
 
 Supervised Learning
@@ -52,7 +53,6 @@ Self-Supervised Learning
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
     deepinv.loss.ScoreLoss
-
 
 Adversarial Learning
 --------------------

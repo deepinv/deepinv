@@ -4,8 +4,8 @@ Defining New Operators
 ----------------------
 
 Defining a new forward operator is relatively simple. You need to create a new class that inherits from the right
-physics class, that is :meth:`deepinv.physics.Physics` for non-linear operators,
-:meth:`deepinv.physics.LinearPhysics` for linear operators and :meth:`deepinv.physics.DecomposablePhysics`
+physics class, that is :class:`deepinv.physics.Physics` for non-linear operators,
+:class:`deepinv.physics.LinearPhysics` for linear operators and :class:`deepinv.physics.DecomposablePhysics`
 for linear operators with a closed-form singular value decomposition. The only requirement is to define
 a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
@@ -22,3 +22,6 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
     You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
 
+.. tip::
+
+    You can also define a new operator by :ref:`combining existing operators <physics_combining>`.

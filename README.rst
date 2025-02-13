@@ -14,12 +14,12 @@ DeepInverse is an open-source PyTorch-based library for solving imaging inverse 
 ``deepinv`` features
 
 
-* A large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/deepinv.physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
-* `Training losses <https://deepinv.github.io/deepinv/deepinv.loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.)
-* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/deepinv.models.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/deepinv.pnp.html>`_
-* A framework for `building datasets <https://deepinv.github.io/deepinv/deepinv.datasets.html>`_ for inverse problems
-* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/deepinv.unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.)
-* `Sampling algorithms <https://deepinv.github.io/deepinv/deepinv.sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.)
+* A large collection of `predefined imaging operators <https://deepinv.github.io/deepinv/user_guide/physics/physics.html>`_ (MRI, CT, deblurring, inpainting, etc.)
+* `Training losses <https://deepinv.github.io/deepinv/user_guide/training/loss.html>`_ for inverse problems (self-supervised learning, regularization, etc.)
+* Many `pretrained deep denoisers <https://deepinv.github.io/deepinv/user_guide/reconstruction/weights.html>`_ which can be used for `plug-and-play restoration <https://deepinv.github.io/deepinv/user_guide/reconstruction/iterative.html>`_
+* A framework for `building datasets <https://deepinv.github.io/deepinv/user_guide/training/datasets.html>`_ for inverse problems
+* Easy-to-build `unfolded architectures <https://deepinv.github.io/deepinv/user_guide/reconstruction/unfolded.html>`_ (ADMM, forward-backward, deep equilibrium, etc.)
+* `Sampling algorithms <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html>`_ for uncertainty quantification (Langevin, diffusion, etc.)
 * A large number of well-explained `examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, from basics to state-of-the-art methods
 
 .. image:: https://github.com/deepinv/deepinv/raw/main/docs/source/figures/deepinv_schematic.png
@@ -58,6 +58,13 @@ You can also install additional dependencies needed for some modules in deepinv.
 
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv[dataset,denoisers]
 
+Since ``deepinv`` is under active development, you can update to the latest version easily using:
+
+.. code-block:: bash
+
+    pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+
 Quickstart
 ----------
 Try out the following plug-and-play image inpainting example:
@@ -66,13 +73,13 @@ Try out the following plug-and-play image inpainting example:
 
    import deepinv as dinv
    from deepinv.utils import load_url_image
-    
+
    url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
    x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
-   
+
    physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5, \
                                        noise_model=dinv.physics.GaussianNoise(sigma=0.01))
-   
+
    data_fidelity = dinv.optim.data_fidelity.L2()
    prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
    model = dinv.optim.optim_builder(iteration="HQS", prior=prior, data_fidelity=data_fidelity, \
@@ -82,7 +89,7 @@ Try out the following plug-and-play image inpainting example:
    dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
 
 
-Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive :ref:`User Guide <user_guide>`.
+Also try out `one of the examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_ to get started or check out our comprehensive `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 
 Contributing
 ------------
@@ -92,7 +99,7 @@ We are ultimately aiming for a comprehensive library of inverse problems and dee
 and we need your help to get there!
 The preferred way to contribute to ``deepinv`` is to fork the `main
 repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
-then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/deepinv.contributing.html>`_
+then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/contributing.html>`_
 for more details.
 
 
