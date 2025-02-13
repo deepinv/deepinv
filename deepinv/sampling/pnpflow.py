@@ -60,9 +60,9 @@ class PnPFlow(Reconstructor):
 
             delta = 1 / self.max_iter
 
-            for iter in tqdm(range(self.max_iter), disable=(not self.verbose)):
+            for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
                 t = torch.ones(
-                    len(x), device=self.device) * delta * iter
+                    len(x), device=self.device) * delta * it
                 lr_t = self.lr * (1 - t.view(-1, 1, 1, 1))**self.lr_exp
                 z = x - lr_t * self.data_fidelity.grad(x, y, physics)
                 x_new = torch.zeros_like(x)

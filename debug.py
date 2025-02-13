@@ -12,10 +12,11 @@ device = 'cuda'
 mynet = FlowUNet(input_channels=3,
                  input_height=128, pretrained=True, device=device)
 
-print(mynet.device)
 pnpflow = PnPFlow(mynet, data_fidelity=L2(),
                   verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.5)
 
+
+# url = get_image_url("celeba_example.jpg")
 url = get_image_url("69037.png")
 
 x_true = load_url_image(url=url, img_size=128,
@@ -33,25 +34,19 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(2*x-1)
-
-
-imgs = [y, x_true]
-plot(
-    imgs,
-    titles=["measurement", "ground-truth"],  save_fn='degrad.png', save_dir='.'
-)
-
+y = physics(2*x - 1)
 x_hat = pnpflow.forward(y, physics)
 
 
-imgs = [(x_hat+1)*0.5, x_true]
+imgs = [y, x_true, (x_hat + 1.0)*0.5]
 plot(
     imgs,
-    titles=["reconstruction", "ground-truth"], save_fn='res.png', save_dir='.'
+    titles=["measurement", "ground-truth", "reconstruction"],
+    save_fn='res_inpainting.png', save_dir='.'
 )
 
 
+#########################
 pnpflow = PnPFlow(mynet, data_fidelity=L2(),
                   verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=1.0)
 
@@ -70,18 +65,11 @@ physics = dinv.physics.BlurFFT(
     device=device)
 y = physics(2*x-1)
 
-
-imgs = [y, x_true]
-plot(
-    imgs,
-    titles=["measurement", "ground-truth"],  save_fn='degrad2.png', save_dir='.'
-)
-
 x_hat = pnpflow.forward(y, physics)
 
-
-imgs = [(x_hat + 1.0)*0.5, x_true]
+imgs = [y, x_true, (x_hat + 1.0)*0.5]
 plot(
     imgs,
-    titles=["reconstruction", "ground-truth"], save_fn='res2.png', save_dir='.'
+    titles=["measurement", "ground-truth", "reconstruction"],
+    save_fn='res_blurfft.png', save_dir='.'
 )
