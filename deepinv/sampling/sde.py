@@ -122,7 +122,7 @@ class DiffusionSDE(BaseSDE):
             **kwargs)
 
 
-class VarianceExplosingSDE(DiffusionSDE):
+class VarianceExplodingSDE(DiffusionSDE):
     r"""
     `Variance-Exploding Stochastic Differential Equation (VE-SDE) <https://arxiv.org/abs/2011.13456>`_
 

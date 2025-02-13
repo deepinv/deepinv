@@ -597,6 +597,7 @@ def test_time_agnostic_net():
     x_net = net(y, None)
     assert x_net.shape == y.shape
 
+
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet"))
 def test_varnet(varnet_type, device):
 

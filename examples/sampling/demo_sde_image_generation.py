@@ -45,7 +45,7 @@ import torch
 import numpy as np
 
 import deepinv as dinv
-from deepinv.models.edm import NCSNpp, EDMPrecond
+from deepinv.models import NCSNpp, EDMPrecond
 
 # device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 device = "cpu"
@@ -69,13 +69,13 @@ denoiser = EDMPrecond(model=unet).to(device)
 # .. math::
 #     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
-from deepinv.sampling.sde import VESDE
+from deepinv.sampling.sde import VarianceExplodingSDE
 from deepinv.sampling.sde_solver import EulerSolver
 
 sigma_min = 0.02
 sigma_max = 20
 
-sde = VESDE(
+sde = VarianceExplodingSDE(
     denoiser=denoiser,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
@@ -174,7 +174,7 @@ sigma_max = 10
 rng = torch.Generator(device)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VESDE(
+sde = VarianceExplodingSDE(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
@@ -238,7 +238,7 @@ sigma_min = 0.02
 sigma_max = 20
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VESDE(
+sde = VarianceExplodingSDE(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
@@ -288,7 +288,7 @@ except FileNotFoundError:
 
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
-sde = VESDE(
+sde = VarianceExplodingSDE(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
