@@ -1,10 +1,11 @@
 r"""
 Implementing PnP-Flow
-====================
+=====================
 
-In this tutorial, we revisit the implementation of the PnP-Flow flow matching algorithm for image reconstruction from
-`Martin et al. <https://arxiv.org/pdf/2410.02423>`_. The full algorithm is implemented in
-:class:`deepinv.sampling.pnpflow`.
+In this tutorial, we revisit the implementation of the PnP-Flow flow matching 
+algorithm for image reconstruction from
+`Martin et al. <https://arxiv.org/pdf/2410.02423>`_. The full algorithm is 
+implemented in :class:`deepinv.sampling.pnpflow`.
 """
 import numpy as np
 import torch
