@@ -9,6 +9,46 @@ from deepinv.utils.plotting import plot
 
 
 class PnPFlow(Reconstructor):
+    r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=1e-3,lr_exp=0.5,device='cuda',verbose=False)
+    PnP with Flow Matching model.
+
+    This class implements the pnp flow matching restoration model (PnPFlow) described in https://arxiv.org/pdf/2410.02423.
+
+    PnPFlow is a reconstruction method that uses a denoiser made from a generative flow matching model to in a plug-and-play (PnP) fashion.
+
+    :param torch.nn.Module model: a flowunet model
+    :param deepinv.optim.DataFidelity data_fidelity: the data fidelity operator
+    :param int max_iter: the number of iterations to run the algorithm (default: 100)
+    :param int n_avg: hyperparameter
+    :param float lr: hyperparameter to define the time dependant learning rate as lr_t = lr * (1-t)**lr_exp
+    :param float lr_exp: hyperparameter to define the time dependant learning rate as lr_t = lr * (1-t)**lr_exp
+    :param str device: the device to use for the computations
+    :param bool verbose: if True, print progress
+
+    |sep|
+
+    :Examples:
+
+        PnPFlow restoration model using a pretrained FlowUNet denoiser:
+
+        >>> import deepinv as dinv
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
+        >>> seed = torch.manual_seed(0) # Random seed for reproducibility
+        >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
+        >>> x = 0.5 * torch.ones(1, 3, 128, 128, device=device) # Define plain gray 128x128 image
+        >>> physics = dinv.physics.Inpainting(
+        ...   mask=0.5, tensor_size=(3, 128, 128),
+        ...   noise_model=dinv.physics.GaussianNoise(0.1),
+        ...   device=device,
+        ... )
+        >>> y = physics(x) # measurements
+        >>> model =  FlowUNet(input_channels=3,input_height=128, pretrained=True, device=device)
+        >>> method = dinv.sampling.PnPFlow(model=model, data_fidelity=L2(),verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.5) #define the PnPFlow model
+        >>> xhat = model(y, physics) # sample from the posterior distribution
+        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
+        tensor([True])
+
+    """
 
     def __init__(
         self,
