@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 import deepinv.physics
 from deepinv.models import Reconstructor
-from deepinv.utils.plotting import plot
 
 
 class PnPFlow(Reconstructor):
@@ -83,21 +82,8 @@ class PnPFlow(Reconstructor):
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
-            if hasattr(physics.noise_model, "sigma"):
-                sigma_noise = physics.noise_model.sigma
-            else:
-                sigma_noise = 0.01
-
-            if physics.__class__ == deepinv.physics.Denoising:
-                mask = torch.ones_like(
-                    y
-                )  # TODO: fix for economic SVD decompositions (eg. Decolorize)
-            else:
-                mask = torch.cat([physics.mask.abs()] * y.shape[0], dim=0)
-
             y_bar = physics.A_adjoint(y)
             x = y_bar
-
             delta = 1 / self.max_iter
 
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
