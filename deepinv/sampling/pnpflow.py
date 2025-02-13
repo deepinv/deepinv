@@ -57,7 +57,7 @@ class PnPFlow(Reconstructor):
         n_avg=2,
         lr=1e-3,
         lr_exp=0.5,
-        device='cuda',
+        device="cuda",
         verbose=False,
     ):
         super(PnPFlow, self).__init__()
@@ -71,7 +71,7 @@ class PnPFlow(Reconstructor):
         self.device = device
 
     def denoiser(self, x, t):
-        return x + (1-t.view(-1, 1, 1, 1)) * self.model(x, t)
+        return x + (1 - t.view(-1, 1, 1, 1)) * self.model(x, t)
 
     def interpolation_step(self, x, t):
         return t * x + torch.randn_like(x) * (1 - t)
@@ -87,9 +87,8 @@ class PnPFlow(Reconstructor):
             delta = 1 / self.max_iter
 
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-                t = torch.ones(
-                    len(x), device=self.device) * delta * it
-                lr_t = self.lr * (1 - t.view(-1, 1, 1, 1))**self.lr_exp
+                t = torch.ones(len(x), device=self.device) * delta * it
+                lr_t = self.lr * (1 - t.view(-1, 1, 1, 1)) ** self.lr_exp
                 z = x - lr_t * self.data_fidelity.grad(x, y, physics)
                 x_new = torch.zeros_like(x)
                 for _ in range(self.n_avg):
