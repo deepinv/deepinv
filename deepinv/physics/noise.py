@@ -341,7 +341,7 @@ class PoissonNoise(NoiseModel):
         """
         self.update_parameters(gain=gain)
         self.rng_manual_seed(seed)
-        if isinstance(self.sigma, torch.Tensor):
+        if isinstance(self.gain, torch.Tensor):
             gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
         else:
             gain = self.gain
@@ -350,7 +350,7 @@ class PoissonNoise(NoiseModel):
             generator=self.rng,
         )
         if self.normalize:
-            y *= self.gain
+            y = y * gain
         return y
 
     def update_parameters(self, gain=None, **kwargs):
@@ -451,8 +451,20 @@ class PoissonGaussianNoise(NoiseModel):
         """
         self.update_parameters(gain=gain, sigma=sigma)
         self.rng_manual_seed(seed)
-        y = torch.poisson(x / self.gain, generator=self.rng) * self.gain
-        y += self.randn_like(x) * self.sigma
+
+        if isinstance(self.gain, torch.Tensor):
+            gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
+        else:
+            gain = self.gain
+
+        if isinstance(self.sigma, torch.Tensor):
+            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
+        else:
+            sigma = self.sigma
+
+        y = torch.poisson(torch.clip(x / gain, min=0.0) * gain, generator=self.rng)
+        y = y + self.randn_like(x) * sigma
+
         return y
 
     def update_parameters(self, gain=None, sigma=None, **kwargs):
