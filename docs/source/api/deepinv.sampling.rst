@@ -18,6 +18,16 @@ Diffusion
     deepinv.sampling.DPS
     deepinv.sampling.DiffusionSampler
 
+Flow Matching
+-------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.PnPFlow
+
 Markov Chain Monte Carlo Langevin
 ---------------------------------
 .. userguide:: mcmc
@@ -30,4 +40,6 @@ Markov Chain Monte Carlo Langevin
     deepinv.sampling.MonteCarlo
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
+
+
 
