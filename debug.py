@@ -14,16 +14,16 @@ mynet = FlowUNet(input_channels=3,
 
 print(mynet.device)
 pnpflow = PnPFlow(mynet, data_fidelity=L2(),
-                  verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.6)
+                  verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.5)
 
-url = get_image_url("celeba_example.jpg")
+url = get_image_url("69037.png")
 
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
 
 x = x_true.clone()
 mask = torch.ones_like(x)
-mask[:, :, 32:96, 32:96] = 0
+mask[:, :, 44:84, 44:84] = 0
 
 sigma_noise = 12.5 / 255.0  # noise level
 
@@ -45,7 +45,7 @@ plot(
 x_hat = pnpflow.forward(y, physics)
 
 
-imgs = [(x_hat + 1.0)*0.5, x_true]
+imgs = [(x_hat+1)*0.5, x_true]
 plot(
     imgs,
     titles=["reconstruction", "ground-truth"], save_fn='res.png', save_dir='.'
@@ -53,7 +53,7 @@ plot(
 
 
 pnpflow = PnPFlow(mynet, data_fidelity=L2(),
-                  verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.01)
+                  verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=1.0)
 
 url = get_image_url("celeba_example2.jpg")
 
