@@ -331,7 +331,7 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             # get mask from pdf
             mask = mask_lambda * input_mask
         else:
-            mask = mask_lambda # if data is already sub-sampled
+            mask = mask_lambda  # if data is already sub-sampled
         return {"mask": mask, "mask_lambda": mask_lambda}
 
 

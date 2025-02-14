@@ -2,7 +2,7 @@ r"""
 Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting
 ====================================================================================================
 
-In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in `"From learning models of natural image patches to whole image restoration" <https://ieeexplore.ieee.org/document/6126278>`_. 
+In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in `"From learning models of natural image patches to whole image restoration" <https://ieeexplore.ieee.org/document/6126278>`_.
 for denoising and inpainting of natural images.
 To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :math:`A` is either the identity (for denoising)
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.

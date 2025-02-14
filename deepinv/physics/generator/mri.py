@@ -175,7 +175,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
 class PolyOrderMaskGenerator(BaseMaskGenerator):
     """
     Generator for MRI Cartesian acceleration masks using polynomial variable density.
-    
+
     Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
     Polynomial sampling varies as r^poly_order where r is the distance from the centre.
 

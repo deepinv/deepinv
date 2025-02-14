@@ -11,7 +11,7 @@ from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
     Artifact2ArtifactSplittingMaskGenerator,
-    Noiser2NoiseSplittingMaskGenerator
+    Noiser2NoiseSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.physics.time import TimeMixin
@@ -246,7 +246,7 @@ class SplittingLoss(Loss):
         @staticmethod
         def split(mask, y, physics):
             return SplittingLoss.split(mask, y, physics)
-    
+
         def forward(
             self, y: torch.Tensor, physics: Physics, update_parameters: bool = False
         ):
@@ -334,17 +334,15 @@ class SplittingLoss(Loss):
                 )
             return self.mask
 
+
 class K_Weighted_Loss(SplittingLoss):
-    '''
+    """
     deepinv.physics.generator used should be PolyOrderMaskGenerator
 
-    '''
+    """
+
     def __init__(
-            self,
-            tensor_size: Tuple[int],
-            split_ratio: float,
-            pdf: dict,
-            device="cpu"
+        self, tensor_size: Tuple[int], split_ratio: float, pdf: dict, device="cpu"
     ):
 
         self.mask_generator = Noiser2NoiseSplittingMaskGenerator(
@@ -352,26 +350,23 @@ class K_Weighted_Loss(SplittingLoss):
         )
         self.split_ratio = split_ratio
         super().__init__(
-            split_ratio=self.split_ratio,
-            mask_generator=self.mask_generator
+            split_ratio=self.split_ratio, mask_generator=self.mask_generator
         )
         self.name = "k_weighted_loss"
         self.tensor_size = tensor_size
         self.device = device
         self.pdf = pdf
-        self.acc = 1.0 /self.split_ratio
+        self.acc = 1.0 / self.split_ratio
         self.k_diag = self.compute_k(pdf)
-        
+
         # Compute weight matrix (1 - K)^(-1/2)
         self.weight = (1 - self.k_diag).clamp(min=1e-6) ** (-0.5)
 
-
-    
     def compute_k(self, pdf: dict) -> torch.Tensor:
-        '''
+        """
         Compute K for K weighted splitting loss where K is a diagonal matrix
-        '''
-        P = pdf["omega"] 
+        """
+        P = pdf["omega"]
         P_tilde = self.mask_generator.pdf
         diag_1_minus_PtP = 1 - P_tilde * P  # Shape: (W,)
         diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=1e-6)  # Avoid division by zero
@@ -398,10 +393,10 @@ class K_Weighted_Loss(SplittingLoss):
         weighted_residual = self.weight * residual
 
         # Compute l2 loss
-        loss = (weighted_residual ** 2).sum()
+        loss = (weighted_residual**2).sum()
 
         return loss / mask2.mean()  # Normalize loss
-            
+
 
 class Phase2PhaseLoss(SplittingLoss):
     r"""
