@@ -4,9 +4,10 @@ Implementing PnP-Flow
 
 In this tutorial, we revisit the implementation of the PnP-Flow flow matching
 algorithm for image reconstruction from
-`Martin et al. <https://arxiv.org/pdf/2410.02423>`_. The full algorithm is
-implemented in :class:`deepinv.sampling.pnpflow`.
+`Martin et al., ICLR 2025 <https://arxiv.org/pdf/2410.02423>`_. The full 
+algorithm is implemented in :class:`deepinv.optim.PnPFlow`.
 """
+
 
 import numpy as np
 import torch
@@ -15,12 +16,12 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
+from deepinv.utils.plotting import config_matplotlib
 from deepinv.utils.demo import load_url_image, get_image_url
+
 from deepinv.models.flowunet import FlowUNet
 from deepinv.optim.pnpflow import PnPFlow
 
-# Use matplotlib config from deepinv to get nice plots
-from deepinv.utils.plotting import config_matplotlib
 
 config_matplotlib()
 
