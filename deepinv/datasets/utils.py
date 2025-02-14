@@ -1,9 +1,10 @@
-from typing import Dict
+from typing import Dict, Union
 import hashlib
 import os
 import shutil
 import zipfile
 import tarfile
+from pathlib import Path
 
 import requests
 from tqdm.auto import tqdm
@@ -51,8 +52,13 @@ def calculate_md5_for_folder(folder_path: str) -> str:
     return md5_folder.hexdigest()
 
 
-def download_archive(url: str, save_path: str) -> None:
-    """Download archive (zipball or tarball) from the Internet."""
+def download_archive(url: str, save_path: Union[str, Path], extract: bool = False) -> None:
+    """Download archive (zipball or tarball) from the Internet.
+    
+    :param str url: URL of archive.
+    :param str, pathlib.Path save_path: path where file should be saved.
+    :param bool extract: if ``True``, attempt to extract zipfile or tarball into parent dir.
+    """
     # Ensure the directory containing `save_path`` exists
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
@@ -68,8 +74,14 @@ def download_archive(url: str, save_path: str) -> None:
             shutil.copyfileobj(r_raw, file)
     del response
 
+    if extract:
+        if Path(save_path).suffix == "zip":
+            extract_zipfile(save_path, Path(save_path).parent)
+        elif Path(save_path).suffix == "tar":
+            extract_tarball(save_path, Path(save_path).parent)
 
-def extract_zipfile(file_path, extract_dir) -> None:
+
+def extract_zipfile(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
     """Extract a local zip file."""
     # Open the zip file
     with zipfile.ZipFile(file_path, "r") as zip_ref:
@@ -80,7 +92,7 @@ def extract_zipfile(file_path, extract_dir) -> None:
             zip_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def extract_tarball(file_path, extract_dir) -> None:
+def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) -> None:
     """Extract a local tarball regardless of the compression algorithm used."""
     # Open the tar file
     with tarfile.open(file_path, "r:*") as tar_ref:
