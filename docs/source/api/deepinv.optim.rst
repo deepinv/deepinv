@@ -86,6 +86,7 @@ Predefined models
 
    deepinv.optim.DPIR
    deepinv.optim.EPLL
+   deepinv.optim.PnPFlow
 
 
 Bregman

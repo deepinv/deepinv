@@ -42,7 +42,7 @@ class PnPFlow(Reconstructor):
         ... )
         >>> y = physics(x) # measurements
         >>> model =  FlowUNet(input_channels=3,input_height=128, pretrained=True, device=device)
-        >>> method = dinv.sampling.PnPFlow(model=model, data_fidelity=L2(),verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.5) #define the PnPFlow model
+        >>> method = dinv.optim.PnPFlow(model=model, data_fidelity=L2(),verbose=True, max_iter=100, device=device, lr=1.0, lr_exp=0.5) #define the PnPFlow model
         >>> xhat = model(y, physics) # sample from the posterior distribution
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
         tensor([True])
