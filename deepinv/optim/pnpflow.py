@@ -77,6 +77,13 @@ class PnPFlow(Reconstructor):
         return t * x + torch.randn_like(x) * (1 - t)
 
     def forward(self, y, physics, x_init=None, seed=None):
+        r"""
+        Runs the iterative pnpflow algorithm for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_init: (optional) required if ``physics`` does not belong to ``deepinv.physics.Physics`` in order to access to image size
+        """
         with torch.no_grad():
             if seed:
                 np.random.seed(seed)
