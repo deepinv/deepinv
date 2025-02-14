@@ -1,7 +1,3 @@
-# Unet copied from "A Variational Perspective on Diffusion-Based Generative Models and Score Matching", NeurIPS 2021, Huang et al
-# https://github.com/CW-Huang/sdeflow-light
-# which is modified from the "Denoising Diffusion Probabilistic Models", Ho et al
-
 import math
 import torch
 import torch.nn as nn
@@ -36,6 +32,14 @@ def group_norm(out_ch):
 
 
 class FlowUNet(Denoiser):
+    r"""
+    Flow Matching model (Unet)
+
+    Unet copied from "A Variational Perspective on Diffusion-Based Generative Models and Score Matching", NeurIPS 2021, Huang et al
+    https://github.com/CW-Huang/sdeflow-light
+    which is modified from the "Denoising Diffusion Probabilistic Models", Ho et al
+    """
+
     def __init__(
         self,
         input_channels,
