@@ -193,27 +193,20 @@ class FlowUNet(Denoiser):
         print("FlowUNet initialized", pretrained)
         if pretrained is not None:
             if pretrained == "download":
-                name = "celeba"
-                # TODO: handle different datasets
-                # TODO: check architecture
-                url = get_weights_from_drive(name)
-                # ckpt = torch.hub.load_state_dict_from_url(
-                #     url, map_location=lambda storage, loc: storage, file_name=name
-                # )
-                # TODO: fix import from drive
-                import gdown
-                print(f"Downloading pretrained model from {url}")
-                gdown.download(url,  './model_final_celeba.pt')
-                ckpt = torch.load('./model_final_celeba.pt',
-                                  map_location=torch.device(self.device))
-            else:
-                ckpt = torch.load(
-                    "./model_final_celeba.pt", map_location=torch.device(self.device)
+                if dataset_name == 'cat':
+                    name = "ot_fm_cat.pt"
+                elif dataset_name == 'celeba':
+                    name = "ot_fm_celeba.pt"
+                url = get_weights_url(model_name="OT_FM", file_name=name)
+                ckpt_otfm = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
                 )
-                # ckpt = torch.load(
-                #     pretrained, map_location=lambda storage, loc: storage)
+            else:
+                ckpt_otfm = torch.load(
+                    pretrained, map_location=lambda storage, loc: storage
+                )
 
-            self.load_state_dict(ckpt, strict=True)
+            self.load_state_dict(ckpt_otfm, strict=True)
             self.to(self.device)
             self.eval()
 
