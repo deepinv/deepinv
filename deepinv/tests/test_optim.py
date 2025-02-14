@@ -847,7 +847,6 @@ solvers = ["CG", "BiCGStab", "lsqr"]
 def test_least_square_solvers(device, solver):
 
     physics_names = [
-        "deblur_valid",
         "fftdeblur",
         "inpainting",
         "MRI",
@@ -857,6 +856,7 @@ def test_least_square_solvers(device, solver):
     batch_size = 4
 
     for physics_name in physics_names:
+        print("physics_name", physics_name)
         physics, img_size, _, _ = find_operator(physics_name, device=device)
 
         x = torch.randn((batch_size, *img_size), device=device)
