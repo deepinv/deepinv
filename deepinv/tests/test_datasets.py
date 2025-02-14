@@ -20,7 +20,7 @@ from deepinv.datasets import (
     CMRxReconSliceDataset,
     NBUDataset,
 )
-from deepinv.datasets.utils import download_archive, extract_zipfile
+from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
@@ -382,8 +382,7 @@ def download_CMRxRecon():
 
     # Download single CMRxRecon volume
     os.makedirs(tmp_data_dir, exist_ok=True)
-    download_archive(get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip")
-    extract_zipfile(f"{tmp_data_dir}/CMRxRecon.zip", tmp_data_dir)
+    download_archive(get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip", extract=True)
 
     # This will return control to the test function
     yield f"{tmp_data_dir}/CMRxRecon"
