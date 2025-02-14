@@ -76,14 +76,15 @@ class PnPFlow(Reconstructor):
     def interpolation_step(self, x, t):
         return t * x + torch.randn_like(x) * (1 - t)
 
-    def forward(self, y, physics: deepinv.physics.DecomposablePhysics, seed=None):
+    def forward(self, y, physics: deepinv.physics.Physics, x_init=None, seed=None):
         with torch.no_grad():
             if seed:
                 np.random.seed(seed)
                 torch.manual_seed(seed)
 
-            y_bar = physics.A_adjoint(y)
-            x = y_bar
+            if x_init is None:
+                x_init = physics.A_adjoint(y)
+            x = x_init
             delta = 1 / self.max_iter
 
             for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
