@@ -206,8 +206,12 @@ class FlowUNet(Denoiser):
             x = m(x, temp)
         return x
 
+    def forward_denoising(self, x, sigma):
+        # t = 1 - sigma
+        return x + (1 - sigma) * self.forward_velocity(x, 1 - sigma)
+
     # noinspection PyArgumentList,PyShadowingNames
-    def forward(self, x, temp):
+    def forward_velocity(self, x, temp):
         # Init
         B, C, H, W = x.size()
 
@@ -261,6 +265,10 @@ class FlowUNet(Denoiser):
         assert list(h.size()) == [x.size(
             0), self.output_channels, x.size(2), x.size(3)]
         return h
+
+
+def forward(self, x, sigma):
+    return self.forward_denoising(x, sigma)
 
 
 def upsample(in_ch, with_conv):
