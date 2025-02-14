@@ -4,8 +4,8 @@ Implementing PnP-Flow
 
 In this tutorial, we revisit the implementation of the PnP-Flow flow matching
 algorithm for image reconstruction from
-`Martin et al., ICLR 2025 <https://arxiv.org/pdf/2410.02423>`_. The full 
-algorithm is implemented in :class:`deepinv.optim.PnPFlow`.
+`Martin et al. (ICLR 2025) <https://arxiv.org/abs/2410.02423>`_. The full 
+algorithm is implemented in :class:`deepinv.optim.pnpflow.PnPFlow`.
 """
 
 
