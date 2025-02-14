@@ -11,6 +11,7 @@ from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
     Artifact2ArtifactSplittingMaskGenerator,
+    Noiser2NoiseSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.physics.time import TimeMixin
@@ -332,6 +333,69 @@ class SplittingLoss(Loss):
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
             return self.mask
+
+
+class K_Weighted_Loss(SplittingLoss):
+    """
+    deepinv.physics.generator used should be PolyOrderMaskGenerator
+
+    """
+
+    def __init__(
+        self, tensor_size: Tuple[int], split_ratio: float, pdf: dict, device="cpu"
+    ):
+
+        self.mask_generator = Noiser2NoiseSplittingMaskGenerator(
+            tensor_size=self.tensor_size, device=self.device
+        )
+        self.split_ratio = split_ratio
+        super().__init__(
+            split_ratio=self.split_ratio, mask_generator=self.mask_generator
+        )
+        self.name = "k_weighted_loss"
+        self.tensor_size = tensor_size
+        self.device = device
+        self.pdf = pdf
+        self.acc = 1.0 / self.split_ratio
+        self.k_diag = self.compute_k(pdf)
+
+        # Compute weight matrix (1 - K)^(-1/2)
+        self.weight = (1 - self.k_diag).clamp(min=1e-6) ** (-0.5)
+
+    def compute_k(self, pdf: dict) -> torch.Tensor:
+        """
+        Compute K for K weighted splitting loss where K is a diagonal matrix
+        """
+        P = pdf["omega"]
+        P_tilde = self.mask_generator.pdf
+        diag_1_minus_PtP = 1 - P_tilde * P  # Shape: (W,)
+        diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=1e-6)  # Avoid division by zero
+        inv_diag_1_minus_PtP = 1 / diag_1_minus_PtP  # Shape: (W,)
+        # compute (1-P)
+        diag_1_minus_P = 1 - P
+
+        # element-wise multiplication to get K_diag
+        K_diag = inv_diag_1_minus_PtP * diag_1_minus_P
+        return K_diag
+
+    def forward(self, x_net, y, physics, model):
+        # Get splitting mask and make sure it is subsampled from physics mask, if it exists
+        mask = model.get_mask() * getattr(physics, "mask", 1.0)
+
+        # Create output mask M_2 = I - M_1
+        mask2 = getattr(physics, "mask", 1.0) - mask
+        y2, physics2 = self.split(mask2, y, physics)
+
+        # Compute the residual
+        residual = y2 - physics2.A(x_net)
+
+        # Apply weight
+        weighted_residual = self.weight * residual
+
+        # Compute l2 loss
+        loss = (weighted_residual**2).sum()
+
+        return loss / mask2.mean()  # Normalize loss
 
 
 class Phase2PhaseLoss(SplittingLoss):

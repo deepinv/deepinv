@@ -82,6 +82,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                 batch_size = input_mask.shape[0]
             else:
                 # Singular batch dim exists in input_mask so use batch_size
+                # Removes batch dimensions
                 input_mask = input_mask[0]
 
         if batch_size is not None:
@@ -177,6 +178,161 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                 mask[:, aux[0, ...] > self.split_ratio] = 0
 
         return mask
+
+
+from deepinv.physics.generator.mri import PolyOrderMaskGenerator
+
+
+class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
+    """
+    Randomly generates polynomial variable density splitting masks.
+    Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
+    Polynomial sampling varies as r^poly_order where r is the distance from the centre.
+    An input mask, M_Omega, is passed through which represent the accelerated MRI measurements.
+    A random mask M_Lambda is generated using PolyOrderMaskGenerator and the measurement splitting mask is generated from element-wise multiplying by the input mask, M_Omega
+
+    Handles 2D masks with shape [C, H, W], where the mask is repeated across channels and varied across batch dimensions.
+
+    :Examples:
+        Randomly split input mask using polynomial order sampling
+        >>> from deepinv.physics.generator.inpainting import Noiser2NoiseSplittingMaskGenerator
+        >>> from deepinv.physics.generator.mri import PolyOrderMaskGenerator
+        >>> generator = PolyOrderMaskGenerator(img_size= (128, 128), acceleration=8, center_fraction=0.05, poly_order=10)
+        >>> mask = generator.step(batch_size=2)
+        >>> mask.shape
+        torch.Size([2, 2, 128, 128])
+        >>> input_mask = mask["mask"]
+        >>> n2n_gen = Noiser2NoiseSplittingMaskGenerator(tensor_size=(128, 128), acceleration=6, center_fraction=0.05, poly_order=10)
+        >>> n2n_gen.step(input_mask=input_mask).shape
+        torch.Size([2, 2, 128, 128])
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
+    :param int poly_order: polynomial order of the sampling pdf (should be the same poly_order used for input_mask)
+
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple[int],
+        acceleration: int,
+        center_fraction: float = 0,
+        poly_order: int = 8,
+        pixelwise: bool = True,
+        device: torch.device = torch.device("cpu"),
+        dtype: torch.dtype = torch.float32,
+        rng: torch.Generator = None,
+        *args,
+        **kwargs,
+    ):
+        split_ratio = 1 / acceleration
+
+        super().__init__(
+            tensor_size=tensor_size,
+            split_ratio=split_ratio,
+            pixelwise=pixelwise,
+            device=device,
+            rng=rng,
+            *args,
+            **kwargs,
+        )
+
+        self.tensor_size = tensor_size
+        self.pixelwise = pixelwise
+        self.acc = acceleration
+        self.center_fraction = center_fraction
+        self.poly_order = poly_order
+
+        """
+        :param tuple[int] tensor_size: size of tensor without batch dimension
+        Generates M_Lambda pdf to sample from
+        """
+
+        self.poly_generator = PolyOrderMaskGenerator(
+            img_size=self.tensor_size,
+            acceleration=self.acc,
+            center_fraction=self.center_fraction,
+            poly_order=self.poly_order,
+            device=self.device,
+            rng=self.rng,
+        )
+
+        # get_pdf i.e M_Lambda
+
+        self.pdf = self.poly_generator.get_pdf()
+
+    def step(
+        self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
+    ) -> dict:
+        r"""
+        Generate a random mask.
+
+        If ``input_mask`` is None, generates a standard random mask that can be used for :class:`deepinv.physics.Inpainting`.
+        If ``input_mask`` is specified, splits the input mask into subsets given the split ratio.
+
+        mask_lambda is the randomly generated mask
+        mask is the mask used for measurement splitting which is generated from input_mask*mask_lambda
+
+        :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
+        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
+        :param int seed: the seed for the random number generator.
+        :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}, **'mask_lambda'***: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}
+        :rtype: dict
+        """
+        self.rng_manual_seed(seed)
+
+        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
+            self.tensor_size
+        ):
+            input_mask = input_mask.to(self.device)
+            if input_mask.shape[0] > 1:
+                # Batch dim exists in input_mask and it's > 1
+                batch_size = input_mask.shape[0]
+            else:
+                # Singular batch dim exists in input_mask so use batch_size
+                # Removes batch dimensions
+                input_mask = input_mask[0]
+
+        if batch_size is not None:
+            # Create each mask in batch independently
+            outs = []
+            outs_lambda = []
+            for b in range(batch_size):
+                inp = None
+                if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
+                    self.tensor_size
+                ):
+                    inp = input_mask[b]
+                elif isinstance(input_mask, torch.Tensor):
+                    inp = input_mask
+                mask_batch = self.batch_step(input_mask=inp, **kwargs)
+                outs.append(mask_batch["mask"])
+                outs_lambda.append(mask_batch["mask_lambda"])
+            mask = torch.stack(outs)
+            mask_lambda = torch.stack(outs_lambda)
+        else:
+            mask_batch = self.batch_step(input_mask=input_mask, **kwargs)
+            mask = mask_batch["mask"]
+            mask_lambda = mask_batch["mask_lambda"]
+
+        return {"mask": mask, "mask_lambda": mask_lambda}
+
+    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+        r"""
+        Generates a random polynomial variable density mask_lambda according to pdf
+        If input_mask is given then output_mask would be mask_lambda*input_mask if not then output_mask = mask_lambda
+        Assumes input_mask has no batch dimensions
+        Does not use pixelwise
+        Return a mask of size img_size
+        """
+        mask_lambda = self.poly_generator.step(batch_size=1)["mask"].squeeze(0)
+        if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
+            input_mask = input_mask.to(self.device)  # to device
+            # rng should be shuffled for each batch
+            # get mask from pdf
+            mask = mask_lambda * input_mask
+        else:
+            mask = mask_lambda  # if data is already sub-sampled
+        return {"mask": mask, "mask_lambda": mask_lambda}
 
 
 class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
