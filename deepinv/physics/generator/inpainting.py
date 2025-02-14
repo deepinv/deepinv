@@ -318,7 +318,8 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         r"""
-        Generates a random polynomial variable density according to pdf
+        Generates a random polynomial variable density mask_lambda according to pdf
+        If input_mask is given then output_mask would be mask_lambda*input_mask if not then output_mask = mask_lambda
         Assumes input_mask has no batch dimensions
         Does not use pixelwise
         Return a mask of size img_size
@@ -328,10 +329,9 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             input_mask = input_mask.to(self.device)  # to device
             # rng should be shuffled for each batch
             # get mask from pdf
-            # element
             mask = mask_lambda * input_mask
         else:
-            mask = mask_lambda
+            mask = mask_lambda # if data is already sub-sampled
         return {"mask": mask, "mask_lambda": mask_lambda}
 
 
