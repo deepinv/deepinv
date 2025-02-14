@@ -280,12 +280,13 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
-        self.load_model()
+        _ = self.load_model()
 
-    def load_model(self, ckpt_pretrained: str = None):
+    def load_model(self, ckpt_pretrained: str = None) -> dict:
         """Load model from checkpoint.
 
         :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class. If not `None`, override checkpoint passed to class.
+        :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
             ckpt_pretrained = self.ckpt_pretrained
@@ -302,6 +303,7 @@ class Trainer:
                 self.wandb_setup["resume"] = "allow"
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"]
+            return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
