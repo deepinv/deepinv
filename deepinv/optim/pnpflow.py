@@ -8,7 +8,7 @@ from deepinv.models import Reconstructor
 
 
 class PnPFlow(Reconstructor):
-    r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=1e-3,lr_exp=0.5,device='cuda',verbose=False)
+    r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=11.0,lr_exp=0.5,device='cuda',verbose=False)
     PnP with Flow Matching model.
 
     This class implements the pnp flow matching restoration model (PnPFlow) described in https://arxiv.org/pdf/2410.02423.
@@ -55,7 +55,7 @@ class PnPFlow(Reconstructor):
         data_fidelity,
         max_iter=100,
         n_avg=2,
-        lr=1e-3,
+        lr=1.0,
         lr_exp=0.5,
         device="cuda",
         verbose=False,
