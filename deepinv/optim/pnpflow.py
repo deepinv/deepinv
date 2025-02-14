@@ -11,7 +11,7 @@ class PnPFlow(Reconstructor):
     r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=11.0,lr_exp=0.5,device='cuda',verbose=False)
     PnP with Flow Matching model.
 
-    This class implements the pnp flow matching restoration model (PnPFlow) described in https://arxiv.org/pdf/2410.02423.
+    This class implements the pnp flow matching restoration model (PnPFlow) described in PnP-Flow:Plug-and-Play Image Restoration with Flow Matching https://arxiv.org/abs/2410.02423.
 
     PnPFlow is a reconstruction method that uses a denoiser made from a generative flow matching model to in a plug-and-play (PnP) fashion.
 
