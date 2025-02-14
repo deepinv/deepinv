@@ -97,7 +97,7 @@ class RadioInterferometry(LinearPhysics):
         Applies the weighted NUFFT operator to the input image.
 
         :param torch.Tensor x: input image
-        :return: (torch.Tensor) containing the measurements
+        :return: (:class:`torch.Tensor`) containing the measurements
         """
         return (
             self.nufftObj(x.to(torch.cfloat), self.samples_loc, norm="ortho")
@@ -109,7 +109,7 @@ class RadioInterferometry(LinearPhysics):
         Applies the adjoint of the weighted NUFFT operator.
 
         :param torch.Tensor y: input measurements
-        :return: (torch.Tensor) containing the reconstructed image
+        :return: (:class:`torch.Tensor`) containing the reconstructed image
         """
         return self.adj_projection(
             self.adjnufftObj(y * self.dataWeight, self.samples_loc, norm="ortho")

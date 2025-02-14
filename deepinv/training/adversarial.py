@@ -19,8 +19,8 @@ class AdversarialOptimizer:
     r"""
     Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
-    :param Optimizer optimizer_g: generator's torch optimizer
-    :param Optimizer optimizer_d: discriminator's torch optimizer
+    :param torch.optim.Optimizer optimizer_g: generator's torch optimizer
+    :param torch.optim.Optimizer optimizer_d: discriminator's torch optimizer
     :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to ``False``
     :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to ``False``
     """
@@ -139,9 +139,9 @@ class AdversarialTrainer(Trainer):
 
     See :class:`deepinv.Trainer` for additional parameters.
 
-    :param AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
+    :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
-    :param Module D: discriminator/critic/classification model, which must take in an image and return a scalar
+    :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 

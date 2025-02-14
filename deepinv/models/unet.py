@@ -71,7 +71,7 @@ class UNet(Denoiser):
     :param bool circular_padding: circular padding for the convolutional layers.
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
-    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :meth:`torch.nn.BatchNorm2d`,
+    :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
         if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from
         `"Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks" by Mohan et al. <https://arxiv.org/abs/1906.05478>`_.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.

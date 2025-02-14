@@ -4,7 +4,7 @@ Implementing DPS
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
 `Chung et al. <https://arxiv.org/abs/2209.14687>`_ The full algorithm is implemented in
-:meth:`deepinv.sampling.DPS`.
+:class:`deepinv.sampling.DPS`.
 """
 
 # %%
@@ -36,7 +36,7 @@ x = x_true.clone()
 
 # %%
 # In this tutorial we consider random inpainting as the inverse problem, where the forward operator is implemented
-# in :meth:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
+# in :class:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
 # and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.75/255.
 
 sigma = 12.75 / 255.0  # noise level
@@ -353,7 +353,7 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 # %%
 # Using DPS in your inverse problem
 # ---------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.sampling.DPS` class.
+# You can readily use this algorithm via the :class:`deepinv.sampling.DPS` class.
 #
 # ::
 #

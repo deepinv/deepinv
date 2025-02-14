@@ -1,6 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 import torch
+from torch import Tensor
 import torch.nn as nn
-from .base import Reconstructor, Denoiser
+
+from deepinv.models.base import Reconstructor, Denoiser
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
 class ArtifactRemoval(Reconstructor):
@@ -55,7 +63,27 @@ class ArtifactRemoval(Reconstructor):
                 v.requires_grad = False
             self.backbone_net = self.backbone_net.to(device)
 
-    def forward(self, y, physics, **kwargs):
+    def backbone_inference(
+        self, tensor_in: Tensor, physics: Physics, y: Tensor
+    ) -> torch.Tensor:
+        """Perform inference on the backbone network.
+
+        By default, treats backbone network as a denoiser.
+        Override for different inference e.g. for an unrolled network.
+
+        :param torch.Tensor tensor_in: input tensor as dictated by ArtifactRemoval mode
+        :param Physics physics: forward physics
+        :param torch.Tensor y: input measurements y
+        :return: (:class:`torch.Tensor`): reconstructed image
+        """
+        if hasattr(physics.noise_model, "sigma"):
+            sigma = physics.noise_model.sigma
+        else:
+            sigma = None
+
+        return self.backbone_net(tensor_in, sigma)
+
+    def forward(self, y: Tensor, physics: Physics, **kwargs):
         r"""
         Reconstructs a signal estimate from measurements y
 
@@ -84,9 +112,4 @@ class ArtifactRemoval(Reconstructor):
             )
             y_in = torch.cat((y_in, noise_level_map), 1)
 
-        if hasattr(physics.noise_model, "sigma"):
-            sigma = physics.noise_model.sigma
-        else:
-            sigma = None
-
-        return self.backbone_net(y_in, sigma)
+        return self.backbone_inference(y_in, physics, y)

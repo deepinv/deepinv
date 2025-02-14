@@ -216,6 +216,8 @@ priors (eg. Tikhonov regularization) but also implicit priors (eg. plug-and-play
      - Yes
 
 
+.. _optim_iterators:
+
 Predefined Algorithms
 ---------------------
 

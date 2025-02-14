@@ -29,7 +29,7 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
@@ -251,9 +251,12 @@ class Blur(LinearPhysics):
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
-    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
+    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
+        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``).
+        Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
     :param str device: cpu or cuda.
 
 
@@ -264,9 +267,9 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and FFT for performing the convolutions in 3D as implemented in :meth:`deepinv.physics.functional.conv3d_fft`.
-        It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
+        This class uses the highly optimized :func:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+        and FFT for performing the convolutions in 3D as implemented in :func:`deepinv.physics.functional.conv3d_fft`.
+        It uses FFT based convolutions in 3D since :func:`torch.nn.functional.conv3d` is slow for large kernels.
 
     |sep|
 
@@ -361,7 +364,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :meth:`deepinv.physics.blur.gaussian_filter`.
+        :func:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
 
     |sep|
@@ -493,7 +496,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the space varying blur operator to the input image.
 
@@ -518,7 +521,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A_adjoint(
         self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the adjoint operator.
 

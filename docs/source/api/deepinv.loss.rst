@@ -54,7 +54,6 @@ Self-Supervised Learning
     deepinv.loss.R2RLoss
     deepinv.loss.ScoreLoss
 
-
 Adversarial Learning
 --------------------
 .. userguide:: adversarial-losses

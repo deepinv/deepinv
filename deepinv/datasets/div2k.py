@@ -33,7 +33,7 @@ class DIV2K(torch.utils.data.Dataset):
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
     :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a PIL image
+    :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|
