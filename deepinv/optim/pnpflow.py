@@ -76,7 +76,7 @@ class PnPFlow(Reconstructor):
     def interpolation_step(self, x, t):
         return t * x + torch.randn_like(x) * (1 - t)
 
-    def forward(self, y, physics: deepinv.physics.Physics, x_init=None, seed=None):
+    def forward(self, y, physics, x_init=None, seed=None):
         with torch.no_grad():
             if seed:
                 np.random.seed(seed)
