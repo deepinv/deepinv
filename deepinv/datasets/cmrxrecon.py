@@ -15,10 +15,12 @@ from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.datasets.utils import loadmat
 from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
-
+from deepinv.physics.noise import NoiseModel
 
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     """CMRxRecon dynamic MRI dataset.
+
+    `CMRxRecon challenge <https://cmrxrecon.github.io/>`_
 
     Return tuples `(x, y)` of target and kspace respectively.
 
@@ -35,29 +37,43 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     TODO we provide demo file...
 
     TODO example
+    TODO add to dinv example
 
-    :param Union[str, Path] root: _description_
-    :param str data_dir: _description_, defaults to 'SingleCoil/Cine/TrainingSet/FullSample'
+    While the usual workflow in deepinv is for the dataset to return only ground truth ``x`` and the user
+    generates a measurement dataset using :meth:`deepinv.datasets.generate_dataset`, here we compute the
+    measurements inside the dataset (and return a triplet ``x, y, params`` where ``params`` contains the mask)
+    because of the variable size of the data before padding, in line with the original CMRxRecon code.
+
+    TODO clean parameters
+    :param str, Path root: _description_
+    :param str, Path data_dir: _description_, defaults to 'SingleCoil/Cine/TrainingSet/FullSample'
     :param bool load_metadata_from_cache: _description_, defaults to False
     :param bool save_metadata_to_cache: _description_, defaults to False
-    :param Union[str, Path] metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
-    :param Optional[Callable] transform: _description_, defaults to None
-    :param bool apply_mask: if `False`, return data `(x,y)`, if `True`, return `(x,y,{'mask':mask})` where mask is either
-        loaded from `data_folder` or generated using `mask_generator`.
-    :param Optional[BaseMaskGenerator] mask_generator: _description_, defaults to None
+    :param str, Path metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
+    :param bool apply_mask: if ``True``, mask is applied to subsample the kspace using a mask either
+        loaded from `data_folder` or generated using `mask_generator`. If ``False``, the mask of ones is used.
+    :param str, Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder 
+        according to the CMRxRecon folder structure. To use masks, ``apply_mask`` must be ``True``.
+    :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator to randomly generate acceleration masks
+        to apply to unpadded kspace. If specified, ``mask_dir`` must be ``None`` and ``apply_mask`` must be ``True``.
+    :param Callable transform: optional transform to apply to the target image sequences before padding or physics is applied.
+    :param tuple pad_size: tuple of 2 ints (W, H) for all images to be padded to, if ``None``, no padding.
+    :param deepinv.physics.NoiseModel noise_model: optional noise model to apply to unpadded kspace.
     """
 
     def __init__(
         self,
         root: Union[str, Path],
-        data_dir: str = "SingleCoil/Cine/TrainingSet/FullSample",
+        data_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/FullSample",
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
         apply_mask: bool = True,
-        mask_dir: str = "SingleCoil/Cine/TrainingSet/AccFactor04",
+        mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
         mask_generator: Optional[BaseMaskGenerator] = None,
         transform: Optional[Callable] = None,
+        pad_size: Tuple[int, int] = (512, 256),
+        noise_model: NoiseModel = None,
     ):
 
         self.root = Path(root)
@@ -69,6 +85,8 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
+        self.pad_size = pad_size
+        self.noise_model = noise_model
 
         if not self.apply_mask and (
             self.mask_generator is not None or self.mask_dir is not None
@@ -100,16 +118,14 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             if not str(f).endswith("_mask.mat")
         )
 
-        with self.metadata_cache_manager(self.root, []) as sample_identifiers:
-            if len(sample_identifiers) == 0:
+        with self.metadata_cache_manager(self.root, []) as samples:
+            if len(samples) == 0:
                 for fname in tqdm(all_fnames):
                     metadata = self._retrieve_metadata(fname)
                     for slice_ind in range(metadata["num_slices"]):
-                        sample_identifiers.append(
-                            self.SliceSampleFileIdentifier(fname, slice_ind, metadata)
-                        )
+                        samples.append(self.SliceSampleID(fname, slice_ind, metadata))
 
-            self.sample_identifiers = sample_identifiers
+            self.samples = samples
 
     def _loadmat(self, fname: Union[str, Path, os.PathLike]) -> ndarray:
         """Load matrix from MATLAB 7.3 file and parse headers."""
@@ -141,24 +157,24 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             else {}
         )
 
-    def __getitem__(self, i: int) -> Tuple[Tensor]:
-        fname, slice_ind, metadata = self.sample_identifiers[i]
+    def __getitem__(self, i: int) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
+        """Get ith data sampe.
 
-        kspace = self._loadmat(fname)  # shape WH(N)DT
-        kspace = kspace[..., slice_ind, :]  # shape WH(N)T
+        :param int i: dataset index to get
+        :return: tuple of ground truth ``x``, measurement ``y`` and params dict containing mask ``{'mask': mask}``
+        """
+        fname, slice_ind, metadata = self.samples[i]
+
+        # Load kspace data, take slice, remove coil dim,
+        # create complex dim, move time dim
+        kspace = self._loadmat(fname) # shape WH(N)DT
+        kspace = kspace[..., slice_ind, :] # shape WH(N)T
 
         if len(kspace.shape) == 5:
-            kspace = kspace[:, :, 0]  # shape WHT
+            kspace = kspace[:, :, 0] # shape WHT
 
-        kspace = torch.from_numpy(
-            np.stack((kspace.real, kspace.imag), axis=0)
-        )  # shape CWHT
-        kspace = kspace.moveaxis(-1, 1)  # shape CTWH
-        target = self.kspace_to_im(kspace.unsqueeze(0)).squeeze(0)  # shape CTWH
-
-        # Apply target transform
-        if self.transform is not None:
-            target = self.transform(target)
+        kspace = torch.from_numpy(np.stack((kspace.real, kspace.imag), axis=0))
+        kspace = kspace.moveaxis(-1, 1) # shape CTWH
 
         # Load mask
         if self.apply_mask:
@@ -169,7 +185,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         .replace(str(Path(self.data_dir)), str(Path(self.mask_dir)))
                         .replace(".mat", "_mask.mat")
                     )
-                    mask = self.check_mask(mask, three_d=True)[0]  # shape CTWH
+                    mask = self.check_mask(mask, three_d=True)[0] # shape CTWH
                 except FileNotFoundError:
                     raise FileNotFoundError(
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
@@ -183,8 +199,19 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         else:
             mask = torch.ones_like(kspace)
 
+        # Construct ground truth
+        target = self.kspace_to_im(kspace.unsqueeze(0)).squeeze(0) # shape CTWH
+        assert target.shape[-2:] == mask.shape[-2:]
+
+        # Apply target transform
+        if self.transform is not None:
+            target = self.transform(target)
+
         # Pad
-        target, mask = self.pad(target, mask, (512, 256))
+        if self.pad_size is not None:
+            w, h = (self.pad_size[0] - target.shape[-2]), (self.pad_size[1] - target.shape[-1])
+            target = F.pad(target, (h // 2, h // 2, w // 2, w // 2)),
+            mask   = F.pad(mask,   (h // 2, h // 2, w // 2, w // 2)),
 
         # Normalise
         target = (target - target.mean()) / (target.std() + 1e-11)
@@ -194,25 +221,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         if self.apply_mask:
             kspace = kspace * mask + 0.0
 
-        # if self.noise_level is not None and self.noise_level > 0:
-        #     kspace = GaussianNoise(sigma=self.noise_level, rng=self.generator)(kspace) * mask
+        if self.noise_model is not None:
+            kspace = self.noise_model(kspace) * mask
 
-        return (target, kspace, {"mask": mask.float()})
-
-    def pad(
-        self, img1: Tensor, img2: Tensor, shape: Tuple[int, int] = (512, 256)
-    ) -> Tuple[Tensor, Tensor]:
-        """Pad images to shape. Assume images have same shape.
-
-        :param torch.Tensor img1: input image 1 of shape [..., W, H]
-        :param torch.Tensor img2: input image 2 of shape [..., W, H]
-        :param tuple shape: pad to shape, defaults to (512, 256)
-        :return: padded images.
-        """
-        assert img1.shape[-2:] == img2.shape[-2:]
-        w_pad, h_pad = (shape[0] - img1.shape[-2]), (shape[1] - img1.shape[-1])
-        pad = (h_pad // 2, h_pad // 2, w_pad // 2, w_pad // 2)
-        return (
-            F.pad(img1, pad, mode="constant", value=0),
-            F.pad(img2, pad, mode="constant", value=0),
-        )
+        return target, kspace, {"mask": mask.float()}
