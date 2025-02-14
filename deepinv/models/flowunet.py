@@ -186,6 +186,7 @@ class FlowUNet(Denoiser):
             conv2d(in_ch, output_channels, init_scale=0.0),
         )
 
+        print("FlowUNet initialized", pretrained)
         if pretrained is not None:
             if pretrained == "download":
                 name = "celeba"
@@ -197,11 +198,10 @@ class FlowUNet(Denoiser):
                 # )
                 # TODO: fix import from drive
                 import gdown
-
-                gdown.download(url, "./model_final_celeba.pt")
-                ckpt = torch.load(
-                    "./model_final_celeba.pt", map_location=torch.device(self.device)
-                )
+                print(f"Downloading pretrained model from {url}")
+                gdown.download(url,  './model_final_celeba.pt')
+                ckpt = torch.load('./model_final_celeba.pt',
+                                  map_location=torch.device(self.device))
             else:
                 ckpt = torch.load(
                     "./model_final_celeba.pt", map_location=torch.device(self.device)
@@ -219,8 +219,12 @@ class FlowUNet(Denoiser):
             x = m(x, temp)
         return x
 
+    def forward_denoising(self, x, sigma):
+        # t = 1 - sigma
+        return x + (1 - sigma) * self.forward_velocity(x, 1 - sigma)
+
     # noinspection PyArgumentList,PyShadowingNames
-    def forward(self, x, temp):
+    def forward_velocity(self, x, temp):
         # Init
         B, C, H, W = x.size()
 
@@ -234,10 +238,12 @@ class FlowUNet(Denoiser):
             # Residual blocks for this resolution
             block_modules = self.down_modules[i_level]
             for i_block in range(self.num_res_blocks):
-                resnet_block = block_modules["{}a_{}a_block".format(i_level, i_block)]
+                resnet_block = block_modules["{}a_{}a_block".format(
+                    i_level, i_block)]
                 h = resnet_block(hs[-1], temb)
                 if h.size(2) in self.attn_resolutions:
-                    attn_block = block_modules["{}a_{}b_attn".format(i_level, i_block)]
+                    attn_block = block_modules["{}a_{}b_attn".format(
+                        i_level, i_block)]
                     h = attn_block(h, temb)
                 hs.append(h)
             # Downsample
@@ -254,10 +260,12 @@ class FlowUNet(Denoiser):
             # Residual blocks for this resolution
             block_modules = self.up_modules[i_idx]
             for i_block in range(self.num_res_blocks + 1):
-                resnet_block = block_modules["{}a_{}a_block".format(i_level, i_block)]
+                resnet_block = block_modules["{}a_{}a_block".format(
+                    i_level, i_block)]
                 h = resnet_block(torch.cat([h, hs.pop()], axis=1), temb)
                 if h.size(2) in self.attn_resolutions:
-                    attn_block = block_modules["{}a_{}b_attn".format(i_level, i_block)]
+                    attn_block = block_modules["{}a_{}b_attn".format(
+                        i_level, i_block)]
                     h = attn_block(h, temb)
             # Upsample
             if i_level != 0:
@@ -267,15 +275,21 @@ class FlowUNet(Denoiser):
 
         # End
         h = self.end_conv(h)
-        assert list(h.size()) == [x.size(0), self.output_channels, x.size(2), x.size(3)]
+        assert list(h.size()) == [x.size(
+            0), self.output_channels, x.size(2), x.size(3)]
         return h
+
+
+def forward(self, x, sigma):
+    return self.forward_denoising(x, sigma)
 
 
 def upsample(in_ch, with_conv):
     up = nn.Sequential()
     up.add_module("up_nn", nn.Upsample(scale_factor=2, mode="nearest"))
     if with_conv:
-        up.add_module("up_conv", conv2d(in_ch, in_ch, kernel_size=(3, 3), stride=1))
+        up.add_module("up_conv", conv2d(
+            in_ch, in_ch, kernel_size=(3, 3), stride=1))
     return up
 
 
@@ -307,16 +321,20 @@ class ResidualBlock(nn.Module):
         self.act = act
 
         self.temb_proj = dense(temb_ch, out_ch)
-        self.norm1 = normalize(in_ch) if normalize is not None else nn.Identity()
+        self.norm1 = normalize(
+            in_ch) if normalize is not None else nn.Identity()
         self.conv1 = conv2d(in_ch, out_ch)
-        self.norm2 = normalize(out_ch) if normalize is not None else nn.Identity()
-        self.dropout = nn.Dropout2d(p=dropout) if dropout > 0.0 else nn.Identity()
+        self.norm2 = normalize(
+            out_ch) if normalize is not None else nn.Identity()
+        self.dropout = nn.Dropout2d(
+            p=dropout) if dropout > 0.0 else nn.Identity()
         self.conv2 = conv2d(out_ch, out_ch, init_scale=0.0)
         if in_ch != out_ch:
             if conv_shortcut:
                 self.shortcut = conv2d(in_ch, out_ch)
             else:
-                self.shortcut = conv2d(in_ch, out_ch, kernel_size=(1, 1), padding=0)
+                self.shortcut = conv2d(
+                    in_ch, out_ch, kernel_size=(1, 1), padding=0)
         else:
             self.shortcut = nn.Identity()
 
@@ -398,7 +416,8 @@ def _calculate_correct_fan(tensor, mode):
     valid_modes = ["fan_in", "fan_out", "fan_avg"]
     if mode not in valid_modes:
         raise ValueError(
-            "Mode {} not supported, please use one of {}".format(mode, valid_modes)
+            "Mode {} not supported, please use one of {}".format(
+                mode, valid_modes)
         )
 
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
@@ -494,7 +513,8 @@ def get_sinusoidal_positional_embedding(
 
     half_dim = embedding_dim // 2
     emb = math.log(10000) / (half_dim - 1)
-    emb = torch.exp(torch.arange(half_dim, dtype=torch.float, device=device) * -emb)
+    emb = torch.exp(torch.arange(
+        half_dim, dtype=torch.float, device=device) * -emb)
     emb = timesteps[:, None] * emb[None, :]
     emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1)  # bsz x embd
     if embedding_dim % 2 == 1:  # zero pad
