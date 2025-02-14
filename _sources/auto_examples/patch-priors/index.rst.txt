@@ -1,0 +1,63 @@
+
+
+.. _sphx_glr_auto_examples_patch-priors:
+
+Patch Priors
+-------------------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in &quot;From learning models of natural image patches to whole image restoration&quot;.  for denoising and inpainting of natural images. To this end, we consider the inverse problem y = Ax+\epsilon, where A is either the identity (for denoising) or a masking operator (for inpainting) and \epsilon\sim\mathcal{N}(0,\sigma^2 I) is white Gaussian noise with standard deviation \sigma.">
+
+.. only:: html
+
+  .. image:: /auto_examples/patch-priors/images/thumb/sphx_glr_demo_epll_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_patch-priors_demo_epll.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we use patch priors for limited angle computed tomography. More precisely, we consider the  inverse problem y = \mathrm{noisy}(Ax), where A is the discretized Radon transform with 100 equispace angles between 20 and 160 degrees. For the reconstruction, we minimize the variational problem">
+
+.. only:: html
+
+  .. image:: /auto_examples/patch-priors/images/thumb/sphx_glr_demo_patch_priors_CT_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_patch-priors_demo_patch_priors_CT.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Patch priors for limited-angle computed tomography</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/patch-priors/demo_epll
+   /auto_examples/patch-priors/demo_patch_priors_CT
+
