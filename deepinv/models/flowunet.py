@@ -1,4 +1,3 @@
-
 # Unet copied from "A Variational Perspective on Diffusion-Based Generative Models and Score Matching", NeurIPS 2021, Huang et al
 # https://github.com/CW-Huang/sdeflow-light
 # which is modified from the "Denoising Diffusion Probabilistic Models", Ho et al
@@ -14,10 +13,10 @@ from .base import Denoiser
 
 
 def get_weights_from_drive(pretrained_name):
-    if pretrained_name == 'celeba':
-        drive_id = '1ZZ6S-PGRx-tOPkr4Gt3A6RN-PChabnD6'
-    elif pretrained_name == 'afhq_cat':
-        drive_id = '1FpD3cYpgtM8-KJ3Qk48fcjtr1Ne_IMOF'
+    if pretrained_name == "celeba":
+        drive_id = "1ZZ6S-PGRx-tOPkr4Gt3A6RN-PChabnD6"
+    elif pretrained_name == "afhq_cat":
+        drive_id = "1FpD3cYpgtM8-KJ3Qk48fcjtr1Ne_IMOF"
     return f"https://drive.google.com/uc?id={drive_id}"
 
 
@@ -30,35 +29,36 @@ class Swish(nn.Module):
 
 
 def group_norm(out_ch):
-    return nn.GroupNorm(
-        num_groups=32,
-        num_channels=out_ch,
-        eps=1e-6,
-        affine=True)
+    return nn.GroupNorm(num_groups=32, num_channels=out_ch, eps=1e-6, affine=True)
+
+
 # TODO: change init
 
 
 class FlowUNet(Denoiser):
-    def __init__(self,
-                 input_channels,
-                 input_height,
-                 ch=32,
-                 output_channels=None,
-                 ch_mult=(1, 2, 4, 8),
-                 num_res_blocks=6,
-                 attn_resolutions=(16, 8),
-                 dropout=0.,
-                 resamp_with_conv=True,
-                 act=Swish(),
-                 normalize=group_norm,
-                 pretrained="download",
-                 device='cuda'
-                 ):
+    def __init__(
+        self,
+        input_channels,
+        input_height,
+        ch=32,
+        output_channels=None,
+        ch_mult=(1, 2, 4, 8),
+        num_res_blocks=6,
+        attn_resolutions=(16, 8),
+        dropout=0.0,
+        resamp_with_conv=True,
+        act=Swish(),
+        normalize=group_norm,
+        pretrained="download",
+        device="cuda",
+    ):
         super().__init__(device=device)
         self.input_channels = input_channels
         self.input_height = input_height
         self.ch = ch
-        self.output_channels = output_channels = input_channels if output_channels is None else output_channels
+        self.output_channels = output_channels = (
+            input_channels if output_channels is None else output_channels
+        )
         self.ch_mult = ch_mult
         self.num_res_blocks = num_res_blocks
         self.attn_resolutions = attn_resolutions
@@ -73,8 +73,9 @@ class FlowUNet(Denoiser):
         in_ht = input_height
         in_ch = input_channels
         temb_ch = ch * 4
-        assert in_ht % 2 ** (num_resolutions -
-                             1) == 0, "input_height doesn't satisfy the condition"
+        assert (
+            in_ht % 2 ** (num_resolutions - 1) == 0
+        ), "input_height doesn't satisfy the condition"
 
         # Timestep embedding
         self.temb_net = TimestepEmbedding(
@@ -95,24 +96,25 @@ class FlowUNet(Denoiser):
             block_modules = {}
             out_ch = ch * ch_mult[i_level]
             for i_block in range(num_res_blocks):
-                block_modules['{}a_{}a_block'.format(i_level, i_block)] = \
-                    ResidualBlock(
-                        in_ch=in_ch,
-                        temb_ch=temb_ch,
-                        out_ch=out_ch,
-                        dropout=dropout,
-                        act=act,
-                        normalize=normalize,
+                block_modules["{}a_{}a_block".format(i_level, i_block)] = ResidualBlock(
+                    in_ch=in_ch,
+                    temb_ch=temb_ch,
+                    out_ch=out_ch,
+                    dropout=dropout,
+                    act=act,
+                    normalize=normalize,
                 )
                 if in_ht in attn_resolutions:
-                    block_modules['{}a_{}b_attn'.format(i_level, i_block)] = SelfAttention(
-                        out_ch, normalize=normalize)
+                    block_modules["{}a_{}b_attn".format(i_level, i_block)] = (
+                        SelfAttention(out_ch, normalize=normalize)
+                    )
                 unet_chs += [out_ch]
                 in_ch = out_ch
             # Downsample
             if i_level != num_resolutions - 1:
-                block_modules['{}b_downsample'.format(i_level)] = downsample(
-                    out_ch, with_conv=resamp_with_conv)
+                block_modules["{}b_downsample".format(i_level)] = downsample(
+                    out_ch, with_conv=resamp_with_conv
+                )
                 in_ht //= 2
                 unet_chs += [out_ch]
             # convert list of modules to a module list, and append to a list
@@ -122,19 +124,27 @@ class FlowUNet(Denoiser):
 
         # Middle
         mid_modules = []
-        mid_modules += [ResidualBlock(in_ch,
-                                      temb_ch=temb_ch,
-                                      out_ch=in_ch,
-                                      dropout=dropout,
-                                      act=act,
-                                      normalize=normalize)]
+        mid_modules += [
+            ResidualBlock(
+                in_ch,
+                temb_ch=temb_ch,
+                out_ch=in_ch,
+                dropout=dropout,
+                act=act,
+                normalize=normalize,
+            )
+        ]
         mid_modules += [SelfAttention(in_ch, normalize=normalize)]
-        mid_modules += [ResidualBlock(in_ch,
-                                      temb_ch=temb_ch,
-                                      out_ch=in_ch,
-                                      dropout=dropout,
-                                      act=act,
-                                      normalize=normalize)]
+        mid_modules += [
+            ResidualBlock(
+                in_ch,
+                temb_ch=temb_ch,
+                out_ch=in_ch,
+                dropout=dropout,
+                act=act,
+                normalize=normalize,
+            )
+        ]
         self.mid_modules = nn.ModuleList(mid_modules)
 
         # Upsampling
@@ -144,22 +154,24 @@ class FlowUNet(Denoiser):
             block_modules = {}
             out_ch = ch * ch_mult[i_level]
             for i_block in range(num_res_blocks + 1):
-                block_modules['{}a_{}a_block'.format(i_level, i_block)] = \
-                    ResidualBlock(
-                        in_ch=in_ch + unet_chs.pop(),
-                        temb_ch=temb_ch,
-                        out_ch=out_ch,
-                        dropout=dropout,
-                        act=act,
-                        normalize=normalize)
+                block_modules["{}a_{}a_block".format(i_level, i_block)] = ResidualBlock(
+                    in_ch=in_ch + unet_chs.pop(),
+                    temb_ch=temb_ch,
+                    out_ch=out_ch,
+                    dropout=dropout,
+                    act=act,
+                    normalize=normalize,
+                )
                 if in_ht in attn_resolutions:
-                    block_modules['{}a_{}b_attn'.format(i_level, i_block)] = SelfAttention(
-                        out_ch, normalize=normalize)
+                    block_modules["{}a_{}b_attn".format(i_level, i_block)] = (
+                        SelfAttention(out_ch, normalize=normalize)
+                    )
                 in_ch = out_ch
             # Upsample
             if i_level != 0:
-                block_modules['{}b_upsample'.format(i_level)] = upsample(
-                    out_ch, with_conv=resamp_with_conv)
+                block_modules["{}b_upsample".format(i_level)] = upsample(
+                    out_ch, with_conv=resamp_with_conv
+                )
                 in_ht *= 2
             # convert list of modules to a module list, and append to a list
             up_modules += [nn.ModuleDict(block_modules)]
@@ -171,7 +183,7 @@ class FlowUNet(Denoiser):
         self.end_conv = nn.Sequential(
             normalize(in_ch),
             self.act,
-            conv2d(in_ch, output_channels, init_scale=0.),
+            conv2d(in_ch, output_channels, init_scale=0.0),
         )
 
         print("FlowUNet initialized", pretrained)
@@ -191,8 +203,9 @@ class FlowUNet(Denoiser):
                 ckpt = torch.load('./model_final_celeba.pt',
                                   map_location=torch.device(self.device))
             else:
-                ckpt = torch.load('./model_final_celeba.pt',
-                                  map_location=torch.device(self.device))
+                ckpt = torch.load(
+                    "./model_final_celeba.pt", map_location=torch.device(self.device)
+                )
                 # ckpt = torch.load(
                 #     pretrained, map_location=lambda storage, loc: storage)
 
@@ -225,17 +238,17 @@ class FlowUNet(Denoiser):
             # Residual blocks for this resolution
             block_modules = self.down_modules[i_level]
             for i_block in range(self.num_res_blocks):
-                resnet_block = block_modules['{}a_{}a_block'.format(
+                resnet_block = block_modules["{}a_{}a_block".format(
                     i_level, i_block)]
                 h = resnet_block(hs[-1], temb)
                 if h.size(2) in self.attn_resolutions:
-                    attn_block = block_modules['{}a_{}b_attn'.format(
+                    attn_block = block_modules["{}a_{}b_attn".format(
                         i_level, i_block)]
                     h = attn_block(h, temb)
                 hs.append(h)
             # Downsample
             if i_level != self.num_resolutions - 1:
-                downsample = block_modules['{}b_downsample'.format(i_level)]
+                downsample = block_modules["{}b_downsample".format(i_level)]
                 hs.append(downsample(hs[-1]))
 
         # Middle
@@ -247,16 +260,16 @@ class FlowUNet(Denoiser):
             # Residual blocks for this resolution
             block_modules = self.up_modules[i_idx]
             for i_block in range(self.num_res_blocks + 1):
-                resnet_block = block_modules['{}a_{}a_block'.format(
+                resnet_block = block_modules["{}a_{}a_block".format(
                     i_level, i_block)]
                 h = resnet_block(torch.cat([h, hs.pop()], axis=1), temb)
                 if h.size(2) in self.attn_resolutions:
-                    attn_block = block_modules['{}a_{}b_attn'.format(
+                    attn_block = block_modules["{}a_{}b_attn".format(
                         i_level, i_block)]
                     h = attn_block(h, temb)
             # Upsample
             if i_level != 0:
-                upsample = block_modules['{}b_upsample'.format(i_level)]
+                upsample = block_modules["{}b_upsample".format(i_level)]
                 h = upsample(h)
         assert not hs
 
@@ -273,9 +286,9 @@ def forward(self, x, sigma):
 
 def upsample(in_ch, with_conv):
     up = nn.Sequential()
-    up.add_module('up_nn', nn.Upsample(scale_factor=2, mode='nearest'))
+    up.add_module("up_nn", nn.Upsample(scale_factor=2, mode="nearest"))
     if with_conv:
-        up.add_module('up_conv', conv2d(
+        up.add_module("up_conv", conv2d(
             in_ch, in_ch, kernel_size=(3, 3), stride=1))
     return up
 
@@ -290,14 +303,15 @@ def downsample(in_ch, with_conv):
 
 class ResidualBlock(nn.Module):
     def __init__(
-            self,
-            in_ch,
-            temb_ch,
-            out_ch=None,
-            conv_shortcut=False,
-            dropout=0.,
-            normalize=group_norm,
-            act=Swish()):
+        self,
+        in_ch,
+        temb_ch,
+        out_ch=None,
+        conv_shortcut=False,
+        dropout=0.0,
+        normalize=group_norm,
+        act=Swish(),
+    ):
         super().__init__()
         self.in_ch = in_ch
         self.temb_ch = temb_ch
@@ -313,8 +327,8 @@ class ResidualBlock(nn.Module):
         self.norm2 = normalize(
             out_ch) if normalize is not None else nn.Identity()
         self.dropout = nn.Dropout2d(
-            p=dropout) if dropout > 0. else nn.Identity()
-        self.conv2 = conv2d(out_ch, out_ch, init_scale=0.)
+            p=dropout) if dropout > 0.0 else nn.Identity()
+        self.conv2 = conv2d(out_ch, out_ch, init_scale=0.0)
         if in_ch != out_ch:
             if conv_shortcut:
                 self.shortcut = conv2d(in_ch, out_ch)
@@ -355,19 +369,18 @@ class SelfAttention(nn.Module):
     def __init__(self, in_channels, normalize=group_norm):
         super().__init__()
         self.in_channels = in_channels
-        self.attn_q = conv2d(in_channels, in_channels,
-                             kernel_size=1, stride=1, padding=0)
-        self.attn_k = conv2d(in_channels, in_channels,
-                             kernel_size=1, stride=1, padding=0)
-        self.attn_v = conv2d(in_channels, in_channels,
-                             kernel_size=1, stride=1, padding=0)
+        self.attn_q = conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.attn_k = conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.attn_v = conv2d(
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
         self.proj_out = conv2d(
-            in_channels,
-            in_channels,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-            init_scale=0.)
+            in_channels, in_channels, kernel_size=1, stride=1, padding=0, init_scale=0.0
+        )
         self.softmax = nn.Softmax(dim=-1)
         if normalize is not None:
             self.norm = normalize(in_channels)
@@ -376,7 +389,7 @@ class SelfAttention(nn.Module):
 
     # noinspection PyUnusedLocal
     def forward(self, x, temp=None):
-        """ t is not used """
+        """t is not used"""
         _, C, H, W = x.size()
 
         h = self.norm(x)
@@ -400,17 +413,18 @@ def _calculate_correct_fan(tensor, mode):
     copied and modified from https://github.com/pytorch/pytorch/blob/master/torch/nn/init.py#L337
     """
     mode = mode.lower()
-    valid_modes = ['fan_in', 'fan_out', 'fan_avg']
+    valid_modes = ["fan_in", "fan_out", "fan_avg"]
     if mode not in valid_modes:
         raise ValueError(
             "Mode {} not supported, please use one of {}".format(
-                mode, valid_modes))
+                mode, valid_modes)
+        )
 
     fan_in, fan_out = _calculate_fan_in_and_fan_out(tensor)
-    return fan_in if mode == 'fan_in' else fan_out
+    return fan_in if mode == "fan_in" else fan_out
 
 
-def kaiming_uniform_(tensor, gain=1., mode='fan_in'):
+def kaiming_uniform_(tensor, gain=1.0, mode="fan_in"):
     r"""Fills the input `Tensor` with values according to the method
     desrcibed in `Delving deep into rectifiers: Surpassing human-level
     performance on ImageNet classification` - He, K. et al. (2015), using a
@@ -435,7 +449,7 @@ def kaiming_uniform_(tensor, gain=1., mode='fan_in'):
     """
     fan = _calculate_correct_fan(tensor, mode)
     # gain = calculate_gain(nonlinearity, a)
-    var = gain / max(1., fan)
+    var = gain / max(1.0, fan)
     # Calculate uniform bounds from standard deviation
     bound = math.sqrt(3.0 * var)
     with torch.no_grad():
@@ -443,13 +457,10 @@ def kaiming_uniform_(tensor, gain=1., mode='fan_in'):
 
 
 def variance_scaling_init_(tensor, scale):
-    return kaiming_uniform_(
-        tensor,
-        gain=1e-10 if scale == 0 else scale,
-        mode='fan_avg')
+    return kaiming_uniform_(tensor, gain=1e-10 if scale == 0 else scale, mode="fan_avg")
 
 
-def dense(in_channels, out_channels, init_scale=1.):
+def dense(in_channels, out_channels, init_scale=1.0):
     lin = nn.Linear(in_channels, out_channels)
     variance_scaling_init_(lin.weight, scale=init_scale)
     nn.init.zeros_(lin.bias)
@@ -457,17 +468,16 @@ def dense(in_channels, out_channels, init_scale=1.):
 
 
 def conv2d(
-        in_planes,
-        out_planes,
-        kernel_size=(
-            3,
-            3),
+    in_planes,
+    out_planes,
+    kernel_size=(3, 3),
     stride=1,
     dilation=1,
     padding=1,
     bias=True,
-    padding_mode='zeros',
-        init_scale=1.):
+    padding_mode="zeros",
+    init_scale=1.0,
+):
     conv = nn.Conv2d(
         in_planes,
         out_planes,
@@ -476,7 +486,8 @@ def conv2d(
         padding=padding,
         dilation=dilation,
         bias=bias,
-        padding_mode=padding_mode)
+        padding_mode=padding_mode,
+    )
     variance_scaling_init_(conv.weight, scale=init_scale)
     if bias:
         nn.init.zeros_(conv.bias)
@@ -484,8 +495,8 @@ def conv2d(
 
 
 def get_sinusoidal_positional_embedding(
-        timesteps: torch.LongTensor,
-        embedding_dim: int):
+    timesteps: torch.LongTensor, embedding_dim: int
+):
     """
     Copied and modified from
         https://github.com/hojonathanho/diffusion/blob/1e0dceb3b3495bbe19116a5e1b3596cd0706c543/diffusion_tf/nn.py#L90
