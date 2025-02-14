@@ -215,13 +215,13 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
-        if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
+        if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
 
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
-        if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
+        if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
 
         # losses
