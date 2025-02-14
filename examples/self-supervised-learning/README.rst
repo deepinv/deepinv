@@ -1,3 +1,0 @@
-Self-Supervised Learning
--------------------------------
-
