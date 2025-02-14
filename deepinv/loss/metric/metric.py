@@ -170,3 +170,16 @@ class Metric(Module):
             return self.invert_metric(m)
         else:
             return m
+
+    def __add__(self, other: Metric):
+        """Sums two metrics via the + operation.
+
+        :param deepinv.loss.metric.Metric other: other metric
+        :return: :class:`deepinv.loss.metric.Metric` summed metric.
+        """
+        return Metric(
+            metric=lambda x_net, x, *args, **kwargs: self.forward(
+                x_net, x, *args, **kwargs
+            )
+            + other.forward(x_net, x, *args, **kwargs)
+        )
