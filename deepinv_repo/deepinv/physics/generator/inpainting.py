@@ -323,13 +323,15 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         Does not use pixelwise
         Return a mask of size img_size
         """
+        mask_lambda = self.poly_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
             input_mask = input_mask.to(self.device)  # to device
             # rng should be shuffled for each batch
             # get mask from pdf
-            mask_lambda = self.poly_generator.step(batch_size=1)["mask"].squeeze(0)
             # element
             mask = mask_lambda * input_mask
+        else:
+            mask = mask_lambda
         return {"mask": mask, "mask_lambda": mask_lambda}
 
 

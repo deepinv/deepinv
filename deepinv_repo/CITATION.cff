@@ -1,0 +1,23 @@
+cff-version: 0.0.1
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Tachella"
+  given-names: "Julian"
+  orcid: "https://orcid.org/0000-0003-3878-9142"
+- family-names: "Chen"
+  given-names: "Dongdong"
+  orcid: "https://orcid.org/0000-0002-7016-9288"
+- family-names: "Hurault"
+  given-names: "Samuel"
+  orcid: "https://orcid.org/0000-0002-5163-2791"
+- family-names: "Terris"
+  given-names: "Matthieu"
+  orcid: "https://orcid.org/0009-0009-9726-6131"
+- family-names: "Wang"
+  given-names: "Andrew"
+  orcid: "https://orcid.org/0000-0003-0838-7986"
+title: "DeepInverse: A deep learning framework for inverse problems in imaging"
+version: latest
+doi: 10.5281/zenodo.7982256
+date-released: 2023-06-30
+url: "https://github.com/deepinv/deepinv"

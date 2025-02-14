@@ -1,0 +1,48 @@
+name: Build docs
+
+# Runs on pushes targeting the default branch
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+
+      - name: Install deepinv and its dependencies
+        run: |
+          pip install -e .[dataset,denoisers,doc]
+      - name: Run doctests
+        run: |
+          find . \( -name '*.py' -o -name '*.rst' \) | xargs grep -l '>>>' | while read file; do
+              if [[ "$file" != *.datasets.rst && "$file" != *.multigpu.rst ]]; then
+                  echo "Running doctests in $file"
+                  python -m doctest -v "$file"
+              else
+                  echo "Skipping file: $file"
+              fi
+          done
+      - name: Sphinx build
+        run: |
+          sphinx-build -W docs/source _build
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          force_orphan: true
+          enable_jekyll: false

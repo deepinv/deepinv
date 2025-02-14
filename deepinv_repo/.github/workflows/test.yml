@@ -1,0 +1,53 @@
+name: Test
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test:
+    name: Test deep inverse ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Test with all dependencies
+          - os: ubuntu-latest
+            version_python: 3.9
+            extra: dataset,denoisers,test
+            name: "ubuntu all dependencies"
+          # Test with all dependencies
+          - os: windows-latest
+            version_python: 3.9
+            extra: dataset,denoisers,test
+            name: "windows all dependencies"
+
+    env:
+      VERSION_PYTHON: ${{ matrix.version_python }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ env.VERSION_PYTHON }}
+
+      - name: Install deepinv and its dependencies
+        run: |
+          pip install .[${{ matrix.extra }}]
+
+      - name: Test with pytest and generate coverage report
+        run: |
+          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+
+
