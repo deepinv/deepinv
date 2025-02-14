@@ -33,10 +33,10 @@ pretrained flow matching model:
 """
 
 # %%
-import numpy as np
-import torch
 import matplotlib.pyplot as plt
+import torch
 from tqdm import tqdm
+
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
@@ -91,9 +91,9 @@ y = physics(x)
 # %%
 # Run the PnP method
 # ------------------
-max_iter = 100
+max_iter = 20
 delta = 1 / max_iter
-lr = 1.0,
+lr = 1.0
 lr_exp = 0.6
 n_avg = 1
 data_fidelity = L2()
@@ -105,20 +105,21 @@ def interpolation_step(x, t):
     return tv * x + (1 - tv) * torch.randn_like(x)
 
 
-def denoiser(self, x, t):
+def denoiser(x, t):
     return x + (1 - t.view(-1, 1, 1, 1)) * velocity(x, t)
 
 
-for it in tqdm(range(max_iter)):
-    t = torch.ones(len(x), device=device) * delta * it
-    lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
-    z = x - lr_t * data_fidelity.grad(x, y, physics)
-    x_new = torch.zeros_like(x)
-    for _ in range(n_avg):
-        z_tilde = interpolation_step(x, t)
-        x_new += denoiser(z_tilde, t)
-    x_new /= n_avg
-    x = x_new
+with torch.no_grad():
+    for it in tqdm(range(max_iter)):
+        t = torch.ones(len(x), device=device) * delta * it
+        lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
+        z = x - lr_t * data_fidelity.grad(x, y, physics)
+        x_new = torch.zeros_like(x)
+        for _ in range(n_avg):
+            z_tilde = interpolation_step(x, t)
+            x_new += denoiser(z_tilde, t)
+        x_new /= n_avg
+        x = x_new
 
 
 # %% Plot results
