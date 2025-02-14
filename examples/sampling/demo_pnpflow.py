@@ -98,7 +98,7 @@ y = physics(2 * x - 1)
 # %%
 # Run the PnP method
 # ------------------
-x_hat = pnpflow.forward(y, physics)
+x_hat = pnpflow(y, physics)
 
 
 imgs = [y, x_true, (x_hat + 1.0) * 0.5]
@@ -143,7 +143,7 @@ physics = dinv.physics.BlurFFT(
 )
 y = physics(2 * x - 1)
 
-x_hat = pnpflow.forward(y, physics)
+x_hat = pnpflow(y, physics)
 
 imgs = [y, x_true, (x_hat + 1.0) * 0.5]
 plot(
