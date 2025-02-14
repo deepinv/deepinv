@@ -1,7 +1,7 @@
 import torch.nn as nn
 from torch import Tensor
 
-from .base import GeneratorLoss, DiscriminatorLoss
+from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
 
 
 class SupAdversarialGeneratorLoss(GeneratorLoss):
@@ -120,6 +120,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         weight_adv: float = 1.0,
         D: nn.Module = None,
         device="cpu",
+        **kwargs
     ):
         super().__init__(weight_adv=weight_adv, D=D, device=device)
         self.name = "UnsupAdversarialGenerator"
@@ -152,7 +153,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     :param str device: torch device, defaults to "cpu"
     """
 
-    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu"):
+    def __init__(self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs):
         super().__init__(weight_adv=weight_adv, D=D, device=device)
         self.name = "UnsupAdversarialDiscriminator"
 
