@@ -17,7 +17,7 @@ from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.models.flowunet import FlowUNet
-from deepinv.sampling.pnpflow import PnPFlow
+from deepinv.optim.pnpflow import PnPFlow
 
 # Use matplotlib config from deepinv to get nice plots
 from deepinv.utils.plotting import config_matplotlib
