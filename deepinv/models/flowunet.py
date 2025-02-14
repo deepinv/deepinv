@@ -174,6 +174,7 @@ class FlowUNet(Denoiser):
             conv2d(in_ch, output_channels, init_scale=0.),
         )
 
+        print("FlowUNet initialized", pretrained)
         if pretrained is not None:
             if pretrained == "download":
                 name = "celeba"
@@ -185,6 +186,7 @@ class FlowUNet(Denoiser):
                 # )
                 # TODO: fix import from drive
                 import gdown
+                print(f"Downloading pretrained model from {url}")
                 gdown.download(url,  './model_final_celeba.pt')
                 ckpt = torch.load('./model_final_celeba.pt',
                                   map_location=torch.device(self.device))
