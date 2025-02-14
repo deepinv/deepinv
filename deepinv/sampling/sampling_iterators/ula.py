@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import time as time
 
+from deepinv.optim import PnP
+from deepinv.optim.prior import ScorePrior
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 
 
@@ -21,7 +23,15 @@ class ULAIterator(SamplingIterator):
         super().__init__()
 
     def forward(
-        self, x, y, physics, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+        self,
+        x,
+        y,
+        physics,
+        cur_data_fidelity,
+        cur_prior: ScorePrior,
+        cur_params,
+        *args,
+        **kwargs,
     ):
         noise = torch.randn_like(x) * np.sqrt(2 * cur_params["step_size"])
         lhood = -cur_data_fidelity.grad(x, y, physics)

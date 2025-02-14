@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import time as time
 
+from deepinv.optim import ScorePrior
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 
 
@@ -22,7 +23,15 @@ class SKRockIterator(SamplingIterator):
         super().__init__()
 
     def forward(
-        self, x, y, physics, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+        self,
+        x,
+        y,
+        physics,
+        cur_data_fidelity,
+        cur_prior: ScorePrior,
+        cur_params,
+        *args,
+        **kwargs,
     ):
         # Extract parameters from cur_params
         step_size = cur_params["step_size"]
