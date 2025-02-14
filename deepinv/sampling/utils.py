@@ -2,8 +2,8 @@ import torch
 
 
 class Welford:
-    """
-    Welford's online algorithm for calculating mean and variance.
+    r"""
+    Welford's algorithm for calculating mean and variance
 
     https://doi.org/10.2307/1266577
     """
@@ -23,4 +23,13 @@ class Welford:
         return self.M
 
     def var(self):
-        return self.S / (self.k - 1) if self.k > 1 else self.S
+        return self.S / (self.k - 1)
+
+
+def refl_projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+    x = torch.abs(x)
+    return torch.clamp(x, min=lower, max=upper)
+
+
+def projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+    return torch.clamp(x, min=lower, max=upper)
