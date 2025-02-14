@@ -31,6 +31,7 @@ Contents:
 
 import deepinv as dinv
 import torch, torchvision
+from torch.utils.data import DataLoader
 
 device = dinv.utils.get_freer_gpu if torch.cuda.is_available() else "cpu"
 rng = torch.Generator(device=device).manual_seed(0)
@@ -95,7 +96,7 @@ physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
 dinv.utils.plot(
     {
-        "x": (x := knee_dataset[0].unsqueeze(0)),
+        "x": (x := next(iter(DataLoader(knee_dataset)))),
         "mask": mask,
         "y": physics(x).clamp(-1, 1),
     }
@@ -211,7 +212,7 @@ trainer = dinv.Trainer(
     model=model,
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters()),
-    train_dataloader=(train_dataloader := torch.utils.data.DataLoader(train_dataset)),
+    train_dataloader=(train_dataloader := DataLoader(train_dataset)),
     metrics=dinv.metric.PSNR(complex_abs=True),
     epochs=1,
     show_progress_bar=False,
@@ -241,7 +242,7 @@ trainer.plot_images = True
 
 _ = trainer.test(train_dataloader)
 
-_ = trainer.test(torch.utils.data.DataLoader(test_dataset))
+_ = trainer.test(DataLoader(test_dataset))
 
 
 # %%
@@ -263,9 +264,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
     dinv.utils.get_data_home() / "brain", slice_index="middle"
 )
 
-x, y = dataset[0]
-
-x, y = x.unsqueeze(0), y.unsqueeze(0)
+x, y = next(iter(DataLoader(dataset)))
 
 print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 
@@ -374,7 +373,7 @@ trainer = RawFastMRITrainer(
     losses=dinv.loss.SupLoss(metric=CropMSE()),
     metrics=CropPSNR(),
     optimizer=torch.optim.Adam(model.parameters()),
-    train_dataloader=torch.utils.data.DataLoader(dataset, shuffle=False),
+    train_dataloader=DataLoader(dataset, shuffle=False),
     epochs=1,
     save_path=None,
     show_progress_bar=False,
@@ -420,24 +419,65 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 #
 # Finally, we show how to use the dynamic MRI for image sequence data of
 # shape ``(B, C, T, H, W)`` where ``T`` is the time dimension. Note that
-# this is also compatible with 3D MRI. We simulate an MRI image sequence
-# using the first 2 knees (T=2):
+# this is also compatible with 3D MRI. We use dynamic MRI data from the
+# `CMRxRecon <https://cmrxrecon.github.io/>`_ challenge of cardiac cine 
+# sequences and load them using :class:`deepinv.datasets.CMRxReconSliceDataset` 
+# provided in deepinv. We download demo data from the first patient
+# including ground truth images, undersampled kspace, and associated masks:
 #
 
-x = torch.stack([knee_dataset[i] for i in range(2)], dim=1).unsqueeze(0)
+dinv.datasets.download_archive(
+    dinv.utils.get_image_url("CMRxRecon.zip"),
+    dinv.utils.get_data_home() / "CMRxRecon.zip",
+    extract=True
+)
 
+dataset = dinv.datasets.CMRxReconSliceDataset(
+    dinv.utils.get_data_home() / "CMRxRecon",
+)
+
+x, y, params = next(iter(DataLoader(dataset)))
+
+print(f"""
+    Ground truth: {x.shape} (B, C, T, H, W)
+    Measurements: {y.shape}
+    Acc. mask: {params["mask"].shape}
+""")
 
 # %%
-# Generate a Cartesian k-t sampling mask and simulate k-t-space
-# measurements:
+# Dynamic MRI data is directly compatible with existing functionality.
+# For example, you can train with this data by passing the dataset to
+# :class:`deepinv.Trainer`, which will automatically load in the data
+# ``x, y, params``. Or, you can use the data directly with the physics
+# :class:`deepinv.physics.DynamicMRI`.
+#
+# You can also pass in a custom k-t acceleration mask generator to
+# generate random time-varying masks:
 #
 
 physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
-    img_size=img_size, acceleration=4, rng=rng, device=device
+    img_size=x.shape[1:], acceleration=16, rng=rng, device=device
 )
-mask = physics_generator.step()["mask"]
-physics = dinv.physics.DynamicMRI(mask=mask, img_size=img_size, device=device)
+physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
-y = physics(x)
+dataset = dinv.datasets.CMRxReconSliceDataset(
+    "Andrewwango/datasets/CMRxRecon",
+    mask_generator=physics_generator,
+    mask_dir=None,
+)
 
-print(x.shape, physics(x).shape)  # B,C,T,H,W
+x, y, params = next(iter(DataLoader(dataset)))
+
+# %%
+# We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we 
+# visualise t=5 frames of the ground truth ``x``, the mask, and the zero-filled 
+# reconstruction ``x_zf`` (and crop to square for better visibility):
+#
+
+x_zf = physics.A_adjoint(y, **params)
+
+dinv.utils.plot({f't={i}': torch.cat([
+    x[:, :, i], 
+    params["mask"][:, :, i], 
+    x_zf[:, :, i]
+])[..., 128:384, :] for i in range(5)})
