@@ -237,18 +237,29 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     """
 
     @staticmethod
-    def torch_shuffle(x: list, generator=None):
+    def torch_shuffle(x: list, generator: torch.Generator = None) -> list:
+        """Shuffle list reproducibly using torch generator.
+
+        :param list x: list to be shuffled
+        :param torch.Generator generator: torch Generator.
+        :return list: shuffled list
+        """
         return [x[i] for i in torch.randperm(len(x), generator=generator).tolist()]
 
-    class SliceSampleFileIdentifier(NamedTuple):
-        """Data structure for identifying specific slices within MRI data files."""
-
+    class SliceSampleID(NamedTuple):
+        """Data structure containing ID and metadata of specific slices within MRI data files."""
         fname: Path
         slice_ind: int
         metadata: Dict[str, Any]
 
     @contextmanager
-    def metadata_cache_manager(self, root, sample_identifiers):
+    def metadata_cache_manager(self, root: Union[str, Path], samples: Any):
+        """Read/write metadata cache file for populating list of sample ids.
+
+        :param Union[str, Path] root: root dir to save to metadata cache
+        :param Any samples: iterable (list, dict etc.) for populating with samples to read/write to metadata cache
+        :yield: samples, either populated from metadata cache, or blank, to be yielded to be written to.
+        """
         if self.load_metadata_from_cache and os.path.exists(self.metadata_cache_file):
             with open(self.metadata_cache_file, "rb") as f:
                 dataset_cache = pickle.load(f)
@@ -258,9 +269,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                         + "either deactivate `load_dataset_from_cache` OR set `metadata_cache_file` properly."
                     )
                 print(f"Using dataset cache from {self.metadata_cache_file}.")
-                sample_identifiers = dataset_cache[root]
+                samples = dataset_cache[root]
 
-            yield sample_identifiers
+            yield samples
 
         else:
             if self.load_metadata_from_cache and not os.path.exists(
@@ -270,11 +281,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                     f"Couldn't find dataset cache at {self.metadata_cache_file}. Loading dataset from scratch."
                 )
 
-            yield sample_identifiers
+            yield samples
 
             if self.save_metadata_to_cache:
                 dataset_cache = {}
-                dataset_cache[root] = sample_identifiers
+                dataset_cache[root] = samples
                 print(f"Saving dataset cache to {self.metadata_cache_file}.")
                 with open(self.metadata_cache_file, "wb") as cache_f:
                     pickle.dump(dataset_cache, cache_f)
@@ -318,41 +329,33 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         # Load all slices
         all_fnames = sorted(list(Path(root).iterdir()))
 
-        with self.metadata_cache_manager(root, defaultdict(list)) as sample_identifiers:
-            if len(sample_identifiers) == 0:
+        with self.metadata_cache_manager(root, defaultdict(list)) as samples:
+            if len(samples) == 0:
                 for fname in tqdm(all_fnames):
                     metadata = self._retrieve_metadata(fname)
                     for slice_ind in range(metadata["num_slices"]):
-                        sample_identifiers[str(fname)].append(
-                            self.SliceSampleFileIdentifier(fname, slice_ind, metadata)
-                        )
+                        samples[str(fname)].append(self.SliceSampleID(fname, slice_ind, metadata))
 
-            self.sample_identifiers = sample_identifiers
+            self.samples = samples
 
         # Random slice subsampling
         if slice_index != "all":
-            for fname, samples in self.sample_identifiers.items():
+            for fname, samples in self.samples.items():
                 if isinstance(slice_index, int):
                     chosen_sample = samples[slice_index]
                 elif slice_index == "middle":
                     chosen_sample = samples[len(samples) // 2]
                 elif slice_index == "random":
                     chosen_sample = self.torch_shuffle(samples, generator=rng)[0]
-                self.sample_identifiers[fname] = [chosen_sample]
+                self.samples[fname] = [chosen_sample]
 
         # Randomly keep a portion of MRI volumes
         if subsample_volumes < 1.0:
-            subsampled_fnames = self.torch_shuffle(
-                list(self.sample_identifiers.keys()), generator=rng
-            )[: round(len(all_fnames) * subsample_volumes)]
-            self.sample_identifiers = {
-                k: self.sample_identifiers[k] for k in subsampled_fnames
-            }
+            subsampled_fnames = self.torch_shuffle(list(self.samples.keys()), generator=rng)[: round(len(all_fnames) * subsample_volumes)]
+            self.samples = {k: self.samples[k] for k in subsampled_fnames}
 
         # Flatten to list of samples
-        self.sample_identifiers = [
-            samp for samps in self.sample_identifiers.values() for samp in samps
-        ]
+        self.samples = [samp for samps in self.samples.values() for samp in samps]
 
     @staticmethod
     def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> Dict[str, Any]:
@@ -367,11 +370,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         return metadata
 
     def __len__(self) -> int:
-        return len(self.sample_identifiers)
+        return len(self.samples)
 
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
         r"""Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)"""
-        fname, slice_ind, metadata = self.sample_identifiers[idx]
+        fname, slice_ind, metadata = self.samples[idx]
 
         with h5py.File(fname, "r") as hf:
             kspace = torch.from_numpy(
