@@ -4,16 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import _calculate_fan_in_and_fan_out
 
-
 from .base import Denoiser
-
-
-def get_weights_from_drive(pretrained_name):
-    if pretrained_name == "celeba":
-        drive_id = "1ZZ6S-PGRx-tOPkr4Gt3A6RN-PChabnD6"
-    elif pretrained_name == "afhq_cat":
-        drive_id = "1FpD3cYpgtM8-KJ3Qk48fcjtr1Ne_IMOF"
-    return f"https://drive.google.com/uc?id={drive_id}"
+from .models.utils import get_weights_url
 
 
 class Swish(nn.Module):
@@ -28,9 +20,7 @@ def group_norm(out_ch):
     return nn.GroupNorm(num_groups=32, num_channels=out_ch, eps=1e-6, affine=True)
 
 
-# TODO: change init
-
-
+# TODO mutable init default OK ?
 class FlowUNet(Denoiser):
     r"""
     Flow Matching model (Unet)
@@ -193,10 +183,15 @@ class FlowUNet(Denoiser):
         print("FlowUNet initialized", pretrained)
         if pretrained is not None:
             if pretrained == "download":
-                if dataset_name == 'cat':
+                if self.dataset_name == 'cat':
                     name = "ot_fm_cat.pt"
-                elif dataset_name == 'celeba':
+                elif self.dataset_name == 'celeba':
                     name = "ot_fm_celeba.pt"
+                else:
+                    raise ValueError(
+                        "Unsupported trained model {self.dataset_name}, "
+                        "must be 'cat' or 'celeba'."
+                    )
                 url = get_weights_url(model_name="OT_FM", file_name=name)
                 ckpt_otfm = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -210,7 +205,6 @@ class FlowUNet(Denoiser):
             self.to(self.device)
             self.eval()
 
-    # noinspection PyMethodMayBeStatic
     def _compute_cond_module(self, module, x, temp):
         for m in module:
             x = m(x, temp)
@@ -220,7 +214,6 @@ class FlowUNet(Denoiser):
         # t = 1 - sigma
         return x + (1 - sigma) * self.forward_velocity(x, 1 - sigma)
 
-    # noinspection PyArgumentList,PyShadowingNames
     def forward_velocity(self, x, temp):
         # Init
         B, C, H, W = x.size()
@@ -276,9 +269,8 @@ class FlowUNet(Denoiser):
             0), self.output_channels, x.size(2), x.size(3)]
         return h
 
-
-def forward(self, x, sigma):
-    return self.forward_denoising(x, sigma)
+    def forward(self, x, sigma):
+        return self.forward_denoising(x, sigma)
 
 
 def upsample(in_ch, with_conv):
