@@ -173,7 +173,7 @@ class AdversarialTrainer(Trainer):
                 "Gradient norm for discriminator", ":.2e"
             )
 
-    def load_model(self, ckpt_pretrained = None):
+    def load_model(self, ckpt_pretrained=None):
         checkpoint = super().load_model(ckpt_pretrained)
         if checkpoint is not None:
             self.D.load_state_dict(checkpoint["state_dict_D"])

@@ -382,7 +382,9 @@ def download_CMRxRecon():
 
     # Download single CMRxRecon volume
     os.makedirs(tmp_data_dir, exist_ok=True)
-    download_archive(get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip", extract=True)
+    download_archive(
+        get_image_url("CMRxRecon.zip"), f"{tmp_data_dir}/CMRxRecon.zip", extract=True
+    )
 
     # This will return control to the test function
     yield f"{tmp_data_dir}/CMRxRecon"

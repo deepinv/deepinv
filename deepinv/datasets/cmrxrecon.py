@@ -17,6 +17,7 @@ from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.noise import NoiseModel
 
+
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     """CMRxRecon dynamic MRI dataset.
 
@@ -52,7 +53,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     :param str, Path metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
     :param bool apply_mask: if ``True``, mask is applied to subsample the kspace using a mask either
         loaded from `data_folder` or generated using `mask_generator`. If ``False``, the mask of ones is used.
-    :param str, Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder 
+    :param str, Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder
         according to the CMRxRecon folder structure. To use masks, ``apply_mask`` must be ``True``.
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator to randomly generate acceleration masks
         to apply to unpadded kspace. If specified, ``mask_dir`` must be ``None`` and ``apply_mask`` must be ``True``.
@@ -167,14 +168,14 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         # Load kspace data, take slice, remove coil dim,
         # create complex dim, move time dim
-        kspace = self._loadmat(fname) # shape WH(N)DT
-        kspace = kspace[..., slice_ind, :] # shape WH(N)T
+        kspace = self._loadmat(fname)  # shape WH(N)DT
+        kspace = kspace[..., slice_ind, :]  # shape WH(N)T
 
         if len(kspace.shape) == 5:
-            kspace = kspace[:, :, 0] # shape WHT
+            kspace = kspace[:, :, 0]  # shape WHT
 
         kspace = torch.from_numpy(np.stack((kspace.real, kspace.imag), axis=0))
-        kspace = kspace.moveaxis(-1, 1) # shape CTWH
+        kspace = kspace.moveaxis(-1, 1)  # shape CTWH
 
         # Load mask
         if self.apply_mask:
@@ -185,7 +186,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         .replace(str(Path(self.data_dir)), str(Path(self.mask_dir)))
                         .replace(".mat", "_mask.mat")
                     )
-                    mask = self.check_mask(mask, three_d=True)[0] # shape CTWH
+                    mask = self.check_mask(mask, three_d=True)[0]  # shape CTWH
                 except FileNotFoundError:
                     raise FileNotFoundError(
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
@@ -200,7 +201,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             mask = torch.ones_like(kspace)
 
         # Construct ground truth
-        target = self.kspace_to_im(kspace.unsqueeze(0)).squeeze(0) # shape CTWH
+        target = self.kspace_to_im(kspace.unsqueeze(0)).squeeze(0)  # shape CTWH
         assert target.shape[-2:] == mask.shape[-2:]
 
         # Apply target transform
@@ -209,9 +210,11 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         # Pad
         if self.pad_size is not None:
-            w, h = (self.pad_size[0] - target.shape[-2]), (self.pad_size[1] - target.shape[-1])
-            target = F.pad(target, (h // 2, h // 2, w // 2, w // 2)),
-            mask   = F.pad(mask,   (h // 2, h // 2, w // 2, w // 2)),
+            w, h = (self.pad_size[0] - target.shape[-2]), (
+                self.pad_size[1] - target.shape[-1]
+            )
+            target = (F.pad(target, (h // 2, h // 2, w // 2, w // 2)),)
+            mask = (F.pad(mask, (h // 2, h // 2, w // 2, w // 2)),)
 
         # Normalise
         target = (target - target.mean()) / (target.std() + 1e-11)

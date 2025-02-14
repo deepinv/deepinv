@@ -248,6 +248,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
     class SliceSampleID(NamedTuple):
         """Data structure containing ID and metadata of specific slices within MRI data files."""
+
         fname: Path
         slice_ind: int
         metadata: Dict[str, Any]
@@ -334,7 +335,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 for fname in tqdm(all_fnames):
                     metadata = self._retrieve_metadata(fname)
                     for slice_ind in range(metadata["num_slices"]):
-                        samples[str(fname)].append(self.SliceSampleID(fname, slice_ind, metadata))
+                        samples[str(fname)].append(
+                            self.SliceSampleID(fname, slice_ind, metadata)
+                        )
 
             self.samples = samples
 
@@ -351,7 +354,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         # Randomly keep a portion of MRI volumes
         if subsample_volumes < 1.0:
-            subsampled_fnames = self.torch_shuffle(list(self.samples.keys()), generator=rng)[: round(len(all_fnames) * subsample_volumes)]
+            subsampled_fnames = self.torch_shuffle(
+                list(self.samples.keys()), generator=rng
+            )[: round(len(all_fnames) * subsample_volumes)]
             self.samples = {k: self.samples[k] for k in subsampled_fnames}
 
         # Flatten to list of samples

@@ -420,8 +420,8 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 # Finally, we show how to use the dynamic MRI for image sequence data of
 # shape ``(B, C, T, H, W)`` where ``T`` is the time dimension. Note that
 # this is also compatible with 3D MRI. We use dynamic MRI data from the
-# `CMRxRecon <https://cmrxrecon.github.io/>`_ challenge of cardiac cine 
-# sequences and load them using :class:`deepinv.datasets.CMRxReconSliceDataset` 
+# `CMRxRecon <https://cmrxrecon.github.io/>`_ challenge of cardiac cine
+# sequences and load them using :class:`deepinv.datasets.CMRxReconSliceDataset`
 # provided in deepinv. We download demo data from the first patient
 # including ground truth images, undersampled kspace, and associated masks:
 #
@@ -429,7 +429,7 @@ dinv.utils.plot_ortho3D([x, physics(x)], titles=["x", "y"])
 dinv.datasets.download_archive(
     dinv.utils.get_image_url("CMRxRecon.zip"),
     dinv.utils.get_data_home() / "CMRxRecon.zip",
-    extract=True
+    extract=True,
 )
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
@@ -438,11 +438,13 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 
 x, y, params = next(iter(DataLoader(dataset)))
 
-print(f"""
+print(
+    f"""
     Ground truth: {x.shape} (B, C, T, H, W)
     Measurements: {y.shape}
     Acc. mask: {params["mask"].shape}
-""")
+"""
+)
 
 # %%
 # Dynamic MRI data is directly compatible with existing functionality.
@@ -469,15 +471,18 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 x, y, params = next(iter(DataLoader(dataset)))
 
 # %%
-# We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we 
-# visualise t=5 frames of the ground truth ``x``, the mask, and the zero-filled 
+# We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we
+# visualise t=5 frames of the ground truth ``x``, the mask, and the zero-filled
 # reconstruction ``x_zf`` (and crop to square for better visibility):
 #
 
 x_zf = physics.A_adjoint(y, **params)
 
-dinv.utils.plot({f't={i}': torch.cat([
-    x[:, :, i], 
-    params["mask"][:, :, i], 
-    x_zf[:, :, i]
-])[..., 128:384, :] for i in range(5)})
+dinv.utils.plot(
+    {
+        f"t={i}": torch.cat([x[:, :, i], params["mask"][:, :, i], x_zf[:, :, i]])[
+            ..., 128:384, :
+        ]
+        for i in range(5)
+    }
+)
