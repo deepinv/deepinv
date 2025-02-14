@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torch.nn.init import _calculate_fan_in_and_fan_out
 
 from .base import Denoiser
-from .models.utils import get_weights_url
+from .utils import get_weights_url
 
 
 class Swish(nn.Module):
@@ -44,6 +44,7 @@ class FlowUNet(Denoiser):
         act=Swish(),
         normalize=group_norm,
         pretrained="download",
+        dataset_name='celeba',
         device="cuda",
     ):
         super().__init__(device=device)
@@ -183,13 +184,13 @@ class FlowUNet(Denoiser):
         print("FlowUNet initialized", pretrained)
         if pretrained is not None:
             if pretrained == "download":
-                if self.dataset_name == 'cat':
+                if dataset_name == 'cat':
                     name = "ot_fm_cat.pt"
-                elif self.dataset_name == 'celeba':
+                elif dataset_name == 'celeba':
                     name = "ot_fm_celeba.pt"
                 else:
                     raise ValueError(
-                        "Unsupported trained model {self.dataset_name}, "
+                        "Unsupported trained model  {dataset_name}, "
                         "must be 'cat' or 'celeba'."
                     )
                 url = get_weights_url(model_name="OT_FM", file_name=name)
