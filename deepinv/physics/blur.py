@@ -147,7 +147,7 @@ class Downsampling(LinearPhysics):
             x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
 
-    def prox_l2(self, z, y, gamma, use_fft=True):
+    def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
         If the padding is circular, it computes the proximal operator with the closed-formula of
         https://arxiv.org/abs/1510.00143.
@@ -177,7 +177,7 @@ class Downsampling(LinearPhysics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
-            return LinearPhysics.prox_l2(self, z, y, gamma)
+            return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
 
 class Blur(LinearPhysics):
