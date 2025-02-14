@@ -58,7 +58,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         The resulting operator keeps the noise and sensor models of :math:`A_1`.
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.Physics`) concatenated operator
+        :return: (deepinv.physics.Physics) concatenated operator
 
         """
         A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
@@ -330,7 +330,6 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-
         return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
@@ -495,7 +494,7 @@ class LinearPhysics(Physics):
         """
         b = self.A_adjoint(y, **kwargs) + 1 / gamma * z
         H = lambda x: self.A_adjoint_A(x, **kwargs) + 1 / gamma * x
-        x = conjugate_gradient(H, b, self.max_iter, self.tol)
+        x = conjugate_gradient(H, b, self.max_iter, self.tol, **kwargs)
         return x
 
     def A_dagger(self, y, **kwargs):
@@ -721,6 +720,10 @@ class DecomposablePhysics(LinearPhysics):
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:
+            if (
+                isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
+            ):  # may be the case when mask is fft related
+                gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -933,6 +936,14 @@ class StackedPhysics(Physics):
         :param int item: index of the physics operator
         """
         self.physics_list[item].set_noise_model(noise_model)
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the stacked operator.
+
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
 
 
 class StackedLinearPhysics(StackedPhysics, LinearPhysics):
