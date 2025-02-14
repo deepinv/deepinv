@@ -8,10 +8,10 @@ from deepinv.models import Reconstructor
 
 
 class PnPFlow(Reconstructor):
-    r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=1e-3,lr_exp=0.5,device='cuda',verbose=False)
+    r"""PnPFlow(self, model, data_fidelity, max_iter=100, n_avg=2, lr=11.0,lr_exp=0.5,device='cuda',verbose=False)
     PnP with Flow Matching model.
 
-    This class implements the pnp flow matching restoration model (PnPFlow) described in https://arxiv.org/pdf/2410.02423.
+    This class implements the pnp flow matching restoration model (PnPFlow) described in PnP-Flow:Plug-and-Play Image Restoration with Flow Matching https://arxiv.org/abs/2410.02423.
 
     PnPFlow is a reconstruction method that uses a denoiser made from a generative flow matching model to in a plug-and-play (PnP) fashion.
 
@@ -55,7 +55,7 @@ class PnPFlow(Reconstructor):
         data_fidelity,
         max_iter=100,
         n_avg=2,
-        lr=1e-3,
+        lr=1.0,
         lr_exp=0.5,
         device="cuda",
         verbose=False,
@@ -77,6 +77,13 @@ class PnPFlow(Reconstructor):
         return t * x + torch.randn_like(x) * (1 - t)
 
     def forward(self, y, physics, x_init=None, seed=None):
+        r"""
+        Runs the iterative pnpflow algorithm for solving :ref:`(1) <optim>`.
+
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        :param torch.Tensor x_init: (optional) required if ``physics`` does not belong to ``deepinv.physics.Physics`` in order to access to image size
+        """
         with torch.no_grad():
             if seed:
                 np.random.seed(seed)
