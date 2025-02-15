@@ -457,5 +457,5 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
         apply_mask=False,
     )
-    target1, kspace1, params1 = dataset[0]
+    target1, kspace1 = dataset[0]
     assert (kspace1 == 0).sum() == 0

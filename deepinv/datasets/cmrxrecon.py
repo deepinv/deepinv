@@ -21,11 +21,13 @@ from deepinv.physics.noise import NoiseModel
 class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     """CMRxRecon dynamic MRI dataset.
 
-    `CMRxRecon challenge <https://cmrxrecon.github.io/>`_
+    Wrapper for dynamic 2D+t MRI dataset from the `CMRxRecon 2023 challenge <https://cmrxrecon.github.io/>`_.
 
-    Return tuples `(x, y)` of target and kspace respectively.
+    The dataset returns sequences of long axis (`lax`) views and short axis (`sax`) slices along with 2D+t acceleration masks.
 
-    Optionally, apply mask to measurements to get undersampled measurements.
+    Return tuples `(x, y)` of target (ground truth) and kspace (measurements).
+
+    Optionally apply mask to measurements to get undersampled measurements.
     Then the dataset returns tuples `(x, y, params)` where `params` is a dict `{'mask': mask}`.
     This can be directly used with :class:`deepinv.Trainer` to train with undersampled measurements.
     If masks are present in the data folders (in file format `cine_xax_mask.mat`) then these will be loaded.
@@ -45,7 +47,12 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     measurements inside the dataset (and return a triplet ``x, y, params`` where ``params`` contains the mask)
     because of the variable size of the data before padding, in line with the original CMRxRecon code.
 
-    TODO clean parameters
+    Folder structure:
+
+    |sep|
+
+    Example:
+
     :param str, Path root: path for dataset root folder.
     :param str, Path data_dir: directory containing target (ground truth) data, defaults to 'SingleCoil/Cine/TrainingSet/FullSample' which is default CMRxRecon folder structure
     :param bool load_metadata_from_cache: _description_, defaults to False
@@ -221,10 +228,11 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)
 
-        if self.apply_mask:
-            kspace = kspace * mask + 0.0
-
         if self.noise_model is not None:
             kspace = self.noise_model(kspace) * mask
 
-        return target, kspace, {"mask": mask.float()}
+        if self.apply_mask:
+            kspace = kspace * mask + 0.0
+            return target, kspace, {"mask": mask.float()}
+        else:
+            return target, kspace

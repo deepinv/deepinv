@@ -463,7 +463,7 @@ physics_generator = dinv.physics.generator.EquispacedMaskGenerator(
 physics = dinv.physics.DynamicMRI(img_size=(512, 256), device=device)
 
 dataset = dinv.datasets.CMRxReconSliceDataset(
-    "Andrewwango/datasets/CMRxRecon",
+    dinv.utils.get_data_home() / "CMRxRecon",
     mask_generator=physics_generator,
     mask_dir=None,
 )
