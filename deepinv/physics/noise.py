@@ -435,8 +435,11 @@ class PoissonGaussianNoise(NoiseModel):
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
-    def __init__(self, gain=1.0, sigma=0.1, rng: torch.Generator = None):
+    def __init__(
+        self, gain=1.0, sigma=0.1, clip_positive=False, rng: torch.Generator = None
+    ):
         super().__init__(rng=rng)
+        self.clip_positive = clip_positive
         self.update_parameters(gain=gain, sigma=sigma)
 
     def forward(self, x, gain=None, sigma=None, seed: int = None, **kwargs):
