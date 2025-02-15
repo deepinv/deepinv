@@ -395,6 +395,15 @@ class LinearPhysics(Physics):
             tol=self.tol,
         )
 
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the singular values of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if value is not None and hasattr(self, key):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
+
     def stack(self, other):
         r"""
         Stacks forward operators :math:`A = \begin{bmatrix} A_1 \\ A_2 \end{bmatrix}`.
