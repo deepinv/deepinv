@@ -77,9 +77,9 @@ def download_archive(
     del response
 
     if extract:
-        if Path(save_path).suffix == "zip":
+        if Path(save_path).suffix == ".zip":
             extract_zipfile(save_path, Path(save_path).parent)
-        elif Path(save_path).suffix == "tar":
+        elif Path(save_path).suffix == ".tar":
             extract_tarball(save_path, Path(save_path).parent)
 
 

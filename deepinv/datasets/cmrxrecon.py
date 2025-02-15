@@ -46,8 +46,8 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     because of the variable size of the data before padding, in line with the original CMRxRecon code.
 
     TODO clean parameters
-    :param str, Path root: _description_
-    :param str, Path data_dir: _description_, defaults to 'SingleCoil/Cine/TrainingSet/FullSample'
+    :param str, Path root: path for dataset root folder.
+    :param str, Path data_dir: directory containing target (ground truth) data, defaults to 'SingleCoil/Cine/TrainingSet/FullSample' which is default CMRxRecon folder structure
     :param bool load_metadata_from_cache: _description_, defaults to False
     :param bool save_metadata_to_cache: _description_, defaults to False
     :param str, Path metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
@@ -213,8 +213,8 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             w, h = (self.pad_size[0] - target.shape[-2]), (
                 self.pad_size[1] - target.shape[-1]
             )
-            target = (F.pad(target, (h // 2, h // 2, w // 2, w // 2)),)
-            mask = (F.pad(mask, (h // 2, h // 2, w // 2, w // 2)),)
+            target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
+            mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
 
         # Normalise
         target = (target - target.mean()) / (target.std() + 1e-11)
