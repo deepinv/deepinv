@@ -6,6 +6,7 @@ from typing import Callable, Union, Tuple, List, Any
 import numpy as np
 from .sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
+from deepinv.optim.prior import Zero
 
 class BaseSDE(nn.Module):
     r"""
@@ -131,6 +132,7 @@ class VarianceExplodingSDE(DiffusionSDE):
     .. math::
         d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
 
+    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
     """
 
     def __init__(
@@ -185,11 +187,11 @@ class VEDiffusionReconstructor(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity : 
-        prior : 
+        data_fidelity : Zero,
+        denoiser: nn.Module = None,   
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         *args,
         **kwargs,
     ):
-        SDE = VarianceExplosingSDE(score_module=score_module, sigma_min=sigma_min, sigma_max=sigma_max, *args, *kwargs)
+        SDE = VarianceExplodingSDE(score_module=score_module, sigma_min=sigma_min, sigma_max=sigma_max, *args, *kwargs)
