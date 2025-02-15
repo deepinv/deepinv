@@ -467,7 +467,10 @@ class PoissonGaussianNoise(NoiseModel):
         else:
             sigma = self.sigma
 
-        y = torch.poisson(torch.clip(x / gain, min=0.0) * gain, generator=self.rng)
+        if self.clip_positive:
+            y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng)
+        else:
+            y = torch.poisson(x / gain, generator=self.rng)
         y = y + self.randn_like(x) * sigma
 
         return y
