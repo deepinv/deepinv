@@ -404,7 +404,7 @@ def lsqr(
             return total
         else:
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
-            return torch.linalg.vector_norm(u, dim=dim, keepdim=True)
+            return torch.linalg.vector_norm(u, dim=dim, keepdim=False)#.squeeze()
 
     xt = AT(b)
     # m = b.size(0)
@@ -448,34 +448,34 @@ def lsqr(
     if torch.all(beta > 0):
         u = u / beta
         v = AT(u)
-        alfa = normf(v)
+        alpha = normf(v)
     else:
         v = torch.zeros_like(x)
-        alfa = torch.zeros(1, device=device)
+        alpha = torch.zeros(1, device=device)
 
-    if torch.all(alfa > 0):
-        v = v / alfa
+    if torch.all(alpha > 0):
+        v = v / alpha
 
     w = v.clone()
-    rhobar = alfa
+    rhobar = alpha
     phibar = beta
-    arnorm = alfa * beta
+    arnorm = alpha * beta
 
     if torch.any(arnorm == 0):
         return x, acond
 
     flag = False
     for itn in range(max_iter):
-        u = A(v) - alfa * u
+        u = A(v) - alpha * u
         beta = normf(u)
 
         if torch.all(beta > 0):
             u = u / beta
-            anorm = torch.sqrt(anorm**2 + alfa**2 + beta**2 + dampsq)
+            anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
             v = AT(u) - beta * v
-            alfa = normf(v)
-            if torch.all(alfa > 0):
-                v = v / alfa
+            alpha = normf(v)
+            if torch.all(alpha > 0):
+                v = v / alpha
 
         if eta > 0:
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
@@ -488,8 +488,8 @@ def lsqr(
             psi = 0.0
 
         cs, sn, rho = _sym_ortho(rhobar1, beta)
-        theta = sn * alfa
-        rhobar = -cs * alfa
+        theta = sn * alpha
+        rhobar = -cs * alpha
         phi = cs * phibar
         phibar = sn * phibar
         # tau = sn * phi
@@ -518,7 +518,7 @@ def lsqr(
 
         acond = anorm * torch.sqrt(ddnorm).mean()
         rnorm = torch.sqrt(phibar**2 + psi**2)
-        # arnorm = alfa * abs(tau)
+        # arnorm = alpha * abs(tau)
 
         if torch.all(rnorm <= tol * bnorm):
             flag = True
