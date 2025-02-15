@@ -112,9 +112,9 @@ Adversarial Networks
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.models.SkipConvDiscriminator
    deepinv.models.PatchGANDiscriminator
    deepinv.models.ESRGANDiscriminator
    deepinv.models.DCGANGenerator
    deepinv.models.DCGANDiscriminator
    deepinv.models.CSGMGenerator
+   deepinv.models.gan.SkipConvDiscriminator
