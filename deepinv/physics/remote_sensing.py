@@ -90,6 +90,7 @@ class Pansharpen(StackedLinearPhysics):
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
+        self.solver = "lsqr"  # works better than CG
 
     def A_dagger(self, y: TensorList, **kwargs):
         """
@@ -111,7 +112,7 @@ class Pansharpen(StackedLinearPhysics):
             x *= y[1] / x.mean(1, keepdim=True)
             return x
         else:
-            return super().A_dagger(y, solver="lsqr", **kwargs)
+            return super().A_dagger(y, **kwargs)
 
 
 # test code
