@@ -841,53 +841,51 @@ def test_datafid_stacking(imsize, device):
 
 
 solvers = ["CG", "BiCGStab", "lsqr"]
+least_squares_physics = [
+    "fftdeblur",
+    "inpainting",
+    "MRI",
+    "super_resolution_circular",
+    "pansharpening_circular",
+]
 
 
+@pytest.mark.parametrize("physics_name", least_squares_physics)
 @pytest.mark.parametrize("solver", solvers)
-def test_least_square_solvers(device, solver):
-
-    physics_names = [
-        "fftdeblur",
-        "inpainting",
-        "MRI",
-        "super_resolution_circular",
-    ]
-
+def test_least_square_solvers(device, solver, physics_name):
     batch_size = 4
 
-    for physics_name in physics_names:
-        print("physics_name", physics_name)
-        physics, img_size, _, _ = find_operator(physics_name, device=device)
+    physics, img_size, _, _ = find_operator(physics_name, device=device)
 
-        x = torch.randn((batch_size, *img_size), device=device)
+    x = torch.randn((batch_size, *img_size), device=device)
 
-        tol = 0.01
-        y = physics(x)
-        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-        assert (
-            (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
-            / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-            < tol
-        ).all()
+    tol = 0.01
+    y = physics(x)
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    assert (
+        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < tol
+    ).all()
 
-        z = x.clone()
-        gamma = 1.0
+    z = x.clone()
+    gamma = 1.0
 
-        x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
 
-        assert (
-            (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
-            / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
-            < 3 * tol
-        ).all()
+    assert (
+        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < 3 * tol
+    ).all()
 
-        # test backprop
-        y.requires_grad = True
-        x_hat = physics.A_dagger(y, solver=solver, tol=tol)
-        loss = (x_hat - x).pow(2).mean()
-        loss.backward()
-        if not "inpainting" in physics_name:
-            assert y.grad.norm() > 0
+    # test backprop
+    y.requires_grad = True
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    if not "inpainting" in physics_name:
+        assert y.grad.norm() > 0
 
 
 def test_condition_number(device):

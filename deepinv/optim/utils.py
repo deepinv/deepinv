@@ -279,7 +279,7 @@ def bicgstab(
     if init is not None:
         x = init
     else:
-        x = torch.zeros_like(b)
+        x = zeros_like(b)
 
     r = b - A(x)
     r_hat = r.clone()  # torch.ones_like(r) #torch.rand_like(r) #r.clone()
@@ -385,6 +385,8 @@ def lsqr(
     :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
+    xt = AT(b)
+
     if parallel_dim is None:
         parallel_dim = []
 
@@ -394,8 +396,8 @@ def lsqr(
         device = b.device
 
     def normf(u):
-        total = 0.0
         if isinstance(u, TensorList):
+            total = 0.0
             dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
             for k in range(len(u)):
                 total += torch.linalg.vector_norm(
@@ -406,10 +408,33 @@ def lsqr(
             dim = [i for i in range(u.ndim) if i not in parallel_dim]
             return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
 
-    xt = AT(b)
+    b_shape = []
+    if isinstance(b, TensorList):
+        for j in range(len(b)):
+            b_shape.append([])
+            for i in range(len(b[j].shape)):
+                b_shape[j].append(b[j].shape[i] if i in parallel_dim else 1)
+    else:
+        for i in range(len(b.shape)):
+            b_shape.append(b.shape[i] if i in parallel_dim else 1)
+
+    Atb_shape = []
+    for i in range(len(xt.shape)):
+        Atb_shape.append(xt.shape[i] if i in parallel_dim else 1)
+
+    def scalar(v, alpha, b_domain):
+        if b_domain:
+            if isinstance(v, TensorList):
+                return TensorList(
+                    [vi * alpha.view(bi_shape) for vi, bi_shape in zip(v, b_shape)]
+                )
+            else:
+                return v * alpha.view(b_shape)
+        else:
+            return v * alpha.view(Atb_shape)
+
     # m = b.size(0)
     # n = xt.numel()/xt.size(0)
-
     # var = torch.zeros_like(xt) if calc_var else None
 
     if eta > 0:
@@ -446,7 +471,7 @@ def lsqr(
         beta = normf(u)
 
     if torch.all(beta > 0):
-        u = u / beta
+        u = scalar(u, 1 / beta, b_domain=True)
         v = AT(u)
         alpha = normf(v)
     else:
@@ -454,7 +479,7 @@ def lsqr(
         alpha = torch.zeros(1, device=device)
 
     if torch.all(alpha > 0):
-        v = v / alpha
+        v = scalar(v, 1 / alpha, b_domain=False)  # v / view(alpha, Atb_shape)
 
     w = v.clone()
     rhobar = alpha
@@ -466,16 +491,16 @@ def lsqr(
 
     flag = False
     for itn in range(max_iter):
-        u = A(v) - alpha * u
+        u = A(v) - scalar(u, alpha, b_domain=True)
         beta = normf(u)
 
         if torch.all(beta > 0):
-            u = u / beta
+            u = scalar(u, 1 / beta, b_domain=True)
             anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
-            v = AT(u) - beta * v
+            v = AT(u) - scalar(v, beta, b_domain=False)
             alpha = normf(v)
             if torch.all(alpha > 0):
-                v = v / alpha
+                v = scalar(v, 1 / alpha, b_domain=False)
 
         if eta > 0:
             rhobar1 = torch.sqrt(rhobar**2 + dampsq)
@@ -496,10 +521,10 @@ def lsqr(
 
         t1 = phi / rho
         t2 = -theta / rho
-        dk = (1 / rho) * w
+        dk = scalar(w, 1 / rho, b_domain=False)
 
-        x = x + t1 * w
-        w = v + t2 * w
+        x = x + scalar(w, t1, b_domain=False)
+        w = v + scalar(w, t2, b_domain=False)
         ddnorm = ddnorm + normf(dk) ** 2
 
         # if calc_var:

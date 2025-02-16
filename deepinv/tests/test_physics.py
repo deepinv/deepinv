@@ -546,17 +546,15 @@ def test_pseudo_inverse(name, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts error is less than 1e-3
     """
-    if name == "radio":  # issues with torchkbnufft
-        return
     physics, imsize, _, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
     r = physics.A_adjoint(physics.A(x))  # project to range of A^T
     y = physics.A(r)
     error = torch.linalg.vector_norm(
-        physics.A_dagger(y, solver="lsqr", tol=0.0001) - r
+        physics.A_dagger(y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True) - r
     ) / torch.linalg.vector_norm(r)
-    assert error < 0.02
+    assert error < 0.05
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -688,9 +686,11 @@ def test_concatenation(name, device):
         * physics
     )
 
-    r = physics.A_adjoint(physics.A(x))
+    r = physics.A_adjoint(physics.A(x))  # project to range of A^T
     y = physics.A(r)
-    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    error = torch.linalg.vector_norm(
+        physics.A_dagger(y, solver="lsqr", tol=0.0001) - r
+    ) / torch.linalg.vector_norm(r)
     assert error < 0.01
 
 

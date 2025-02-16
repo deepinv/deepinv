@@ -28,8 +28,8 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
@@ -86,6 +86,10 @@ class Downsampling(LinearPhysics):
         elif filter == "bicubic":
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
+            ).to(device)
+        elif filter == "sinc":
+            self.filter = torch.nn.Parameter(
+                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
             ).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
@@ -587,7 +591,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
 
         A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
 
-    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
 
     .. math::
 
@@ -602,7 +606,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1 / factor
+    deltaf = 2 * (2 - 1.41) / factor
 
     n = torch.arange(length) - (length - 1) / 2
     filter = torch.sinc(n / factor)
