@@ -80,7 +80,7 @@ sde = VarianceExplodingSDE(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
     device=device,
-    use_backward_ode=False,
+    dtype=dtype,
 )
 
 # %%
@@ -96,7 +96,7 @@ timesteps = np.linspace(0, 1, num_steps)[::-1]
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 rng = torch.Generator(device).manual_seed(42)
 solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
-solution = sde((1, 3, 64, 64), solver=solver, seed=1)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
 
 sample_seed_1 = solution.sample
 
@@ -149,7 +149,7 @@ except FileNotFoundError:
 # be generated when the same seed is used
 
 # By changing the seed, we can obtain different samples:
-solution = sde((1, 3, 64, 64), solver=solver, seed=111)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=111)
 sample_seed_111 = solution.sample
 
 dinv.utils.plot(
@@ -180,14 +180,13 @@ sde = VarianceExplodingSDE(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
     device=device,
-    use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde((1, 3, 64, 64), solver=solver, seed=101)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=101)
 dinv.utils.plot(
-    solution.sample, titles=["VE-SDE sample"], show=False, save_fn="sde_sample.png"
+    solution.sample, titles=["VE-SDE sample"], show=True, save_fn="sde_sample.png"
 )
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
@@ -244,12 +243,11 @@ sde = VarianceExplodingSDE(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
     device=device,
-    use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde((1, 3, 64, 64), solver=solver, seed=111)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=111)
 
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
@@ -294,12 +292,11 @@ sde = VarianceExplodingSDE(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
     device=device,
-    use_backward_ode=False,
 )
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde((1, 3, 64, 64), solver=solver, seed=10)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=10)
 
 dinv.utils.save_videos(
     solution.trajectory.cpu()[::4],
@@ -333,3 +330,60 @@ except FileNotFoundError:
 #       :alt: example learn_samples
 #       :srcset: /auto_examples/images/sde_trajectory_3.gif
 #       :class: custom-gif
+
+
+# %%
+# Posterior Sampling
+
+import torch
+import numpy as np
+
+import deepinv as dinv
+from deepinv.models import NCSNpp, EDMPrecond
+from deepinv.sampling.sde import VarianceExplodingSDE
+from deepinv.sampling.sde_solver import HeunSolver, EulerSolver
+
+# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = "cuda"
+dtype = torch.float64
+
+unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
+denoiser = EDMPrecond(model=unet).to(device)
+sigma_min = 0.02
+sigma_max = 10
+num_steps = 100
+
+sde = VarianceExplodingSDE(
+    denoiser=denoiser,
+    sigma_max=sigma_max,
+    sigma_min=sigma_min,
+    device=device,
+    dtype=dtype,
+    alpha=0.5,
+)
+
+rng = torch.Generator(device).manual_seed(42)
+timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+solver = HeunSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
+solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
+x = solution.sample.clone()
+dinv.utils.plot(x, titles="Original sample", show=True)
+# %%
+from deepinv.sampling.sde import DPSDataFidelity, PosteriorDiffusion
+
+posterior = PosteriorDiffusion(
+    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+    unconditional_sde=sde,
+    dtype=dtype,
+    device=device,
+)
+
+physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
+y = physics(x)
+
+posterior_sample = posterior.forward(
+    y, physics, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
+)
+dinv.utils.plot([x, y, posterior_sample.sample], show=True)
+dinv.utils.plot_videos(posterior_sample.trajectory, display=True, time_dim=0)
+# %%
