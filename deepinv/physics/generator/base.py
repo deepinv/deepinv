@@ -100,8 +100,8 @@ class PhysicsGenerator(nn.Module):
 
         :param int, str seed: the seed to set for the random number generator. If string passed,
             generate seed from the hash of the string.
-         If not provided, the current state of the random number generator is used.
-         Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
+            If not provided, the current state of the random number generator is used.
+            Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
         """
         if seed is not None:
             if isinstance(seed, str):
