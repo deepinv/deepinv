@@ -86,7 +86,6 @@ class Pansharpen(StackedLinearPhysics):
             noise_model=noise_color,
             device=device,
             padding=padding,
-            normalize=normalize,
         )
         decolorize = Decolorize(
             srf=srf, noise_model=noise_gray, channels=img_size[0], device=device
