@@ -111,7 +111,7 @@ class Pansharpen(StackedLinearPhysics):
             x *= y[1] / x.mean(1, keepdim=True)
             return x
         else:
-            return super().A_dagger(y, **kwargs)
+            return super().A_dagger(y, solver="lsqr", **kwargs)
 
 
 # test code
