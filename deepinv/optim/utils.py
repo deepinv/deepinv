@@ -228,7 +228,6 @@ def conjugate_gradient(
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
-        # print(rsnew[0].item())
 
     if flag and verbose:
         print("CG did not converge")
