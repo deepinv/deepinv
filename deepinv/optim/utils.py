@@ -433,9 +433,6 @@ def lsqr(
         else:
             return v * alpha.view(Atb_shape)
 
-    # m = b.size(0)
-    # n = xt.numel()/xt.size(0)
-    # var = torch.zeros_like(xt) if calc_var else None
 
     if eta > 0:
         if isinstance(eta, torch.Tensor):
