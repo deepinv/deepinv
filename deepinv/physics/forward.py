@@ -894,7 +894,7 @@ class StackedPhysics(Physics):
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
     def __str__(self):
-        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
+        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()
