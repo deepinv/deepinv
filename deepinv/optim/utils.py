@@ -36,7 +36,7 @@ def least_squares(
     z=0.0,
     init=None,
     gamma=None,
-    parallel_dim=[0],
+    parallel_dim=0,
     AAT=None,
     ATA=None,
     solver="CG",
@@ -75,10 +75,13 @@ def least_squares(
     :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
     :param int max_iter: maximum number of iterations.
     :param float tol: relative tolerance for stopping the algorithm.
-    :param None, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param kwargs: Keyword arguments to be passed to the solver.
     :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
     """
+
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
 
     if solver == "lsqr":  # rectangular solver
 
@@ -174,7 +177,7 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
-    parallel_dim=[0],
+    parallel_dim=0,
     init=None,
     verbose=False,
 ):
@@ -190,13 +193,15 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
-    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
 
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
     if parallel_dim is None:
         parallel_dim = []
 
@@ -241,7 +246,7 @@ def bicgstab(
     init=None,
     max_iter=1e2,
     tol=1e-5,
-    parallel_dim=[0],
+    parallel_dim=0,
     verbose=False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
@@ -260,13 +265,15 @@ def bicgstab(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
-    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
     :param Callable right_precon: right preconditioner as a callable function.
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
     if parallel_dim is None:
         parallel_dim = []
 
@@ -357,7 +364,7 @@ def lsqr(
     tol=1e-6,
     conlim=1e8,
     max_iter=100,
-    parallel_dim=[0],
+    parallel_dim=0,
     verbose=False,
     **kwargs,
 ):
@@ -379,13 +386,15 @@ def lsqr(
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
-    :param None, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
 
     xt = AT(b)
 
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
     if parallel_dim is None:
         parallel_dim = []
 
