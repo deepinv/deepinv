@@ -606,13 +606,13 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 2 * (2 - 1.41) / factor
+    deltaf = 2 * (2 - 1.414213) / factor
 
     n = torch.arange(length) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
-        A = 2.285 * (length - 1) * 3.14 * deltaf + 7.95
+        A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
         if A <= 21:
             beta = 0
         elif A <= 50:
