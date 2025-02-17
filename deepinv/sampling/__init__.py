@@ -1,3 +1,3 @@
 from .langevin import ULA, MonteCarlo, SKRock
 from .diffusion import DDRM, DiffusionSampler, DiffPIR, DPS
-from . import sde, sde_solver
+from . import diffusion_sde, sde_solver

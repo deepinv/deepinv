@@ -69,7 +69,7 @@ denoiser = EDMPrecond(model=unet).to(device)
 # .. math::
 #     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
-from deepinv.sampling.sde import VarianceExplodingSDE
+from deepinv.sampling.diffusion_sde import VarianceExplodingSDE
 from deepinv.sampling.sde_solver import EulerSolver
 
 sigma_min = 0.02
@@ -340,7 +340,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.models import NCSNpp, EDMPrecond
-from deepinv.sampling.sde import VarianceExplodingSDE
+from deepinv.sampling.diffusion_sde import VarianceExplodingSDE
 from deepinv.sampling.sde_solver import HeunSolver, EulerSolver
 
 # device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -369,7 +369,7 @@ solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
 x = solution.sample.clone()
 dinv.utils.plot(x, titles="Original sample", show=True)
 # %%
-from deepinv.sampling.sde import DPSDataFidelity, PosteriorDiffusion
+from deepinv.sampling.diffusion_sde import DPSDataFidelity, PosteriorDiffusion
 
 posterior = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(denoiser=denoiser),
