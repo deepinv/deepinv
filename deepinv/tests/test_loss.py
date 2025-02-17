@@ -1,6 +1,7 @@
 import pytest
 
 import math
+import numpy as np
 import torch
 
 import deepinv
@@ -336,6 +337,59 @@ def test_measplit(device):
     x_net2 = f(y, physics)
 
     assert split_loss > 0 and n2n_loss > 0
+
+
+@pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
+@pytest.mark.parametrize("img_size", [(1, 320, 320)])
+@pytest.mark.parametrize("split_ratio", [0.6, 0.9])
+def test_measplit_masking(mode, img_size, split_ratio):
+    acc = 2
+
+    class DummyModel(torch.nn.Module):
+        def forward(self, y, physics, *args, **kwargs):
+            return y
+
+    class DummyModel2(torch.nn.Module):
+        def forward(self, y, physics, *args, **kwargs):
+            return physics.mask
+
+    if mode == "test_split_y":
+        model = DummyModel()
+        dummy_metric = lambda y2_hat, y2: y2 * y2.mean()
+    elif mode == "test_split_physics":
+        model = DummyModel2()
+        dummy_metric = lambda y2_hat, y2: y2_hat * y2.mean()
+
+    physics = dinv.physics.Inpainting(
+        img_size,
+        mask=dinv.physics.generator.GaussianMaskGenerator(img_size, acc).step()["mask"],
+    )
+    loss = dinv.loss.SplittingLoss(
+        eval_split_input=False,
+        mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
+            img_size, split_ratio=split_ratio
+        ),
+        metric=dummy_metric,
+    )
+    model.train()
+    model = loss.adapt_model(model)
+
+    x = torch.ones(img_size).unsqueeze(0)
+    y = physics(x)
+    with torch.no_grad():
+        out = model(y, physics, update_parameters=True)
+
+    assert torch.all(out == model.mask)
+    assert np.allclose(model.mask.mean().item() * acc, split_ratio, atol=1e-4)
+
+    if mode == "test_split_y":
+        y1 = out
+        y2 = loss(x, y, physics, model)
+        assert torch.all(y1 + y2 == y)
+    elif mode == "test_split_physics":
+        physics1mask = out
+        y2_hat = loss(x, y, physics, model)
+        assert torch.all(physics1mask + y2_hat == y)
 
 
 LOSS_SCHEDULERS = ["random", "interleaved", "random_weighted"]
