@@ -23,6 +23,7 @@ from .scheduler import (
 )
 
 from . import metric
+from . import adversarial
 
 from .metric import (
     Metric,
