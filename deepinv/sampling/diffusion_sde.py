@@ -3,7 +3,7 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
-from .sde_solver import BaseSDESolver, SDEOutput
+from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
 from deepinv.optim.data_fidelity import Zero
 
@@ -329,14 +329,14 @@ if __name__ == "__main__":
     from deepinv.sampling.sde_solver import HeunSolver
     from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
 
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float64
 
     unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
     denoiser = EDMPrecond(model=unet).to(device)
     sigma_min = 0.02
     sigma_max = 10
-    num_steps = 100
+    num_steps = 10
 
     sde = VarianceExplodingDiffusion(
         denoiser=denoiser,
