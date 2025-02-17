@@ -324,7 +324,7 @@ def _sym_ortho(a, b):
     """
     Stable implementation of Givens rotation.
 
-    adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
+    Adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
 
     The routine '_sym_ortho' was added for numerical stability. This is
     recommended by S.-C. Choi in "Iterative Methods for Singular Linear Equations and Least-Squares
