@@ -950,6 +950,7 @@ class StackedPhysics(Physics):
         r"""
         Updates the parameters of the stacked operator.
 
+        :param dict kwargs: dictionary of parameters to update.
         """
         for physics in self.physics_list:
             physics.update_parameters(**kwargs)
@@ -996,3 +997,12 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
                 for i, physics in enumerate(self.physics_list)
             ]
         )
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the stacked operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
