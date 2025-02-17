@@ -18,6 +18,7 @@ Diffusion
     deepinv.sampling.DPS
     deepinv.sampling.DiffusionSampler
 
+
 Markov Chain Monte Carlo Langevin
 ---------------------------------
 .. userguide:: mcmc
@@ -30,4 +31,6 @@ Markov Chain Monte Carlo Langevin
     deepinv.sampling.MonteCarlo
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
+
+
 
