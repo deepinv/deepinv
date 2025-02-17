@@ -221,6 +221,10 @@ class Downsampling(LinearPhysics):
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
             ).to(self.device)
+        elif filter == "sinc":
+            self.filter = torch.nn.Parameter(
+                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
+            ).to(self.device)
 
         if self.filter is not None:
             self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
@@ -642,7 +646,7 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
 
         A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
 
-    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
 
     .. math::
 
@@ -657,7 +661,7 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1 / factor
+    deltaf = 2 * (2 - 1.4142136) / factor
 
     n = torch.arange(length, device=device) - (length - 1) / 2
     filter = torch.sinc(n / factor)
