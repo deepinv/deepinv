@@ -202,14 +202,13 @@ class Downsampling(LinearPhysics):
         """
         if factor is not None:
             self.factor = factor
+
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(self.device)
         if isinstance(filter, torch.Tensor):
             self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
                 self.device
             )
-        # elif filter is None:  # TODO: check if filter can be None
-        #     self.filter = filter
         elif filter == "gaussian":
             self.filter = torch.nn.Parameter(
                 gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
@@ -222,8 +221,6 @@ class Downsampling(LinearPhysics):
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
             ).to(self.device)
-        else:
-            self.filter = filter
 
         if self.filter is not None:
             self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
