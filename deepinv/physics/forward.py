@@ -510,7 +510,7 @@ class LinearPhysics(Physics):
 
     def condition_number(self, x, max_iter=500, tol=1e-6, verbose=False, **kwargs):
         r"""
-        Computes approximation of the condition number of the linear operator :math:`A`.
+        Computes an approximation of the condition number of the linear operator :math:`A`.
 
         Uses the LSQR algorithm, see :func:`deepinv.optim.utils.lsqr` for more details.
 
