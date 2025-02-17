@@ -90,7 +90,7 @@ class Pansharpen(StackedLinearPhysics):
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
-        self.solver = "lsqr"  # works better than CG
+        self.solver = "lsqr"  # more stable than CG
 
     def A_dagger(self, y: TensorList, **kwargs):
         """
