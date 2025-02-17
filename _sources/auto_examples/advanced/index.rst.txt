@@ -1,0 +1,45 @@
+
+
+.. _sphx_glr_auto_examples_advanced:
+
+Advanced
+-------------------------------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.  The following example and data are taken from Aghabiglou et al. (2024).  If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check BASPLib.">
+
+.. only:: html
+
+  .. image:: /auto_examples/advanced/images/thumb/sphx_glr_demo_ri_basic_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_advanced_demo_ri_basic.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Radio interferometric imaging with deepinverse</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/advanced/demo_ri_basic
+
