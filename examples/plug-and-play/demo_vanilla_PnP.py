@@ -129,9 +129,10 @@ x_lin = (
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(
-    y, physics, x_gt=x, compute_metrics=True
-)  # reconstruction with PnP algorithm
+with torch.no_grad():
+    x_model, metrics = model(
+        y, physics, x_gt=x, compute_metrics=True
+    )  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")

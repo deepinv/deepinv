@@ -129,7 +129,7 @@ class ScoreLoss(Loss):
             self.counter = 0
             self.total_batches = total_batches
 
-        def forward(self, y, physics, update_parameters=False):
+        def forward(self, y, physics, update_parameters=False, **kwargs):
             r"""
             Computes the reconstruction of the noisy measurements.
 
