@@ -179,7 +179,7 @@ class DiffusionSDE(BaseSDE):
         raise NotImplementedError
 
 
-class VarianceExplodingSDE(DiffusionSDE):
+class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
     `Variance-Exploding Stochastic Differential Equation (VE-SDE) <https://arxiv.org/abs/2011.13456>`_
 
@@ -475,7 +475,7 @@ class DPSDataFidelity(NoisyDataFidelity):
 if __name__ == "__main__":
     import deepinv as dinv
     from deepinv.models import NCSNpp, EDMPrecond
-    from deepinv.sampling.sde import VarianceExplodingSDE
+    from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
     from deepinv.sampling.sde_solver import HeunSolver
 
     device = "cuda"
@@ -487,7 +487,7 @@ if __name__ == "__main__":
     sigma_max = 10
     num_steps = 100
 
-    sde = VarianceExplodingSDE(
+    sde = VarianceExplodingDiffusion(
         denoiser=denoiser,
         sigma_max=sigma_max,
         sigma_min=sigma_min,

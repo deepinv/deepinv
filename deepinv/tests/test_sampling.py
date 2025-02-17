@@ -195,7 +195,7 @@ if torch.cuda.is_available():
 
 @pytest.mark.parametrize("device", DEVICES)
 def test_sde(device):
-    from deepinv.sampling.sde import VESDE
+    from deepinv.sampling.diffusion_sde import VESDE
     from deepinv.sampling.sde_solver import EulerSolver, HeunSolver
     from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
 
