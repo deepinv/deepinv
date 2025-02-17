@@ -282,7 +282,7 @@ def bicgstab(
         x = zeros_like(b)
 
     r = b - A(x)
-    r_hat = r.clone()  # torch.ones_like(r) #torch.rand_like(r) #r.clone()
+    r_hat = r.clone()
     rho = dot(r, r_hat, dim=dim)
     p = r
     max_iter = int(max_iter)
