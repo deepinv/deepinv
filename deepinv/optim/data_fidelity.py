@@ -92,6 +92,29 @@ class DataFidelity(Potential):
         return self.d.prox_conjugate(u, y, *args, **kwargs)
 
 
+class Zero(DataFidelity):
+    r"""
+    Zero data fidelity term :math:`\datafid{x}{y} = 0`.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        return torch.zeros_like(x)  
+    
+    def grad(self, x, y, physics, *args, **kwargs):
+        return torch.zeros_like(x)
+    
+    def grad_d(self, u, y, *args, **kwargs):
+        return torch.zeros_like(u)
+    
+    def prox_d(self, u, y, *args, **kwargs):
+        return u
+    
+    def prox_d_conjugate(self, u, y, *args, **kwargs):
+        return u        
+
+
 class StackedPhysicsDataFidelity(DataFidelity):
     r"""
     Stacked data fidelity term :math:`\datafid{x}{y} = \sum_i d_i(A_i(x),y_i)`.

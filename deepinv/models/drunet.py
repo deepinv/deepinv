@@ -10,7 +10,7 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 class DRUNet(Denoiser):
     r"""
-    DRUNet denoiser network.
+    DRUNet denoiser network from :cite:`zhang2021plug`.
 
     The network architecture is based on the paper
     `Plug-and-Play Image Restoration with Deep Denoiser Prior <https://arxiv.org/abs/2008.13751>`_,

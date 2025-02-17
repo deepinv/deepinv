@@ -30,6 +30,7 @@ class DnCNN(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
     """
+    
 
     def __init__(
         self,

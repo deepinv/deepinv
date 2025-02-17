@@ -7,6 +7,7 @@ import numpy as np
 from .sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
 from deepinv.optim.prior import Zero
+from deepinv.optim.data_fidelity import Zero as ZeroDataFidelity
 
 class BaseSDE(nn.Module):
     r"""
@@ -123,6 +124,8 @@ class DiffusionSDE(BaseSDE):
             **kwargs)
 
 
+
+
 class VarianceExplodingSDE(DiffusionSDE):
     r"""
     `Variance-Exploding Stochastic Differential Equation (VE-SDE) <https://arxiv.org/abs/2011.13456>`_
@@ -132,12 +135,12 @@ class VarianceExplodingSDE(DiffusionSDE):
     .. math::
         d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
 
-    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
+    This class represents the reverse-time SDE of the VE-SDE, serving as the generation process.
     """
 
     def __init__(
         self,
-        score_module: nn.Module = None,
+        denoiser: nn.Module = None,
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         dtype=torch.float64,
@@ -155,6 +158,13 @@ class VarianceExplodingSDE(DiffusionSDE):
             return self.sigma_t(t) * np.sqrt(
                 2 * (np.log(sigma_max) - np.log(sigma_min))
             )
+        
+        class score_module(nn.Module):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, t, *args, **kwargs):
+                return self.denoiser(x, self.sigma_t(t), *args, **kwargs)
 
         super().__init__(
             drift=forward_drift,
@@ -187,11 +197,35 @@ class VEDiffusionReconstructor(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity : Zero,
+        data_fidelity = None,
         denoiser: nn.Module = None,   
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         *args,
         **kwargs,
     ):
-        SDE = VarianceExplodingSDE(score_module=score_module, sigma_min=sigma_min, sigma_max=sigma_max, *args, *kwargs)
+        self.SDE = VarianceExplodingSDE(denoiser=denoiser, sigma_min=sigma_min, sigma_max=sigma_max, *args, **kwargs)
+        self.data_fidelity = data_fidelity if data_fidelity is not None else ZeroDataFidelity()
+
+    def forward(
+        self,
+        x_init: Tensor = None,
+        solver: BaseSDESolver = None,
+        seed: int = None,
+        y: Tensor = None,
+        physics: Physics = None,
+        *args,
+        **kwargs,
+    ) -> SDEOutput:
+        r"""
+        Solve the SDE with the given timesteps.
+
+        :param torch.Tensor x_init: initial value.
+        :param str method: method for solving the SDE. One of the methods available in :func:`deepinv.sampling.sde_solver`.
+
+        :return SDEOutput: a namespaced container of the output.
+        """
+        return self.SDE.sample(x_init=x_init, solver=solver, seed=seed, *args, **kwargs)
+    
+    
+    
