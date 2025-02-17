@@ -53,14 +53,14 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     Example:
 
-    :param str, Path root: path for dataset root folder.
-    :param str, Path data_dir: directory containing target (ground truth) data, defaults to 'SingleCoil/Cine/TrainingSet/FullSample' which is default CMRxRecon folder structure
+    :param str, pathlib.Path root: path for dataset root folder.
+    :param str, pathlib.Path data_dir: directory containing target (ground truth) data, defaults to 'SingleCoil/Cine/TrainingSet/FullSample' which is default CMRxRecon folder structure
     :param bool load_metadata_from_cache: _description_, defaults to False
     :param bool save_metadata_to_cache: _description_, defaults to False
-    :param str, Path metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
+    :param str, pathlib.Path metadata_cache_file: _description_, defaults to "dataset_cache.pkl"
     :param bool apply_mask: if ``True``, mask is applied to subsample the kspace using a mask either
         loaded from `data_folder` or generated using `mask_generator`. If ``False``, the mask of ones is used.
-    :param str, Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder
+    :param str, pathlib.Path mask_dir: dataset folder containing predefined acceleration masks. Defaults to the 4x acc. mask folder
         according to the CMRxRecon folder structure. To use masks, ``apply_mask`` must be ``True``.
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator to randomly generate acceleration masks
         to apply to unpadded kspace. If specified, ``mask_dir`` must be ``None`` and ``apply_mask`` must be ``True``.
@@ -148,7 +148,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
 
-        :param Union[str, Path, os.PathLike] fname: filename to open
+        :param str, pathlib.Path, os.PathLike fname: filename to open
         :return: metadata dict of key-value pairs.
         """
         shape = self._loadmat(fname).shape  # WH(N)DT
