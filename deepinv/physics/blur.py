@@ -71,6 +71,7 @@ class Downsampling(LinearPhysics):
         self.imsize = img_size
         self.padding = padding
         self.device = device
+        self.filter = filter
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
     def A(self, x, filter=None, factor=None, **kwargs):
