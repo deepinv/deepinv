@@ -436,7 +436,7 @@ class PoissonGaussianNoise(NoiseModel):
     """
 
     def __init__(
-        self, gain=1.0, sigma=0.1, clip_positive=False, normalize=False, rng: torch.Generator = None
+        self, gain=1.0, sigma=0.1, clip_positive=False, rng: torch.Generator = None
     ):
         super().__init__(rng=rng)
         self.clip_positive = clip_positive
@@ -468,12 +468,9 @@ class PoissonGaussianNoise(NoiseModel):
             sigma = self.sigma
 
         if self.clip_positive:
-            y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng)
+            y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
         else:
-            y = torch.poisson(x / gain, generator=self.rng)
-
-        if self.normalize:
-            y = y * gain
+            y = torch.poisson(x / gain, generator=self.rng) * gain
 
         y = y + self.randn_like(x) * sigma
 
