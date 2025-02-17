@@ -36,7 +36,7 @@ def least_squares(
     z=0.0,
     init=None,
     gamma=None,
-    parallel_dim=None,
+    parallel_dim=[0],
     AAT=None,
     ATA=None,
     solver="CG",
@@ -174,7 +174,7 @@ def conjugate_gradient(
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
-    parallel_dim=None,
+    parallel_dim=[0],
     init=None,
     verbose=False,
 ):
@@ -241,7 +241,7 @@ def bicgstab(
     init=None,
     max_iter=1e2,
     tol=1e-5,
-    parallel_dim=None,
+    parallel_dim=[0],
     verbose=False,
     left_precon=lambda x: x,
     right_precon=lambda x: x,
@@ -357,7 +357,7 @@ def lsqr(
     tol=1e-6,
     conlim=1e8,
     max_iter=100,
-    parallel_dim=None,
+    parallel_dim=[0],
     verbose=False,
     **kwargs,
 ):
@@ -431,7 +431,6 @@ def lsqr(
                 return v * alpha.view(b_shape)
         else:
             return v * alpha.view(Atb_shape)
-
 
     if eta > 0:
         if isinstance(eta, torch.Tensor):
