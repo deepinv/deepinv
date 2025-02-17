@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
 - Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)

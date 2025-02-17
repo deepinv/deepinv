@@ -9,6 +9,7 @@ from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
+from deepinv.tests.test_physics import find_operator
 
 
 def custom_init_CP(y, physics):
@@ -837,3 +838,65 @@ def test_datafid_stacking(imsize, device):
     )
 
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
+
+
+solvers = ["CG", "BiCGStab", "lsqr"]
+least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+
+
+@pytest.mark.parametrize("physics_name", least_squares_physics)
+@pytest.mark.parametrize("solver", solvers)
+def test_least_square_solvers(device, solver, physics_name):
+    batch_size = 4
+
+    physics, img_size, _, _ = find_operator(physics_name, device=device)
+
+    x = torch.randn((batch_size, *img_size), device=device)
+
+    tol = 0.01
+    y = physics(x)
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    assert (
+        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < tol
+    ).all()
+
+    z = x.clone()
+    gamma = 1.0
+
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+
+    assert (
+        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < 3 * tol
+    ).all()
+
+    # test backprop
+    y.requires_grad = True
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    if not "inpainting" in physics_name:
+        assert y.grad.norm() > 0
+
+
+def test_condition_number(device):
+    imsize = (2, 1, 32, 32)
+
+    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def A(self, x, **kwargs):
+            return x * c
+
+        def A_adjoint(self, y, **kwargs):
+            return y * c
+
+    physics = DummyPhysics()
+    x = torch.randn(imsize, device=device)
+    cond = physics.condition_number(x)
+    gt_cond = c.max() / c.min()
+    rel_error = (cond - gt_cond).abs() / gt_cond
+    assert rel_error < 0.1
