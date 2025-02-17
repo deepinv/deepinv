@@ -5,7 +5,7 @@ from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
 from .sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
-from deepinv.optim.prior import Zero
+from deepinv.optim.data_fidelity import Zero
 
 
 class BaseSDE(nn.Module):
