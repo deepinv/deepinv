@@ -1,76 +1,57 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'deepinverse: A Python package for solving imaging inverse problems with deep learning'
 tags:
   - Python
-  - astronomy
-  - dynamics
-  - galactic dynamics
-  - milky way
+  - Pytorch
+  - imaging inverse problems
+  - computational imaging
 authors:
-  - name: Adrian M. Price-Whelan
+  - name: Julian Tachella
     orcid: 0000-0000-0000-0000
     equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
+    corresponding: true # (This is how to denote the corresponding author)
+    affiliation: 1
+  - name: Matthieu Terris
     equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 2
-  - name: Author with no affiliation
-    corresponding: true # (This is how to denote the corresponding author)
+  - name: Samuel Hurault
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
     affiliation: 3
-  - given-names: Ludwig
-    dropping-particle: van
-    surname: Beethoven
-    affiliation: 3
+  - name: Andrew Wang
+    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
+    affiliation: 4
+  - name: Dongdong Chen
+  - affiliation: 5
+  - name: Contributors (TODO)
+  - affiliation: 5
+
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, United States
-   index: 1
-   ror: 00hx57361
- - name: Institution Name, Country
-   index: 2
- - name: Independent Researcher, Country
-   index: 3
-date: 13 August 2017
+  - name: CNRS, ENS de Lyon, Univ Lyon, Lyon, France
+    index: 1
+    ror: 00hx57361
+  - name: Inria Paris Saclay, Palaiseau, France
+    index: 2
+  - name: ENS Paris, Paris, France
+    index: 3
+  - name: University of Edinburgh, Edinburgh, UK
+    index: 3
+  - name: Heriot-Watt University, Edinburgh, UK
+    index: 3
+date: 15 March 2025
 bibliography: paper.bib
 
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning, whose first stable version was released in July 2023. The library aims to cover most steps in modern imaging pipelines, from the definition of the forward sensing operator to the training of unfolded reconstruction networks in a supervised or self-supervised way.
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
-
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+In recent years, deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. In order to tackle these pitfalls, an international group of research scientists has worked intensely in the last year to build 
+DeepInverse is an open-source PyTorch library for solving imaging inverse problems with deep learning, whose first stable version has been very recently released. DeepInverse aims to cover most of the steps in modern imaging pipelines, from the definition of the forward sensing operator to the training of unfolded reconstruction networks in a supervised or self-supervised way. 
+The main goal of this library is to become the standard open-source tool for researchers (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). 
+The `deepinv` has the following objectives: i) accelerate future research by enabling efficient testing and deployment of new ideas, ii) enlarge the adoption of deep learning in inverse problems by lowering the entrance bar to new researchers in the field, and iii) enhance research reproducibility via a common definition of imaging operators and reconstruction methods and a common framework for defining datasets for inverse problems.
 
 # Mathematics
 
@@ -114,7 +95,6 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+We acknowledge contributions from ...
 
 # References
