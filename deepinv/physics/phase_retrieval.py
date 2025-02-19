@@ -58,9 +58,6 @@ class PhaseRetrieval(Physics):
         """
         return spectral_methods(y, self, **kwargs)
 
-    def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
-        return self.B_adjoint(y, **kwargs)
-
     def B_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         return self.B.A_adjoint(y, **kwargs)
 
