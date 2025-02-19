@@ -114,9 +114,7 @@ def GSDRUNet(
                 file_name = "GSDRUNet_torch.ckpt"
             elif in_channels == 1:
                 file_name = "GSDRUNet_grayscale_torch.ckpt"
-            url = get_weights_url(
-                model_name="gradientstep", file_name=file_name
-            )
+            url = get_weights_url(model_name="gradientstep", file_name=file_name)
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
