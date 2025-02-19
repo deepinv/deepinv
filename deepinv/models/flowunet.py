@@ -213,7 +213,7 @@ class FlowUNet(Denoiser):
 
     def forward_denoising(self, x, sigma):
         # t = 1 - sigma
-        return x + (1 - sigma) * self.forward_velocity(x, 1 - sigma)
+        return x + sigma * self.forward_velocity(x, 1 - sigma)
 
     def forward_velocity(self, x, temp):
         # Init

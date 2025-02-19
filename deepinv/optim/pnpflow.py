@@ -51,7 +51,7 @@ class PnPFlow(Reconstructor):
 
     def __init__(
         self,
-        model,
+        denoiser,
         data_fidelity,
         max_iter=100,
         n_avg=2,
@@ -61,7 +61,7 @@ class PnPFlow(Reconstructor):
         verbose=False,
     ):
         super(PnPFlow, self).__init__()
-        self.model = model
+        self.denoiser = denoiser
         self.max_iter = max_iter
         self.data_fidelity = data_fidelity
         self.n_avg = n_avg
@@ -69,9 +69,6 @@ class PnPFlow(Reconstructor):
         self.lr_exp = lr_exp
         self.verbose = verbose
         self.device = device
-
-    def denoiser(self, x, t):
-        return x + (1 - t.view(-1, 1, 1, 1)) * self.model(x, t)
 
     def interpolation_step(self, x, t):
         return t * x + torch.randn_like(x) * (1 - t)
@@ -101,7 +98,7 @@ class PnPFlow(Reconstructor):
                 x_new = torch.zeros_like(x)
                 for _ in range(self.n_avg):
                     z_tilde = self.interpolation_step(z, t.view(-1, 1, 1, 1))
-                    x_new += self.denoiser(z_tilde, t)
+                    x_new += self.denoiser(z_tilde, sigma=1 - t)
                 x_new /= self.n_avg
                 x = x_new
         return x

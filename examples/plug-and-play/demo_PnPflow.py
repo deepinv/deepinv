@@ -68,79 +68,98 @@ velocity = FlowUNet(input_channels=3, input_height=128,
 
 # %%
 # First, we consider the problem of mask inpainting. The forward operator is
-# # implemented in :class:`deepinv.physics.Inpainting`. The mask we use is
-# a centered black square with size 60x60, and We additionally use Additive
-# White Gaussian Noise of standard deviation  12.75/255.
+# implemented in :class:`deepinv.physics.Inpainting`. The mask we use is
+# a centered black square with size 60x60. We additionally use Additive
+# White Gaussian Noise of standard deviation 12.5/255.
 
-url = get_image_url("celeba_example.jpg")
+url = get_image_url("celeba_example2.jpg")
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
-x = 2 * x_true.clone() - 1  # values in [-1, 1]
-mask = torch.ones_like(x)
+# x = 2 * x_true.clone() - 1  # values in [-1, 1]
+# x = x_true.clone()
+mask = torch.ones_like(x_true)
 mask[:, :, 32:96, 32:96] = 0
 sigma_noise = 12.5 / 255.0  # noise level
 
 physics = dinv.physics.Inpainting(
     mask=mask,
-    tensor_size=x.shape[1:],
+    tensor_size=x_true.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(x)
+y = physics(2 * x_true - 1)
 
 # %%
-# Run the PnP method
+# Run PnPFlow
 # ------------------
-max_iter = 20
+max_iter = 100
 delta = 1 / max_iter
 lr = 1.0
-lr_exp = 0.6
+lr_exp = 0.5
 n_avg = 1
 data_fidelity = L2()
 x_hat = physics.A_adjoint(y)
 
 
-def interpolation_step(x, t):
-    tv = t.view(-1, 1, 1, 1)
-    return tv * x + (1 - tv) * torch.randn_like(x)
+# def interpolation_step(x, t):
+#     """Interpolate between `x` and white gaussian noise."""
+#     tv = t.view(-1, 1, 1, 1)
+#     return tv * x + (1 - tv) * torch.randn_like(x)
 
 
-def denoiser(x, t):
-    return x + (1 - t.view(-1, 1, 1, 1)) * velocity(x, t)
+# def denoiser(x, t):
+#     """Denoise based on velocity field of flow matching model."""
+#     return x + (1 - t.view(-1, 1, 1, 1)) * velocity(x, t)
 
 
-with torch.no_grad():
-    for it in tqdm(range(max_iter)):
-        t = torch.ones(len(x), device=device) * delta * it
-        lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
-        z = x - lr_t * data_fidelity.grad(x, y, physics)
-        x_new = torch.zeros_like(x)
-        for _ in range(n_avg):
-            z_tilde = interpolation_step(x, t)
-            x_new += denoiser(z_tilde, t)
-        x_new /= n_avg
-        x = x_new
+# with torch.no_grad():
+#     for it in tqdm(range(max_iter)):
+#         t = torch.ones(len(x_hat), device=device) * delta * it
+#         lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
+#         z = x_hat - lr_t * data_fidelity.grad(x_hat, y, physics)
+#         x_new = torch.zeros_like(x_hat)
+#         for _ in range(n_avg):
+#             z_tilde = interpolation_step(x_hat, t)
+#             x_new += denoiser(z_tilde, t)
+#         x_new /= n_avg
+#         x_hat = x_new
 
+# Note: in some settings, the performance may be improved by using n_avg > 1.
 
+pnpflow = PnPFlow(
+    velocity,
+    data_fidelity=L2(),
+    verbose=True,
+    max_iter=50,
+    device=device,
+    lr=1.0,
+    lr_exp=0.5,
+)
+
+x_hat = pnpflow(y, physics)
 # %% Plot results
-imgs = [y, x_true, x_hat]
+imgs = [y, x_true, 0.5 *(x_hat + 1)]
 plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
-    save_fn="res_inpainting.png",
-    save_dir=".",
+    save_dir = '.',
+    save_fn="celeba.png",
 )
 
 print("PSNR noisy image :", dinv.metric.PSNR()((y + 1.0) * 0.5, x_true).item())
 print("PSNR restored image :", dinv.metric.PSNR()
       ((x_hat + 1.0) * 0.5, x_true).item())
 
-# %%
-# Next, we consider a deblurring problme, where the forward operator is implemented
-# in :class:`deepinv.physics.BlurFFT`. In the example, we use Gaussian blur
-# and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.75/255.
+1/ 0
 
-print("Running deblurring example")
+# %%
+# Deblurring example
+# ------------------
+# Next, we consider a deblurring problem, where the forward operator is implemented
+# in :class:`deepinv.physics.BlurFFT`. In the example, we use Gaussian blur
+# and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.5/255.
+
+
 pnpflow = PnPFlow(
     velocity,
     data_fidelity=L2(),
@@ -155,7 +174,7 @@ url = get_image_url("celeba_example2.jpg")
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
 x = x_true.clone()
-sigma_noise = 12.75 / 255.0  # noise level
+sigma_noise = 12.5 / 255.0  # noise level
 
 physics = dinv.physics.BlurFFT(
     img_size=x.shape[1:],
@@ -178,17 +197,3 @@ plot(
 print("PSNR noisy image :", dinv.metric.PSNR()((y + 1.0) * 0.5, x_true).item())
 print("PSNR restored image :", dinv.metric.PSNR()
       ((x_hat + 1.0) * 0.5, x_true).item())
-
-
-##
-# To run the algorithm directly, one can do:
-pnpflow = PnPFlow(
-    velocity,
-    data_fidelity=L2(),
-    verbose=True,
-    max_iter=100,
-    device=device,
-    lr=1.0,
-    lr_exp=0.6,
-)
-pnpflow(y, physics)
