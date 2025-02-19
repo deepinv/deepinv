@@ -29,6 +29,7 @@ Fixed
 ^^^^^
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
