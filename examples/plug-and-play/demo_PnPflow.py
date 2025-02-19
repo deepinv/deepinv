@@ -62,7 +62,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we will use a Flow Matching model trained with minibatch OT
 # on the CelebA dataset.
 
-velocity = FlowUNet(input_channels=3, input_height=128,
+denoiser = FlowUNet(input_channels=3, input_height=128,
                     pretrained="download", device=device)
 
 
@@ -92,51 +92,51 @@ y = physics(2 * x_true - 1)
 # %%
 # Run PnPFlow
 # ------------------
-max_iter = 100
+max_iter = 50
 delta = 1 / max_iter
 lr = 1.0
 lr_exp = 0.5
-n_avg = 1
+n_avg = 2
 data_fidelity = L2()
 x_hat = physics.A_adjoint(y)
 
 
-# def interpolation_step(x, t):
-#     """Interpolate between `x` and white gaussian noise."""
-#     tv = t.view(-1, 1, 1, 1)
-#     return tv * x + (1 - tv) * torch.randn_like(x)
+def interpolation_step(x, t):
+    """Interpolate between `x` and white gaussian noise."""
+    tv = t.view(-1, 1, 1, 1)
+    return tv * x + (1 - tv) * torch.randn_like(x)
 
 
-# def denoiser(x, t):
+# def denoiser_step(x, t):
 #     """Denoise based on velocity field of flow matching model."""
-#     return x + (1 - t.view(-1, 1, 1, 1)) * velocity(x, t)
+#     return x + (1 - t.view(-1, 1, 1, 1)) * denoiser.forward_velocity(x, t)
 
 
-# with torch.no_grad():
-#     for it in tqdm(range(max_iter)):
-#         t = torch.ones(len(x_hat), device=device) * delta * it
-#         lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
-#         z = x_hat - lr_t * data_fidelity.grad(x_hat, y, physics)
-#         x_new = torch.zeros_like(x_hat)
-#         for _ in range(n_avg):
-#             z_tilde = interpolation_step(x_hat, t)
-#             x_new += denoiser(z_tilde, t)
-#         x_new /= n_avg
-#         x_hat = x_new
+with torch.no_grad():
+    for it in tqdm(range(max_iter)):
+        t = torch.ones(len(x_hat), device=device) * delta * it
+        lr_t = lr * (1 - t.view(-1, 1, 1, 1)) ** lr_exp
+        z = x_hat - lr_t * data_fidelity.grad(x_hat, y, physics)
+        x_new = torch.zeros_like(x_hat)
+        for _ in range(n_avg):
+            z_tilde = interpolation_step(z, t)
+            x_new += denoiser(z_tilde, 1-t)
+        x_new /= n_avg
+        x_hat = x_new
 
 # Note: in some settings, the performance may be improved by using n_avg > 1.
 
-pnpflow = PnPFlow(
-    velocity,
-    data_fidelity=L2(),
-    verbose=True,
-    max_iter=50,
-    device=device,
-    lr=1.0,
-    lr_exp=0.5,
-)
+# pnpflow = PnPFlow(
+#     denoiser,
+#     data_fidelity=L2(),
+#     verbose=True,
+#     max_iter=50,
+#     device=device,
+#     lr=1.0,
+#     lr_exp=0.5,
+# )
 
-x_hat = pnpflow(y, physics)
+# x_hat = pnpflow(y, physics)
 # %% Plot results
 imgs = [y, x_true, 0.5 *(x_hat + 1)]
 plot(
