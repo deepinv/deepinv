@@ -24,6 +24,7 @@ class JacobianSpectralNorm(Loss):
     :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
     :param bool verbose: whether to print computation details or not.
     :param str reduction: reduction in batch dimension. One of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If ``None``, a vector of length ``batch_size`` will be returned. Defaults to "max".
+    :param int reduced_batchsize: if not `None`, the batch size will be reduced to this value for the computation of the spectral norm. Can be useful to reduce memory usage and computation time when the batch size is large.
 
     |sep|
 
@@ -45,7 +46,13 @@ class JacobianSpectralNorm(Loss):
     """
 
     def __init__(
-        self, max_iter=10, tol=1e-3, eval_mode=False, verbose=False, reduction="max"
+        self,
+        max_iter: int = 10,
+        tol: float = 1e-3,
+        eval_mode: bool = False,
+        verbose: bool = False,
+        reduction: str = "max",
+        reduced_batchsize: int = None,
     ):
         super(JacobianSpectralNorm, self).__init__()
         self.name = "jsn"
@@ -53,6 +60,7 @@ class JacobianSpectralNorm(Loss):
         self.tol = tol
         self.eval = eval_mode
         self.verbose = verbose
+        self.reduced_batchsize = reduced_batchsize
 
         self.reduction = lambda x: x
         if reduction is not None:
@@ -84,6 +92,15 @@ class JacobianSpectralNorm(Loss):
 
         return torch.einsum("bn,bn->b", x, y)
 
+    def _reduce_batch(self, x, y):
+        """
+        Reduces the batch dimension of the input tensors x and y.
+        """
+        if self.reduced_batchsize is not None:
+            x = x[: self.reduced_batchsize]
+            y = y[: self.reduced_batchsize]
+        return x, y
+
     def forward(self, y, x, **kwargs):
         """
         Computes the spectral norm of the Jacobian of :math:`f` in :math:`x`.
@@ -97,6 +114,8 @@ class JacobianSpectralNorm(Loss):
 
         If x has multiple dimensions, it's assumed the first one corresponds to the batch dimension.
         """
+
+        x, y = self._reduce_batch(x, y)
 
         assert x.shape[0] == y.shape[0], ValueError(
             f"x and y should have the same number of instances. Got {x.shape[0]} vs. {y.shape[0]}"
@@ -185,6 +204,7 @@ class FNEJacobianSpectralNorm(Loss):
     :param bool eval_mode: set to ``False`` if one does not want to backpropagate through the spectral norm (default), set to ``True`` otherwise.
     :param bool verbose: whether to print computation details or not.
     :param str reduction: reduction in batch dimension. One of ["mean", "sum", "max"], operation to be performed after all spectral norms have been computed. If ``None``, a vector of length ``batch_size`` will be returned. Defaults to "max".
+    :param int reduced_batchsize: if not `None`, the batch size will be reduced to this value for the computation of the spectral norm. Can be useful to reduce memory usage and computation time when the batch size is large.
 
     |sep|
 
@@ -219,16 +239,35 @@ class FNEJacobianSpectralNorm(Loss):
     """
 
     def __init__(
-        self, max_iter=10, tol=1e-3, verbose=False, eval_mode=False, reduction="max"
+        self,
+        max_iter: int = 10,
+        tol: float = 1e-3,
+        eval_mode: bool = False,
+        verbose: bool = False,
+        reduction: str = "max",
+        reduced_batchsize: int = None,
     ):
         super(FNEJacobianSpectralNorm, self).__init__()
+
+        self.reduced_batchsize = reduced_batchsize
+
         self.spectral_norm_module = JacobianSpectralNorm(
             max_iter=max_iter,
             tol=tol,
             verbose=verbose,
             eval_mode=eval_mode,
             reduction=reduction,
+            reduced_batchsize=reduced_batchsize,
         )
+
+    def _reduce_batch(self, x, y):
+        """
+        Reduces the batch dimension of the input tensors x and y.
+        """
+        if self.reduced_batchsize is not None:
+            x = x[: self.reduced_batchsize]
+            y = y[: self.reduced_batchsize]
+        return x, y
 
     def forward(
         self, y_in, x_in, model, *args_model, interpolation=False, **kwargs_model
@@ -243,6 +282,8 @@ class FNEJacobianSpectralNorm(Loss):
         :param bool interpolation: whether to input to model an interpolation between y_in and x_in instead of y_in (default is `False`).
         :param `**kargs_model`: additional keyword arguments of the model.
         """
+
+        y_in, x_in = self._reduce_batch(y_in, x_in)
 
         if interpolation:
             eta = torch.rand(
