@@ -1,8 +1,13 @@
 r"""
-Image generation with Stochastic Differential Equation Modeling
+Image generation and Posterior Sampling with Stochastic Differential Equation Modeling
 ====================================================================================================
 
-This code shows you how to use the :meth:`deepinv.sampling.DiffusionSDE` to generate from a pre-trained denoiser.
+This code shows you how to use the :meth:`deepinv.sampling.DiffusionSDE` to generate from a pre-trained denoiser
+and :meth:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling.
+
+
+Unconditional Image Generation 
+==============================
 
 The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.13456.
 
@@ -69,13 +74,13 @@ denoiser = EDMPrecond(model=unet).to(device)
 # .. math::
 #     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
-from deepinv.sampling.diffusion_sde import VarianceExplodingSDE
+from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
 from deepinv.sampling.sde_solver import EulerSolver
 
 sigma_min = 0.02
 sigma_max = 20
 
-sde = VarianceExplodingSDE(
+sde = VarianceExplodingDiffusion(
     denoiser=denoiser,
     sigma_max=sigma_max,
     sigma_min=sigma_min,
@@ -174,7 +179,7 @@ sigma_max = 10
 rng = torch.Generator(device)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingSDE(
+sde = VarianceExplodingDiffusion(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
@@ -237,7 +242,7 @@ sigma_min = 0.02
 sigma_max = 20
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingSDE(
+sde = VarianceExplodingDiffusion(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
@@ -286,7 +291,7 @@ except FileNotFoundError:
 
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingSDE(
+sde = VarianceExplodingDiffusion(
     denoiser=denoiser,
     rescale=True,
     sigma_max=sigma_max,
@@ -332,15 +337,25 @@ except FileNotFoundError:
 #       :class: custom-gif
 
 
-# %%
-# Posterior Sampling
+r"""
+Posterior Sampling for Inverse Problems
+=======================================
+
+The `deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
+
+The posterior sampling is performed by solving a similar reverse-time SDE:
+
+.. math::
+    
+
+"""
 
 import torch
 import numpy as np
 
 import deepinv as dinv
 from deepinv.models import NCSNpp, EDMPrecond
-from deepinv.sampling.diffusion_sde import VarianceExplodingSDE
+from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
 from deepinv.sampling.sde_solver import HeunSolver, EulerSolver
 
 # device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
@@ -353,7 +368,7 @@ sigma_min = 0.02
 sigma_max = 10
 num_steps = 100
 
-sde = VarianceExplodingSDE(
+sde = VarianceExplodingDiffusion(
     denoiser=denoiser,
     sigma_max=sigma_max,
     sigma_min=sigma_min,

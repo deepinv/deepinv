@@ -3,6 +3,7 @@ from deepinv.optim.data_fidelity import L2
 
 # This file implements the p(y|x) terms as proposed in the `review paper <https://arxiv.org/pdf/2410.00083>`_ by Daras et al.
 
+
 class NoisyDataFidelity(L2):
     r"""
     Preconditioned data fidelity term for noisy data :math:`\datafid{x}{y}=\distance{\forw{x'}}{y'}`.

@@ -3,9 +3,11 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
+from deepinv.physics import Physics
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
 from deepinv.optim.data_fidelity import Zero
+from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 
 
 class BaseSDE(nn.Module):
@@ -163,7 +165,7 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def _handle_time_step(self, t) -> Tensor:
+    def _handle_time_step(self, t: Union[Tensor, float]) -> Tensor:
         t = torch.as_tensor(t, device=self.device, dtype=self.dtype)
         return t
 
@@ -227,17 +229,17 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
-    def prior_sample(self, shape, rng) -> Tensor:
+    def prior_sample(self, shape, rng: torch.Generator) -> Tensor:
         return (
             torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
             * self.sigma_max
         )
 
-    def sigma_t(self, t):
+    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
         t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
-    def score(self, x, t, *args, **kwargs):
+    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
             self.denoiser(
                 x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
@@ -248,12 +250,36 @@ class VarianceExplodingDiffusion(DiffusionSDE):
 
 class PosteriorDiffusion(Reconstructor):
     r"""
-    Posterior distribution sampling using diffusion models.
+    Posterior distribution sampling  for inverse problems using diffusion models by Reverse-time Stochastic Differential Equation (SDE).
+
+    Consider the acquisition model:
+    .. math::
+        y = \noise{\forw{x}}.
+
+    This class defines the reverse-time SDE for the posterior distribution :math:`p(x|y)` given the data :math:`y`:
+
+    .. math::
+        d\, x_t = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla_{x_t} \log p_t(x_t | y) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}
+
+    where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :math:`w` is the standard Brownian motion. The drift term and the diffusion coefficient are defined by the underlying (unconditional) forward-time SDE `unconditional_sde`. The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be decomposed using the Bayes' rule:
+
+    .. math::
+        \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
+
+    The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
+
+    :param NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.data_fidelity.Zero`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
+    :param DiffusionSDE unconditional_sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
+
+    :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: the device for the computations.
+
     """
 
     def __init__(
         self,
-        data_fidelity: Zero,
+        data_fidelity: NoisyDataFidelity = Zero,
         unconditional_sde: DiffusionSDE = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -287,8 +313,8 @@ class PosteriorDiffusion(Reconstructor):
 
     def forward(
         self,
-        y,
-        physics,
+        y: Tensor,
+        physics: Physics,
         x_init: Optional[Tensor] = None,
         solver: BaseSDESolver = None,
         seed: int = None,
@@ -296,6 +322,18 @@ class PosteriorDiffusion(Reconstructor):
         *args,
         **kwargs,
     ):
+        r"""
+        Sample the posterior distribution :math:`p(x|y)` given the data measurement :math:`y`.
+
+        :param torch.Tensor y: the data measurement.
+        :param deepinv.physics.Physics physics: the forward operator.
+        :param torch.Tensor x_init: the initial value for the sampling.
+        :param BaseSDESolver solver: the solver for the SDE.
+        :param int seed: the random seed.
+        :param torch.Tensor timesteps: the time steps for the solver.
+
+        :return SDEOutput: a namespaced container of the output.
+        """
         solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.unconditional_sde.prior_sample(x_init, rng=solver.rng)
@@ -311,15 +349,40 @@ class PosteriorDiffusion(Reconstructor):
             **kwargs,
         )
 
-    def score(self, y, physics, x, t, *args, **kwargs):
+    def score(
+        self,
+        y: Tensor,
+        physics: Physics,
+        x: Tensor,
+        t: Union[Tensor, float],
+        *args,
+        **kwargs,
+    ) -> Tensor:
+        r"""
+        Approximating the conditional score :math:`\nabla_{x_t} \log p_t(x_t \vert y)`.
+
+        :param torch.Tensor y: the data measurement.
+        :param deepinv.physics.Physics physics: the forward operator.
+        :param torch.Tensor x: the current state.
+        :param Union[torch.Tensor, float] t: the current time step.
+        :param args: additional arguments for the score function of the unconditional SDE.
+        :param kwargs: additional keyword arguments for the score function of the unconditional SDE.
+
+        :return: the score function :math:`\nabla_{x_t} \log p_t(x_t \vert y)`.
+        :rtype: torch.Tensor
+        """
         sigma = self.unconditional_sde.sigma_t(t).to(torch.float32)
-        return self.unconditional_sde.score(
-            x, t, *args, **kwargs
-        ) - self.data_fidelity.grad(
-            x.to(torch.float32), y.to(torch.float32), physics, sigma
-        ).to(
-            self.dtype
-        )
+
+        if isinstance(self.data_fidelity, Zero):
+            return self.unconditional_sde.score(x, t, *args, **kwargs).to(self.dtype)
+        else:
+            return self.unconditional_sde.score(
+                x, t, *args, **kwargs
+            ) - self.data_fidelity.grad(
+                x.to(torch.float32), y.to(torch.float32), physics, sigma
+            ).to(
+                self.dtype
+            )
 
 
 if __name__ == "__main__":
@@ -353,6 +416,18 @@ if __name__ == "__main__":
     solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
     x = solution.sample.clone()
     dinv.utils.plot(x, titles="Original sample", show=True)
+
+    posterior = PosteriorDiffusion(
+        data_fidelity=Zero(),
+        unconditional_sde=sde,
+        dtype=dtype,
+        device=device,
+    )
+
+    posterior_sample = posterior.forward(
+        None, None, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
+    )
+    dinv.utils.plot([x, posterior_sample.sample], show=True)
 
     posterior = PosteriorDiffusion(
         data_fidelity=DPSDataFidelity(denoiser=denoiser),

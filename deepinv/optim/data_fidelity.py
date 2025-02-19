@@ -517,13 +517,13 @@ if __name__ == "__main__":
     )  # print prox_fA gives [0.6000, 3.6000]
 
 
-
 class Zero(DataFidelity):
     r"""
     Zero data fidelity term :math:`\datafid{x}{y} = 0`.
     This is used to remove the data fidelity term in the loss function.
 
     """
+
     def __init__(self):
         super().__init__()
 
@@ -531,28 +531,28 @@ class Zero(DataFidelity):
         """
         This function returns zero for all inputs.
         """
-        return torch.stack([0]*len(x))
-    
+        return torch.stack([0] * len(x))
+
     def grad(self, x, y, physics, *args, **kwargs):
         """
         This function returns a zero image.
         """
         return torch.zeros_like(x)
-    
+
     def grad_d(self, u, y, *args, **kwargs):
         """
         This function returns a zero image.
         """
         return torch.zeros_like(u)
-    
+
     def prox_d(self, u, y, *args, **kwargs):
         """
         This function returns the input image.
         """
         return u
-    
+
     def prox_d_conjugate(self, u, y, *args, **kwargs):
         """
         This function returns the input image.
         """
-        return u    
+        return u
