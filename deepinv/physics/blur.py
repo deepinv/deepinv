@@ -375,7 +375,9 @@ class BlurFFT(DecomposablePhysics):
 
             mask = filter_fft_2d(filter, self.img_size).to(self.device)
             self.angle = torch.angle(mask)
-            self.angle = torch.exp(-1.0j * self.angle).to(self.device)
+            self.angle = torch.nn.Parameter(
+                torch.exp(-1.0j * self.angle).to(self.device), requires_grad=False
+            )
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
             self.mask = torch.nn.Parameter(mask, requires_grad=False)
