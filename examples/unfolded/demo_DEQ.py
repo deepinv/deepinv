@@ -2,11 +2,11 @@ r"""
 Deep Equilibrium (DEQ) algorithms for image deblurring
 ====================================================================================================
 
-This a toy example to show you how to use DEQ to solve a deblurring problem. 
+This a toy example to show you how to use DEQ to solve a deblurring problem.
 Note that this is a small dataset for training. For optimal results, use a larger dataset.
 For visualizing the training, you can use Weight&Bias (wandb) by setting ``wandb_vis=True``.
 
-For now DEQ is only possible with PGD, HQS and GD optimization algorithms. 
+For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
 
 """
 
@@ -29,7 +29,6 @@ from deepinv.utils.demo import load_dataset, load_degradation
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
@@ -59,12 +58,8 @@ test_transform = transforms.Compose(
 train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
-train_base_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
+train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
+test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 
 
 # %%
@@ -117,7 +112,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the  DEQ algorithm.
 # ----------------------------------------------------------------------------------------
-# We use the helper function :meth:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
+# We use the helper function :func:`deepinv.unfolded.DEQ_builder` to defined the DEQ architecture.
 # The chosen algorithm is here HQS (Half Quadratic Splitting).
 # Note for DEQ, the prior and regularization parameters should be common for all iterations
 # to keep a constant fixed-point operator.

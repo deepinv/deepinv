@@ -1,4 +1,4 @@
-"""
+r"""
 Image inpainting with wavelet prior
 ====================================================================================================
 
@@ -24,7 +24,6 @@ from deepinv.utils.plotting import plot, plot_curves
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -48,7 +47,7 @@ val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
 
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -85,7 +84,7 @@ y = physics(x)
 # Exploring the wavelet prior.
 # ------------------------------------
 #
-# In this example, we will use the wavelet prior, which can be done with the :meth:`deepinv.optim.prior.WaveletPrior`
+# In this example, we will use the wavelet prior, which can be done with the :class:`deepinv.optim.prior.WaveletPrior`
 # class. The prior object represents the cost function of the prior, as well as convenient methods,
 # such as its proximal operator :math:`\text{prox}_{\tau \regname}`.
 

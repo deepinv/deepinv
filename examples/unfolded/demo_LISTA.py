@@ -17,6 +17,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.unfolded import unfolded_builder
+from deepinv.utils.demo import get_data_home
 
 # %%
 # Setup paths for data loading and results.
@@ -24,10 +25,10 @@ from deepinv.unfolded import unfolded_builder
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 CKPT_DIR = BASE_DIR / "ckpts"
+ORIGINAL_DATA_DIR = get_data_home()
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -113,7 +114,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # where :math:`\gamma` is the stepsize and :math:`\text{prox}_{g}` is the proximity operator of :math:`g(x) = \|Wx\|_1`
 # which corresponds to soft-thresholding with a wavelet basis (see :class:`deepinv.optim.WaveletPrior`).
 #
-# We use :meth:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
+# We use :func:`deepinv.unfolded.unfolded_builder` to define the unfolded algorithm
 # and set both the stepsizes of the LISTA algorithm :math:`\gamma` (``stepsize``) and the soft
 # thresholding parameters :math:`\lambda` as learnable parameters.
 # These parameters are initialized with a table of length max_iter,
@@ -215,7 +216,7 @@ test_dataloader = DataLoader(
 # Train the network.
 # -------------------------------------------
 #
-# We train the network using the :meth:`deepinv.Trainer` class.
+# We train the network using the :class:`deepinv.Trainer` class.
 #
 
 trainer = dinv.Trainer(

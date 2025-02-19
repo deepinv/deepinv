@@ -13,9 +13,7 @@ import torch
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_ortho3D
 from deepinv.utils.demo import load_np_url
-import matplotlib.pyplot as plt
 import numpy as np
-import imageio.v2 as io
 
 
 # First, let's load some test images.
@@ -43,7 +41,7 @@ b, c, d, h, w = x.size()
 # ---------------
 #
 # The class :class:`deepinv.physics.Blur` implements convolution operations with kernels. It will
-# automatically work for 3D images when given 5D :meth:`torch.tensor` of size (B, C, D, H, W) for both
+# automatically work for 3D images when given 5D :class:`torch.Tensor` of size (B, C, D, H, W) for both
 # the image and filter. Under the hood, the 3D convolutions are implemented through FFT.
 # For instance, here is the convolution of a grayscale 3D image with a random grayscale filter:
 filter_0 = torch.rand(1, 1, 3, 11, 8, device=device)
@@ -71,7 +69,7 @@ plot_ortho3D(
 # Widefield microscope PSF
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # We implemented 3D diffraction blurs obtained using scalar diffraction theory in
-# :meth:`deepinv.physics.generator.DiffractionBlurGenerator3D`.
+# :class:`deepinv.physics.generator.DiffractionBlurGenerator3D`.
 # Therein, the psf is defined through the pupil plane expanded in Zernike polynomials
 # and the wave is propagated in the axial direction using the Fresnel approximation
 #
@@ -161,7 +159,7 @@ blurs = diffraction_generator.step(batch_size=3)
 # %%
 # Confocal microscope PSF
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# We implemented the PSF of a confocal microscope in :meth:`deepinv.physics.generator.ConfocalBlurGenerator3D`.
+# We implemented the PSF of a confocal microscope in :class:`deepinv.physics.generator.ConfocalBlurGenerator3D`.
 # In fluorescence confocal microscopy, the light emitted by the sample is filtered
 # through a pinhole to prevent the collection  of out-of-focus light.
 # The confocal intensity PSF can be expressed as

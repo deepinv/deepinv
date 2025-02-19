@@ -170,7 +170,7 @@ class FNEJacobianSpectralNorm(Loss):
         \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
     as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
-    This spectral norm is computed with the :meth:`deepinv.loss.JacobianSpectralNorm` module.
+    This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
     .. warning::
         This implementation assumes that the input :math:`x` is batched with shape (B, *), where B is the batch size.

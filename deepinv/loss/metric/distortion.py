@@ -5,24 +5,26 @@ from functools import partial
 import torch
 from torch import Tensor
 from torch.nn import MSELoss, L1Loss
-from torchmetrics.functional import (
+from torchmetrics.functional.image import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,
+    spectral_angle_mapper,
+    error_relative_global_dimensionless_synthesis,
 )
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
-from deepinv.utils.nn import TensorList
 
 if TYPE_CHECKING:
     from deepinv.physics.remote_sensing import Pansharpen
+    from deepinv.utils.tensorlist import TensorList
 
 
 class MAE(Metric):
     r"""
     Mean Absolute Error metric.
 
-    Calculates the MAE :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{MAE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
 
@@ -30,7 +32,7 @@ class MAE(Metric):
 
     .. note::
 
-        :class:`deepinv.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
+        :class:`deepinv.loss.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
 
     :Example:
@@ -56,7 +58,7 @@ class MSE(Metric):
     r"""
     Mean Squared Error metric.
 
-    Calculates the MSE :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{MSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     .. note::
 
@@ -64,7 +66,7 @@ class MSE(Metric):
 
     .. note::
 
-        :class:`deepinv.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
+        :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
         but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
     :Example:
@@ -90,7 +92,7 @@ class NMSE(MSE):
     r"""
     Normalised Mean Squared Error metric.
 
-    Calculates the NMSE :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     Normalises MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
@@ -129,7 +131,7 @@ class SSIM(Metric):
     r"""
     Structural Similarity Index (SSIM) metric using torchmetrics.
 
-    Calculates the SSIM :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{SSIM}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     See https://en.wikipedia.org/wiki/Structural_similarity for more information.
 
     To set the max pixel on the fly (as is the case in `fastMRI evaluation code <https://github.com/facebookresearch/fastMRI/blob/main/banding_removal/fastmri/common/evaluate.py>`_), set ``max_pixel=None``.
@@ -184,7 +186,7 @@ class PSNR(Metric):
     r"""
     Peak Signal-to-Noise Ratio (PSNR) metric.
 
-    Calculates the PSNR :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`\text{PSNR}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
     If the tensors have size ``(B, C, H, W)``, then the PSNR is computed as
 
     .. math::
@@ -268,7 +270,7 @@ class LpNorm(Metric):
     r"""
     :math:`\ell_p` metric for :math:`p>0`.
 
-    Calculates the Lp norm :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
+    Calculates :math:`L_p(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
 
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
@@ -315,7 +317,7 @@ class QNR(Metric):
     r"""
     Quality with No Reference (QNR) metric for pansharpening.
 
-    Calculates the no-reference QNR :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
+    Calculates the no-reference :math:`\text{QNR}(\hat{x})` where :math:`\hat{x}=\inverse{y}`.
 
     QNR was proposed in Alparone et al., "Multispectral and Panchromatic Data Fusion Assessment Without Reference".
 
@@ -335,7 +337,7 @@ class QNR(Metric):
     >>> physics = Pansharpen((3, 64, 64))
     >>> y = physics(x) #[BCH'W', B1HW]
     >>> m(x_net=x_net, y=y, physics=physics) # doctest: +ELLIPSIS
-    tensor([...], grad_fn=<MulBackward0>)
+    tensor([...])
 
     :param float alpha: weight for spectral quality, defaults to 1
     :param float beta: weight for structural quality, defaults to 1
@@ -389,7 +391,15 @@ class QNR(Metric):
             )
         return (out / n_bands) ** (1 / self.q)
 
-    def metric(self, x_net, x, y: TensorList, physics: Pansharpen, *args, **kwargs):
+    def metric(
+        self,
+        x_net: Tensor,
+        x: None,
+        y: TensorList,
+        physics: Pansharpen,
+        *args,
+        **kwargs,
+    ):
         r"""Calculate QNR on data.
 
         .. note::
@@ -425,3 +435,74 @@ class QNR(Metric):
         qnr = (1 - d_lambda) ** self.alpha * (1 - d_s) ** self.beta
 
         return qnr
+
+
+class SpectralAngleMapper(Metric):
+    r"""
+    Spectral Angle Mapper (SAM).
+
+    Calculates spectral similarity between estimated and target multispectral images.
+
+    Wraps the ``torchmetrics`` `Spectral Angle Mapper <https://lightning.ai/docs/torchmetrics/stable/image/spectral_angle_mapper.html>`_ function.
+    Note that our ``reduction`` parameter follows our uniform convention (see below).
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import SpectralAngleMapper
+    >>> m = SpectralAngleMapper()
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def metric(self, x_net, x, *args, **kwargs):
+        return spectral_angle_mapper(x_net, x, reduction="none").mean(
+            dim=tuple(range(1, x.ndim - 1)), keepdim=False
+        )
+
+
+class ERGAS(Metric):
+    r"""
+    Error relative global dimensionless synthesis metric.
+
+    Calculates the ERGAS metric on a multispectral image and a target.
+    ERGAS is a popular metric for pan-sharpening of multispectral images.
+
+    Wraps the ``torchmetrics`` `ERGAS <https://lightning.ai/docs/torchmetrics/stable/image/error_relative_global_dimensionless_synthesis.html>`_ function.
+    Note that our ``reduction`` parameter follows our uniform convention (see below).
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import ERGAS
+    >>> m = ERGAS(factor=4)
+    >>> x_net = x = torch.ones(3, 2, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([0., 0., 0.])
+
+    :param int factor: pansharpening factor.
+    :param bool train_loss: use metric as a training loss, by returning one minus the metric.
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def __init__(self, factor: int, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._metric = self._metric = (
+            lambda x_hat, x, *args, **kwargs: error_relative_global_dimensionless_synthesis(
+                x_hat, x, ratio=factor, reduction="none"
+            )
+        )

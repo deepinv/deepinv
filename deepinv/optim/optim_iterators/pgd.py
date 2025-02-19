@@ -6,7 +6,7 @@ class PGDIteration(OptimIterator):
     r"""
     Iterator for proximal gradient descent.
 
-    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:`f(x) + \lambda g(x)`.
+    Class for a single iteration of the Proximal Gradient Descent (PGD) algorithm for minimizing :math:`f(x) + \lambda \regname(x)`.
 
     The iteration is given by
 
@@ -14,7 +14,7 @@ class PGDIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k} &= x_k -  \gamma \nabla f(x_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_k),
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k),
         \end{aligned}
         \end{equation*}
 
@@ -37,7 +37,7 @@ class FISTAIteration(OptimIterator):
     r"""
     Iterator for fast iterative soft-thresholding (FISTA).
 
-    Class for a single iteration of the FISTA algorithm for minimizing :math:`f(x) + \lambda g(x)` as proposed by
+    Class for a single iteration of the FISTA algorithm for minimizing :math:`f(x) + \lambda \regname(x)` as proposed by
     `Chambolle \& Dossal <https://inria.hal.science/hal-01060130v3/document>`_.
 
     The iteration is given by
@@ -46,14 +46,16 @@ class FISTAIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k} &= z_k -  \gamma \nabla f(z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
         \end{equation*}
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (k + a - 1) / (k + a) `.
+    :math:`\alpha_k = (k+a-1)/(k+a)`.
+
+    :param float a: Parameter :math:`a` in the FISTA algorithm (should be strictly greater than 2).
     """
 
     def __init__(self, a=3, **kwargs):
@@ -74,10 +76,10 @@ class FISTAIteration(OptimIterator):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
@@ -118,7 +120,7 @@ class fStepPGD(fStep):
          :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
          :param torch.Tensor y: Input data.
-         :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
@@ -137,7 +139,7 @@ class gStepPGD(gStep):
 
     def forward(self, x, cur_prior, cur_params):
         r"""
-        Single iteration step on the prior term :math:`\lambda g`.
+        Single iteration step on the prior term :math:`\lambda \regname`.
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param dict cur_prior: Dictionary containing the current prior.
@@ -162,7 +164,7 @@ class PMDIteration(OptimIterator):
     r"""
     Iterator for Proximal Mirror Descent (PMD).
 
-    Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda g(x)`.
+    Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda \regname(x)`.
 
    For a given Bregman convex potential :math:`h`, the iteration is given by
 
@@ -170,7 +172,7 @@ class PMDIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
-        x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda g}(u_k)
+        x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
         \end{aligned}
         \end{equation*}
 
@@ -194,12 +196,12 @@ class PMDIteration(OptimIterator):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         """
-        Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda g(x)`.
-        The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`g`.
+        Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda \reg{x}`.
+        The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`\regname`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the `Physics` class defining the current physics.
@@ -235,7 +237,7 @@ class fStepPMD(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :param deepinv.optim.Bregman Bregman potential used for Bregman optimization algorithms such as Mirror Descent.
         """
         if not self.g_first:

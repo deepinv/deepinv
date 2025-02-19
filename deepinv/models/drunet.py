@@ -1,14 +1,14 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
 import torch
-import torch.nn as nn
 from .utils import get_weights_url, test_onesplit, test_pad
+from .base import Denoiser
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class DRUNet(nn.Module):
+class DRUNet(Denoiser):
     r"""
     DRUNet denoiser network.
 
@@ -36,7 +36,6 @@ class DRUNet(nn.Module):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
     """

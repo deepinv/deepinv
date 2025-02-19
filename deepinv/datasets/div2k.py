@@ -33,14 +33,14 @@ class DIV2K(torch.utils.data.Dataset):
     :param str mode: Select a split of the dataset between 'train' or 'val'. Default at 'train'.
     :param bool download: If True, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a PIL image
+    :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|
 
     :Examples:
 
-        Instanciate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet
 
         >>> import shutil
         >>> from deepinv.datasets import DIV2K
@@ -135,8 +135,8 @@ class DIV2K(torch.utils.data.Dataset):
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.
 
-        This method checks if `DIV2K_train_HR` or `DIV2K_valid_HR` folder within
-        `self.root` exists and validates the integrity of its contents by comparing
+        This method checks if ``DIV2K_train_HR`` or ``DIV2K_valid_HR`` folder within
+        ``self.root`` exists and validates the integrity of its contents by comparing
         the MD5 checksum of the folder with the expected checksum.
 
         The expected structure of the dataset directory is as follows: ::

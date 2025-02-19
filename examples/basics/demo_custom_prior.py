@@ -27,7 +27,6 @@ from deepinv.utils.demo import load_dataset
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -50,11 +49,10 @@ method = "L2_prior"
 dataset_name = "set3c"
 operation = "deblur"
 img_size = 256
-dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -104,7 +102,7 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 # %%
 # Set up the optimization algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------------------
-# We use the :class:`deepinv.optim.optimizers.optim_builder` function to instantiate the optimization algorithm.
+# We use the :class:`deepinv.optim.optim_builder` function to instantiate the optimization algorithm.
 #
 # The optimization algorithm is a proximal gradient descent algorithm that solves the following optimization problem:
 #
@@ -167,7 +165,7 @@ model = optim_builder(
 # Evaluate the reconstruction algorithm on the problem.
 # ---------------------------------------------------------------
 #
-# We can use the :func:`deepinv.utils.test` function to evaluate the reconstruction algorithm on a test set.
+# We can use the :func:`deepinv.test` function to evaluate the reconstruction algorithm on a test set.
 
 
 batch_size = 1

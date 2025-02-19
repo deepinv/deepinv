@@ -6,24 +6,29 @@ import torch.fft as fft
 
 def conv2d(
     x: Tensor, filter: Tensor, padding: str = "valid", correlation=False
-) -> Tensor:
+) -> torch.Tensor:
     r"""
-    A helper function performing the 2d convolution of images ``x`` and ``filter``. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d`
+    A helper function performing the 2d convolution of images ``x`` and ``filter``.
+
+    The adjoint of this operation is :func:`deepinv.physics.functional.conv_transpose2d`
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
-    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
-    filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and ``hh = h//2 - 1`` if h is even. Same for ``ww``.
+    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B``
+        and ``c`` can be either ``1`` or ``C``.
+        Filter center is at ``(hh, ww)`` where ``hh = h//2`` if h is odd and
+        ``hh = h//2 - 1`` if h is even. Same for ``ww``.
     :param bool correlation: choose True if you want a cross-correlation (default False)
 
-    ..note:
-        Contrarily to Pytorch :meth:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
+    .. note:
+
+        Contrarily to Pytorch :func:`torch.functional.conv2d`, which performs a cross-correlation, this function performs a convolution.
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
-    ``constant`` corresponds to zero padding or ``same`` in :meth:`torch.nn.functional.conv2d`
+        ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
+    :return: (:class:`torch.Tensor`) : the output
 
-    :return: (torch.Tensor) : the output
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
 
@@ -66,9 +71,9 @@ def conv2d(
 
 def conv_transpose2d(
     y: Tensor, filter: Tensor, padding: str = "valid", correlation=False
-) -> Tensor:
+) -> torch.Tensor:
     r"""
-    A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :meth:`deepinv.physics.functional.conv2d`
+    A helper function performing the 2d transposed convolution 2d of x and filter. The transposed of this operation is :func:`deepinv.physics.functional.conv2d`
 
     :param torch.Tensor x: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
@@ -80,7 +85,7 @@ def conv_transpose2d(
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
 
-    :return: (torch.Tensor) : the output
+    :return: (:class:`torch.Tensor`) : the output
     """
 
     assert y.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -177,20 +182,24 @@ def conv_transpose2d(
     return out
 
 
-def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> Tensor:
+def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> torch.Tensor:
     r"""
-    A helper function performing the 2d convolution of images ``x`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transposed2d_fft()`
+    A helper function performing the 2d convolution of images ``x`` and ``filter`` using FFT.
 
-    :param torch.Tensor x: Image of size ``(B, C, W, H)``.
-    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
+    The adjoint of this operation is :func:`deepinv.physics.functional.conv_transpose2d_fft`
 
-    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
+    If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as
+    `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_.
+    Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     For convolution using FFT consider only ``'circular'`` padding (i.e., circular convolution).
 
-    ..note:
+    .. note:
+
         The convolution here is a convolution, not a correlation as in conv2d.
 
+    :param torch.Tensor x: Image of size ``(B, C, W, H)``.
+    :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
     :return: torch.Tensor : the output of the convolution of the shape size as :math:`x`
     """
     assert x.dim() == filter.dim() == 4, "Input and filter must be 4D tensors"
@@ -213,9 +222,11 @@ def conv2d_fft(x: Tensor, filter: Tensor, real_fft: bool = True) -> Tensor:
     return fft.irfft2(x_f * filter_f).real
 
 
-def conv_transpose2d_fft(y: Tensor, filter: Tensor, real_fft: bool = True) -> Tensor:
+def conv_transpose2d_fft(
+    y: Tensor, filter: Tensor, real_fft: bool = True
+) -> torch.Tensor:
     r"""
-    A helper function performing the 2d transposed convolution 2d of ``x`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv2d_fft()`.
+    A helper function performing the 2d transposed convolution 2d of ``x`` and ``filter`` using FFT. The adjoint of this operation is :func:`deepinv.physics.functional.conv2d_fft`.
 
     :param torch.Tensor y: Image of size ``(B, C, W, H)``.
     :param torch.Tensor filter: Filter of size ``(b, c, w, h)`` ) where ``b`` can be either ``1`` or ``B`` and ``c`` can be either ``1`` or ``C``.
@@ -262,7 +273,9 @@ def filter_fft_2d(filter, img_size, real_fft=True):
 
 def conv3d(x: Tensor, filter: Tensor, padding: str = "valid"):
     r"""
-    A helper function to perform 3D convolution of images :math:``x`` and ``filter``.  The transposed of this operation is :meth:`deepinv.physics.functional.conv_transposed3d()`
+    A helper function to perform 3D convolution of images :math:``x`` and ``filter``.
+
+    The transposed of this operation is :func:`deepinv.physics.functional.conv_transpose3d`
     """
     pass
 
@@ -276,9 +289,11 @@ def conv_transpose3d(y: Tensor, filter: Tensor, padding: str = "valid"):
 
 def conv3d_fft(
     x: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
-) -> Tensor:
+) -> torch.Tensor:
     r"""
-    A helper function performing the 3d convolution of ``x`` and `filter` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv_transpose3d_fft()`.
+    A helper function performing the 3d convolution of ``x`` and `filter` using FFT.
+
+    The adjoint of this operation is :func:`deepinv.physics.functional.conv_transpose3d_fft`.
 
     If ``b = 1`` or ``c = 1``, this function applies the same filter for each channel.
     Otherwise, each channel of each image is convolved with the corresponding kernel.
@@ -330,9 +345,11 @@ def conv3d_fft(
 
 def conv_transpose3d_fft(
     y: Tensor, filter: Tensor, real_fft: bool = True, padding: str = "valid"
-) -> Tensor:
+) -> torch.Tensor:
     r"""
-    A helper function performing the 3d transposed convolution of ``y`` and ``filter`` using FFT. The adjoint of this operation is :meth:`deepinv.physics.functional.conv3d_fft()`.
+    A helper function performing the 3d transposed convolution of ``y`` and ``filter`` using FFT.
+
+    The adjoint of this operation is :func:`deepinv.physics.functional.conv3d_fft`.
 
     If ``b = 1`` or ``c = 1``, then this function applies the same filter for each channel.
     Otherwise, each channel of each image is convolved with the corresponding kernel.

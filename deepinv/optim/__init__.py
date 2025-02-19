@@ -1,5 +1,6 @@
 from .data_fidelity import (
     DataFidelity,
+    StackedPhysicsDataFidelity,
     L2,
     L1,
     IndicatorL2,
@@ -29,6 +30,7 @@ from .dpir import DPIR
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
 from .potential import Potential
 from .distance import (
+    Distance,
     L2Distance,
     IndicatorL2Distance,
     PoissonLikelihoodDistance,

@@ -27,13 +27,16 @@ class TransformParam(torch.Tensor):
 
 
 class Transform(torch.nn.Module, TimeMixin):
-    """Base class for image transforms.
+    r"""
+    Base class for image transforms.
 
     The base transform implements transform arithmetic and other methods to invert transforms and symmetrize functions.
 
-    All transforms must implement ``_get_params()`` to randomly generate e.g. rotation degrees or shift pixels, and ``_transform()`` to deterministically transform an image given the params.
+    All transforms must implement ``_get_params()`` to randomly generate e.g. rotation degrees or shift pixels,
+    and ``_transform()`` to deterministically transform an image given the params.
 
-    To implement a new transform, please reimplement ``_get_params()`` and ``_transform()`` (with a ``**kwargs`` argument). See respective methods for details.
+    To implement a new transform, please reimplement ``_get_params()`` and ``_transform()`` (with a ``**kwargs`` argument).
+    See respective methods for details.
 
     Also handle deterministic (non-random) transformations by passing in fixed parameter values.
 
@@ -41,7 +44,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
     |sep|
 
-    Examples:
+    :Examples:
 
         Randomly transform an image:
 
@@ -90,7 +93,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
 
     :param int n_trans: number of transformed versions generated per input image, defaults to 1
-    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     :param bool constant_shape: if ``True``, transformed images are assumed to be same shape as input.
         For most transforms, this will not be an issue as automatic cropping/padding should mean all outputs are same shape.
         If False, for certain transforms including :class:`deepinv.transform.Rotate`,
@@ -137,7 +140,8 @@ class Transform(torch.nn.Module, TimeMixin):
         Params store e.g rotation degrees or shift amounts.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
-        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class: ``p = TransformParam(p, neg=lambda x: 1/x)``
+        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
+        ``p = TransformParam(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
         :return dict: keyword args of transform parameters e.g. ``{'theta': 30}``
@@ -169,7 +173,7 @@ class Transform(torch.nn.Module, TimeMixin):
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
-        :param **params: params e.g. degrees or shifts provided as keyword args.
+        :param params: parameters e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
         """
         transform = (
@@ -260,20 +264,17 @@ class Transform(torch.nn.Module, TimeMixin):
         r"""
         Symmetrise a function with a transform and its inverse.
 
-        Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function
-        :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
+        Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 
         For example, this is useful for Reynolds averaging a function over a group. Set ``average=True`` to average over ``n_trans``.
         For example, use ``Rotate(n_trans=4, positive=True, multiples=90).symmetrize(f)`` to symmetrize f over the entire group.
 
         :param Callable[[torch.Tensor, Any], torch.Tensor] f: function acting on tensors.
-        :param bool average: monte carlo average over all random transformations (in range ``n_trans``) when symmetrising
-            to get same number of output images as input images. No effect when ``n_trans=1``.
+        :param bool average: monte carlo average over all random transformations (in range ``n_trans``) when symmetrising to get same number of output images as input images. No effect when ``n_trans=1``.
         :param bool collate_batch: if ``True``, collect ``n_trans`` transformed images in batch dim and evaluate ``f`` only once.
             However, this requires ``n_trans`` extra memory. If ``False``, evaluate ``f`` for each transformation.
             Always will be ``False`` when transformed images aren't constant shape.
-        :return: decorated function.
-        :rtype: Callable[[torch.Tensor, Any], torch.Tensor]
+        :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
         def symmetrized(x, *args, **kwargs):
@@ -288,7 +289,6 @@ class Transform(torch.nn.Module, TimeMixin):
                 return xt.reshape(-1, *x.shape).mean(axis=0) if average else xt
             else:
                 # Step through n_trans (or combinations) one-by-one
-                # If images can't be stacked normally or batch not collated we have to step through combinations manually
                 out = []
                 for _params in self.iterate_params(params):
                     out.append(

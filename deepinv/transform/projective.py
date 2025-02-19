@@ -168,9 +168,9 @@ class Homography(Transform):
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
 
-    Subgroup transformations include :class:`deepinv.transform.Affine`, :class:`deepinv.transform.Similarity`,
-    :class:`deepinv.transform.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
-    :class:`deepinv.transform.Rotation` and semigroup :class:`deepinv.transform.Scale`.
+    Subgroup transformations include :class:`deepinv.transform.projective.Affine`, :class:`deepinv.transform.projective.Similarity`,
+    :class:`deepinv.transform.projective.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
+    :class:`deepinv.transform.Rotate` and semigroup :class:`deepinv.transform.Scale`.
 
     Transformations with perspective effects (i.e. pan+tilt) are recovered by setting
     theta_max > 0.
@@ -213,14 +213,18 @@ class Homography(Transform):
     padding: str = "reflection"
     interpolation: str = "bilinear"
     device: str = "cpu"
+    rng: torch.Generator = None
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, n_trans=self.n_trans, **kwargs)
+        super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
             mini = -maxi
-        return (mini - maxi) * torch.rand(self.n_trans, generator=self.rng) + maxi
+        out = (mini - maxi) * torch.rand(
+            self.n_trans, generator=self.rng, device=self.rng.device
+        ) + maxi
+        return out.cpu()  # require cpu for numpy
 
     def _get_params(self, x: torch.Tensor) -> dict:
         H, W = x.shape[-2:]
@@ -291,7 +295,8 @@ class Affine(Homography):
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
 

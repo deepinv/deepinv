@@ -1,10 +1,10 @@
 from typing import Optional
-import numpy as np
 import torch
 from deepinv.transform import Transform, Rotate, Reflect
+from .base import Denoiser
 
 
-class EquivariantDenoiser(torch.nn.Module):
+class EquivariantDenoiser(Denoiser):
     r"""
     Turns the input denoiser into an equivariant denoiser with respect to geometric transforms.
 
@@ -34,7 +34,7 @@ class EquivariantDenoiser(torch.nn.Module):
 
     See :ref:`sphx_glr_auto_examples_basics_demo_transforms.py` for an example.
 
-    :param callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
+    :param Callable denoiser: Denoiser :math:`\operatorname{D}_{\sigma}`.
     :param Transform transform: geometric transformation. If None, defaults to rotations of multiples of 90 with horizontal flips (see note above).
         See :ref:`docs <transform>` for list of available transforms.
     :param bool random: if True, the denoiser is applied to a randomly transformed version of the input image
@@ -43,7 +43,9 @@ class EquivariantDenoiser(torch.nn.Module):
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
     """
 
-    def __init__(self, denoiser, transform: Optional[Transform] = None, random=True):
+    def __init__(
+        self, denoiser: Denoiser, transform: Optional[Transform] = None, random=True
+    ):
         super().__init__()
         self.denoiser = denoiser
 

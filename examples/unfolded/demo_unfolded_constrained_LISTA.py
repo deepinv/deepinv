@@ -38,7 +38,6 @@ from deepinv.unfolded import unfolded_builder
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 CKPT_DIR = BASE_DIR / "ckpts"
 
@@ -66,12 +65,8 @@ train_transform = transforms.Compose(
     [transforms.RandomCrop(img_size), transforms.ToTensor()]
 )
 
-train_base_dataset = load_dataset(
-    train_dataset_name, ORIGINAL_DATA_DIR, transform=train_transform
-)
-test_base_dataset = load_dataset(
-    test_dataset_name, ORIGINAL_DATA_DIR, transform=test_transform
-)
+train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
+test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 
 
 # %%
@@ -80,7 +75,7 @@ test_base_dataset = load_dataset(
 # We define an inpainting operator that randomly masks pixels with probability 0.5.
 #
 # A dataset of pairs of measurements and ground truth images is then generated using the
-# :meth:`deepinv.datasets.generate_dataset` function.
+# :func:`deepinv.datasets.generate_dataset` function.
 #
 # Once the dataset is generated, we can load it using the :class:`deepinv.datasets.HDF5Dataset` class.
 
@@ -170,7 +165,7 @@ stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
 # Define the parameters of the unfolded Primal-Dual Chambolle-Pock algorithm
 # The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed.
-# See the documentation of the CP algorithm :meth:`deepinv.optim.optim_iterators.CPIteration` for more details.
+# See the documentation of the CP algorithm :class:`deepinv.optim.optim_iterators.CPIteration` for more details.
 params_algo = {
     "stepsize": stepsize,  # Stepsize for the primal update.
     "g_param": sigma_denoiser,  # prior parameter.
@@ -205,7 +200,7 @@ model = unfolded_builder(
 # %%
 # Train the model
 # ---------------
-# We train the model using the :meth:`deepinv.Trainer` class.
+# We train the model using the :class:`deepinv.Trainer` class.
 #
 # We perform supervised learning and use the mean squared error as loss function. This can be easily done using the
 # :class:`deepinv.loss.SupLoss` class.
@@ -249,7 +244,7 @@ model = trainer.train()
 # %%
 # Test the network
 # --------------------------------------------
-# We can now test the trained network using the :meth:`deepinv.test` function.
+# We can now test the trained network using the :func:`deepinv.test` function.
 #
 # The testing function will compute test_psnr metrics and plot and save the results.
 

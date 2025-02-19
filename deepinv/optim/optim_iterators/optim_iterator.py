@@ -4,14 +4,14 @@ import torch.nn as nn
 
 class OptimIterator(nn.Module):
     r"""
-    Base class for all :meth:`Optim` iterators.
+    Base class for optimization iterators.
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
-    :math:`F = f + \lambda g` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
     and g is a regularizer. The fixed point iteration takes the form
 
     .. math::
-        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, g, A, y, ...)
+        \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, \regname, A, y, ...)
 
     where :math:`x` is a "primal" variable converging to the solution of the minimization problem, and
     :math:`z` is a "dual" variable.
@@ -24,14 +24,14 @@ class OptimIterator(nn.Module):
         PGD algorithm).
 
 
-    The implementation of the fixed point algorithm in :meth:`deepinv.optim`  is split in two steps, alternating between
-    a step on f and a step on g, that is for :math:`k=1,2,...`
+    The implementation of the fixed point algorithm in :class:`deepinv.optim.FixedPoint` is split in two steps, alternating between
+    a step on :math:`f` and a step on :math:`\regname`, that is for :math:`k=1,2,...`
 
     .. math::
         z_{k+1} = \operatorname{step}_f(x_k, z_k, y, A, ...)\\
-        x_{k+1} = \operatorname{step}_g(x_k, z_k, y, A, ...)
+        x_{k+1} = \operatorname{step}_{\regname}(x_k, z_k, y, A, ...)
 
-    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_g` are the steps on f and g respectively.
+    where :math:`\operatorname{step}_f` and :math:`\operatorname{step}_{\regname}` are the steps on f and g respectively.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
@@ -65,17 +65,17 @@ class OptimIterator(nn.Module):
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
     ):
         r"""
-        General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda g`, alternating
-        between a step on :math:`f` and a step on :math:`g`.
+        General form of a single iteration of splitting algorithms for minimizing :math:`F =  f + \lambda \regname`, alternating
+        between a step on :math:`f` and a step on :math:`\regname`.
         The primal and dual variables as well as the estimated cost at the current iterate are stored in a dictionary
-        $X$ of the form `{'est': (x,z), 'cost': F}`.
+        `X` of the form `{'est': (x,z), 'cost': F}`.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev = X["est"][0]
@@ -120,14 +120,14 @@ class fStep(nn.Module):
             :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
             :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             :param torch.Tensor y: Input data.
-            :param deepinv.physics physics: Instance of the physics modeling the observation.
+            :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
             """
             pass
 
 
 class gStep(nn.Module):
     r"""
-    Module for the single iteration steps on the prior term :math:` \lambda g`.
+    Module for the single iteration steps on the prior term :math:`\lambda \regname`.
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f. Default: False.
     :param kwargs: Additional keyword arguments.
@@ -139,10 +139,10 @@ class gStep(nn.Module):
 
         def forward(self, x, cur_prior, cur_params, *args, **kwargs):
             r"""
-            Single iteration step on the prior term :math:`g`.
+            Single iteration step on the prior term :math:`\regname`.
 
             :param torch.Tensor x: Current iterate.
-            :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+            :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
             :param dict cur_params: Dictionary containing the current parameters of the algorithm.
             """
             pass

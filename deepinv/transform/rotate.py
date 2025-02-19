@@ -23,7 +23,7 @@ class Rotate(Transform):
         When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
     :param int n_trans: number of transformed versions generated per input image.
-    :param torch.Generator rng: random number generator, if ``None``, use :meth:`torch.Generator`, defaults to ``None``
+    :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     """
 
     def __init__(
@@ -47,10 +47,12 @@ class Rotate(Transform):
         :param torch.Tensor x: input image
         :return dict: keyword args of angles theta in degrees
         """
-        theta = torch.arange(0, self.limits, self.multiples)
+        theta = torch.arange(0, self.limits, self.multiples, device=self.rng.device)
         if not self.positive:
             theta = torch.cat((theta, -theta))
-        theta = theta[torch.randperm(len(theta), generator=self.rng)]
+        theta = theta[
+            torch.randperm(len(theta), generator=self.rng, device=self.rng.device)
+        ]
         theta = theta[: self.n_trans]
         return {"theta": theta}
 

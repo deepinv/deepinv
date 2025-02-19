@@ -1,8 +1,7 @@
 from functools import partial
 import math
-
 import torch
-
+import numpy as np
 from deepinv.optim.phase_retrieval import spectral_methods
 from deepinv.physics.compressed_sensing import CompressedSensing
 from deepinv.physics.forward import Physics, LinearPhysics
@@ -55,7 +54,7 @@ class PhaseRetrieval(Physics):
         We use the spectral methods defined in :class:`deepinv.optim.phase_retrieval.spectral_methods` to obtain an initial inverse.
 
         :param torch.Tensor y: measurements.
-        :return: (torch.Tensor) an initial reconstruction for image :math:`x`.
+        :return: (:class:`torch.Tensor`) an initial reconstruction for image :math:`x`.
         """
         return spectral_methods(y, self, **kwargs)
 
@@ -70,7 +69,7 @@ class PhaseRetrieval(Physics):
         Computes the linear pseudo-inverse of :math:`B`.
 
         :param torch.Tensor y: measurements.
-        :return: (torch.Tensor) the reconstruction image :math:`x`.
+        :return: (:class:`torch.Tensor`) the reconstruction image :math:`x`.
         """
         return self.B.A_dagger(y)
 
@@ -79,7 +78,7 @@ class PhaseRetrieval(Physics):
         Applies the phase retrieval measurement operator, i.e. :math:`y = \noise{|Bx|^2}` (with noise :math:`N` and/or sensor non-linearities).
 
         :param torch.Tensor,list[torch.Tensor] x: signal/image
-        :return: (torch.Tensor) noisy measurements
+        :return: (:class:`torch.Tensor`) noisy measurements
         """
         return self.sensor(self.noise(self.A(x, **kwargs)))
 
@@ -93,7 +92,7 @@ class PhaseRetrieval(Physics):
 
         :param torch.Tensor x: signal/image.
         :param torch.Tensor v: vector.
-        :return: (torch.Tensor) the VJP product between :math:`v` and the Jacobian.
+        :return: (:class:`torch.Tensor`) the VJP product between :math:`v` and the Jacobian.
         """
         return 2 * self.B_adjoint(self.B(x) * v)
 
@@ -120,9 +119,9 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
     :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
-    :param torch.type dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
+    :param torch.dtype dtype: Forward matrix is stored as a dtype. Default is torch.cfloat.
     :param str device: Device to store the forward matrix.
-    :param torch.Generator (Optional) rng: a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
     |sep|
@@ -133,10 +132,10 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
-        >>> physics = RandomPhaseRetrieval(m=10,img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
+        >>> physics = RandomPhaseRetrieval(m=6, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
-        tensor([[1.1901, 4.0743, 0.1858, 2.3197, 0.0734, 0.4557, 0.1231, 0.6597, 1.7768,
-                 0.3864]])
+        tensor([[3.8405, 2.2588, 0.0146, 3.0864, 1.8075, 0.1518]])
+
     """
 
     def __init__(
@@ -204,7 +203,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str transform: structured transform to use. Default is 'fft'.
     :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
     :param bool shared_weights: if True, the same diagonal matrix is used for all layers. Default is False.
-    :param torch.type dtype: Signals are processed in dtype. Default is torch.cfloat.
+    :param torch.dtype dtype: Signals are processed in dtype. Default is torch.cfloat.
     :param str device: Device for computation. Default is `cpu`.
     """
 
@@ -318,3 +317,214 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         :return: (str) the structure of the operator, e.g., "FDFD".
         """
         return "FD" * math.floor(n_layers) + "F" * (n_layers % 1 == 0.5)
+
+
+class PtychographyLinearOperator(LinearPhysics):
+    r"""
+    Forward linear operator for phase retrieval in ptychography.
+
+    Models multiple applications of the shifted probe and Fourier transform on an input image.
+
+    This operator performs multiple 2D Fourier transforms on the probe function applied to the shifted input image according to specific offsets, and concatenates them.
+    The probe function is applied element by element to the input image.
+
+    .. math::
+
+        B = \left[ \begin{array}{c} B_1 \\ B_2 \\ \vdots \\ B_{n_{\text{img}}} \end{array} \right],
+        B_l = F \text{diag}(p) T_l, \quad l = 1, \dots, n_{\text{img}},
+
+    where :math:`F` is the 2D Fourier transform, :math:`\text{diag}(p)` is associated with the probe :math:`p` and :math:`T_l` is a 2D shift.
+
+    :param tuple img_size: Shape of the input image (height, width).
+    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.
+    :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        img_size,
+        probe=None,
+        shifts=None,
+        device="cpu",
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.device = device
+        self.img_size = img_size
+
+        if probe is not None:
+            self.probe = probe
+        else:
+            probe = build_probe(
+                img_size=img_size, type="disk", probe_radius=10, device=device
+            )
+
+        self.init_probe = probe.clone()
+
+        if shifts is not None:
+            self.shifts = shifts
+            self.n_img = len(shifts)
+        else:
+            self.n_img = 25
+            self.shifts = generate_shifts(img_size=img_size, n_img=self.n_img)
+
+        self.probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
+        self.probe = torch.cat(
+            [
+                self.shift(self.probe, x_shift, y_shift)
+                for x_shift, y_shift in self.shifts
+            ],
+            dim=0,
+        ).unsqueeze(0)
+
+    def A(self, x, **kwargs):
+        """
+        Applies the forward operator to the input image ``x`` by shifting the probe,
+        multiplying element-wise, and performing a 2D Fourier transform.
+
+        :param torch.Tensor x: Input image tensor.
+        :return: Concatenated Fourier transformed tensors after applying shifted probes.
+        """
+        op_fft2 = partial(torch.fft.fft2, norm="ortho")
+        return op_fft2(self.probe * x)
+
+    def A_adjoint(self, y, **kwargs):
+        """
+        Applies the adjoint operator to ``y``.
+
+        :param torch.Tensor y: Transformed image data tensor of size (batch_size, n_img, height, width).
+        :return: Reconstructed image tensor.
+        """
+        op_ifft2 = partial(torch.fft.ifft2, norm="ortho")
+        return (self.probe * op_ifft2(y)).sum(dim=1).unsqueeze(1)
+
+    def shift(self, x, x_shift, y_shift, pad_zeros=True):
+        """
+        Applies a shift to the tensor ``x`` by ``x_shift`` and ``y_shift``.
+
+        :param torch.Tensor x: Input tensor.
+        :param int x_shift: Shift in x-direction.
+        :param int y_shift: Shift in y-direction.
+        :param bool pad_zeros: If True, pads shifted regions with zeros.
+        :return: Shifted tensor.
+        """
+        x = torch.roll(x, (x_shift, y_shift), dims=(-2, -1))
+
+        if pad_zeros:
+            if x_shift < 0:
+                x[..., x_shift:, :] = 0
+            elif x_shift > 0:
+                x[..., 0:x_shift, :] = 0
+            if y_shift < 0:
+                x[..., :, y_shift:] = 0
+            elif y_shift > 0:
+                x[..., :, 0:y_shift] = 0
+        return x
+
+    def get_overlap_img(self, shifts):
+        """
+        Computes the overlapping image intensities from probe shifts, used for normalization.
+
+        :param torch.Tensor shifts: Tensor of probe shifts.
+        :return: Tensor representing the overlap image.
+        """
+        overlap_img = torch.zeros_like(self.init_probe, dtype=torch.float32)
+        for x_shift, y_shift in shifts:
+            overlap_img += torch.abs(self.shift(self.init_probe, x_shift, y_shift)) ** 2
+        return overlap_img
+
+
+class Ptychography(PhaseRetrieval):
+    r"""
+    Ptychography forward operator.
+
+    Corresponding to the operator
+
+    .. math::
+
+         \forw{x} = \left| Bx \right|^2
+
+    where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
+
+    :param tuple in_shape: Shape of the input image.
+    :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.
+        If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
+    :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
+        If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
+    :param torch.device, str device: Device "cpu" or "gpu".
+    """
+
+    def __init__(
+        self,
+        in_shape=None,
+        probe=None,
+        shifts=None,
+        device="cpu",
+        **kwargs,
+    ):
+        B = PtychographyLinearOperator(
+            img_size=in_shape,
+            probe=probe,
+            shifts=shifts,
+            device=device,
+        )
+        self.probe = B.probe
+        self.shifts = B.shifts
+        self.device = device
+
+        super().__init__(B, **kwargs)
+        self.name = f"Ptychography_PR"
+
+
+def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
+    """
+    Builds a probe based on the specified type and radius.
+
+    :param tuple img_size: Shape of the input image.
+    :param str type: Type of probe shape, e.g., "disk".
+    :param int probe_radius: Radius of the probe shape.
+    :param torch.device device: Device "cpu" or "gpu".
+    :return: Tensor representing the constructed probe.
+    """
+    if type == "disk" or type is None:
+        x = torch.arange(img_size[1], dtype=torch.float64)
+        y = torch.arange(img_size[2], dtype=torch.float64)
+        X, Y = torch.meshgrid(x, y, indexing="ij")
+        probe = torch.zeros(img_size, device=device)
+        probe[
+            torch.sqrt(
+                (X - img_size[1] // 2) ** 2 + (Y - img_size[2] // 2) ** 2
+            ).unsqueeze(0)
+            < probe_radius
+        ] = 1
+    else:
+        raise NotImplementedError(f"Probe type {type} not implemented")
+    return probe
+
+
+def generate_shifts(img_size, n_img=25, fov=None):
+    """
+    Generates the array of probe shifts across the image.
+    Based on probe radius and field of view.
+
+    :param img_size: Size of the image.
+    :param int n_img: Number of shifts (must be a perfect square).
+    :param int fov: Field of view for shift computation.
+    :return np.ndarray: Array of (x, y) shifts.
+    """
+    if fov is None:
+        fov = img_size[-1]
+    start_shift = -fov // 2
+    end_shift = fov // 2
+
+    if n_img != int(np.sqrt(n_img)) ** 2:
+        raise ValueError("n_img needs to be a perfect square")
+
+    side_n_img = int(np.sqrt(n_img))
+    shifts = np.linspace(start_shift, end_shift, side_n_img).astype(int)
+    y_shifts, x_shifts = np.meshgrid(shifts, shifts, indexing="ij")
+    return np.concatenate(
+        [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], axis=1
+    )

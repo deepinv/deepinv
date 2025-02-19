@@ -1,7 +1,9 @@
-import warnings
-import torch
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple
-import numpy as np
+import warnings
+
+import torch
+
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import random_choice
 
@@ -10,7 +12,7 @@ def ceildiv(a: float, b: float) -> float:
     return -(a // -b)
 
 
-class BaseMaskGenerator(PhysicsGenerator):
+class BaseMaskGenerator(PhysicsGenerator, ABC):
     """Base generator for MRI acceleration masks.
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and undersampling in the high frequencies.
@@ -68,6 +70,7 @@ class BaseMaskGenerator(PhysicsGenerator):
                 "Number of high frequency lines to be sampled is 0. Reduce acceleration factor or reduce center_fraction."
             )
 
+    @abstractmethod
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Given empty mask, sample lines according to child class sampling strategy.
 
@@ -76,22 +79,28 @@ class BaseMaskGenerator(PhysicsGenerator):
         :param torch.Tensor mask: empty mask of shape (B, C, T, H, W)
         :return torch.Tensor: sampled mask of shape (B, C, T, H, W)
         """
-        raise NotImplementedError()
+        pass
 
-    def step(self, batch_size=1, seed: int = None, **kwargs) -> dict:
+    def step(
+        self, batch_size=1, seed: int = None, img_size: Optional[Tuple] = None, **kwargs
+    ) -> dict:
         r"""
         Create a mask of vertical lines.
 
         :param int batch_size: batch_size.
-        :param int seed: the seed for the random number generator.
+        :param int seed: optional: the seed for the random number generator, to reseed on-the-fly.
+        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
 
         :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.
         :rtype: dict
         """
         self.rng_manual_seed(seed)
+
         _T = self.T if self.T > 0 else 1
+        _H, _W = (self.H, self.W) if img_size is None else img_size
+
         mask = self.sample_mask(
-            torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs)
+            torch.zeros((batch_size, self.C, _T, _H, _W), **self.factory_kwargs)
         )
 
         if self.T == 0:

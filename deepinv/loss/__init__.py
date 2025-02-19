@@ -13,7 +13,7 @@ from .measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
 )
-from .loss import Loss
+from .loss import Loss, StackedPhysicsLoss
 from .scheduler import (
     BaseLossScheduler,
     RandomLossScheduler,
@@ -23,6 +23,7 @@ from .scheduler import (
 )
 
 from . import metric
+from . import adversarial
 
 from .metric import (
     Metric,

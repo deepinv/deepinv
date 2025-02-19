@@ -1,3 +1,4 @@
+from .base import Denoiser, Reconstructor
 from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
@@ -27,3 +28,5 @@ from .gan import (
 )
 from .complex import to_complex_denoiser
 from .dynamic import TimeAgnosticNet, TimeAveragingNet
+from .varnet import VarNet
+from .multispectral import PanNet

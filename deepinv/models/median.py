@@ -1,11 +1,11 @@
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.utils import _pair, _quadruple
+from .base import Denoiser
 
 # code adapted from https://gist.github.com/rwightman/f2d3849281624be7c0f11c85c87c1598
 
 
-class MedianFilter(nn.Module):
+class MedianFilter(Denoiser):
     r"""
     Median filter.
 
@@ -43,7 +43,7 @@ class MedianFilter(nn.Module):
             padding = self.padding
         return padding
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         # using existing pytorch functions and tensor ops so that we get autograd,
         # would likely be more efficient to implement from scratch at C/Cuda level
         x = F.pad(x, self._padding(x), mode="reflect")

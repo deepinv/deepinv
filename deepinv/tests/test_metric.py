@@ -17,11 +17,13 @@ METRICS = [
     "QNR",
     "LPIPS",
     "NIQE",
+    "ERGAS",
+    "SAM",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
 
-def choose_metric(metric_name, **kwargs) -> metric.Metric:
+def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
     if metric_name in ("LPIPS", "NIQE"):
         pytest.importorskip(
             "pyiqa",
@@ -50,32 +52,40 @@ def choose_metric(metric_name, **kwargs) -> metric.Metric:
     elif metric_name == "L1L2":
         return metric.L1L2(**kwargs)
     elif metric_name == "LPIPS":
-        return metric.LPIPS(**kwargs)
+        return metric.LPIPS(**kwargs, device=device)
     elif metric_name == "NIQE":
-        return metric.NIQE(**kwargs)
+        return metric.NIQE(**kwargs, device=device)
     elif metric_name == "QNR":
         return metric.QNR()
+    elif metric_name == "ERGAS":
+        return metric.ERGAS(factor=4)
+    elif metric_name == "SAM":
+        return metric.SpectralAngleMapper()
 
 
 @pytest.mark.parametrize("metric_name", METRICS)
 @pytest.mark.parametrize("complex_abs", [True])
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
-def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
+def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device):
     m = choose_metric(
         metric_name,
+        device,
         complex_abs=complex_abs,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
         reduction="mean",
     )
     x = load_url_image(
-        get_image_url("celeba_example.jpg"), img_size=128, resize_mode="resize"
+        get_image_url("celeba_example.jpg"),
+        img_size=128,
+        resize_mode="resize",
+        device=device,
     )
 
     if metric_name == "QNR":
         x_hat = x
-        physics = dinv.physics.Pansharpen((3, 128, 128))
+        physics = dinv.physics.Pansharpen((3, 128, 128), device=device)
         y = physics(x)
         assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
         return
@@ -99,6 +109,7 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
     x_hat = torch.cat([x_hat] * 3)
     m = choose_metric(
         metric_name,
+        device,
         complex_abs=complex_abs,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
@@ -108,9 +119,9 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng):
 
 
 @pytest.mark.parametrize("functional_name", FUNCTIONALS)
-def test_functional(functional_name, imsize_2_channel, rng):
-    x = torch.rand((1, *imsize_2_channel), generator=rng)
-    x_net = torch.rand((1, *imsize_2_channel), generator=rng)
+def test_functional(functional_name, imsize_2_channel, device, rng):
+    x = torch.rand((1, *imsize_2_channel), device=device, generator=rng)
+    x_net = torch.rand((1, *imsize_2_channel), device=device, generator=rng)
 
     if functional_name == "cal_mse":
         # Note the torch losses average the batch so they are unsuitable for being used as metrics
@@ -136,10 +147,8 @@ def test_functional(functional_name, imsize_2_channel, rng):
         )
         from torchmetrics.image import PeakSignalNoiseRatio
 
-        assert torch.allclose(
-            metric.cal_psnr(x_net, x),
-            PeakSignalNoiseRatio(data_range=1.0)(x_net, x),
-        )
+        torch_psnr = PeakSignalNoiseRatio(data_range=1.0).to(device)
+        assert torch.allclose(metric.cal_psnr(x_net, x), torch_psnr(x_net, x))
 
 
 def test_metric_kwargs():

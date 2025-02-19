@@ -28,8 +28,8 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
@@ -86,6 +86,10 @@ class Downsampling(LinearPhysics):
         elif filter == "bicubic":
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
+            ).to(device)
+        elif filter == "sinc":
+            self.filter = torch.nn.Parameter(
+                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
             ).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
@@ -147,7 +151,7 @@ class Downsampling(LinearPhysics):
             x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
 
-    def prox_l2(self, z, y, gamma, use_fft=True):
+    def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
         If the padding is circular, it computes the proximal operator with the closed-formula of
         https://arxiv.org/abs/1510.00143.
@@ -177,7 +181,7 @@ class Downsampling(LinearPhysics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
-            return LinearPhysics.prox_l2(self, z, y, gamma)
+            return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
 
 class Blur(LinearPhysics):
@@ -187,13 +191,18 @@ class Blur(LinearPhysics):
 
     This forward operator performs
 
-    .. math:: y = w*x
+    .. math::
+
+        y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
-    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
+    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
+        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``).
+        Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
     :param str device: cpu or cuda.
 
 
@@ -204,9 +213,9 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and FFT for performing the convolutions in 3D as implemented in :meth:`deepinv.physics.functional.conv3d_fft`.
-        It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
+        This class uses the highly optimized :func:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+        and FFT for performing the convolutions in 3D as implemented in :func:`deepinv.physics.functional.conv3d_fft`.
+        It uses FFT based convolutions in 3D since :func:`torch.nn.functional.conv3d` is slow for large kernels.
 
     |sep|
 
@@ -288,7 +297,9 @@ class BlurFFT(DecomposablePhysics):
 
     It performs the operation
 
-    .. math:: y = w*x
+    .. math::
+
+        y = w*x
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
@@ -299,7 +310,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :meth:`deepinv.physics.blur.gaussian_filter`.
+        :func:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
 
     |sep|
@@ -313,7 +324,7 @@ class BlurFFT(DecomposablePhysics):
         >>> x = torch.zeros((1, 1, 16, 16)) # Define black image of size 16x16
         >>> x[:, :, 8, 8] = 1 # Define one white pixel in the middle
         >>> filter = torch.ones((1, 1, 2, 2)) / 4 # Basic 2x2 filter
-        >>> physics = BlurFFT(filter=filter, img_size=(1, 1, 16, 16))
+        >>> physics = BlurFFT(filter=filter, img_size=(1, 16, 16))
         >>> y = physics(x)
         >>> y[y<1e-5] = 0.
         >>> y[:, :, 7:10, 7:10] # Display the center of the blurred image
@@ -431,7 +442,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the space varying blur operator to the input image.
 
@@ -456,7 +467,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A_adjoint(
         self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the adjoint operator.
 
@@ -580,7 +591,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
 
         A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
 
-    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
 
     .. math::
 
@@ -595,13 +606,13 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1 / factor
+    deltaf = 2 * (2 - 1.414213) / factor
 
     n = torch.arange(length) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
-        A = 2.285 * (length - 1) * 3.14 * deltaf + 7.95
+        A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
         if A <= 21:
             beta = 0
         elif A <= 50:

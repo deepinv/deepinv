@@ -20,24 +20,17 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from .utils import get_weights_url, test_pad
+from .base import Denoiser
 
 
-class Restormer(nn.Module):
+class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
 
     This network architecture was proposed in the paper:
     `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
 
-    .. image:: ../figures/restormer_architecture.png
-       :width: 600
-       :alt: Overview of the Restormer architecture / Fig 2 in paper by Zamir et al.
-
-    |
-    |  By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
-    |  Usage :
-    |       model = Restormer()
-    |       output = model(input)
+    By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
@@ -54,10 +47,11 @@ class Restormer(nn.Module):
     :param str LayerNorm_type: Add bias or not in each of the LayerNorm inside of the ``TransformerBlock``.
         ``LayerNorm_type = 'BiasFree' / 'WithBias'``.
     :param bool dual_pixel_task: Should be true if dual-pixel defocus deblurring is enabled, false for single-pixel deblurring and other tasks.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
-    :param NoneType, str pretrained: Default to ``'denoising'``.
-        ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub.
-        ``if pretrained = '\*.pth'``, will load weights from a local pth file.
+    :param None, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param None, str pretrained: Default to ``'denoising'``.
+        If ``pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``,
+        will download weights from the HuggingFace Hub.
+        If ``pretrained = '\*.pth'``, will load weights from a local pth file.
     :param bool train: training or testing mode.
 
     .. note::
@@ -406,12 +400,11 @@ class Restormer(nn.Module):
 
         return out_dec_level1
 
-    def forward(self, x, sigma=None):
+    def forward(self, x, sigma=None, **kwargs):
         r"""
         Run the denoiser on noisy image. The noise level is not used in this denoiser.
 
         :param torch.Tensor x: noisy image
-        :param float sigma: noise level (not used)
         """
         if self.training:
             out = self.forward_restormer(x)

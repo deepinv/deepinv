@@ -23,7 +23,6 @@ from deepinv.utils.demo import load_np_url
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -243,7 +242,7 @@ dinv.utils.plot(
 # %%
 # Using the Dykstra-like algorithm for wavelet denoising.
 # -------------------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.models.WaveletDictDenoiser` class.
+# You can readily use this algorithm via the :class:`deepinv.models.WaveletDictDenoiser` class.
 #
 # ::
 #

@@ -15,12 +15,13 @@ from deepinv.utils import AverageMeter
 
 
 class AdversarialOptimizer:
-    r"""Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
+    r"""
+    Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
-    :param Optimizer optimizer_g: generator's torch optimizer
-    :param Optimizer optimizer_d: discriminator's torch optimizer
-    :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to False
-    :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to False
+    :param torch.optim.Optimizer optimizer_g: generator's torch optimizer
+    :param torch.optim.Optimizer optimizer_d: discriminator's torch optimizer
+    :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to ``False``
+    :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to ``False``
     """
 
     def __init__(
@@ -83,14 +84,17 @@ class AdversarialScheduler:
 
 @dataclass
 class AdversarialTrainer(Trainer):
-    r"""
+    r"""AdversarialTrainer(model, physics, optimizer, train_dataloader, losses_d, D, step_ratio_D, ...)
     Trainer class for training a reconstruction network using adversarial learning.
 
-    It overrides the :class:`deepinv.Trainer` class to provide the same functionality, whilst supporting training using adversarial losses. Note that the forward pass remains the same.
+    It overrides the :class:`deepinv.Trainer` class to provide the same functionality,
+    whilst supporting training using adversarial losses. Note that the forward pass remains the same.
 
-    The usual reconstruction model corresponds to the generator model in an adversarial framework, which is trained using losses specified in the ``losses`` argument.
-    Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
-    Examples of discriminators are in ``deepinv.models.gan``.
+    The usual reconstruction model corresponds to the generator model in an adversarial framework,
+    which is trained using losses specified in the ``losses`` argument.
+    Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``.
+    The adversarial losses themselves are defined in the :ref:`adversarial-losses` module.
+    Examples of discriminators are in :ref:`adversarial`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
 
@@ -129,13 +133,14 @@ class AdversarialTrainer(Trainer):
         >>> generator = trainer.train()
 
 
-    Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.
+    Note that this forward pass also computes ``y_hat`` ahead of time to avoid having to compute it multiple times,
+    but this is completely optional.
 
     See :class:`deepinv.Trainer` for additional parameters.
 
-    :param AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
+    :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
-    :param Module D: discriminator/critic/classification model, which must take in an image and return a scalar
+    :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 

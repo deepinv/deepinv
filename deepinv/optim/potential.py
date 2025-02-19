@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import deepinv
 from deepinv.optim.utils import gradient_descent
 
 
@@ -10,7 +9,7 @@ class Potential(nn.Module):
 
     Comes with methods to compute the potential gradient, its proximity operator, its convex conjugate (and associated gradient and prox).
 
-    :param callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
+    :param Callable fn: Potential function :math:`h(x)` to be used in the optimization problem.
     """
 
     def __init__(self, fn=None):
@@ -147,7 +146,7 @@ class Potential(nn.Module):
         By default, the proximity operator is computed using internal gradient descent.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
-        :param dinv.optim.bregman.Bregman bregman_potential: Bregman potential to be used in the Bregman proximity operator.
+        :param deepinv.optim.bregman.Bregman bregman_potential: Bregman potential to be used in the Bregman proximity operator.
         :param float gamma: stepsize of the proximity operator.
         :param float stepsize_inter: stepsize used for internal gradient descent
         :param int max_iter_inter: maximal number of iterations for internal gradient descent.

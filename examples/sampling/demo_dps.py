@@ -1,19 +1,21 @@
 r"""
 Implementing DPS
-====================
+================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
 `Chung et al. <https://arxiv.org/abs/2209.14687>`_ The full algorithm is implemented in
-:meth:`deepinv.sampling.DPS`.
+:class:`deepinv.sampling.DPS`.
 """
 
-# %% Installing dependencies
-# -----------------------------
+# %%
+# Installing dependencies
+# -----------------------
 # Let us ``import`` the relevant packages, and load a sample
-# image of size 64x64. This will be used as our ground truth image.
+# image of size 64 x 64. This will be used as our ground truth image.
+#
 # .. note::
-#           We work with an image of size 64x64 to reduce the computational time of this example.
-#           The algorithm works best with images of size 256x256.
+#           We work with an image of size 64 x 64 to reduce the computational time of this example.
+#           The algorithm works best with images of size 256 x 256.
 #
 
 import numpy as np
@@ -34,7 +36,7 @@ x = x_true.clone()
 
 # %%
 # In this tutorial we consider random inpainting as the inverse problem, where the forward operator is implemented
-# in :meth:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
+# in :class:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
 # and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.75/255.
 
 sigma = 12.75 / 255.0  # noise level
@@ -57,7 +59,7 @@ plot(
 
 # %%
 # Diffusion model loading
-# ----------------------------
+# -----------------------
 #
 # We will take a pre-trained diffusion model that was also used for the DiffPIR algorithm, namely the one trained on
 # the FFHQ 256x256 dataset. Note that this means that the diffusion model was trained with human face images,
@@ -69,7 +71,7 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 
 # %%
 # Define diffusion schedule
-# ----------------------------
+# -------------------------
 #
 # We will use the standard linear diffusion noise schedule. Once :math:`\beta_t` is defined to follow a linear schedule
 # that interpolates between :math:`\beta_{\rm min}` and :math:`\beta_{\rm max}`,
@@ -110,7 +112,7 @@ betas = get_betas()
 
 # %%
 # The DPS algorithm
-# ---------------------
+# -----------------
 #
 # Now that the inverse problem is defined, we can apply the DPS algorithm to solve it. The DPS algorithm is
 # a diffusion algorithm that alternates between a denoising step, a gradient step and a reverse diffusion sampling step.
@@ -147,7 +149,7 @@ betas = get_betas()
 
 # %%
 # Denoising step
-# ----------------------------
+# --------------
 #
 # The first step of DPS consists of applying a denoiser function to the current image :math:`\mathbf{x}_t`,
 # with standard deviation :math:`\sigma_t = \sqrt{1 - \overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}`.
@@ -176,7 +178,7 @@ plot(
 
 # %%
 # DPS approximation
-# ----------------------------
+# -----------------
 #
 # In order to perform gradient-based **posterior sampling** with diffusion models, we have to be able to compute
 # :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y})`. Applying Bayes rule, we have
@@ -188,7 +190,7 @@ plot(
 #
 # For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
 # is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_
+# `Chung et al. <https://arxiv.org/abs/2209.14687>`_)
 #
 # .. math::
 #
@@ -243,7 +245,7 @@ plot(
 
 # %%
 # DPS Algorithm
-# --------------
+# -------------
 #
 # As we visited all the key components of DPS, we are now ready to define the algorithm. For every denoising
 # timestep, the algorithm iterates the following
@@ -350,8 +352,8 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 
 # %%
 # Using DPS in your inverse problem
-# ---------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.sampling.DPS` class.
+# ---------------------------------
+# You can readily use this algorithm via the :class:`deepinv.sampling.DPS` class.
 #
 # ::
 #

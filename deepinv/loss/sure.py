@@ -142,7 +142,7 @@ class SureGaussianLoss(Loss):
     :param Callable, str B: Optional linear metric :math:`B`, which can be used to improve
         the performance of the loss. If 'A_dagger', the pseudo-inverse of the forward operator is used.
         Otherwise the metric should be a linear operator that approximates the pseudo-inverse of the forward operator
-        such as :meth:`deepinv.physics.LinearPhysics.prox_l2` with large :math:`\gamma`. By default, the identity is used.
+        such as :func:`deepinv.physics.LinearPhysics.prox_l2` with large :math:`\gamma`. By default, the identity is used.
     :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985
         where the noise level :math:`\sigma` is also learned (the input value is used as initialization).
     :param float step_size: Step size for the gradient ascent of the noise level if unsure is ``True``.
