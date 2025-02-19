@@ -10,12 +10,14 @@ class JacobianSpectralNorm(Loss):
     norm of the Jacobian of :math:`f` in :math:`x`, i.e.
 
     .. math::
+
         \|\frac{df}{du}(x)\|_2.
 
     This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
 
     .. warning::
-        This implementation assumes that the input :math:`x` is batched with shape (B, *), where B is the batch size.
+
+        This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
     :param int max_iter: maximum numer of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
@@ -87,10 +89,11 @@ class JacobianSpectralNorm(Loss):
         Computes the spectral norm of the Jacobian of :math:`f` in :math:`x`.
 
         .. warning::
+
             The input :math:`x` must have requires_grad=True before evaluating :math:`f`.
 
-        :param torch.Tensor y: output of the function :math:`f` at :math:`x`, of dimension (B, *)
-        :param torch.Tensor x: input of the function :math:`f`, of dimension (B, *)
+        :param torch.Tensor y: output of the function :math:`f` at :math:`x`, of dimension `(B, ...)`
+        :param torch.Tensor x: input of the function :math:`f`, of dimension `(B, ...)`
 
         If x has multiple dimensions, it's assumed the first one corresponds to the batch dimension.
         """
@@ -167,13 +170,15 @@ class FNEJacobianSpectralNorm(Loss):
     identity) in :math:`x`, i.e.
 
     .. math::
+
         \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
     as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
     This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
     .. warning::
-        This implementation assumes that the input :math:`x` is batched with shape (B, *), where B is the batch size.
+
+        This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
     :param int max_iter: maximum numer of iteration of the power method.
     :param float tol: tolerance for the convergence of the power method.
@@ -231,8 +236,8 @@ class FNEJacobianSpectralNorm(Loss):
         r"""
         Computes the Firm-Nonexpansiveness (FNE) Jacobian spectral norm of a model.
 
-        :param torch.Tensor y_in: input of the model (by default), of dimension (B, *).
-        :param torch.Tensor x_in: an additional point of the model (by default), of dimension (B, *).
+        :param torch.Tensor y_in: input of the model (by default), of dimension `(B, ...)`.
+        :param torch.Tensor x_in: an additional point of the model (by default), of dimension `(B, ...)`.
         :param torch.nn.Module model: neural network, or function, of which we want to compute the FNE Jacobian spectral norm.
         :param `*args_model`: additional arguments of the model.
         :param bool interpolation: whether to input to model an interpolation between y_in and x_in instead of y_in (default is `False`).
