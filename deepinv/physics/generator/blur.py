@@ -140,6 +140,7 @@ class MotionBlurGenerator(PSFGenerator):
         sigma: float = None,
         l: float = None,
         seed: int = None,
+        **kwargs,
     ):
         r"""
         Generate a random motion blur PSF with parameters :math:`\sigma` and :math:`l`
@@ -306,7 +307,13 @@ class DiffractionBlurGenerator(PSFGenerator):
         self.rho = self.rho.to(**self.factory_kwargs)
         self.Z = self.Z.to(**self.factory_kwargs)
 
-    def step(self, batch_size: int = 1, coeff: torch.Tensor = None, seed: int = None):
+    def step(
+        self,
+        batch_size: int = 1,
+        coeff: torch.Tensor = None,
+        seed: int = None,
+        **kwargs,
+    ):
         r"""
         Generate a batch of PFS with a batch of Zernike coefficients
 
@@ -567,7 +574,7 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     Generates parameters of space-varying blurs.
 
     The parameters generated are  ``{'filters' : torch.tensor(...), 'multipliers': torch.tensor(...), 'padding': str}``
-    see :meth:`deepinv.physics.SpaceVaryingBlur` for more details.
+    see :class:`deepinv.physics.SpaceVaryingBlur` for more details.
 
     :param deepinv.physics.generator.PSFGenerator psf_generator: A psf generator
         (e.g. ``generator = DiffractionBlurGenerator((1, psf_size, psf_size), fc=0.25)``)
@@ -681,7 +688,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
     r"""
     3D diffraction limited kernels using Zernike decomposition of the phase mask.
 
-    Fresnel/Fraunhoffer diffraction theory, see :meth:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
+    Fresnel/Fraunhoffer diffraction theory, see :class:`deepinv.physics.generator.DiffractionBlurGenerator` for more details.
 
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
@@ -771,7 +778,7 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         self.generator2d.rho = self.generator2d.rho.to(**self.factory_kwargs)
         self.generator2d.Z = self.generator2d.Z.to(**self.factory_kwargs)
 
-    def step(self, batch_size: int = 1, coeff: torch.Tensor = None):
+    def step(self, batch_size: int = 1, coeff: torch.Tensor = None, **kwargs):
         r"""
         Generate a batch of PSF with a batch of Zernike coefficients
 
@@ -820,18 +827,15 @@ class DiffractionBlurGenerator3D(PSFGenerator):
 
 class ConfocalBlurGenerator3D(PSFGenerator):
     r"""
-    Generates the 3D psf of confocal laser scanning microsope.
+    Generates the 3D point spread function of a confocal laser scanning microsope.
 
     :param tuple psf_size: give in the order (depth, height, width)
     :param int num_channels: number of channels. Default to 1.
-
     :param list[str] list_param: list of activated Zernike coefficients, defaults to ``["Z4", "Z5", "Z6","Z7", "Z8", "Z9", "Z10", "Z11"]``
-
-
     :param float NI: Refractive index of  the immersion medium. Defaults to 1.51 (oil),
     :param float NA: Numerical aperture. Should be less than NI. Defaults to 1.37.
     :param float lambda_ill: Wavelength of the illumination light (fluorescence excitation). Defaults to 489e-9.
-    :param floatlambda_coll: Wavelength of the collection light (fluorescence emission). Defaults to 395e-9.
+    :param float lambda_coll: Wavelength of the collection light (fluorescence emission). Defaults to 395e-9.
     :param float pixelsize_XY: Physical pixel size in the lateral direction (height, width). Defaults to 50e-9.
     :param float pixelsize_Z:  Physical pixel size in the axial direction (depth). Defaults to 100e-9.
     :param float pinhole_radius: Radius of pinhole in Airy units. Defaults to 1.
@@ -840,15 +844,10 @@ class ConfocalBlurGenerator3D(PSFGenerator):
             If an int is given, a square pupil is considered.
     :return: a DiffractionBlurGenerator object
 
-    .. note::
-        NA: numerical aperture, NI: refraction index of the immersion medium,
-        emission_wavelength: wavelength of the light,
-        pixel_size : physical size of the pixels in the xy plane
-        in the same unit as emission_wavelength
-
     |sep|
 
     :Examples:
+
     >>> import torch
     >>> from deepinv.physics.generator import ConfocalBlurGenerator3D
     >>> generator = ConfocalBlurGenerator3D((21, 51, 51), list_param=['Z0'])
@@ -863,7 +862,6 @@ class ConfocalBlurGenerator3D(PSFGenerator):
     ...                       coeff_coll = 0.1 * torch.rand(batch_size, n_zernike, **generator.factory_kwargs))
     >>> dict.keys()
     dict_keys(['filter', 'coeff_ill', 'coeff_coll'])
-
 
     """
 
@@ -959,6 +957,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         batch_size: int = 1,
         coeff_ill: torch.Tensor = None,
         coeff_coll: torch.Tensor = None,
+        **kwargs,
     ):
         r"""
         Generate a batch of 3D confocal PSF with a batch of Zernike coefficients

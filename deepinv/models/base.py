@@ -25,7 +25,7 @@ class Denoiser(torch.nn.Module):
 
         :param torch.Tensor x: noisy input.
         :param torch.Tensor, float sigma: noise level.
-        :returns: (torch.Tensor) Denoised tensor.
+        :returns: (:class:`torch.Tensor`) Denoised tensor.
         """
         return NotImplementedError
 
@@ -49,6 +49,6 @@ class Reconstructor(torch.nn.Module):
 
         :param torch.Tensor y: measurements.
         :param deepinv.physics.Physics physics: forward model :math:`A`.
-        :returns: (torch.Tensor) reconstructed tensor.
+        :returns: (:class:`torch.Tensor`) reconstructed tensor.
         """
         return NotImplementedError

@@ -19,7 +19,7 @@ class DiffusionSampler(MonteCarlo):
     :param torch.nn.Module diffusion: a diffusion model
     :param int max_iter: the maximum number of iterations
     :param tuple clip: the clip range
-    :param callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
+    :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
     :param float thres_conv: the convergence threshold for the mean and variance
     :param bool verbose: whether to print the progress
     :param bool save_chain: whether to save the chain
@@ -73,10 +73,10 @@ class DDRM(Reconstructor):
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
     It requires that the physics operator has a singular value decomposition, i.e.,
-    it is :meth:`deepinv.physics.DecomposablePhysics` class.
+    it is :class:`deepinv.physics.DecomposablePhysics` class.
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
-    :param list[int], numpy.array sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
+    :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
         order from 1 to 0.
     :param float eta: hyperparameter
     :param float etab: hyperparameter

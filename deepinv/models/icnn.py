@@ -6,7 +6,9 @@ from torch import nn
 
 class ICNN(nn.Module):
     r"""
-    Convolutional Input Convex Neural Network (ICNN). The network is built to be convex in its input.
+    Convolutional Input Convex Neural Network (ICNN).
+
+    The network is built to be convex in its input.
     The model is fully convolutional and thus can be applied to images of any size.
 
     Based on the implementation from the paper
@@ -107,6 +109,11 @@ class ICNN(nn.Module):
         self.device = device
 
     def forward(self, x):
+        r"""
+        Calculate potential function of the ICNN.
+
+        :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
+        """
         if self.pos_weights:
             self.zero_clip_weights()
         z = torch.nn.functional.leaky_relu(
@@ -128,6 +135,11 @@ class ICNN(nn.Module):
         ).reshape(-1, 1)
 
     def grad(self, x):
+        r"""
+        Calculate the gradient of the potential function.
+
+        :param torch.Tensor x: Input tensor of shape ``(B, C, H, W)``.
+        """
         x = x.requires_grad_(True)
         out = self.forward(x)
         return torch.autograd.grad(

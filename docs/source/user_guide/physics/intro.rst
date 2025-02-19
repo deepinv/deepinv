@@ -31,7 +31,7 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
     >>> y2 = physics.A(x) # compute the A operator (no noise)
 
 Linear operators
-^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 
 Linear operators :math:`A:\xset\mapsto \yset` inherit the structure of the :class:`deepinv.physics.LinearPhysics` class.
 They have important specific properties such as the existence of an adjoint :math:`A^{\top}:\yset\mapsto \xset`.
@@ -51,6 +51,12 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> x_adj = physics.A_adjoint(y) # compute the adjoint operator
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
+
+.. tip::
+
+    Linear operators come with useful methods for approximating the :func:`operator norm <deepinv.physics.LinearPhysics.compute_norm>`
+    :math:`\|A\|` and the :func:`condition number <deepinv.physics.LinearPhysics.condition_number>` :math:`\kappa(A)`.
+    These values can be useful to set optimization hyperparameters, and understand the difficulty of the inverse problem.
 
 More details can be found in the doc of each class.
 
@@ -88,9 +94,10 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
 
+.. _physics_generators:
 
 Physics Generators
-^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^
 We provide some parameters generation methods to sample random parameters' :math:`\theta`.
 Physics generators inherit from the :class:`deepinv.physics.generator.PhysicsGenerator` class:
 

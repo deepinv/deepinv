@@ -303,14 +303,14 @@ class DiffUNet(Denoiser):
         ``t``, the model returns either a noise map (if ``type_t='timestep'``) or a denoised image (if
         ``type_t='noise_level'``).
 
-        :param x: an [N x C x ...] Tensor of inputs.
-        :param t: a 1-D batch of timesteps or noise levels.
-        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :param type_t: Nature of the embedding `t`. In traditional diffusion model, and in the authors' code, `t` is
+        :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.
+        :param torch.Tensor t: a 1-D batch of timesteps or noise levels.
+        :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
+        :param str type_t: Nature of the embedding `t`. In traditional diffusion model, and in the authors' code, `t` is
                        a timestep linked to a noise level; in this case, set ``type_t='timestep'``. We can also choose
                        ``t`` to be a noise level directly and use the model as a denoiser; in this case, set
                        ``type_t='noise_level'``. Default: ``'timestep'``.
-        :return: an [N x C x ...] Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
+        :return: an `(N, C, ...)` Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
                     (if ``type_t='noise_level'``).
         """
         if type_t == "timestep":
@@ -319,6 +319,22 @@ class DiffUNet(Denoiser):
             return self.forward_denoise(x, t, y=y)
         else:
             raise ValueError('type_t must be either "timestep" or "noise_level"')
+
+    def convert_to_fp16(self):
+        """
+        Convert the torso of the model to float16.
+        """
+        self.input_blocks.apply(convert_module_to_f16)
+        self.middle_block.apply(convert_module_to_f16)
+        self.output_blocks.apply(convert_module_to_f16)
+
+    def convert_to_fp32(self):
+        """
+        Convert the torso of the model to float32.
+        """
+        self.input_blocks.apply(convert_module_to_f32)
+        self.middle_block.apply(convert_module_to_f32)
+        self.output_blocks.apply(convert_module_to_f32)
 
     def forward_diffusion(self, x, timesteps, y=None):
         r"""
@@ -332,7 +348,7 @@ class DiffUNet(Denoiser):
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an [N x C x ...] Tensor of outputs.
+        :return: an `(N, C, ...)` Tensor of outputs.
         """
         assert (y is not None) == (
             self.num_classes is not None
@@ -403,14 +419,14 @@ class DiffUNet(Denoiser):
         divisible by a power of 2.
 
         .. note::
-            The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) n`
+            The DiffUNet assumes that images are scaled as :math:`\sqrt{\alpha_t} x + (1-\alpha_t) \epsilon`
             thus an additional rescaling by :math:`\sqrt{\alpha_t}` is performed within this function, along with
             a mean shift by correction by :math:`0.5 - \sqrt{\alpha_t} 0.5`.
 
-        :param x: an [N x C x ...] Tensor of inputs.
-        :param sigma: a 1-D batch of noise levels.
-        :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an [N x C x ...] Tensor of outputs.
+        :param torch.Tensor x: an `(N, C, ...)` Tensor of inputs.
+        :param torch.Tensor sigma: a 1-D batch of noise levels.
+        :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
+        :return: an `(N, C, ...)` Tensor of outputs.
         """
         if sigma is not torch.tensor:
             sigma = torch.tensor(sigma).to(x.device)
@@ -474,7 +490,7 @@ class AttentionPool2d(nn.Module):
 
 class TimestepBlock(nn.Module):
     """
-    Any module where forward() takes timestep embeddings as a second argument.
+    Any module where `forward()` takes timestep embeddings as a second argument.
     """
 
     @abstractmethod
@@ -646,9 +662,9 @@ class ResBlock(TimestepBlock):
         """
         Apply the block to a Tensor, conditioned on a timestep embedding.
 
-        :param x: an [N x C x ...] Tensor of features.
-        :param emb: an [N x emb_channels] Tensor of timestep embeddings.
-        :return: an [N x C x ...] Tensor of outputs.
+        :param torch.Tensor x: an `(N, C, ...)` Tensor of features.
+        :param torch.Tensor emb: an (N x emb_channels) Tensor of timestep embeddings.
+        :return: an `(N, C, ...)` :class:`torch.Tensor` of outputs.
         """
         return checkpoint(
             self._forward, (x, emb), self.parameters(), self.use_checkpoint

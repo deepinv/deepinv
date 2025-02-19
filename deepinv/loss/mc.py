@@ -38,6 +38,6 @@ class MCLoss(Loss):
         :param torch.Tensor y: measurements.
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: forward operator associated with the measurements.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         return self.metric(physics.A(x_net), y)

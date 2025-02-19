@@ -19,7 +19,7 @@ class CPABDiffeomorphism(Transform):
 
     See :class:`deepinv.transform.Transform` for further details and examples.
 
-    ..warning ::
+    .. warning::
 
         This implementation does not allow using a ``torch.Generator`` to generate reproducible transformations.
         You may be able to achieve reproducibility by using a global seed instead.
