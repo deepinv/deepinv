@@ -285,11 +285,13 @@ class Trainer:
     def load_model(self, ckpt_pretrained: str = None) -> dict:
         """Load model from checkpoint.
 
-        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class. If not `None`, override checkpoint passed to class.
+        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
+            If not `None`, override checkpoint passed to class.
         :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
             ckpt_pretrained = self.ckpt_pretrained
+            self.ckpt_pretrained = None
 
         if ckpt_pretrained is not None:
             checkpoint = torch.load(
