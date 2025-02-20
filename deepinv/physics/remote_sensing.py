@@ -96,6 +96,7 @@ class Pansharpen(StackedLinearPhysics):
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
+        self.solver = "lsqr"  # more stable than CG
 
     def A_dagger(self, y: TensorList, **kwargs):
         """
@@ -115,15 +116,9 @@ class Pansharpen(StackedLinearPhysics):
 
             x = self.downsampling.A_adjoint(y[0], **kwargs) * factor
             x = x * y[1] / (x.mean(1, keepdim=True) + self.eps)
+            return x
         else:
-            A = lambda x: self.A_A_adjoint(x)
-            b = y
-            x = conjugate_gradient(
-                A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1
-            )
-            x = self.A_adjoint(x)
-
-        return x
+            return super().A_dagger(y, **kwargs)
 
 
 # test code

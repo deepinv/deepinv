@@ -90,7 +90,7 @@ def GSDRUNet(
         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
     :param bool download: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-        online repository (only available for the default architecture).
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
@@ -110,13 +110,15 @@ def GSDRUNet(
     GSmodel = GSPnP(denoiser, alpha=alpha)
     if pretrained:
         if pretrained == "download":
-            url = get_weights_url(
-                model_name="gradientstep", file_name="GSDRUNet_torch.ckpt"
-            )
+            if in_channels == 3:
+                file_name = "GSDRUNet_torch.ckpt"
+            elif in_channels == 1:
+                file_name = "GSDRUNet_grayscale_torch.ckpt"
+            url = get_weights_url(model_name="gradientstep", file_name=file_name)
             ckpt = torch.hub.load_state_dict_from_url(
                 url,
                 map_location=lambda storage, loc: storage,
-                file_name="GSDRUNet_torch.ckpt",
+                file_name=file_name,
             )
         else:
             ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)

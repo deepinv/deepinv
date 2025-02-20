@@ -29,8 +29,8 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
@@ -73,6 +73,13 @@ class Downsampling(LinearPhysics):
         self.device = device
         self.filter = filter
         self.update_parameters(filter=filter, factor=factor, **kwargs)
+
+        if self.filter is not None:
+            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
+            self.Fhc = torch.conj(self.Fh)
+            self.Fh2 = self.Fhc * self.Fh
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
@@ -129,7 +136,7 @@ class Downsampling(LinearPhysics):
 
         return x
 
-    def prox_l2(self, z, y, gamma, use_fft=True):
+    def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
         If the padding is circular, it computes the proximal operator with the closed-formula of
         https://arxiv.org/abs/1510.00143.
@@ -159,7 +166,7 @@ class Downsampling(LinearPhysics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
-            return LinearPhysics.prox_l2(self, z, y, gamma)
+            return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
     def A_dagger(self, y, filter=None, factor=None, use_fft=True, **kwargs):
         r"""
@@ -668,7 +675,7 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     filter = torch.sinc(n / factor)
 
     if windowed:
-        A = 2.285 * (length - 1) * 3.14 * deltaf + 7.95
+        A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
         if A <= 21:
             beta = 0
         elif A <= 50:

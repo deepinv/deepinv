@@ -1036,8 +1036,12 @@ class SwinIR(Denoiser):
             #     else pretrained_weights
             # )
             param_keys = ["params_ema", "params"]
-            param_key_g = next((key for key in param_keys if key in pretrained_weights), None)
-            pretrained_weights = pretrained_weights[param_key_g] if param_key_g else pretrained_weights
+            param_key_g = next(
+                (key for key in param_keys if key in pretrained_weights), None
+            )
+            pretrained_weights = (
+                pretrained_weights[param_key_g] if param_key_g else pretrained_weights
+            )
 
             self.load_state_dict(pretrained_weights, strict=True)
             self.eval()
