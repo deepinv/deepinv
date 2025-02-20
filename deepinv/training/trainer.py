@@ -1,5 +1,5 @@
 import warnings
-from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves
+from deepinv.utils import AverageMeter, get_timestamp, plot, plot_curves, TensorList
 import os
 import numpy as np
 from tqdm import tqdm
@@ -88,6 +88,7 @@ class Trainer:
     :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
         Used in conjunction with ``physics_generator``.
+    :param bool global_optimizer_step: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`.
@@ -134,6 +135,7 @@ class Trainer:
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     loop_physics_generator: bool = False
+    global_optimizer_step: bool = True
     metrics: Union[Metric, List[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
@@ -471,7 +473,9 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
+    def compute_loss(
+        self, physics, x, y, train=True, epoch: int = None, backward=False
+    ):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -482,12 +486,13 @@ class Trainer:
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
+        :param bool backward: Whether to perform backward when computing the loss.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
 
-        if train:
+        if train and backward:  # remove gradient
             self.optimizer.zero_grad()
 
         # Evaluate reconstruction network
@@ -511,24 +516,27 @@ class Trainer:
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
                     meters.update(loss.detach().cpu().numpy())
-                    cur_loss = meters.avg
-                    logs[l.__class__.__name__] = cur_loss
+                    logs[l.__class__.__name__] = meters.avg
 
-            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
-            meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+                meters = (
+                    self.logs_total_loss_train if train else self.logs_total_loss_eval
+                )
+                meters.update(loss_total.item())
+                logs[f"TotalLoss"] = meters.avg
+        else:  # question: what do we want to do at test time?
+            loss_total = 0
 
         if train:
             loss_total.backward()  # Backward the total loss
 
-            norm = self.check_clip_grad()  # Optional gradient clipping
+            norm = self.check_clip_grad()
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            # Optimizer step
-            self.optimizer.step()
+            if backward:
+                self.optimizer.step()  # Optimizer step
 
-        return x_net, logs
+        return loss_total, x_net, logs
 
     def compute_metrics(
         self, x, x_net, y, physics, logs, train=True, epoch: int = None
@@ -609,7 +617,15 @@ class Trainer:
 
         return x_nl
 
-    def step(self, epoch, progress_bar, train_ite=None, train=True, last_batch=False):
+    def step(
+        self,
+        epoch,
+        progress_bar,
+        train_ite=None,
+        train=True,
+        last_batch=False,
+        global_optimizer_step=True,
+    ):
         r"""
         Train/Eval a batch.
 
@@ -620,11 +636,15 @@ class Trainer:
         :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
+        :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
+        if train and global_optimizer_step:
+            self.optimizer.zero_grad()  # Clear stored gradients
 
         # random permulation of the dataloaders
         G_perm = np.random.permutation(self.G)
+        loss = 0
 
         if self.log_train_batch and train:
             self.reset_metrics()
@@ -636,7 +656,15 @@ class Trainer:
             )
 
             # Compute loss and perform backprop
-            x_net, logs = self.compute_loss(physics_cur, x, y, train=train, epoch=epoch)
+            loss_cur, x_net, logs = self.compute_loss(
+                physics_cur,
+                x,
+                y,
+                train=train,
+                epoch=epoch,
+                backward=not global_optimizer_step,
+            )
+            loss += loss_cur
 
             # detach the network output for metrics and plotting
             x_net = x_net.detach()
@@ -651,6 +679,9 @@ class Trainer:
 
         if self.log_train_batch and train:
             self.log_metrics_wandb(logs, step=train_ite, train=train)
+
+        if train and global_optimizer_step:
+            self.optimizer.step()  # Optimizer step
 
         if last_batch:
             if self.verbose and not self.show_progress_bar:
@@ -684,7 +715,7 @@ class Trainer:
                 train=train,
             )
 
-    def plot(self, epoch, physics, x, y, x_net, train=True):
+    def plot(self, epoch, physics, x, y, x_net, train=True, show_y=True):
         r"""
         Plot and optinally save the reconstructions.
 
@@ -706,8 +737,13 @@ class Trainer:
             else:
                 x_nl = None
 
+            if show_y:
+                y_plot = y[1] if isinstance(y, TensorList) else y
+            else:
+                y_plot = None
+
             imgs, titles, grid_image, caption = prepare_images(
-                x, y, x_net, x_nl, rescale_mode=self.rescale_mode
+                x, y=y_plot, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:
@@ -849,6 +885,7 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
+                    global_optimizer_step=self.global_optimizer_step,
                 )
 
                 perform_eval = self.eval_dataloader and (
