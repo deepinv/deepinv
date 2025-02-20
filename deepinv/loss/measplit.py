@@ -356,22 +356,34 @@ class K_Weighted_Loss(SplittingLoss):
     >>> import deepinv as dinv
     >>> physics_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=4)
     >>> split_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=2)
-    >>> mask_generator = dinv.physics.generator.inpainting.MultiplicativeSplittingMaskGenerator((2, 128, 128), split_generator)
+    >>> mask_generator = dinv.physics.generator.inpainting.MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
     >>> pdf = {"omega": physics_generator.get_pdf(), "lambda": split_generator.get_pdf()}
     >>> loss = dinv.loss.measplit.K_Weighted_Loss(mask_generator=mask_generator, pdf=pdf)
 
     """
 
-    def __init__(self, mask_generator: PhysicsGenerator, pdf: dict, device="cpu"):
+    def __init__(
+        self, 
+        mask_generator: PhysicsGenerator, 
+        pdf: dict, 
+        eval_n_samples=5,
+        eval_split_input=True,
+        eval_split_output=False,
+        device="cpu"
+    ):
 
-        super().__init__()
+        super().__init__(
+            eval_n_samples=eval_n_samples,
+            eval_split_input=eval_split_input,
+            eval_split_output=eval_split_output,
+            pixelwise=True
+        )
         self.mask_generator = mask_generator
         self.name = "k_weighted_loss"
         self.device = device
         self.pdf = pdf
         self.k = self.compute_k(pdf)
         self.weight = (1 - self.k).clamp(min=1e-6) ** (-0.5)  # Compute weight matrix
-        self.metric = torch.nn.Identity()  # Return the residual directly
 
     def compute_k(self, pdf: dict) -> torch.Tensor:
         """
@@ -394,10 +406,17 @@ class K_Weighted_Loss(SplittingLoss):
         K_mask = K_1d.unsqueeze(0).expand(self.mask_generator.tensor_size[-2:])
         return K_mask
 
-    def forward(self, x_net, y, physics, model):
+    def forward(self, x_net, y, physics, model, **kwargs):
 
-        # Compute the residual
-        residual = super().forward(x_net, y, physics, model, normalize_loss=False)
+        # # Compute the residual
+        # residual = super().forward(x_net, y, physics, model, normalize_loss=False, **kwargs)
+
+        mask = model.get_mask() * getattr(physics, "mask", 1.0)
+        mask2 = getattr(physics, "mask", 1.0) - mask
+        y2, physics2 = self.split(mask2, y, physics)
+        
+        # Compute the residual manually
+        residual = physics2.A(x_net) - y2
 
         # Apply weight
         weighted_residual = self.weight.expand_as(residual) * residual
