@@ -3,6 +3,7 @@ import warnings
 from collections import deque
 from collections.abc import Iterable
 import torch
+from torch import nn
 from tqdm import tqdm
 from deepinv.physics import Physics
 from deepinv.optim.optim_iterators import *
@@ -15,7 +16,7 @@ from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford
 
 
-class BaseSample(Reconstructor):
+class BaseSample(nn.Module):
     r"""
     Base class for Monte Carlo sampling.
 

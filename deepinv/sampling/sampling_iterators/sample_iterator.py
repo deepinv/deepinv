@@ -28,7 +28,7 @@ class SamplingIterator(nn.Module):
         cur_params: Dict[str, Any],
         *args,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         r"""
         Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}`
 
@@ -46,4 +46,4 @@ class SamplingIterator(nn.Module):
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        pass
+        raise NotImplementedError("Subclasses of SamplingIterator must implement the forward method")
