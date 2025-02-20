@@ -50,7 +50,9 @@ class fStepHQS(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"], *args, **kwargs)
+        return cur_data_fidelity.prox(
+            x, y, physics, gamma=cur_params["stepsize"], *args, **kwargs
+        )
 
 
 class gStepHQS(gStep):
@@ -73,6 +75,6 @@ class gStepHQS(gStep):
             x,
             cur_params["g_param"],
             gamma=cur_params["lambda"] * cur_params["stepsize"],
-            *args, 
-            **kwargs
+            *args,
+            **kwargs,
         )

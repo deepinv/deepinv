@@ -74,13 +74,6 @@ class Downsampling(LinearPhysics):
         self.filter = filter
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
-        if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
-            self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = self.Fhc * self.Fh
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
-
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
@@ -129,10 +122,9 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            if self.padding == "circular":
-                x = conv_transpose2d_fft(x, self.filter)
-            else:  # this may be slow
-                x = conv_transpose2d(x, self.filter, padding=self.padding)
+            x = conv_transpose2d(
+                x, self.filter, padding=self.padding
+            )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
 
         return x
 
