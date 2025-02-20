@@ -180,97 +180,64 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         return mask
 
 
-from deepinv.physics.generator.mri import PolyOrderMaskGenerator
+class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
+    """Randomly generates masks using split_generator.
 
+    Generates binary masks (mask_lambda) using the given physics_generator
+    Input_mask is the mask that is used to create accelerated measurements.
+    The output mask is generated from mask_lambda*input_mask
+    This output mask is used for measurement splitting for MRI in `Noiser2Noise <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>_.
 
-class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
-    """
-    Randomly generates polynomial variable density splitting masks.
-    Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
-    Polynomial sampling varies as r^poly_order where r is the distance from the centre.
-    An input mask, M_Omega, is passed through which represent the accelerated MRI measurements.
-    A random mask M_Lambda is generated using PolyOrderMaskGenerator and the measurement splitting mask is generated from element-wise multiplying by the input mask, M_Omega
-
-    Handles 2D masks with shape [C, H, W], where the mask is repeated across channels and varied across batch dimensions.
+    |sep|
 
     :Examples:
-        Randomly split input mask using polynomial order sampling
-        >>> from deepinv.physics.generator.inpainting import Noiser2NoiseSplittingMaskGenerator
-        >>> from deepinv.physics.generator.mri import PolyOrderMaskGenerator
-        >>> generator = PolyOrderMaskGenerator(img_size= (128, 128), acceleration=8, center_fraction=0.05, poly_order=10)
-        >>> mask = generator.step(batch_size=2)
-        >>> mask.shape
-        torch.Size([2, 2, 128, 128])
-        >>> input_mask = mask["mask"]
-        >>> n2n_gen = Noiser2NoiseSplittingMaskGenerator(tensor_size=(128, 128), acceleration=6, center_fraction=0.05, poly_order=10)
-        >>> n2n_gen.step(input_mask=input_mask).shape
-        torch.Size([2, 2, 128, 128])
 
-    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
-    :param int poly_order: polynomial order of the sampling pdf (should be the same poly_order used for input_mask)
+
+        Further splitting with GaussianMaskGenerator
+
+        >>> from from deepinv.physics.generator import GaussianSplittingMaskGenerator
+        >>> physics_generator = GaussianMaskGenerator((1, 128, 128), acceleration=4)
+        >>> split_generator = GaussianMaskGenerator((1, 128, 128), acceleration=2)
+        >>> gen = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
+        >>> gen.step(batch_size=2, input_mask=physics_generator.mask)["mask"].shape
+        torch.Size([2, 1, 128, 128])
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
+    :param deepinv.physics.generator.PhysicsGenerator mask generator
 
     """
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
-        acceleration: int,
-        center_fraction: float = 0,
-        poly_order: int = 8,
-        pixelwise: bool = True,
+        tensor_size,
+        split_generator,
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
         *args,
         **kwargs,
     ):
-        split_ratio = 1 / acceleration
-
         super().__init__(
             tensor_size=tensor_size,
-            split_ratio=split_ratio,
-            pixelwise=pixelwise,
+            split_ratio=0.0,
+            pixelwise=True,
             device=device,
             rng=rng,
             *args,
             **kwargs,
         )
-
-        self.tensor_size = tensor_size
-        self.pixelwise = pixelwise
-        self.acc = acceleration
-        self.center_fraction = center_fraction
-        self.poly_order = poly_order
-
-        """
-        :param tuple[int] tensor_size: size of tensor without batch dimension
-        Generates M_Lambda pdf to sample from
-        """
-
-        self.poly_generator = PolyOrderMaskGenerator(
-            img_size=self.tensor_size,
-            acceleration=self.acc,
-            center_fraction=self.center_fraction,
-            poly_order=self.poly_order,
-            device=self.device,
-            rng=self.rng,
-        )
-
-        # get_pdf i.e M_Lambda
-
-        self.pdf = self.poly_generator.get_pdf()
+        # passes in the synthnetic splitting mask generator
+        self.split_generator = split_generator
+        self.pdf = self.split_generator.get_pdf()
 
     def step(
         self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
     ) -> dict:
         r"""
-        Generate a random mask.
+        Generate a random mask called mask_lambda
 
-        If ``input_mask`` is None, generates a standard random mask that can be used for :class:`deepinv.physics.Inpainting`.
-        If ``input_mask`` is specified, splits the input mask into subsets given the split ratio.
-
-        mask_lambda is the randomly generated mask
-        mask is the mask used for measurement splitting which is generated from input_mask*mask_lambda
+        If ``input_mask`` is None, generates a standard random mask is generated without multiplication where mask = mask_lambda
+        If ``input_mask`` is specified the mask = mask_lambda*input_mask
 
         :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
@@ -317,21 +284,20 @@ class Noiser2NoiseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         return {"mask": mask, "mask_lambda": mask_lambda}
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
-        r"""
-        Generates a random polynomial variable density mask_lambda according to pdf
-        If input_mask is given then output_mask would be mask_lambda*input_mask if not then output_mask = mask_lambda
-        Assumes input_mask has no batch dimensions
-        Does not use pixelwise
-        Return a mask of size img_size
         """
-        mask_lambda = self.poly_generator.step(batch_size=1)["mask"].squeeze(0)
+        Create one batch of splitting mask using the split_generator
+
+        :param torch.Tensor, input_mask
+
+        """
+        mask_lambda = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
             input_mask = input_mask.to(self.device)  # to device
             # rng should be shuffled for each batch
             # get mask from pdf
             mask = mask_lambda * input_mask
         else:
-            mask = mask_lambda  # if data is already sub-sampled
+            mask = mask_lambda  # if data is already sub-sampled / no input_mask
         return {"mask": mask, "mask_lambda": mask_lambda}
 
 
@@ -375,6 +341,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
+        pdf_dim: str = "2D",
         center_block: Union[Tuple[int], int] = (8, 8),
         device: torch.device = torch.device("cpu"),
         rng: torch.Generator = None,
@@ -400,6 +367,31 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             if isinstance(center_block, int)
             else center_block
         )
+        self.pdf_dim = pdf_dim
+
+    def get_pdf(self, shape):
+        """
+        Generate a Gaussian distribution.
+
+        :param tuple shape: (nx, ny) dimensions.
+        :return: Gaussian Tensor of shape (nx, ny)
+        """
+        nx, ny = shape
+        centerx, centery = nx // 2, ny // 2
+
+        x, y = torch.meshgrid(
+            torch.arange(0, nx, 1, device=self.device),
+            torch.arange(0, ny, 1, device=self.device),
+            indexing="ij",
+        )
+
+        gaussian = torch.exp(
+            -(
+                (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
+                + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
+            )
+        )
+        return gaussian
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         r"""
@@ -436,20 +428,10 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         nx, ny = input_mask.shape[-2:]
         centerx, centery = nx // 2, ny // 2
 
-        x, y = torch.meshgrid(
-            torch.arange(0, nx, 1, device=self.device),
-            torch.arange(0, ny, 1, device=self.device),
-            indexing="ij",
-        )
-
         # Create PDF
-        gaussian = torch.exp(
-            -(
-                (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
-                + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
-            )
-        )
-        prob_mask = input_mask * gaussian[..., :, :]
+        gaussian = self.get_pdf((nx, ny))
+
+        prob_mask = input_mask * gaussian[..., :, :]  # 2D prob map
 
         prob_mask[
             ...,
