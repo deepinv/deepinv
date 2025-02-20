@@ -151,13 +151,6 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         """
         pixelwise = self.check_pixelwise(input_mask)
 
-        if self.random_split_ratio:
-            self.split_ratio = (
-                torch.rand(1, generator=self.rng, **self.factory_kwargs)
-                * (self.max_split_ratio - self.min_split_ratio)
-                + self.min_split_ratio
-            )
-
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
             input_mask = input_mask.to(self.device)
             # Sample indices from given input mask

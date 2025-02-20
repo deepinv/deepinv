@@ -77,7 +77,8 @@ denoisers = [
     "pyiqa",
     "kornia",
     "torchkbnufft",
-    "libcpab"
+    "libcpab",
+    "sigpy",
 ]
 
 # optional dependencies for specific datasets

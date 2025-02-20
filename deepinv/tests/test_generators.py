@@ -60,7 +60,7 @@ def find_generator(name, size, num_channels, device, dtype):
 
     :param name: operator name
     :param device: (torch.device) cpu or cuda:0
-    :return: (deepinv.physics.Physics) forward operator.
+    :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
     if name == "MotionBlurGenerator":
         g = dinv.physics.generator.MotionBlurGenerator(

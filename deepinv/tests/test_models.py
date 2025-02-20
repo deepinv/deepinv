@@ -1,8 +1,10 @@
 import sys
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
+from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 
 MODEL_LIST_1_CHANNEL = [
@@ -594,6 +596,56 @@ def test_time_agnostic_net():
     y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
     x_net = net(y, None)
     assert x_net.shape == y.shape
+
+
+@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet"))
+def test_varnet(varnet_type, device):
+
+    def dummy_dataset(imsize, device):
+        return DummyCircles(samples=1, imsize=imsize)
+
+    x = dummy_dataset((2, 8, 8), device=device)[0].unsqueeze(0)
+    physics = dinv.physics.MRI(
+        mask=dinv.physics.generator.GaussianMaskGenerator(
+            x.shape[1:], acceleration=2, device=device
+        ).step()["mask"],
+        device=device,
+    )
+    y = physics(x)
+
+    class DummyMRIDataset(Dataset):
+        def __getitem__(self, i):
+            return x[0], y[0]
+
+        def __len__(self):
+            return 1
+
+    model = dinv.models.VarNet(
+        num_cascades=3,
+        mode=varnet_type,
+        denoiser=dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device),
+    ).to(device)
+
+    model = dinv.Trainer(
+        model=model,
+        physics=physics,
+        optimizer=torch.optim.Adam(model.parameters()),
+        train_dataloader=DataLoader(DummyMRIDataset()),
+        epochs=50,
+        save_path=None,
+        plot_images=False,
+        compare_no_learning=True,
+        device=device,
+        global_optimizer_step=True,
+    ).train()
+
+    x_hat = model(y, physics)
+    x_init = physics.A_adjoint(y)
+
+    assert x_hat.shape == x_init.shape
+
+    psnr = dinv.metric.PSNR()
+    assert psnr(x_init, x) < psnr(x_hat, x)
 
 
 def test_pannet():

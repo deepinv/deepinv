@@ -22,7 +22,7 @@ help:
 
 # This is deprecated, use html-no-examples instead
 html-noplot:
-	$(SPHINXBUILD) -D plot_gallery=0 -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
+	$(SPHINXBUILD) -W -D plot_gallery=0 -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
@@ -32,7 +32,7 @@ html-fast:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 html-pattern:
-	$(SPHINXBUILD) -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
+	$(SPHINXBUILD) -W -D sphinx_gallery_conf.filename_pattern=$(PATTERN) -D sphinx_gallery_conf.run_stale_examples=True -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
 	@echo
 	@echo "Build finished. The HTML pages are in _build/html"
 
@@ -42,6 +42,7 @@ clean:
 	rm -rf source/generated/
 	rm -rf source/gen_modules/
 	rm -rf source/api/stubs/
+	rm source/sg_execution_times.rst
 
 clean-win:
 	@if exist $(BUILDDIR) rmdir /s /q $(BUILDDIR)
@@ -49,3 +50,4 @@ clean-win:
 	@if exist source\generated rmdir /s /q source\generated
 	@if exist source\gen_modules rmdir /s /q source\gen_modules
 	@if exist source\api\stubs rmdir /s /q source\api\stubs
+	@if exist source\sg_execution_times.rst del source\sg_execution_times.rst

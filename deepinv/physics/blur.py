@@ -29,7 +29,7 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
@@ -62,7 +62,6 @@ class Downsampling(LinearPhysics):
         factor=2,
         device="cpu",
         padding="circular",
-        normalize=False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -72,8 +71,8 @@ class Downsampling(LinearPhysics):
         self.imsize = img_size
         self.padding = padding
         self.device = device
+        self.filter = filter
         self.update_parameters(filter=filter, factor=factor, **kwargs)
-        self.normalize = normalize
 
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
@@ -90,9 +89,6 @@ class Downsampling(LinearPhysics):
             x = conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
-
-        if self.normalize:
-            x = x * self.factor
 
         return x
 
@@ -131,8 +127,6 @@ class Downsampling(LinearPhysics):
             else:  # this may be slow
                 x = conv_transpose2d(x, self.filter, padding=self.padding)
 
-        if self.normalize:
-            x = x * self.factor
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True):
@@ -209,14 +203,13 @@ class Downsampling(LinearPhysics):
         """
         if factor is not None:
             self.factor = factor
+
         if isinstance(filter, torch.nn.Parameter):
             self.filter = filter.requires_grad_(False).to(self.device)
         if isinstance(filter, torch.Tensor):
             self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
                 self.device
             )
-        # elif filter is None:  # TODO: check if filter can be None
-        #     self.filter = filter
         elif filter == "gaussian":
             self.filter = torch.nn.Parameter(
                 gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
@@ -229,8 +222,10 @@ class Downsampling(LinearPhysics):
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
             ).to(self.device)
-        else:
-            self.filter = filter
+        elif filter == "sinc":
+            self.filter = torch.nn.Parameter(
+                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
+            ).to(self.device)
 
         if self.filter is not None:
             self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
@@ -258,9 +253,12 @@ class Blur(LinearPhysics):
 
     where :math:`*` denotes convolution and :math:`w` is a filter.
 
-    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D, containing the blur filter, e.g., :meth:`deepinv.physics.blur.gaussian_filter`.
-    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``. If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image. (default is ``'valid'``). Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
+    :param torch.Tensor filter: Tensor of size (b, 1, h, w) or (b, c, h, w) in 2D; (b, 1, d, h, w) or (b, c, d, h, w) in 3D,
+        containing the blur filter, e.g., :func:`deepinv.physics.blur.gaussian_blur`.
+    :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
+        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
+        otherwise the blurred output has the same size as the image. (default is ``'valid'``).
+        Only ``padding='valid'`` and  ``padding = 'circular'`` are implemented in 3D.
     :param str device: cpu or cuda.
 
 
@@ -271,9 +269,9 @@ class Blur(LinearPhysics):
 
     .. note::
 
-        This class uses the highly optimized :meth:`torch.nn.functional.conv2d` for performing the convolutions in 2D
-        and FFT for performing the convolutions in 3D as implemented in :meth:`deepinv.physics.functional.conv3d_fft`.
-        It uses FFT based convolutions in 3D since :meth:`torch.functional.nn.conv3d` is slow for large kernels.
+        This class uses the highly optimized :func:`torch.nn.functional.conv2d` for performing the convolutions in 2D
+        and FFT for performing the convolutions in 3D as implemented in :func:`deepinv.physics.functional.conv3d_fft`.
+        It uses FFT based convolutions in 3D since :func:`torch.nn.functional.conv3d` is slow for large kernels.
 
     |sep|
 
@@ -368,7 +366,7 @@ class BlurFFT(DecomposablePhysics):
 
     :param tuple img_size: Input image size in the form (C, H, W).
     :param torch.Tensor filter: torch.Tensor of size (1, c, h, w) containing the blur filter with h<=H, w<=W and c=1 or c=C e.g.,
-        :meth:`deepinv.physics.blur.gaussian_filter`.
+        :func:`deepinv.physics.blur.gaussian_blur`.
     :param str device: cpu or cuda
 
     |sep|
@@ -500,7 +498,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the space varying blur operator to the input image.
 
@@ -525,7 +523,7 @@ class SpaceVaryingBlur(LinearPhysics):
 
     def A_adjoint(
         self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
-    ) -> Tensor:
+    ) -> torch.Tensor:
         r"""
         Applies the adjoint operator.
 
@@ -625,7 +623,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-def kaiser_window(beta, length):
+def kaiser_window(beta, length, device="cpu"):
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
         raise ValueError("beta must be greater than 0")
@@ -634,12 +632,12 @@ def kaiser_window(beta, length):
     if length == 1:
         return torch.tensor([1.0])
     half = (length - 1) / 2
-    n = torch.arange(length)
-    beta = torch.tensor(beta)
+    n = torch.arange(length, device=device)
+    beta = torch.tensor(beta, device=device)
     return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
-def sinc_filter(factor=2, length=11, windowed=True):
+def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     r"""
     Anti-aliasing sinc filter multiplied by a Kaiser window.
 
@@ -649,7 +647,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
 
         A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
 
-    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
 
     .. math::
 
@@ -664,9 +662,9 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1 / factor
+    deltaf = 2 * (2 - 1.4142136) / factor
 
-    n = torch.arange(length) - (length - 1) / 2
+    n = torch.arange(length, device=device) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
@@ -678,7 +676,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
         else:
             beta = 0.1102 * (A - 8.7)
 
-        filter = filter * kaiser_window(beta, length)
+        filter = filter * kaiser_window(beta, length, device=device)
 
     filter = filter.unsqueeze(0)
     filter = filter * filter.T

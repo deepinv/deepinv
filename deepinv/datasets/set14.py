@@ -34,24 +34,24 @@ class Set14HR(torch.utils.data.Dataset):
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
-    :param callable, optional transform: A function/transform that takes in a PIL image
+    :param Callable transform:: (optional)  A function/transform that takes in a PIL image
         and returns a transformed version. E.g, ``torchvision.transforms.RandomCrop``
 
     |sep|
 
     :Examples:
 
-        Instantiate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet ::
 
-        >>> import shutil
-        >>> from deepinv.datasets import Set14HR
-        >>> dataset = Set14HR(root="Set14", download=True)  # download raw data at root and load dataset
-        Dataset has been successfully downloaded.
-        >>> print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
-        True
-        >>> print(len(dataset))                                  # check that we have 14 images
-        14
-        >>> shutil.rmtree("Set14")                          # remove raw data from disk
+            import shutil
+            from deepinv.datasets import Set14HR
+            dataset = Set14HR(root="Set14", download=True)  # download raw data at root and load dataset
+            Dataset has been successfully downloaded.
+            print(dataset.check_dataset_exists())                # check that raw data has been downloaded correctly
+            True
+            print(len(dataset))                                  # check that we have 14 images
+            14
+            shutil.rmtree("Set14")                          # remove raw data from disk
 
     """
 

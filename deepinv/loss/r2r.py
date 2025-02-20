@@ -5,8 +5,7 @@ import math
 import warnings
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.physics.noise import GaussianNoise, PoissonNoise, GammaNoise
-from deepinv.physics.noise import NoiseModel
+from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise, GammaNoise
 
 
 class R2RLoss(Loss):
@@ -119,7 +118,7 @@ class R2RLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction model.
-        :return: (torch.Tensor) R2R loss.
+        :return: (:class:`torch.Tensor`) R2R loss.
         """
 
         y1 = model.get_corruption()
@@ -143,9 +142,10 @@ class R2RLoss(Loss):
         for computational efficiency, whereas at test time, we use multiple samples for better performance.
 
         :param torch.nn.Module model: Reconstruction model.
-        :param NoiseModel noise_model: Noise model of the natural exponential family. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
+        :param NoiseModel noise_model: Noise model of the natural exponential family.
+            Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
         :param float alpha: Scaling factor of the corruption.
-        :return: (torch.nn.Module) Modified model.
+        :return: (:class:`torch.nn.Module`) Modified model.
         """
 
         return R2RModel(

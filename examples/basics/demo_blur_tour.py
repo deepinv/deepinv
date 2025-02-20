@@ -80,8 +80,8 @@ plot(
 )
 
 # %%
-# For circular boundary conditions, an FFT implementation is also available. It is slower that :meth:`deepinv.physics.Blur`,
-# but inherits from :meth:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately.
+# For circular boundary conditions, an FFT implementation is also available. It is slower that :class:`deepinv.physics.Blur`,
+# but inherits from :class:`deepinv.physics.DecomposablePhysics`, so that the pseudo-inverse and regularized inverse are computed faster and more accurately.
 #
 physics = dinv.physics.BlurFFT(img_size=x_rgb[0].shape, filter=filter_0, device=device)
 y = physics(x_rgb)
