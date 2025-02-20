@@ -16,8 +16,8 @@ With a datafit term :math:`f`, the iterations are:
 
     \begin{equation*}
     \begin{aligned}
-    &x_k = x_{k-1} - \eta \nabla f(x_{k-1}) \\
-    &z_k = (1-t_k) xkt + t_k \varepsilon_k \\
+    &x_k = x_{k-1} - \eta_k \nabla f(x_{k-1}) \\
+    &z_k = (1-t_k) x_k + t_k \varepsilon_k \\
     &x_{k+1} = D_\theta(z_k, t_k)
     \end{aligned}
     \end{equation*}
@@ -32,7 +32,7 @@ pretrained flow matching model:
 
 .. math::
 
-    D_\theta(x, t) = x + (1-t) v_\theta(x,t),
+    D_\theta(x, t) = x + (1-t) v_\theta(x, t) \, .
 
 """
 
@@ -62,7 +62,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load the Flow Matching generative model
 #  --------------------------------------
-# PnPFlow uses a denoiser which is built on a flow matching velocity.
+# PnPFlow uses a denoiser which is built on a Flow Matching velocity.
 # In this example, we will use a Flow Matching model trained with minibatch OT
 # on the CelebA dataset.
 
@@ -74,17 +74,15 @@ denoiser = FlowUNet(input_channels=3, input_height=128,
 # First, we consider the problem of mask inpainting. The forward operator is
 # implemented in :class:`deepinv.physics.Inpainting`. The mask we use is
 # a centered black square with size 60x60. We additionally use Additive
-# White Gaussian Noise of standard deviation 12.5/255.
+# White Gaussian Noise of standard deviation 25/255.
 
 url = get_image_url("celeba_example2.jpg")
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
-# x = 2 * x_true.clone() - 1  # values in [-1, 1]
-x_true = 2 * x_true - 1
-# x = x_true.clone()
+x_true = 2 * x_true - 1  # model was trained on pixel values in [-1, 1]
 mask = torch.ones_like(x_true)
 mask[:, :, 32:96, 32:96] = 0
-sigma_noise = 25 / 255.0  # noise level
+sigma_noise = 25 / 255  # noise level
 
 physics = dinv.physics.Inpainting(
     mask=mask,
@@ -93,7 +91,6 @@ physics = dinv.physics.Inpainting(
     device=device,
 )
 y = physics(x_true)
-# y = physics(2 * x_true - 1)
 
 # %%
 # Run PnPFlow
@@ -132,7 +129,7 @@ with torch.no_grad():
 
 # Note: in some settings, the performance may be improved by using n_avg > 1.
 # For the gradient step `z = x_hat - lr_t * data_fidelity.grad(x_hat, y, physics)`, 
-# we have used an iteration-dependent learning rate,
+# we have used an iteration-dependent learning rate.
 
 
 # %% Plot results
