@@ -78,8 +78,8 @@ class SKRockIterator(SamplingIterator):
         sigma = cur_params["sigma"]
 
         # Define posterior gradient
-        posterior = lambda u: -cur_data_fidelity.grad(u, y, physics) + alpha * (
-            -cur_prior.grad(u, sigma)
+        posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + alpha * (
+            cur_prior.grad(u, sigma)
         )
 
         # First kind Chebyshev functions
