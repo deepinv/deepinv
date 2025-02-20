@@ -6,7 +6,7 @@ The example implements the PnP-Flow flow matching algorithm for image reconstruc
  
 The full algorithm is implemented in :class:`deepinv.optim.pnpflow.PnPFlow`.
 
-PnPFlow iterates on timesteps :math:`t \in [0,1]`. It alternates between 1) 
+PnPFlow alternates between 1) 
 a gradient step on the data fidelity, 2) an interpolation step and  3) 
 a denoising step.
 
@@ -16,14 +16,18 @@ With a datafit term :math:`f`, the iterations are:
 
     \begin{equation*}
     \begin{aligned}
-    &x_t = x_{t-1} - \eta \nabla f(x_{t-1}) \\
-    &z_t = (1-t) x_t + t \varepsilon_t \\
-    &x_{t+1} = D_\theta(z_t, t)
+    &x_k = x_{k-1} - \eta \nabla f(x_{k-1}) \\
+    &z_k = (1-t_k) xkt + t_k \varepsilon_k \\
+    &x_{k+1} = D_\theta(z_k, t_k)
     \end{aligned}
     \end{equation*}
 
-where :math:`\varepsilon_t \sim \mathcal N(0, \mathrm{Id})`, and the denoiser
-:math:`D_\theta` builds upon the velocity field :math:`v_\theta` of a 
+where 
+
+- :math:`\varepsilon_k \sim \mathcal N(0, \mathrm{Id})`
+- :math:`t_k` is a sequence of timesteps with values in :math:`[0, 1]`, typically 
+:math:`t_k = k / n_\mathrm{iter}`
+- the denoiser :math:`D_\theta` builds upon the velocity field :math:`v_\theta` of a 
 pretrained flow matching model:
 
 .. math::
@@ -109,9 +113,9 @@ def interpolation_step(x, t):
     return tv * x + (1 - tv) * torch.randn_like(x)
 
 
-# def denoiser_step(x, t):
-#     """Denoise based on velocity field of flow matching model."""
-#     return x + (1 - t.view(-1, 1, 1, 1)) * denoiser.forward_velocity(x, t)
+def denoiser_step(x, t):
+    """Denoise based on velocity field of flow matching model."""
+    return x + (1 - t.view(-1, 1, 1, 1)) * denoiser.forward_velocity(x, t)
 
 
 with torch.no_grad():
@@ -122,11 +126,13 @@ with torch.no_grad():
         x_new = torch.zeros_like(x_hat)
         for _ in range(n_avg):
             z_tilde = interpolation_step(z, t)
-            x_new += denoiser(z_tilde, sigma=1-t)
+            x_new += denoiser_step(z_tilde, t)
         x_new /= n_avg
         x_hat = x_new
 
 # Note: in some settings, the performance may be improved by using n_avg > 1.
+# For the gradient step `z = x_hat - lr_t * data_fidelity.grad(x_hat, y, physics)`, 
+# we have used an iteration-dependent learning rate,
 
 
 # %% Plot results
@@ -135,14 +141,13 @@ plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
     save_dir = '.',
-    save_fn="celeba3.png",
+    save_fn="celeba.png",
 )
 
-print("PSNR noisy image :", dinv.metric.PSNR()((y + 1.0) * 0.5, x_true).item())
-print("PSNR restored image :", dinv.metric.PSNR()
-      ((x_hat + 1.0) * 0.5, x_true).item())
+psnr = dinv.metric.PSNR()
+print(f"PSNR noisy image: {psnr(y, x_true).item():.2f}")
+print(f"PSNR denoised image: {psnr(x_hat, x_true).item():.2f}")
 
-1/ 0
 
 # %%
 # Deblurring example
@@ -165,8 +170,8 @@ pnpflow = PnPFlow(
 url = get_image_url("celeba_example2.jpg")
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
-x = x_true.clone()
-sigma_noise = 12.5 / 255.0  # noise level
+x_true = 2 * x_true - 1
+sigma_noise = 25 / 255.0  # noise level
 
 physics = dinv.physics.BlurFFT(
     img_size=x.shape[1:],
@@ -174,11 +179,11 @@ physics = dinv.physics.BlurFFT(
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(2 * x - 1)
+y = physics(x)
 
 x_hat = pnpflow(y, physics)
 
-imgs = [y, x_true, (x_hat + 1.0) * 0.5]
+imgs = [y, x_true, x_hat]
 plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
@@ -186,6 +191,5 @@ plot(
     save_dir=".",
 )
 
-print("PSNR noisy image :", dinv.metric.PSNR()((y + 1.0) * 0.5, x_true).item())
-print("PSNR restored image :", dinv.metric.PSNR()
-      ((x_hat + 1.0) * 0.5, x_true).item())
+print(f"PSNR noisy image: {psnr(y, x_true).item():.2f}")
+print(f"PSNR denoised image: {psnr(x_hat, x_true).item():.2f}")
