@@ -11,12 +11,14 @@ class SKRockIterator(SamplingIterator):
     r"""
     Single iteration of the SK-ROCK (Stabilized Runge-Kutta-Chebyshev) Algorithm.
 
-    Expected cur_params dict:
-    :param float step_size: Step size of the algorithm
-    :param float alpha: Regularization parameter
-    :param int inner_iter: Number of internal SK-ROCK iterations
-    :param float eta: Damping parameter
-    :param float sigma: Noise level for the prior
+    Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic
+    approximation to accelerate the standard Unadjusted Langevin Algorithm.
+
+    The algorithm was introduced in "Accelerating proximal Markov chain Monte Carlo by using an explicit stabilised method"
+    by L. Vargas, M. Pereyra and K. Zygalakis (https://arxiv.org/abs/1908.08845)
+
+    - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
+    - For convergence, SKROCK requires that ``step_size`` smaller than :math:`\frac{1}{L+\|A\|_2^2}`
     """
 
     def __init__(self):
@@ -33,6 +35,41 @@ class SKRockIterator(SamplingIterator):
         *args,
         **kwargs,
     ):
+        r"""
+        Performs a single SK-ROCK sampling step.
+
+        :param torch.Tensor x: Current state :math:`X_t` of the Markov chain
+        :param torch.Tensor y: Observed measurements/data tensor
+        :param Physics physics: Forward operator 
+        :param DataFidelity cur_data_fidelity: Negative log-likelihood function
+        :param ScorePrior cur_prior: Prior
+        :param dict cur_params: Dictionary containing the algorithm parameters (see table below)
+
+        .. list-table::
+           :widths: 15 10 75
+           :header-rows: 1
+
+           * - Parameter
+             - Type
+             - Description
+           * - step_size
+             - float
+             - Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz constant
+           * - alpha
+             - float
+             - Regularization parameter :math:`\alpha`
+           * - inner_iter
+             - int
+             - Number of internal iterations
+           * - eta
+             - float
+             - Damping parameter :math:`\eta`
+           * - sigma
+             - float
+             - Noise level for the score prior denoiser. A larger value of sigma will result in a more regularized reconstruction
+        :return: Next state :math:`X_{t+1}` in the Markov chain
+        :rtype: torch.Tensor
+        """
         # Extract parameters from cur_params
         step_size = cur_params["step_size"]
         alpha = cur_params["alpha"]

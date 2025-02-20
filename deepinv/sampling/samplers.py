@@ -16,6 +16,44 @@ from deepinv.sampling.utils import Welford
 
 
 class BaseSample(Reconstructor):
+    r"""
+    Base class for Monte Carlo sampling.
+
+    This class can be used to create new Monte Carlo samplers by implementing the sampling kernel through :class:`deepinv.sampling.SamplingIterator`:
+
+    ::
+
+        # define your sampler (possibly a Markov kernel which depends on the previous sample)
+        class MyIterator(SamplingIterator):
+            def __init__(self):
+                super().__init__()
+
+            def forward(self, x, y, physics, data_fidelity, prior, params_algo):
+                # run one sampling kernel iteration
+                new_x = f(x, y, physics, data_fidelity, prior, params_algo)
+                return new_x
+        
+        # create the sampler
+        sampler = BaseSampler(MyIterator(), prior, data_fidelity, iterator_params)
+
+        # compute posterior mean and variance of reconstruction of x
+        mean, var = sampler(y, physics)
+
+    This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
+    Monte Carlo samples. It can also maintain a history of the `history_size` most recent samples.
+
+    :param deepinv.sampling.SamplingIterator iterator: The sampling iterator that defines the MCMC kernel
+    :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics
+    :param deepinv.optim.Prior prior: Negative log-prior
+    :param dict params_algo: Dictionary containing the parameters for the algorithm 
+    :param int num_iter: Number of Monte Carlo iterations. Default: 100
+    :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
+    :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
+    :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
+    :param int history_size: Number of most recent samples to store in memory. Default: 5
+    :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
+    """
+
     def __init__(
         self,
         iterator: SamplingIterator,
@@ -51,15 +89,33 @@ class BaseSample(Reconstructor):
         seed: int | None = None,
         **kwargs,
     ):
-        """
-        Run the sampling chain to generate samples from the posterior and return averages of relevant statistics.
+        r"""
+        Execute the MCMC sampling chain and compute posterior statistics.
 
-        :param torch.Tensor y: Measurements
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param torch.Tensor X_init: Initial state. If None, will use A^T(y) as initial state
-        :param kwargs: Additional arguments passed to the iterator (e.g. proposal distributions)
-        :return: Mean and variance of g_statistics. If single g_statistic, returns (mean, var) as tensors.
-                If multiple g_statistics, returns (means, vars) as lists of tensors.
+        This method runs the main MCMC sampling loop to generate samples from the posterior
+        distribution and compute their statistics using Welford's online algorithm.
+
+        :param torch.Tensor y: The observed measurements/data tensor
+        :param Physics physics: Forward operator of your inverse problem.
+        :param torch.Tensor X_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+            Default: ``None``
+        :param int seed: Optional random seed for reproducible sampling.
+            Default: ``None``
+        :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
+        :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
+            | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
+
+        Example:
+            >>> # Basic usage with default settings
+            >>> sampler = BaseSample(iterator, data_fidelity, prior)
+            >>> mean, var = sampler(measurements, forward_operator)
+
+            >>> # Using multiple statistics
+            >>> sampler = BaseSample(
+            ...     iterator, data_fidelity, prior,
+            ...     g_statistics=[lambda x: x, lambda x: x**2]
+            ... )
+            >>> means, vars = sampler(measurements, forward_operator)
         """
         # Set random seed if provided
         if seed is not None:
@@ -109,10 +165,20 @@ class BaseSample(Reconstructor):
         return means, vars
 
     def get_history(self) -> list[torch.Tensor]:
-        """
-        Returns the current history of (thinned) samples.
+        r"""
+        Retrieve the stored history of samples.
 
-        Returns:
-            list[torch.Tensor]: List of stored samples from oldest to newest.
+        Returns a list of samples. 
+        
+        Only includes samples after the burn-in period and, thinning.
+
+        :return: List of stored samples from oldest to newest
+        :rtype: list[torch.Tensor]
+
+        Example:
+            >>> sampler = BaseSample(iterator, data_fidelity, prior, history_size=5)
+            >>> _ = sampler(measurements, forward_operator)
+            >>> samples = sampler.get_history()
+            >>> latest_sample = samples[-1]  # Get most recent sample
         """
         return list(self.history)
