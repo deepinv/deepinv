@@ -352,7 +352,14 @@ class K_Weighted_Loss(SplittingLoss):
 
     :Example:
 
-    >>>
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=4)
+    >>> split_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=2)
+    >>> mask_generator = dinv.physics.generator.inpainting.MultiplicativeSplittingMaskGenerator((2, 128, 128), split_generator)
+    >>> pdf = {"omega": physics_generator.get_pdf(), "lambda": split_generator.get_pdf()}
+    >>> loss = dinv.loss.measplit.K_Weighted_Loss(mask_generator=mask_generator, pdf=pdf)
+
     """
 
     def __init__(self, mask_generator: PhysicsGenerator, pdf: dict, device="cpu"):
