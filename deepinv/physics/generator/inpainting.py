@@ -341,7 +341,6 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
-        pdf_dim: str = "2D",
         center_block: Union[Tuple[int], int] = (8, 8),
         device: torch.device = torch.device("cpu"),
         rng: torch.Generator = None,
@@ -367,7 +366,6 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             if isinstance(center_block, int)
             else center_block
         )
-        self.pdf_dim = pdf_dim
 
     def get_pdf(self, shape):
         """
@@ -513,7 +511,6 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         mask_out = torch.zeros_like(input_mask)
         mask_out[:, ::2] = input_mask[:, ::2]
         return mask_out
-
 
 class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator):
     """Artifact2Artifact splitting mask generator for dynamic data.

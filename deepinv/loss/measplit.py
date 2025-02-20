@@ -400,7 +400,7 @@ class K_Weighted_Loss(SplittingLoss):
         residual = super().forward(x_net, y, physics, model, normalize_loss=False)
 
         # Apply weight
-        weighted_residual = self.weight * residual
+        weighted_residual = self.weight.expand_as(residual) * residual
 
         # Compute l2 loss
         loss = (weighted_residual**2).sum()
