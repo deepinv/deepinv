@@ -76,10 +76,11 @@ url = get_image_url("celeba_example2.jpg")
 x_true = load_url_image(url=url, img_size=128,
                         resize_mode="resize", device=device)
 # x = 2 * x_true.clone() - 1  # values in [-1, 1]
+x_true = 2 * x_true - 1
 # x = x_true.clone()
 mask = torch.ones_like(x_true)
 mask[:, :, 32:96, 32:96] = 0
-sigma_noise = 12.5 / 255.0  # noise level
+sigma_noise = 25 / 255.0  # noise level
 
 physics = dinv.physics.Inpainting(
     mask=mask,
@@ -87,7 +88,8 @@ physics = dinv.physics.Inpainting(
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
-y = physics(2 * x_true - 1)
+y = physics(x_true)
+# y = physics(2 * x_true - 1)
 
 # %%
 # Run PnPFlow
@@ -120,30 +122,20 @@ with torch.no_grad():
         x_new = torch.zeros_like(x_hat)
         for _ in range(n_avg):
             z_tilde = interpolation_step(z, t)
-            x_new += denoiser(z_tilde, 1-t)
+            x_new += denoiser(z_tilde, sigma=1-t)
         x_new /= n_avg
         x_hat = x_new
 
 # Note: in some settings, the performance may be improved by using n_avg > 1.
 
-# pnpflow = PnPFlow(
-#     denoiser,
-#     data_fidelity=L2(),
-#     verbose=True,
-#     max_iter=50,
-#     device=device,
-#     lr=1.0,
-#     lr_exp=0.5,
-# )
 
-# x_hat = pnpflow(y, physics)
 # %% Plot results
-imgs = [y, x_true, 0.5 *(x_hat + 1)]
+imgs = [y, x_true, x_hat]
 plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
     save_dir = '.',
-    save_fn="celeba.png",
+    save_fn="celeba3.png",
 )
 
 print("PSNR noisy image :", dinv.metric.PSNR()((y + 1.0) * 0.5, x_true).item())
