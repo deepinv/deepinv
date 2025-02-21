@@ -275,7 +275,7 @@ class LpNorm(Metric):
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
 
-    Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
+    Otherwise, it is the one-sided error :cite:`jacques2013robust`, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
     .. note::
