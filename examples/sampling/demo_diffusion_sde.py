@@ -54,8 +54,7 @@ import numpy as np
 import deepinv as dinv
 from deepinv.models import NCSNpp, EDMPrecond
 
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 
 # %%
@@ -342,23 +341,23 @@ except FileNotFoundError:
 # %%
 # Posterior Sampling for Inverse Problems
 # ---------------------------------------
-
+#
 # The `deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
-
+#
 # Consider the acquisition model:
 # .. math::
 #     y = \noise{\forw{x}}.
-
+#
 # This class defines the reverse-time SDE for the posterior distribution :math:`p(x|y)` given the data :math:`y`:
-
+#
 # .. math::
 #     d\, x_t = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla_{x_t} \log p_t(x_t | y) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}
-
+#
 # where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :math:`w` is the standard Brownian motion. The drift term and the diffusion coefficient are defined by the underlying (unconditional) forward-time SDE `unconditional_sde`. The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be decomposed using the Bayes' rule:
-
+#
 # .. math::
 #     \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
-
+#
 # The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
 
 from deepinv.sampling import PosteriorDiffusion
@@ -384,7 +383,8 @@ rng = torch.Generator(device).manual_seed(42)
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
 solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
 
-# When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
+# %%
+#  When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
 posterior = PosteriorDiffusion(
     data_fidelity=Zero(),
     unconditional_sde=sde,
@@ -402,6 +402,7 @@ solution = posterior.forward(
 dinv.utils.plot(solution.sample, titles="Unconditional generation", show=True)
 
 
+# %%
 # When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
 # For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
 
