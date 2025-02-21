@@ -257,7 +257,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def metadata_cache_manager(self, root: Union[str, Path], samples: Any):
         """Read/write metadata cache file for populating list of sample ids.
 
-        :param Union[str, Path] root: root dir to save to metadata cache
+        :param Union[str, pathlib.Path] root: root dir to save to metadata cache
         :param Any samples: iterable (list, dict etc.) for populating with samples to read/write to metadata cache
         :yield: samples, either populated from metadata cache, or blank, to be yielded to be written to.
         """
@@ -367,7 +367,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         """Open file and retrieve metadata.
         Metadata includes number of slices in volume.
 
-        :param Union[str, Path, os.PathLike] fname: filename to open
+        :param Union[str, pathlib.Path, os.PathLike] fname: filename to open
         :return: metadata dict of key-value pairs.
         """
         with h5py.File(fname, "r") as hf:
