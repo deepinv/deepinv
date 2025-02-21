@@ -12,7 +12,7 @@ import torch
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim.optimizers import ProximalGradientDescent
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.utils.plotting import plot, plot_curves
 
@@ -99,8 +99,7 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 
 # instantiate the algorithm class to solve the IP problem.
 # initialize with the rescaled adjoint such that the initialization lives already at the correct scale
-model = optim_builder(
-    iteration="PGD",
+model = ProximalGradientDescent(
     prior=prior,
     data_fidelity=data_fidelity,
     early_stop=early_stop,
