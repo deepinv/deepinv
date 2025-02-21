@@ -28,7 +28,7 @@ associated reference and relevant details. All pretrained weights are hosted on
        trained on noise levels in [0, 50]/255. `DRUNet original grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `DRUNET original color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
    * - :class:`deepinv.models.GSDRUNet`
      - weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 50]/255.
-       `GSDRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>`_.
+       `GSDRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>` and `GSDRUNet grayscale weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet_grayscale_torch.ckpt>`.
    * - :class:`deepinv.models.SCUNet`
      - from `SCUNet <https://github.com/cszn/SCUNet>`_,
        trained on images degraded with synthetic realistic noise and camera artefacts. `SCUNet color weights <https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true>`_.

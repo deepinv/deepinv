@@ -28,8 +28,8 @@ class Downsampling(LinearPhysics):
 
     where :math:`h` is a low-pass filter and :math:`S` is a subsampling operator.
 
-    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'`` or ``'bicubic'`` or a
-        custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
+        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the input image
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
@@ -86,6 +86,10 @@ class Downsampling(LinearPhysics):
         elif filter == "bicubic":
             self.filter = torch.nn.Parameter(
                 bicubic_filter(self.factor), requires_grad=False
+            ).to(device)
+        elif filter == "sinc":
+            self.filter = torch.nn.Parameter(
+                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
             ).to(device)
         else:
             raise Exception("The chosen downsampling filter doesn't exist")
@@ -147,7 +151,7 @@ class Downsampling(LinearPhysics):
             x = conv_transpose2d(x, self.filter, padding=self.padding)
         return x
 
-    def prox_l2(self, z, y, gamma, use_fft=True):
+    def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
         If the padding is circular, it computes the proximal operator with the closed-formula of
         https://arxiv.org/abs/1510.00143.
@@ -177,7 +181,7 @@ class Downsampling(LinearPhysics):
             r = torch.real(fft.ifft2(rc))
             return (z_hat - r) * gamma
         else:
-            return LinearPhysics.prox_l2(self, z, y, gamma)
+            return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
 
 class Blur(LinearPhysics):
@@ -587,7 +591,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
 
         A = 2.285 \cdot (L - 1) \cdot 3.14 \cdot \Delta f + 7.95
 
-    where :math:`\Delta f = 1 / \text{factor}`. Then, the beta parameter is computed as:
+    where :math:`\Delta f = 2 (2 - \sqrt{2}) / \text{factor}`. Then, the beta parameter is computed as:
 
     .. math::
 
@@ -602,13 +606,13 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 1 / factor
+    deltaf = 2 * (2 - 1.414213) / factor
 
     n = torch.arange(length) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
-        A = 2.285 * (length - 1) * 3.14 * deltaf + 7.95
+        A = 2.285 * (length - 1) * 3.14159 * deltaf + 7.95
         if A <= 21:
             beta = 0
         elif A <= 50:
