@@ -36,10 +36,7 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinxcontrib.bibtex",
 ]
-
-bibtex_bibfiles = ["references.bib"]  # Path to BibTeX file
 
 copybutton_exclude = ".linenos, .gp"
 
