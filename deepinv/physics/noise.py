@@ -143,7 +143,7 @@ class GaussianNoise(NoiseModel):
         :param float, torch.Tensor sigma: standard deviation of the noise.
         """
         if sigma is not None:
-            self.sigma = sigma
+            self.sigma = to_nn_parameter(sigma)
 
 
 class UniformGaussianNoise(NoiseModel):
@@ -235,7 +235,7 @@ class PoissonNoise(NoiseModel):
         self, gain=1.0, normalize=True, clip_positive=False, rng: torch.Generator = None
     ):
         super().__init__(rng=rng)
-        self.normalize = normalize
+        self.normalize = to_nn_parameter(normalize)
         self.update_parameters(gain=gain)
         self.clip_positive = clip_positive
 
@@ -265,7 +265,7 @@ class PoissonNoise(NoiseModel):
         :param float, torch.Tensor gain: gain of the noise.
         """
         if gain is not None:
-            self.gain = gain
+            self.gain = to_nn_parameter(gain)
 
 
 class GammaNoise(NoiseModel):
@@ -311,7 +311,7 @@ class GammaNoise(NoiseModel):
         :param float, torch.Tensor ell: noise level.
         """
         if l is not None:
-            self.l = l
+            self.l = to_nn_parameter(l)
 
 
 class PoissonGaussianNoise(NoiseModel):
@@ -368,10 +368,10 @@ class PoissonGaussianNoise(NoiseModel):
         :param float, torch.Tensor sigma: standard deviation of the noise.
         """
         if gain is not None:
-            self.gain = gain
+            self.gain = to_nn_parameter(gain)
 
         if sigma is not None:
-            self.sigma = sigma
+            self.sigma = to_nn_parameter(sigma)
 
 
 class UniformNoise(NoiseModel):
@@ -419,7 +419,7 @@ class UniformNoise(NoiseModel):
         :param float, torch.Tensor a: amplitude of the noise.
         """
         if a is not None:
-            self.a = a
+            self.a = to_nn_parameter(a)
 
 
 class LogPoissonNoise(NoiseModel):
@@ -485,7 +485,14 @@ class LogPoissonNoise(NoiseModel):
         :param float, torch.Tensor N0: normalization constant.
         """
         if mu is not None:
-            self.mu = mu
+            self.mu = to_nn_parameter(mu)
 
         if N0 is not None:
-            self.N0 = N0
+            self.N0 = to_nn_parameter(N0)
+
+
+def to_nn_parameter(x):
+    if isinstance(x, torch.Tensor):
+        return torch.nn.Parameter(x, requires_grad=False)
+    else:
+        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)
