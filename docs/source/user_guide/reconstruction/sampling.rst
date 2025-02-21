@@ -74,10 +74,10 @@ The second term is the conditional score function, and can be approximated by th
      - Define automatically the reverse-time SDE from a forward SDE and a denoiser. 
 
    * - :class:`deepinv.sampling.diffusion_sde.VarianceExplodingDiffusion`
-     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.diffusion_sde.DiffusionSDE`.
+     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.diffusion_sde.DiffusionSDE`
 
    * - :class:`deepinv.sampling.diffusion_sde.PosteriorDiffusion`
-     - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`.
+     - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
 
 We also provide generic methods for solving SDEs (and ODEs).
 
@@ -91,10 +91,10 @@ We also provide generic methods for solving SDEs (and ODEs).
      - Base class of the solvers.
 
    * - :class:`deepinv.sampling.diffusion_sde_solver.EulerSolver`
-     - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ .
+     - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ 
 
    * - :class:`deepinv.sampling.diffusion_sde_solver.HeunSolver`
-     - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_.
+     - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_
 
 
 

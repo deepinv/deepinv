@@ -251,6 +251,7 @@ class PosteriorDiffusion(Reconstructor):
     Posterior distribution sampling  for inverse problems using diffusion models by Reverse-time Stochastic Differential Equation (SDE).
 
     Consider the acquisition model:
+
     .. math::
         y = \noise{\forw{x}}.
 
@@ -378,6 +379,4 @@ class PosteriorDiffusion(Reconstructor):
                 x, t, *args, **kwargs
             ) - self.data_fidelity.grad(
                 x.to(torch.float32), y.to(torch.float32), physics, sigma
-            ).to(
-                self.dtype
-            )
+            ).to(self.dtype)

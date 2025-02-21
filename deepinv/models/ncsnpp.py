@@ -15,7 +15,7 @@ from .base import Denoiser
 
 class NCSNpp(Denoiser):
     r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
-    Equivalent to the original implementation by Song et al., available at `<https://github.com/yang-song/score_sde_pytorch`_.
+    Equivalent to the original implementation by Song et al., available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
     The model also supports an additional class condition model.
@@ -310,9 +310,9 @@ class NCSNpp(Denoiser):
             if sigma.ndim == 0:
                 return sigma[None].to(device, dtype).expand(batch_size)
             elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
+                assert sigma.size(0) == batch_size or sigma.size(0) == 1, (
+                    "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
+                )
                 return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
 
             else:
