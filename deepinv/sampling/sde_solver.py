@@ -180,7 +180,7 @@ class EulerSolver(BaseSDESolver):
     r"""
     Euler-Maruyama solver for SDEs.
 
-    This solver uses the Euler-Maruyama method to numerically integrate SDEs. It is a first-order method that 
+    This solver uses the Euler-Maruyama method to numerically integrate SDEs. It is a first-order method that
     approximates the solution using the following update rule:
 
     .. math::
@@ -192,7 +192,7 @@ class EulerSolver(BaseSDESolver):
     :param bool full_trajectory: Whether to return the full trajectory or just the final point.
     :param torch.Generator rng: A random number generator for reproducibility.
     """
-    
+
     def __init__(
         self, timesteps, full_trajectory: bool = False, rng: torch.Generator = None
     ):
@@ -221,6 +221,7 @@ class HeunSolver(BaseSDESolver):
     :param bool full_trajectory: Whether to return the full trajectory or just the final point.
     :param torch.Generator rng: A random number generator for reproducibility.
     """
+
     def __init__(
         self,
         timesteps,

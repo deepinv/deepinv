@@ -168,7 +168,7 @@ class DiffusionSDE(BaseSDE):
         :return torch.Tensor: the noise level at time step :attr:`t`.
         """
         raise NotImplementedError
-    
+
     def sample_init(
         self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
     ) -> Tensor:
@@ -401,4 +401,6 @@ class PosteriorDiffusion(Reconstructor):
                 x, t, *args, **kwargs
             ) - self.data_fidelity.grad(
                 x.to(torch.float32), y.to(torch.float32), physics, sigma
-            ).to(self.dtype)
+            ).to(
+                self.dtype
+            )
