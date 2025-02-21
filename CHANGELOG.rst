@@ -24,6 +24,7 @@ New Features
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
+- Weighted-SSDU loss function + more mask generators (:gh:`401` by `Keying Guo`_ and `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -283,3 +284,4 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
