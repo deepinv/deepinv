@@ -343,14 +343,14 @@ class WeightedSplittingLoss(SplittingLoss):
 
     .. math::
         \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
-    
+
     where
 
     .. math::
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
     and :math:`\mathbf{P}=\mathbb{E}[\M_i],\tilde{\mathbf{P}}=\mathbb{E}[\M_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
-    
+
     .. note::
 
         The loss should be used with :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` to match the original paper.
@@ -369,22 +369,19 @@ class WeightedSplittingLoss(SplittingLoss):
     >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
     >>> pdf = {"omega": physics_generator.get_pdf(), "lambda": split_generator.get_pdf()}
     >>> loss = dinv.loss.WeightedSplittingLoss(mask_generator=mask_generator, pdf=pdf)
-    
+
     """
 
     def __init__(
-        self, 
-        mask_generator: PhysicsGenerator, 
-        pdf: Dict[str, torch.Tensor], 
+        self,
+        mask_generator: PhysicsGenerator,
+        pdf: Dict[str, torch.Tensor],
     ):
 
-        super().__init__(
-            eval_split_input=False,
-            pixelwise=True
-        )
+        super().__init__(eval_split_input=False, pixelwise=True)
         self.mask_generator = mask_generator
         self.name = "WeightedSplitting"
-        self.pdf = pdf #TODO correct normalisation?
+        self.pdf = pdf  # TODO correct normalisation?
         self.K = self.compute_k(pdf)
         self.weight = (1 - self.K).clamp(min=1e-6) ** (-0.5)
 
@@ -394,11 +391,11 @@ class WeightedSplittingLoss(SplittingLoss):
         """
         P = pdf["omega"]  # 1d_pdf mask
         P_tilde = pdf["lambda"]  # 1d_pdf mask
-        one_minus_eps = 1 - 1e-3 #TODO why is this eps different?
+        one_minus_eps = 1 - 1e-3  # TODO why is this eps different?
 
         P_tilde[P_tilde > one_minus_eps] = one_minus_eps  # makes sure P_tilde < 1
 
-        diag_1_minus_PtP = 1 - P_tilde * P # TODO I or 1?
+        diag_1_minus_PtP = 1 - P_tilde * P  # TODO I or 1?
         diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=1e-6)  # Avoid division by zero
         inv_diag_1_minus_PtP = 1 / diag_1_minus_PtP
         # compute (1-P)
@@ -414,7 +411,7 @@ class WeightedSplittingLoss(SplittingLoss):
         mask = model.get_mask() * getattr(physics, "mask", 1.0)
         mask2 = getattr(physics, "mask", 1.0) - mask
         y2, physics2 = self.split(mask2, y, physics)
-        
+
         # Compute the residual
         residual = physics2.A(x_net) - y2
 
