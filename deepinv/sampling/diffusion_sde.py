@@ -18,7 +18,6 @@ class BaseSDE(nn.Module):
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}
 
     where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :math:`w` is the standard Brownian motion.
-
     It defines the common interface for drift and diffusion functions.
 
     :param callable drift: a time-dependent drift function :math:`f(x, t)`
@@ -60,7 +59,7 @@ class BaseSDE(nn.Module):
         """
         solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
-            x_init = self.prior_sample(x_init, rng=solver.rng)
+            x_init = self.sample_init(x_init, rng=solver.rng)
 
         solution = solver.sample(self, x_init, *args, **kwargs)
         return solution
@@ -79,15 +78,6 @@ class BaseSDE(nn.Module):
         :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
-
-    def prior_sample(
-        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
-    ) -> Tensor:
-        r"""
-        Sample from the end-point distribution :math:`p_T` of the forward-SDE.
-        :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
-        """
-        raise NotImplementedError
 
 
 class DiffusionSDE(BaseSDE):
@@ -178,6 +168,15 @@ class DiffusionSDE(BaseSDE):
         :return torch.Tensor: the noise level at time step :attr:`t`.
         """
         raise NotImplementedError
+    
+    def sample_init(
+        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
+    ) -> Tensor:
+        r"""
+        Sample from the initial distribution of the reverse-time diffusion, or the equivalently the end-time distribution of the corresponding forward diffusion.
+        :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
+        """
+        raise NotImplementedError
 
 
 class VarianceExplodingDiffusion(DiffusionSDE):
@@ -206,7 +205,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     ):
         def forward_drift(x, t, *args, **kwargs):
             r"""
-            The drift term of the forward VE-SDE is 0.
+            The drift term of the forward VE-SDE is :math:`0`.
 
             :param torch.Tensor x: The current state
             :param Union[torch.Tensor, float] t: The current time
@@ -242,7 +241,15 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         self.sigma_min = sigma_min
         self.sigma_max = sigma_max
 
-    def prior_sample(self, shape, rng: torch.Generator) -> Tensor:
+    def sample_init(self, shape, rng: torch.Generator) -> Tensor:
+        r"""
+        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:`\sigma_{max}^2 \operatorname{Id}`.
+
+        :param tuple shape: The shape of the sample to generate
+        :param torch.Generator rng: Random number generator for reproducibility
+        :return: A sample from the prior distribution
+        :rtype: torch.Tensor
+        """
         return (
             torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
             * self.sigma_max
@@ -349,7 +356,7 @@ class PosteriorDiffusion(Reconstructor):
         """
         solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
-            x_init = self.unconditional_sde.prior_sample(x_init, rng=solver.rng)
+            x_init = self.unconditional_sde.sample_init(x_init, rng=solver.rng)
 
         return solver.sample(
             self.posterior,
