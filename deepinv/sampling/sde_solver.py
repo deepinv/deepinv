@@ -177,6 +177,22 @@ class BaseSDESolver(nn.Module):
 
 
 class EulerSolver(BaseSDESolver):
+    r"""
+    Euler-Maruyama solver for SDEs.
+
+    This solver uses the Euler-Maruyama method to numerically integrate SDEs. It is a first-order method that 
+    approximates the solution using the following update rule:
+
+    .. math::
+        x_{t+dt} = x_t + f(x_t,t)dt + g(t) W_dt
+
+    where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
+
+    :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
+    :param bool full_trajectory: Whether to return the full trajectory or just the final point.
+    :param torch.Generator rng: A random number generator for reproducibility.
+    """
+    
     def __init__(
         self, timesteps, full_trajectory: bool = False, rng: torch.Generator = None
     ):
@@ -190,6 +206,21 @@ class EulerSolver(BaseSDESolver):
 
 
 class HeunSolver(BaseSDESolver):
+    r"""
+    Heun solver for SDEs.
+
+    This solver uses the second-order Heun method to numerically integrate SDEs, defined as:
+
+    .. math::
+        \tilde{x}_{t+dt} &= x_t + f(x_t,t)dt + g(t) W_dt \\
+        x_{t+dt} &= x_t + \frac{1}{2}[f(x_t,t) + f(\tilde{x}_{t+dt},t+dt)]dt + \frac{1}{2}[g(t) + g(t+dt)] W_dt
+
+    where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
+
+    :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
+    :param bool full_trajectory: Whether to return the full trajectory or just the final point.
+    :param torch.Generator rng: A random number generator for reproducibility.
+    """
     def __init__(
         self,
         timesteps,
