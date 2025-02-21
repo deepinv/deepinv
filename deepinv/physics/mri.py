@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from numpy import ndarray
 import torch
 from torch import Tensor
 from torchvision.transforms import CenterCrop
@@ -26,6 +27,9 @@ class MRIMixin:
         :param torch.device, str device: mask intended device.
         """
         if mask is not None:
+            if isinstance(mask, ndarray):
+                mask = torch.from_numpy(mask)
+
             mask = mask.to(device)
 
             while len(mask.shape) < (
