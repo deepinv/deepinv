@@ -67,17 +67,20 @@ The second term is the conditional score function, and can be approximated by th
    * - **Method**
      - **Description**
 
-   * - :class:`deepinv.sampling.diffusion_sde.BaseSDE`
+   * - :class:`deepinv.sampling.BaseSDE`
      - Base class for defining a SDE with a drift term and a diffusion coefficient
 
-   * - :class:`deepinv.sampling.diffusion_sde.DiffusionSDE`
+   * - :class:`deepinv.sampling.DiffusionSDE`
      - Define automatically the reverse-time SDE from a forward SDE and a denoiser. 
 
-   * - :class:`deepinv.sampling.diffusion_sde.VarianceExplodingDiffusion`
-     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.diffusion_sde.DiffusionSDE`
+   * - :class:`deepinv.sampling.VarianceExplodingDiffusion`
+     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.DiffusionSDE`
 
-   * - :class:`deepinv.sampling.diffusion_sde.PosteriorDiffusion`
+   * - :class:`deepinv.sampling.PosteriorDiffusion`
      - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
+
+   * - :class:`deepinv.sampling.NoisyDataFidelity`
+     - The base class for defining the noisy data-fidelity term, used to estimate the conditional score in the posterior sampling with SDE.
 
 We also provide generic methods for solving SDEs (and ODEs).
 
@@ -87,13 +90,13 @@ We also provide generic methods for solving SDEs (and ODEs).
    * - **Method**
      - **Description**
   
-   * - :class:`deepinv.sampling.diffusion_sde_solver.BaseSDESolver`
+   * - :class:`deepinv.sampling.sde_solver.BaseSDESolver`
      - Base class of the solvers.
 
-   * - :class:`deepinv.sampling.diffusion_sde_solver.EulerSolver`
+   * - :class:`deepinv.sampling.sde_solver.EulerSolver`
      - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ 
 
-   * - :class:`deepinv.sampling.diffusion_sde_solver.HeunSolver`
+   * - :class:`deepinv.sampling.sde_solver.HeunSolver`
      - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_
 
 

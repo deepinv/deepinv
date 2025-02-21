@@ -4,11 +4,10 @@ import torch.nn as nn
 from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
 from deepinv.physics import Physics
-from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.models.base import Reconstructor
 from deepinv.optim.data_fidelity import Zero
+from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
-
 
 class BaseSDE(nn.Module):
     r"""
@@ -23,7 +22,7 @@ class BaseSDE(nn.Module):
     :param callable drift: a time-dependent drift function :math:`f(x, t)`
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)`
     :param torch.dtype dtype: the data type of the computations.
-    :param str device: the device for the computations.
+    :param torch.device device: the device for the computations.
     """
 
     def __init__(
@@ -90,7 +89,7 @@ class DiffusionSDE(BaseSDE):
     :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
-    :param callable denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -144,6 +143,7 @@ class DiffusionSDE(BaseSDE):
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         r"""
         Approximating the score function :math:`\nabla \log p_t` by the denoiser.
+
         :param torch.Tensor x: current state
         :param Union[torch.Tensor, float] t: current time step
         :param args: additional arguments for the `denoiser`.
@@ -164,7 +164,9 @@ class DiffusionSDE(BaseSDE):
     ) -> Tensor:
         r"""
         The std of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(..., \sigma_t^2 \mathrm{Id})`.
+
         :param Union[torch.Tensor, float] t: current time step
+
         :return torch.Tensor: the noise level at time step :attr:`t`.
         """
         raise NotImplementedError
@@ -174,10 +176,10 @@ class DiffusionSDE(BaseSDE):
     ) -> Tensor:
         r"""
         Sample from the initial distribution of the reverse-time diffusion, or the equivalently the end-time distribution of the corresponding forward diffusion.
+
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         raise NotImplementedError
-
 
 class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
@@ -189,6 +191,16 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
 
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
+
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
+    :param float sigma_min: the minimum noise level.
+    :param float sigma_max: the maximum noise level.
+    :param float alpha: the weighting factor of the diffusion term.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: device on which the computation is performed.
     """
 
     def __init__(

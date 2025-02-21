@@ -13,10 +13,11 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
    :template: myclass_template.rst
    :nosignatures:
     
-    deepinv.sampling.diffusion_sde.BaseSDE
-    deepinv.sampling.diffusion_sde.DiffusionSDE
-    deepinv.sampling.diffusion_sde.VarianceExplodingDiffusion
-    deepinv.sampling.diffusion_sde.PosteriorDiffusion
+    deepinv.sampling.BaseSDE
+    deepinv.sampling.DiffusionSDE
+    deepinv.sampling.VarianceExplodingDiffusion
+    deepinv.sampling.PosteriorDiffusion
+    deepinv.sampling.NoisyDataFidelity
     deepinv.sampling.sde_solver.BaseSDESolver
     deepinv.sampling.sde_solver.EulerSolver
     deepinv.sampling.sde_solver.HeunSolver
