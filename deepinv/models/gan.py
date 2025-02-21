@@ -1,6 +1,3 @@
-from typing import Tuple
-from math import prod
-
 import numpy as np
 from tqdm import tqdm
 
@@ -8,10 +5,9 @@ import torch.nn as nn
 from torch import Tensor
 from torch import rand
 from torch.optim import Adam
-
-from deepinv.physics.forward import Physics
-from deepinv.loss.mc import MCLoss
-from deepinv.models.base import Reconstructor
+from deepinv.physics import Physics
+from deepinv.loss import MCLoss
+from .base import Reconstructor
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -47,9 +43,7 @@ class PatchGANDiscriminator(nn.Module):
         super().__init__()
 
         kw = 4  # kernel width
-        padw = (
-            int(np.ceil((kw - 1) / 2)) - 1
-        )  # NOTE MODIFIED from original code for less padding
+        padw = int(np.ceil((kw - 1) / 2))
         sequence = [
             nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True),
@@ -73,20 +67,20 @@ class PatchGANDiscriminator(nn.Module):
                 nn.LeakyReLU(0.2, True),
             ]
 
-        # nf_mult_prev = nf_mult
-        # nf_mult = min(2**n_layers, 8)
-        # sequence += [
-        #     nn.Conv2d(
-        #         ndf * nf_mult_prev,
-        #         ndf * nf_mult,
-        #         kernel_size=kw,
-        #         stride=1,
-        #         padding=padw,
-        #         bias=bias,
-        #     ),
-        #     nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
-        #     nn.LeakyReLU(0.2, True),
-        # ]
+        nf_mult_prev = nf_mult
+        nf_mult = min(2**n_layers, 8)
+        sequence += [
+            nn.Conv2d(
+                ndf * nf_mult_prev,
+                ndf * nf_mult,
+                kernel_size=kw,
+                stride=1,
+                padding=padw,
+                bias=bias,
+            ),
+            nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
+            nn.LeakyReLU(0.2, True),
+        ]
 
         sequence += [
             nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)
@@ -116,17 +110,13 @@ class ESRGANDiscriminator(nn.Module):
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple input_shape: shape of input image
-    :param list[int] hidden_dims: number of channels in each hidden layer.
-    :param bool bn: whether to have batchnorm layers.
     """
 
-    def __init__(self, input_shape: tuple, hidden_dims=[64, 128, 256, 512], bn=True):
+    def __init__(self, input_shape: tuple):
         super().__init__()
         self.input_shape = input_shape
         in_channels, in_height, in_width = self.input_shape
-        patch_h, patch_w = int(in_height / 2 ** len(hidden_dims)), int(
-            in_width / 2 ** len(hidden_dims)
-        )
+        patch_h, patch_w = int(in_height / 2**4), int(in_width / 2**4)
         self.output_shape = (1, patch_h, patch_w)
 
         def discriminator_block(in_filters, out_filters, first_block=False):
@@ -134,20 +124,19 @@ class ESRGANDiscriminator(nn.Module):
             layers.append(
                 nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
             )
-            if not first_block and bn:
+            if not first_block:
                 layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             layers.append(
                 nn.Conv2d(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
             )
-            if bn:
-                layers.append(nn.BatchNorm2d(out_filters))
+            layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
 
         layers = []
         in_filters = in_channels
-        for i, out_filters in enumerate(hidden_dims):
+        for i, out_filters in enumerate([64, 128, 256, 512]):
             layers.extend(
                 discriminator_block(in_filters, out_filters, first_block=(i == 0))
             )
@@ -389,51 +378,3 @@ class CSGMGenerator(Reconstructor):
             z = self.optimize_z(z, y, physics)
 
         return self.backbone_generator(z)
-
-
-class SkipConvDiscriminator(nn.Module):
-    """Simple residual convolution discriminator architecture.
-
-    Consists of convolutional blocks with skip connections with a final dense layer followed by sigmoid.
-
-    :param tuple img_size: tuple of ints of input image size
-    :param int d_dim: hidden dimension
-    :param int d_blocks: number of conv blocks
-    :param int in_channels: number of input channels
-    """
-
-    def __init__(
-        self,
-        img_size: Tuple[int, int] = (320, 320),
-        d_dim: int = 128,
-        d_blocks: int = 4,
-        in_channels: int = 2,
-    ):
-        super().__init__()
-
-        def conv_block(c_in, c_out):
-            return nn.Sequential(
-                nn.Conv2d(c_in, c_out, kernel_size=3, padding=1, bias=False),
-                nn.LeakyReLU(),
-            )
-
-        self.initial_conv = conv_block(in_channels, d_dim)
-
-        self.blocks = nn.ModuleList()
-        for _ in range(d_blocks):
-            self.blocks.append(conv_block(d_dim, d_dim))
-            self.blocks.append(conv_block(d_dim, d_dim))
-
-        self.flatten = nn.Flatten()
-        self.final = nn.Linear(d_dim * prod(img_size), 1)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.initial_conv(x)
-
-        for i in range(0, len(self.blocks), 2):
-            x1 = self.blocks[i](x)
-            x2 = x1 + self.blocks[i + 1](x)
-            x = x2
-
-        return self.sigmoid(self.final(self.flatten(x))).squeeze()

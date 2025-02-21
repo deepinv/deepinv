@@ -48,8 +48,6 @@ The discriminator network :math:`D` can be implemented with one of the following
      - Enhanced Super-Resolution GAN discriminator model
    * - :class:`PatchGANDiscriminator <deepinv.models.PatchGANDiscriminator>`
      - PatchGAN discriminator model
-   * - :class:`SkipConvDiscriminator <deepinv.models.gan.SkipConvDiscriminator>`
-     - Simple convolutional discriminator with skip connections
 
 
 Unconditional GAN
