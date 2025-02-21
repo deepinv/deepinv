@@ -205,9 +205,24 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     ):
 
         def forward_drift(x, t, *args, **kwargs):
+            r"""
+            The drift term of the forward VE-SDE is 0.
+
+            :param torch.Tensor x: The current state
+            :param Union[torch.Tensor, float] t: The current time
+            :return: The drift term, which is 0 for VE-SDE since it only has a diffusion term
+            :rtype: float
+            """
             return 0.0
 
         def forward_diffusion(t):
+            r"""
+            The diffusion coefficient of the forward VE-SDE.
+
+            :param Union[torch.Tensor, float] t: The current time
+            :return: The diffusion coefficient at time t
+            :rtype: float
+            """
             return self.sigma_t(t) * np.sqrt(
                 2 * (np.log(sigma_max) - np.log(sigma_min))
             )
