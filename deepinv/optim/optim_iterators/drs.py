@@ -7,8 +7,8 @@ class DRSIteration(OptimIterator):
     r"""
     Iterator for Douglas-Rachford Splitting.
 
-    Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimising
-    :math:` f(x) + \lambda g(x)`.
+    Class for a single iteration of the Douglas-Rachford Splitting (DRS) algorithm for minimizing
+    :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default), the iteration is given by
 
@@ -16,14 +16,14 @@ class DRSIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(2*u_{k+1}-z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
         z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
         \end{aligned}
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 
-    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`g` are inverted in the previous iteration.
+    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     """
 
     def __init__(self, **kwargs):
@@ -32,16 +32,18 @@ class DRSIteration(OptimIterator):
         self.f_step = fStepDRS(**kwargs)
         self.requires_prox_g = True
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the DRS algorithm.
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x, z = X["est"]
@@ -80,7 +82,7 @@ class fStepDRS(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
         if self.g_first:
             p = 2 * x - z
@@ -103,7 +105,7 @@ class gStepDRS(gStep):
 
         :param torch.Tensor x:  Current first variable.
         :param torch.Tensor z: Current second variable.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         if self.g_first:

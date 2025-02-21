@@ -1,17 +1,19 @@
 from dataclasses import dataclass
 
-from typing import Union
+from typing import Union, Iterable
 
 import numpy as np
 import torch
 from PIL import Image
 
-from deepinv.transform.base import Transform
+from deepinv.transform.base import Transform, TransformParam
 
 try:
     from kornia.geometry.transform import warp_perspective
 except ImportError:
-    warp_perspective = ImportError("The kornia package is not installed.")
+
+    def warp_perspective(*args, **kwargs):
+        raise ImportError("The kornia package is not installed.")
 
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
@@ -136,7 +138,6 @@ def apply_homography(
             padding_mode=padding,
         )
     else:
-
         if interpolation == "bilinear":
             pil_interp = Image.Resampling.BILINEAR
         elif interpolation == "bicubic":
@@ -167,9 +168,9 @@ class Homography(Transform):
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
 
-    Subgroup transformations include :class:`deepinv.transform.Affine`, :class:`deepinv.transform.Similarity`,
-    :class:`deepinv.transform.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
-    :class:`deepinv.transform.Rotation` and semigroup :class:`deepinv.transform.Scale`.
+    Subgroup transformations include :class:`deepinv.transform.projective.Affine`, :class:`deepinv.transform.projective.Similarity`,
+    :class:`deepinv.transform.projective.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
+    :class:`deepinv.transform.Rotate` and semigroup :class:`deepinv.transform.Scale`.
 
     Transformations with perspective effects (i.e. pan+tilt) are recovered by setting
     theta_max > 0.
@@ -197,7 +198,7 @@ class Homography(Transform):
     :param str padding: kornia padding mode, defaults to "reflection"
     :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
     :param str device: torch device, defaults to "cpu".
-    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param int n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
@@ -212,21 +213,54 @@ class Homography(Transform):
     padding: str = "reflection"
     interpolation: str = "bilinear"
     device: str = "cpu"
+    rng: torch.Generator = None
 
     def __post_init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, n_trans=self.n_trans, rng=self.rng, **kwargs)
 
     def rand(self, maxi: float, mini: float = None) -> torch.Tensor:
         if mini is None:
             mini = -maxi
-        return (mini - maxi) * torch.rand(self.n_trans, generator=self.rng) + maxi
+        out = (mini - maxi) * torch.rand(
+            self.n_trans, generator=self.rng, device=self.rng.device
+        ) + maxi
+        return out.cpu()  # require cpu for numpy
 
-    def forward(self, data):
-        H, W = data.shape[-2:]
+    def _get_params(self, x: torch.Tensor) -> dict:
+        H, W = x.shape[-2:]
+
+        Reciprocal = lambda p: TransformParam(p, neg=lambda x: 1 / x)
+
+        return {
+            "theta_x": self.rand(self.theta_max),
+            "theta_y": self.rand(self.theta_max),
+            "theta_z": self.rand(self.theta_z_max),
+            "zoom_f": Reciprocal(self.rand(1, self.zoom_factor_min)),
+            "shift_x": self.rand(W / 2 * self.shift_max),
+            "shift_y": self.rand(H / 2 * self.shift_max),  ### note W and H swapped
+            "skew": self.rand(self.skew_max),
+            "stretch_x": Reciprocal(self.rand(1, self.x_stretch_factor_min)),
+            "stretch_y": Reciprocal(self.rand(1, self.y_stretch_factor_min)),
+        }
+
+    def _transform(
+        self,
+        x: torch.Tensor,
+        theta_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_z: Union[torch.Tensor, Iterable, TransformParam] = [],
+        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = [],
+        shift_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        shift_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        skew: Union[torch.Tensor, Iterable, TransformParam] = [],
+        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = [],
+        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        **params,
+    ) -> torch.Tensor:
         return torch.cat(
             [
                 apply_homography(
-                    data.double(),
+                    x.double(),
                     theta_x=tx,
                     theta_y=ty,
                     theta_z=tz,
@@ -241,15 +275,15 @@ class Homography(Transform):
                     device=self.device,
                 )
                 for tx, ty, tz, zf, xt, yt, sk, xsf, ysf in zip(
-                    self.rand(self.theta_max),
-                    self.rand(self.theta_max),
-                    self.rand(self.theta_z_max),
-                    self.rand(1, self.zoom_factor_min),
-                    self.rand(W / 2 * self.shift_max),
-                    self.rand(H / 2 * self.shift_max),  ### note W and H swapped
-                    self.rand(self.skew_max),
-                    self.rand(1, self.x_stretch_factor_min),
-                    self.rand(1, self.y_stretch_factor_min),
+                    theta_x,
+                    theta_y,
+                    theta_z,
+                    zoom_f,
+                    shift_x,
+                    shift_y,
+                    skew,
+                    stretch_x,
+                    stretch_y,
                 )
             ],
             dim=0,
@@ -261,7 +295,8 @@ class Affine(Homography):
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
@@ -276,11 +311,22 @@ class Affine(Homography):
         >>> transform = Affine(n_trans = 1)
         >>> x_T = transform(x)
 
+    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.
+    :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.
+    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.
+    :param float skew_max: Maximum skew parameter, defaults to 50.
+    :param float x_stretch_factor_min: Min stretch factor along the x-axis (up to 1), defaults to 0.5.
+    :param float y_stretch_factor_min: Min stretch factor along the y-axis (up to 1), defaults to 0.5.
+    :param str padding: kornia padding mode, defaults to "reflection"
+    :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
+    :param str device: torch device, defaults to "cpu".
+    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def forward(self, data):
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = 0
-        return super().forward(data)
+        return super()._get_params(x)
 
 
 class Similarity(Homography):
@@ -303,12 +349,20 @@ class Similarity(Homography):
         >>> transform = Similarity(n_trans = 1)
         >>> x_T = transform(x)
 
+    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.
+    :param float zoom_factor_min: Minimum zoom factor (up to 1), defaults to 0.5.
+    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.
+    :param str padding: kornia padding mode, defaults to "reflection"
+    :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
+    :param str device: torch device, defaults to "cpu".
+    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def forward(self, data):
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = self.skew_max = 0
         self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().forward(data)
+        return super()._get_params(x)
 
 
 class Euclidean(Homography):
@@ -331,12 +385,19 @@ class Euclidean(Homography):
         >>> transform = Euclidean(n_trans = 1)
         >>> x_T = transform(x)
 
+    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.
+    :param float shift_max: Maximum shift percentage, where 1 is full shift, defaults to 1.
+    :param str padding: kornia padding mode, defaults to "reflection"
+    :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
+    :param str device: torch device, defaults to "cpu".
+    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def forward(self, data):
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.theta_max = self.skew_max = 0
         self.zoom_factor_min = self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().forward(data)
+        return super()._get_params(x)
 
 
 class PanTiltRotate(Homography):
@@ -364,9 +425,16 @@ class PanTiltRotate(Homography):
         >>> transform = PanTiltRotate(n_trans = 1)
         >>> x_T = transform(x)
 
+    :param float theta_max: Maximum pan+tilt angle in degrees, defaults to 180.
+    :param float theta_z_max: Maximum 2D z-rotation angle in degrees, defaults to 180.
+    :param str padding: kornia padding mode, defaults to "reflection"
+    :param str interpolation: kornia or PIL interpolation mode, defaults to "bilinear"
+    :param str device: torch device, defaults to "cpu".
+    :param n_trans: number of transformed versions generated per input image, defaults to 1.
+    :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
     """
 
-    def forward(self, data):
+    def _get_params(self, x: torch.Tensor) -> dict:
         self.shift_max = self.skew_max = 0
         self.zoom_factor_min = self.x_stretch_factor_min = self.y_stretch_factor_min = 1
-        return super().forward(data)
+        return super()._get_params(x)

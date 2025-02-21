@@ -9,6 +9,7 @@ from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
+from deepinv.tests.test_physics import find_operator
 
 
 def custom_init_CP(y, physics):
@@ -47,9 +48,9 @@ def test_data_fidelity_l2(device):
     # 2. Testing trivial operations on f and not f\circ A
     gamma = 1.0
     assert torch.allclose(
-        data_fidelity.prox_d(x, y, gamma), (x + gamma * y) / (1 + gamma)
+        data_fidelity.d.prox(x, y, gamma), (x + gamma * y) / (1 + gamma)
     )
-    assert torch.allclose(data_fidelity.grad_d(x, y), x - y)
+    assert torch.allclose(data_fidelity.d.grad(x, y), x - y)
 
     # 3. Testing the value of the proximity operator for a nonsymmetric linear operator
     # Create a measurement operator
@@ -82,14 +83,14 @@ def test_data_fidelity_l2(device):
         return 0.5 * torch.norm((B @ (x - y)).flatten(), p=2, dim=-1) ** 2
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
-    torch_loss_grad = torch_loss.grad_d(x, y)
+    torch_loss_grad = torch_loss.d.grad(x, y)
     grad_manual = B.transpose(0, 1) @ (B @ (x - y))
     assert torch.allclose(torch_loss_grad, grad_manual)
 
     # 6. Testing the torch autograd implementation of the prox
 
     torch_loss = DataFidelity(d=dummy_torch_l2)
-    torch_loss_prox = torch_loss.prox_d(
+    torch_loss_prox = torch_loss.d.prox(
         x, y, gamma=gamma, stepsize_inter=0.1, max_iter_inter=1000, tol_inter=1e-6
     )
 
@@ -98,6 +99,19 @@ def test_data_fidelity_l2(device):
     )
 
     assert torch.allclose(torch_loss_prox, manual_prox)
+
+    # 7. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
 
 
 def test_data_fidelity_indicator(device):
@@ -125,7 +139,7 @@ def test_data_fidelity_indicator(device):
 
     # 2. Testing trivial operations on f (and not f \circ A)
     x_proj = torch.Tensor([[[1.0], [1 + radius]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y), x_proj)
+    assert torch.allclose(data_fidelity.d.prox(x, y), x_proj)
 
     # 3. Testing the proximity operator of the f \circ A
     data_fidelity = IndicatorL2(radius=0.5)
@@ -143,6 +157,12 @@ def test_data_fidelity_indicator(device):
     dfb_proj = data_fidelity.prox(x, y, physics, max_iter=1000, crit_conv=1e-12)
     assert torch.allclose(x_proj, dfb_proj, atol=1e-4)
     assert torch.norm(A_forward(dfb_proj) - y) <= radius + 1e-06
+
+    # 4. Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
 
 
 def test_data_fidelity_l1(device):
@@ -162,14 +182,27 @@ def test_data_fidelity_l1(device):
     Ax = A_forward(x)
     assert data_fidelity(x, y, physics) == (Ax - y).abs().sum()
 
-    # Check subdifferential
+    # Check sub-differential
     grad_manual = torch.sign(x - y)
-    assert torch.allclose(data_fidelity.grad_d(x, y), grad_manual)
+    assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
 
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
-    assert torch.allclose(data_fidelity.prox_d(x, y, threshold), prox_manual)
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
 
 
 def test_zero_prior():
@@ -410,6 +443,8 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
 def get_prior(prior_name, device="cpu"):
     if prior_name == "L1Prior":
         prior = dinv.optim.prior.L1Prior()
+    elif prior_name == "L12Prior":
+        prior = dinv.optim.prior.L12Prior(l2_axis=1)  # l2 on channels
     elif prior_name == "Tikhonov":
         prior = dinv.optim.prior.Tikhonov()
     elif prior_name == "TVPrior":
@@ -434,6 +469,7 @@ def get_prior(prior_name, device="cpu"):
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
         "L1Prior",
+        "L12Prior",
         "Tikhonov",
         "TVPrior",
         "WaveletPrior",
@@ -565,8 +601,8 @@ def test_dpir(imsize, dummy_dataset, device):
     model = dinv.optim.DPIR(0.1, device=device)
     out = model(y, physics)
 
-    in_psnr = dinv.utils.cal_psnr(test_sample, y)
-    out_psnr = dinv.utils.cal_psnr(out, test_sample)
+    in_psnr = dinv.metric.PSNR()(test_sample, y)
+    out_psnr = dinv.metric.PSNR()(out, test_sample)
 
     assert out_psnr > in_psnr
 
@@ -685,7 +721,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    physics = dinv.physics.LinearPhysics()
     y = physics(x)
 
     data_fidelity = L2()  # The data fidelity term
@@ -736,7 +772,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     subdiff = prior.grad(x)
 
     grad_deepinv = A_adjoint(
-        data_fidelity.grad_d(A_forward(x), y)
+        data_fidelity.d.grad(A_forward(x), y)
     )  # This test is only valid for differentiable data fidelity terms.
     assert torch.allclose(
         grad_deepinv, -lamb * subdiff, atol=1e-12
@@ -782,3 +818,85 @@ def test_patch_prior(imsize, dummy_dataset, device):
             x_out.append(x.detach())
 
     assert torch.sum((x_out[0] - test_sample) ** 2) < torch.sum((y - test_sample) ** 2)
+
+
+def test_datafid_stacking(imsize, device):
+    physics = dinv.physics.StackedLinearPhysics(
+        [dinv.physics.Denoising(), dinv.physics.Denoising()]
+    )
+    data_fid = dinv.optim.StackedPhysicsDataFidelity(
+        [dinv.optim.L2(2.0), dinv.optim.L2(1.0)]
+    )
+
+    x = torch.ones((1, 1, 1, 1), device=device)
+    y = physics.A(x)
+    y2 = dinv.utils.TensorList([3 * y[0], 2 * y[1]])
+
+    assert (
+        data_fid(x, y2, physics)
+        == (y2[0] - y[0]) ** 2 / (4 * 2) + (y2[1] - y[1]) ** 2 / 2
+    )
+
+    assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
+
+
+solvers = ["CG", "BiCGStab", "lsqr"]
+least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+
+
+@pytest.mark.parametrize("physics_name", least_squares_physics)
+@pytest.mark.parametrize("solver", solvers)
+def test_least_square_solvers(device, solver, physics_name):
+    batch_size = 4
+
+    physics, img_size, _, _ = find_operator(physics_name, device=device)
+
+    x = torch.randn((batch_size, *img_size), device=device)
+
+    tol = 0.01
+    y = physics(x)
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    assert (
+        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < tol
+    ).all()
+
+    z = x.clone()
+    gamma = 1.0
+
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+
+    assert (
+        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < 3 * tol
+    ).all()
+
+    # test backprop
+    y.requires_grad = True
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    if not "inpainting" in physics_name:
+        assert y.grad.norm() > 0
+
+
+def test_condition_number(device):
+    imsize = (2, 1, 32, 32)
+
+    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def A(self, x, **kwargs):
+            return x * c
+
+        def A_adjoint(self, y, **kwargs):
+            return y * c
+
+    physics = DummyPhysics()
+    x = torch.randn(imsize, device=device)
+    cond = physics.condition_number(x)
+    gt_cond = c.max() / c.min()
+    rel_error = (cond - gt_cond).abs() / gt_cond
+    assert rel_error < 0.1

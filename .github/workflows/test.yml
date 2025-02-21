@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Test DeepInv ${{ matrix.name }}
+    name: Test deep inverse ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -18,13 +18,13 @@ jobs:
           # Test with all dependencies
           - os: ubuntu-latest
             version_python: 3.9
-            extra: denoisers,test
-            name: "all dependencies"
-          # Test with no optional dependencies
-          - os: ubuntu-latest
+            extra: dataset,denoisers,test
+            name: "ubuntu all dependencies"
+          # Test with all dependencies
+          - os: windows-latest
             version_python: 3.9
-            extra: test
-            name: "no optional dependencies"
+            extra: dataset,denoisers,test
+            name: "windows all dependencies"
 
     env:
       VERSION_PYTHON: ${{ matrix.version_python }}
@@ -37,13 +37,17 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[${{ matrix.extra }}]
+          pip install .[${{ matrix.extra }}]
 
       - name: Test with pytest and generate coverage report
         run: |
-          python -m pytest deepinv/tests
-          pytest --cov=./ --cov-report=xml
+          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+
 

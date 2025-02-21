@@ -1,5 +1,9 @@
+from typing import Union
+
 import torch
 from deepinv.loss.loss import Loss
+from deepinv.loss.metric.metric import Metric
+from deepinv.transform.base import Transform
 
 
 class MCLoss(Loss):
@@ -19,10 +23,10 @@ class MCLoss(Loss):
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.
 
-    :param torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     """
 
-    def __init__(self, metric=torch.nn.MSELoss()):
+    def __init__(self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss()):
         super(MCLoss, self).__init__()
         self.name = "mc"
         self.metric = metric
@@ -34,6 +38,6 @@ class MCLoss(Loss):
         :param torch.Tensor y: measurements.
         :param torch.Tensor x_net: reconstructed image :math:`\inverse{y}`.
         :param deepinv.physics.Physics physics: forward operator associated with the measurements.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         return self.metric(physics.A(x_net), y)

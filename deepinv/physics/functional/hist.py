@@ -10,17 +10,16 @@ from torch import Size, Tensor, BoolTensor
 from typing import Union, Sequence
 
 
-def ravel_multi_index(coords: Tensor, shape: Size) -> Tensor:
-    r"""Converts a tensor of coordinate vectors into a tensor of flat indices.
+def ravel_multi_index(coords: Tensor, shape: Size) -> torch.Tensor:
+    r"""
+    Converts a tensor of coordinate vectors into a tensor of flat indices.
 
-    This is a `torch` implementation of `numpy.ravel_multi_index`.
+    This is a ``torch`` implementation of ``numpy.ravel_multi_index``.
 
-    Args:
-        coords: A tensor of coordinate vectors, (*, D).
-        shape: The source shape.
+    :param torch.Tensor coords: A tensor of coordinate vectors, ``(*, D)``.
+    :param tuple shape: The source shape.
+    :return: The raveled indices, ``(*,)``.
 
-    Returns:
-        The raveled indices, (*,).
     """
 
     shape = coords.new_tensor(shape + (1,))
@@ -29,17 +28,15 @@ def ravel_multi_index(coords: Tensor, shape: Size) -> Tensor:
     return (coords * coefs).sum(dim=-1)
 
 
-def unravel_index(indices: Tensor, shape: Size) -> Tensor:
-    r"""Converts a tensor of flat indices into a tensor of coordinate vectors.
+def unravel_index(indices: Tensor, shape: Size) -> torch.Tensor:
+    r"""
+    Converts a tensor of flat indices into a tensor of coordinate vectors.
 
-    This is a `torch` implementation of `numpy.unravel_index`.
+    This is a ``torch`` implementation of ``numpy.unravel_index``.
 
-    Args:
-        indices: A tensor of flat indices, (*,).
-        shape: The target shape.
-
-    Returns:
-        The unraveled coordinates, (*, D).
+    :param torch.Tensor indices: A tensor of flat indices, (*,).
+    :param tuple shape: The target shape.
+    :return: The unraveled coordinates, ``(*, D)``.
     """
 
     shape = indices.new_tensor(shape + (1,))
@@ -49,15 +46,14 @@ def unravel_index(indices: Tensor, shape: Size) -> Tensor:
 
 
 def out_of_bounds(x: Tensor, low: Tensor, upp: Tensor) -> BoolTensor:
-    r"""Returns a mask of out-of-bounds values in `x`.
+    r"""
+    Returns a mask of out-of-bounds values in x.
 
-    Args:
-        x: A tensor, (*, D).
-        low: The lower bound in each dimension, scalar or (D,).
-        upp: The upper bound in each dimension, scalar or (D,).
+    :param torch.Tensor x: A tensor, ``(*, D)``.
+    :param torch.Tensor, float low: The lower bound in each dimension, scalar or ``(D,)``.
+    :param torch.Tensor, float upp: The upper bound in each dimension, scalar or ``(D,)``.
+    :return: the mask tensor, ``(*,)``.
 
-    Returns:
-        The mask tensor, (*,).
     """
 
     a, b = x < low, x > upp
@@ -68,17 +64,16 @@ def out_of_bounds(x: Tensor, low: Tensor, upp: Tensor) -> BoolTensor:
     return torch.logical_or(a, b)
 
 
-def quantize(x: Tensor, bins: Tensor, low: Tensor, upp: Tensor) -> Tensor:
-    r"""Maps the values of `x` to integers.
+def quantize(x: Tensor, bins: Tensor, low: Tensor, upp: Tensor) -> torch.Tensor:
+    r"""
+    Maps the values of x to integers.
 
-    Args:
-        x: A tensor, (*, D).
-        bins: The number of bins in each dimension, scalar or (D,).
-        low: The lower bound in each dimension, scalar or (D,).
-        upp: The upper bound in each dimension, scalar or (D,).
+    :param torch.Tensor x: A tensor, ``(*, D)``.
+    :param torch.Tensor bins: The number of bins in each dimension, scalar or (D,).
+    :param torch.Tensor, float low: The lower bound in each dimension, scalar or ``(D,)``.
+    :param torch.Tensor, float upp: The upper bound in each dimension, scalar or ``(D,)``.
+    :return: The quantized tensor, ``(*, D)``.
 
-    Returns:
-        The quantized tensor, (*, D).
     """
 
     x = (x - low) / (upp - low)  # in [0.0, 1.0]
@@ -96,31 +91,33 @@ def histogramdd(
     weights: Tensor = None,
     sparse: bool = False,
     edges: Union[Tensor, Sequence[Tensor]] = None,
-) -> Tensor:
-    r"""Computes the multidimensional histogram of a tensor.
+) -> torch.Tensor:
+    r"""
+    Computes the multidimensional histogram of a tensor.
 
-    This is a `torch` implementation of `numpy.histogramdd`. This function is borrowed from `torchist <https://github.com/francois-rozet/torchist/>`_.
+    This is a ``torch`` implementation of ``numpy.histogramdd``.
+    This function is borrowed from `torchist <https://github.com/francois-rozet/torchist/>`_.
 
     Note:
-        Similar to `numpy.histogram`, all bins are half-open except the last bin which
+        Similar to ``numpy.histogram``, all bins are half-open except the last bin which
         also includes the upper bound.
 
 
     :param torch.Tensor x: A tensor, (\*, D).
-    :param int, sequence[int] bins: The number of bins in each dimension, scalar or (D,).
-    :param float, sequence[float] low: The lower bound in each dimension, scalar or (D,). If `low` is `None`,
+    :param int, list[int] bins: The number of bins in each dimension, scalar or (D,).
+    :param float, list[float] low: The lower bound in each dimension, scalar or (D,). If `low` is ``None``,
             the min of `x` is used instead.
-    :param float, sequence[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is `None`,
+    :param float, list[float] upp: The upper bound in each dimension, scalar or (D,). If `upp` is ``None``,
             the max of `x` is used instead.
     :param bool bounded: Whether `x` is bounded by `low` and `upp`, included.
             If `False`, out-of-bounds values are filtered out.
-    :param torch.Tensor weights: A tensor of weights, (\*,). Each sample of `x` contributes
+    :param torch.Tensor weights: A tensor of weights, ``(\*,)``. Each sample of `x` contributes
             its associated weight towards the bin count (instead of 1).
     :param bool sparse: Whether the histogram is returned as a sparse tensor or not.
-    :param torch.Tensor, sequence[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
-            If provided, `bins`, `low` and `upp` are inferred from `edges`.
+    :param torch.Tensor, list[torch.Tensor] edges: The edges of the histogram. Either a vector or a list of vectors.
+            If provided, ``bins``, ``low`` and ``upp`` are inferred from ``edges``.
 
-    :return: (torch.Tensor) : the histogram
+    :return: (:class:`torch.Tensor`) : the histogram
     """
 
     # Preprocess
@@ -210,16 +207,16 @@ def histogram(
     low: float = None,
     upp: float = None,
     **kwargs,
-) -> Tensor:
+) -> torch.Tensor:
     r"""Computes the histogram of a tensor.
 
     This is a `torch` implementation of `numpy.histogram`.
 
 
-    :param torch.Tensor x: A tensor, (*,).
+    :param torch.Tensor x: A tensor, ``(*,)``.
     :param int bins: The number of bins.
-    :param float low: The lower bound. If `low` is `None` the min of `x` is used instead.
-    :param float upp: The upper bound. If `upp` is `None` the max of `x` is used instead.
+    :param float low: The lower bound. If `low` is ``None`` the min of `x` is used instead.
+    :param float upp: The upper bound. If `upp` is ``None`` the max of `x` is used instead.
     :param kwargs: Keyword arguments passed to `histogramdd`.
 
     :return torch.Tensor: The histogram

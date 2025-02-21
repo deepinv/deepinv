@@ -4,8 +4,8 @@ DPIR method for PnP image deblurring.
 
 This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in
 the following paper:
-Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). 
-Learning deep CNN denoiser prior for image restoration. 
+Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
+Learning deep CNN denoiser prior for image restoration.
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
@@ -28,7 +28,6 @@ from deepinv.utils.demo import load_dataset, load_degradation
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -49,7 +48,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "DPIR"
 dataset_name = "set3c"
-img_size = 256 if torch.cuda.is_available() else 32
+img_size = 128 if torch.cuda.is_available() else 32
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
@@ -60,7 +59,7 @@ kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -119,7 +118,7 @@ early_stop = False  # Do not stop algorithm with convergence criteria
 data_fidelity = L2()
 
 # Specify the denoising prior
-prior = PnP(denoiser=DRUNet(pretrained="download", train=False, device=device))
+prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 
 # instantiate the algorithm class to solve the IP problem.
 model = optim_builder(
@@ -132,6 +131,10 @@ model = optim_builder(
     params_algo=params_algo,
 )
 
+# Set the model to evaluation mode. We do not require training here.
+model.eval()
+
+
 # %%
 # Evaluate the model on the problem.
 # --------------------------------------------------------------------
@@ -139,9 +142,8 @@ model = optim_builder(
 #
 
 save_folder = RESULTS_DIR / method / operation / dataset_name
-wandb_vis = False  # plot curves and images in Weight&Bias.
-plot_metrics = True  # plot metrics. Metrics are saved in save_folder.
-plot_images = True  # plot images. Images are saved in save_folder.
+plot_convergence_metrics = True  # Metrics are saved in save_folder.
+plot_images = True  # Images are saved in save_folder.
 
 dataloader = DataLoader(
     dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -151,12 +153,10 @@ test(
     model=model,
     test_dataloader=dataloader,
     physics=p,
-    metrics=[dinv.loss.PSNR(), dinv.loss.LPIPS(device=device)],
+    metrics=[dinv.metric.PSNR(), dinv.metric.LPIPS(device=device)],
     device=device,
     plot_images=plot_images,
     save_folder=save_folder,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
-    wandb_vis=wandb_vis,
-    plot_only_first_batch=False,  # By default only the first batch is plotted.
 )

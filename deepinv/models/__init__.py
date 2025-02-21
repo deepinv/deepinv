@@ -1,3 +1,4 @@
+from .base import Denoiser, Reconstructor
 from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
@@ -17,6 +18,7 @@ from .bm3d import BM3D
 from .equivariant import EquivariantDenoiser
 from .epll import EPLLDenoiser
 from .restormer import Restormer
+from .icnn import ICNN
 from .gan import (
     PatchGANDiscriminator,
     ESRGANDiscriminator,
@@ -25,3 +27,6 @@ from .gan import (
     DCGANDiscriminator,
 )
 from .complex import to_complex_denoiser
+from .dynamic import TimeAgnosticNet, TimeAveragingNet
+from .varnet import VarNet
+from .multispectral import PanNet

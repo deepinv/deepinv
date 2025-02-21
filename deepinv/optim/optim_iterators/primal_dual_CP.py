@@ -47,7 +47,9 @@ class CPIteration(OptimIterator):
         self.g_step = gStepCP(**kwargs)
         self.f_step = fStepCP(**kwargs)
 
-    def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
+    def forward(
+        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
+    ):
         r"""
         Single iteration of the Chambolle-Pock algorithm.
 
@@ -56,7 +58,7 @@ class CPIteration(OptimIterator):
         :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x_prev, z_prev, u_prev = X["est"]  # x : primal, z : relaxed primal, u : dual
@@ -99,7 +101,7 @@ class fStepCP(fStep):
         :param torch.Tensor w: Current second variable :math:`A^\top u` if `"g_first"` and :math:`A z` otherwise.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the data-fidelity term.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         :param dict cur_params: Dictionary containing the current fStep parameters (keys `"stepsize_dual"` (or `"stepsize"`) and `"lambda"`).
         """
         if self.g_first:
@@ -107,8 +109,8 @@ class fStepCP(fStep):
             return cur_data_fidelity.prox(p, y, physics, gamma=cur_params["stepsize"])
         else:
             p = x + cur_params["stepsize_dual"] * w
-            return cur_data_fidelity.prox_d_conjugate(
-                p, y, gamma=cur_params["stepsize_dual"]
+            return cur_data_fidelity.prox_conjugate(
+                p, y, physics, gamma=cur_params["stepsize_dual"]
             )
 
 
@@ -126,7 +128,7 @@ class gStepCP(gStep):
 
         :param torch.Tensor x: Current first variable :math:`u` if `"g_first"` and :math:`x` otherwise.
         :param torch.Tensor w: Current second variable :math:`A z` if `"g_first"` and :math:`A^\top u` otherwise.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current gStep parameters (keys `"prox_g"`, `"stepsize"` (or `"stepsize_dual"`) and `"g_param"`).
         """
         if self.g_first:

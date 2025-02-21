@@ -1,19 +1,19 @@
 # Code borrowed from Kai Zhang https://github.com/cszn/DPIR/tree/master/models
 
 import torch
-import torch.nn as nn
 from .utils import get_weights_url, test_onesplit, test_pad
+from .base import Denoiser
 
 cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class DRUNet(nn.Module):
+class DRUNet(Denoiser):
     r"""
     DRUNet denoiser network.
 
     The network architecture is based on the paper
-    `Learning deep CNN denoiser prior for image restoration <https://arxiv.org/abs/1704.03264>`_,
+    `Plug-and-Play Image Restoration with Deep Denoiser Prior <https://arxiv.org/abs/2008.13751>`_,
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -26,7 +26,7 @@ class DRUNet(nn.Module):
     :param list nc: number of convolutional layers.
     :param int nb: number of convolutional blocks per layer.
     :param int nf: number of channels per convolutional layer.
-    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "S" for Softplus.
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.
     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
@@ -36,7 +36,6 @@ class DRUNet(nn.Module):
         online repository (only available for the default architecture with 3 or 1 input/output channels).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool train: training or testing mode.
     :param str device: gpu or cpu.
 
     """
@@ -51,7 +50,6 @@ class DRUNet(nn.Module):
         downsample_mode="strideconv",
         upsample_mode="convtranspose",
         pretrained="download",
-        train=False,
         device=None,
     ):
         super(DRUNet, self).__init__()
@@ -150,13 +148,9 @@ class DRUNet(nn.Module):
                 )
 
             self.load_state_dict(ckpt_drunet, strict=True)
+            self.eval()
         else:
             self.apply(weights_init_drunet)
-
-        if not train:
-            self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
 
         if device is not None:
             self.to(device)
@@ -195,14 +189,14 @@ class DRUNet(nn.Module):
                 * sigma
             )
         x = torch.cat((x, noise_level_map), 1)
-        if self.training or (
+        if (
             x.size(2) % 8 == 0
             and x.size(3) % 8 == 0
             and x.size(2) > 31
             and x.size(3) > 31
         ):
             x = self.forward_unet(x)
-        elif x.size(2) < 32 or x.size(3) < 32:
+        elif self.training or (x.size(2) < 32 or x.size(3) < 32):
             x = test_pad(self.forward_unet, x, modulo=16)
         else:
             x = test_onesplit(self.forward_unet, x, refield=64)

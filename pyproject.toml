@@ -18,23 +18,27 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.8"
-version = "0.2.0"
+requires-python = ">=3.9"
+version = "0.2.2"
 dependencies = [
-    "numpy<=1.26",
+    "numpy",
     "matplotlib",
     "hdf5storage",
     "tqdm",
     "torch",
     "torchvision",
+    "torchmetrics",
     "einops",
     "wandb",
     "scipy",
-    "datasets",
+    "natsort",
 ]
 
 [tool.setuptools]
 platforms = ["any"]
+
+[tool.setuptools.packages]
+find = { where = ["."] }
 
 [project.readme]
 file = "README.rst"
@@ -55,23 +59,33 @@ test = [
 doc = [
     "sphinx",
     "sphinx_gallery",
-    "sphinx_rtd_theme",
+    "pydata_sphinx_theme",
     "sphinxemoji",
     "sphinx_copybutton",
-    "sphinx_autoapi"
-
+    "sphinx_autoapi",
+    "sphinx-design",
 ]
 
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
+    "bm4d<4.2.4",
     "timm",
     "PyWavelets",
     "ptwt",
     "FrEIA",
     "pyiqa",
     "kornia",
-    "torchkbnufft"
+    "torchkbnufft",
+    "libcpab",
+    "sigpy",
+]
+
+# optional dependencies for specific datasets
+dataset = [
+    "datasets",
+    "pandas",
+    "pydicom",
 ]
 
 
@@ -86,7 +100,7 @@ testpaths = [
 
 [tool.coverage.run]
 branch = true
-# omit = examples/*,src/db/versions/*  # define paths to omit
+omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 
 [tool.coverage.report]
 show_missing = true

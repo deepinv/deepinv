@@ -1,8 +1,10 @@
 import sys
 import pytest
 import torch
+from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
+from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
 
 MODEL_LIST_1_CHANNEL = [
@@ -86,7 +88,7 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
-    return out
+    return out.eval()
 
 
 def test_TVs_adjoint():
@@ -224,8 +226,8 @@ def test_wavelet_models_identity():
         )
         level = 3
         prior = dinv.optim.prior.WaveletPrior(wvdim=wvdim, p=1, level=level)
-        g_nonflat = prior.g(x, reduce=False)
-        g_flat = prior.g(x, reduce=True)
+        g_nonflat = prior(x, reduce=False)
+        g_flat = prior(x, reduce=True)
         assert g_nonflat.dim() > 0
         assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
         assert g_flat.dim() == 0
@@ -255,7 +257,6 @@ def test_TV_models_identity():
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
     model = choose_denoiser(denoiser, imsize).to(device)
-
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
@@ -281,18 +282,21 @@ def test_denoiser_gray(imsize_1_channel, device, denoiser):
         assert x_hat.shape == x.shape
 
 
-def test_equivariant(imsize, device):
+@pytest.mark.parametrize("batch_size", [1, 2])
+def test_equivariant(imsize, device, batch_size):
     # 1. Check that the equivariance module is compatible with a denoiser
     model = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
 
-    model = dinv.models.EquivariantDenoiser(
-        model, transform="rotoflips", random=True
-    ).to(device)
+    model = (
+        dinv.models.EquivariantDenoiser(model, random=True)  # Roto-reflections
+        .to(device)
+        .eval()
+    )
 
     torch.manual_seed(0)
     sigma = 0.2
     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma))
-    x = torch.ones(imsize, device=device).unsqueeze(0)
+    x = torch.ones((batch_size, *imsize), device=device)
     y = physics(x)
     x_hat = model(y, sigma)
 
@@ -308,19 +312,32 @@ def test_equivariant(imsize, device):
 
     model_id = DummyIdentity()
 
-    list_transforms = ["rotations", "flips", "rotoflips"]
+    list_transforms = [
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=4, constant_shape=False
+        ),  # full group
+        dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=1, constant_shape=False
+        ),  # subsampled
+        dinv.transform.Reflect(dim=[-1], n_trans=2),  # full group
+        dinv.transform.Reflect(dim=[-1], n_trans=2)
+        * dinv.transform.Rotate(
+            multiples=90, positive=True, n_trans=3, constant_shape=False
+        ),  # compound group
+    ]
+
+    # constant_shape False as imsize is rectangular. For square images, ignore constant_shape.
 
     for transform in list_transforms:
-        for random in [True, False]:
-            model = dinv.models.EquivariantDenoiser(
-                model_id, transform=transform, random=random
-            ).to(device)
+        model = dinv.models.EquivariantDenoiser(model_id, transform=transform).to(
+            device
+        )
 
-            x = torch.ones(imsize, device=device).unsqueeze(0)
-            y = physics(x)
-            y_hat = model(y, sigma)
+        x = torch.ones((batch_size, *imsize), device=device)
+        y = physics(x)
+        y_hat = model(y, sigma)
 
-            assert torch.allclose(y, y_hat)
+        assert torch.allclose(y, y_hat)
 
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
@@ -341,7 +358,7 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
 def test_drunet_inputs(imsize_1_channel, device):
     f = dinv.models.DRUNet(
         in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
-    )
+    ).eval()
 
     torch.manual_seed(0)
     sigma = 0.2
@@ -541,6 +558,18 @@ def test_optional_dependencies(denoiser, dep):
         klass()
 
 
+def test_icnn(device, rng):
+    from deepinv.models import ICNN
+
+    model = ICNN(in_channels=3, device=device)
+    physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
+    x = torch.ones((1, 3, 128, 128), device=device)
+    y = physics(x)
+    potential = model(y)
+    grad = model.grad(y)
+    assert grad.shape == x.shape
+
+
 # def test_dip(imsize, device): TODO: fix this test
 #     torch.manual_seed(0)
 #     channels = 64
@@ -559,3 +588,74 @@ def test_optional_dependencies(denoiser, dep):
 #     mse_out = (x_net - x).pow(2).mean()
 #
 #     assert mse_out < mse_in
+
+
+def test_time_agnostic_net():
+    backbone_net = dinv.models.UNet(scales=2)
+    net = dinv.models.TimeAgnosticNet(backbone_net)
+    y = torch.rand(1, 1, 2, 4, 4)  # B,C,T,H,W
+    x_net = net(y, None)
+    assert x_net.shape == y.shape
+
+
+@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet"))
+def test_varnet(varnet_type, device):
+
+    def dummy_dataset(imsize, device):
+        return DummyCircles(samples=1, imsize=imsize)
+
+    x = dummy_dataset((2, 8, 8), device=device)[0].unsqueeze(0)
+    physics = dinv.physics.MRI(
+        mask=dinv.physics.generator.GaussianMaskGenerator(
+            x.shape[1:], acceleration=2, device=device
+        ).step()["mask"],
+        device=device,
+    )
+    y = physics(x)
+
+    class DummyMRIDataset(Dataset):
+        def __getitem__(self, i):
+            return x[0], y[0]
+
+        def __len__(self):
+            return 1
+
+    model = dinv.models.VarNet(
+        num_cascades=3,
+        mode=varnet_type,
+        denoiser=dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device),
+    ).to(device)
+
+    model = dinv.Trainer(
+        model=model,
+        physics=physics,
+        optimizer=torch.optim.Adam(model.parameters()),
+        train_dataloader=DataLoader(DummyMRIDataset()),
+        epochs=50,
+        save_path=None,
+        plot_images=False,
+        compare_no_learning=True,
+        device=device,
+    ).train()
+
+    x_hat = model(y, physics)
+    x_init = physics.A_adjoint(y)
+
+    assert x_hat.shape == x_init.shape
+
+    psnr = dinv.metric.PSNR()
+    assert psnr(x_init, x) < psnr(x_hat, x)
+
+
+def test_pannet():
+    hrms_shape = (8, 16, 16)  # C,H,W
+
+    physics = dinv.physics.Pansharpen(hrms_shape, factor=4)
+    model = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
+
+    x = torch.rand((1,) + hrms_shape)  # B,C,H,W
+    y = physics(x)  # (MS, PAN)
+
+    x_net = model(y, physics)
+
+    assert x_net.shape == x.shape

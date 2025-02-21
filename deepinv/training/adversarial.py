@@ -1,9 +1,12 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, List
+from typing import Union, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+    from torch.optim.lr_scheduler import LRScheduler
 
 import torch
-from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
 from torch.nn import Module
 
 from deepinv.training.trainer import Trainer
@@ -12,12 +15,13 @@ from deepinv.utils import AverageMeter
 
 
 class AdversarialOptimizer:
-    r"""Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
+    r"""
+    Optimizer for adversarial training that encapsulates both generator and discriminator's optimizers.
 
-    :param Optimizer optimizer_g: generator's torch optimizer
-    :param Optimizer optimizer_d: discriminator's torch optimizer
-    :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to False
-    :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to False
+    :param torch.optim.Optimizer optimizer_g: generator's torch optimizer
+    :param torch.optim.Optimizer optimizer_d: discriminator's torch optimizer
+    :param bool zero_grad_g_only: whether to only zero_grad generator, defaults to ``False``
+    :param bool zero_grad_d_only: whether to only zero_grad discriminator, defaults to ``False``
     """
 
     def __init__(
@@ -80,14 +84,17 @@ class AdversarialScheduler:
 
 @dataclass
 class AdversarialTrainer(Trainer):
-    r"""
+    r"""AdversarialTrainer(model, physics, optimizer, train_dataloader, losses_d, D, step_ratio_D, ...)
     Trainer class for training a reconstruction network using adversarial learning.
 
-    It overrides the :class:`deepinv.Trainer` class to provide the same functionality, whilst supporting training using adversarial losses. Note that the forward pass remains the same.
+    It overrides the :class:`deepinv.Trainer` class to provide the same functionality,
+    whilst supporting training using adversarial losses. Note that the forward pass remains the same.
 
-    The usual reconstruction model corresponds to the generator model in an adversarial framework, which is trained using losses specified in the ``losses`` argument.
-    Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``. The adversarial losses themselves are defined in the ``deepinv.loss.adversarial`` module.
-    Examples of discriminators are in ``deepinv.models.gan``.
+    The usual reconstruction model corresponds to the generator model in an adversarial framework,
+    which is trained using losses specified in the ``losses`` argument.
+    Additionally, a discriminator model ``D`` is also jointly trained using the losses provided in ``losses_d``.
+    The adversarial losses themselves are defined in the :ref:`adversarial-losses` module.
+    Examples of discriminators are in :ref:`adversarial`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for usage.
 
@@ -126,13 +133,14 @@ class AdversarialTrainer(Trainer):
         >>> generator = trainer.train()
 
 
-    Note that this forward pass also computes y_hat ahead of time to avoid having to compute it multiple times, but this is completely optional.
+    Note that this forward pass also computes ``y_hat`` ahead of time to avoid having to compute it multiple times,
+    but this is completely optional.
 
     See :class:`deepinv.Trainer` for additional parameters.
 
-    :param AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
+    :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
-    :param Module D: discriminator/critic/classification model, which must take in an image and return a scalar
+    :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
     """
 
@@ -141,11 +149,11 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self):
+    def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
-        super().setup_train()
+        super().setup_train(**kwargs)
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
@@ -169,7 +177,7 @@ class AdversarialTrainer(Trainer):
                 "Gradient norm for discriminator", ":.2e"
             )
 
-    def compute_loss(self, physics, x, y, train=True):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
@@ -177,6 +185,7 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor x: Ground truth.
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
+        :param int epoch: current epoch.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
@@ -202,6 +211,7 @@ class AdversarialTrainer(Trainer):
                     physics=physics,
                     model=self.model,
                     D=self.D,
+                    epoch=epoch,
                 )
                 loss_total += loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
@@ -244,6 +254,7 @@ class AdversarialTrainer(Trainer):
                         physics=physics,
                         model=self.model,
                         D=self.D,
+                        epoch=epoch,
                     )
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:

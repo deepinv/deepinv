@@ -5,7 +5,7 @@ from .optim_iterator import OptimIterator, fStep, gStep
 
 class SMIteration(OptimIterator):
     r"""
-    Iterator for Spectral Methods for :meth:`deepinv.physics.PhaseRetrieval`.
+    Iterator for Spectral Methods for :class:`deepinv.physics.PhaseRetrieval`.
     
     Class for a single iteration of the Spectral Methods algorithm to find the principal eigenvector of the regularized weighted covariance matrix:
     
@@ -42,15 +42,15 @@ class SMIteration(OptimIterator):
         self.f_step = fStepSM(lamb, preprocessing=preprocessing, **kwargs)
         self.g_step = gStepSM(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params, y, physics):
+    def forward(self, x, cur_prior, cur_params, y, physics, *args):
         r"""
         Single iteration of the spectral method.
 
         :param dict x: the current iterate :math:`x_k`.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics containing the forward operator.
+        :param deepinv.physics.Physics physics: Instance of the physics containing the forward operator.
         :return: The new iterate :math:`x_{k+1}`.
         """
         assert hasattr(
@@ -85,7 +85,7 @@ class fStepSM(fStep):
 
         :param torch.Tensor x: Current iterate :math:`x_k`.
         :param torch.Tensor y: Measurements.
-        :param deepinv.physics physics: Instance of the physics modeling the forward matrix.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the forward matrix.
         """
         x = x.to(torch.cfloat)
         # normalize every image in x

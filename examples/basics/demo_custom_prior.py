@@ -27,7 +27,6 @@ from deepinv.utils.demo import load_dataset
 
 # Setup paths for data loading, results and checkpoints.
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -50,11 +49,10 @@ method = "L2_prior"
 dataset_name = "set3c"
 operation = "deblur"
 img_size = 256
-dataset_path = ORIGINAL_DATA_DIR / dataset_name
 val_transform = transforms.Compose(
     [transforms.CenterCrop(img_size), transforms.ToTensor()]
 )
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -104,7 +102,7 @@ deepinv_dataset_path = dinv.datasets.generate_dataset(
 # %%
 # Set up the optimization algorithm to solve the inverse problem.
 # --------------------------------------------------------------------------------------------
-# We use the :class:`deepinv.optim.optimizers.optim_builder` function to instantiate the optimization algorithm.
+# We use the :class:`deepinv.optim.optim_builder` function to instantiate the optimization algorithm.
 #
 # The optimization algorithm is a proximal gradient descent algorithm that solves the following optimization problem:
 #
@@ -123,9 +121,8 @@ class L2Prior(Prior):
         super().__init__(*args, **kwargs)
         self.explicit_prior = True
 
-    def g(self, x, args, **kwargs):
-        g = 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
-        return g
+    def fn(self, x, args, **kwargs):
+        return 0.5 * torch.norm(x.view(x.shape[0], -1), p=2, dim=-1) ** 2
 
 
 # Specify the custom prior
@@ -139,7 +136,6 @@ params_algo = {"stepsize": 1, "lambda": 0.1}
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
 
 # Parameters of the algorithm to solve the inverse problem
 early_stop = True  # Stop algorithm when convergence criteria is reached
@@ -169,12 +165,12 @@ model = optim_builder(
 # Evaluate the reconstruction algorithm on the problem.
 # ---------------------------------------------------------------
 #
-# We can use the :func:`deepinv.utils.test` function to evaluate the reconstruction algorithm on a test set.
+# We can use the :func:`deepinv.test` function to evaluate the reconstruction algorithm on a test set.
 
 
 batch_size = 1
-wandb_vis = False  # plot curves and images in Weight&Bias
 plot_images = True  # plot results
+plot_convergence_metrics = True  # compute performance and convergence metrics along the algorithm, curves saved in RESULTS_DIR
 
 
 dataset = dinv.datasets.HDF5Dataset(path=deepinv_dataset_path, train=True)
@@ -189,7 +185,6 @@ test(
     device=device,
     plot_images=plot_images,
     save_folder=RESULTS_DIR / method / operation / dataset_name,
-    plot_metrics=plot_metrics,
+    plot_convergence_metrics=plot_convergence_metrics,
     verbose=verbose,
-    wandb_vis=wandb_vis,
 )

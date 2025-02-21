@@ -2,9 +2,10 @@ import torch.nn as nn
 import torch
 from .utils import get_weights_url
 import math
+from .base import Denoiser
 
 
-class DnCNN(nn.Module):
+class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.
 
@@ -27,8 +28,7 @@ class DnCNN(nn.Module):
         using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param bool train: training or testing mode
-    :param str device: gpu or cpu
+    :param str device: gpu or cpu.
     """
 
     def __init__(
@@ -39,7 +39,6 @@ class DnCNN(nn.Module):
         bias=True,
         nf=64,
         pretrained="download",
-        train=False,
         device="cpu",
     ):
         super(DnCNN, self).__init__()
@@ -90,11 +89,7 @@ class DnCNN(nn.Module):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
-
-        if not train:
             self.eval()
-            for _, v in self.named_parameters():
-                v.requires_grad = False
         else:
             self.apply(weights_init_kaiming)
 

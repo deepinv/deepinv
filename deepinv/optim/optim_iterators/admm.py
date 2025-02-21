@@ -7,7 +7,7 @@ class ADMMIteration(OptimIterator):
     Iterator for alternating direction method of multipliers.
 
     Class for a single iteration of the Alternating Direction Method of Multipliers (ADMM) algorithm for
-    minimising :math:` f(x) + \lambda g(x)`.
+    minimising :math:`f(x) + \lambda \regname(x)`.
 
     If the attribute ``g_first`` is set to False (by default),
     the iteration is (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_):
@@ -16,14 +16,14 @@ class ADMMIteration(OptimIterator):
         \begin{equation*}
         \begin{aligned}
         u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
-        x_{k+1} &= \operatorname{prox}_{\gamma \lambda g}(u_{k+1} + z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
         z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
         \end{aligned}
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.
 
-    If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`g` are
+    If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iteration.
 
     """
@@ -40,10 +40,10 @@ class ADMMIteration(OptimIterator):
 
         :param dict X: Dictionary containing the current iterate and the estimated cost.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         :return: Dictionary `{"est": (x, z), "cost": F}` containing the updated current iterate and the estimated current cost.
         """
         x, z = X["est"]
@@ -82,7 +82,7 @@ class fStepADMM(fStep):
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param torch.Tensor y: Input data.
-        :param deepinv.physics physics: Instance of the physics modeling the observation.
+        :param deepinv.physics.Physics physics: Instance of the physics modeling the observation.
         """
         if self.g_first:
             p = x + z
@@ -105,7 +105,7 @@ class gStepADMM(gStep):
 
         :param torch.Tensor x: current first variable
         :param torch.Tensor z: current second variable
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         """
         if self.g_first:

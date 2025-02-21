@@ -1,4 +1,4 @@
-"""
+r"""
 Image deblurring with Total-Variation (TV) prior
 ====================================================================================================
 
@@ -24,7 +24,6 @@ from deepinv.utils.plotting import plot, plot_curves
 #
 
 BASE_DIR = Path(".")
-ORIGINAL_DATA_DIR = BASE_DIR / "datasets"
 DATA_DIR = BASE_DIR / "measurements"
 RESULTS_DIR = BASE_DIR / "results"
 DEG_DIR = BASE_DIR / "degradations"
@@ -55,7 +54,7 @@ kernel_torch = load_degradation("Levin09.npy", DEG_DIR / "kernels", index=kernel
 kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
-dataset = load_dataset(dataset_name, ORIGINAL_DATA_DIR, transform=val_transform)
+dataset = load_dataset(dataset_name, transform=val_transform)
 
 
 # %%
@@ -83,7 +82,7 @@ y = physics(x)
 # Exploring the total variation prior.
 # ------------------------------------
 #
-# In this example, we will use the total variation prior, which can be done with the :meth:`deepinv.optim.prior.Prior`
+# In this example, we will use the total variation prior, which can be done with the :class:`deepinv.optim.prior.Prior`
 # class. The prior object represents the cost function of the prior (TV in this case), as well as convenient methods,
 # such as its proximal operator :math:`\text{prox}_{\tau g}`.
 
@@ -91,12 +90,12 @@ y = physics(x)
 prior = dinv.optim.prior.TVPrior(n_it_max=2000)
 
 # Compute the total variation prior cost
-cost_tv = prior(y)
+cost_tv = prior(y).item()
 print(f"Cost TV: g(y) = {cost_tv:.2f}")
 
 # Apply the proximal operator of the TV prior
 x_tv = prior.prox(y, gamma=0.1)
-cost_tv_prox = prior(x_tv)
+cost_tv_prox = prior(x_tv).item()
 
 # %%
 # .. note::
@@ -138,7 +137,9 @@ prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0
@@ -174,8 +175,8 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_model):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [y, x, x_lin, x_model]
@@ -184,6 +185,6 @@ plot(
     titles=["Input", "GT", "Linear", "Recons."],
 )
 
-# plot convergence curves. Metrics are saved in RESULTS_DIR.
-if plot_metrics:
+# plot convergence curves
+if plot_convergence_metrics:
     plot_curves(metrics)

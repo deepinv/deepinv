@@ -42,5 +42,13 @@ def imsize_1_channel():
 
 
 @pytest.fixture
-def rng():
-    return torch.Generator().manual_seed(0)
+def imsize_2_channel():
+    h = 37
+    w = 31
+    c = 2
+    return c, h, w
+
+
+@pytest.fixture
+def rng(device):
+    return torch.Generator(device).manual_seed(0)

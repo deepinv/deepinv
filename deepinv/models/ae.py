@@ -1,7 +1,8 @@
 import torch
+from .base import Denoiser
 
 
-class AutoEncoder(torch.nn.Module):
+class AutoEncoder(Denoiser):
     r"""
     Simple fully connected autoencoder network.
 
@@ -29,9 +30,10 @@ class AutoEncoder(torch.nn.Module):
             torch.nn.Linear(dim_mid, dim_input),
         )
 
-    def forward(self, x, sigma=None):
-        N, C, H, W = x.shape
-        x = x.view(N, -1)
+    def forward(self, x, sigma=None, **kwargs):
+        B, *S = x.shape
+
+        x = x.reshape(B, -1)
 
         encoded = self.encoder(x)
         decoded = self.decoder(encoded)
@@ -39,5 +41,5 @@ class AutoEncoder(torch.nn.Module):
         if self.residual:
             decoded = decoded + x
 
-        decoded = decoded.view(N, C, H, W)
+        decoded = decoded.reshape(B, *S)
         return decoded

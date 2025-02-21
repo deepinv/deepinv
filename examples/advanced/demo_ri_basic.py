@@ -20,8 +20,8 @@ import torchkbnufft as tkbn
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
-from deepinv.utils.demo import load_np_url, get_image_dataset_url, get_degradation_url
-from deepinv.utils.nn import dirac_like
+from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
+from deepinv.utils.tensorlist import dirac_like
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -123,7 +123,7 @@ class RadioInterferometry(LinearPhysics):
 
     def A(self, x):
         return (
-            self.nufftObj(x.to(torch.complex64), self.samples_loc, norm="ortho")
+            self.nufftObj(x.to(torch.cfloat), self.samples_loc, norm="ortho")
             * self.dataWeight
         )
 
@@ -154,8 +154,8 @@ class RadioInterferometry(LinearPhysics):
 # In the case of this particular image, this ratio is of ``5000``.
 # For this reason, unlike in other applications, we tend to visualize the logarithmic scale of the data instead of the data itself.
 
-image_gdth = load_np_url(get_image_dataset_url("3c353_gdth", file_type="npy"))
-image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0)
+image_gdth = load_np_url(get_image_url("3c353_gdth.npy"))
+image_gdth = torch.from_numpy(image_gdth).unsqueeze(0).unsqueeze(0).to(device)
 
 
 def to_logimage(im, rescale=False, dr=5000):
@@ -242,9 +242,9 @@ print("Operator norm: ", opnorm)
 
 # %%
 # The PSF, defined as :math:`\operatorname{PSF} = A \delta` (where :math:`\delta` is a Dirac), can be computed
-# with the help of the :meth:`deepinv.utils.nn.dirac_like` function.
+# with the help of the :func:`deepinv.utils.dirac_like` function.
 
-dirac = dirac_like(image_gdth)
+dirac = dirac_like(image_gdth).to(device)
 PSF = physics.A_adjoint(physics.A(dirac))
 print("PSF peak value: ", PSF.max().item())
 
@@ -313,7 +313,10 @@ from deepinv.optim.optimizers import optim_builder
 
 # Logging parameters
 verbose = True
-plot_metrics = True  # compute performance and convergence metrics along the algorithm, curved saved in RESULTS_DIR
+
+plot_convergence_metrics = (
+    True  # compute performance and convergence metrics along the algorithm.
+)
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
@@ -335,18 +338,18 @@ model = optim_builder(
 )
 
 # reconstruction with FISTA algorithm
-with torch.no_grad():
-    x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
+x_model, metrics = model(y, physics, x_gt=image_gdth, compute_metrics=True)
 
 # compute PSNR
 print(
-    f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(image_gdth, back):.2f} dB"
+    f"Linear reconstruction PSNR: {dinv.metric.PSNR()(image_gdth, back).item():.2f} dB"
 )
 print(
-    f"FISTA reconstruction PSNR: {dinv.utils.metric.cal_psnr(image_gdth, x_model):.2f} dB"
+    f"FISTA reconstruction PSNR: {dinv.metric.PSNR()(image_gdth, x_model).item():.2f} dB"
 )
 
 # plot images
+# sphinx_gallery_multi_image = "single"
 imgs = [
     to_logimage(image_gdth),
     to_logimage(back, rescale=True),
@@ -355,7 +358,7 @@ imgs = [
 plot(imgs, titles=["GT", "Linear", "Recons."], cmap="inferno", cbar=True)
 
 # plot convergence curves
-if plot_metrics:
+if plot_convergence_metrics:
     plot_curves(metrics)
 
 # %%

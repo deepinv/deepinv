@@ -23,10 +23,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[denoisers,doc]
-      - name: Install git repository optional dependencies
-        run: |
-          python3 -m pip install https://github.com/odlgroup/odl/archive/master.zip
+          pip install -e .[dataset,denoisers,doc]
       - name: Run doctests
         run: |
           find . \( -name '*.py' -o -name '*.rst' \) | xargs grep -l '>>>' | while read file; do
@@ -39,7 +36,7 @@ jobs:
           done
       - name: Sphinx build
         run: |
-          sphinx-build docs/source _build
+          sphinx-build -W docs/source _build
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

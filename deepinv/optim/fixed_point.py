@@ -5,11 +5,11 @@ from tqdm import tqdm
 
 
 class FixedPoint(nn.Module):
-    """
+    r"""
     Fixed-point iterations module.
 
     This module implements the fixed-point iteration algorithm given a specific fixed-point iterator (e.g.
-    proximal gradient iteration, the ADMM iteration, see :meth:`deepinv.optim.optim_iterators`), that is
+    proximal gradient iteration, the ADMM iteration, see :ref:`optim_iterators`), that is
     for :math:`k=1,2,...`
 
     .. math::
@@ -49,14 +49,14 @@ class FixedPoint(nn.Module):
         tensor([1., 1.], dtype=torch.float64)
 
 
-    :param deepinv.optim.optim_iterators.optim_iterator iterator: function that takes as input the current iterate, as
+    :param deepinv.optim.OptimIterator iterator: function that takes as input the current iterate, as
                                         well as parameters of the optimization problem (prior, measurements, etc.)
-    :param function update_params_fn: function that returns the parameters to be used at each iteration. Default: ``None``.
-    :param function update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
-    :param function init_iterate_fn: function that returns the initial iterate. Default: ``None``.
-    :param function init_metrics_fn: function that returns the initial metrics. Default: ``None``.
-    :param function check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
-    :param function check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
+    :param Callable update_params_fn: function that returns the parameters to be used at each iteration. Default: ``None``.
+    :param Callable update_prior_fn: function that returns the prior to be used at each iteration. Default: ``None``.
+    :param Callable init_iterate_fn: function that returns the initial iterate. Default: ``None``.
+    :param Callable init_metrics_fn: function that returns the initial metrics. Default: ``None``.
+    :param Callable check_iteration_fn: function that performs a check on the last iteration and returns a bool indicating if we can proceed to next iteration. Default: ``None``.
+    :param Callable check_conv_fn: function that checks the convergence after each iteration, returns a bool indicating if convergence has been reached. Default: ``None``.
     :param int max_iter: maximum number of iterations. Default: ``50``.
     :param bool early_stop: if True, the algorithm stops when the convergence criterion is reached. Default: ``True``.
     :param bool anderson_acceleration: if True, the Anderson acceleration is used. Default: ``False``.
@@ -113,6 +113,7 @@ class FixedPoint(nn.Module):
     def init_anderson_acceleration(self, X):
         r"""
         Initialize the Anderson acceleration algorithm.
+        Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
 
         :param dict X: initial iterate.
         """
@@ -155,6 +156,8 @@ class FixedPoint(nn.Module):
         r"""
         Anderson acceleration step.
 
+        Code inspired from `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_.
+
         :param int it: current iteration.
         :param dict X_prev: previous iterate.
         :param dict TX_prev: output of the fixed-point operator evaluated at X_prev
@@ -163,7 +166,7 @@ class FixedPoint(nn.Module):
         :param torch.Tensor H: H in the Anderson acceleration linear system Hp = q .
         :param torch.Tensor q: q in the Anderson acceleration linear system Hp = q .
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.prior cur_prior: Instance of the Prior class defining the current prior.
+        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
         :param dict cur_params: Dictionary containing the current parameters of the algorithm.
         :param args: arguments for the iterator.
         """
@@ -242,15 +245,11 @@ class FixedPoint(nn.Module):
             range(self.max_iter),
             disable=(not self.verbose or not self.show_progress_bar),
         ):
-
             X_prev = X
             X = self.single_iteration(
                 X,
                 it,
                 *args,
-                compute_metrics=compute_metrics,
-                metrics=metrics,
-                x_gt=x_gt,
                 **kwargs,
             )
 
@@ -272,14 +271,15 @@ class FixedPoint(nn.Module):
         return X, metrics
 
     def single_iteration(self, X, it, *args, **kwargs):
-
         cur_params = self.update_params_fn(it) if self.update_params_fn else None
         cur_data_fidelity = (
             self.update_data_fidelity_fn(it) if self.update_data_fidelity_fn else None
         )
         cur_prior = self.update_prior_fn(it) if self.update_prior_fn else None
         X_prev = X
-        X = self.iterator(X_prev, cur_data_fidelity, cur_prior, cur_params, *args)
+        X = self.iterator(
+            X_prev, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+        )
         if self.anderson_acceleration:
             X = self.anderson_acceleration_step(
                 it,

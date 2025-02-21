@@ -177,7 +177,7 @@ iterations = int(1e2) if torch.cuda.is_available() else 10
 g_param = 0.1
 
 # load Gaussian Likelihood
-likelihood = dinv.optim.L2(sigma=sigma)
+likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
 pula = PreconULA(
     prior=prior,
@@ -224,10 +224,10 @@ pula_mean, pula_var = pula(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.utils.metric.cal_psnr(x, x_lin):.2f} dB")
-print(f"ULA posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, ula_mean):.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"ULA posterior mean PSNR: {dinv.metric.PSNR()(x, ula_mean).item():.2f} dB")
 print(
-    f"PreconULA posterior mean PSNR: {dinv.utils.metric.cal_psnr(x, pula_mean):.2f} dB"
+    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, pula_mean).item():.2f} dB"
 )
 
 # plot results

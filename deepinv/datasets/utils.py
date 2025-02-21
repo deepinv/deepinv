@@ -7,8 +7,13 @@ import tarfile
 import requests
 from tqdm.auto import tqdm
 
+from scipy.io import loadmat as scipy_loadmat
+
 from torch.utils.data import Dataset
-from torch import randn
+from torch import randn, Tensor, stack, zeros_like
+from torch.nn import Module
+
+from deepinv.utils.plotting import rescale_img
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -84,6 +89,15 @@ def extract_tarball(file_path, extract_dir) -> None:
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
+def loadmat(fname: str) -> dict:
+    """Load MATLAB array from file.
+
+    :param str fname: filename to load
+    :return: dict with str keys and array values.
+    """
+    return scipy_loadmat(fname)
+
+
 class PlaceholderDataset(Dataset):
     """
     A placeholder dataset for test purposes.
@@ -103,3 +117,39 @@ class PlaceholderDataset(Dataset):
 
     def __getitem__(self, index):
         return randn(self.shape), randn(self.shape)
+
+
+class Rescale(Module):
+    """Image value rescale torchvision-style transform.
+
+    The transform expects tensor of shape (..., H, W) and performs rescale over all dimensions (i.e. over all images in batch).
+
+    :param str rescale_mode: rescale mode, either "min_max" or "clip".
+    """
+
+    def __init__(self, *args, rescale_mode: str = "min_max", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rescale_mode = rescale_mode
+
+    def forward(self, x: Tensor):
+        r"""
+        Rescale image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
+        return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
+
+
+class ToComplex(Module):
+    """Torchvision-style transform to add empty imaginary dimension to image.
+
+    Expects tensor of shape (..., H, W) and returns tensor of shape (..., 2, H, W).
+    """
+
+    def forward(self, x: Tensor):
+        r"""
+        Convert real image to complex image.
+
+        :param torch.Tensor x: image tensor of shape (..., H, W)
+        """
+        return stack([x, zeros_like(x)], dim=-3)

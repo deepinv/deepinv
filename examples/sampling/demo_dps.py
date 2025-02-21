@@ -1,19 +1,21 @@
 r"""
 Implementing DPS
-====================
+================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
 `Chung et al. <https://arxiv.org/abs/2209.14687>`_ The full algorithm is implemented in
-:meth:`deepinv.sampling.DPS`.
+:class:`deepinv.sampling.DPS`.
 """
 
-# %% Installing dependencies
-# -----------------------------
+# %%
+# Installing dependencies
+# -----------------------
 # Let us ``import`` the relevant packages, and load a sample
-# image of size 64x64. This will be used as our ground truth image.
+# image of size 64 x 64. This will be used as our ground truth image.
+#
 # .. note::
-#           We work with an image of size 64x64 to reduce the computational time of this example.
-#           The algorithm works best with images of size 256x256.
+#           We work with an image of size 64 x 64 to reduce the computational time of this example.
+#           The algorithm works best with images of size 256 x 256.
 #
 
 import numpy as np
@@ -34,7 +36,7 @@ x = x_true.clone()
 
 # %%
 # In this tutorial we consider random inpainting as the inverse problem, where the forward operator is implemented
-# in :meth:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
+# in :class:`deepinv.physics.Inpainting`. In the example that we use, 90% of the pixels will be masked out randomly,
 # and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  12.75/255.
 
 sigma = 12.75 / 255.0  # noise level
@@ -57,7 +59,7 @@ plot(
 
 # %%
 # Diffusion model loading
-# ----------------------------
+# -----------------------
 #
 # We will take a pre-trained diffusion model that was also used for the DiffPIR algorithm, namely the one trained on
 # the FFHQ 256x256 dataset. Note that this means that the diffusion model was trained with human face images,
@@ -69,7 +71,7 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 
 # %%
 # Define diffusion schedule
-# ----------------------------
+# -------------------------
 #
 # We will use the standard linear diffusion noise schedule. Once :math:`\beta_t` is defined to follow a linear schedule
 # that interpolates between :math:`\beta_{\rm min}` and :math:`\beta_{\rm max}`,
@@ -110,7 +112,7 @@ betas = get_betas()
 
 # %%
 # The DPS algorithm
-# ---------------------
+# -----------------
 #
 # Now that the inverse problem is defined, we can apply the DPS algorithm to solve it. The DPS algorithm is
 # a diffusion algorithm that alternates between a denoising step, a gradient step and a reverse diffusion sampling step.
@@ -147,7 +149,7 @@ betas = get_betas()
 
 # %%
 # Denoising step
-# ----------------------------
+# --------------
 #
 # The first step of DPS consists of applying a denoiser function to the current image :math:`\mathbf{x}_t`,
 # with standard deviation :math:`\sigma_t = \sqrt{1 - \overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}`.
@@ -157,7 +159,7 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 50  # choose some arbitrary timestep
+t = torch.ones(1, device=device) * 200  # choose some arbitrary timestep
 at = compute_alpha(betas, t.long())
 sigmat = (1 - at).sqrt() / at.sqrt()
 
@@ -176,7 +178,7 @@ plot(
 
 # %%
 # DPS approximation
-# ----------------------------
+# -----------------
 #
 # In order to perform gradient-based **posterior sampling** with diffusion models, we have to be able to compute
 # :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y})`. Applying Bayes rule, we have
@@ -188,7 +190,7 @@ plot(
 #
 # For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
 # is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_
+# `Chung et al. <https://arxiv.org/abs/2209.14687>`_)
 #
 # .. math::
 #
@@ -219,7 +221,8 @@ data_fidelity = L2()
 i = 200  # choose some arbitrary timestep
 t = (torch.ones(1) * i).to(device)
 at = compute_alpha(betas, t.long())
-xt = at.sqrt() * x0 + (1 - at).sqrt() * torch.randn_like(x0)
+sigma_cur = (1 - at).sqrt() / at.sqrt()
+xt = x0 + sigma_cur * torch.randn_like(x0)
 
 # DPS
 with torch.enable_grad():
@@ -227,7 +230,7 @@ with torch.enable_grad():
     xt.requires_grad_()
 
     # normalize to [0,1], denoise, and rescale to [-1, 1]
-    x0_t = model(xt / 2 + 0.5, (1 - at).sqrt() / at.sqrt() / 2) * 2 - 1
+    x0_t = model(xt / 2 + 0.5, sigma_cur / 2) * 2 - 1
     # Log-likelihood
     ll = data_fidelity(x0_t, y, physics).sqrt().sum()
     # Take gradient w.r.t. xt
@@ -242,7 +245,7 @@ plot(
 
 # %%
 # DPS Algorithm
-# --------------
+# -------------
 #
 # As we visited all the key components of DPS, we are now ready to define the algorithm. For every denoising
 # timestep, the algorithm iterates the following
@@ -289,6 +292,7 @@ time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 
 # measurement
 x0 = x_true * 2.0 - 1.0
+# x0 = x_true.clone()
 y = physics(x0.to(device))
 
 # initial sample from x_T
@@ -310,9 +314,10 @@ for i, j in tqdm(time_pairs):
         xt.requires_grad_()
 
         # 1. denoising step
-        # we call the denoiser using standard deviation instead of the time step.
-        aux_x = xt / 2 + 0.5
-        x0_t = 2 * model(aux_x, (1 - at).sqrt() / at.sqrt() / 2) - 1
+        aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+        sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
+
+        x0_t = 2 * model(aux_x, sigma_cur / 2) - 1
         x0_t = torch.clip(x0_t, -1.0, 1.0)  # optional
 
         # 2. likelihood gradient approximation
@@ -334,7 +339,6 @@ for i, j in tqdm(time_pairs):
         + c2 * xt / (1 - at).sqrt()
         - norm_grad
     )
-
     x0_preds.append(x0_t.to("cpu"))
     xs.append(xt_next.to("cpu"))
 
@@ -348,12 +352,12 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 
 # %%
 # Using DPS in your inverse problem
-# ---------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.sampling.DPS` class.
+# ---------------------------------
+# You can readily use this algorithm via the :class:`deepinv.sampling.DPS` class.
 #
 # ::
 #
 #       y = physics(x)
-#       model = dinv.sampling.DPS(dinv.models.DiffUNet(), data_fidelity=dinv.optim.L2())
+#       model = dinv.sampling.DPS(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
