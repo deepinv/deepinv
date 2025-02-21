@@ -45,6 +45,7 @@ Self-Supervised Learning
     deepinv.loss.MOEILoss
     deepinv.loss.Neighbor2Neighbor
     deepinv.loss.SplittingLoss
+    deepinv.loss.WeightedSplittingLoss
     deepinv.loss.Phase2PhaseLoss
     deepinv.loss.Artifact2ArtifactLoss
     deepinv.loss.SureGaussianLoss
