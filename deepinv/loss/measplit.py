@@ -422,7 +422,7 @@ class K_Weighted_Loss(SplittingLoss):
         weighted_residual = self.weight.expand_as(residual) * residual
 
         # Compute l2 loss
-        loss = (weighted_residual**2).sum()
+        loss = (weighted_residual**2).mean()
 
         return loss
 
