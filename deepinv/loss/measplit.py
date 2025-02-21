@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict
 from copy import deepcopy
 from warnings import warn
 import torch
@@ -139,7 +139,7 @@ class SplittingLoss(Loss):
 
         return y_split, physics_split
 
-    def forward(self, x_net, y, physics, model, normalize_loss=True, **kwargs):
+    def forward(self, x_net, y, physics, model, **kwargs):
         r"""
         Computes the measurement splitting loss
 
@@ -157,10 +157,7 @@ class SplittingLoss(Loss):
 
         loss_ms = self.metric(physics2.A(x_net), y2)
 
-        if normalize_loss:
-            return loss_ms / mask2.mean()  # normalized
-        else:
-            return loss_ms  # unnormalized
+        return loss_ms / mask2.mean()
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -337,13 +334,26 @@ class SplittingLoss(Loss):
             return self.mask
 
 
-class K_Weighted_Loss(SplittingLoss):
+class WeightedSplittingLoss(SplittingLoss):
     """
-    K Weighted 1D loss
+    K-Weighted Splitting Loss
 
-    Implements the SSDU weighted from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_
+    Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    where :math:`K` is derived from the pdf of the acceleration mask and splitting mask. The loss is related to the original splitting loss as follows:
 
-    where K is derived from the pdf of the accelerated mask and splitting mask
+    .. math::
+        \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
+    
+    where
+
+    .. math::
+        \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
+
+    and :math:`\mathbf{P}=\mathbb{E}[\M_i],\tilde{\mathbf{P}}=\mathbb{E}[\M_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
+    
+    .. note::
+
+        The loss should be used with :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` to match the original paper.
 
     :param deepinv.physics.generator.PhysicsGenerator, function to generate the mask should be Noiser2NoiseSplittingMaskGenerator
     :param dict, with pdf["omega"] and pdf["lambda"] which represents the pdf that the accelerated masks and further splitting mask was sampled from, respectively.
@@ -353,49 +363,42 @@ class K_Weighted_Loss(SplittingLoss):
     :Example:
 
     >>> import torch
-    >>> import deepinv as dinv
-    >>> physics_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=4)
-    >>> split_generator = dinv.physics.generator.GaussianMaskGenerator((128, 128), acceleration=2)
-    >>> mask_generator = dinv.physics.generator.inpainting.MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
+    >>> from deepinv.physics.generator import GaussianMaskGenerator, MultiplicativeSplittingMaskGenerator
+    >>> physics_generator = GaussianMaskGenerator((128, 128), acceleration=4)
+    >>> split_generator = GaussianMaskGenerator((128, 128), acceleration=2)
+    >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
     >>> pdf = {"omega": physics_generator.get_pdf(), "lambda": split_generator.get_pdf()}
-    >>> loss = dinv.loss.measplit.K_Weighted_Loss(mask_generator=mask_generator, pdf=pdf)
-
+    >>> loss = dinv.loss.WeightedSplittingLoss(mask_generator=mask_generator, pdf=pdf)
+    
     """
 
     def __init__(
         self, 
         mask_generator: PhysicsGenerator, 
-        pdf: dict, 
-        eval_n_samples=5,
-        eval_split_input=True,
-        eval_split_output=False,
-        device="cpu"
+        pdf: Dict[str, torch.Tensor], 
     ):
 
         super().__init__(
-            eval_n_samples=eval_n_samples,
-            eval_split_input=eval_split_input,
-            eval_split_output=eval_split_output,
+            eval_split_input=False,
             pixelwise=True
         )
         self.mask_generator = mask_generator
-        self.name = "k_weighted_loss"
-        self.device = device
-        self.pdf = pdf
-        self.k = self.compute_k(pdf)
-        self.weight = (1 - self.k).clamp(min=1e-6) ** (-0.5)  # Compute weight matrix
+        self.name = "WeightedSplitting"
+        self.pdf = pdf #TODO correct normalisation?
+        self.K = self.compute_k(pdf)
+        self.weight = (1 - self.K).clamp(min=1e-6) ** (-0.5)
 
-    def compute_k(self, pdf: dict) -> torch.Tensor:
+    def compute_k(self, pdf: Dict[str, torch.Tensor]) -> torch.Tensor:
         """
-        Compute K for K weighted splitting loss where K is a diagonal matrix
+        Compute K for K-weighted splitting loss where K is a diagonal matrix
         """
         P = pdf["omega"]  # 1d_pdf mask
         P_tilde = pdf["lambda"]  # 1d_pdf mask
-        one_minus_eps = 1 - 1e-3
+        one_minus_eps = 1 - 1e-3 #TODO why is this eps different?
 
         P_tilde[P_tilde > one_minus_eps] = one_minus_eps  # makes sure P_tilde < 1
 
-        diag_1_minus_PtP = 1 - P_tilde * P
+        diag_1_minus_PtP = 1 - P_tilde * P # TODO I or 1?
         diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=1e-6)  # Avoid division by zero
         inv_diag_1_minus_PtP = 1 / diag_1_minus_PtP
         # compute (1-P)
@@ -407,24 +410,19 @@ class K_Weighted_Loss(SplittingLoss):
         return K_mask
 
     def forward(self, x_net, y, physics, model, **kwargs):
-
-        # # Compute the residual
-        # residual = super().forward(x_net, y, physics, model, normalize_loss=False, **kwargs)
-
+        # Get output mask M_2 = I - M_1
         mask = model.get_mask() * getattr(physics, "mask", 1.0)
         mask2 = getattr(physics, "mask", 1.0) - mask
         y2, physics2 = self.split(mask2, y, physics)
         
-        # Compute the residual manually
+        # Compute the residual
         residual = physics2.A(x_net) - y2
 
         # Apply weight
         weighted_residual = self.weight.expand_as(residual) * residual
 
-        # Compute l2 loss
-        loss = (weighted_residual**2).mean()
-
-        return loss
+        # Compute L2 loss
+        return (weighted_residual**2).mean()
 
 
 class Phase2PhaseLoss(SplittingLoss):

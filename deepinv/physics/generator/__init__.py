@@ -20,4 +20,5 @@ from .inpainting import (
     GaussianSplittingMaskGenerator,
     Artifact2ArtifactSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
+    MultiplicativeSplittingMaskGenerator
 )
