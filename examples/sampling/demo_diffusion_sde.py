@@ -6,7 +6,7 @@ This code shows you how to use the :meth:`deepinv.sampling.DiffusionSDE` to gene
 and :meth:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling.
 
 
-Unconditional Image Generation 
+Unconditional Image Generation
 ==============================
 
 The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.13456.
@@ -25,7 +25,9 @@ Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 The reverse-time SDE is defined as follows, running backward in time:
 
 .. math::
-    d\, x_t =\left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t)\right( d\,t + g(t) d\, w_t.
+   d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t},
+
+where a scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
 
 This reverse-time SDE can be used as a generative process.
 The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
@@ -343,24 +345,30 @@ Posterior Sampling for Inverse Problems
 
 The `deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
 
-The posterior sampling is performed by solving a similar reverse-time SDE:
+Consider the acquisition model:
+.. math::
+    y = \noise{\forw{x}}.
+
+This class defines the reverse-time SDE for the posterior distribution :math:`p(x|y)` given the data :math:`y`:
+
+.. math::
+    d\, x_t = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla_{x_t} \log p_t(x_t | y) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}
+
+where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :math:`w` is the standard Brownian motion. The drift term and the diffusion coefficient are defined by the underlying (unconditional) forward-time SDE `unconditional_sde`. The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be decomposed using the Bayes' rule:
+
+.. math::
+    \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
+
+The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
 
 .. math::
     
 
 """
 
-import torch
-import numpy as np
-
-import deepinv as dinv
-from deepinv.models import NCSNpp, EDMPrecond
-from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
-from deepinv.sampling.sde_solver import HeunSolver, EulerSolver
-
-# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-device = "cuda"
-dtype = torch.float64
+from deepinv.sampling.diffusion_sde import PosteriorDiffusion
+from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
+from deepinv.optim.data_fidelity import Zero
 
 unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
 denoiser = EDMPrecond(model=unet).to(device)
@@ -379,12 +387,32 @@ sde = VarianceExplodingDiffusion(
 
 rng = torch.Generator(device).manual_seed(42)
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solver = HeunSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
-x = solution.sample.clone()
-dinv.utils.plot(x, titles="Original sample", show=True)
-# %%
-from deepinv.sampling.diffusion_sde import DPSDataFidelity, PosteriorDiffusion
+solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
+
+# When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
+posterior = PosteriorDiffusion(
+    data_fidelity=Zero(),
+    unconditional_sde=sde,
+    dtype=dtype,
+    device=device,
+)
+solution = posterior.forward(
+    y=None,
+    physics=None,
+    solver=solver,
+    x_init=(1, 3, 64, 64),
+    seed=123,
+    timesteps=timesteps,
+)
+dinv.utils.plot(solution.sample, titles="Unconditional generation", show=True)
+
+
+# When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
+# For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
+
+x = solution.sample
+physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
+y = physics(x)
 
 posterior = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(denoiser=denoiser),
@@ -393,12 +421,45 @@ posterior = PosteriorDiffusion(
     device=device,
 )
 
-physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
-y = physics(x)
 
 posterior_sample = posterior.forward(
     y, physics, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
 )
-dinv.utils.plot([x, y, posterior_sample.sample], show=True)
-dinv.utils.plot_videos(posterior_sample.trajectory, display=True, time_dim=0)
+dinv.utils.plot(
+    [x, y, posterior_sample.sample],
+    show=True,
+    suptitle="Posterior Sampling",
+    titles=["Original", "Measurement", "Posterior sample"],
+)
+dinv.utils.plot_videos(
+    posterior_sample.trajectory,
+    display=False,
+    time_dim=0,
+    save_fn="posterior_trajectory.gif",
+)
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("posterior_trajectory.gif", final_dir / "posterior_trajectory.gif")
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
 # %%
+# We obtain the following posterior trajectory
+#
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/posterior_trajectory.gif
+#       :class: custom-gif

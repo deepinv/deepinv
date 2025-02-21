@@ -119,7 +119,6 @@ class DiffusionSDE(BaseSDE):
         *args,
         **kwargs,
     ):
-
         def backward_drift(x, t, *args, **kwargs):
             return -forward_drift(x, t) + ((1 + alpha) / 2) * forward_diffusion(
                 t
@@ -205,7 +204,6 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         *args,
         **kwargs,
     ):
-
         def forward_drift(x, t, *args, **kwargs):
             return 0.0
 
@@ -279,7 +277,7 @@ class PosteriorDiffusion(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity: NoisyDataFidelity = Zero,
+        data_fidelity: NoisyDataFidelity = Zero(),
         unconditional_sde: DiffusionSDE = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -383,64 +381,3 @@ class PosteriorDiffusion(Reconstructor):
             ).to(
                 self.dtype
             )
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-    from deepinv.models import NCSNpp, EDMPrecond
-    from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
-    from deepinv.sampling.sde_solver import HeunSolver
-    from deepinv.sampling.noisy_datafidelity import DPSDataFidelity
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float64
-
-    unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
-    denoiser = EDMPrecond(model=unet).to(device)
-    sigma_min = 0.02
-    sigma_max = 10
-    num_steps = 10
-
-    sde = VarianceExplodingDiffusion(
-        denoiser=denoiser,
-        sigma_max=sigma_max,
-        sigma_min=sigma_min,
-        device=device,
-        dtype=dtype,
-        alpha=0.5,
-    )
-
-    rng = torch.Generator(device).manual_seed(42)
-    timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-    solver = HeunSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
-    solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
-    x = solution.sample.clone()
-    dinv.utils.plot(x, titles="Original sample", show=True)
-
-    posterior = PosteriorDiffusion(
-        data_fidelity=Zero(),
-        unconditional_sde=sde,
-        dtype=dtype,
-        device=device,
-    )
-
-    posterior_sample = posterior.forward(
-        None, None, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
-    )
-    dinv.utils.plot([x, posterior_sample.sample], show=True)
-
-    posterior = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoiser),
-        unconditional_sde=sde,
-        dtype=dtype,
-        device=device,
-    )
-
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
-    y = physics(x)
-
-    posterior_sample = posterior.forward(
-        y, physics, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
-    )
-    dinv.utils.plot([x, y, posterior_sample.sample], show=True)
-    dinv.utils.plot_videos(posterior_sample.trajectory, display=True, time_dim=0)

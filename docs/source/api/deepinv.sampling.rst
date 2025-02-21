@@ -4,8 +4,8 @@ deepinv.sampling
 This package contains various posterior sampling algorithms, including diffusion-based methods and MCMC methods.
 Please refer to the :ref:`user guide <sampling>` for more details.
 
-Diffusion models for image generation
--------------------------------------
+Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
+---------------------------------------------------------------------------------------------------
 .. userguide:: diffusion_generation
 
 .. autosummary::
@@ -13,9 +13,10 @@ Diffusion models for image generation
    :template: myclass_template.rst
    :nosignatures:
     
-    deepinv.sampling.sde.BaseSDE
-    deepinv.sampling.sde.DiffusionSDE
-    deepinv.sampling.sde.VESDE
+    deepinv.sampling.diffusion_sde.BaseSDE
+    deepinv.sampling.diffusion_sde.DiffusionSDE
+    deepinv.sampling.diffusion_sde.VarianceExplodingDiffusion
+    deepinv.sampling.diffusion_sde.PosteriorDiffusion
     deepinv.sampling.sde_solver.BaseSDESolver
     deepinv.sampling.sde_solver.EulerSolver
     deepinv.sampling.sde_solver.HeunSolver
