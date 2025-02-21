@@ -21,9 +21,9 @@ class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
-    Implements measurement splitting loss from `Yaman et al. <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
-    `Hendriksen et al. <https://arxiv.org/abs/2001.11801>`_ (Noise2Inverse) for CT,
-    `Acar et al. <https://link.springer.com/chapter/10.1007/978-3-030-88552-6_4>`_ dynamic MRI. Also see :class:`deepinv.loss.Artifact2ArtifactLoss`, :class:`deepinv.loss.Phase2PhaseLoss` for similar.
+    Implements measurement splitting loss from :cite:`yaman2020self` (SSDU) for MRI,
+    :cite:`hendriksen2020noise2inverse` (Noise2Inverse) for CT,
+    :cite:`acar2021self` for dynamic MRI. Also see :class:`deepinv.loss.Artifact2ArtifactLoss`, :class:`deepinv.loss.Phase2PhaseLoss` for similar.
 
     Splits the measurement and forward operator :math:`\forw{}` (of size :math:`m`)
     into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,
@@ -44,8 +44,7 @@ class SplittingLoss(Loss):
         or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
 
-    This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
-    networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
+    This loss was used in SSDU for MRI in :cite:`yaman2020self`.
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
@@ -62,7 +61,7 @@ class SplittingLoss(Loss):
 
     .. note::
 
-        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :cite:`yaman2020self`.
 
     :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
@@ -338,7 +337,7 @@ class Phase2PhaseLoss(SplittingLoss):
     r"""
     Phase2Phase loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
+    Implements dynamic measurement splitting loss from :cite:`eldeniz2021phase2phase`.
     for free-breathing MRI.
     This is a special (temporal) case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
@@ -524,7 +523,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     r"""
     Artifact2Artifact loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
+    Implements dynamic measurement splitting loss from :cite:`liu2020rare`.
     for free-breathing MRI.
     This is a special case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
@@ -638,13 +637,10 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
 class Neighbor2Neighbor(Loss):
     r"""
-    Neighbor2Neighbor loss.
+    Neighbor2Neighbor loss :cite:`huang2021neighbor2neighbor`.
 
     Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
-    map (see details in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-    <https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_).
-
-    The self-supervised loss is computed as:
+    map (see details in :cite:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
 
     .. math::
 
