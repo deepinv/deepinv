@@ -14,8 +14,9 @@ where :math:`x` is the image to be reconstructed, :math:`y` are the measurements
 is the negative log-prior.
 
 .. _diffusion_generation:
-Diffusion models for image generation
--------------------------------------
+
+Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
+---------------------------------------------------------------------------------------------------
  
 We first provide a unified framework for image generation using diffusion models.
 We define diffusion models as Stochastic Differential Equations (SDE).
@@ -31,14 +32,11 @@ The reverse-time SDE is defined as follows, running backward in time:
 
 .. math::
 
-    d\, x_t = \left(f(x_t, t) - g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) d\, w_t.
+    d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}.
 
-This reverse-time SDE can be used as a generative process. It also admits an equivalent probability ODE flow: 
+The scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
 
-.. math::
-
-    d\, x_t = \left(f(x_t, t) - \frac{1}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t.
-
+This reverse-time SDE can be used as a generative process. 
 
 The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if 
 
@@ -55,20 +53,31 @@ then
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
+When turn out to Posterior Sampling, we need simply to repace the (unconditional) score function :math:`\nabla_{x_t} \log p_t(x_t)` by the conditional score function :math:`\nabla_{x_t} \log p_t(x_t|y)`. It can be decomposed using the Bayes' rule:
+
+.. math::
+    \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
+
+The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
+The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
+
 .. list-table:: Stochastic Differential Equations
    :header-rows: 1
 
    * - **Method**
      - **Description**
 
-   * - :class:`deepinv.sampling.sde.BaseSDE`
+   * - :class:`deepinv.sampling.diffusion_sde.BaseSDE`
      - Base class for defining a SDE with a drift term and a diffusion coefficient
 
-   * - :class:`deepinv.sampling.sde.DiffusionSDE`
+   * - :class:`deepinv.sampling.diffusion_sde.DiffusionSDE`
      - Define automatically the reverse-time SDE from a forward SDE and a denoiser. 
 
-   * - :class:`deepinv.sampling.sde.VESDE`
-     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.sde.DiffusionSDE`.
+   * - :class:`deepinv.sampling.diffusion_sde.VarianceExplodingDiffusion`
+     - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.diffusion_sde.DiffusionSDE`.
+
+   * - :class:`deepinv.sampling.diffusion_sde.PosteriorDiffusion`
+     - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`.
 
 We also provide generic methods for solving SDEs (and ODEs).
 
@@ -78,18 +87,21 @@ We also provide generic methods for solving SDEs (and ODEs).
    * - **Method**
      - **Description**
   
-   * - :class:`deepinv.sampling.sde_solver.BaseSDESolver`
+   * - :class:`deepinv.sampling.diffusion_sde_solver.BaseSDESolver`
      - Base class of the solvers.
 
-   * - :class:`deepinv.sampling.sde_solver.EulerSolver`
+   * - :class:`deepinv.sampling.diffusion_sde_solver.EulerSolver`
      - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ .
 
-   * - :class:`deepinv.sampling.sde_solver.HeunSolver`
+   * - :class:`deepinv.sampling.diffusion_sde_solver.HeunSolver`
      - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_.
 
+
+
 .. _diffusion:
+
 Diffusion models for posterior sampling
---------------------------------
+---------------------------------------
 We provide various sota diffusion methods for sampling from the posterior distribution.
 Diffusion methods produce a sample from the posterior ``x`` given a
 measurement ``y`` as ``x = model(y, physics)``,
