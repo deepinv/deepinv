@@ -2,8 +2,8 @@ r"""
 Image generation and Posterior Sampling with Stochastic Differential Equation Modeling
 ====================================================================================================
 
-This code shows you how to use 
-:meth:`deepinv.sampling.DiffusionSDE` to generate from a pre-trained denoiser and 
+This code shows you how to use
+:meth:`deepinv.sampling.DiffusionSDE` to generate from a pre-trained denoiser and
 :meth:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling.
 
 
@@ -14,7 +14,7 @@ The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.1
 
 This method requires:
 
-* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., 
+* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g.,
 :class:`deepinv.models.NCSNpp`).
 * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE.
 
@@ -344,7 +344,7 @@ except FileNotFoundError:
 # Posterior Sampling for Inverse Problems
 # ---------------------------------------
 #
-# The 
+# The
 # :meth:`deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
 #
 # Consider the acquisition model:
@@ -361,8 +361,8 @@ except FileNotFoundError:
 # .. math::
 #     \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
 #
-# The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the 
-# second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in 
+# The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the
+# second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in
 # :meth:`deepinv.sampling.NoisyDataFidelity`.
 
 from deepinv.sampling import PosteriorDiffusion, DPSDataFidelity
@@ -437,7 +437,7 @@ dinv.utils.save_videos(
     posterior_sample.trajectory,
     time_dim=0,
     save_fn="posterior_trajectory.gif",
-    figsize=(5,5)
+    figsize=(5, 5),
 )
 
 # sphinx_gallery_start_ignore

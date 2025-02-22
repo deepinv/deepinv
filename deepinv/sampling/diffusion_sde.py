@@ -9,6 +9,7 @@ from deepinv.optim.data_fidelity import Zero
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 
+
 class BaseSDE(nn.Module):
     r"""
     Base class for Stochastic Differential Equation (SDE):
@@ -180,6 +181,7 @@ class DiffusionSDE(BaseSDE):
         :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         raise NotImplementedError
+
 
 class VarianceExplodingDiffusion(DiffusionSDE):
     r"""

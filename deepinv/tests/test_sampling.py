@@ -7,6 +7,9 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
+DEVICES = ["cpu"]
+if torch.cuda.is_available():
+    DEVICES.append("cuda")
 
 
 def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
@@ -108,12 +111,12 @@ def test_sampling_algo(algo, imsize, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
-def test_algo(name_algo, imsize, device):
-    test_sample = torch.ones((1, 3, 64, 64))
+@pytest.mark.parametrize("device", DEVICES)
+def test_algo(name_algo, device):
+    test_sample = torch.ones((1, 3, 64, 64), device=device)
 
     sigma = 1
-    sigma_prior = 1
-    physics = dinv.physics.Denoising()
+    physics = dinv.physics.Denoising(device=device)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -121,7 +124,7 @@ def test_algo(name_algo, imsize, device):
 
     if name_algo == "DiffPIR":
         f = DiffPIR(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
@@ -129,14 +132,14 @@ def test_algo(name_algo, imsize, device):
         )
     elif name_algo == "DPS":
         f = DPS(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
             device=device,
         )
     else:
-        raise Exception("The sampling algorithm doesnt exist")
+        raise Exception("The sampling algorithm doesn't exist")
 
     x = f(y, physics)
 
@@ -144,6 +147,7 @@ def test_algo(name_algo, imsize, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+@pytest.mark.parametrize("device", DEVICES)
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
@@ -188,14 +192,9 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
-DEVICES = ["cpu"]
-if torch.cuda.is_available():
-    DEVICES.append("cuda")
-
-
 @pytest.mark.parametrize("device", DEVICES)
 def test_sde(device):
-    from deepinv.sampling.diffusion_sde import VESDE
+    from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
     from deepinv.sampling.sde_solver import EulerSolver, HeunSolver
     from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
 
@@ -232,18 +231,17 @@ def test_sde(device):
         HeunSolver(timesteps=timesteps, full_trajectory=True, rng=rng),
     ]
     for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
-        sde = VESDE(
+        sde = VarianceExplodingDiffusion(
             denoiser=denoiser,
             rescale=rescale,
             sigma_max=sigma_max,
             sigma_min=sigma_min,
             device=device,
-            use_backward_ode=False,
         )
 
         for solver in solvers:
             # Test generation
-            solution = sde(
+            solution = sde.sample(
                 (1, 3, 64, 64),
                 solver=solver,
                 seed=10,
@@ -255,7 +253,7 @@ def test_sde(device):
             assert solution.sample.shape == (1, 3, 64, 64)
 
             # Test reproducibility
-            solution = sde(
+            solution = sde.sample(
                 (1, 3, 64, 64),
                 solver=solver,
                 seed=10,
