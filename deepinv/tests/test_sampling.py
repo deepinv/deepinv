@@ -194,7 +194,11 @@ def test_algo_inpaint(name_algo, device):
 
 @pytest.mark.parametrize("device", DEVICES)
 def test_sde(device):
-    from deepinv.sampling.diffusion_sde import VarianceExplodingDiffusion
+    from deepinv.sampling import (
+        VarianceExplodingDiffusion,
+        PosteriorDiffusion,
+        DPSDataFidelity,
+    )
     from deepinv.sampling.sde_solver import EulerSolver, HeunSolver
     from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
 
@@ -267,4 +271,31 @@ def test_sde(device):
                 torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
                 < 1e-2
             )
-            # TODO: add better error checking
+    # Test posterior sampling
+    sde = VarianceExplodingDiffusion(
+        denoiser=denoisers[0],
+        rescale=rescales[0],
+        sigma_max=sigma_max,
+        sigma_min=sigma_min,
+        device=device,
+    )
+    posterior = PosteriorDiffusion(
+        data_fidelity=DPSDataFidelity(denoiser=denoiser),
+        unconditional_sde=sde,
+        dtype=torch.float32,
+        device=device,
+    )
+    x = sample_2
+    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
+    y = physics(x)
+
+    posterior_solution = posterior.forward(
+        y,
+        physics,
+        solver=solvers[0],
+        x_init=(1, 3, 64, 64),
+        seed=10,
+    )
+    posterior_sample = posterior_solution.sample
+
+    assert posterior_sample.shape == (1, 3, 64, 64)
