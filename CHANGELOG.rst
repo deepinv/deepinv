@@ -25,6 +25,7 @@ New Features
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
 
 Fixed
 ^^^^^

@@ -79,6 +79,7 @@ class RandomPhaseError(Transform):
     def __init__(self, *args, scale: Union[int, Tuple[int, int]] = 0.2, **kwargs):
         super().__init__(*args, **kwargs)
         self.scale = scale
+        self.flatten_video_input = False
 
     def _get_params(self, *args) -> dict:
         if isinstance(s := self.scale, tuple):

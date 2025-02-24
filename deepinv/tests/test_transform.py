@@ -35,6 +35,8 @@ TRANSFORMS = [
     "affine",
     "pantiltrotate",
     "diffeomorphism",
+    "randomnoise",
+    "randomphaseerror",
 ]
 
 
@@ -125,6 +127,10 @@ def choose_transform(transform_name, device, rng):
         return dinv.transform.projective.PanTiltRotate(**proj_kwargs)
     elif transform_name == "diffeomorphism":
         return dinv.transform.CPABDiffeomorphism(device=device)  # doesn't support rng
+    elif transform_name == "randomnoise":
+        return dinv.transform.RandomNoise(device=device, rng=rng)
+    elif transform_name == "randomphaseerror":
+        return dinv.transform.RandomPhaseError(device=device, rng=rng)
     else:
         raise ValueError("Invalid transform_name provided")
 
@@ -170,8 +176,13 @@ def check_correct_pattern(x, x_t, pattern_offset):
 @pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
 def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
     transform = choose_transform(transform_name, device=device, rng=rng)
+
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
+
+    if transform_name in "randomphaseerror":
+        image = image[:, :2]  # complex image
+
     image_t = transform(image)
 
     assert image.device == image_t.device == device
@@ -195,6 +206,9 @@ def test_transform_identity(
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
 
+    if transform_name == "randomphaseerror":
+        pattern = pattern[:, :2]  # complex image
+
     if device.type != "cpu" and transform_name in (
         "homography",
         "euclidean",
@@ -204,6 +218,10 @@ def test_transform_identity(
     ):
         # more reliable with a cpu rng here
         rng = torch.Generator().manual_seed(0)
+
+    if transform_name in ("randomnoise", "randomphaseerror"):
+        # Random noise or phase error is not invertible
+        return
 
     t = choose_transform(transform_name, device=device, rng=rng)
     assert check_correct_pattern(pattern, t.identity(pattern), pattern_offset)
