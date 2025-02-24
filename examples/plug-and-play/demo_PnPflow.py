@@ -2,11 +2,11 @@ r"""
 Flow matching based PnP: PnP-Flow
 =================================
 
-The example implements the PnP-Flow flow matching algorithm for image reconstruction from `Martin et al. (ICLR 2025) <https://arxiv.org/abs/2410.02423>`_. 
+The example implements the PnP-Flow flow matching algorithm for image reconstruction from `Martin et al. (ICLR 2025) <https://arxiv.org/abs/2410.02423>`_.
 The full algorithm is implemented in :class:`deepinv.optim.pnpflow.PnPFlow`.
 
-PnP-Flow alternates between 1) 
-a gradient step on the data fidelity, 2) an interpolation step and  3) 
+PnP-Flow alternates between 1)
+a gradient step on the data fidelity, 2) an interpolation step and  3)
 a denoising step.
 With a datafit term :math:`f`, the iterations are:
 
@@ -20,12 +20,12 @@ With a datafit term :math:`f`, the iterations are:
     \end{cases}
     \end{equation*}
 
-where 
+where
 
 - :math:`\varepsilon_k \sim \mathcal N(0, \mathrm{Id})`
-- :math:`t_k` is a sequence of timesteps with values in :math:`[0, 1]`, typically 
+- :math:`t_k` is a sequence of timesteps with values in :math:`[0, 1]`, typically
   :math:`t_k = k / n_\mathrm{iter}`
-- the denoiser :math:`D_\theta` builds upon the velocity field :math:`v_\theta` of a 
+- the denoiser :math:`D_\theta` builds upon the velocity field :math:`v_\theta` of a
   pretrained flow matching model:
 
 .. math::
@@ -76,7 +76,7 @@ denoiser = FlowUNet(
 # %%
 # First, we consider the problem of mask inpainting. The forward operator is
 # implemented in :class:`deepinv.physics.Inpainting`. The mask we use is
-# a centered black square with size 64x64. We additionally use Additive
+# a centered black square with size 40x40. We additionally use Additive
 # White Gaussian Noise of standard deviation 25/255.
 
 url = get_image_url("celeba_example.jpg")
@@ -85,7 +85,7 @@ x_true = load_url_image(url=url, img_size=128, resize_mode="resize", device=devi
 # values in [-1, 1]:
 x_true = 2 * x_true - 1
 mask = torch.ones_like(x_true)
-mask[:, :, 32:96, 32:96] = 0
+mask[:, :, 44:84, 44:84] = 0
 sigma_noise = 25 / 255  # noise level
 
 physics = dinv.physics.Inpainting(
