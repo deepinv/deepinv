@@ -640,6 +640,7 @@ def test_dpir(imsize, dummy_dataset, device):
 def test_pnpflow(imsize, dummy_dataset, device):
     # # 1. Generate a dummy dataset
     from torchvision import transforms
+
     transform = transforms.Resize((128, 128))
     dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
