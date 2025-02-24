@@ -1,15 +1,14 @@
 import pytest
-
+import sys
 import torch
 from torch.utils.data import DataLoader
-
 import deepinv as dinv
-from deepinv.optim import DataFidelity
+from deepinv.optim import DataFidelity, PrimalDualCP
 from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
 from deepinv.optim.prior import Prior, PnP, RED
-from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
 from deepinv.tests.test_physics import find_operator
+from deepinv import optim
 
 
 def custom_init_CP(y, physics):
@@ -252,7 +251,19 @@ def test_data_fidelity_amplitude_loss(device):
 
 
 # we do not test CP (Chambolle-Pock) as we have a dedicated test (due to more specific optimality conditions)
-@pytest.mark.parametrize("name_algo", ["GD", "PGD", "ADMM", "DRS", "HQS", "FISTA"])
+@pytest.mark.parametrize(
+    "name_algo",
+    [
+        "GradientDescent",
+        "ProximalGradientDescent",
+        "ADMM",
+        "DRS",
+        "HQS",
+        "FISTA",
+        "MirrorDescent",
+        "ProximalMirrorDescent",
+    ],
+)
 def test_optim_algo(name_algo, imsize, dummy_dataset, device):
     for g_first in [True, False]:
         # Define two points
@@ -276,7 +287,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         prior = Prior(g=prior_g)  # The prior term
 
         if (
-            name_algo == "CP"
+            name_algo == "PrimalDualCP"
         ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = 1.0
@@ -288,8 +299,7 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         max_iter = 1000
         params_algo = {"stepsize": stepsize, "lambda": lamb, "sigma": sigma}
 
-        optimalgo = optim_builder(
-            name_algo,
+        optimalgo = getattr(optim, name_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -373,7 +383,10 @@ def test_denoiser(imsize, dummy_dataset, device):
 
 
 # GD not implemented for this one
-@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
 
@@ -399,7 +412,7 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
     # here the prior model is common for all iterations
     prior = PnP(denoiser=dinv.models.WaveletDenoiser(wv="db8", level=3, device=device))
 
-    stepsize_dual = 1.0 if pnp_algo == "CP" else None
+    stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
     params_algo = {
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
@@ -407,10 +420,9 @@ def test_pnp_algo(pnp_algo, imsize, dummy_dataset, device):
         "stepsize_dual": stepsize_dual,
     }
 
-    custom_init = custom_init_CP if pnp_algo == "CP" else None
+    custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-    pnp = optim_builder(
-        pnp_algo,
+    pnp = getattr(optim, pnp_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -465,7 +477,10 @@ def get_prior(prior_name, device="cpu"):
     return prior
 
 
-@pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
+@pytest.mark.parametrize(
+    "pnp_algo",
+    ["ProximalGradientDescent", "HQS", "DRS", "ADMM", "PrimalDualCP", "FISTA"],
+)
 def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
     for prior_name in [
         "L1Prior",
@@ -500,7 +515,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         # here the prior model is common for all iterations
         prior = get_prior(prior_name, device=device)
 
-        stepsize_dual = 1.0 if pnp_algo == "CP" else None
+        stepsize_dual = 1.0 if pnp_algo == "PrimalDualCP" else None
         params_algo = {
             "stepsize": stepsize,
             "g_param": sigma_denoiser,
@@ -508,10 +523,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             "stepsize_dual": stepsize_dual,
         }
 
-        custom_init = custom_init_CP if pnp_algo == "CP" else None
+        custom_init = custom_init_CP if pnp_algo == "PrimalDualCP" else None
 
-        opt_algo = optim_builder(
-            pnp_algo,
+        opt_algo = getattr(optim, pnp_algo)(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -541,7 +555,9 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         assert opt_algo.has_converged
 
 
-@pytest.mark.parametrize("red_algo", ["GD", "PGD", "FISTA"])
+@pytest.mark.parametrize(
+    "red_algo", ["GradientDescent", "ProximalGradientDescent", "FISTA"]
+)
 def test_red_algo(red_algo, imsize, dummy_dataset, device):
     # This test uses WaveletDenoiser, which requires pytorch_wavelets
     # TODO: we could use a dummy trainable denoiser with a linear layer instead
@@ -568,8 +584,7 @@ def test_red_algo(red_algo, imsize, dummy_dataset, device):
 
     params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser, "lambda": lamb}
 
-    red = optim_builder(
-        red_algo,
+    red = getattr(optim, red_algo)(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
@@ -661,8 +676,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             "K_adjoint": K_adjoint,
         }
 
-        optimalgo = optim_builder(
-            "CP",
+        optimalgo = PrimalDualCP(
             prior=prior,
             data_fidelity=data_fidelity,
             max_iter=max_iter,
@@ -749,8 +763,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
         "K_adjoint": A_adjoint,
     }
 
-    optimalgo = optim_builder(
-        "CP",
+    optimalgo = PrimalDualCP(
         prior=prior,
         data_fidelity=data_fidelity,
         max_iter=max_iter,
