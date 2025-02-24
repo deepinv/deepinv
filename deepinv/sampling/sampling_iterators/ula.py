@@ -9,7 +9,6 @@ from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 
 
 class ULAIterator(SamplingIterator):
-    # TODO: add clipping
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 

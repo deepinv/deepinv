@@ -13,9 +13,10 @@ from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
-from deepinv.sampling.utils import Welford
+from deepinv.sampling.utils import Welford, projbox
 
 
+# TODO: check_conv stuff
 class BaseSample(nn.Module):
     r"""
     Base class for Monte Carlo sampling.
@@ -48,6 +49,8 @@ class BaseSample(nn.Module):
     :param deepinv.optim.Prior prior: Negative log-prior
     :param dict params_algo: Dictionary containing the parameters for the algorithm 
     :param int num_iter: Number of Monte Carlo iterations. Default: 100
+    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling. 
+        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: None
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
@@ -62,6 +65,8 @@ class BaseSample(nn.Module):
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         num_iter=100,
+        # TODO: doc this
+        clip = None,
         burnin_ratio=0.2,
         thinning=10,
         g_statistics=[lambda x: x],
@@ -78,6 +83,7 @@ class BaseSample(nn.Module):
         self.thinning = thinning
         self.g_statistics = g_statistics
         self.verbose = verbose
+        self.clip = clip
         self.history_size = history_size
         # Stores last history_size samples note float('inf') => we store the whole chain
         self.history = deque(maxlen=history_size)
@@ -146,6 +152,8 @@ class BaseSample(nn.Module):
                 self.params_algo,
                 **kwargs,
             )
+            if self.clip:
+                X_t = projbox(X_t, self.clip[0], self.clip[1]) 
 
             if i >= (self.num_iter * self.burnin_ratio) and i % self.thinning == 0:
                 self.history.append(X_t)
