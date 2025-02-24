@@ -304,7 +304,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
 
         if (
             name_algo == "CP"
-        ):  # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+            # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
+        ):
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
             sigma = 1.0
         else:  # Note that not all other algos need such constraints on parameters, but we use these to check that the computations are correct
@@ -636,9 +637,17 @@ def test_dpir(imsize, dummy_dataset, device):
 
 
 def test_pnpflow(imsize, dummy_dataset, device):
-    # 1. Generate a dummy dataset
-    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
-    test_sample = next(iter(dataloader)).to(device)
+    # # 1. Generate a dummy dataset
+    # dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
+    # test_sample = next(iter(dataloader)).to(device)
+    # 1. Generate a dummy sample (white image with red square)
+    test_sample = torch.ones((1, 3, 128, 128)).to(device) / 2.0
+    # Draw a red circle (approximate using a mask)
+    yy, xx = torch.meshgrid(torch.arange(128), torch.arange(128), indexing='ij')
+    circle = (yy - 64) ** 2 + (xx - 64) ** 2 <= 30 ** 2
+    test_sample[0, 0, circle] = 1  # Red channel
+    test_sample[0, 1, circle] = 0  # Green channel
+    test_sample[0, 2, circle] = 0  # Blue channel
 
     # 2. Set a physical experiment (here, deblurring)
     physics = dinv.physics.Blur(
@@ -648,8 +657,12 @@ def test_pnpflow(imsize, dummy_dataset, device):
         padding="circular",
     )
     y = physics(test_sample)
-    model = dinv.optim.PnPFlow(denoiser=dinv.models.FlowUNet(
-        pretrained="download", device=device), data_fidelity=L2(), device=device)
+    model = dinv.optim.PnPFlow(
+        denoiser=dinv.models.FlowUNet(
+            input_channels=y.shape[1], input_height=y.shape[3], pretrained="download", device=device),
+        data_fidelity=L2(),
+        device=device,
+    )
     out = model(y, physics)
 
     in_psnr = dinv.metric.PSNR()(test_sample, y)

@@ -64,8 +64,13 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # model. In this example, we will use a Flow Matching model trained with
 # minibatch OT on the CelebA dataset.
 
-denoiser = FlowUNet(input_channels=3, input_height=128,
-                    pretrained="download", dataset_name="celeba", device=device)
+denoiser = FlowUNet(
+    input_channels=3,
+    input_height=128,
+    pretrained="download",
+    dataset_name="celeba",
+    device=device,
+)
 
 
 # %%
@@ -75,8 +80,7 @@ denoiser = FlowUNet(input_channels=3, input_height=128,
 # White Gaussian Noise of standard deviation 25/255.
 
 url = get_image_url("celeba_example.jpg")
-x_true = load_url_image(url=url, img_size=128,
-                        resize_mode="resize", device=device)
+x_true = load_url_image(url=url, img_size=128, resize_mode="resize", device=device)
 # scale ground truth, as Flow Matching model was trained on images with pixel
 # values in [-1, 1]:
 x_true = 2 * x_true - 1
@@ -141,7 +145,7 @@ plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
     save_fn="celeba.png",
-    save_dir='.',
+    save_dir=".",
 )
 
 psnr = dinv.metric.PSNR()
@@ -157,8 +161,7 @@ print(f"PSNR denoised image: {psnr(x_hat, x_true).item():.2f}")
 # and we will additionally have Additive White Gaussian Noise (AWGN) of standard deviation  25/255.
 
 url = get_image_url("celeba_example2.jpg")
-x_true = load_url_image(url=url, img_size=128,
-                        resize_mode="resize", device=device)
+x_true = load_url_image(url=url, img_size=128, resize_mode="resize", device=device)
 x_true = 2 * x_true - 1
 sigma_noise = 25 / 255.0
 
@@ -189,7 +192,7 @@ plot(
     imgs,
     titles=["measurement", "ground-truth", "reconstruction"],
     save_fn="celeba2.png",
-    save_dir='.',
+    save_dir=".",
 )
 
 print(f"PSNR noisy image: {psnr(y, x_true).item():.2f}")
