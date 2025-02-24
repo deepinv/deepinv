@@ -47,7 +47,9 @@ class DiscriminatorMetric:
         :param bool real: whether image should be real or not, defaults to `None`
         :return: loss value
         """
-        target = (self.real if real else self.fake).expand_as(pred)
+        target = self.real if real else self.fake
+        target = target.expand_as(pred) if pred.dim() > 0 else target
+
         with torch.no_grad() if self.no_grad else nullcontext():
             return self.metric(pred, target)
 

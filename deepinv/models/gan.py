@@ -75,7 +75,7 @@ class PatchGANDiscriminator(nn.Module):
                 nn.LeakyReLU(0.2, True),
             ]
 
-        if not original:
+        if original:
             nf_mult_prev = nf_mult
             nf_mult = min(2**n_layers, 8)
             sequence += [

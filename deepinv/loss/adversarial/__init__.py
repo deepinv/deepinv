@@ -6,5 +6,5 @@ from .consistency import (
     MultiOperatorUnsupAdversarialGeneratorLoss,
     MultiOperatorUnsupAdversarialDiscriminatorLoss,
 )
-from .uair import UAIRGeneratorLoss
+from .uair import UAIRGeneratorLoss, UAIRDiscriminatorLoss
 from .base import DiscriminatorLoss, GeneratorLoss, DiscriminatorMetric

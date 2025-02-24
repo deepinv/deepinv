@@ -5,9 +5,16 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.loss import adversarial
+from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from test_loss import dataset, physics
 
-ADVERSARIAL_COMBOS = ["DeblurGAN", "CSGM", "AmbientGAN", "UAIR"]
+ADVERSARIAL_COMBOS = [
+    "DeblurGAN",
+    "CSGM",
+    "AmbientGAN",
+    "UAIR",
+    "MultiOperatorAdversarial",
+]
 DISCRIMS = [
     "PatchGANDiscriminator",
     "ESRGANDiscriminator",
@@ -21,7 +28,7 @@ def imsize():
     return (3, 64, 64)
 
 
-def choose_adversarial_combo(combo_name, imsize, device):
+def choose_adversarial_combo(combo_name, imsize, device, dataset):
     unet = dinv.models.UNet(
         in_channels=imsize[0],
         out_channels=imsize[0],
@@ -37,7 +44,11 @@ def choose_adversarial_combo(combo_name, imsize, device):
     if combo_name == "DeblurGAN":
         generator = unet
         discrimin = dinv.models.PatchGANDiscriminator(
-            n_layers=1, ndf=8, input_nc=imsize[0], batch_norm=False
+            n_layers=1,
+            ndf=8,
+            input_nc=imsize[0],
+            batch_norm=False,
+            original=False,
         ).to(device)
         gen_loss = [
             dinv.loss.SupLoss(),
@@ -48,7 +59,7 @@ def choose_adversarial_combo(combo_name, imsize, device):
         generator = unet
         discrimin = dinv.models.ESRGANDiscriminator(input_shape=imsize).to(device)
         gen_loss = adversarial.UAIRGeneratorLoss(device=device)
-        dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+        dis_loss = adversarial.UAIRDiscriminatorLoss(device=device)
     elif combo_name == "CSGM":
         generator = csgm_generator
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)
@@ -59,13 +70,34 @@ def choose_adversarial_combo(combo_name, imsize, device):
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)
         gen_loss = adversarial.UnsupAdversarialGeneratorLoss(device=device)
         dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+    elif combo_name == "MultiOperatorAdversarial":
+        generator = unet
+        discrimin = dinv.models.SkipConvDiscriminator(
+            imsize[-2:], d_dim=32, d_blocks=1, use_sigmoid=False, in_channels=3
+        )
+        dataloader_factory = lambda: DataLoader(dataset[0], batch_size=1, shuffle=True)
+        physics_generator_factory = lambda: BernoulliSplittingMaskGenerator(
+            imsize, 0.5, device=device, rng=torch.Generator(device).manual_seed(42)
+        )
+        gen_loss = adversarial.MultiOperatorUnsupAdversarialGeneratorLoss(
+            dataloader_factory=dataloader_factory,
+            physics_generator_factory=physics_generator_factory,
+            device=device,
+        )
+        dis_loss = adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss(
+            dataloader_factory=dataloader_factory,
+            physics_generator_factory=physics_generator_factory,
+            device=device,
+        )
 
     return generator, discrimin, gen_loss, dis_loss
 
 
 @pytest.mark.parametrize("combo_name", ADVERSARIAL_COMBOS)
 def test_adversarial_training(combo_name, imsize, device, physics, dataset):
-    model, D, gen_loss, dis_loss = choose_adversarial_combo(combo_name, imsize, device)
+    model, D, gen_loss, dis_loss = choose_adversarial_combo(
+        combo_name, imsize, device, dataset
+    )
 
     optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8),
@@ -100,13 +132,15 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
     trainer.train()
     final_test = trainer.test(test_dataloader)
 
+    # if not isinstance(gen_loss, adversarial.MultiOperatorUnsupAdversarialGeneratorLoss):
+    # Multi-operator won't train in dummy case
     assert final_test["PSNR"] > 0
 
 
 def choose_discriminator(discrim_name, imsize):
     if discrim_name == "PatchGANDiscriminator":
         return dinv.models.gan.PatchGANDiscriminator(
-            input_nc=1, ndf=2, n_layers=5, batch_norm=False
+            input_nc=1, ndf=2, n_layers=5, batch_norm=False, original=False
         )
     elif discrim_name == "ESRGANDiscriminator":
         return dinv.models.gan.ESRGANDiscriminator(
