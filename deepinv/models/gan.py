@@ -440,6 +440,6 @@ class SkipConvDiscriminator(nn.Module):
             x1 = self.blocks[i](x)
             x2 = x1 + self.blocks[i + 1](x)
             x = x2
-        
+
         y = self.final(self.flatten(x))
         return self.sigmoid(y).squeeze() if self.use_sigmoid else y.squeeze()
