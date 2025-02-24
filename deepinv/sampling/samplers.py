@@ -14,8 +14,11 @@ from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford, projbox
+from deepinv.sampling.sampling_iterators import *
 
 
+# TODO: add in some common statistics like mean/ pixel? 
+# to avoid having to supply g_statistics functions manually
 # TODO: check_conv stuff
 class BaseSample(nn.Module):
     r"""
@@ -50,7 +53,7 @@ class BaseSample(nn.Module):
     :param dict params_algo: Dictionary containing the parameters for the algorithm 
     :param int num_iter: Number of Monte Carlo iterations. Default: 100
     :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling. 
-        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: None
+        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
@@ -65,7 +68,6 @@ class BaseSample(nn.Module):
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         num_iter=100,
-        # TODO: doc this
         clip = None,
         burnin_ratio=0.2,
         thinning=10,
@@ -191,3 +193,73 @@ class BaseSample(nn.Module):
             >>> latest_sample = samples[-1]  # Get most recent sample
         """
         return list(self.history)
+
+
+def create_iterator(
+    iterator: SamplingIterator | str,
+) -> SamplingIterator:
+    r"""
+    Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
+
+    :param iterator: Either a SamplingIterator instance or a string naming the iterator class
+    :return: SamplingIterator instance
+    """
+    if isinstance(iterator, str):
+        # If a string is provided, create an instance of the named class
+        iterator_fn = str_to_class(iterator + "Iterator")
+        print(iterator_fn)
+        return iterator_fn()
+    else:
+        # If already a SamplingIterator instance, return as is
+        return iterator
+
+
+def sample_builder(
+    iterator: SamplingIterator | str,
+    data_fidelity: DataFidelity,
+    prior: Prior,
+    params_algo,
+    num_iter=100,
+    clip = None,
+    burnin_ratio=0.2,
+    thinning=10,
+    g_statistics=[lambda x: x],
+    history_size=5,
+    verbose=False,
+):
+    # TODO: make these docs better
+    r"""
+    Helper function for building an instance of the :class:`deepinv.optim.BaseSample` class.
+
+    :param iterator: Either a SamplingIterator instance or a string naming the iterator class
+    :param data_fidelity: Negative log-likelihood function
+    :param prior: Negative log-prior
+    :param params_algo: Dictionary containing the parameters for the algorithm
+    :param num_iter: Number of Monte Carlo iterations
+    :param clip: Tuple of (min, max) values to clip samples
+    :param burnin_ratio: Percentage of iterations for burn-in
+    :param thinning: Integer to thin the Monte Carlo samples
+    :param g_statistics: List of functions for computing posterior statistics
+    :param history_size: Number of recent samples to store
+    :param verbose: Whether to print progress
+    :return: Configured BaseSample instance in eval mode
+    """
+    iterator = create_iterator(iterator)
+    # return class, note that 
+    return BaseSample(
+        iterator,
+        data_fidelity=data_fidelity,
+        prior=prior,
+        params_algo=params_algo,
+        num_iter=num_iter,
+        clip=clip,
+        burnin_ratio=burnin_ratio,
+        thinning=thinning,
+        g_statistics=g_statistics,
+        history_size=history_size,
+        verbose=verbose
+    ).eval()
+
+
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
