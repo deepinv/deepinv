@@ -342,11 +342,13 @@ class WeightedSplittingLoss(SplittingLoss):
     where :math:`K` is derived from the pdf of the acceleration mask and splitting mask. The loss is related to the original splitting loss as follows:
 
     .. math::
+
         \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
 
     where
 
     .. math::
+    
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
     and :math:`\mathbf{P}=\mathbb{E}[\M_i],\tilde{\mathbf{P}}=\mathbb{E}[\M_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
