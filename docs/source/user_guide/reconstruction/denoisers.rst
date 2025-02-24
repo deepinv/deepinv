@@ -95,7 +95,7 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - CNN-UNet
      - Any C; H, W = 128, 256,...
      - RGB
-     - Yes
+     - No
 
 
 
