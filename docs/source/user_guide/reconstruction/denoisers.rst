@@ -91,6 +91,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C; H, W = 128, 256,...
      - No
      - No
+   * - :class:`deepinv.models.FlowUNet`
+     - CNN-UNet
+     - Any C; H, W = 128, 256,...
+     - No
+     - No
+
 
 
 .. _non-learned-denoisers:
