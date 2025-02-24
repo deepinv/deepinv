@@ -394,12 +394,15 @@ class CSGMGenerator(Reconstructor):
 class SkipConvDiscriminator(nn.Module):
     """Simple residual convolution discriminator architecture.
 
+    Architecture taken from `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
+
     Consists of convolutional blocks with skip connections with a final dense layer followed by sigmoid.
 
     :param tuple img_size: tuple of ints of input image size
     :param int d_dim: hidden dimension
     :param int d_blocks: number of conv blocks
     :param int in_channels: number of input channels
+    :param bool use_sigmoid: use sigmoid activation at output.
     """
 
     def __init__(
@@ -408,6 +411,7 @@ class SkipConvDiscriminator(nn.Module):
         d_dim: int = 128,
         d_blocks: int = 4,
         in_channels: int = 2,
+        use_sigmoid: bool = True,
     ):
         super().__init__()
 
@@ -427,6 +431,7 @@ class SkipConvDiscriminator(nn.Module):
         self.flatten = nn.Flatten()
         self.final = nn.Linear(d_dim * prod(img_size), 1)
         self.sigmoid = nn.Sigmoid()
+        self.use_sigmoid = use_sigmoid
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.initial_conv(x)
@@ -435,5 +440,6 @@ class SkipConvDiscriminator(nn.Module):
             x1 = self.blocks[i](x)
             x2 = x1 + self.blocks[i + 1](x)
             x = x2
-
-        return self.sigmoid(self.final(self.flatten(x))).squeeze()
+        
+        y = self.final(self.flatten(x))
+        return self.sigmoid(y).squeeze() if self.use_sigmoid else y.squeeze()
