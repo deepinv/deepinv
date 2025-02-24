@@ -303,7 +303,8 @@ def test_optim_algo(name_algo, imsize, dummy_dataset, device):
         prior = Prior(g=prior_g)  # The prior term
 
         if (
-            name_algo == "CP"
+            name_algo
+            == "CP"
             # In the case of primal-dual, stepsizes need to be bounded as reg_param*stepsize < 1/physics.compute_norm(x, tol=1e-4).item()
         ):
             stepsize = 0.9 / physics.compute_norm(x, tol=1e-4).item()
@@ -643,8 +644,8 @@ def test_pnpflow(imsize, dummy_dataset, device):
     # 1. Generate a dummy sample (white image with red square)
     test_sample = torch.ones((1, 3, 128, 128)).to(device) / 2.0
     # Draw a red circle (approximate using a mask)
-    yy, xx = torch.meshgrid(torch.arange(128), torch.arange(128), indexing='ij')
-    circle = (yy - 64) ** 2 + (xx - 64) ** 2 <= 30 ** 2
+    yy, xx = torch.meshgrid(torch.arange(128), torch.arange(128), indexing="ij")
+    circle = (yy - 64) ** 2 + (xx - 64) ** 2 <= 30**2
     test_sample[0, 0, circle] = 1  # Red channel
     test_sample[0, 1, circle] = 0  # Green channel
     test_sample[0, 2, circle] = 0  # Blue channel
@@ -659,7 +660,11 @@ def test_pnpflow(imsize, dummy_dataset, device):
     y = physics(test_sample)
     model = dinv.optim.PnPFlow(
         denoiser=dinv.models.FlowUNet(
-            input_channels=y.shape[1], input_height=y.shape[3], pretrained="download", device=device),
+            input_channels=y.shape[1],
+            input_height=y.shape[3],
+            pretrained="download",
+            device=device,
+        ),
         data_fidelity=L2(),
         device=device,
     )
