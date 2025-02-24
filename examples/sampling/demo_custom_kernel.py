@@ -63,7 +63,7 @@ y = physics(x)
 # which takes into account the singular value decomposition
 # of the forward operator, :math:`A=USV^{\top}`, in order to accelerate the sampling.
 #
-# We modify the standard ULA iteration (see :class:`deepinv.sampling.ULA`) defined as
+# We modify the standard ULA iteration (see :class:`deepinv.sampling.ULAIterator`) defined as
 #
 # .. math::
 #
@@ -86,67 +86,30 @@ y = physics(x)
 # :math:`S` is trivial since they are diagonal matrices.
 
 
-class PULAIterator(torch.nn.Module):
-    def __init__(self, step_size, sigma, alpha=1, epsilon=0.01):
+class PULAIterator(dinv.sampling.SamplingIterator):
+    def __init__(self):
         super().__init__()
-        self.step_size = step_size
-        self.alpha = alpha
-        self.noise_std = np.sqrt(2 * step_size)
-        self.sigma = sigma
-        self.epsilon = epsilon
 
-    def forward(self, x, y, physics, likelihood, prior):
+    def forward(
+        self, x, y, physics, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+    ) -> torch.Tensor:
+        step_size = cur_params["step_size"]
+        epsilon = cur_params.get("epsilon", 0.01)
+        alpha = cur_params.get("alpha", 1.0)
+        sigma = cur_params["sigma"]
+        
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
-
-        step_size = self.step_size / (self.epsilon + physics.mask.pow(2))
-
+        
+        step_size = step_size / (epsilon + physics.mask.pow(2))
+        
         noise = torch.randn_like(x_bar)
-        sigma2_noise = 1 / likelihood.norm
+        sigma2_noise = 1 / cur_data_fidelity.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
-        lprior = -physics.V_adjoint(prior.grad(x, self.sigma)) * self.alpha
-
+        lprior = -physics.V_adjoint(cur_prior.grad(x, sigma)) * alpha
+        
         return x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
-        )
-
-
-# %%
-# Build Sampler class
-# -------------------
-#
-# Using our custom iterator, we can build a sampler class by inheriting from the base class
-# :class:`deepinv.sampling.MonteCarlo`.
-# The base class takes care of the sampling procedure
-# (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
-# providing a convenient interface to the user.
-
-
-class PreconULA(dinv.sampling.MonteCarlo):
-    def __init__(
-        self,
-        prior,
-        data_fidelity,
-        sigma,
-        step_size,
-        max_iter=1e3,
-        thinning=1,
-        burnin_ratio=0.1,
-        clip=(-1, 2),
-        verbose=True,
-    ):
-        # generate an iterator
-        iterator = PULAIterator(step_size=step_size, sigma=sigma)
-        # set the params of the base class
-        super().__init__(
-            iterator,
-            prior,
-            data_fidelity,
-            max_iter=max_iter,
-            thinning=thinning,
-            burnin_ratio=burnin_ratio,
-            clip=clip,
-            verbose=verbose,
         )
 
 
@@ -167,39 +130,52 @@ class PreconULA(dinv.sampling.MonteCarlo):
 prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 
 # %%
-# Create the preconditioned and standard ULA samplers
-# ---------------------------------------------------
-# We create the preconditioned and standard ULA samplers using
-# the same hyperparameters (step size, number of iterations, etc.).
-
-step_size = 0.5 * (sigma**2)
-iterations = int(1e2) if torch.cuda.is_available() else 10
-g_param = 0.1
+# Build our sampler
+# -------------------
+#
+# Using our custom iterator, we can build a sampler class by calling :function:`deepinv.sampling.sample_builder`
+# This function returns an instance of :class:`deepinv.sampling.BaseSample` which takes care of the sampling procedure
+# (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
+# providing a convenient interface to the user.
 
 # load Gaussian Likelihood
 likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
-pula = PreconULA(
-    prior=prior,
-    data_fidelity=likelihood,
-    max_iter=iterations,
-    step_size=step_size,
-    thinning=1,
+iterations = int(1e2) if torch.cuda.is_available() else 10
+
+# shared ULA/ PULA params
+step_size = 0.5 * (sigma**2)
+denoiser_sigma = 0.1
+
+# parameters for ULA/ PULA
+params = {
+    "step_size": step_size,
+    "sigma": denoiser_sigma,
+    "alpha": 1.0,
+}
+
+# build our PULA sampler
+pula = dinv.sampling.sample_builder(
+    PULAIterator(),
+    likelihood,
+    prior,
+    params,
+    num_iter=iterations,
     burnin_ratio=0.1,
+    thinning=1,
     verbose=True,
-    sigma=g_param,
 )
 
-
-ula = ULA(
-    prior=prior,
-    data_fidelity=likelihood,
-    max_iter=iterations,
-    step_size=step_size,
-    thinning=1,
+# build our ULA sampler
+ula = dinv.sampling.sample_builder(
+    "ULA",
+    likelihood,
+    prior,
+    params,
+    num_iter=iterations,
     burnin_ratio=0.1,
+    thinning=1,
     verbose=True,
-    sigma=g_param,
 )
 
 # %%

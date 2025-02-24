@@ -245,7 +245,7 @@ def sample_builder(
     :return: Configured BaseSample instance in eval mode
     """
     iterator = create_iterator(iterator)
-    # return class, note that 
+    # Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)
     return BaseSample(
         iterator,
         data_fidelity=data_fidelity,
