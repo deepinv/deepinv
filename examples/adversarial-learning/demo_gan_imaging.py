@@ -10,7 +10,7 @@ your own GAN by using :class:`deepinv.training.AdversarialTrainer`. These
 examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
-This example is based on the following papers:
+This example is based on, and we provide implementations for, the following papers:
 
 -  Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
 -  Bora et al., `Compressed Sensing using Generative
@@ -19,6 +19,9 @@ This example is based on the following papers:
    measurements <https://openreview.net/forum?id=Hy7fDog0b>`_
 -  Pajot et al., `Unsupervised Adversarial Image
    Reconstruction <https://openreview.net/forum?id=BJg4Z3RqF7>`_
+-  Cole et al., `Fast Unsupervised MRI Reconstruction Without
+   Fully-Sampled Ground Truth Data Using Generative Adversarial Networks
+   <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
 
 Adversarial networks are characterised by the addition of an adversarial
 loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:

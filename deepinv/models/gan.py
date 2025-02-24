@@ -33,6 +33,8 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
+    :param bool original: use exact network from original paper. If `False`, modify network
+        to reduce spatial dims further.
     """
 
     def __init__(
@@ -43,13 +45,13 @@ class PatchGANDiscriminator(nn.Module):
         use_sigmoid: bool = False,
         batch_norm: bool = True,
         bias: bool = True,
+        original: bool = True,
     ):
         super().__init__()
 
         kw = 4  # kernel width
-        padw = (
-            int(np.ceil((kw - 1) / 2)) - 1
-        )  # NOTE MODIFIED from original code for less padding
+        padw = int(np.ceil((kw - 1) / 2))
+        padw -= 1 if not original else 0
         sequence = [
             nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=2, padding=padw),
             nn.LeakyReLU(0.2, True),
@@ -73,20 +75,21 @@ class PatchGANDiscriminator(nn.Module):
                 nn.LeakyReLU(0.2, True),
             ]
 
-        # nf_mult_prev = nf_mult
-        # nf_mult = min(2**n_layers, 8)
-        # sequence += [
-        #     nn.Conv2d(
-        #         ndf * nf_mult_prev,
-        #         ndf * nf_mult,
-        #         kernel_size=kw,
-        #         stride=1,
-        #         padding=padw,
-        #         bias=bias,
-        #     ),
-        #     nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
-        #     nn.LeakyReLU(0.2, True),
-        # ]
+        if not original:
+            nf_mult_prev = nf_mult
+            nf_mult = min(2**n_layers, 8)
+            sequence += [
+                nn.Conv2d(
+                    ndf * nf_mult_prev,
+                    ndf * nf_mult,
+                    kernel_size=kw,
+                    stride=1,
+                    padding=padw,
+                    bias=bias,
+                ),
+                nn.BatchNorm2d(ndf * nf_mult) if batch_norm else nn.Identity(),
+                nn.LeakyReLU(0.2, True),
+            ]
 
         sequence += [
             nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)

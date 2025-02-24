@@ -150,8 +150,11 @@ and for discriminators is :class:`deepinv.loss.adversarial.DiscriminatorLoss`.
    * - :class:`UnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss>`
      - :class:`UnsupAdversarialDiscriminatorLoss <deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss>`
      - Unsupervised adversarial loss
+     - :class:`MultiOperatorUnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.MultiOperatorUnsupAdversarialGeneratorLoss>`
+     - :class:`MultiOperatorUnsupAdversarialDiscriminatorLoss <deepinv.loss.adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss>`
+     - Multi-operator unsupervised adversarial loss
    * - :class:`UAIRGeneratorLoss <deepinv.loss.adversarial.UAIRGeneratorLoss>`
-     - \
+     - :class:`UAIRDiscriminatorLoss <deepinv.loss.adversarial.UAIRGeneratorLoss>`
      - Unsupervised reconstruction & adversarial loss.
 
 
