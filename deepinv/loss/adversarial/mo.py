@@ -15,8 +15,8 @@ class MultiOperatorMixin:
 
     Pass in factory args for a physics generator or a dataloader to return new physics params or new data samples.
 
-    :param callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param callable dataloader_factory: callable that returns a dataloader that returns new samples
+    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
+    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
     """
 
     def __init__(
