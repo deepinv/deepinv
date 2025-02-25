@@ -33,25 +33,50 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     If masks are present in the data folders (in file format `cine_xax_mask.mat`) then these will be loaded.
     If not, unique masks will be generated using a `mask_generator`, for example :class:`deepinv.physics.generator.RandomMaskGenerator`.
 
-    Directly compatible with deepinv physics, i.e. TODO
-
-    TODO test that CMRxRecon original data AccFactor04 folders contain GT in and how it's loaded
-    TODO check original data compatible with dataset
-    TODO we provide demo file...
-
-    TODO example
-    TODO add to dinv example
-
     While the usual workflow in deepinv is for the dataset to return only ground truth ``x`` and the user
     generates a measurement dataset using :meth:`deepinv.datasets.generate_dataset`, here we compute the
     measurements inside the dataset (and return a triplet ``x, y, params`` where ``params`` contains the mask)
     because of the variable size of the data before padding, in line with the original CMRxRecon code.
 
-    Folder structure:
+    .. note::
+
+        The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.
+        See :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` for example using this dataset.
+
+    We provide one single downloadable demo sample, see example below on how to use this.
+    Otherwise, download the full dataset from the `challenge website <https://cmrxrecon.github.io/>`_.
+
+    **Raw data file structure:** ::
+
+        root_dir --- data_dir --- P001 --- cine_lax.mat
+                  |            |        |
+                  |            |        -- cine_sax.mat
+                  |            -- PXXX
+                  -- mask_dir --- P001 --- cine_lax_mask.mat
+                               |        |
+                               |        -- cine_sax_mask.mat
+                               -- PXXX
 
     |sep|
 
     Example:
+
+    >>> from deepinv.datasets import CMRxReconSliceDataset, download_archive
+    >>> from deepinv.utils import get_image_url, get_data_home
+    >>> from torch.utils.data import DataLoader
+    >>> download_archive(
+    ...     get_image_url("CMRxRecon.zip"),
+    ...     get_data_home() / "CMRxRecon.zip",
+    ...     extract=True,
+    ... )
+    >>> dataset = CMRxReconSliceDataset(get_data_home() / "CMRxRecon")
+    >>> x, y, params = next(iter(DataLoader(dataset)))
+    >>> x.shape # (B, C, T, H, W)
+    torch.Size([1, 2, 12, 512, 256])
+    >>> y.shape # (B, C, T, H, W)
+    torch.Size([1, 2, 12, 512, 256])
+    >>> 1 / params["mask"].mean()  # Approx 4x acceleration
+    tensor(4.2402)
 
     :param str, pathlib.Path root: path for dataset root folder.
     :param str, pathlib.Path data_dir: directory containing target (ground truth) data, defaults to 'SingleCoil/Cine/TrainingSet/FullSample' which is default CMRxRecon folder structure
