@@ -10,7 +10,15 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = [
+    "sup",
+    "sup_log_train_batch",
+    "mcei",
+    "mcei-scale",
+    "mcei-homography",
+    "r2r",
+    "vortex",
+]
 
 LIST_SURE = [
     "Gaussian",
@@ -73,6 +81,12 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss())
+    elif loss_name == "vortex":
+        loss.append(
+            dinv.loss.VORTEXLoss(
+                T_1=dinv.transform.RandomNoise(), T_2=dinv.transform.Shift()
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
