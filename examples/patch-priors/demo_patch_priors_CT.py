@@ -120,7 +120,7 @@ if retrain:
     )
 
     class NFTrainer(Trainer):
-        def compute_loss(self, physics, x, y, train=True):
+        def compute_loss(self, physics, x, y, train=True, epoch=None):
             logs = {}
 
             self.optimizer.zero_grad()  # Zero the gradients
