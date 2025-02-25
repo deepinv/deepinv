@@ -163,9 +163,6 @@ class BaseSample(nn.Module):
                 for j, (g, stat) in enumerate(zip(self.g_statistics, statistics)):
                     stat.update(g(X_t))
 
-            if self.verbose and i % (self.num_iter // 10) == 0:
-                print(f"Iteration {i}/{self.num_iter}")
-
         # Return means and variances for all g_statistics
         means = [stat.mean() for stat in statistics]
         vars = [stat.var() for stat in statistics]
@@ -207,7 +204,6 @@ def create_iterator(
     if isinstance(iterator, str):
         # If a string is provided, create an instance of the named class
         iterator_fn = str_to_class(iterator + "Iterator")
-        print(iterator_fn)
         return iterator_fn()
     else:
         # If already a SamplingIterator instance, return as is

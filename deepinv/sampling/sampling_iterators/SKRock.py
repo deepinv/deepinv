@@ -54,28 +54,28 @@ class SKRockIterator(SamplingIterator):
              - Description
            * - step_size
              - float
-             - Step size of the algorithm. Tip: use physics.lipschitz to compute the Lipschitz constant
+             - Step size of the algorithm (default: 1.0). Tip: use physics.lipschitz to compute the Lipschitz constant
            * - alpha
              - float
-             - Regularization parameter :math:`\alpha`
+             - Regularization parameter :math:`\alpha` (default: 1.0)
            * - inner_iter
              - int
-             - Number of internal iterations
+             - Number of internal iterations (default: 10)
            * - eta
              - float
-             - Damping parameter :math:`\eta`
+             - Damping parameter :math:`\eta` (default: 0.05)
            * - sigma
              - float
-             - Noise level for the score prior denoiser. A larger value of sigma will result in a more regularized reconstruction
+             - Noise level for the score prior denoiser (default: 0.05). A larger value of sigma will result in a more regularized reconstruction
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        # Extract parameters from cur_params
-        step_size = cur_params["step_size"]
-        alpha = cur_params["alpha"]
-        inner_iter = cur_params["inner_iter"]
-        eta = cur_params["eta"]
-        sigma = cur_params["sigma"]
+        # Extract parameters from cur_params with defaults
+        step_size = cur_params.get("step_size", 1.0)
+        alpha = cur_params.get("alpha", 1.0)  # using common default for consistency
+        inner_iter = cur_params.get("inner_iter", 10)
+        eta = cur_params.get("eta", 0.05)
+        sigma = cur_params.get("sigma", 0.05)
 
         # Define posterior gradient
         posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + alpha * (

@@ -72,17 +72,22 @@ class ULAIterator(SamplingIterator):
              - Description
            * - step_size
              - float
-             - Step size :math:`\eta`
+             - Step size :math:`\eta` (default: 1.0)
            * - alpha
              - float
-             - Regularization parameter :math:`\alpha`
+             - Regularization parameter :math:`\alpha` (default: 1.0)
            * - sigma
              - float
-             - Noise level for the score model
+             - Noise level for the score model (default: 0.05)
         :return: Next state :math:`x_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        noise = torch.randn_like(x) * np.sqrt(2 * cur_params["step_size"])
+        # Get parameters with defaults
+        step_size = cur_params.get("step_size", 1.0)
+        alpha = cur_params.get("alpha", 1.0)
+        sigma = cur_params.get("sigma", 0.05)
+        
+        noise = torch.randn_like(x) * np.sqrt(2 * step_size)
         lhood = -cur_data_fidelity.grad(x, y, physics)
-        lprior = -cur_prior.grad(x, cur_params["sigma"]) * cur_params["alpha"]
-        return x + cur_params["step_size"] * (lhood + lprior) + noise
+        lprior = -cur_prior.grad(x, sigma) * alpha
+        return x + step_size * (lhood + lprior) + noise

@@ -97,17 +97,17 @@ class PULAIterator(dinv.sampling.SamplingIterator):
         epsilon = cur_params.get("epsilon", 0.01)
         alpha = cur_params.get("alpha", 1.0)
         sigma = cur_params["sigma"]
-        
+
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
-        
+
         step_size = step_size / (epsilon + physics.mask.pow(2))
-        
+
         noise = torch.randn_like(x_bar)
         sigma2_noise = 1 / cur_data_fidelity.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
         lprior = -physics.V_adjoint(cur_prior.grad(x, sigma)) * alpha
-        
+
         return x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
         )
