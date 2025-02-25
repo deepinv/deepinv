@@ -9,6 +9,8 @@ from torch import Tensor
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.mri import MRI
+from deepinv.physics.forward import LinearPhysics
+from deepinv.physics.inpainting import Inpainting
 from deepinv.transform.base import Transform
 from deepinv.transform.rotate import Rotate
 from deepinv.transform.shift import Shift
@@ -37,7 +39,7 @@ class VORTEXLoss(Loss):
 
     .. note::
 
-        For now, this loss is only available for MRI problems, but it is easily generalisable to other problems.
+        For now, this loss is only available for MRI and Inpainting problems, but it is easily generalisable to other problems.
 
     :param deepinv.transform.Transform T_1: k-space transform.
     :param deepinv.transform.Transform T_2: image transform.
@@ -71,17 +73,17 @@ class VORTEXLoss(Loss):
         )
         self.no_grad = no_grad
 
-    class TransformedMRI(MRI):
+    class TransformedPhysics(LinearPhysics):
         """Pre-multiply physics with transform.
 
-        :param deepinv.physics.MRI: original MRI physics
+        :param deepinv.physics.Physics: original physics (only supports MRI and Inpainting for now)
         :param deepinv.transform.Transform: transform object
         :param dict transform_params: fixed parameters for deterministic transform.
         """
 
         def __init__(
             self,
-            physics: MRI,
+            physics: Union[MRI, Inpainting],
             transform: Transform,
             transform_params: dict,
             *args,
@@ -89,10 +91,11 @@ class VORTEXLoss(Loss):
         ):
             super().__init__(
                 *args,
-                img_size=physics.img_size,
-                mask=physics.mask,
-                device=physics.device,
-                three_d=physics.three_d,
+                img_size=getattr(physics, "img_size", None),
+                tensor_size=getattr(physics, "tensor_size", None),
+                mask=getattr(physics, "mask", None),
+                device=getattr(physics, "device", None),
+                three_d=getattr(physics, "three_d", None),
                 **kwargs,
             )
             self.transform = transform
@@ -129,7 +132,7 @@ class VORTEXLoss(Loss):
         x_aug = self.T_2(physics.A_adjoint(self.T_1(y)), **e_params)
 
         # Pass through network
-        physics2 = self.TransformedMRI(physics, self.T_2, e_params)
+        physics2 = self.TransformedPhysics(physics, self.T_2, e_params)
         x_aug_net = model(physics2(x_aug), physics2)
 
         return self.metric(self.T_2(x_net, **e_params), x_aug_net)
