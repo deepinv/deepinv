@@ -437,6 +437,10 @@ class SkipConvDiscriminator(nn.Module):
         self.use_sigmoid = use_sigmoid
 
     def forward(self, x: Tensor) -> Tensor:
+        r"""Forward pass of discriminator model.
+
+        :param torch.Tensor x: input image
+        """
         x = self.initial_conv(x)
 
         for i in range(0, len(self.blocks), 2):
