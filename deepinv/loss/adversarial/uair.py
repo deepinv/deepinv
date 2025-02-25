@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import torch.nn as nn
 from torch import Tensor
@@ -38,7 +38,7 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
 
         l.backward()
 
-    :param callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters.
+    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters.
         If `None`, uses same physics every forward pass.
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)

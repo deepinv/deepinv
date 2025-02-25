@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import torch
 import torch.nn as nn
@@ -233,8 +233,8 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
-    :param callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param callable dataloader_factory: callable that returns a dataloader that returns new samples
+    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
+    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
     """
 
     def forward(
@@ -274,8 +274,8 @@ class MultiOperatorUnsupAdversarialDiscriminatorLoss(
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
-    :param callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param callable dataloader_factory: callable that returns a dataloader that returns new samples
+    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
+    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
     """
 
     def forward(
