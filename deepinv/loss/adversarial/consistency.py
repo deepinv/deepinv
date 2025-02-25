@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import Tensor
 
 from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
-from deepinv.loss.adversarial.uair import MultiOperatorMixin
+from deepinv.loss.adversarial.mo import MultiOperatorMixin
 from deepinv.physics.mri import MRI
 
 if TYPE_CHECKING:
