@@ -44,17 +44,23 @@ def test_nolearning(imsize, physics, model, no_learning, device):
     assert (physics.A(x_hat) - y).pow(2).mean() < 0.1
 
 
-@pytest.mark.parametrize("use_physics_generator", [True, False])
+@pytest.mark.parametrize(
+    "use_physics_generator", [None, "param", "noise", "param+noise"]
+)
 @pytest.mark.parametrize("online_measurements", [True, False])
+@pytest.mark.parametrize("physics_type", ["blur", "inpainting"])
 def test_get_samples(
     tmp_path,
-    physics: dinv.physics.BlurFFT,
+    imsize,
+    physics_type,
     model,
     device,
     dummy_dataset,
     use_physics_generator,
     online_measurements,
+    rng,
 ):
+    # Dummy constant GT dataset
     class DummyDataset(Dataset):
         def __len__(self):
             return 2
@@ -62,12 +68,48 @@ def test_get_samples(
         def __getitem__(self, i):
             return dummy_dataset[0]
 
-    physics_generator = dinv.physics.generator.DiffractionBlurGenerator(psf_size=(5, 5))
+    # Define physics
+    if physics_type == "blur":
+        physics = dinv.physics.BlurFFT(
+            img_size=imsize,
+            filter=torch.ones((1, 1, 3, 3), device=device) / 9,
+            device=device,
+        )
+        param_name = "filter"
+    elif physics_type == "inpainting":
+        physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, rng=rng)
+        param_name = "mask"
 
+    # Define physics generator
+    if use_physics_generator is None:
+        physics_generator = None
+    else:
+        if "param" in use_physics_generator:
+            if physics_type == "blur":
+                param_generator = dinv.physics.generator.DiffractionBlurGenerator(
+                    psf_size=(5, 5), rng=rng, device=device
+                )
+            elif physics_type == "inpainting":
+                param_generator = dinv.physics.generator.GaussianSplittingMaskGenerator(
+                    imsize, 0.6, device=device, rng=rng
+                )
+            physics_generator = param_generator
+        if "noise" in use_physics_generator:
+            noise_generator = dinv.physics.generator.SigmaGenerator(
+                rng=rng, device=device
+            )
+            physics_generator = noise_generator
+        if use_physics_generator == "param+noise":
+            physics_generator = param_generator + noise_generator
+
+    # Add noise to physics
+    physics.set_noise_model(dinv.physics.GaussianNoise(sigma=0.1))
+
+    # Generate dataset
     dataset_path = dinv.datasets.generate_dataset(
         DummyDataset(),
         physics=physics,
-        physics_generator=physics_generator if use_physics_generator else None,
+        physics_generator=physics_generator,
         save_dir=tmp_path / "dataset",
         device=device,
     )
@@ -76,10 +118,24 @@ def test_get_samples(
         dinv.datasets.HDF5Dataset(
             dataset_path,
             train=True,
-            load_physics_generator_params=use_physics_generator,
+            load_physics_generator_params=physics_generator is not None,
         )
     )
+
     iterator = iter(dataloader)
+
+    if not online_measurements:
+        if physics_generator is not None:
+            # Test phys gen params change in offline dataset
+            x1, y1, params1 = next(iterator)
+            x2, y2, params2 = next(iterator)
+            if "param" in use_physics_generator:
+                assert not torch.all(params1[param_name] == params2[param_name])
+            if "noise" in use_physics_generator:
+                assert not torch.all(params1["sigma"] == params2["sigma"])
+        else:
+            # Test params don't exist in offline dataset
+            assert len(next(iterator)) == 2  # (x, y)
 
     trainer = dinv.Trainer(
         model=model,
@@ -88,26 +144,42 @@ def test_get_samples(
         optimizer=None,
         online_measurements=online_measurements,
         physics_generator=(
-            physics_generator if online_measurements and use_physics_generator else None
+            physics_generator
+            if online_measurements and physics_generator is not None
+            else None
         ),
     )
 
+    iterator = iter(dataloader)
+
     trainer.setup_train(train=True)
     x1, y1, physics1 = trainer.get_samples([iterator], g=0)
-    param1 = (
-        physics1.filter
-    )  # take this out now as otherwise physics gets modified in place by next get_samples
+    # take this out now as otherwise physics gets modified in place by next get_samples
+    param1 = getattr(physics1, param_name)
+    sigma1 = physics1.noise_model.sigma
     x2, y2, physics2 = trainer.get_samples([iterator], g=0)
-    param2 = physics2.filter
+    param2 = getattr(physics2, param_name)
+    sigma2 = physics2.noise_model.sigma
 
+    # Test GT same in our dummy dataset
     assert torch.all(x1 == x2)
 
-    if not use_physics_generator:
-        assert torch.all(y1 == y2)
+    if physics_generator is None:
+        # Test params don't change when no phys gen
         assert torch.all(param1 == param2)
+        assert torch.all(sigma1 == sigma2)
     else:
+        # Test phys gen params change in both offline and online datasets
         assert not torch.all(y1 == y2)
-        assert not torch.all(param1 == param2)
+        if use_physics_generator == "param":
+            assert not torch.all(param1 == param2)
+            assert torch.all(sigma1 == sigma2)
+        elif use_physics_generator == "noise":
+            assert torch.all(param1 == param2)
+            assert not torch.all(sigma1 == sigma2)
+        elif use_physics_generator == "param+noise":
+            assert not torch.all(param1 == param2)
+            assert not torch.all(sigma1 == sigma2)
 
 
 @pytest.mark.parametrize("loop_physics_generator_params", [True, False])
