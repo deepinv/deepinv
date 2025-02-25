@@ -70,6 +70,7 @@ Adversarial Learning
     deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss
     deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss
+    deepinv.loss.adversarial.MultiOperatorMixin
     deepinv.loss.adversarial.MultiOperatorUnsupAdversarialGeneratorLoss
     deepinv.loss.adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss
     deepinv.loss.adversarial.UAIRGeneratorLoss
