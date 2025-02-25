@@ -1,10 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, Callable
+
 import torch.nn as nn
 from torch import Tensor
-from .base import GeneratorLoss, DiscriminatorLoss
-from deepinv.physics import Physics
+from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
+from deepinv.loss.adversarial.mo import MultiOperatorMixin
+
+if TYPE_CHECKING:
+    from deepinv.physics.forward import Physics
 
 
-class UAIRGeneratorLoss(GeneratorLoss):
+class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
     r"""Reimplementation of UAIR generator's adversarial loss.
 
     Pajot et al., "Unsupervised Adversarial Image Reconstruction".
@@ -32,6 +38,8 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
         l.backward()
 
+    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters.
+        If `None`, uses same physics every forward pass.
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
     :param torch.nn.Module metric: metric for measurement consistency, defaults to :class:`torch.nn.MSELoss`
@@ -46,8 +54,9 @@ class UAIRGeneratorLoss(GeneratorLoss):
         metric: nn.Module = nn.MSELoss(),
         D: nn.Module = None,
         device="cpu",
+        **kwargs,
     ):
-        super().__init__(weight_adv=weight_adv, device=device)
+        super().__init__(weight_adv=weight_adv, device=device, **kwargs)
         self.name = "UAIRGenerator"
         self.metric = metric
         self.weight_mc = weight_mc
@@ -56,7 +65,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
     def forward(
         self,
         y: Tensor,
-        y_hat: Tensor,
+        x_net: Tensor,
         physics: Physics,
         model: nn.Module,
         D: nn.Module = None,
@@ -72,10 +81,38 @@ class UAIRGeneratorLoss(GeneratorLoss):
         """
         D = self.D if D is None else D
 
+        physics_new = self.next_physics(physics, batch_size=len(y))
+        y_hat = physics_new.A(x_net)
+
         adv_loss = self.adversarial_loss(y, y_hat, D)
 
-        x_tilde = model(y_hat)
-        y_tilde = physics.A(x_tilde)  # use same operator as y_hat
+        x_tilde = model(y_hat, physics_new)
+        y_tilde = physics_new.A(x_tilde)  # use same operator as y_hat
         mc_loss = self.metric(y_tilde, y_hat)
 
         return adv_loss + mc_loss * self.weight_mc
+
+
+class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
+    """UAIR Discriminator's adversarial loss.
+
+    For details and parameters, see :class:`deepinv.loss.adversarial.UAIRGeneratorLoss`
+    """
+
+    def __init__(
+        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+    ):
+        super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
+        self.name = "UAIRDiscriminator"
+
+    def forward(
+        self,
+        y: Tensor,
+        x_net: Tensor,
+        physics: Physics,
+        model: nn.Module,
+        D: nn.Module = None,
+        **kwargs,
+    ):
+        y_hat = self.next_physics(physics, batch_size=len(y)).A(x_net)
+        return self.adversarial_loss(y, y_hat, D)
