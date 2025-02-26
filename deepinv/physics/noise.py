@@ -463,9 +463,9 @@ class PoissonGaussianNoise(NoiseModel):
             gain = self.gain
 
         if isinstance(self.sigma, torch.Tensor):
-            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
+            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)].to(x.device)
         else:
-            sigma = self.sigma
+            sigma = self.sigma.to(x.device)
 
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
