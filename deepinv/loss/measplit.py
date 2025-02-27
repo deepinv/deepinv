@@ -478,9 +478,7 @@ class Phase2PhaseLoss(SplittingLoss):
             return y_split_reduced
 
         physics_split_reduced = deepcopy(physics_split)
-        physics_split_reduced.update(
-            mask=remove_zeros(physics_split.mask, mask)
-        )
+        physics_split_reduced.update(mask=remove_zeros(physics_split.mask, mask))
 
         return y_split_reduced, physics_split_reduced
 
