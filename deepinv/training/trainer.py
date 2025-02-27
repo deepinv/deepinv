@@ -67,6 +67,8 @@ class Trainer:
         An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
         The params dict will then be automatically updated every time data is loaded.
 
+    Learn more in the :ref:`User Guide <physics>`.
+
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.

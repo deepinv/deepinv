@@ -64,7 +64,7 @@ In this case, to update the :class:`deepinv.physics.Physics` parameters accordin
             physics = self.physics[g]
 
             # Update physics parameters deterministically (i.e. not using a random generator)
-            physics.update_parameters(mask=mask.to(self.device))
+            physics.update(mask=mask.to(self.device))
 
             return x.to(self.device), y.to(self.device), physics
 
@@ -73,3 +73,5 @@ In this case, to update the :class:`deepinv.physics.Physics` parameters accordin
     When using a dataset that has loads data as a 3-tuple, this is assumed to be ``(x, y, params)``
     where ``params`` is assumed to be a dict of parameters, e.g. generated from :class:`deepinv.datasets.generate_dataset`.
     Trainer will automatically load the parameters into the physics each iteration.
+
+TODO note on offline vs online training for sup vs self-sup using physics_generator, random noise, and noise generators

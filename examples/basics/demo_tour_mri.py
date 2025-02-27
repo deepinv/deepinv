@@ -337,7 +337,7 @@ class RawFastMRITrainer(dinv.Trainer):
         # Generate measurements directly from raw measurements
         y *= params["mask"]
 
-        physics.update_parameters(**params)
+        physics.update(**params)
 
         return x, y, physics
 

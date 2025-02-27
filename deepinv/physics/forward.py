@@ -810,12 +810,9 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-
-        # TODO should this happen here or at the end of A_dagger?
         self.update_parameters(mask=mask, **kwargs)
 
         # avoid division by singular value = 0
-
         if not isinstance(self.mask, float):
             mask = torch.zeros_like(self.mask)
             mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
