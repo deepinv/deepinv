@@ -7,6 +7,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
+from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -183,8 +184,13 @@ def test_get_samples(
 
 
 @pytest.mark.parametrize("loop_physics_generator_params", [True, False])
-def test_trainer_physics_generator_params(imsize, loop_physics_generator_params):
+@pytest.mark.parametrize("noise", [None, "gaussian", "poisson"])
+def test_trainer_physics_generator_params(
+    imsize, loop_physics_generator_params, noise, rng, device
+):
     N = 10
+    rng1 = rng
+    rng2 = torch.Generator().manual_seed(0)
 
     class DummyDataset(Dataset):
         # Dummy dataset that returns equal blank images
@@ -203,16 +209,24 @@ def test_trainer_physics_generator_params(imsize, loop_physics_generator_params)
         def A(self, x: torch.Tensor, f: float = None, **kwargs) -> float:
             # NOTE for training with get_samples_online, this following line is technically redundant
             self.update_parameters(f=f)
-            return x.sum().item() * self.f
+            return x.sum() * self.f
 
         def update_parameters(self, f=None, **kwargs):
             self.f = f if f is not None else self.f
+
+    physics = DummyPhysics()
+    if noise == "gaussian":
+        physics.set_noise_model(GaussianNoise(rng=rng1))
+    elif noise == "poisson":
+        physics.set_noise_model(PoissonNoise(rng=rng1))
 
     class DummyPhysicsGenerator(PhysicsGenerator):
         # Dummy generator that outputs random factors
         def step(self, batch_size=1, seed=None, **kwargs):
             self.rng_manual_seed(seed)
-            return {"f": torch.rand((batch_size,), generator=self.rng).item()}
+            return {
+                "f": torch.rand((batch_size,), generator=self.rng, device=device).item()
+            }
 
     class SkeletonTrainer(Trainer):
         # hijack the step method to output samples to list
@@ -221,29 +235,35 @@ def test_trainer_physics_generator_params(imsize, loop_physics_generator_params)
 
         def step(self, *args, **kwargs):
             x, y, physics_cur = self.get_samples(self.current_train_iterators, 0)
-            self.ys += [y]
+            self.ys += [y.item()]
             self.fs += [physics_cur.f]
 
     trainer = SkeletonTrainer(
-        model=torch.nn.Module(),
-        physics=DummyPhysics(),
+        model=torch.nn.Module().to(device),
+        physics=physics,
         optimizer=None,
         train_dataloader=DataLoader(DummyDataset()),  # NO SHUFFLE
         online_measurements=True,
-        physics_generator=DummyPhysicsGenerator(rng=torch.Generator().manual_seed(0)),
-        loop_physics_generator=loop_physics_generator_params,
+        physics_generator=DummyPhysicsGenerator(rng=rng2),
+        loop_physics_generator=loop_physics_generator_params,  # IMPORTANT
         epochs=2,
-        device="cpu",
+        device=device,
         save_path=None,
         verbose=False,
         show_progress_bar=False,
     )
 
     trainer.train()
+
     if loop_physics_generator_params:
+        # Test measurements random but repeat every epoch
+        assert len(set(trainer.ys)) == len(set(trainer.fs)) == N
         assert all([a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
         assert all([a == b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
     else:
+        # Test measurements random but don't repeat
+        # This is ok for supervised training but not self-supervised!
+        assert len(set(trainer.ys)) == len(set(trainer.fs)) == N * 2
         assert all([a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
         assert all([a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
 
