@@ -59,7 +59,7 @@ class Trainer:
     .. warning::
 
         If a physics generator or a noise model is used to generate random params for online measurements, the generated measurements will randomly vary each epoch.
-        If this is not desired (i.e. you want the same online measurements each epoch), set ``loop_physics_generator=True``.
+        If this is not desired (i.e. you want the same online measurements each epoch), set ``loop_random_online_physics=True``.
         This resets the physics generator and noise model's random generators every epoch.
 
         **Caveat**: this requires ``shuffle=False`` in your dataloaders.
@@ -87,8 +87,8 @@ class Trainer:
         the measurements are loaded from the training dataset.
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
-        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_physics_generator``.
-    :param bool loop_physics_generator: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
+        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``.
+    :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
         Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
@@ -136,7 +136,7 @@ class Trainer:
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
-    loop_physics_generator: bool = False
+    loop_random_online_physics: bool = False
     metrics: Union[Metric, List[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
@@ -204,7 +204,7 @@ class Trainer:
         elif (
             self.physics_generator is not None
             and self.online_measurements
-            and self.loop_physics_generator
+            and self.loop_random_online_physics
         ):
             warnings.warn(
                 "Generated measurements repeat each epoch. Ensure that dataloader is not shuffling."
@@ -831,7 +831,7 @@ class Trainer:
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
 
-            if self.loop_physics_generator and self.physics_generator is not None:
+            if self.loop_random_online_physics and self.physics_generator is not None:
                 for physics_generator in self.physics_generator:
                     physics_generator.reset_rng()
 

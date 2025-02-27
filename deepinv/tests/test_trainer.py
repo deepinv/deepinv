@@ -183,10 +183,10 @@ def test_get_samples(
             assert not torch.all(sigma1 == sigma2)
 
 
-@pytest.mark.parametrize("loop_physics_generator_params", [True, False])
+@pytest.mark.parametrize("loop_random_online_physics", [True, False])
 @pytest.mark.parametrize("noise", [None, "gaussian", "poisson"])
 def test_trainer_physics_generator_params(
-    imsize, loop_physics_generator_params, noise, rng, device
+    imsize, loop_random_online_physics, noise, rng, device
 ):
     N = 10
     rng1 = rng
@@ -245,7 +245,7 @@ def test_trainer_physics_generator_params(
         train_dataloader=DataLoader(DummyDataset()),  # NO SHUFFLE
         online_measurements=True,
         physics_generator=DummyPhysicsGenerator(rng=rng2),
-        loop_physics_generator=loop_physics_generator_params,  # IMPORTANT
+        loop_random_online_physics=loop_random_online_physics,  # IMPORTANT
         epochs=2,
         device=device,
         save_path=None,
@@ -255,7 +255,7 @@ def test_trainer_physics_generator_params(
 
     trainer.train()
 
-    if loop_physics_generator_params:
+    if loop_random_online_physics:
         # Test measurements random but repeat every epoch
         assert len(set(trainer.ys)) == len(set(trainer.fs)) == N
         assert all([a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
