@@ -22,7 +22,9 @@ class Trainer:
     r"""Trainer(model, physics, optimizer, train_dataloader, ...)
     Trainer class for training a reconstruction network.
 
-    See the :ref:`User Guide <trainer>` for more details on how to adapt the trainer to your needs.
+    .. seealso::
+
+        See the :ref:`User Guide <trainer>` for more details and for how to adapt the trainer to your needs.
 
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
@@ -37,8 +39,9 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    - Use :func:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.
-    - Use :func:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
+    - Use `online_measurements=True` when measurements are simulated online from a ground truth returned by the dataloader.
+    - Use `online_measurements=False` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
+      This could be from a dataset generated using :class:`deepinv.datasets.generate_dataset`.
 
     .. note::
 
@@ -53,7 +56,7 @@ class Trainer:
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
         reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
-        and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
+        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
 
     .. warning::
@@ -67,21 +70,21 @@ class Trainer:
         An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
         The params dict will then be automatically updated every time data is loaded.
 
-    Learn more in the :ref:`User Guide <physics>`.
-
     :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
     :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-        a signal x or a tuple of (x, y) signal/measurement pairs.
+        a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
         Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-        should provide a signal x or a tuple of (x, y) signal/measurement pairs.
+        should provide a signal x or a tuple of (x, y) signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
