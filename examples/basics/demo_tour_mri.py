@@ -316,7 +316,7 @@ model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(devic
 #
 # .. note ::
 #
-#    We require `loop_physics_generator=True` and `shuffle=False` in the dataloader to ensure that each image is always matched with the same random mask at each iteration.
+#    We require `loop_random_online_physics=True` and `shuffle=False` in the dataloader to ensure that each image is always matched with the same random mask at each iteration.
 #
 
 
@@ -337,7 +337,7 @@ class RawFastMRITrainer(dinv.Trainer):
         # Generate measurements directly from raw measurements
         y *= params["mask"]
 
-        physics.update_parameters(**params)
+        physics.update(**params)
 
         return x, y, physics
 
@@ -370,7 +370,7 @@ trainer = RawFastMRITrainer(
     physics=physics,
     physics_generator=physics_generator,
     online_measurements=True,
-    loop_physics_generator=True,
+    loop_random_online_physics=True,
     losses=dinv.loss.SupLoss(metric=CropMSE()),
     metrics=CropPSNR(),
     optimizer=torch.optim.Adam(model.parameters()),
