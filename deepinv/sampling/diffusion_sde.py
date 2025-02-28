@@ -46,6 +46,7 @@ class BaseSDE(nn.Module):
         x_init: Tensor = None,
         solver: BaseSDESolver = None,
         seed: int = None,
+        get_trajectory: bool = False,
         *args,
         **kwargs,
     ) -> SDEOutput:
@@ -54,15 +55,24 @@ class BaseSDE(nn.Module):
 
         :param torch.Tensor x_init: initial value.
         :param str method: method for solving the SDE. One of the methods available in :func:`deepinv.sampling.sde_solver`.
+        :param int seed: the seed for the pseudo-random number generator used in the solver.
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
+        :param args: additional arguments for the solver.
+        :param kwargs: additional keyword arguments for the solver.
 
-        :return SDEOutput: a namespaced container of the output.
+        :return : the generated sample (:meth:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:meth:`torch.Tensor`, :meth:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.sample_init(x_init, rng=solver.rng)
 
-        solution = solver.sample(self, x_init, *args, **kwargs)
-        return solution
+        solution = solver.sample(
+            self, x_init, *args, **kwargs, get_trajectory=get_trajectory
+        )
+        if get_trajectory:
+            return solution.sample, solution.trajectory
+        else:
+            return solution.sample
 
     def discretize(
         self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
@@ -354,6 +364,7 @@ class PosteriorDiffusion(Reconstructor):
         solver: BaseSDESolver = None,
         seed: int = None,
         timesteps: Tensor = None,
+        get_trajectory: bool = False,
         *args,
         **kwargs,
     ):
@@ -366,23 +377,30 @@ class PosteriorDiffusion(Reconstructor):
         :param BaseSDESolver solver: the solver for the SDE.
         :param int seed: the random seed.
         :param torch.Tensor timesteps: the time steps for the solver.
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
+        :param *args, **kwargs: the arguments and keyword arguments for the solver.
 
-        :return SDEOutput: a namespaced container of the output.
+        :return : the generated sample (:meth:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:meth:`torch.Tensor`, :meth:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.unconditional_sde.sample_init(x_init, rng=solver.rng)
 
-        return solver.sample(
+        solution = solver.sample(
             self.posterior,
             x_init,
             seed,
             y=y,
             physics=physics,
             timesteps=timesteps,
+            get_trajectory=get_trajectory,
             *args,
             **kwargs,
         )
+        if get_trajectory:
+            return solution.sample, solution.trajectory
+        else:
+            return solution.sample
 
     def score(
         self,

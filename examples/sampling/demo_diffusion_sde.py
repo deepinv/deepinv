@@ -102,16 +102,16 @@ timesteps = np.linspace(0, 1, num_steps)[::-1]
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 rng = torch.Generator(device).manual_seed(42)
-solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=1)
-
-sample_seed_1 = solution.sample
+solver = EulerSolver(timesteps=timesteps, rng=rng)
+sample_seed_1, trajectory_seed_1 = sde.sample(
+    (1, 3, 64, 64), solver=solver, seed=1, get_trajectory=True
+)
 
 dinv.utils.plot(
     sample_seed_1, titles="VE-SDE sample", save_fn="sde_sample.png", show=True
 )
 dinv.utils.save_videos(
-    solution.trajectory.cpu()[::4],
+    trajectory_seed_1.cpu()[::4],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
@@ -156,8 +156,9 @@ except FileNotFoundError:
 # be generated when the same seed is used
 
 # By changing the seed, we can obtain different samples:
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=111)
-sample_seed_111 = solution.sample
+sample_seed_111 = sde.sample(
+    (1, 3, 64, 64), solver=solver, seed=111, get_trajectory=False
+)
 
 dinv.utils.plot(
     [sample_seed_1, sample_seed_111],
@@ -192,12 +193,12 @@ sde = VarianceExplodingDiffusion(
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=101)
-dinv.utils.plot(
-    solution.sample, titles=["VE-SDE sample"], show=True, save_fn="sde_sample.png"
+sample, trajectory = sde.sample(
+    (1, 3, 64, 64), solver=solver, seed=101, get_trajectory=True
 )
+dinv.utils.plot(sample, titles=["VE-SDE sample"], show=True, save_fn="sde_sample.png")
 dinv.utils.save_videos(
-    solution.trajectory.cpu()[::4],
+    trajectory.cpu()[::4],
     time_dim=0,
     suptitle="VE-SDE Trajectory",
     save_fn="sde_trajectory.gif",
@@ -255,10 +256,12 @@ sde = VarianceExplodingDiffusion(
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=111)
+sample, trajectory = sde.sample(
+    (1, 3, 64, 64), solver=solver, seed=111, get_trajectory=True
+)
 
 dinv.utils.save_videos(
-    solution.trajectory.cpu()[::4],
+    trajectory.cpu()[::4],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
@@ -304,10 +307,12 @@ sde = VarianceExplodingDiffusion(
 
 # We then can generate an image by solving the reverse-time SDE
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solution = sde.sample((1, 3, 64, 64), solver=solver, seed=10)
+sample, trajectory = sde.sample(
+    (1, 3, 64, 64), solver=solver, seed=10, get_trajectory=True
+)
 
 dinv.utils.save_videos(
-    solution.trajectory.cpu()[::4],
+    trajectory.cpu()[::4],
     time_dim=0,
     titles=["SDE Trajectory"],
     save_fn="sde_trajectory.gif",
@@ -385,17 +390,17 @@ sde = VarianceExplodingDiffusion(
 
 rng = torch.Generator(device).manual_seed(42)
 timesteps = np.linspace(0.001, 1, num_steps)[::-1]
-solver = EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng)
+solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 # %%
 #  When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
-posterior = PosteriorDiffusion(
+model = PosteriorDiffusion(
     data_fidelity=Zero(),
     unconditional_sde=sde,
     dtype=dtype,
     device=device,
 )
-solution = posterior.forward(
+sample = model.forward(
     y=None,
     physics=None,
     solver=solver,
@@ -403,18 +408,18 @@ solution = posterior.forward(
     seed=123,
     timesteps=timesteps,
 )
-dinv.utils.plot(solution.sample, titles="Unconditional generation", show=True)
+dinv.utils.plot(sample, titles="Unconditional generation", show=True)
 
 
 # %%
 # When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
 # For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
 
-x = solution.sample
+x = sample
 physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
 y = physics(x)
 
-posterior = PosteriorDiffusion(
+model = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(denoiser=denoiser),
     unconditional_sde=sde,
     dtype=dtype,
@@ -422,19 +427,25 @@ posterior = PosteriorDiffusion(
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
-posterior_sample = posterior.forward(
-    y, physics, solver=solver, x_init=(1, 3, 64, 64), seed=1, timesteps=timesteps
+x_hat, trajectory = model(
+    y,
+    physics,
+    solver=solver,
+    x_init=(1, 3, 64, 64),
+    seed=1,
+    timesteps=timesteps,
+    get_trajectory=True,
 )
 # Here, we plot the original image, the measurement and the posterior sample
 dinv.utils.plot(
-    [x, y, posterior_sample.sample],
+    [x, y, x_hat],
     show=True,
     suptitle="Posterior Sampling",
     titles=["Original", "Measurement", "Posterior sample"],
 )
 # %% We can also save the trajectory of the posterior sample
 dinv.utils.save_videos(
-    posterior_sample.trajectory,
+    trajectory,
     time_dim=0,
     save_fn="posterior_trajectory.gif",
     figsize=(5, 5),

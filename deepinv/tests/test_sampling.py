@@ -231,8 +231,8 @@ def test_sde(device):
     # Set up solvers
     timesteps = np.linspace(0.001, 1, num_steps)[::-1]
     solvers = [
-        EulerSolver(timesteps=timesteps, full_trajectory=True, rng=rng),
-        HeunSolver(timesteps=timesteps, full_trajectory=True, rng=rng),
+        EulerSolver(timesteps=timesteps, rng=rng),
+        HeunSolver(timesteps=timesteps, rng=rng),
     ]
     for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
         sde = VarianceExplodingDiffusion(
@@ -245,26 +245,26 @@ def test_sde(device):
 
         for solver in solvers:
             # Test generation
-            solution = sde.sample(
+            sample_1, trajectory = sde.sample(
                 (1, 3, 64, 64),
                 solver=solver,
                 seed=10,
+                get_trajectory=True,
                 **kwargs,
             )
-            x_init_1 = solution.trajectory[0]
-            sample_1 = solution.sample
+            x_init_1 = trajectory[0]
 
-            assert solution.sample.shape == (1, 3, 64, 64)
+            assert sample_1.shape == (1, 3, 64, 64)
 
             # Test reproducibility
-            solution = sde.sample(
+            sample_2, trajectory = sde.sample(
                 (1, 3, 64, 64),
                 solver=solver,
                 seed=10,
+                get_trajectory=True,
                 **kwargs,
             )
-            x_init_2 = solution.trajectory[0]
-            sample_2 = solution.sample
+            x_init_2 = trajectory[0]
             # Test reproducibility
             assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
             assert (
@@ -289,13 +289,12 @@ def test_sde(device):
     physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
     y = physics(x)
 
-    posterior_solution = posterior.forward(
+    x_hat = posterior.forward(
         y,
         physics,
         solver=solvers[0],
         x_init=(1, 3, 64, 64),
         seed=10,
     )
-    posterior_sample = posterior_solution.sample
 
-    assert posterior_sample.shape == (1, 3, 64, 64)
+    assert x_hat.shape == (1, 3, 64, 64)

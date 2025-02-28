@@ -51,21 +51,17 @@ class BaseSDESolver(nn.Module):
 
     Currently only supported for fixed time steps for numerical integration.
 
-    :param torch.Tensor timesteps: time steps at which the SDE will be discretized.
-    :param bool full_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
+    :param torch.Tensor timesteps: time steps at which the SDE will be discretized.e.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     """
 
     def __init__(
         self,
         timesteps: Union[Tensor, ndarray],
-        full_trajectory: bool = False,
         rng: Optional[torch.Generator] = None,
     ):
         super().__init__()
         self.timesteps = timesteps
-        self.full_trajectory = full_trajectory
-
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
@@ -94,6 +90,7 @@ class BaseSDESolver(nn.Module):
         seed: int = None,
         *args,
         timesteps: Union[Tensor, ndarray] = None,
+        get_trajectory: bool = False,
         **kwargs,
     ) -> SDEOutput:
         r"""
@@ -106,6 +103,7 @@ class BaseSDESolver(nn.Module):
         :param Tensor x_init: The initial state of the system.
         :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
         :param Union[Tensor, ndarray] timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
 
@@ -114,7 +112,7 @@ class BaseSDESolver(nn.Module):
         self.rng_manual_seed(seed)
         x = x_init
         nfe = 0
-        trajectory = [x_init.clone()] if self.full_trajectory else []
+        trajectory = [x_init.clone()] if get_trajectory else []
 
         if timesteps is None:
             timesteps = self.timesteps
@@ -122,9 +120,9 @@ class BaseSDESolver(nn.Module):
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
             x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
-            if self.full_trajectory:
+            if get_trajectory:
                 trajectory.append(x.clone())
-        if self.full_trajectory:
+        if get_trajectory:
             trajectory = torch.stack(trajectory, dim=0)
         else:
             trajectory = x
@@ -189,14 +187,11 @@ class EulerSolver(BaseSDESolver):
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
-    :param bool full_trajectory: Whether to return the full trajectory or just the final point.
     :param torch.Generator rng: A random number generator for reproducibility.
     """
 
-    def __init__(
-        self, timesteps, full_trajectory: bool = False, rng: torch.Generator = None
-    ):
-        super().__init__(timesteps, full_trajectory, rng=rng)
+    def __init__(self, timesteps, rng: torch.Generator = None):
+        super().__init__(timesteps, rng=rng)
 
     def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
@@ -218,17 +213,15 @@ class HeunSolver(BaseSDESolver):
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
     :param torch.Tensor timesteps: The time steps at which to evaluate the solution.
-    :param bool full_trajectory: Whether to return the full trajectory or just the final point.
     :param torch.Generator rng: A random number generator for reproducibility.
     """
 
     def __init__(
         self,
         timesteps,
-        full_trajectory: bool = False,
         rng: torch.Generator = None,
     ):
-        super().__init__(timesteps, full_trajectory, rng=rng)
+        super().__init__(timesteps, rng=rng)
 
     def step(self, sde, t0, t1, x0: Tensor, *args, **kwargs):
         dt = abs(t1 - t0)
