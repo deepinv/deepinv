@@ -20,7 +20,7 @@ def sample_from(
             N
             * torch.rand(
                 shape, dtype=dtype, device=generator.device, generator=generator
-            ).to(N.device) # need use N.device
+            ).to(N.device)
         )
         .to(torch.long)
         .to(device)
