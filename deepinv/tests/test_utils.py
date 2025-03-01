@@ -110,6 +110,12 @@ def test_plot_videos():
     deepinv.utils.plot_videos([x, y], save_fn="vid.gif")
 
 
+def test_save_videos():
+    x = torch.rand((1, 3, 5, 8, 8))  # B,C,T,H,W image sequence
+    y = torch.rand((1, 3, 5, 16, 16))
+    deepinv.utils.save_videos([x, y], time_dim=2, save_fn="vid.gif")
+
+
 def test_plot_ortho3D():
     for c in range(1, 5):
         x = torch.ones((1, c, 2, 2, 2))
