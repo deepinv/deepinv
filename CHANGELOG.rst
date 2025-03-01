@@ -28,6 +28,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
