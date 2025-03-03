@@ -30,3 +30,4 @@ from .complex import to_complex_denoiser
 from .dynamic import TimeAgnosticNet, TimeAveragingNet
 from .varnet import VarNet
 from .multispectral import PanNet
+from .flowunet import FlowUNet

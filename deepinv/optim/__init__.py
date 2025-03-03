@@ -27,6 +27,7 @@ from .prior import (
 from .optim_iterators.optim_iterator import OptimIterator
 from .epll import EPLL
 from .dpir import DPIR
+from .pnpflow import PnPFlow
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
 from .potential import Potential
 from .distance import (
