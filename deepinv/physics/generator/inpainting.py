@@ -181,7 +181,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
 
 class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
-    """Randomly generates masks using split_generator.
+    """Multiplicative splitting mask generator.
+
+    Randomly generates masks using split_generator.
 
     Generates binary masks (mask_lambda) using the given physics_generator
     Input_mask is the mask that is used to create accelerated measurements.
@@ -511,6 +513,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         mask_out = torch.zeros_like(input_mask)
         mask_out[:, ::2] = input_mask[:, ::2]
         return mask_out
+
 
 class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator):
     """Artifact2Artifact splitting mask generator for dynamic data.
