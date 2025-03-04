@@ -458,9 +458,9 @@ class PoissonGaussianNoise(NoiseModel):
         self.rng_manual_seed(seed)
 
         if isinstance(self.gain, torch.Tensor):
-            gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
+            gain = self.gain[(...,) + (None,) * (x.dim() - 1)].to(x.device)
         else:
-            gain = self.gain
+            gain = self.gain.to(x.device)
 
         if isinstance(self.sigma, torch.Tensor):
             sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)].to(x.device)
