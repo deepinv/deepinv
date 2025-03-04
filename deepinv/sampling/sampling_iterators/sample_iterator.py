@@ -6,7 +6,6 @@ from deepinv.optim import DataFidelity
 from typing import Dict, Any
 import torch
 
-# TODO: pull out default params from old iterators
 # TODO: maybe remove the *args, **kwargs (at very least document what they are for e.g. proposal dists)
 class SamplingIterator(nn.Module):
     r"""

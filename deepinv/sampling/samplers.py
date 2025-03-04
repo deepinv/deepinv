@@ -20,6 +20,8 @@ from deepinv.sampling.sampling_iterators import *
 # TODO: add in some common statistics like mean/ pixel? 
 # to avoid having to supply g_statistics functions manually
 # TODO: check_conv stuff
+# TODO: Reconstructor, return sample mean
+# TODO: Add rng
 class BaseSample(nn.Module):
     r"""
     Base class for Monte Carlo sampling.
@@ -56,7 +58,6 @@ class BaseSample(nn.Module):
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
-    :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
     :param int history_size: Number of most recent samples to store in memory. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
@@ -67,11 +68,12 @@ class BaseSample(nn.Module):
         data_fidelity: DataFidelity,
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
+        # NOTE: max_iter
         num_iter=100,
+        # TODO: pass to iterator
         clip = None,
         burnin_ratio=0.2,
         thinning=10,
-        g_statistics=[lambda x: x],
         history_size=5,
         verbose=False,
     ):
@@ -83,7 +85,6 @@ class BaseSample(nn.Module):
         self.num_iter = num_iter
         self.burnin_ratio = burnin_ratio
         self.thinning = thinning
-        self.g_statistics = g_statistics
         self.verbose = verbose
         self.clip = clip
         self.history_size = history_size
@@ -96,6 +97,7 @@ class BaseSample(nn.Module):
         physics: Physics,
         X_init: torch.Tensor | None = None,
         seed: int | None = None,
+        g_statistics=[lambda x: x],
         **kwargs,
     ):
         r"""
@@ -110,6 +112,7 @@ class BaseSample(nn.Module):
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
+        :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
             | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
@@ -140,7 +143,7 @@ class BaseSample(nn.Module):
 
         # Initialize Welford trackers for each g_statistic
         statistics = []
-        for g in self.g_statistics:
+        for g in g_statistics:
             statistics.append(Welford(g(X_t)))
 
         # Run the chain
@@ -156,11 +159,10 @@ class BaseSample(nn.Module):
             )
             if self.clip:
                 X_t = projbox(X_t, self.clip[0], self.clip[1]) 
-
             if i >= (self.num_iter * self.burnin_ratio) and i % self.thinning == 0:
                 self.history.append(X_t)
 
-                for j, (g, stat) in enumerate(zip(self.g_statistics, statistics)):
+                for j, (g, stat) in enumerate(zip(g_statistics, statistics)):
                     stat.update(g(X_t))
 
         # Return means and variances for all g_statistics
@@ -168,7 +170,7 @@ class BaseSample(nn.Module):
         vars = [stat.var() for stat in statistics]
 
         # Unwrap single statistics
-        if len(self.g_statistics) == 1:
+        if len(g_statistics) == 1:
             return means[0], vars[0]
         return means, vars
 
@@ -214,12 +216,11 @@ def sample_builder(
     iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo,
+    params_algo={},
     num_iter=100,
     clip = None,
     burnin_ratio=0.2,
     thinning=10,
-    g_statistics=[lambda x: x],
     history_size=5,
     verbose=False,
 ):
@@ -235,7 +236,6 @@ def sample_builder(
     :param clip: Tuple of (min, max) values to clip samples
     :param burnin_ratio: Percentage of iterations for burn-in
     :param thinning: Integer to thin the Monte Carlo samples
-    :param g_statistics: List of functions for computing posterior statistics
     :param history_size: Number of recent samples to store
     :param verbose: Whether to print progress
     :return: Configured BaseSample instance in eval mode
@@ -251,7 +251,6 @@ def sample_builder(
         clip=clip,
         burnin_ratio=burnin_ratio,
         thinning=thinning,
-        g_statistics=g_statistics,
         history_size=history_size,
         verbose=verbose
     ).eval()
