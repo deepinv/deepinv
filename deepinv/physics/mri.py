@@ -409,6 +409,18 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         MFSx = self.mask[:, :, None] * self.from_torch_complex(FSx)  # [B,2,N,...,H,W]
         return MFSx
 
+    def noise(self, x, **kwargs) -> Tensor:
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)` and takes the mask into account.
+
+        :param torch.Tensor x:  clean measurements
+        :param None, float noise_level: optional noise level parameter
+        :return: noisy measurements
+
+        """
+
+        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
+
     def A_adjoint(
         self,
         y,
