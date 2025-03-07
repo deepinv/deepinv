@@ -357,6 +357,7 @@ class CSGMGenerator(Reconstructor):
             err_perc = abs(err_curr - err_prev) / err_curr
             err_prev = err_curr
             pbar.set_postfix({"err_curr": err_curr, "err_perc": err_perc})
+
             if err_perc < self.inf_tol:
                 break
         return z
