@@ -139,13 +139,14 @@ class SplittingLoss(Loss):
 
         return y_split, physics_split
 
-    def forward(self, x_net, y, physics, model, **kwargs):
+    def forward(self, x_net, y, physics, model, normalize_loss: bool = True, **kwargs):
         r"""
         Computes the measurement splitting loss
 
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
+        :param bool normalize_loss: whether normalize output by output mask mean
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
@@ -155,9 +156,9 @@ class SplittingLoss(Loss):
         mask2 = getattr(physics, "mask", 1.0) - mask
         y2, physics2 = self.split(mask2, y, physics)
 
-        loss_ms = self.metric(physics2.A(x_net), y2)
+        l = self.metric(physics2.A(x_net), y2)
 
-        return loss_ms / mask2.mean()
+        return l / mask2.mean() if normalize_loss else l
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -243,7 +244,7 @@ class SplittingLoss(Loss):
             self.pixelwise = pixelwise
 
         @staticmethod
-        def split(mask, y, physics):
+        def split(mask, y, physics=None):
             return SplittingLoss.split(mask, y, physics)
 
         def forward(
@@ -311,14 +312,14 @@ class SplittingLoss(Loss):
                 # Perform input masking
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
-                )
+                )["mask"]
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
                 x_hat = self.model(y1, physics1)
 
                 # Output masking
-                mask2 = getattr(physics, "mask", 1.0) - mask["mask"]
+                mask2 = getattr(physics, "mask", 1.0) - mask
                 out += self.split(mask2, x_hat)
                 normaliser += mask2
 
@@ -355,8 +356,12 @@ class WeightedSplittingLoss(SplittingLoss):
 
     .. note::
 
-        The loss should be used with the splitting mask :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` to match the original paper,
-        and was originally proposed for accelerated MRI problems (where the measurements are generated via a mask generator).
+        To match the original paper, the loss should be used with the splitting mask :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator`
+        where the input additional subsampling mask should be the same type as that used to generate the measurements.
+
+        Note the method was originally proposed for accelerated MRI problems (where the measurements are generated via a mask generator).
+
+        Note also that we assume that all masks are 1D mask in the W dimension repeated in all other dimensions.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: original mask generator used to generate the measurements.
     :param deepinv.physics.generator.BernoulliSplittingMaskGenerator physics_generator: splitting mask generator for further subsampling.
@@ -401,15 +406,24 @@ class WeightedSplittingLoss(SplittingLoss):
 
     def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
         """
-        Compute K for K-weighted splitting loss where K is a diagonal matrix
+        Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
+
+        Estimates the 1D PDFs of the mask generators empirically.
 
         :param float eps: small value to avoid division by zero.
         """
-        # estimating pdf of mask generators, assumes 1D PDF mask
-        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
-        P_tilde = (
-            self.mask_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
-        )
+
+        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0)
+        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0)
+
+        if P.shape != P_tilde.shape:
+            raise ValueError(
+                "physics_generator and mask_generator should produce same size masks."
+            )
+
+        # Reduce to 1D PDF in W dimension
+        while len(P.shape) > 1:
+            P, P_tilde = P[0], P_tilde[0]
 
         # makes sure P_tilde < 1
         P_tilde[P_tilde > (1 - eps)] = 1 - eps
