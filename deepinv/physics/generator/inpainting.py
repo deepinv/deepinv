@@ -8,6 +8,7 @@ from deepinv.physics.functional import random_choice
 if TYPE_CHECKING:
     from deepinv.physics.generator.mri import BaseMaskGenerator
 
+
 class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     """Base generator for splitting/inpainting masks.
 
@@ -213,6 +214,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param torch.Generator rng: torch random number generator.
     :param torch.dtype dtype: the data type of the generated parameters
     """
+
     def __init__(
         self,
         tensor_size: Tuple[int],
@@ -220,14 +222,19 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         *args,
         **kwargs,
     ):
-        super().__init__(tensor_size=tensor_size, split_ratio=0., pixelwise=True, *args, **kwargs,)
+        super().__init__(
+            tensor_size=tensor_size,
+            split_ratio=0.0,
+            pixelwise=True,
+            *args,
+            **kwargs,
+        )
         self.split_generator = split_generator
         self.pdf = self.split_generator.get_pdf()
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         mask_lambda = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-            # rng should be shuffled for each batch
             return mask_lambda * input_mask.to(self.device)
         else:
             return mask_lambda

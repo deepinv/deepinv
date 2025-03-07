@@ -376,16 +376,22 @@ class WeightedSplittingLoss(SplittingLoss):
     """
 
     class DifferenceMetric(torch.nn.Module):
-        """Helper metric to just compute the difference between y1 and y2
-        """
+        """Helper metric to just compute the difference between y1 and y2"""
+
         def forward(self, y1, y2):
-            """Metric forward pass.
-            """
+            """Metric forward pass."""
             return y1 - y2
 
-    def __init__(self, mask_generator: BaseMaskGenerator, physics_generator: BernoulliSplittingMaskGenerator, eps: float = 1e-9):
+    def __init__(
+        self,
+        mask_generator: BaseMaskGenerator,
+        physics_generator: BernoulliSplittingMaskGenerator,
+        eps: float = 1e-9,
+    ):
 
-        super().__init__(eval_split_input=False, pixelwise=True, metric=self.DifferenceMetric())
+        super().__init__(
+            eval_split_input=False, pixelwise=True, metric=self.DifferenceMetric()
+        )
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
         self.name = "WeightedSplitting"
@@ -400,7 +406,9 @@ class WeightedSplittingLoss(SplittingLoss):
         """
         # estimating pdf of mask generators, assumes 1D PDF mask
         P = self.physics_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
-        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
+        P_tilde = (
+            self.mask_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
+        )
 
         # makes sure P_tilde < 1
         P_tilde[P_tilde > (1 - eps)] = 1 - eps
