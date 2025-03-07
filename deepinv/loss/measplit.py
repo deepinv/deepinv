@@ -368,10 +368,11 @@ class WeightedSplittingLoss(SplittingLoss):
 
     >>> import torch
     >>> from deepinv.physics.generator import GaussianMaskGenerator, MultiplicativeSplittingMaskGenerator
+    >>> from deepinv.loss import WeightedSplittingLoss
     >>> physics_generator = GaussianMaskGenerator((128, 128), acceleration=4)
     >>> split_generator = GaussianMaskGenerator((128, 128), acceleration=2)
     >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
-    >>> loss = dinv.loss.WeightedSplittingLoss(mask_generator, physics_generator)
+    >>> loss = WeightedSplittingLoss(mask_generator, physics_generator)
 
     """
 
