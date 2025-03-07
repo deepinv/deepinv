@@ -230,7 +230,6 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             **kwargs,
         )
         self.split_generator = split_generator
-        self.pdf = self.split_generator.get_pdf()
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         mask_lambda = self.split_generator.step(batch_size=1)["mask"].squeeze(0)

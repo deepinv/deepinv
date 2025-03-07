@@ -363,8 +363,8 @@ class WeightedSplittingLoss(SplittingLoss):
 
         Note also that we assume that all masks are 1D mask in the W dimension repeated in all other dimensions.
 
-    :param deepinv.physics.generator.BaseMaskGenerator mask_generator: original mask generator used to generate the measurements.
-    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator physics_generator: splitting mask generator for further subsampling.
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+    :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
     :param float eps: small value to avoid division by zero.
 
     |sep|
@@ -390,8 +390,8 @@ class WeightedSplittingLoss(SplittingLoss):
 
     def __init__(
         self,
-        mask_generator: BaseMaskGenerator,
-        physics_generator: BernoulliSplittingMaskGenerator,
+        mask_generator: BernoulliSplittingMaskGenerator,
+        physics_generator: BaseMaskGenerator,
         eps: float = 1e-9,
     ):
 

@@ -309,7 +309,16 @@ def test_sure_losses(device):
     assert error_mc < 5e-2
 
 
-@pytest.mark.parametrize("loss_name", ["splitting", "weighted-splitting", "n2n"])
+@pytest.mark.parametrize(
+    "loss_name",
+    [
+        "splitting",
+        "weighted-splitting",
+        "n2n",
+        "splitting_eval_split_input",
+        "splitting_eval_split_input_output",
+    ],
+)
 def test_measplit(device, loss_name, rng):
     # Larger, even imsize to reduce effect of randomness
     imsize = (2, 64, 64)
@@ -355,11 +364,14 @@ def test_measplit(device, loss_name, rng):
             eval_n_samples=eval_n_samples,
         )
     elif loss_name == "weighted-splitting":
-        loss = dinv.loss.WeightedSplittingLoss(
-            mask_generator=dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            imsize,
+            dinv.physics.generator.BernoulliSplittingMaskGenerator(
                 imsize, 0.5, device=device, rng=rng
             ),
-            physics_generator=physics.gen,
+        )
+        loss = dinv.loss.WeightedSplittingLoss(
+            mask_generator=gen, physics_generator=physics.gen
         )
 
     f = loss.adapt_model(f)
