@@ -348,7 +348,7 @@ class WeightedSplittingLoss(SplittingLoss):
     where
 
     .. math::
-    
+
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
     and :math:`\mathbf{P}=\mathbb{E}[\M_i],\tilde{\mathbf{P}}=\mathbb{E}[\M_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
