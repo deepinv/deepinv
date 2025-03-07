@@ -1,9 +1,12 @@
-from typing import Tuple, Union
+from __future__ import annotations
+from typing import Tuple, Union, TYPE_CHECKING
 from warnings import warn
 import torch
-from deepinv.physics.generator import PhysicsGenerator
+from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.functional import random_choice
 
+if TYPE_CHECKING:
+    from deepinv.physics.generator.mri import BaseMaskGenerator
 
 class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     """Base generator for splitting/inpainting masks.
@@ -36,6 +39,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.dtype dtype: the data type of the generated parameters
     :param torch.Generator rng: torch random number generator.
     """
 
@@ -183,124 +187,50 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     """Multiplicative splitting mask generator.
 
-    Randomly generates masks using split_generator.
+    Randomly generates binary masks using the given `physics_generator`, and multplies the `input_mask` (i.e. mask that is used to create accelerated measurements).
 
-    Generates binary masks (mask_lambda) using the given physics_generator
-    Input_mask is the mask that is used to create accelerated measurements.
-    The output mask is generated from mask_lambda*input_mask
-    This output mask is used for measurement splitting for MRI in `Noiser2Noise <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>_.
+    .. seealso::
+
+        :class:`deepinv.loss.WeightedSplittingLoss`
+            K-weighted splitting loss proposed in `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_,
+            where this splitting mask generator is used for self-supervised learning.
 
     |sep|
 
     :Examples:
 
-
-        Further splitting with GaussianMaskGenerator
-
-        >>> from from deepinv.physics.generator import GaussianSplittingMaskGenerator
+        >>> from deepinv.physics.generator import GaussianMaskGenerator, MultiplicativeSplittingMaskGenerator
         >>> physics_generator = GaussianMaskGenerator((1, 128, 128), acceleration=4)
+        >>> orig_mask = physics_generator.step(batch_size=2)["mask"]
         >>> split_generator = GaussianMaskGenerator((1, 128, 128), acceleration=2)
-        >>> gen = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
-        >>> gen.step(batch_size=2, input_mask=physics_generator.mask)["mask"].shape
+        >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
+        >>> mask_generator.step(batch_size=2, input_mask=orig_mask)["mask"].shape
         torch.Size([2, 1, 128, 128])
 
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
-    :param deepinv.physics.generator.PhysicsGenerator mask generator
-
+    :param deepinv.physics.generator.BaseMaskGenerator split_generator: mask generator used for multiplicative splitting
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.Generator rng: torch random number generator.
+    :param torch.dtype dtype: the data type of the generated parameters
     """
-
     def __init__(
         self,
-        tensor_size,
-        split_generator,
-        device: torch.device = torch.device("cpu"),
-        dtype: torch.dtype = torch.float32,
-        rng: torch.Generator = None,
+        tensor_size: Tuple[int],
+        split_generator: BaseMaskGenerator,
         *args,
         **kwargs,
     ):
-        super().__init__(
-            tensor_size=tensor_size,
-            split_ratio=0.0,
-            pixelwise=True,
-            device=device,
-            rng=rng,
-            *args,
-            **kwargs,
-        )
-        # passes in the synthnetic splitting mask generator
+        super().__init__(tensor_size=tensor_size, split_ratio=0., pixelwise=True, *args, **kwargs,)
         self.split_generator = split_generator
         self.pdf = self.split_generator.get_pdf()
 
-    def step(
-        self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
-    ) -> dict:
-        r"""
-        Generate a random mask called mask_lambda
-
-        If ``input_mask`` is None, generates a standard random mask is generated without multiplication where mask = mask_lambda
-        If ``input_mask`` is specified the mask = mask_lambda*input_mask
-
-        :param int batch_size: batch_size. If None, no batch dimension is created. If input_mask passed and has its own batch dimension > 1, batch_size is ignored.
-        :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. input_mask shape can optionally include a batch dimension.
-        :param int seed: the seed for the random number generator.
-        :return: dictionary with key **'mask'**: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}, **'mask_lambda'***: tensor of size ``(batch_size, *tensor_size)`` with values in {0, 1}
-        :rtype: dict
-        """
-        self.rng_manual_seed(seed)
-
-        if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
-            self.tensor_size
-        ):
-            input_mask = input_mask.to(self.device)
-            if input_mask.shape[0] > 1:
-                # Batch dim exists in input_mask and it's > 1
-                batch_size = input_mask.shape[0]
-            else:
-                # Singular batch dim exists in input_mask so use batch_size
-                # Removes batch dimensions
-                input_mask = input_mask[0]
-
-        if batch_size is not None:
-            # Create each mask in batch independently
-            outs = []
-            outs_lambda = []
-            for b in range(batch_size):
-                inp = None
-                if isinstance(input_mask, torch.Tensor) and len(input_mask.shape) > len(
-                    self.tensor_size
-                ):
-                    inp = input_mask[b]
-                elif isinstance(input_mask, torch.Tensor):
-                    inp = input_mask
-                mask_batch = self.batch_step(input_mask=inp, **kwargs)
-                outs.append(mask_batch["mask"])
-                outs_lambda.append(mask_batch["mask_lambda"])
-            mask = torch.stack(outs)
-            mask_lambda = torch.stack(outs_lambda)
-        else:
-            mask_batch = self.batch_step(input_mask=input_mask, **kwargs)
-            mask = mask_batch["mask"]
-            mask_lambda = mask_batch["mask_lambda"]
-
-        return {"mask": mask, "mask_lambda": mask_lambda}
-
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
-        """
-        Create one batch of splitting mask using the split_generator
-
-        :param torch.Tensor, input_mask
-
-        """
         mask_lambda = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-            input_mask = input_mask.to(self.device)  # to device
             # rng should be shuffled for each batch
-            # get mask from pdf
-            mask = mask_lambda * input_mask
+            return mask_lambda * input_mask.to(self.device)
         else:
-            mask = mask_lambda  # if data is already sub-sampled / no input_mask
-        return {"mask": mask, "mask_lambda": mask_lambda}
+            return mask_lambda
 
 
 class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
@@ -335,6 +265,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: random number generator.
+    :param torch.dtype dtype: the data type of the generated parameters
     """
 
     def __init__(

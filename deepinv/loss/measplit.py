@@ -7,7 +7,7 @@ from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.generator import (
-    PhysicsGenerator,
+    BaseMaskGenerator,
     BernoulliSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
     Artifact2ArtifactSplittingMaskGenerator,
@@ -68,7 +68,7 @@ class SplittingLoss(Loss):
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio. Ignored if ``mask_generator`` passed.
-    :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator, None mask_generator: function to generate the mask. If
         None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used, with the parameters ``split_ratio`` and ``pixelwise``.
     :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.
     :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
@@ -101,7 +101,7 @@ class SplittingLoss(Loss):
         self,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         split_ratio: float = 0.9,
-        mask_generator: Optional[PhysicsGenerator] = None,
+        mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
         eval_n_samples=5,
         eval_split_input=True,
         eval_split_output=False,
@@ -335,30 +335,32 @@ class SplittingLoss(Loss):
 
 
 class WeightedSplittingLoss(SplittingLoss):
-    """
+    r"""
     K-Weighted Splitting Loss
 
     Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
-    where :math:`K` is derived from the pdf of the acceleration mask and splitting mask. The loss is related to the original splitting loss as follows:
+    The loss is related to the original splitting loss as follows:
 
     .. math::
 
         \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
 
-    where
+    where :math:`K` is derived from the pdf of the (original) acceleration mask and (further) splitting mask:
 
     .. math::
 
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
-    and :math:`\mathbf{P}=\mathbb{E}[\M_i],\tilde{\mathbf{P}}=\mathbb{E}[\M_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
+    and :math:`\mathbf{P}=\mathbb{E}[\mathbf{M}_i],\tilde{\mathbf{P}}=\mathbb{E}[\mathbf{M}_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
 
     .. note::
 
-        The loss should be used with :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` to match the original paper.
+        The loss should be used with the splitting mask :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator` to match the original paper,
+        and was originally proposed for accelerated MRI problems (where the measurements are generated via a mask generator).
 
-    :param deepinv.physics.generator.PhysicsGenerator, function to generate the mask should be Noiser2NoiseSplittingMaskGenerator
-    :param dict, with pdf["omega"] and pdf["lambda"] which represents the pdf that the accelerated masks and further splitting mask was sampled from, respectively.
+    :param deepinv.physics.generator.BaseMaskGenerator mask_generator: original mask generator used to generate the measurements.
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator physics_generator: splitting mask generator for further subsampling.
+    :param float eps: small value to avoid division by zero.
 
     |sep|
 
@@ -369,56 +371,48 @@ class WeightedSplittingLoss(SplittingLoss):
     >>> physics_generator = GaussianMaskGenerator((128, 128), acceleration=4)
     >>> split_generator = GaussianMaskGenerator((128, 128), acceleration=2)
     >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
-    >>> pdf = {"omega": physics_generator.get_pdf(), "lambda": split_generator.get_pdf()}
-    >>> loss = dinv.loss.WeightedSplittingLoss(mask_generator=mask_generator, pdf=pdf)
+    >>> loss = dinv.loss.WeightedSplittingLoss(mask_generator, physics_generator)
 
     """
 
-    class LossMetric(torch.nn.Module):
-        # torch metric to just compute the difference between y1 and y2
-        def __init__(self):
-            super().__init__()
-
+    class DifferenceMetric(torch.nn.Module):
+        """Helper metric to just compute the difference between y1 and y2
+        """
         def forward(self, y1, y2):
+            """Metric forward pass.
+            """
             return y1 - y2
 
-    def __init__(
-        self, mask_generator: PhysicsGenerator, physics_generator: PhysicsGenerator
-    ):
+    def __init__(self, mask_generator: BaseMaskGenerator, physics_generator: BernoulliSplittingMaskGenerator, eps: float = 1e-9):
 
-        super().__init__(eval_split_input=False, pixelwise=True)
+        super().__init__(eval_split_input=False, pixelwise=True, metric=self.DifferenceMetric())
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
         self.name = "WeightedSplitting"
-        self.k = self.compute_k()
-        self.weight = (1 - self.k).clamp(min=1e-9) ** (-0.5)
-        self.metric = self.LossMetric()
+        self.k = self.compute_k(eps=eps)
+        self.weight = (1 - self.k).clamp(min=eps) ** (-0.5)
 
-    def compute_k(self) -> torch.Tensor:
+    def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
         """
         Compute K for K-weighted splitting loss where K is a diagonal matrix
-        """
-        # estimating pdf of mask generators
-        P = (
-            self.physics_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
-        )  # assumes 1d_pdf mask
-        P_tilde = (
-            self.mask_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
-        )  # assumes 1d_pdf mask
-        one_minus_eps = 1 - 1e-9
 
-        P_tilde[P_tilde > one_minus_eps] = one_minus_eps  # makes sure P_tilde < 1
+        :param float eps: small value to avoid division by zero.
+        """
+        # estimating pdf of mask generators, assumes 1D PDF mask
+        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
+        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0).squeeze()[0, :]
+
+        # makes sure P_tilde < 1
+        P_tilde[P_tilde > (1 - eps)] = 1 - eps
 
         diag_1_minus_PtP = 1 - P_tilde * P
-        diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=1e-9)  # Avoid division by zero
+        diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=eps)
         inv_diag_1_minus_PtP = 1 / diag_1_minus_PtP
-        # compute (1-P)
         diag_1_minus_P = 1 - P
 
         # element-wise multiplication to get K
         K_1d = inv_diag_1_minus_PtP * diag_1_minus_P
-        K_mask = K_1d.unsqueeze(0).expand(self.mask_generator.tensor_size[-2:])
-        return K_mask
+        return K_1d.unsqueeze(0).expand(self.mask_generator.tensor_size[-2:])
 
     def forward(self, x_net, y, physics, model, **kwargs):
 

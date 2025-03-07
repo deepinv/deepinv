@@ -81,6 +81,14 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         """
         pass
 
+    @abstractmethod
+    def get_pdf(self) -> torch.Tensor:
+        """Get mask PDF.
+
+        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        """
+        pass
+
     def step(
         self, batch_size=1, seed: int = None, img_size: Optional[Tuple] = None, **kwargs
     ) -> dict:
@@ -368,6 +376,9 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
         torch.Size([1, 2, 8, 64, 64])
 
     """
+
+    def get_pdf(self) -> torch.Tensor:
+        raise NotImplementedError("get_pdf is undefined for this mask generator.")
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         pad = (self.W - self.n_center + 1) // 2
