@@ -1,0 +1,9 @@
+﻿conv2d
+======
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: conv2d
+
+.. minigallery:: deepinv.physics.functional.conv2d
+    :add-heading: Examples using ``conv2d``:

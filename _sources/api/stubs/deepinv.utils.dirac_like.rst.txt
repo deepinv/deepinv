@@ -1,0 +1,9 @@
+﻿dirac\_like
+===========
+
+.. currentmodule:: deepinv.utils
+
+.. autofunction:: dirac_like
+
+.. minigallery:: deepinv.utils.dirac_like
+    :add-heading: Examples using ``dirac_like``:
