@@ -344,9 +344,8 @@ class CSGMGenerator(Reconstructor):
         optimizer = Adam([z], lr=self.inf_lr)
         err_prev = 999
 
-        for i in (
-            pbar := tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
-        ):
+        pbar = tqdm(range(self.inf_max_iter), disable=(not self.inf_progress_bar))
+        for i in pbar:
             x_hat = self.backbone_generator(z)
             error = self.inf_loss(y=y, x_net=x_hat, physics=physics)
             optimizer.zero_grad()
