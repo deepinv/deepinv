@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles, DummyModel
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
@@ -19,7 +19,7 @@ def imsize():
 
 @pytest.fixture
 def model():
-    return torch.nn.Module()
+    return DummyModel()
 
 
 @pytest.fixture
@@ -186,7 +186,7 @@ def test_get_samples(
 @pytest.mark.parametrize("loop_random_online_physics", [True, False])
 @pytest.mark.parametrize("noise", [None, "gaussian", "poisson"])
 def test_trainer_physics_generator_params(
-    imsize, loop_random_online_physics, noise, rng, device
+    imsize, loop_random_online_physics, noise, rng, device, model
 ):
     N = 10
     rng1 = rng
@@ -239,7 +239,7 @@ def test_trainer_physics_generator_params(
             self.fs += [physics_cur.f]
 
     trainer = SkeletonTrainer(
-        model=torch.nn.Module().to(device),
+        model=model.to(device),
         physics=physics,
         optimizer=None,
         train_dataloader=DataLoader(DummyDataset()),  # NO SHUFFLE
