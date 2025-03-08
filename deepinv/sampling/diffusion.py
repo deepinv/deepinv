@@ -8,7 +8,7 @@ import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
 from deepinv.utils.plotting import plot
 
-
+# TODO: move to BaseSample
 class DiffusionSampler(MonteCarlo):
     r"""
     Turns a diffusion method into a Monte Carlo sampler
