@@ -6,7 +6,7 @@ from deepinv.optim import DataFidelity
 from typing import Dict, Any
 import torch
 
-# TODO: maybe remove the *args, **kwargs (at very least document what they are for e.g. proposal dists)
+# TODO: maybe remove the *args, **kwargs (at very least document what they are for e.g. proposal dists, clip etc)
 class SamplingIterator(nn.Module):
     r"""
     Base class for sampling iterators.

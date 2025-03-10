@@ -17,12 +17,12 @@ from deepinv.sampling.utils import Welford, projbox
 from deepinv.sampling.sampling_iterators import *
 
 
-# TODO: add in some common statistics like mean/ pixel? 
+# TODO: add in some common statistics like mean/ pixel?
 # to avoid having to supply g_statistics functions manually
 # TODO: check_conv stuff
 # TODO: Reconstructor, return sample mean
 # TODO: Add rng
-class BaseSample(nn.Module):
+class BaseSample(Reconstructor):
     r"""
     Base class for Monte Carlo sampling.
 
@@ -39,7 +39,7 @@ class BaseSample(nn.Module):
                 # run one sampling kernel iteration
                 new_x = f(x, y, physics, data_fidelity, prior, params_algo)
                 return new_x
-        
+
         # create the sampler
         sampler = BaseSampler(MyIterator(), prior, data_fidelity, iterator_params)
 
@@ -52,9 +52,9 @@ class BaseSample(nn.Module):
     :param deepinv.sampling.SamplingIterator iterator: The sampling iterator that defines the MCMC kernel
     :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics
     :param deepinv.optim.Prior prior: Negative log-prior
-    :param dict params_algo: Dictionary containing the parameters for the algorithm 
-    :param int num_iter: Number of Monte Carlo iterations. Default: 100
-    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling. 
+    :param dict params_algo: Dictionary containing the parameters for the algorithm
+    :param int max_iter: Number of Monte Carlo iterations. Default: 100
+    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling.
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
@@ -68,13 +68,13 @@ class BaseSample(nn.Module):
         data_fidelity: DataFidelity,
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
-        # NOTE: max_iter
-        num_iter=100,
+        max_iter=100,
         # TODO: pass to iterator
-        clip = None,
+        clip=None,
+        # TODO: callback
         burnin_ratio=0.2,
         thinning=10,
-        history_size=5,
+        history_size: int | bool = 5,
         verbose=False,
     ):
         super(BaseSample, self).__init__()
@@ -82,16 +82,34 @@ class BaseSample(nn.Module):
         self.data_fidelity = data_fidelity
         self.prior = prior
         self.params_algo = params_algo
-        self.num_iter = num_iter
+        self.max_iter = max_iter
         self.burnin_ratio = burnin_ratio
         self.thinning = thinning
         self.verbose = verbose
         self.clip = clip
         self.history_size = history_size
         # Stores last history_size samples note float('inf') => we store the whole chain
-        self.history = deque(maxlen=history_size)
+
+        if history_size is True:
+            self.history = []
+        elif history_size:
+            self.history = deque(maxlen=history_size)
+        else:
+            self.history = False
 
     def forward(
+        self,
+        y: torch.Tensor,
+        physics: Physics,
+        X_init: torch.Tensor | None = None,
+        seed: int | None = None,
+    ):
+        # TODO: doc this
+
+        # pass back out sample mean
+        return self.sample(y, physics, X_init=X_init, seed=seed)[0]
+
+    def sample(
         self,
         y: torch.Tensor,
         physics: Physics,
@@ -139,7 +157,11 @@ class BaseSample(nn.Module):
         else:
             X_t = X_init
 
-        self.history = deque([X_t], maxlen=self.history_size)
+        if self.history:
+            if isinstance(self.history, deque):
+                self.history = deque([X_t], maxlen=self.history_size)
+            else:
+                self.history = [X_t]
 
         # Initialize Welford trackers for each g_statistic
         statistics = []
@@ -147,7 +169,7 @@ class BaseSample(nn.Module):
             statistics.append(Welford(g(X_t)))
 
         # Run the chain
-        for i in tqdm(range(self.num_iter), disable=(not self.verbose)):
+        for i in tqdm(range(self.max_iter), disable=(not self.verbose)):
             X_t = self.iterator(
                 X_t,
                 y,
@@ -158,9 +180,10 @@ class BaseSample(nn.Module):
                 **kwargs,
             )
             if self.clip:
-                X_t = projbox(X_t, self.clip[0], self.clip[1]) 
-            if i >= (self.num_iter * self.burnin_ratio) and i % self.thinning == 0:
-                self.history.append(X_t)
+                X_t = projbox(X_t, self.clip[0], self.clip[1])
+            if i >= (self.max_iter * self.burnin_ratio) and i % self.thinning == 0:
+                if self.history:
+                    self.history.append(X_t)
 
                 for j, (g, stat) in enumerate(zip(g_statistics, statistics)):
                     stat.update(g(X_t))
@@ -174,16 +197,17 @@ class BaseSample(nn.Module):
             return means[0], vars[0]
         return means, vars
 
-    def get_history(self) -> list[torch.Tensor]:
+    def get_chain(self) -> list[torch.Tensor]:
         r"""
         Retrieve the stored history of samples.
 
-        Returns a list of samples. 
-        
+        Returns a list of samples.
+
         Only includes samples after the burn-in period and, thinning.
 
         :return: List of stored samples from oldest to newest
         :rtype: list[torch.Tensor]
+        :raises RuntimeError: If history storage was disabled (history_size=False)
 
         Example:
             >>> sampler = BaseSample(iterator, data_fidelity, prior, history_size=5)
@@ -191,6 +215,8 @@ class BaseSample(nn.Module):
             >>> samples = sampler.get_history()
             >>> latest_sample = samples[-1]  # Get most recent sample
         """
+        if self.history is False:
+            raise RuntimeError("Cannot get chain: history storage is disabled (history_size=False)")
         return list(self.history)
 
 
@@ -217,8 +243,8 @@ def sample_builder(
     data_fidelity: DataFidelity,
     prior: Prior,
     params_algo={},
-    num_iter=100,
-    clip = None,
+    max_iter=100,
+    clip=None,
     burnin_ratio=0.2,
     thinning=10,
     history_size=5,
@@ -232,7 +258,7 @@ def sample_builder(
     :param data_fidelity: Negative log-likelihood function
     :param prior: Negative log-prior
     :param params_algo: Dictionary containing the parameters for the algorithm
-    :param num_iter: Number of Monte Carlo iterations
+    :param max_iter: Number of Monte Carlo iterations
     :param clip: Tuple of (min, max) values to clip samples
     :param burnin_ratio: Percentage of iterations for burn-in
     :param thinning: Integer to thin the Monte Carlo samples
@@ -247,12 +273,12 @@ def sample_builder(
         data_fidelity=data_fidelity,
         prior=prior,
         params_algo=params_algo,
-        num_iter=num_iter,
+        max_iter=max_iter,
         clip=clip,
         burnin_ratio=burnin_ratio,
         thinning=thinning,
         history_size=history_size,
-        verbose=verbose
+        verbose=verbose,
     ).eval()
 
 

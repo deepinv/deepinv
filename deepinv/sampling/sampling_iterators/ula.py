@@ -96,14 +96,14 @@ class ULAIterator(SamplingIterator):
         return x + step_size * (lhood + lprior) + noise
     
     # BUG: broken atm
-    def compute_step_size(self, x, y, physics: LinearPhysics, prior):
+    def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
         if not isinstance(physics, LinearPhysics):
             # TODO: raise warning here
             return 0.01
         physicsnorm = physics.compute_norm(x)
         # NOTE: eval wrong here?
         reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
-        jacy = prior(y)
+        jacy = prior.denoiser(y)
         priornorm = reg_l2(jacy, y)
         return 1/(priornorm + physicsnorm)
 

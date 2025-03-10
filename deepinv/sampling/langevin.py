@@ -8,6 +8,9 @@ from tqdm import tqdm
 from deepinv.optim.utils import check_conv
 from deepinv.sampling.utils import Welford, projbox, refl_projbox
 
+from deepinv.sampling.samplers import BaseSample
+from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator
+
 
 class MonteCarlo(nn.Module):
     r"""
@@ -211,30 +214,30 @@ class MonteCarlo(nn.Module):
         return self.var_convergence
 
 
-class ULAIterator(nn.Module):
-    r"""
-    Single iteration of the Unadjusted Langevin Algorithm.
+# class ULAIterator(nn.Module):
+#     r"""
+#     Single iteration of the Unadjusted Langevin Algorithm.
+#
+#     :param float step_size: step size :math:`\eta>0` of the algorithm.
+#     :param float alpha: regularization parameter :math:`\alpha`.
+#     :param float sigma: noise level used in the plug-and-play prior denoiser.
+#     """
+#
+#     def __init__(self, step_size, alpha, sigma):
+#         super().__init__()
+#         self.step_size = step_size
+#         self.alpha = alpha
+#         self.noise_std = np.sqrt(2 * step_size)
+#         self.sigma = sigma
+#
+#     def forward(self, x, y, physics, likelihood, prior):
+#         noise = torch.randn_like(x) * self.noise_std
+#         lhood = -likelihood.grad(x, y, physics)
+#         lprior = -prior.grad(x, self.sigma) * self.alpha
+#         return x + self.step_size * (lhood + lprior) + noise
 
-    :param float step_size: step size :math:`\eta>0` of the algorithm.
-    :param float alpha: regularization parameter :math:`\alpha`.
-    :param float sigma: noise level used in the plug-and-play prior denoiser.
-    """
 
-    def __init__(self, step_size, alpha, sigma):
-        super().__init__()
-        self.step_size = step_size
-        self.alpha = alpha
-        self.noise_std = np.sqrt(2 * step_size)
-        self.sigma = sigma
-
-    def forward(self, x, y, physics, likelihood, prior):
-        noise = torch.randn_like(x) * self.noise_std
-        lhood = -likelihood.grad(x, y, physics)
-        lprior = -prior.grad(x, self.sigma) * self.alpha
-        return x + self.step_size * (lhood + lprior) + noise
-
-
-class ULA(MonteCarlo):
+class ULA(BaseSample):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
@@ -284,87 +287,100 @@ class ULA(MonteCarlo):
         self,
         prior,
         data_fidelity,
-        step_size=1.0,
-        sigma=0.05,
-        alpha=1.0,
-        max_iter=1e3,
+        step_size: float = 1.0,
+        sigma: float = 0.05,
+        alpha: float = 1.0,
+        max_iter: int = 1e3,
         thinning=5,
         burnin_ratio=0.2,
         clip=(-1.0, 2.0),
+        # BUG: thresh_conv
         thresh_conv=1e-3,
         save_chain=False,
         g_statistic=lambda x: x,
         verbose=False,
     ):
-        iterator = ULAIterator(step_size=step_size, alpha=alpha, sigma=sigma)
+        params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
+        iterator = ULAIterator()
         super().__init__(
             iterator,
             prior,
             data_fidelity,
             max_iter=max_iter,
-            thresh_conv=thresh_conv,
-            g_statistic=g_statistic,
+            params_algo=params_algo,
+            # thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             clip=clip,
             thinning=thinning,
-            save_chain=save_chain,
+            history_size=save_chain,
             verbose=verbose,
         )
+        self.g_statistics = [g_statistic]
+
+    def forward(self, y, physics, seed=None, x_init=None):
+        r"""
+        Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
+
+        :param torch.Tensor y: Measurements
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param float seed: Random seed for generating the Monte Carlo samples
+        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        """
+        return self.sample(y,physics,X_init=x_init, seed=seed)
+
+# class SKRockIterator(nn.Module):
+#     def __init__(self, step_size, alpha, inner_iter, eta, sigma):
+#         super().__init__()
+#         self.step_size = step_size
+#         self.alpha = alpha
+#         self.eta = eta
+#         self.inner_iter = inner_iter
+#         self.noise_std = np.sqrt(2 * step_size)
+#         self.sigma = sigma
+#
+#     def forward(self, x, y, physics, likelihood, prior):
+#         posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior.grad(
+#             u, self.sigma
+#         )
+#
+#         # First kind Chebyshev function
+#         T_s = lambda s, u: np.cosh(s * np.arccosh(u))
+#         # First derivative Chebyshev polynomial first kind
+#         T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
+#
+#         w0 = 1 + self.eta / (self.inner_iter**2)  # parameter \omega_0
+#         w1 = T_s(self.inner_iter, w0) / T_prime_s(
+#             self.inner_iter, w0
+#         )  # parameter \omega_1
+#         mu1 = w1 / w0  # parameter \mu_1
+#         nu1 = self.inner_iter * w1 / 2  # parameter \nu_1
+#         kappa1 = self.inner_iter * (w1 / w0)  # parameter \kappa_1
+#
+#         # sampling the variable x
+#         noise = np.sqrt(2 * self.step_size) * torch.randn_like(x)  # diffusion term
+#
+#         # first internal iteration (s=1)
+#         xts_2 = x.clone()
+#         xts = (
+#             x.clone()
+#             - mu1 * self.step_size * posterior(x + nu1 * noise)
+#             + kappa1 * noise
+#         )
+#
+#         for js in range(
+#             2, self.inner_iter + 1
+#         ):  # s=2,...,self.inner_iter SK-ROCK internal iterations
+#             xts_1 = xts.clone()
+#             mu = 2 * w1 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \mu_js
+#             nu = 2 * w0 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \nu_js
+#             kappa = 1 - nu  # parameter \kappa_js
+#             xts = -mu * self.step_size * posterior(xts) + nu * xts + kappa * xts_2
+#             xts_2 = xts_1
+#
+#         return xts  # new sample produced by the SK-ROCK algorithm
 
 
-class SKRockIterator(nn.Module):
-    def __init__(self, step_size, alpha, inner_iter, eta, sigma):
-        super().__init__()
-        self.step_size = step_size
-        self.alpha = alpha
-        self.eta = eta
-        self.inner_iter = inner_iter
-        self.noise_std = np.sqrt(2 * step_size)
-        self.sigma = sigma
-
-    def forward(self, x, y, physics, likelihood, prior):
-        posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior.grad(
-            u, self.sigma
-        )
-
-        # First kind Chebyshev function
-        T_s = lambda s, u: np.cosh(s * np.arccosh(u))
-        # First derivative Chebyshev polynomial first kind
-        T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
-
-        w0 = 1 + self.eta / (self.inner_iter**2)  # parameter \omega_0
-        w1 = T_s(self.inner_iter, w0) / T_prime_s(
-            self.inner_iter, w0
-        )  # parameter \omega_1
-        mu1 = w1 / w0  # parameter \mu_1
-        nu1 = self.inner_iter * w1 / 2  # parameter \nu_1
-        kappa1 = self.inner_iter * (w1 / w0)  # parameter \kappa_1
-
-        # sampling the variable x
-        noise = np.sqrt(2 * self.step_size) * torch.randn_like(x)  # diffusion term
-
-        # first internal iteration (s=1)
-        xts_2 = x.clone()
-        xts = (
-            x.clone()
-            - mu1 * self.step_size * posterior(x + nu1 * noise)
-            + kappa1 * noise
-        )
-
-        for js in range(
-            2, self.inner_iter + 1
-        ):  # s=2,...,self.inner_iter SK-ROCK internal iterations
-            xts_1 = xts.clone()
-            mu = 2 * w1 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \mu_js
-            nu = 2 * w0 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \nu_js
-            kappa = 1 - nu  # parameter \kappa_js
-            xts = -mu * self.step_size * posterior(xts) + nu * xts + kappa * xts_2
-            xts_2 = xts_1
-
-        return xts  # new sample produced by the SK-ROCK algorithm
-
-
-class SKRock(MonteCarlo):
+class SKRock(BaseSample):
     r"""
     Plug-and-Play SKROCK algorithm.
 
@@ -418,26 +434,33 @@ class SKRock(MonteCarlo):
         verbose=False,
         sigma=0.05,
     ):
-        iterator = SKRockIterator(
-            step_size=step_size,
-            alpha=alpha,
-            inner_iter=inner_iter,
-            eta=eta,
-            sigma=sigma,
-        )
+        params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma, "eta": eta, "inner_iter": inner_iter}
+        iterator = ULAIterator()
         super().__init__(
             iterator,
             prior,
             data_fidelity,
             max_iter=max_iter,
-            thresh_conv=thresh_conv,
-            thinning=thinning,
+            params_algo=params_algo,
+            # thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             clip=clip,
-            g_statistic=g_statistic,
-            save_chain=save_chain,
+            thinning=thinning,
+            history_size=save_chain,
             verbose=verbose,
         )
+        self.g_statistics = [g_statistic]
+
+    def forward(self, y, physics, seed=None, x_init=None):
+        r"""
+        Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
+
+        :param torch.Tensor y: Measurements
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param float seed: Random seed for generating the Monte Carlo samples
+        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        """
+        return self.sample(y,physics,X_init=x_init, seed=seed)
 
 
 # if __name__ == "__main__":
