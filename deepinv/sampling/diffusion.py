@@ -7,9 +7,29 @@ from deepinv.models import Reconstructor
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
 from deepinv.utils.plotting import plot
+from deepinv.sampling.samplers import BaseSample
+from deepinv.sampling.sampling_iterators import SamplingIterator
+
+class DiffusionIterator(SamplingIterator):
+    def __init__(self):
+        super(SamplingIterator, self).__init__()
+    def forward(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics,
+        cur_data_fidelity,
+        prior,
+        cur_params,
+    ) -> torch.Tensor:
+            # run one sampling kernel iteration
+            x = prior(y, physics)
+            return x
+
+
 
 # TODO: move to BaseSample
-class DiffusionSampler(MonteCarlo):
+class DiffusionSampler(BaseSample):
     r"""
     Turns a diffusion method into a Monte Carlo sampler
 
@@ -17,7 +37,7 @@ class DiffusionSampler(MonteCarlo):
     by running the diffusion multiple times.
 
     :param torch.nn.Module diffusion: a diffusion model
-    :param int max_iter: the maximum number of iterations
+    :param int max_iter: the number of samples to generate
     :param tuple clip: the clip range
     :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
     :param float thres_conv: the convergence threshold for the mean and variance
@@ -43,25 +63,33 @@ class DiffusionSampler(MonteCarlo):
         data_fidelity = None
         diffusion.verbose = False
         prior = diffusion
-
-        def iterator(x, y, physics, likelihood, prior):
-            # run one sampling kernel iteration
-            x = prior(y, physics)
-            return x
+        iterator = DiffusionIterator()
 
         super().__init__(
             iterator,
-            prior,
             data_fidelity,
+            prior,
             max_iter=max_iter,
             thinning=1,
-            save_chain=save_chain,
+            thresh_conv=thres_conv,
+            history_size=save_chain,
             burnin_ratio=0.0,
             clip=clip,
             verbose=verbose,
-            thresh_conv=thres_conv,
-            g_statistic=g_statistic,
+            # thresh_conv=thres_conv,
         )
+        self.g_statistics = [g_statistic]
+
+    def forward(self, y, physics, seed=None, x_init=None):
+        r"""
+        Runs the diffusion model to obtain the posterior mean and variance of the reconstruction of the measurements y.
+
+        :param torch.Tensor y: Measurements
+        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
+        :param float seed: Random seed for generating the samples
+        :return: (tuple of torch.tensor) containing the posterior mean and variance.
+        """
+        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
 
 
 class DDRM(Reconstructor):

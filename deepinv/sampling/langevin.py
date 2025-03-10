@@ -12,231 +12,6 @@ from deepinv.sampling.samplers import BaseSample
 from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator
 
 
-class MonteCarlo(nn.Module):
-    r"""
-    Base class for Monte Carlo sampling.
-
-    This class can be used to create new Monte Carlo samplers, by only defining their kernel inside a torch.nn.Module:
-
-    ::
-
-        # define custom sampling kernel (possibly a Markov kernel which depends on the previous sample).
-        class MyKernel(torch.torch.nn.Module):
-            def __init__(self, iterator_params):
-                super().__init__()
-                self.iterator_params = iterator_params
-
-            def forward(self, x, y, physics, likelihood, prior):
-                # run one sampling kernel iteration
-                new_x = f(x, y, physics, likelihood, prior, self.iterator_params)
-                return new_x
-
-        class MySampler(MonteCarlo):
-            def __init__(self, prior, data_fidelity, iterator_params,
-                         max_iter=1e3, burnin_ratio=.1, clip=(-1,2), verbose=True):
-                # generate an iterator
-                iterator = MyKernel(step_size=step_size, alpha=alpha)
-                # set the params of the base class
-                super().__init__(iterator, prior, data_fidelity, max_iter=max_iter,
-                                 burnin_ratio=burnin_ratio, clip=clip, verbose=verbose)
-
-        # create the sampler
-        sampler = MySampler(prior, data_fidelity, iterator_params)
-
-        # compute posterior mean and variance of reconstruction of measurement y
-        mean, var = sampler(y, physics)
-
-
-    This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
-    Monte Carlo samples.
-
-    :param deepinv.optim.ScorePrior prior: negative log-prior based on a trained or model-based denoiser.
-    :param deepinv.optim.DataFidelity data_fidelity: negative log-likelihood function linked with the
-        noise distribution in the acquisition physics.
-    :param int max_iter: number of Monte Carlo iterations.
-    :param int thinning: thins the Monte Carlo samples by an integer :math:`\geq 1` (i.e., keeping one out of ``thinning``
-        samples to compute posterior statistics).
-    :param float burnin_ratio: percentage of iterations used for burn-in period, should be set between 0 and 1.
-        The burn-in samples are discarded constant with a numerical algorithm.
-    :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
-        If ``None``, the algorithm will not project the samples.
-    :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
-    :param Callable g_statistic: The sampler will compute the posterior mean and variance
-        of the function g_statistic. By default, it is the identity function (lambda x: x),
-        and thus the sampler computes the posterior mean and variance.
-    :param bool verbose: prints progress of the algorithm.
-
-    """
-
-    def __init__(
-        self,
-        iterator: torch.nn.Module,
-        prior: deepinv.optim.ScorePrior,
-        data_fidelity: deepinv.optim.DataFidelity,
-        max_iter=1e3,
-        burnin_ratio=0.2,
-        thinning=10,
-        clip=(-1.0, 2.0),
-        thresh_conv=1e-3,
-        crit_conv="residual",
-        save_chain=False,
-        g_statistic=lambda x: x,
-        verbose=False,
-    ):
-        super(MonteCarlo, self).__init__()
-
-        self.iterator = iterator
-        self.prior = prior
-        self.likelihood = data_fidelity
-        self.C_set = clip
-        self.thinning = thinning
-        self.max_iter = int(max_iter)
-        self.thresh_conv = thresh_conv
-        self.crit_conv = crit_conv
-        self.burnin_iter = int(burnin_ratio * max_iter)
-        self.verbose = verbose
-        self.mean_convergence = False
-        self.var_convergence = False
-        self.g_function = g_statistic
-        self.save_chain = save_chain
-        self.chain = []
-
-    def forward(self, y, physics, seed=None, x_init=None):
-        r"""
-        Runs an Monte Carlo chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
-
-        :param torch.Tensor y: Measurements
-        :param deepinv.physics.Physics physics: Forward operator associated with the measurements
-        :param float seed: Random seed for generating the Monte Carlo samples
-        :return: (tuple of torch.tensor) containing the posterior mean and variance.
-        """
-        with torch.no_grad():
-            if seed is not None:
-                np.random.seed(seed)
-                torch.manual_seed(seed)
-
-            # Algorithm parameters
-            if self.C_set:
-                C_lower_lim = self.C_set[0]
-                C_upper_lim = self.C_set[1]
-
-            # Initialization
-            if x_init is None:
-                x = physics.A_adjoint(y)
-            else:
-                x = x_init
-
-            # Monte Carlo loop
-            start_time = time.time()
-            statistics = Welford(self.g_function(x))
-
-            self.mean_convergence = False
-            self.var_convergence = False
-            for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-                x = self.iterator(
-                    x, y, physics, likelihood=self.likelihood, prior=self.prior
-                )
-
-                if self.C_set:
-                    x = projbox(x, C_lower_lim, C_upper_lim)
-
-                if it >= self.burnin_iter and (it % self.thinning) == 0:
-                    if it >= (self.max_iter - self.thinning):
-                        mean_prev = statistics.mean().clone()
-                        var_prev = statistics.var().clone()
-                    statistics.update(self.g_function(x))
-
-                    if self.save_chain:
-                        self.chain.append(x.clone())
-
-            if self.verbose:
-                if torch.cuda.is_available():
-                    torch.cuda.synchronize()
-                end_time = time.time()
-                elapsed = end_time - start_time
-                print(
-                    f"Monte Carlo sampling finished! elapsed time={elapsed:.2f} seconds"
-                )
-
-            if (
-                check_conv(
-                    {"est": (mean_prev,)},
-                    {"est": (statistics.mean(),)},
-                    it,
-                    self.crit_conv,
-                    self.thresh_conv,
-                    self.verbose,
-                )
-                and it > 1
-            ):
-                self.mean_convergence = True
-
-            if (
-                check_conv(
-                    {"est": (var_prev,)},
-                    {"est": (statistics.var(),)},
-                    it,
-                    self.crit_conv,
-                    self.thresh_conv,
-                    self.verbose,
-                )
-                and it > 1
-            ):
-                self.var_convergence = True
-
-        return statistics.mean(), statistics.var()
-
-    def get_chain(self):
-        r"""
-        Returns the thinned Monte Carlo samples (after burn-in iterations).
-        Requires ``save_chain=True``.
-        """
-        return self.chain
-
-    def reset(self):
-        r"""
-        Resets the Markov chain.
-        """
-        self.chain = []
-        self.mean_convergence = False
-        self.var_convergence = False
-
-    def mean_has_converged(self):
-        r"""
-        Returns a boolean indicating if the posterior mean verifies the convergence criteria.
-        """
-        return self.mean_convergence
-
-    def var_has_converged(self):
-        r"""
-        Returns a boolean indicating if the posterior variance verifies the convergence criteria.
-        """
-        return self.var_convergence
-
-
-# class ULAIterator(nn.Module):
-#     r"""
-#     Single iteration of the Unadjusted Langevin Algorithm.
-#
-#     :param float step_size: step size :math:`\eta>0` of the algorithm.
-#     :param float alpha: regularization parameter :math:`\alpha`.
-#     :param float sigma: noise level used in the plug-and-play prior denoiser.
-#     """
-#
-#     def __init__(self, step_size, alpha, sigma):
-#         super().__init__()
-#         self.step_size = step_size
-#         self.alpha = alpha
-#         self.noise_std = np.sqrt(2 * step_size)
-#         self.sigma = sigma
-#
-#     def forward(self, x, y, physics, likelihood, prior):
-#         noise = torch.randn_like(x) * self.noise_std
-#         lhood = -likelihood.grad(x, y, physics)
-#         lprior = -prior.grad(x, self.sigma) * self.alpha
-#         return x + self.step_size * (lhood + lprior) + noise
-
-
 class ULA(BaseSample):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
@@ -304,11 +79,11 @@ class ULA(BaseSample):
         iterator = ULAIterator()
         super().__init__(
             iterator,
-            prior,
             data_fidelity,
+            prior,
             max_iter=max_iter,
             params_algo=params_algo,
-            # thresh_conv=thresh_conv,
+            thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             clip=clip,
             thinning=thinning,
@@ -326,58 +101,7 @@ class ULA(BaseSample):
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(y,physics,X_init=x_init, seed=seed)
-
-# class SKRockIterator(nn.Module):
-#     def __init__(self, step_size, alpha, inner_iter, eta, sigma):
-#         super().__init__()
-#         self.step_size = step_size
-#         self.alpha = alpha
-#         self.eta = eta
-#         self.inner_iter = inner_iter
-#         self.noise_std = np.sqrt(2 * step_size)
-#         self.sigma = sigma
-#
-#     def forward(self, x, y, physics, likelihood, prior):
-#         posterior = lambda u: likelihood.grad(u, y, physics) + self.alpha * prior.grad(
-#             u, self.sigma
-#         )
-#
-#         # First kind Chebyshev function
-#         T_s = lambda s, u: np.cosh(s * np.arccosh(u))
-#         # First derivative Chebyshev polynomial first kind
-#         T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
-#
-#         w0 = 1 + self.eta / (self.inner_iter**2)  # parameter \omega_0
-#         w1 = T_s(self.inner_iter, w0) / T_prime_s(
-#             self.inner_iter, w0
-#         )  # parameter \omega_1
-#         mu1 = w1 / w0  # parameter \mu_1
-#         nu1 = self.inner_iter * w1 / 2  # parameter \nu_1
-#         kappa1 = self.inner_iter * (w1 / w0)  # parameter \kappa_1
-#
-#         # sampling the variable x
-#         noise = np.sqrt(2 * self.step_size) * torch.randn_like(x)  # diffusion term
-#
-#         # first internal iteration (s=1)
-#         xts_2 = x.clone()
-#         xts = (
-#             x.clone()
-#             - mu1 * self.step_size * posterior(x + nu1 * noise)
-#             + kappa1 * noise
-#         )
-#
-#         for js in range(
-#             2, self.inner_iter + 1
-#         ):  # s=2,...,self.inner_iter SK-ROCK internal iterations
-#             xts_1 = xts.clone()
-#             mu = 2 * w1 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \mu_js
-#             nu = 2 * w0 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \nu_js
-#             kappa = 1 - nu  # parameter \kappa_js
-#             xts = -mu * self.step_size * posterior(xts) + nu * xts + kappa * xts_2
-#             xts_2 = xts_1
-#
-#         return xts  # new sample produced by the SK-ROCK algorithm
+        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
 
 
 class SKRock(BaseSample):
@@ -438,11 +162,11 @@ class SKRock(BaseSample):
         iterator = ULAIterator()
         super().__init__(
             iterator,
-            prior,
             data_fidelity,
+            prior,
             max_iter=max_iter,
             params_algo=params_algo,
-            # thresh_conv=thresh_conv,
+            thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             clip=clip,
             thinning=thinning,
@@ -460,7 +184,7 @@ class SKRock(BaseSample):
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(y,physics,X_init=x_init, seed=seed)
+        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
 
 
 # if __name__ == "__main__":

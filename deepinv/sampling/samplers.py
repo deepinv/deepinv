@@ -15,6 +15,7 @@ from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford, projbox
 from deepinv.sampling.sampling_iterators import *
+from deepinv.optim.utils import check_conv
 
 
 # TODO: add in some common statistics like mean/ pixel?
@@ -58,6 +59,7 @@ class BaseSample(Reconstructor):
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
+    :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates. Default: ``1e-3``
     :param int history_size: Number of most recent samples to store in memory. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
@@ -73,6 +75,8 @@ class BaseSample(Reconstructor):
         clip=None,
         # TODO: callback
         burnin_ratio=0.2,
+        thresh_conv=1e-3,
+        crit_conv="residual",
         thinning=10,
         history_size: int | bool = 5,
         verbose=False,
@@ -84,6 +88,10 @@ class BaseSample(Reconstructor):
         self.params_algo = params_algo
         self.max_iter = max_iter
         self.burnin_ratio = burnin_ratio
+        self.thresh_conv = thresh_conv
+        self.crit_conv = crit_conv
+        self.mean_convergence = False
+        self.var_convergence = False
         self.thinning = thinning
         self.verbose = verbose
         self.clip = clip
@@ -103,7 +111,7 @@ class BaseSample(Reconstructor):
         physics: Physics,
         X_init: torch.Tensor | None = None,
         seed: int | None = None,
-    ):
+    ) -> torch.Tensor:
         # TODO: doc this
 
         # pass back out sample mean
@@ -117,7 +125,7 @@ class BaseSample(Reconstructor):
         seed: int | None = None,
         g_statistics=[lambda x: x],
         **kwargs,
-    ):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
         Execute the MCMC sampling chain and compute posterior statistics.
 
@@ -150,7 +158,7 @@ class BaseSample(Reconstructor):
         # Set random seed if provided
         if seed is not None:
             torch.manual_seed(seed)
-
+        
         # Initialization
         if X_init is None:
             X_t = physics.A_adjoint(y)
@@ -163,10 +171,17 @@ class BaseSample(Reconstructor):
             else:
                 self.history = [X_t]
 
+        self.mean_convergence = False
+        self.var_convergence = False
+
         # Initialize Welford trackers for each g_statistic
         statistics = []
         for g in g_statistics:
             statistics.append(Welford(g(X_t)))
+        
+        # Initialize for convergence checking
+        mean_prevs = [stat.mean().clone() for stat in statistics]
+        var_prevs = [stat.var().clone() for stat in statistics]
 
         # Run the chain
         for i in tqdm(range(self.max_iter), disable=(not self.verbose)):
@@ -181,12 +196,48 @@ class BaseSample(Reconstructor):
             )
             if self.clip:
                 X_t = projbox(X_t, self.clip[0], self.clip[1])
+
             if i >= (self.max_iter * self.burnin_ratio) and i % self.thinning == 0:
+                # Store previous means and variances for convergence check
+                if i >= (self.max_iter - self.thinning):
+                    print("true")
+                    mean_prevs = [stat.mean().clone() for stat in statistics]
+                    var_prevs = [stat.var().clone() for stat in statistics]
+                
                 if self.history:
                     self.history.append(X_t)
 
-                for j, (g, stat) in enumerate(zip(g_statistics, statistics)):
+                for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
                     stat.update(g(X_t))
+
+        # Check convergence for all statistics
+        self.mean_convergence = True
+        self.var_convergence = True
+        
+        if i > 1:
+            # Check convergence for each statistic
+            for j, stat in enumerate(statistics):
+                print(i, "here")
+                if not check_conv(
+                    {"est": (mean_prevs[j],)},
+                    {"est": (stat.mean(),)},
+                    i,
+                    self.crit_conv,
+                    self.thresh_conv,
+                    self.verbose,
+                ):
+                    self.mean_convergence = False
+                
+                if not check_conv(
+                    {"est": (var_prevs[j],)},
+                    {"est": (stat.var(),)},
+                    i,
+                    self.crit_conv,
+                    self.thresh_conv,
+                    self.verbose,
+                ):
+                    self.var_convergence = False
+
 
         # Return means and variances for all g_statistics
         means = [stat.mean() for stat in statistics]
@@ -216,8 +267,22 @@ class BaseSample(Reconstructor):
             >>> latest_sample = samples[-1]  # Get most recent sample
         """
         if self.history is False:
-            raise RuntimeError("Cannot get chain: history storage is disabled (history_size=False)")
+            raise RuntimeError(
+                "Cannot get chain: history storage is disabled (history_size=False)"
+            )
         return list(self.history)
+
+    def mean_has_converged(self):
+        r"""
+        Returns a boolean indicating if the posterior mean verifies the convergence criteria.
+        """
+        return self.mean_convergence
+
+    def var_has_converged(self):
+        r"""
+        Returns a boolean indicating if the posterior variance verifies the convergence criteria.
+        """
+        return self.var_convergence
 
 
 def create_iterator(
