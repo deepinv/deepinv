@@ -311,15 +311,15 @@ class SplittingLoss(Loss):
                 # Perform input masking
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
-                )
+                )["mask"]
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
                 x_hat = self.model(y1, physics1)
 
                 # Output masking
-                mask2 = getattr(physics, "mask", 1.0) - mask["mask"]
-                out += self.split(mask2, x_hat)
+                mask2 = getattr(physics, "mask", 1.0) - mask
+                out += self.split(mask2, x_hat, None)
                 normaliser += mask2
 
             out[normaliser != 0] /= normaliser[normaliser != 0]
