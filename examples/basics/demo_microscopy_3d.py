@@ -3,7 +3,7 @@ r"""
 =======================================
 
 This example provides a tour of 3D blur operators in the library.
-In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate 
+In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate
 fluorescence microscopes.
 
 """

@@ -25,7 +25,9 @@ def choose_adversarial_combo(combo_name, imsize, device):
     ).to(device)
 
     csgm_generator = dinv.models.CSGMGenerator(
-        dinv.models.DCGANGenerator(nz=10, ngf=8, nc=imsize[0]), inf_max_iter=20
+        dinv.models.DCGANGenerator(nz=10, ngf=8, nc=imsize[0]),
+        inf_max_iter=100,
+        inf_tol=0.001,
     ).to(device)
 
     if combo_name == "DeblurGAN":
