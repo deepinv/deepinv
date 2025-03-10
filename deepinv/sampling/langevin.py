@@ -159,7 +159,7 @@ class SKRock(BaseSample):
         sigma=0.05,
     ):
         params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma, "eta": eta, "inner_iter": inner_iter}
-        iterator = ULAIterator()
+        iterator = SKRockIterator()
         super().__init__(
             iterator,
             data_fidelity,
