@@ -22,7 +22,9 @@ class Trainer:
     r"""Trainer(model, physics, optimizer, train_dataloader, ...)
     Trainer class for training a reconstruction network.
 
-    See the :ref:`User Guide <trainer>` for more details on how to adapt the trainer to your needs.
+    .. seealso::
+
+        See the :ref:`User Guide <trainer>` for more details and for how to adapt the trainer to your needs.
 
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
@@ -37,8 +39,9 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    - Use :func:`deepinv.Trainer.get_samples_online` when measurements are simulated from a ground truth returned by the dataloader.
-    - Use :func:`deepinv.Trainer.get_samples_offline` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
+    - Use `online_measurements=True` when measurements are simulated online from a ground truth returned by the dataloader.
+    - Use `online_measurements=False` when both the ground truth and measurements are returned by the dataloader (and also optionally physics generator params).
+      This could be from a dataset generated using :class:`deepinv.datasets.generate_dataset`.
 
     .. note::
 
@@ -53,14 +56,17 @@ class Trainer:
         as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
         reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
-        and ``model`` is the reconstruction network. Note that not all inpus need to be used by the loss,
+        and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
 
     .. warning::
 
-        If a physics generator is used to generate params for online measurements, the generated params will vary each epoch.
-        If this is not desired (you want the same online measurements each epoch), set ``loop_physics_generator=True``.
-        Caveat: this requires ``shuffle=False`` in your dataloaders.
+        If a physics generator or a noise model is used to generate random params for online measurements, the generated measurements will randomly vary each epoch.
+        If this is not desired (i.e. you want the same online measurements each epoch), set ``loop_random_online_physics=True``.
+        This resets the physics generator and noise model's random generators every epoch.
+
+        **Caveat**: this requires ``shuffle=False`` in your dataloaders.
+
         An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
         The params dict will then be automatically updated every time data is loaded.
 
@@ -70,13 +76,15 @@ class Trainer:
     :param int epochs: Number of training epochs. Default is 100.
     :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-        a signal x or a tuple of (x, y) signal/measurement pairs.
+        a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
         Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-        should provide a signal x or a tuple of (x, y) signal/measurement pairs.
+        should provide a signal x or a tuple of (x, y) signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
@@ -84,10 +92,10 @@ class Trainer:
         the measurements are loaded from the training dataset.
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
-        Should be used in conjunction with ``online_measurements=True``. Also see ``loop_physics_generator``.
-    :param bool loop_physics_generator: if True, resets the physics generator back to its initial state at the beginning of each epoch,
+        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``.
+    :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
-        Used in conjunction with ``physics_generator``.
+        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`.
@@ -133,7 +141,7 @@ class Trainer:
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
-    loop_physics_generator: bool = False
+    loop_random_online_physics: bool = False
     metrics: Union[Metric, List[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
@@ -201,7 +209,7 @@ class Trainer:
         elif (
             self.physics_generator is not None
             and self.online_measurements
-            and self.loop_physics_generator
+            and self.loop_random_online_physics
         ):
             warnings.warn(
                 "Generated measurements repeat each epoch. Ensure that dataloader is not shuffling."
@@ -375,8 +383,8 @@ class Trainer:
 
         if self.physics_generator is not None:
             params = self.physics_generator[g].step(batch_size=x.size(0))
-            # Update parameters both via update_parameters and, if implemented in physics, via forward pass
-            physics.update_parameters(**params)
+            # Update parameters both via update and, if implemented in physics, via forward pass
+            physics.update(**params)
             y = physics(x, **params)
         else:
             y = physics(x)
@@ -421,7 +429,7 @@ class Trainer:
 
         if params is not None:
             params = {k: p.to(self.device) for k, p in params.items()}
-            physics.update_parameters(**params)
+            physics.update(**params)
 
         return x, y, physics
 
@@ -832,9 +840,13 @@ class Trainer:
                 [len(loader) - loader.drop_last for loader in self.train_dataloader]
             )
 
-            if self.loop_physics_generator and self.physics_generator is not None:
+            if self.loop_random_online_physics and self.physics_generator is not None:
                 for physics_generator in self.physics_generator:
                     physics_generator.reset_rng()
+
+                for physics in self.physics:
+                    if hasattr(physics.noise_model, "reset_rng"):
+                        physics.noise_model.reset_rng()
 
             self.model.train()
             for i in (

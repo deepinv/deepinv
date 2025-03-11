@@ -94,7 +94,7 @@ class MOILoss(Loss):
                 self.physics if self.physics is not None else physics
             )
             params = self.physics_generator.step()
-            physics_cur.update_parameters(**params)
+            physics_cur.update(**params)
         return physics_cur
 
     def forward(self, x_net, physics, model, **kwargs):

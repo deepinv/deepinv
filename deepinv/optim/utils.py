@@ -798,7 +798,7 @@ class GaussianMixtureModel(nn.Module):
                 dataloader, verbose
             )
             # stopping criterion
-            self.set_weights = weights_new
+            self.set_weights(weights_new)
             self.mu.data = mu_new
             cov_new_reg = cov_new + cov_regularization * torch.eye(self.dimension)[
                 None, :, :
