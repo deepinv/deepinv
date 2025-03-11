@@ -1,12 +1,6 @@
-import torch.nn as nn
-import torch
-import numpy as np
 import time as time
 
 import deepinv.optim
-from tqdm import tqdm
-from deepinv.optim.utils import check_conv
-from deepinv.sampling.utils import Welford, projbox, refl_projbox
 
 from deepinv.sampling.samplers import BaseSample
 from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator

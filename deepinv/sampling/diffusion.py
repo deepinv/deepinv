@@ -5,7 +5,6 @@ from tqdm import tqdm
 from deepinv.models import Reconstructor
 
 import deepinv.physics
-from deepinv.sampling.langevin import MonteCarlo
 from deepinv.utils.plotting import plot
 from deepinv.sampling.samplers import BaseSample
 from deepinv.sampling.sampling_iterators import SamplingIterator

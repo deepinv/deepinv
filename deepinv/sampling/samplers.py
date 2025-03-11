@@ -20,9 +20,6 @@ from deepinv.optim.utils import check_conv
 
 # TODO: add in some common statistics like mean/ pixel?
 # to avoid having to supply g_statistics functions manually
-# TODO: check_conv stuff
-# TODO: Reconstructor, return sample mean
-# TODO: Add rng
 class BaseSample(Reconstructor):
     r"""
     Base class for Monte Carlo sampling.
@@ -59,7 +56,8 @@ class BaseSample(Reconstructor):
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
-    :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates. Default: ``1e-3``
+    :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
+    :param Callable callback: A funciton that is called on every (thinned) sample for diagnostics.
     :param int history_size: Number of most recent samples to store in memory. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
@@ -73,7 +71,7 @@ class BaseSample(Reconstructor):
         max_iter=100,
         # TODO: pass to iterator
         clip=None,
-        # TODO: callback
+        callback = lambda x: x,
         burnin_ratio=0.2,
         thresh_conv=1e-3,
         crit_conv="residual",
@@ -90,6 +88,7 @@ class BaseSample(Reconstructor):
         self.burnin_ratio = burnin_ratio
         self.thresh_conv = thresh_conv
         self.crit_conv = crit_conv
+        self.callback = callback
         self.mean_convergence = False
         self.var_convergence = False
         self.thinning = thinning
@@ -112,7 +111,18 @@ class BaseSample(Reconstructor):
         X_init: torch.Tensor | None = None,
         seed: int | None = None,
     ) -> torch.Tensor:
-        # TODO: doc this
+        r"""
+        Run the MCMC sampling chain and return the posterior sample mean.
+
+        :param torch.Tensor y: The observed measurements
+        :param Physics physics: Forward operator of your inverse problem
+        :param torch.Tensor X_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+            Default: ``None``
+        :param int seed: Optional random seed for reproducible sampling.
+            Default: ``None``
+        :return: Posterior sample mean
+        :rtype: torch.Tensor
+        """
 
         # pass back out sample mean
         return self.sample(y, physics, X_init=X_init, seed=seed)[0]
@@ -198,6 +208,7 @@ class BaseSample(Reconstructor):
                 X_t = projbox(X_t, self.clip[0], self.clip[1])
 
             if i >= (self.max_iter * self.burnin_ratio) and i % self.thinning == 0:
+                self.callback(X_t)
                 # Store previous means and variances for convergence check
                 if i >= (self.max_iter - self.thinning):
                     print("true")

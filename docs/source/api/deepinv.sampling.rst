@@ -26,9 +26,11 @@ Markov Chain Monte Carlo Langevin
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
-
+    deepinv.sampling.ULA
+    deepinv.sampling.SKRock
     deepinv.sampling.SKRockIterator
     deepinv.sampling.ULAIterator
     deepinv.sampling.sampling_iterators.SamplingIterator
     deepinv.sampling.BaseSample
+    deepinv.sampling.sample_builder
 
