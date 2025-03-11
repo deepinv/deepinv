@@ -2,6 +2,7 @@ from deepinv.physics.generator import (
     GaussianMaskGenerator,
     EquispacedMaskGenerator,
     RandomMaskGenerator,
+    PolyOrderMaskGenerator,
 )
 import pytest
 import numpy as np
@@ -33,7 +34,7 @@ NUM_CHANNELS = [1, 3]
 
 # MRI Generators
 C, T, H, W = 2, 12, 256, 512
-MRI_GENERATORS = ["gaussian", "random", "uniform"]
+MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
@@ -44,7 +45,7 @@ INPAINTING_IMG_SIZES = [
     (2, 1000),
     (2, 3, 64, 40),
 ]  # (C,H,W), (C,M), (C,T,H,W)
-INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
+INPAINTING_GENERATORS = ["bernoulli", "gaussian", "multiplicative"]
 
 # All devices to test
 DEVICES = ["cpu"]
@@ -217,6 +218,10 @@ def choose_mri_generator(generator_name, img_size, acc, center_fraction):
         g = EquispacedMaskGenerator(
             img_size, acceleration=acc, center_fraction=center_fraction
         )
+    elif generator_name == "poly":
+        g = PolyOrderMaskGenerator(
+            img_size, acceleration=acc, center_fraction=center_fraction, poly_order=2
+        )
     return g
 
 
@@ -266,14 +271,14 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 #############################
 
 
-def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
+def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, rng):
     if name == "bernoulli":
         return dinv.physics.generator.BernoulliSplittingMaskGenerator(
             tensor_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=torch.Generator(device).manual_seed(0),
+            rng=rng,
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
@@ -281,7 +286,18 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=torch.Generator(device).manual_seed(0),
+            rng=rng,
+        )
+    elif name == "multiplicative":
+        mri_gen = dinv.physics.generator.GaussianMaskGenerator(
+            img_size=img_size,
+            acceleration=2,
+            device=device,
+            rng=rng,
+        )
+        return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_generator=mri_gen,
         )
     else:
         raise Exception("The generator chosen doesn't exist")
@@ -293,23 +309,26 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("split_ratio", (0.5,))
 @pytest.mark.parametrize("device", DEVICES)
 def test_inpainting_generators(
-    generator_name, batch_size, img_size, pixelwise, split_ratio, device
+    generator_name, batch_size, img_size, pixelwise, split_ratio, device, rng
 ):
-    if generator_name == "gaussian" and len(img_size) < 3:
+    if generator_name in ("gaussian", "multiplicative") and len(img_size) < 3:
         pytest.skip(
-            "Gaussian splitting mask not valid for images of shape smaller than (C, H, W)"
+            "Gaussian and multiplicative splitting mask not valid for images of shape smaller than (C, H, W)"
         )
 
+    if generator_name == "multiplicative" and not pixelwise:
+        pytest.skip("Multiplicative mask test not defined for non pixelwise masking.")
+
     gen = choose_inpainting_generator(
-        generator_name, img_size, split_ratio, pixelwise, device
+        generator_name, img_size, split_ratio, pixelwise, device, rng
     )  # Assume generator always receives "correct" img_size i.e. not one with dims missing
 
-    def correct_ratio(ratio):
+    def correct_ratio(ratio, rtol=1e-2, atol=1e-2):
         assert torch.isclose(
             ratio,
             torch.tensor([split_ratio], device=device),
-            rtol=1e-2,
-            atol=1e-2,
+            rtol=rtol,
+            atol=atol,
         )
 
     def correct_pixelwise(mask):
@@ -343,13 +362,19 @@ def test_inpainting_generators(
     correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # As above but with img_size missing channel dimension (bad practice)
-    input_mask = torch.ones(*img_size[1:], device=device)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
-    correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
+    # Multiplicative mask must have correct input mask shape
+    if generator_name != "multiplicative":
+        input_mask = torch.ones(*img_size[1:], device=device)
+        mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
+        correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # Generate splitting mask from already subsampled mask
+    # Multiplicative splitting will rarely be exact
     input_mask = torch.zeros(batch_size, *img_size, device=device)
     input_mask[..., 10:20] = 1
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
-    correct_ratio(mask3.sum() / input_mask.sum())
+    correct_ratio(
+        mask3.sum() / input_mask.sum(),
+        atol=1e-2 if generator_name != "multiplicative" else 2e-1,
+    )
     correct_pixelwise(mask3)

@@ -232,11 +232,16 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         self.split_generator = split_generator
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
-        mask_lambda = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
+        mask = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
-            return mask_lambda * input_mask.to(self.device)
+            if input_mask.shape == mask.shape:
+                return mask * input_mask.to(self.device)
+            else:
+                raise ValueError(
+                    f"Input mask of shape should be same shape as generated mask, but input has shape {input_mask.shape} and generated has shape {mask.shape}"
+                )
         else:
-            return mask_lambda
+            return mask
 
 
 class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
