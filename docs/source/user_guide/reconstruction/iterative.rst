@@ -103,3 +103,5 @@ to solve any inverse problem. The following algorithms are available:
      - Custom PnP algorithm with early stopping.
    * - :class:`deepinv.optim.EPLL`
      - Patch-based reconstruction algorithm
+   * - :class:`deepinv.optim.PnPFlow`
+     - PnP algorithm exploiting flow matching generative model.
