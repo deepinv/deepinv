@@ -25,6 +25,7 @@ New Features
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
