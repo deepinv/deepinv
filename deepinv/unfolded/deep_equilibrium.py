@@ -34,6 +34,7 @@ class BaseDEQ(BaseUnfold):
     :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.
     :param float beta_anderson_acc_backward: momentum of the Anderson acceleration step for the backward pass. Default: ``1.0``.
     :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.
+    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``.
     """
 
     def __init__(
