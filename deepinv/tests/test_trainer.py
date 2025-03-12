@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -285,3 +286,34 @@ def test_trainer_load_model(tmp_path):
     trainer.model.a *= 3
     trainer.load_model(tmp_path / "temp.pth")
     assert trainer.model.a == 1
+
+
+def test_trainer_test_metrics(device, rng):
+    N = 10
+    dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
+    trainer = dinv.Trainer(
+        model=dinv.models.MedianFilter().to(device),
+        physics=dinv.physics.Inpainting((3, 32, 28), mask=0.8, device=device, rng=rng),
+        train_dataloader=torch.utils.data.DataLoader(DummyCircles(3)),
+        eval_dataloader=dataloader,
+        optimizer=None,
+        epochs=0,
+        losses=dinv.loss.SupLoss(),
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+        device=device,
+        online_measurements=True,
+    )
+    _ = trainer.train()
+    results = trainer.test(dataloader, log_raw_metrics=True)
+
+    assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
+    assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
+    assert np.isclose(np.std(results["PSNR_vals"]), results["PSNR_std"])
+    assert np.isclose(
+        np.mean(results["PSNR no learning_vals"]), results["PSNR no learning"]
+    )
+    assert np.isclose(
+        np.std(results["PSNR no learning_vals"]), results["PSNR no learning_std"]
+    )

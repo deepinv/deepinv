@@ -922,7 +922,13 @@ class Trainer:
 
         return self.model
 
-    def test(self, test_dataloader, save_path=None, compare_no_learning=True) -> dict:
+    def test(
+        self,
+        test_dataloader,
+        save_path: Union[str, Path] = None,
+        compare_no_learning: bool = True,
+        log_raw_metrics: bool = False,
+    ) -> dict:
         r"""
         Test the model, compute metrics and plot images.
 
@@ -930,6 +936,7 @@ class Trainer:
             a signal x or a tuple of (x, y) signal/measurement pairs.
         :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
+        :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
         :returns: dict of metrics results with means and stds.
         """
         self.compare_no_learning = compare_no_learning
@@ -971,6 +978,8 @@ class Trainer:
                 name = self.metrics[k].__class__.__name__ + " no learning"
                 out[name] = self.logs_metrics_linear[k].avg
                 out[name + "_std"] = self.logs_metrics_linear[k].std
+                if log_raw_metrics:
+                    out[name + "_vals"] = self.logs_metrics_linear[k].vals
                 if self.verbose:
                     print(
                         f"{name}: {self.logs_metrics_linear[k].avg:.3f} +- {self.logs_metrics_linear[k].std:.3f}"
@@ -979,6 +988,8 @@ class Trainer:
             name = self.metrics[k].__class__.__name__
             out[name] = l.avg
             out[name + "_std"] = l.std
+            if log_raw_metrics:
+                out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
