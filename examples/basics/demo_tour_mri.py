@@ -238,7 +238,10 @@ trainer.plot_images = True
 # %%
 # Now that our model is trained, we can test it. Notice that we improve the PSNR compared to the zero-filled
 # reconstruction, both on the train (knee) set and the test (brain) set:
-#
+
+# sphinx_gallery_start_ignore
+# sphinx_gallery_multi_image = "single"
+# sphinx_gallery_end_ignore
 
 _ = trainer.test(train_dataloader)
 
