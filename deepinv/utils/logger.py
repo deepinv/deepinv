@@ -36,7 +36,7 @@ class AverageMeter(object):
         """
         if isinstance(val, np.ndarray):
             self.val = np.mean(val)
-            self.vals += val.tolist()  # raw batch vals
+            self.vals += val.tolist() if val.ndim > 0 else [val.tolist()]
             self.sum += np.sum(val) * n
             self.sum2 += np.sum(val**2) * n
             self.count += n * np.prod(val.shape)
