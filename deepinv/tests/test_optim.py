@@ -462,6 +462,10 @@ def get_prior(prior_name, device="cpu"):
             prior = dinv.optim.prior.WaveletPrior(
                 wv=["db1", "db4", "db8"], level=3, device=device
             )
+    elif prior_name == "SeparablePrior":
+        prior = dinv.optim.prior.SeparablePrior(dinv.optim.prior.L1Prior(), separable_axis = 1, separable_weights=torch.zeros(3, device = device))
+    elif prior_name == "ListSeparablePrior":
+        prior = dinv.optim.prior.ListSeparablePrior(dinv.optim.prior.L1Prior(), separable_weights=torch.zeros(5, device = device))
     return prior
 
 
@@ -474,6 +478,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "TVPrior",
         "WaveletPrior",
         "WaveletDictPrior",
+        "SeparablePrior"
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
@@ -487,7 +492,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
             padding="circular",
             device=device,
         )
-        y = physics(test_sample)
+        y = physics.A(test_sample)
         max_iter = 1000
         # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
         # sigma_denoiser = torch.tensor([[0.1]])
