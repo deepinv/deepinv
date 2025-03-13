@@ -264,6 +264,9 @@ class SplittingLoss(Loss):
                     pixelwise=self.pixelwise,
                     device=y.device,
                 )
+                warn(
+                    "Mask generator does not exist or its mask size mismatches input size. Using new Bernoulli mask generator."
+                )
 
             with torch.set_grad_enabled(self.training):
                 if not self.eval_split_input and not self.training:
