@@ -645,6 +645,7 @@ class L12Prior(Prior):
         More precisely, it computes
 
         .. math::
+
             \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x
 
 
@@ -673,21 +674,25 @@ class SeparablePrior(Prior):
     Prior with separable structure along a specific axis of the input tensor.
 
     Allows to extend the definition of a prior :math:`g` into a separable prior
+
     .. math::
-            f(x) = \sum_i w_i g(x_i)
+
+        f(x) = \sum_i w_i g(x_i)
+
     where :math:`x_i` is a slice of :math:`x` taken along the separable axis and :math:`w=(w_1,\dots, w_I)` is a tensor of weights.
     The proximity operator of such an :math:`f` can be computed slice-by-slice and is the concatenation of :math:`\operatorname{prox}_{w_i g}(x_i)` along the separable axis.
     The separable weights (given in log-domain) are exponentiated to ensure positivity and scale the contributions of each slice.
 
     Expected input:
-      - x: a tensor of shape [A, B, ..., I, ...] where the I-axis (indexed by separable_axis)
-           contains the separable components.
+      - x: a tensor of shape [A, B, ..., I, ...] where the I-axis (indexed by separable_axis) contains the separable components.
     """
 
     def __init__(self, prior, separable_axis, separable_weights, *args, **kwargs):
         """
         :param dinv.optim.Prior prior: a Prior defining the function :math:`g`
+
         :param int separable_axis: index of the axis over which the prior is separable.
+
         :param torch.Tensor separable_weights: a tensor of weights (in log-domain) for each slice along the separable axis.
         """
         super().__init__(*args, **kwargs)
@@ -703,7 +708,8 @@ class SeparablePrior(Prior):
         is applied. Each contribution is weighted by exp(separable_weights[coord]).
 
         :param torch.Tensor x: Input tensor.
-        :return torch.Tensor : value of :math:`f(x)` for each batch
+        
+        :return torch.Tensor: value of :math:`f(x)` for each batch
         """
         # Exponentiate the (log-)weights.
         eseparable_weights = torch.exp(self.separable_weights)
@@ -725,8 +731,11 @@ class SeparablePrior(Prior):
         Compute the proximity operator associated with :math:`f`.
 
         The prox is computed slice-by-slice along the separable_axis. For each slice:
+
         .. math::
-            \operatorname{prox}_{gamma * exp(w) * g}(x_slice)
+
+            \operatorname{prox}_{\gamma * \exp(w) * g}(x_slice)
+
         is computed, and then the resulting slices are concatenated back along the separable_axis.
 
         :param x: Input tensor.
@@ -759,14 +768,17 @@ class ListSeparablePrior(Prior):
     Prior with separable structure along a specific axis of the input tensor.
 
     Allows to extend the definition of a prior :math:`g` into a separable prior
+
     .. math::
+
             f(x) = \sum_i w_i g(x_i)
-    where :math:`x=[x_1,\dots, x_I]` is a dinv.utils.TensorList and :math:`w=(w_1,\dots, w_I)` is a tensor of weights.
+
+    where :math:`x=[x_1,\dots, x_I]` is a deepinv.utils.TensorList and :math:`w=(w_1,\dots, w_I)` is a tensor of weights.
     The proximity operator of such an :math:`f` can be computed slice-by-slice and is the concatenation of :math:`\operatorname{prox}_{w_i g}(x_i)` along the separable axis.
     The separable weights (given in log-domain) are exponentiated to ensure positivity and scale the contributions of each slice.
 
     Expected input:
-      - x: a dinv.utils.TensorList, i.e. a list of tensors of shape [x_1, \dots, x_I] 
+      - :math:`x` a deepinv.utils.TensorList, i.e. a list of tensors of shape :math:`[x_1, \dots, x_I]` 
     
     """
     def __init__(self, prior, separable_weights, *args, **kwargs):
@@ -787,8 +799,8 @@ class ListSeparablePrior(Prior):
         For each coordinate along the separable_axis, a slice is taken and the base prior function
         is applied. Each contribution is weighted by exp(separable_weights[coord]).
 
-        :param dinv.utils.TensorList x: Input tensor.
-        :return dinv.utils.TensorList : value of :math:`f(x)` for each batch
+        :param deepinv.utils.TensorList x: Input tensor.
+        :return deepinv.utils.TensorList: value of :math:`f(x)` for each batch
         """
         eseparable_weights = torch.exp(self.separable_weights)
         f_list = [
@@ -801,14 +813,17 @@ class ListSeparablePrior(Prior):
         """
         Compute the proximity operator associated with :math:`f`.
 
-        The prox is computed for each tensor in the dinv.utils.TensorList. For each tensor in the list:
-        .. math::
-            \operatorname{prox}_{gamma * exp(w) * g}(x_i)
-        is computed, and then returned as a dinv.utils.TensorList.
+        The prox is computed for each tensor in the deepinv.utils.TensorList. For each tensor in the list:
 
-        :param dinv.utils.TensorList x: A list of input tensors.
+        .. math::
+        
+            \operatorname{prox}_{\gamma * \exp(w) * g}(x_i)
+        
+        is computed, and then returned as a deepinv.utils.TensorList.
+
+        :param deepinv.utils.TensorList x: A list of input tensors.
         :param gamma: A step-size parameter (on :math:`\tau f`).
-        :return dinv.utils.TensorList: :math:`\operatorname{prox}_{\tau f}(x)` of the same shape as :math:`x` after applying the proximity operator.
+        :return deepinv.utils.TensorList: :math:`\operatorname{prox}_{\tau f}(x)` of the same shape as :math:`x` after applying the proximity operator.
         """
         eseparable_weights = torch.exp(self.separable_weights)
         prox_list = [
