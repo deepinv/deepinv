@@ -195,7 +195,7 @@ class FNEJacobianSpectralNorm(Loss):
     as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
     This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
-    .. warning::
+    .. note::
 
         This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
