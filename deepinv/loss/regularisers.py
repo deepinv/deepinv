@@ -15,7 +15,7 @@ class JacobianSpectralNorm(Loss):
 
     This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
 
-    .. warning::
+    .. note::
 
         This implementation assumes that the input :math:`x` is batched with shape `(B, ...)`, where B is the batch size.
 
