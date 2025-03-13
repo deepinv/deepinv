@@ -24,6 +24,7 @@ New Features
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
+- CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 
@@ -32,6 +33,7 @@ Fixed
 - Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 
 Changed

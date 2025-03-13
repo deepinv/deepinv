@@ -223,13 +223,13 @@ class Trainer:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
-        if not isinstance(self.losses, list) or isinstance(self.losses, tuple):
+        if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
 
         for l in self.losses:
             self.model = l.adapt_model(self.model)
 
-        if not isinstance(self.metrics, list) or isinstance(self.metrics, tuple):
+        if not isinstance(self.metrics, (list, tuple)):
             self.metrics = [self.metrics]
 
         # losses
@@ -288,15 +288,18 @@ class Trainer:
             self.loss_history = []
         self.save_folder_im = None
 
-        self.load_model()
+        _ = self.load_model()
 
-    def load_model(self, ckpt_pretrained: str = None):
+    def load_model(self, ckpt_pretrained: str = None) -> dict:
         """Load model from checkpoint.
 
-        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class. If not `None`, override checkpoint passed to class.
+        :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
+            If not `None`, override checkpoint passed to class.
+        :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
             ckpt_pretrained = self.ckpt_pretrained
+            self.ckpt_pretrained = None
 
         if ckpt_pretrained is not None:
             checkpoint = torch.load(
@@ -310,6 +313,7 @@ class Trainer:
                 self.wandb_setup["resume"] = "allow"
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"]
+            return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
@@ -612,7 +616,7 @@ class Trainer:
             x_nl = y
         else:
             raise ValueError(
-                f"No learning reconstruction method {self.no_learning_method} not recognized"
+                f"No learning reconstruction method {self.no_learning_method} not recognized or physics does not implement it"
             )
 
         return x_nl
