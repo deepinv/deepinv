@@ -44,6 +44,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         solver="gradient_descent",
         max_iter=50,
         tol=1e-4,
+        **kwargs
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -53,6 +54,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.max_iter = max_iter
         self.tol = tol
         self.solver = solver
+
+        if len(kwargs) > 0:
+            warnings.warn(
+                f"Arguments {kwargs} are pass to {self.__class__.__name__} but are ignored."
+            )
 
     def __mul__(self, other):  #  physics3 = physics1 \circ physics2
         r"""
@@ -342,12 +348,9 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
+            **kwars
         )
         self.A_adj = A_adjoint
-        if len(kwargs) > 0:
-            warnings.warn(
-                f"Arguments {kwargs} are pass to {self.__class__.__name__} but are ignored."
-            )
 
     def A_adjoint(self, y, **kwargs):
         r"""
