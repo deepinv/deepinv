@@ -52,6 +52,12 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> x_dagger = physics.A_dagger(y) # compute the pseudo-inverse operator
     >>> x_prox = physics.prox_l2(x, y, .1) # compute a regularized inverse
 
+.. tip::
+
+    Linear operators come with useful methods for approximating the :func:`operator norm <deepinv.physics.LinearPhysics.compute_norm>`
+    :math:`\|A\|` and the :func:`condition number <deepinv.physics.LinearPhysics.condition_number>` :math:`\kappa(A)`.
+    These values can be useful to set optimization hyperparameters, and understand the difficulty of the inverse problem.
+
 More details can be found in the doc of each class.
 
 
@@ -74,7 +80,7 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
    >>> theta2 = torch.randn((1, 1, 2, 2)) # a random 2x2 filter
-   >>> physics.update_parameters(filter=theta2)
+   >>> physics.update(filter=theta2)
    >>> y2 = physics(x)
    >>>
    >>> # A second possibility

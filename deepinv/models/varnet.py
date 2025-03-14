@@ -115,7 +115,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
                 hat, mask=torch.ones(hat.shape[-2:], dtype=hat.dtype, device=hat.device)
             )
 
-        physics.update_parameters(mask=mask)
+        physics.update(mask=mask)
 
         return hat
 
@@ -187,6 +187,6 @@ class VarNetBlock(nn.Module):
         tensor_out = tensor_in - dc * self.dc_weight - denoised
 
         # Reset physics back to original mask
-        physics.update_parameters(mask=mask)
+        physics.update(mask=mask)
 
         return (tensor_out, physics, y, coil_maps)
