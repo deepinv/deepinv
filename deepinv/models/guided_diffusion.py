@@ -83,19 +83,13 @@ class ADMUNet(Denoiser):
             if augment_dim
             else None
         )
-        self.map_layer0 = Linear(
-            in_features=model_channels, out_features=emb_channels, **init
-        )
-        self.map_layer1 = Linear(
-            in_features=emb_channels, out_features=emb_channels, **init
-        )
+        self.map_layer0 = Linear(in_features=model_channels, out_features=emb_channels)
+        self.map_layer1 = Linear(in_features=emb_channels, out_features=emb_channels)
         self.map_label = (
             Linear(
                 in_features=label_dim,
                 out_features=emb_channels,
                 bias=False,
-                init_mode="kaiming_normal",
-                init_weight=np.sqrt(label_dim),
             )
             if label_dim
             else None
@@ -151,7 +145,10 @@ class ADMUNet(Denoiser):
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-        self.out_norm = GroupNorm(num_channels=cout)
+        self.out_norm = GroupNorm(
+            num_channels=cout,
+            num_groups=32,
+        )
         self.out_conv = Conv2d(in_channels=cout, out_channels=out_channels, kernel=3)
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):

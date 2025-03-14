@@ -196,7 +196,9 @@ class NCSNpp(Denoiser):
                         resample_filter=resample_filter,
                     )
                 self.dec[f"{res}x{res}_aux_norm"] = GroupNorm(
-                    num_channels=cout, eps=1e-6
+                    num_channels=cout,
+                    eps=1e-6,
+                    num_groups=32,
                 )
                 self.dec[f"{res}x{res}_aux_conv"] = Conv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero

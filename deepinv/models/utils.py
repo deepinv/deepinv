@@ -286,7 +286,7 @@ class UNetBlock(torch.nn.Module):
         self.skip_scale = skip_scale
         self.adaptive_scale = adaptive_scale
 
-        self.norm0 = GroupNorm(num_channels=in_channels, eps=eps)
+        self.norm0 = GroupNorm(num_channels=in_channels, num_groups=32, eps=eps)
         self.conv0 = Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -299,9 +299,8 @@ class UNetBlock(torch.nn.Module):
         self.affine = Linear(
             in_features=emb_channels,
             out_features=out_channels * (2 if adaptive_scale else 1),
-            **init,
         )
-        self.norm1 = GroupNorm(num_channels=out_channels, eps=eps)
+        self.norm1 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
         self.conv1 = Conv2d(
             in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
         )
@@ -320,7 +319,7 @@ class UNetBlock(torch.nn.Module):
             )
 
         if self.num_heads:
-            self.norm2 = GroupNorm(num_channels=out_channels, eps=eps)
+            self.norm2 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
             self.qkv = Conv2d(
                 in_channels=out_channels,
                 out_channels=out_channels * 3,
