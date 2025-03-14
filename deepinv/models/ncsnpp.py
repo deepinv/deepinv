@@ -39,6 +39,8 @@ class NCSNpp(Denoiser):
     :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
     :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
 
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+
     """
 
     def __init__(
@@ -70,6 +72,7 @@ class NCSNpp(Denoiser):
             3,
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
+        device=None,
     ):
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
@@ -203,6 +206,10 @@ class NCSNpp(Denoiser):
                 self.dec[f"{res}x{res}_aux_conv"] = UpDownConv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
+
+        if device is not None:
+            self.to(device)
+            self.device = device
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):
         r"""

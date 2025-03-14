@@ -32,7 +32,7 @@ class ADMUNet(Denoiser):
     :param list[int] attn_resolutions: List of resolutions with self-attention.
     :param float dropout: dropout probability used in residual blocks.
     :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
-
+    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
@@ -54,6 +54,9 @@ class ADMUNet(Denoiser):
         attn_resolutions=[32, 16, 8],  # List of resolutions with self-attention.
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
+        device=None,
+        *args,
+        **kwargs,
     ):
         super().__init__()
         self.label_dropout = label_dropout
@@ -150,6 +153,9 @@ class ADMUNet(Denoiser):
         self.out_conv = UpDownConv2d(
             in_channels=cout, out_channels=out_channels, kernel=3
         )
+        if device is not None:
+            self.to(device)
+            self.device = device
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):
         r"""
