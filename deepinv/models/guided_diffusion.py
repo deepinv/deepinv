@@ -3,12 +3,15 @@ from torch.nn.functional import silu
 import numpy as np
 from .utils import (
     PositionalEmbedding,
-    Linear,
+    # Linear,
     UNetBlock,
     Conv2d,
-    GroupNorm,
+    # GroupNorm,
 )
 from .base import Denoiser
+
+from torch.nn import Linear, GroupNorm
+from math import floor
 
 
 class ADMUNet(Denoiser):
@@ -62,13 +65,11 @@ class ADMUNet(Denoiser):
             init_weight=np.sqrt(1 / 3),
             init_bias=np.sqrt(1 / 3),
         )
-        init_zero = dict(init_mode="kaiming_uniform", init_weight=0, init_bias=0)
         block_kwargs = dict(
             emb_channels=emb_channels,
             channels_per_head=64,
             dropout=dropout,
             init=init,
-            init_zero=init_zero,
         )
 
         # Mapping.
@@ -78,7 +79,6 @@ class ADMUNet(Denoiser):
                 in_features=augment_dim,
                 out_features=model_channels,
                 bias=False,
-                **init_zero,
             )
             if augment_dim
             else None
@@ -105,7 +105,7 @@ class ADMUNet(Denoiser):
         self.enc = torch.nn.ModuleDict()
         cout = in_channels
         for level, mult in enumerate(channel_mult):
-            res = img_resolution >> level
+            res = floor(img_resolution / 2**level)
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
@@ -130,7 +130,7 @@ class ADMUNet(Denoiser):
         # Decoder.
         self.dec = torch.nn.ModuleDict()
         for level, mult in reversed(list(enumerate(channel_mult))):
-            res = img_resolution >> level
+            res = floor(img_resolution / 2**level)
             if level == len(channel_mult) - 1:
                 self.dec[f"{res}x{res}_in0"] = UNetBlock(
                     in_channels=cout, out_channels=cout, attention=True, **block_kwargs
@@ -152,9 +152,7 @@ class ADMUNet(Denoiser):
                     **block_kwargs,
                 )
         self.out_norm = GroupNorm(num_channels=cout)
-        self.out_conv = Conv2d(
-            in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
-        )
+        self.out_conv = Conv2d(in_channels=cout, out_channels=out_channels, kernel=3)
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):
         r"""

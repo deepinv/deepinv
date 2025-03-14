@@ -5,12 +5,11 @@ import numpy as np
 from .utils import (
     PositionalEmbedding,
     FourierEmbedding,
-    Linear,
     UNetBlock,
     Conv2d,
-    GroupNorm,
 )
 from .base import Denoiser
+from torch.nn import Linear, GroupNorm
 
 
 class NCSNpp(Denoiser):
@@ -104,23 +103,17 @@ class NCSNpp(Denoiser):
             else FourierEmbedding(num_channels=noise_channels)
         )
         self.map_label = (
-            Linear(in_features=label_dim, out_features=noise_channels, **init)
+            Linear(in_features=label_dim, out_features=noise_channels)
             if label_dim
             else None
         )
         self.map_augment = (
-            Linear(
-                in_features=augment_dim, out_features=noise_channels, bias=False, **init
-            )
+            Linear(in_features=augment_dim, out_features=noise_channels, bias=False)
             if augment_dim
             else None
         )
-        self.map_layer0 = Linear(
-            in_features=noise_channels, out_features=emb_channels, **init
-        )
-        self.map_layer1 = Linear(
-            in_features=emb_channels, out_features=emb_channels, **init
-        )
+        self.map_layer0 = Linear(in_features=noise_channels, out_features=emb_channels)
+        self.map_layer1 = Linear(in_features=emb_channels, out_features=emb_channels)
 
         # Encoder.
         self.enc = torch.nn.ModuleDict()

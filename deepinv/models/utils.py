@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch.nn.functional import silu
 from torch import Tensor
+from torch.nn import Linear, GroupNorm
 
 
 def tensor2array(img):
@@ -103,40 +104,6 @@ def weight_init(shape, mode, fan_in, fan_out):
 
 
 # ----------------------------------------------------------------------------
-# Fully-connected layer.
-
-
-class Linear(torch.nn.Module):
-    def __init__(
-        self,
-        in_features,
-        out_features,
-        bias=True,
-        init_mode="kaiming_normal",
-        init_weight=1,
-        init_bias=0,
-    ):
-        super().__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        init_kwargs = dict(mode=init_mode, fan_in=in_features, fan_out=out_features)
-        self.weight = torch.nn.Parameter(
-            weight_init([out_features, in_features], **init_kwargs) * init_weight
-        )
-        self.bias = (
-            torch.nn.Parameter(weight_init([out_features], **init_kwargs) * init_bias)
-            if bias
-            else None
-        )
-
-    def forward(self, x):
-        x = x @ self.weight.to(x.dtype).t()
-        if self.bias is not None:
-            x = x.add_(self.bias.to(x.dtype))
-        return x
-
-
-# ----------------------------------------------------------------------------
 # Convolutional layer with optional up/downsampling.
 
 
@@ -233,29 +200,6 @@ class Conv2d(torch.nn.Module):
                 x = torch.nn.functional.conv2d(x, w, padding=w_pad)
         if b is not None:
             x = x.add_(b.reshape(1, -1, 1, 1))
-        return x
-
-
-# ----------------------------------------------------------------------------
-# Group normalization.
-
-
-class GroupNorm(torch.nn.Module):
-    def __init__(self, num_channels, num_groups=32, min_channels_per_group=4, eps=1e-5):
-        super().__init__()
-        self.num_groups = min(num_groups, num_channels // min_channels_per_group)
-        self.eps = eps
-        self.weight = torch.nn.Parameter(torch.ones(num_channels))
-        self.bias = torch.nn.Parameter(torch.zeros(num_channels))
-
-    def forward(self, x):
-        x = torch.nn.functional.group_norm(
-            x,
-            num_groups=self.num_groups,
-            weight=self.weight.to(x.dtype),
-            bias=self.bias.to(x.dtype),
-            eps=self.eps,
-        )
         return x
 
 
