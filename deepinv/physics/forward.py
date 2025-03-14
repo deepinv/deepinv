@@ -44,7 +44,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         solver="gradient_descent",
         max_iter=50,
         tol=1e-4,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -348,7 +348,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
-            **kwargs
+            **kwargs,
         )
         self.A_adj = A_adjoint
 

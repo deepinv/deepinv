@@ -1154,5 +1154,7 @@ def test_unmixing(device):
 
 
 def test_physics_warn_extra_kwargs():
-    with pytest.warns(UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"):
+    with pytest.warns(
+        UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
+    ):
         dinv.physics.Denoising(sigma=0.5)
