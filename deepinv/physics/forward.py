@@ -1,4 +1,5 @@
 from typing import Union
+import warnings
 
 import torch
 from torch import Tensor
@@ -343,6 +344,10 @@ class LinearPhysics(Physics):
             tol=tol,
         )
         self.A_adj = A_adjoint
+        if len(kwargs) > 0:
+            warnings.warn(
+                f"Arguments {kwargs} are pass to {self.__class__.__name__} but are ignored."
+            )
 
     def A_adjoint(self, y, **kwargs):
         r"""
