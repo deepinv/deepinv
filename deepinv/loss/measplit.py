@@ -416,17 +416,13 @@ class WeightedSplittingLoss(SplittingLoss):
         :param float eps: small value to avoid division by zero.
         """
 
-        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0)
-        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0)
+        P = self.physics_generator.step(batch_size=2000)["mask"].mean(dim=0)
+        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(dim=0)
 
         if P.shape != P_tilde.shape:
             raise ValueError(
                 "physics_generator and mask_generator should produce same size masks."
             )
-
-        # Reduce to 1D PDF in W dimension
-        while len(P.shape) > 1:
-            P, P_tilde = P[0], P_tilde[0]
 
         # makes sure P_tilde < 1
         P_tilde[P_tilde > (1 - eps)] = 1 - eps
@@ -438,7 +434,7 @@ class WeightedSplittingLoss(SplittingLoss):
 
         # element-wise multiplication to get K
         K_1d = inv_diag_1_minus_PtP * diag_1_minus_P
-        return K_1d.unsqueeze(0).expand(self.mask_generator.tensor_size[-2:])
+        return K_1d
 
     def forward(self, x_net, y, physics, model, **kwargs):
 
