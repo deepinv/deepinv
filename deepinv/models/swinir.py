@@ -828,7 +828,7 @@ class SwinIR(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device, str, None device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(

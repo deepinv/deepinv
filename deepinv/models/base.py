@@ -1,7 +1,8 @@
 import torch
+from abc import ABC, abstractmethod
 
 
-class Denoiser(torch.nn.Module):
+class Denoiser(torch.nn.Module, ABC):
     r"""
     Base class for denoiser models.
 
@@ -18,6 +19,20 @@ class Denoiser(torch.nn.Module):
     The base class inherits from :class:`torch.nn.Module`.
 
     """
+    @abstractmethod
+    def __init__(self, *args, device=None, **kwargs):
+        r"""
+        Initializes the denoiser.
+        """
+        #
+        super().__init__()
+
+        # Initialize the parameters of the model
+        ...
+
+        if device is not None:
+            self.to(device=device)
+
 
     def forward(self, x, sigma, **kwargs):
         r"""

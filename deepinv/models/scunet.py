@@ -289,7 +289,7 @@ class SCUNet(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights. Default: 'download'.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device, str, None device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(

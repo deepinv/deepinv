@@ -25,7 +25,7 @@ class EPLLDenoiser(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device, str, None device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(

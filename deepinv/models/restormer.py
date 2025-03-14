@@ -50,7 +50,7 @@ class Restormer(Denoiser):
     :param NoneType, str pretrained: Default to ``'denoising'``.
         ``if pretrained = 'denoising' / 'denoising_gray' / 'denoising_color' / 'denoising_real' / 'deraining' / 'defocus_deblurring'``, will download weights from the HuggingFace Hub.
         ``if pretrained = '\*.pth'``, will load weights from a local pth file.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device, str, None device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
     .. note::
         To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
