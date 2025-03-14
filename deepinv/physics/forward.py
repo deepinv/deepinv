@@ -57,7 +57,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         if len(kwargs) > 0:
             warnings.warn(
-                f"Arguments {kwargs} are pass to {self.__class__.__name__} but are ignored."
+                f"Arguments {kwargs} are passed to {self.__class__.__name__} but are ignored."
             )
 
     def __mul__(self, other):  #  physics3 = physics1 \circ physics2
@@ -348,7 +348,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
-            **kwars
+            **kwargs
         )
         self.A_adj = A_adjoint
 

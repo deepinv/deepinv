@@ -1151,3 +1151,8 @@ def test_unmixing(device):
 
     assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
     assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
+
+
+def test_physics_warn_extra_kwargs():
+    with pytest.warns(UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"):
+        dinv.physics.Denoising(sigma=0.5)
