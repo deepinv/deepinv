@@ -254,18 +254,18 @@ class SplittingLoss(Loss):
             Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
             """
 
-            if (
-                self.mask_generator is None
-                or self.mask_generator.tensor_size[-2:] != y.shape[-2:]
-            ):
+            if self.mask_generator is None:
+                warn("Mask generator not defined. Using new Bernoulli mask generator.")
                 self.mask_generator = BernoulliSplittingMaskGenerator(
                     tensor_size=y.shape[1:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
                 )
-                warn(
-                    "Mask generator does not exist or its mask size mismatches input size. Using new Bernoulli mask generator."
+
+            if self.mask_generator.tensor_size[-2:] != y.shape[-2:]:
+                raise ValueError(
+                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.tensor_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
