@@ -433,8 +433,8 @@ class WeightedSplittingLoss(SplittingLoss):
         diag_1_minus_P = 1 - P
 
         # element-wise multiplication to get K
-        K_1d = inv_diag_1_minus_PtP * diag_1_minus_P
-        return K_1d
+        K_weight = inv_diag_1_minus_PtP * diag_1_minus_P
+        return K_weight
 
     def forward(self, x_net, y, physics, model, **kwargs):
 
