@@ -26,6 +26,7 @@ New Features
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Weighted-SSDU loss function + more mask generators (:gh:`401` by `Keying Guo`_ and `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 
 Fixed
@@ -289,3 +290,4 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
