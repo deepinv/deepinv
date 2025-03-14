@@ -256,10 +256,10 @@ class SplittingLoss(Loss):
 
             if (
                 self.mask_generator is None
-                or self.mask_generator.tensor_size != y.size()[1:]
+                or self.mask_generator.tensor_size[-2:] != y.shape[-2:]
             ):
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    tensor_size=y.size()[1:],
+                    tensor_size=y.shape[1:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
