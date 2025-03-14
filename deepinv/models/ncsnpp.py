@@ -6,7 +6,7 @@ from .utils import (
     PositionalEmbedding,
     FourierEmbedding,
     UNetBlock,
-    Conv2d,
+    UpDownConv2d,
 )
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
@@ -124,7 +124,7 @@ class NCSNpp(Denoiser):
             if level == 0:
                 cin = cout
                 cout = model_channels
-                self.enc[f"{res}x{res}_conv"] = Conv2d(
+                self.enc[f"{res}x{res}_conv"] = UpDownConv2d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
             else:
@@ -132,18 +132,18 @@ class NCSNpp(Denoiser):
                     in_channels=cout, out_channels=cout, down=True, **block_kwargs
                 )
                 if encoder_type == "skip":
-                    self.enc[f"{res}x{res}_aux_down"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_down"] = UpDownConv2d(
                         in_channels=caux,
                         out_channels=caux,
                         kernel=0,
                         down=True,
                         resample_filter=resample_filter,
                     )
-                    self.enc[f"{res}x{res}_aux_skip"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_skip"] = UpDownConv2d(
                         in_channels=caux, out_channels=cout, kernel=1, **init
                     )
                 if encoder_type == "residual":
-                    self.enc[f"{res}x{res}_aux_residual"] = Conv2d(
+                    self.enc[f"{res}x{res}_aux_residual"] = UpDownConv2d(
                         in_channels=caux,
                         out_channels=cout,
                         kernel=3,
@@ -188,7 +188,7 @@ class NCSNpp(Denoiser):
                 )
             if decoder_type == "skip" or level == 0:
                 if decoder_type == "skip" and level < len(channel_mult) - 1:
-                    self.dec[f"{res}x{res}_aux_up"] = Conv2d(
+                    self.dec[f"{res}x{res}_aux_up"] = UpDownConv2d(
                         in_channels=out_channels,
                         out_channels=out_channels,
                         kernel=0,
@@ -200,7 +200,7 @@ class NCSNpp(Denoiser):
                     eps=1e-6,
                     num_groups=32,
                 )
-                self.dec[f"{res}x{res}_aux_conv"] = Conv2d(
+                self.dec[f"{res}x{res}_aux_conv"] = UpDownConv2d(
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
 

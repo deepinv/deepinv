@@ -377,7 +377,7 @@ class PosteriorDiffusion(Reconstructor):
         :param BaseSDESolver solver: the solver for the SDE.
         :param int seed: the random seed.
         :param torch.Tensor timesteps: the time steps for the solver.
-        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
+        :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
         :param *args, **kwargs: the arguments and keyword arguments for the solver.
 
         :return : the generated sample (:meth:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:meth:`torch.Tensor`, :meth:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.

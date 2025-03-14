@@ -107,7 +107,7 @@ def weight_init(shape, mode, fan_in, fan_out):
 # Convolutional layer with optional up/downsampling.
 
 
-class Conv2d(torch.nn.Module):
+class UpDownConv2d(torch.nn.Module):
     def __init__(
         self,
         in_channels,
@@ -287,7 +287,7 @@ class UNetBlock(torch.nn.Module):
         self.adaptive_scale = adaptive_scale
 
         self.norm0 = GroupNorm(num_channels=in_channels, num_groups=32, eps=eps)
-        self.conv0 = Conv2d(
+        self.conv0 = UpDownConv2d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel=3,
@@ -301,14 +301,14 @@ class UNetBlock(torch.nn.Module):
             out_features=out_channels * (2 if adaptive_scale else 1),
         )
         self.norm1 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-        self.conv1 = Conv2d(
+        self.conv1 = UpDownConv2d(
             in_channels=out_channels, out_channels=out_channels, kernel=3, **init_zero
         )
 
         self.skip = None
         if out_channels != in_channels or up or down:
             kernel = 1 if resample_proj or out_channels != in_channels else 0
-            self.skip = Conv2d(
+            self.skip = UpDownConv2d(
                 in_channels=in_channels,
                 out_channels=out_channels,
                 kernel=kernel,
@@ -320,13 +320,13 @@ class UNetBlock(torch.nn.Module):
 
         if self.num_heads:
             self.norm2 = GroupNorm(num_channels=out_channels, num_groups=32, eps=eps)
-            self.qkv = Conv2d(
+            self.qkv = UpDownConv2d(
                 in_channels=out_channels,
                 out_channels=out_channels * 3,
                 kernel=1,
                 **(init_attn if init_attn is not None else init),
             )
-            self.proj = Conv2d(
+            self.proj = UpDownConv2d(
                 in_channels=out_channels,
                 out_channels=out_channels,
                 kernel=1,
@@ -370,7 +370,9 @@ class UNetBlock(torch.nn.Module):
 
 
 class PositionalEmbedding(torch.nn.Module):
-    def __init__(self, num_channels, max_positions=10000, endpoint=False):
+    def __init__(
+        self, num_channels: int, max_positions: int = 10000, endpoint: bool = False
+    ):
         super().__init__()
         self.num_channels = num_channels
         self.max_positions = max_positions
@@ -392,7 +394,7 @@ class PositionalEmbedding(torch.nn.Module):
 
 
 class FourierEmbedding(torch.nn.Module):
-    def __init__(self, num_channels, scale=16):
+    def __init__(self, num_channels: int, scale: int = 16):
         super().__init__()
         self.register_buffer("freqs", torch.randn(num_channels // 2) * scale)
 

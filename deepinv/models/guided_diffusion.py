@@ -3,10 +3,8 @@ from torch.nn.functional import silu
 import numpy as np
 from .utils import (
     PositionalEmbedding,
-    # Linear,
     UNetBlock,
-    Conv2d,
-    # GroupNorm,
+    UpDownConv2d,
 )
 from .base import Denoiser
 
@@ -103,7 +101,7 @@ class ADMUNet(Denoiser):
             if level == 0:
                 cin = cout
                 cout = model_channels * mult
-                self.enc[f"{res}x{res}_conv"] = Conv2d(
+                self.enc[f"{res}x{res}_conv"] = UpDownConv2d(
                     in_channels=cin, out_channels=cout, kernel=3, **init
                 )
             else:
@@ -149,7 +147,9 @@ class ADMUNet(Denoiser):
             num_channels=cout,
             num_groups=32,
         )
-        self.out_conv = Conv2d(in_channels=cout, out_channels=out_channels, kernel=3)
+        self.out_conv = UpDownConv2d(
+            in_channels=cout, out_channels=out_channels, kernel=3
+        )
 
     def forward(self, x, noise_level, class_labels=None, augment_labels=None):
         r"""
