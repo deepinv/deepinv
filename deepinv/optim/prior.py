@@ -655,13 +655,19 @@ class L12Prior(Prior):
         :return torch.Tensor: proximity operator at :math:`x`.
         """
 
-        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True) # Compute the norm
-        z2 = torch.max(z, gamma*torch.ones_like(z)) # Compute its max w.r.t. gamma at each point
-        z3 = torch.ones_like(z) #Construct a mask of ones 
-        mask_z = z > 0 #Find locations where z (hence x) is not already zero
-        z3[mask_z] = z3[mask_z] - gamma/z2[mask_z]  #If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
-                                                    #Oth. z3 = 1- gamma/z2
-        z4 = torch.multiply(x, z3) # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)   
+        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)  # Compute the norm
+        z2 = torch.max(
+            z, gamma * torch.ones_like(z)
+        )  # Compute its max w.r.t. gamma at each point
+        z3 = torch.ones_like(z)  # Construct a mask of ones
+        mask_z = z > 0  # Find locations where z (hence x) is not already zero
+        z3[mask_z] = (
+            z3[mask_z] - gamma / z2[mask_z]
+        )  # If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
+        # Oth. z3 = 1- gamma/z2
+        z4 = torch.multiply(
+            x, z3
+        )  # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)
         # Creating a mask to avoid diving by zero
         # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
         return z4
