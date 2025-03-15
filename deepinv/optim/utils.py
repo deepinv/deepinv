@@ -108,7 +108,7 @@ def least_squares(
         complete = Aty.shape == y.shape
         overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
 
-        if complete and solver == "BiCGStab":
+        if complete and (solver == "BiCGStab" or solver == "minres"):
             H = lambda x: A(x)
             b = y
         else:
