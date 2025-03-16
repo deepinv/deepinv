@@ -597,7 +597,7 @@ def minres(
 
     For more details see: https://en.wikipedia.org/wiki/Minimal_residual_method
 
-    MIT-licensed code imported from https://github.com/cornellius-gp/linear_operator
+    Based on https://github.com/cornellius-gp/linear_operator
     Modifications and simplifications for compatibility with deepinverse
 
     :param Callable A: Linear operator as a callable function.
