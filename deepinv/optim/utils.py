@@ -595,6 +595,7 @@ def minres(
 
     Christopher C. Paige, Michael A. Saunders (1975). "Solution of sparse indefinite systems of linear equations". SIAM Journal on Numerical Analysis. 12 (4): 617–629.
 
+    The method assumes that :math:`A` is hermite.
     For more details see: https://en.wikipedia.org/wiki/Minimal_residual_method
 
     Based on https://github.com/cornellius-gp/linear_operator
@@ -639,9 +640,7 @@ def minres(
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
     alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
-    beta_prev = (
-        (zvec_prev1 * qvec_prev1).sum(dim=dim, keepdim=True).sqrt().clamp_min(eps)
-    )
+    beta_prev = dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()
 
     # Divide by beta_prev
     zvec_prev1 = zvec_prev1 / beta_prev
@@ -676,11 +675,11 @@ def minres(
 
         # Get next Lanczos terms
         # --> alpha_curr, beta_curr, qvec_curr
-        alpha_curr = torch.sum(prod * qvec_prev1, dim, keepdim=True)
+        alpha_curr = dot(prod, qvec_prev1, dim=dim)
         prod = prod - alpha_curr * zvec_prev1 - beta_prev * zvec_prev2
         qvec_curr = precon(prod)
 
-        beta_curr = torch.sum(prod * qvec_curr, dim, keepdim=True).sqrt().clamp_min(eps)
+        beta_curr = dot(prod, qvec_curr, dim=dim).sqrt()
 
         prod = prod / beta_curr
         qvec_curr = qvec_curr / beta_curr
