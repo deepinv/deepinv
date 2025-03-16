@@ -840,7 +840,7 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-solvers = ["CG", "BiCGStab", "lsqr"]
+solvers = ["CG", "BiCGStab", "lsqr", "minres"]
 least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
 
 
