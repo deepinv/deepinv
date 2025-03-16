@@ -623,18 +623,19 @@ def minres(
 
     # Rescale b
     b_norm = b.norm(2, dim=dim, keepdim=True)
-    b_is_zero = b_norm.lt(1e-10)
+    b_is_zero = b_norm < 1e-10
     b_norm = b_norm.masked_fill(b_is_zero, 1)
-    b = b.div(b_norm)
+    b = b / b_norm
 
     # Create space for matmul product, solution
     if init is not None:
-        solution = init.div(b_norm)
+        solution = init / b_norm
     else:
         solution = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
+
     # Variables for Lanczos terms
     zvec_prev2 = torch.zeros(solution.shape, device=b.device)  # r_(k-1) in wiki
-    zvec_prev1 = b.clone().contiguous() - A(solution)  # r_k in wiki
+    zvec_prev1 = b - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
     alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
@@ -643,15 +644,15 @@ def minres(
     )
 
     # Divide by beta_prev
-    zvec_prev1 = zvec_prev1.div(beta_prev)
-    qvec_prev1 = qvec_prev1.div(beta_prev)
+    zvec_prev1 = zvec_prev1 / beta_prev
+    qvec_prev1 = qvec_prev1 / beta_prev
 
     # Variables for the QR rotation
     # 1) Components of the Givens rotations
     cos_prev2 = torch.ones(alpha_curr.shape, dtype=b.dtype, device=b.device)
     sin_prev2 = torch.zeros(alpha_curr.shape, dtype=b.dtype, device=b.device)
-    cos_prev1 = cos_prev2.clone()
-    sin_prev1 = sin_prev2.clone()
+    cos_prev1 = cos_prev2
+    sin_prev1 = sin_prev2
 
     # Variables for the solution updates
     # 1) The "search" vectors of the solution
@@ -662,7 +663,7 @@ def minres(
     # 2) The "scaling" terms of the search vectors
     # Equivalent to the terms of V^T Q^T b, where Q is the matrix of Lanczos vectors and
     # V is the QR orthonormal of the tridiagonal Lanczos matrix.
-    scale_prev = beta_prev.clone()
+    scale_prev = beta_prev
 
     # Terms for checking for convergence
     solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
@@ -675,62 +676,51 @@ def minres(
 
         # Get next Lanczos terms
         # --> alpha_curr, beta_curr, qvec_curr
-        tmpvec = torch.mul(prod, qvec_prev1)
-        alpha_curr = torch.sum(tmpvec, dim, keepdim=True)
-        prod = prod.addcmul(alpha_curr, zvec_prev1, value=-1)
-        prod = prod.addcmul(beta_prev, zvec_prev2, value=-1)
+        alpha_curr = torch.sum(prod * qvec_prev1, dim, keepdim=True)
+        prod = prod - alpha_curr * zvec_prev1 - beta_prev * zvec_prev2
         qvec_curr = precon(prod)
 
-        tmpvec = torch.mul(prod, qvec_curr)
-        beta_curr = torch.sum(tmpvec, dim, keepdim=True).sqrt().clamp_min(eps)
+        beta_curr = torch.sum(prod * qvec_curr, dim, keepdim=True).sqrt().clamp_min(eps)
 
-        prod = prod.div(beta_curr)
-        qvec_curr = qvec_curr.div(beta_curr)
+        prod = prod / beta_curr
+        qvec_curr = qvec_curr / beta_curr
 
         # Perform JIT-ted update
         ###########################################
         # Start givens rotation
         # Givens rotation from 2 steps ago
-        subsub_diag_term = torch.mul(sin_prev2, beta_prev)
-        sub_diag_term = torch.mul(cos_prev2, beta_prev)
+        subsub_diag_term = sin_prev2 * beta_prev
+        sub_diag_term = cos_prev2 * beta_prev
 
         # Givens rotation from 1 step ago
-        diag_term = torch.mul(alpha_curr, cos_prev1).addcmul(
-            sin_prev1, sub_diag_term, value=-1
-        )
-        sub_diag_term = sub_diag_term.mul(cos_prev1).addcmul(sin_prev1, alpha_curr)
+        diag_term = alpha_curr * cos_prev1 - sin_prev1 * sub_diag_term
+        sub_diag_term = sub_diag_term * cos_prev1 + sin_prev1 * alpha_curr
 
         # 3) Compute next Givens terms
-        radius_curr = (
-            torch.mul(diag_term, diag_term).addcmul(beta_curr, beta_curr).sqrt()
-        )
-        cos_curr = torch.div(diag_term, radius_curr)
-        sin_curr = torch.div(beta_curr, radius_curr)
+        radius_curr = torch.sqrt(diag_term * diag_term + beta_curr * beta_curr)
+        cos_curr = diag_term / radius_curr
+        sin_curr = beta_curr / radius_curr
         # 4) Apply current Givens rotation
-        diag_term = diag_term.mul(cos_curr).addcmul(sin_curr, beta_curr)
+        diag_term = diag_term * cos_curr + sin_curr * beta_curr
 
         # Update the solution
         # --> search_curr, scale_curr solution
         # 1) Apply the latest Givens rotation to the Lanczos-b ( ||b|| e_1 )
         # This is getting the scale terms for the "search" vectors
-        scale_curr = torch.mul(scale_prev, sin_curr).mul(-1)
-        scale_prev = scale_prev.mul(cos_curr)
+        scale_curr = -scale_prev * sin_curr
         # 2) Get the new search vector
-        search_curr = torch.addcmul(qvec_prev1, sub_diag_term, search_prev1, value=-1)
-        search_curr = search_curr.addcmul(subsub_diag_term, search_prev2, value=-1).div(
-            diag_term
-        )
+        search_curr = qvec_prev1 - sub_diag_term * search_prev1
+        search_curr = (search_curr - subsub_diag_term * search_prev2) / diag_term
 
         # 3) Update the solution
-        search_update = torch.mul(search_curr, scale_prev)
-        solution = solution.add(search_update)
+        search_update = search_curr * scale_prev * cos_curr
+        solution = solution + search_update
         ###########################################
 
         # Check convergence criterion
         search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
         solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
-        conv = search_update_norm.div(solution_norm).mean().item()
-        if conv < tol:
+        if (search_update_norm / solution_norm).max().item() < tol:
             if verbose:
                 print("MINRES converged at iteration", i)
             flag = False
@@ -740,24 +730,19 @@ def minres(
         # Lanczos terms
         zvec_prev2, zvec_prev1 = zvec_prev1, prod
         qvec_prev1 = qvec_curr
-        beta_prev, beta_curr = beta_curr, beta_prev
+        beta_prev = beta_curr
         # Givens rotations terms
-        cos_prev2, cos_prev1, cos_curr = cos_prev1, cos_curr, cos_prev2
-        sin_prev2, sin_prev1, sin_curr = sin_prev1, sin_curr, sin_prev2
+        cos_prev2, cos_prev1 = cos_prev1, cos_curr
+        sin_prev2, sin_prev1 = sin_prev1, sin_curr
         # Search vector terms)
-        search_prev2, search_prev1, search_curr = (
-            search_prev1,
-            search_curr,
-            search_prev2,
-        )
-        scale_prev, scale_curr = scale_curr, scale_prev
+        search_prev2, search_prev1 = search_prev1, search_curr
+        scale_prev = scale_curr
 
     # For b-s that are close to zero, set them to zero
     solution = solution.masked_fill(b_is_zero, 0)
     if flag and verbose:
         print(f"MINRES did not converge in {i} iterations!")
-    solution = solution.mul(b_norm)
-    return solution
+    return solution * b_norm
 
 
 def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
