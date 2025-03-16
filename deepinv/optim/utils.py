@@ -633,7 +633,7 @@ def minres(
     else:
         solution = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
     # Variables for Lanczos terms
-    zvec_prev2 = torch.zeros(solution.shape)  # r_(k-1) in wiki
+    zvec_prev2 = torch.zeros(solution.shape, device=b.device)  # r_(k-1) in wiki
     zvec_prev1 = b.clone().contiguous() - A(solution)  # r_k in wiki
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
@@ -641,8 +641,6 @@ def minres(
     beta_prev = (
         (zvec_prev1 * qvec_prev1).sum(dim=dim, keepdim=True).sqrt().clamp_min(eps)
     )
-    beta_curr = torch.empty_like(beta_prev)
-    tmpvec = torch.empty_like(qvec_prev1)
 
     # Divide by beta_prev
     zvec_prev1 = zvec_prev1.div(beta_prev)
@@ -654,13 +652,6 @@ def minres(
     sin_prev2 = torch.zeros(alpha_curr.shape, dtype=b.dtype, device=b.device)
     cos_prev1 = cos_prev2.clone()
     sin_prev1 = sin_prev2.clone()
-    radius_curr = torch.empty_like(cos_prev1)
-    cos_curr = torch.empty_like(cos_prev1)
-    sin_curr = torch.empty_like(cos_prev1)
-    # 2) Terms QR decomposition of T
-    subsub_diag_term = torch.empty_like(alpha_curr)
-    sub_diag_term = torch.empty_like(alpha_curr)
-    diag_term = torch.empty_like(alpha_curr)
 
     # Variables for the solution updates
     # 1) The "search" vectors of the solution
@@ -668,13 +659,10 @@ def minres(
     # R is the QR factor of the tridiagonal Lanczos matrix.
     search_prev2 = torch.zeros_like(solution)
     search_prev1 = torch.zeros_like(solution)
-    search_curr = torch.empty_like(search_prev1)
-    search_update = torch.empty_like(search_prev1)
     # 2) The "scaling" terms of the search vectors
     # Equivalent to the terms of V^T Q^T b, where Q is the matrix of Lanczos vectors and
     # V is the QR orthonormal of the tridiagonal Lanczos matrix.
     scale_prev = beta_prev.clone()
-    scale_curr = torch.empty_like(scale_prev)
 
     # Terms for checking for convergence
     solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
