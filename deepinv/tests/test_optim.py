@@ -898,8 +898,10 @@ def test_linear_system(device, solver, dtype):
         mat = mat.adjoint() @ mat
     if solver == "minres" or solver == "BiCGStab":
         # minres is only for hermite matrices
+        # bcgstab currently only works for symmetric matrices (even though it should also work for non-symmetric)
         mat = mat + mat.adjoint()
-    if solver in ["lsqr", "BiCGStab"] and torch.is_complex(mat):
+    if solver == "BiCGStab" and torch.is_complex(mat):
+        # bicgstab currently doesn't work for complex-valued systems
         return
     b = torch.randn((batch_size, 32), dtype=dtype, device=device)
 
@@ -909,12 +911,14 @@ def test_linear_system(device, solver, dtype):
     tol = 1e-3
     if solver == "CG":
         x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
-    if solver == "minres":
+    elif solver == "minres":
         x = dinv.optim.utils.minres(A, b, tol=tol)
-    if solver == "BiCGStab":
+    elif solver == "BiCGStab":
         x = dinv.optim.utils.bicgstab(A, b, tol=tol)
-    if solver == "lsqr":
+    elif solver == "lsqr":
         x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+    else:
+        raise ValueError("Solver not found")
 
     x_star = torch.linalg.solve(mat, b.T).T
 
