@@ -608,7 +608,7 @@ def minres(
     :param float tol: absolute tolerance for stopping the MINRES algorithm.
     :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
-    :param Callable precon: preconditioner is a callable function (not tested).
+    :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
     """
 
@@ -640,7 +640,7 @@ def minres(
     qvec_prev1 = precon(zvec_prev1)
     alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
     alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
-    beta_prev = dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()
+    beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
 
     # Divide by beta_prev
     zvec_prev1 = zvec_prev1 / beta_prev
@@ -679,7 +679,7 @@ def minres(
         prod = prod - alpha_curr * zvec_prev1 - beta_prev * zvec_prev2
         qvec_curr = precon(prod)
 
-        beta_curr = dot(prod, qvec_curr, dim=dim).sqrt()
+        beta_curr = torch.abs(dot(prod, qvec_curr, dim=dim).sqrt()).clamp_min(eps)
 
         prod = prod / beta_curr
         qvec_curr = qvec_curr / beta_curr

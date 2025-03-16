@@ -882,6 +882,48 @@ def test_least_square_solvers(device, solver, physics_name):
         assert y.grad.norm() > 0
 
 
+DTYPES = [torch.float32, torch.complex64]
+
+
+@pytest.mark.parametrize("solver", solvers)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_linear_system(device, solver, dtype):
+    # test the solution of linear systems with random matrices
+    batch_size = 4
+    dim = 32
+
+    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    if solver == "CG":
+        # CG is only for hermite positive definite matrices
+        mat = mat.adjoint() @ mat
+    if solver == "minres" or solver == "BiCGStab":
+        # minres is only for hermite matrices
+        mat = mat + mat.adjoint()
+    if solver in ["lsqr", "BiCGStab"] and torch.is_complex(mat):
+        return
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+
+    A = lambda x: (mat @ x.T).T
+    AT = lambda x: (mat.adjoint() @ x.T).T
+
+    tol = 1e-3
+    if solver == "CG":
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+    if solver == "minres":
+        x = dinv.optim.utils.minres(A, b, tol=tol)
+    if solver == "BiCGStab":
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+    if solver == "lsqr":
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+
+    x_star = torch.linalg.solve(mat, b.T).T
+
+    # consider relative error
+    assert (
+        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
+    )
+
+
 def test_condition_number(device):
     imsize = (2, 1, 32, 32)
 
