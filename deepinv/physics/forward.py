@@ -190,7 +190,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
         :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
-            For linear operators, the options are `'CG'`, `'lsqr'` and `'BiCGStab'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.utils.least_squares` for more details).
         :param int max_iter: maximum number of iterations for the solver.
         :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
         """
@@ -270,7 +270,7 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
-    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'` and `'BiCGStab'`. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
 
     |sep|
 

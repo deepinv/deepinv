@@ -840,7 +840,7 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-solvers = ["CG", "BiCGStab", "lsqr"]
+solvers = ["CG", "BiCGStab", "lsqr", "minres"]
 least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
 
 
@@ -880,6 +880,52 @@ def test_least_square_solvers(device, solver, physics_name):
     loss.backward()
     if not "inpainting" in physics_name:
         assert y.grad.norm() > 0
+
+
+DTYPES = [torch.float32, torch.complex64]
+
+
+@pytest.mark.parametrize("solver", solvers)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_linear_system(device, solver, dtype):
+    # test the solution of linear systems with random matrices
+    batch_size = 4
+    dim = 32
+
+    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    if solver == "CG":
+        # CG is only for hermite positive definite matrices
+        mat = mat.adjoint() @ mat
+    if solver == "minres" or solver == "BiCGStab":
+        # minres is only for hermite matrices
+        # bcgstab currently only works for symmetric matrices (even though it should also work for non-symmetric)
+        mat = mat + mat.adjoint()
+    if solver == "BiCGStab" and torch.is_complex(mat):
+        # bicgstab currently doesn't work for complex-valued systems
+        return
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+
+    A = lambda x: (mat @ x.T).T
+    AT = lambda x: (mat.adjoint() @ x.T).T
+
+    tol = 1e-3
+    if solver == "CG":
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+    elif solver == "minres":
+        x = dinv.optim.utils.minres(A, b, tol=tol)
+    elif solver == "BiCGStab":
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+    elif solver == "lsqr":
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+    else:
+        raise ValueError("Solver not found")
+
+    x_star = torch.linalg.solve(mat, b.T).T
+
+    # consider relative error
+    assert (
+        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
+    )
 
 
 def test_condition_number(device):
