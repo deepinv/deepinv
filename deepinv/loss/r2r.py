@@ -91,7 +91,7 @@ class R2RLoss(Loss):
         self,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         noise_model: NoiseModel = GaussianNoise(0.1),
-        alpha=0.5,
+        alpha=0.15,
         sigma=None,
         eval_n_samples=5,
     ):
