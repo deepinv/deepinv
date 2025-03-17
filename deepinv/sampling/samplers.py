@@ -198,7 +198,6 @@ class BaseSample(Reconstructor):
                 self.callback(X_t)
                 # Store previous means and variances for convergence check
                 if i >= (self.max_iter - self.thinning):
-                    print("true")
                     mean_prevs = [stat.mean().clone() for stat in statistics]
                     var_prevs = [stat.var().clone() for stat in statistics]
                 
@@ -314,7 +313,7 @@ def sample_builder(
     **kwargs
 ):
     r"""
-    Helper function for building an instance of the :class:`deepinv.optim.BaseSample` class.
+    Helper function for building an instance of the :class:`deepinv.sampling.BaseSample` class.
 
     :param iterator: Either a SamplingIterator instance or a string naming the iterator class
     :param data_fidelity: Negative log-likelihood function

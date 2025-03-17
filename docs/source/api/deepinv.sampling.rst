@@ -18,6 +18,25 @@ Diffusion
     deepinv.sampling.DPS
     deepinv.sampling.DiffusionSampler
 
+Base Class
+----------
+.. userguide:: sampling
+
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.sampling.sample_builder
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+   deepinv.sampling.BaseSample
+
+
 Markov Chain Monte Carlo Langevin
 ---------------------------------
 .. userguide:: mcmc
@@ -26,11 +45,17 @@ Markov Chain Monte Carlo Langevin
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
+
     deepinv.sampling.ULA
     deepinv.sampling.SKRock
+
+Iterators
+---------
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.sampling.SamplingIterator
     deepinv.sampling.SKRockIterator
     deepinv.sampling.ULAIterator
-    deepinv.sampling.sampling_iterators.SamplingIterator
-    deepinv.sampling.BaseSample
-    deepinv.sampling.sample_builder
-

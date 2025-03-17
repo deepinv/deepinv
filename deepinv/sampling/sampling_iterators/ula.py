@@ -34,6 +34,10 @@ class ULAIterator(SamplingIterator):
 
     :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling.
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
+
+    :return: Next state :math:`X_{t+1}` in the Markov chain
+    :rtype: torch.Tensor
+
     """
 
     def __init__(self, clip=None):
@@ -85,6 +89,7 @@ class ULAIterator(SamplingIterator):
            * - sigma
              - float
              - Noise level for the score model (default: 0.05)
+
         :return: Next state :math:`x_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """

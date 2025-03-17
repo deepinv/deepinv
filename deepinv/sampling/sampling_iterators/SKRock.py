@@ -72,6 +72,7 @@ class SKRockIterator(SamplingIterator):
            * - sigma
              - float
              - Noise level for the score prior denoiser (default: 0.05). A larger value of sigma will result in a more regularized reconstruction
+
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """

@@ -117,7 +117,7 @@ class PULAIterator(dinv.sampling.SamplingIterator):
 # Define the prior
 # ----------------
 #
-# The score a distribution can be approximated using a plug-and-play denoiser via the
+# The score of a distribution can be approximated using a plug-and-play denoiser via the
 # :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
@@ -133,7 +133,7 @@ prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 # Build our sampler
 # -------------------
 #
-# Using our custom iterator, we can build a sampler class by calling :function:`deepinv.sampling.sample_builder`
+# Using our custom iterator, we can build a sampler class by calling `deepinv.sampling.sample_builder`
 # This function returns an instance of :class:`deepinv.sampling.BaseSample` which takes care of the sampling procedure
 # (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
 # providing a convenient interface to the user.
@@ -192,9 +192,9 @@ ula = dinv.sampling.sample_builder(
 #   (e.g. which inherit from :class:`deepinv.physics.DecomposablePhysics`) and the noise to be Gaussian,
 #   whereas ULA is more general.
 
-ula_mean, ula_var = ula(y, physics)
+ula_mean, ula_var = ula.sample(y, physics)
 
-pula_mean, pula_var = pula(y, physics)
+pula_mean, pula_var = pula.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)
