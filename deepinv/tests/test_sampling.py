@@ -229,6 +229,7 @@ def choose_algo_build(algo, likelihood, thresh_conv, sigma, sigma_prior):
 
 @pytest.mark.parametrize("algo", BUILD_ALGOS)
 def test_build_algo(algo, imsize, device):
+    # NOTE: redundancy here with the above test_sample_algo
     test_sample = torch.ones((1, *imsize))
 
     sigma = 1

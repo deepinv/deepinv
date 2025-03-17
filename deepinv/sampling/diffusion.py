@@ -33,7 +33,6 @@ class DiffusionIterator(SamplingIterator):
         return x
 
 
-# TODO: move to BaseSample
 class DiffusionSampler(BaseSample):
     r"""
     Turns a diffusion method into a Monte Carlo sampler

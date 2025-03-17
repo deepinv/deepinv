@@ -60,8 +60,6 @@ class BaseSample(Reconstructor):
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         max_iter=100,
-        # TODO: pass to iterator
-        # clip=None,
         callback = lambda x: x,
         burnin_ratio=0.2,
         thresh_conv=1e-3,
@@ -217,7 +215,6 @@ class BaseSample(Reconstructor):
         if i > 1:
             # Check convergence for each statistic
             for j, stat in enumerate(statistics):
-                print(i, "here")
                 if not check_conv(
                     {"est": (mean_prevs[j],)},
                     {"est": (stat.mean(),)},
@@ -303,7 +300,6 @@ def create_iterator(
         # If already a SamplingIterator instance, return as is
         return iterator
 
-# TODO: pass in kwargs
 def sample_builder(
     iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
