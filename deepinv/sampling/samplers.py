@@ -321,11 +321,11 @@ def sample_builder(
     :param prior: Negative log-prior
     :param params_algo: Dictionary containing the parameters for the algorithm
     :param max_iter: Number of Monte Carlo iterations
-    :param clip: Tuple of (min, max) values to clip samples
     :param burnin_ratio: Percentage of iterations for burn-in
     :param thinning: Integer to thin the Monte Carlo samples
     :param history_size: Number of recent samples to store
     :param verbose: Whether to print progress
+    :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter
     :return: Configured BaseSample instance in eval mode
     """
     iterator = create_iterator(iterator, **kwargs)

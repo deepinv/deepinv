@@ -26,9 +26,6 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
             )
         return True
     else:
-        print(
-            f"Iteration {it}, current converge crit. = {crit_cur:.2E}, objective = {thres_conv:.2E} \r"
-        )
         return False
 
 
