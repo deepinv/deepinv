@@ -1,4 +1,5 @@
 import torch.nn as nn
+from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
 import time as time
@@ -30,10 +31,14 @@ class ULAIterator(SamplingIterator):
 
     - Projected PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA requires that ``step_size`` is smaller than :math:`\frac{1}{L+\|A\|_2^2}`
+
+    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling.
+        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     """
 
-    def __init__(self):
+    def __init__(self, clip=None):
         super().__init__()
+        self.clip = clip
 
     def forward(
         self,
@@ -83,27 +88,38 @@ class ULAIterator(SamplingIterator):
         :return: Next state :math:`x_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        # Get parameters with defaults
-        # TODO: raise error if we don't have these (no defaults)
-        # TODO: check if this is reasonable 
-        step_size = cur_params.get("step_size", 1) #self.compute_step_size(x, y, physics, cur_prior))
-        alpha = cur_params.get("alpha", 1.0)
-        sigma = cur_params.get("sigma", 0.05)
+        # Raise an error if these are not supplied
+        missing_params = []
+        if "step_size" not in cur_params:
+            missing_params.append("step_size")
+        if "alpha" not in cur_params:
+            missing_params.append("alpha")
+        if "sigma" not in cur_params:
+            missing_params.append("sigma")
+            
+        if missing_params:
+            raise ValueError(f"Missing required parameters for ULA: {', '.join(missing_params)}")
+            
+        step_size = cur_params["step_size"]
+        alpha = cur_params["alpha"]
+        sigma = cur_params["sigma"]
         
         noise = torch.randn_like(x) * np.sqrt(2 * step_size)
         lhood = -cur_data_fidelity.grad(x, y, physics)
         lprior = -cur_prior.grad(x, sigma) * alpha
-        return x + step_size * (lhood + lprior) + noise
+        x_t = x + step_size * (lhood + lprior) + noise
+        if self.clip:
+            x_t = projbox(x_t, self.clip[0], self.clip[1])
+        return x_t
     
-    # BUG: broken atm
-    def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
-        if not isinstance(physics, LinearPhysics):
-            # TODO: raise warning here
-            return 0.01
-        physicsnorm = physics.compute_norm(x)
-        # NOTE: eval wrong here?
-        reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
-        jacy = prior.denoiser(y)
-        priornorm = reg_l2(jacy, y)
-        return 1/(priornorm + physicsnorm)
+def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
+    if not isinstance(physics, LinearPhysics):
+        # TODO: raise warning here
+        return 0.01
+    physicsnorm = physics.compute_norm(x)
+    # NOTE: eval wrong here?
+    reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
+    jacy = prior.denoiser(y)
+    priornorm = reg_l2(jacy, y)
+    return 1/(priornorm + physicsnorm)
 

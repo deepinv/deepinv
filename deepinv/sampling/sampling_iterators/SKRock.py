@@ -1,4 +1,5 @@
 import torch.nn as nn
+from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
 import time as time
@@ -19,10 +20,14 @@ class SKRockIterator(SamplingIterator):
 
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK requires that ``step_size`` smaller than :math:`\frac{1}{L+\|A\|_2^2}`
+
+    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling.
+        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     """
 
-    def __init__(self):
+    def __init__(self, clip=None):
         super().__init__()
+        self.clip=clip
 
     def forward(
         self,
@@ -70,12 +75,28 @@ class SKRockIterator(SamplingIterator):
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        # Extract parameters from cur_params with defaults
-        step_size = cur_params.get("step_size", 1.0)
-        alpha = cur_params.get("alpha", 1.0)  # using common default for consistency
-        inner_iter = cur_params.get("inner_iter", 10)
-        eta = cur_params.get("eta", 0.05)
-        sigma = cur_params.get("sigma", 0.05)
+        # Check for required parameters and raise error if any are missing
+        missing_params = []
+        if "step_size" not in cur_params:
+            missing_params.append("step_size")
+        if "alpha" not in cur_params:
+            missing_params.append("alpha")
+        if "inner_iter" not in cur_params:
+            missing_params.append("inner_iter")
+        if "eta" not in cur_params:
+            missing_params.append("eta")
+        if "sigma" not in cur_params:
+            missing_params.append("sigma")
+            
+        if missing_params:
+            raise ValueError(f"Missing required parameters for SKRock: {', '.join(missing_params)}")
+            
+        # Extract parameters from cur_params (no defaults)
+        step_size = cur_params["step_size"]
+        alpha = cur_params["alpha"]
+        inner_iter = cur_params["inner_iter"]
+        eta = cur_params["eta"]
+        sigma = cur_params["sigma"]
 
         # Define posterior gradient
         posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + alpha * (
@@ -108,5 +129,8 @@ class SKRockIterator(SamplingIterator):
             kappa = 1 - nu  # parameter \kappa_js
             xts = -mu * step_size * posterior(xts) + nu * xts + kappa * xts_2
             xts_2 = xts_1
+
+        if self.clip:
+            xts = projbox(xts, self.clip[0], self.clip[1])
 
         return xts

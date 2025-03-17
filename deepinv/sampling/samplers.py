@@ -1,15 +1,10 @@
 import sys
-import warnings
 from collections import deque
-from collections.abc import Iterable
 import torch
-from torch import nn
 from tqdm import tqdm
 from deepinv.physics import Physics
 from deepinv.optim.optim_iterators import *
-from deepinv.optim.fixed_point import FixedPoint
-from deepinv.optim.prior import Zero, Prior
-from deepinv.loss.metric.distortion import PSNR
+from deepinv.optim.prior import Prior
 from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
@@ -18,8 +13,6 @@ from deepinv.sampling.sampling_iterators import *
 from deepinv.optim.utils import check_conv
 
 
-# TODO: add in some common statistics like mean/ pixel?
-# to avoid having to supply g_statistics functions manually
 class BaseSample(Reconstructor):
     r"""
     Base class for Monte Carlo sampling.
@@ -52,8 +45,6 @@ class BaseSample(Reconstructor):
     :param deepinv.optim.Prior prior: Negative log-prior
     :param dict params_algo: Dictionary containing the parameters for the algorithm
     :param int max_iter: Number of Monte Carlo iterations. Default: 100
-    :param tuple(int,int) clip: Tuple of (min, max) values to clip/project the samples into a bounded range during sampling.
-        Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
@@ -70,7 +61,7 @@ class BaseSample(Reconstructor):
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         max_iter=100,
         # TODO: pass to iterator
-        clip=None,
+        # clip=None,
         callback = lambda x: x,
         burnin_ratio=0.2,
         thresh_conv=1e-3,
@@ -93,10 +84,10 @@ class BaseSample(Reconstructor):
         self.var_convergence = False
         self.thinning = thinning
         self.verbose = verbose
-        self.clip = clip
+        # self.clip = clip
         self.history_size = history_size
-        # Stores last history_size samples note float('inf') => we store the whole chain
-
+        
+        # initialize history, to zero
         if history_size is True:
             self.history = []
         elif history_size:
@@ -204,8 +195,6 @@ class BaseSample(Reconstructor):
                 self.params_algo,
                 **kwargs,
             )
-            if self.clip:
-                X_t = projbox(X_t, self.clip[0], self.clip[1])
 
             if i >= (self.max_iter * self.burnin_ratio) and i % self.thinning == 0:
                 self.callback(X_t)
@@ -298,6 +287,7 @@ class BaseSample(Reconstructor):
 
 def create_iterator(
     iterator: SamplingIterator | str,
+    **kwargs
 ) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
@@ -308,25 +298,24 @@ def create_iterator(
     if isinstance(iterator, str):
         # If a string is provided, create an instance of the named class
         iterator_fn = str_to_class(iterator + "Iterator")
-        return iterator_fn()
+        return iterator_fn(**kwargs)
     else:
         # If already a SamplingIterator instance, return as is
         return iterator
 
-
+# TODO: pass in kwargs
 def sample_builder(
     iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
     prior: Prior,
     params_algo={},
     max_iter=100,
-    clip=None,
     burnin_ratio=0.2,
     thinning=10,
     history_size=5,
     verbose=False,
+    **kwargs
 ):
-    # TODO: make these docs better
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseSample` class.
 
@@ -342,7 +331,7 @@ def sample_builder(
     :param verbose: Whether to print progress
     :return: Configured BaseSample instance in eval mode
     """
-    iterator = create_iterator(iterator)
+    iterator = create_iterator(iterator, **kwargs)
     # Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)
     return BaseSample(
         iterator,
@@ -350,7 +339,6 @@ def sample_builder(
         prior=prior,
         params_algo=params_algo,
         max_iter=max_iter,
-        clip=clip,
         burnin_ratio=burnin_ratio,
         thinning=thinning,
         history_size=history_size,

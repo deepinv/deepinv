@@ -9,9 +9,14 @@ from deepinv.utils.plotting import plot
 from deepinv.sampling.samplers import BaseSample
 from deepinv.sampling.sampling_iterators import SamplingIterator
 
+from deepinv.sampling.utils import projbox
+
+
 class DiffusionIterator(SamplingIterator):
-    def __init__(self):
+    def __init__(self, clip=None):
         super(SamplingIterator, self).__init__()
+        self.clip=clip
+
     def forward(
         self,
         x: torch.Tensor,
@@ -21,10 +26,11 @@ class DiffusionIterator(SamplingIterator):
         prior,
         cur_params,
     ) -> torch.Tensor:
-            # run one sampling kernel iteration
-            x = prior(y, physics)
-            return x
-
+        # run one sampling kernel iteration
+        x = prior(y, physics)
+        if self.clip:
+            x = projbox(x, self.clip[0], self.clip[1])
+        return x
 
 
 # TODO: move to BaseSample
@@ -62,7 +68,7 @@ class DiffusionSampler(BaseSample):
         data_fidelity = None
         diffusion.verbose = False
         prior = diffusion
-        iterator = DiffusionIterator()
+        iterator = DiffusionIterator(clip=clip)
 
         super().__init__(
             iterator,
@@ -73,7 +79,6 @@ class DiffusionSampler(BaseSample):
             thresh_conv=thres_conv,
             history_size=save_chain,
             burnin_ratio=0.0,
-            clip=clip,
             verbose=verbose,
             # thresh_conv=thres_conv,
         )
@@ -88,7 +93,9 @@ class DiffusionSampler(BaseSample):
         :param float seed: Random seed for generating the samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
+        return self.sample(
+            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+        )
 
 
 class DDRM(Reconstructor):

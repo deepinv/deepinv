@@ -70,7 +70,7 @@ class ULA(BaseSample):
         verbose=False,
     ):
         params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
-        iterator = ULAIterator()
+        iterator = ULAIterator(clip=clip)
         super().__init__(
             iterator,
             data_fidelity,
@@ -79,7 +79,6 @@ class ULA(BaseSample):
             params_algo=params_algo,
             thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
-            clip=clip,
             thinning=thinning,
             history_size=save_chain,
             verbose=verbose,
@@ -153,7 +152,7 @@ class SKRock(BaseSample):
         sigma=0.05,
     ):
         params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma, "eta": eta, "inner_iter": inner_iter}
-        iterator = SKRockIterator()
+        iterator = SKRockIterator(clip=clip)
         super().__init__(
             iterator,
             data_fidelity,
@@ -162,7 +161,6 @@ class SKRock(BaseSample):
             params_algo=params_algo,
             thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
-            clip=clip,
             thinning=thinning,
             history_size=save_chain,
             verbose=verbose,
