@@ -110,49 +110,51 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
     # Define the unfolded trainable model.
     for and_acc in [False, True]:
-        # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
+        for jac_free in [False, True]:
+            # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
-        model = DEQ_builder(
-            unfolded_algo,
-            params_algo=params_algo,
-            trainable_params=trainable_params,
-            data_fidelity=data_fidelity,
-            max_iter=max_iter,
-            prior=prior,
-            anderson_acceleration=and_acc,
-            anderson_acceleration_backward=and_acc,
-        )
+            model = DEQ_builder(
+                unfolded_algo,
+                params_algo=params_algo,
+                trainable_params=trainable_params,
+                data_fidelity=data_fidelity,
+                max_iter=max_iter,
+                prior=prior,
+                anderson_acceleration=and_acc,
+                anderson_acceleration_backward=and_acc,
+                jacobian_free=jac_free,
+            )
 
-        for idx, (name, param) in enumerate(model.named_parameters()):
-            assert param.requires_grad
-            assert (trainable_params[0] in name) or (trainable_params[1] in name)
+            for idx, (name, param) in enumerate(model.named_parameters()):
+                assert param.requires_grad
+                assert (trainable_params[0] in name) or (trainable_params[1] in name)
 
-        # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
-        batch_size = 5
-        n_channels, img_size_w, img_size_h = imsize
-        noise_level = 0.01
+            # batch_size, n_channels, img_size_w, img_size_h = 5, imsize
+            batch_size = 5
+            n_channels, img_size_w, img_size_h = imsize
+            noise_level = 0.01
 
-        torch.manual_seed(0)
-        test_sample = torch.randn(batch_size, n_channels, img_size_w, img_size_h).to(
-            device
-        )
-        groundtruth_sample = torch.randn(
-            batch_size, n_channels, img_size_w, img_size_h
-        ).to(device)
+            torch.manual_seed(0)
+            test_sample = torch.randn(
+                batch_size, n_channels, img_size_w, img_size_h
+            ).to(device)
+            groundtruth_sample = torch.randn(
+                batch_size, n_channels, img_size_w, img_size_h
+            ).to(device)
 
-        physics = dinv.physics.BlurFFT(
-            img_size=(n_channels, img_size_w, img_size_h),
-            filter=dinv.physics.blur.gaussian_blur(),
-            device=device,
-            noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
-        )
+            physics = dinv.physics.BlurFFT(
+                img_size=(n_channels, img_size_w, img_size_h),
+                filter=dinv.physics.blur.gaussian_blur(),
+                device=device,
+                noise_model=dinv.physics.GaussianNoise(sigma=noise_level),
+            )
 
-        y = physics(test_sample).type(test_sample.dtype).to(device)
+            y = physics(test_sample).type(test_sample.dtype).to(device)
 
-        out = model(y, physics=physics)
+            out = model(y, physics=physics)
 
-        assert out.shape == test_sample.shape
+            assert out.shape == test_sample.shape
 
-        loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
-        loss = loss_fn(groundtruth_sample, out)
-        loss.backward()
+            loss_fn = dinv.loss.SupLoss(metric=torch.nn.MSELoss())
+            loss = loss_fn(groundtruth_sample, out)
+            loss.backward()
