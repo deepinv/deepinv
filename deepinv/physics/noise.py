@@ -148,9 +148,9 @@ class GaussianNoise(NoiseModel):
         r"""
         Sum of 2 gaussian noises via + operator.
 
-        :math:`N(x) = \sqrt{N_1(x)^2 + N_2(x)^2}`
+        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
-        :param deepinv.physics.GaussianNoise other: Gaussian noise :math:`N_2`
+        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
         :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
         """
         if not isinstance(other, GaussianNoise):
@@ -169,13 +169,13 @@ class GaussianNoise(NoiseModel):
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`\lambda` a float.
-            | :math:`[\lambda \times gaussian](x) = [\lambda \times gaussian(x_1), ..., \lambda \times gaussian(x_b)]`
+            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-            | :math:`[other \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`
+           | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
         :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.

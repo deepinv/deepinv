@@ -4,7 +4,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
 
 
-class DownSamplingGenerator(PhysicsGenerator):
+class DownsamplingGenerator(PhysicsGenerator):
     r"""
     Random downsampling generator.
 
