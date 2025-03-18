@@ -150,7 +150,7 @@ class GaussianNoise(NoiseModel):
 
         :math:`N(x) = \sqrt{N_1(x)^2 + N_2(x)^2}`
 
-        :param deepinv.physics.GaussianNoise other: Gaussian noise :math:`N_2`
+        :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
         :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
         """
         if not isinstance(other, GaussianNoise):
