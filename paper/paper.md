@@ -105,171 +105,79 @@ of new ideas, ii) enlarge the adoption of deep learning in inverse problems by l
 in the field, and iii) enhance research reproducibility via a common definition of imaging operators and reconstruction
 methods and a common framework for defining datasets for inverse problems.
 
+
+![Schematic of the library.\label{fig:schematic}](figures/deepinv_schematic_.png)
+
+
 # Inverse problems
 
 Imaging inverse problems can be expressed as 
 \begin{equation} \label{eq:solver}
 y = N(A(x))
-\end{equation} 
-which in deepinv code is simply written as `x_hat = physics(y)`.
+\end{equation}
+where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A:\mathcal{X}\mapsto\mathcal{Y}$ is a
+deterministic (linear or non-linear) operator capturing the physics of the acquisition and
+$N:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements.
+The forward operation is simply written in deepinv as `x_hat = physics(y)`.
 
 
-.. list-table:: Operators, Definitions, and Generators
-   :header-rows: 1
-
-   * - **Family**
-     - **Operators**
-     - **Generators**
-
-   * - Pixelwise
-     -
-       | `deepinv.physics.Denoising`
-       | `deepinv.physics.Inpainting`
-       | `deepinv.physics.Demosaicing`
-       | `deepinv.physics.Decolorize`
-     -
-       | `BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
-       | `GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
-       | `Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
-       | `Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
-
-   * - Blur & Super-Resolution
-     -
-       | `deepinv.physics.Blur`
-       | `deepinv.physics.BlurFFT`
-       | `deepinv.physics.SpaceVaryingBlur`
-       | `deepinv.physics.Downsampling`
-     -
-       | `MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
-       | `DiffractionBlurGenerator <deepinv.physics.generator.DiffractionBlurGenerator>`
-       | `ProductConvolutionBlurGenerator <deepinv.physics.generator.ProductConvolutionBlurGenerator>`
-       | `ConfocalBlurGenerator3D <deepinv.physics.generator.ConfocalBlurGenerator3D>`
-       | `gaussian_blur <deepinv.physics.blur.gaussian_blur>`, `sinc_filter <deepinv.physics.blur.sinc_filter>`
-       | `bilinear_filter <deepinv.physics.blur.bilinear_filter>`, `bicubic_filter <deepinv.physics.blur.bicubic_filter>`
-
-   * - Magnetic Resonance Imaging (MRI)
-     -
-       | `deepinv.physics.MRIMixin`
-       | `deepinv.physics.MRI`
-       | `deepinv.physics.MultiCoilMRI`
-       | `deepinv.physics.DynamicMRI`
-       | `deepinv.physics.SequentialMRI`
-       | The above all also natively support 3D MRI.
-     -
-       | `GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
-       | `RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
-       | `EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
-       | The above all also support k+t dynamic sampling.
-
-   * - Tomography
-     -
-       | `deepinv.physics.Tomography`
-     -
-
-   * - Remote Sensing & Multispectral
-     -
-       | `deepinv.physics.Pansharpen`
-       | `deepinv.physics.HyperSpectralUnmixing`
-       | `deepinv.physics.CompressiveSpectralImaging`
-     -
-
-   * - Compressive
-     -
-       | `deepinv.physics.CompressedSensing`
-       | `deepinv.physics.StructuredRandom`
-       | `deepinv.physics.SinglePixelCamera`
-     -
-
-   * - Radio Interferometric Imaging
-     -
-       | `deepinv.physics.RadioInterferometry`
-     -
-
-   * - Single-Photon Lidar
-     -
-       | `deepinv.physics.SinglePhotonLidar`
-     -
-
-   * - Dehazing
-     -
-       | `deepinv.physics.Haze`
-     -
-
-   * - Phase Retrieval
-     -
-       | `deepinv.physics.PhaseRetrieval`
-       | `RandomPhaseRetrieval <deepinv.physics.RandomPhaseRetrieval>`
-       | `StructuredRandomPhaseRetrieval <deepinv.physics.StructuredRandomPhaseRetrieval>`
-       | `Ptychography <deepinv.physics.Ptychography>`
-       | `PtychographyLinearOperator <deepinv.physics.PtychographyLinearOperator>`
-     - | `build_probe <deepinv.physics.phase_retrieval.build_probe>`
-       | `generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
+| **Family**                     | **Operators**                                                                 | **Generators**                                                                                                                                                                                                 |
+|--------------------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Pixelwise                      | `Denoising`<br>`Inpainting`<br>`Demosaicing`<br>`Decolorize`                  | `BernoulliSplittingMaskGenerator`<br>`GaussianSplittingMaskGenerator`<br>`Phase2PhaseSplittingMaskGenerator`<br>`Artifact2ArtifactSplittingMaskGenerator`                                                     |
+| Blur & Super-Resolution        | `Blur`<br>`BlurFFT`<br>`SpaceVaryingBlur`<br>`Downsampling`                   | `MotionBlurGenerator`<br>`DiffractionBlurGenerator`<br>`ProductConvolutionBlurGenerator`<br>`ConfocalBlurGenerator3D`<br>`DownsamplingGenerator3D`<br>`gaussian_blur`, `sinc_filter`<br>`bilinear_filter`, `bicubic_filter`               |
+| Magnetic Resonance Imaging (MRI) | `MRIMixin`<br>`MRI`<br>`MultiCoilMRI`<br>`DynamicMRI`<br>`SequentialMRI`<br>(All support 3D MRI) | `GaussianMaskGenerator`<br>`RandomMaskGenerator`<br>`EquispacedMaskGenerator`<br>                                                                                        |
+| Tomography                     | `Tomography`                                                                  |                                                                                                                                                                                                               |
+| Remote Sensing & Multispectral | `Pansharpen`<br>`HyperSpectralUnmixing`<br>`CompressiveSpectralImaging`       |                                                                                                                                                                                                               |
+| Compressive                    | `CompressedSensing`<br>`StructuredRandom`<br>`SinglePixelCamera`              |                                                                                                                                                                                                               |
+| Radio Interferometric Imaging  | `RadioInterferometry`                                                         |                                                                                                                                                                                                               |
+| Single-Photon Lidar            | `SinglePhotonLidar`                                                           |                                                                                                                                                                                                               |
+| Dehazing                       | `Haze`                                                                        |                                                                                                                                                                                                               |
+| Phase Retrieval                | `PhaseRetrieval`<br>`RandomPhaseRetrieval`<br>`StructuredRandomPhaseRetrieval`<br>`Ptychography`<br>`PtychographyLinearOperator` | `build_probe`<br>`generate_shifts`                                                                                                                                                                             |
 
        
 # Reconstruction methods
 
 The library provides multiple solvers which depend on the acquisition physics:
 \begin{equation} \label{eq:solver}
-\hat{x} = R_{\theta}(y, A)
+\hat{x} = R_{\theta}(y, A, N)
 \end{equation}
-which in deepinv code is simply written as `x_hat = solver(y, A)`.
+where $R_{\theta}$ is a reconstruction network/algorithm with trainable parameters $\theta$ which can depends on the forward operator and noise distribution.
+In deepinv code, a reconstructor is evaluated as `x_hat = solver(y, A)`.
 
 
-.. list-table:: Reconstruction methods
-   :header-rows: 1
+| **Family of Methods**                     | **Description**                                                                 | **Requires Training** | **Iterative** | **Sampling** | **References** |
+|-------------------------------------------|--------------------------------------------------------------------------------|-----------------------|---------------|--------------|----------------|
+| Artifact Removal                          | Applies a neural network to a non-learned pseudo-inverse                        | Yes                   | No            | No           |    [@jin2017deep]            |
+| Plug-and-Play (PnP)                       | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | No           |                |
+| Unfolded Networks                         | Constructs a trainable architecture by unrolling a PnP algorithm                 | Yes                   | Only DEQ      | No           |                |
+| Diffusion                                 | Leverages pretrained denoisers within an ODE/SDE                                 | No                    | Yes           | Yes          |                |
+| Non-learned Priors                        | Solves an optimization problem with hand-crafted priors                          | No                    | Yes           | No           |                |
+| Markov Chain Monte Carlo (MCMC)           | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | Yes          |                |
+| Generative Adversarial Networks and Deep Image Prior | Uses a generator network to model the set of possible images                     | No                    | Yes           | Depends      |                |
+| Specific Network Architectures            | Off-the-shelf architectures for specific inverse problems                        | Yes                   | No            | No           |                |
+| Foundation Models            | Models trained for many imaging problems                        | Finetuning                   | No            | No           |                |
 
-   * - **Family of methods**
-     - **Description**
-     - **Requires Training**
-     - **Iterative**
-     - **Sampling**
-   * - `Artifact Removal <artifact>`
-     - Applies a neural network to a non-learned pseudo-inverse
-     - Yes
-     - No
-     - No
-   * - `Plug-and-Play (PnP) <iterative>`
-     - Leverages `pretrained denoisers <denoisers>` as priors within an optimisation algorithm.
-     - No
-     - Yes
-     - No
-   * - `Unfolded Networks <unfolded>`
-     - Constructs a trainable architecture by unrolling a PnP algorithm.
-     - Yes
-     - Only `DEQ <deepinv.unfolded.DEQ_builder>`
-     - No
-   * - `Diffusion <diffusion>`
-     - Leverages `pretrained denoisers <denoisers>` within a ODE/SDE.
-     - No
-     - Yes
-     - Yes
-   * - `Non-learned priors <iterative>`
-     - Solves an optimization problem with hand-crafted priors.
-     - No
-     - Yes
-     - No
-   * - `Markov Chain Monte Carlo <mcmc>`
-     - Leverages `pretrained denoisers <denoisers>` as priors within an optimisation algorithm.
-     - No
-     - Yes
-     - Yes
-   * - `Generative Adversarial Networks and Deep Image Prior  <adversarial>`
-     - Uses a generator network to model the set of possible images.
-     - No
-     - Yes
-     - Depends
-   * - `Specific network architectures <specific>`
-     - Off-the-shelf architectures for specific inverse problems.
-     - Yes
-     - No
-     - No
-
-
-![Schematic of the library.\label{fig:schematic}](figures/deepinv_schematic_.png)
-referenced from text using \autoref{fig:schematic}.
 
 
 # Training
+
+The package contains losses for training $R_{\theta}$ which are especially designed for inverse problems.
+The losses can be roughly separated in 3 categories: i) Supervised losses using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$, ii) self-supervised losses using measurement data only $\{y_i\}_{i=1}^{N}$  and iii) network regularization losses which enforce some regularity condition on $R_{\theta}$.
+
+| **Category**               | **Loss**                                                                                     | **Assumptions**                                                                 |
+|----------------------------|---------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+|| **Supervised Learning**  ||
+| End2End    | `SupLoss` | Requires paired data. 
+| Adversarial    |  `SupAdversarialGeneratorLoss`, `SupAdversarialDiscriminatorLoss`                  |  Supervised adversarial loss.                             |
+|| **Self-Supervised Learning** ||
+| Splitting  | `SplittingLoss`, `Neighbor2Neighbor`, `Phase2PhaseLoss`, `Artifact2ArtifactLoss` | Independent noise across measurements or pixels. Splitting across time.       |
+|   SURE and Related Losses     | `SureGaussianLoss`,  `SurePoissonLoss`, `SurePGLoss`,`R2RLoss`                                           | Gaussian, Poisson, Poisson-Gaussian, or Gamma noise.                          |
+|     Nullspace losses      | `EILoss`, `MOEILoss`, `MOEILoss`          | Invariant distribution. Multiple operators |
+|   Adversarial       | `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss` |  Unsupervised adversarial loss. Unsupervised reconstruction & adversarial loss. |
+|   Other       | `TVLoss`| Total Variation regularization.|
+|| **Network Regularization** ||
+| | `JacobianSpectralNorm`, `FNEJacobianSpectralNorm`                                            | Controls the spectral norm of the Jacobian matrix. Promotes a firmly non-expansive network. |
+
 
 # Acknowledgements
 
