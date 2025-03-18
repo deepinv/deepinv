@@ -86,6 +86,9 @@ def find_generator(name, size, num_channels, device, dtype):
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
+    elif name == "GainGenerator":
+        g = dinv.physics.generator.GainGenerator(device=device, dtype=dtype)
+        keys = ["gain"]
     else:
         raise Exception("The generator chosen doesn't exist")
     return g, size, keys
