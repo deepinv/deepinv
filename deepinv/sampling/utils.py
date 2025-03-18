@@ -23,7 +23,10 @@ class Welford:
         return self.M
 
     def var(self):
-        return self.S / (self.k - 1)
+        if self.k > 1:
+            return self.S / (self.k - 1)
+        else:
+            return self.S
 
 
 def refl_projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:

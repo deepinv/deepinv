@@ -27,7 +27,7 @@ class SKRockIterator(SamplingIterator):
 
     def __init__(self, clip=None):
         super().__init__()
-        self.clip=clip
+        self.clip = clip
 
     def forward(
         self,
@@ -45,7 +45,7 @@ class SKRockIterator(SamplingIterator):
 
         :param torch.Tensor x: Current state :math:`X_t` of the Markov chain
         :param torch.Tensor y: Observed measurements/data tensor
-        :param Physics physics: Forward operator 
+        :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood function
         :param ScorePrior cur_prior: Prior
         :param dict cur_params: Dictionary containing the algorithm parameters (see table below)
@@ -76,6 +76,8 @@ class SKRockIterator(SamplingIterator):
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
+        # TODO: could pass cur_params to init?
+
         # Check for required parameters and raise error if any are missing
         missing_params = []
         if "step_size" not in cur_params:
@@ -88,10 +90,12 @@ class SKRockIterator(SamplingIterator):
             missing_params.append("eta")
         if "sigma" not in cur_params:
             missing_params.append("sigma")
-            
+
         if missing_params:
-            raise ValueError(f"Missing required parameters for SKRock: {', '.join(missing_params)}")
-            
+            raise ValueError(
+                f"Missing required parameters for SKRock: {', '.join(missing_params)}"
+            )
+
         # Extract parameters from cur_params (no defaults)
         step_size = cur_params["step_size"]
         alpha = cur_params["alpha"]
@@ -100,10 +104,13 @@ class SKRockIterator(SamplingIterator):
         sigma = cur_params["sigma"]
 
         # Define posterior gradient
+        #
+        # TODO: not the posterior
         posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + alpha * (
             cur_prior.grad(u, sigma)
         )
 
+        # TODO: could be in init
         # First kind Chebyshev functions
         T_s = lambda s, u: np.cosh(s * np.arccosh(u))
         T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)

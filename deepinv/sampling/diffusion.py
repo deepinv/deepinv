@@ -15,7 +15,7 @@ from deepinv.sampling.utils import projbox
 class DiffusionIterator(SamplingIterator):
     def __init__(self, clip=None):
         super(SamplingIterator, self).__init__()
-        self.clip=clip
+        self.clip = clip
 
     def forward(
         self,

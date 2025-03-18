@@ -60,7 +60,7 @@ class BaseSample(Reconstructor):
         prior: Prior,
         params_algo={"lambda": 1.0, "stepsize": 1.0},
         max_iter=100,
-        callback = lambda x: x,
+        callback=lambda x: x,
         burnin_ratio=0.2,
         thresh_conv=1e-3,
         crit_conv="residual",
@@ -84,7 +84,7 @@ class BaseSample(Reconstructor):
         self.verbose = verbose
         # self.clip = clip
         self.history_size = history_size
-        
+
         # initialize history, to zero
         if history_size is True:
             self.history = []
@@ -157,7 +157,7 @@ class BaseSample(Reconstructor):
         # Set random seed if provided
         if seed is not None:
             torch.manual_seed(seed)
-        
+
         # Initialization
         if X_init is None:
             X_t = physics.A_adjoint(y)
@@ -177,7 +177,7 @@ class BaseSample(Reconstructor):
         statistics = []
         for g in g_statistics:
             statistics.append(Welford(g(X_t)))
-        
+
         # Initialize for convergence checking
         mean_prevs = [stat.mean().clone() for stat in statistics]
         var_prevs = [stat.var().clone() for stat in statistics]
@@ -200,7 +200,7 @@ class BaseSample(Reconstructor):
                 if i >= (self.max_iter - self.thinning):
                     mean_prevs = [stat.mean().clone() for stat in statistics]
                     var_prevs = [stat.var().clone() for stat in statistics]
-                
+
                 if self.history:
                     self.history.append(X_t)
 
@@ -210,7 +210,7 @@ class BaseSample(Reconstructor):
         # Check convergence for all statistics
         self.mean_convergence = True
         self.var_convergence = True
-        
+
         if i > 1:
             # Check convergence for each statistic
             for j, stat in enumerate(statistics):
@@ -223,7 +223,7 @@ class BaseSample(Reconstructor):
                     self.verbose,
                 ):
                     self.mean_convergence = False
-                
+
                 if not check_conv(
                     {"est": (var_prevs[j],)},
                     {"est": (stat.var(),)},
@@ -233,7 +233,6 @@ class BaseSample(Reconstructor):
                     self.verbose,
                 ):
                     self.var_convergence = False
-
 
         # Return means and variances for all g_statistics
         means = [stat.mean() for stat in statistics]
@@ -281,10 +280,7 @@ class BaseSample(Reconstructor):
         return self.var_convergence
 
 
-def create_iterator(
-    iterator: SamplingIterator | str,
-    **kwargs
-) -> SamplingIterator:
+def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
 
@@ -299,6 +295,7 @@ def create_iterator(
         # If already a SamplingIterator instance, return as is
         return iterator
 
+
 def sample_builder(
     iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
@@ -310,7 +307,7 @@ def sample_builder(
     thinning=10,
     history_size=5,
     verbose=False,
-    **kwargs
+    **kwargs,
 ):
     r"""
     Helper function for building an instance of the :class:`deepinv.sampling.BaseSample` class.

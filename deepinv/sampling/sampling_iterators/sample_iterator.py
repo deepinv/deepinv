@@ -6,6 +6,7 @@ from deepinv.optim import DataFidelity
 from typing import Dict, Any
 import torch
 
+
 # TODO: maybe remove the *args, **kwargs (at very least document what they are for e.g. proposal dists, clip etc)
 class SamplingIterator(nn.Module):
     r"""
@@ -46,4 +47,6 @@ class SamplingIterator(nn.Module):
         :return: Next state :math:`X_{t+1}` in the Markov chain
         :rtype: torch.Tensor
         """
-        raise NotImplementedError("Subclasses of SamplingIterator must implement the forward method")
+        raise NotImplementedError(
+            "Subclasses of SamplingIterator must implement the forward method"
+        )

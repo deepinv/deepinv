@@ -101,14 +101,16 @@ class ULAIterator(SamplingIterator):
             missing_params.append("alpha")
         if "sigma" not in cur_params:
             missing_params.append("sigma")
-            
+
         if missing_params:
-            raise ValueError(f"Missing required parameters for ULA: {', '.join(missing_params)}")
-            
+            raise ValueError(
+                f"Missing required parameters for ULA: {', '.join(missing_params)}"
+            )
+
         step_size = cur_params["step_size"]
         alpha = cur_params["alpha"]
         sigma = cur_params["sigma"]
-        
+
         noise = torch.randn_like(x) * np.sqrt(2 * step_size)
         lhood = -cur_data_fidelity.grad(x, y, physics)
         lprior = -cur_prior.grad(x, sigma) * alpha
@@ -116,15 +118,17 @@ class ULAIterator(SamplingIterator):
         if self.clip:
             x_t = projbox(x_t, self.clip[0], self.clip[1])
         return x_t
-    
-def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
-    if not isinstance(physics, LinearPhysics):
-        # TODO: raise warning here
-        return 0.01
-    physicsnorm = physics.compute_norm(x)
-    # NOTE: eval wrong here?
-    reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
-    jacy = prior.denoiser(y)
-    priornorm = reg_l2(jacy, y)
-    return 1/(priornorm + physicsnorm)
 
+
+#
+# def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
+#     if not isinstance(physics, LinearPhysics):
+#         # TODO: raise warning here
+#         return 0.01
+#     physicsnorm = physics.compute_norm(x)
+#     # NOTE: eval wrong here?
+#     reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
+#     jacy = prior.denoiser(y)
+#     priornorm = reg_l2(jacy, y)
+#     return 1/(priornorm + physicsnorm)
+#

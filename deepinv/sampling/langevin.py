@@ -63,7 +63,6 @@ class ULA(BaseSample):
         thinning=5,
         burnin_ratio=0.2,
         clip=(-1.0, 2.0),
-        # BUG: thresh_conv
         thresh_conv=1e-3,
         save_chain=False,
         g_statistic=lambda x: x,
@@ -94,7 +93,9 @@ class ULA(BaseSample):
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
+        return self.sample(
+            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+        )
 
 
 class SKRock(BaseSample):
@@ -151,7 +152,13 @@ class SKRock(BaseSample):
         verbose=False,
         sigma=0.05,
     ):
-        params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma, "eta": eta, "inner_iter": inner_iter}
+        params_algo = {
+            "step_size": step_size,
+            "alpha": alpha,
+            "sigma": sigma,
+            "eta": eta,
+            "inner_iter": inner_iter,
+        }
         iterator = SKRockIterator(clip=clip)
         super().__init__(
             iterator,
@@ -176,5 +183,6 @@ class SKRock(BaseSample):
         :param float seed: Random seed for generating the Monte Carlo samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(y,physics,X_init=x_init, seed=seed, g_statistics=self.g_statistics)
-
+        return self.sample(
+            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+        )

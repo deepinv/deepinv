@@ -188,9 +188,10 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
-
 # tests for sample_builder
 BUILD_ALGOS = ["ULA", "SKRock"]
+
+
 def choose_algo_build(algo, likelihood, thresh_conv, sigma, sigma_prior):
     prior = GaussianScore(sigma_prior)
 
@@ -221,7 +222,7 @@ def choose_algo_build(algo, likelihood, thresh_conv, sigma, sigma_prior):
         burnin_ratio=0.2,
         thinning=1,
         verbose=True,
-        clip=(-100, 100)
+        clip=(-100, 100),
     )
 
     return out
