@@ -74,11 +74,9 @@ class BaseSDESolver(nn.Module):
         :param float or Tensor t0: Time at the start of the step, of size (,).
         :param float or Tensor t1: Time at the end of the step, of size (,).
         :param Tensor x0: Current state of the system, of size (batch_size, d).
-        :param \*args: Variable length argument list.
-        :param \**kwargs: Arbitrary keyword arguments.
         :return: Updated state of the system after the step.
 
-        :rtype: Tensor
+        :rtype: torch.Tensor
         """
         raise NotImplementedError
 

@@ -1,20 +1,21 @@
 import torch
+from deepinv.models import Denoiser
 
 # ----------------------------------------------------------------------------
 # Improved preconditioning proposed in the paper "Elucidating the Design
 # Space of Diffusion-Based Generative Models" (EDM).
 
 
-class EDMPrecond(torch.nn.Module):
+class EDMPrecond(Denoiser):
     r"""
     Pre-conditioning of a denoiser, as proposed in the paper:
     `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
 
-    Given a neural network :math:`F`, The denoiser :math:`\denoiser{\sigma}{x}` is defined for
+    Given a neural network :math:`\tilde{\mathrm{F}}`, the denoiser :math:`\denoiser{x}{\sigma}` is defined for
     any noisy image :math:`x` and noise level :math:`\sigma` as follows:
 
     ..math::
-        \denoiser{x}{\sigma} = c_{\mathrm{skip}}(\sigma) x + c_{\mathrm{out}}(\sigma) \tilde{\mathrm{D}}_{c_{\mathrm{noise}}\sigma}(c_{\mathrm{in}} x).
+        \denoiser{x}{\sigma} = c_{\mathrm{skip}}(\sigma) x + c_{\mathrm{out}}(\sigma) \tilde{\mathrm{F}}_{c_{\mathrm{noise}}\sigma}(c_{\mathrm{in}} x).
 
     The pre-conditioning parameters are defined as follows:
 

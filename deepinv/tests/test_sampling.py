@@ -7,9 +7,6 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
-DEVICES = ["cpu"]
-if torch.cuda.is_available():
-    DEVICES.append("cuda")
 
 
 def choose_algo(algo, likelihood, thresh_conv, sigma, sigma_prior):
@@ -111,7 +108,6 @@ def test_sampling_algo(algo, imsize, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
-@pytest.mark.parametrize("device", DEVICES)
 def test_algo(name_algo, device):
     test_sample = torch.ones((1, 3, 64, 64), device=device)
 
@@ -147,7 +143,6 @@ def test_algo(name_algo, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
-@pytest.mark.parametrize("device", DEVICES)
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
@@ -192,7 +187,6 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
-@pytest.mark.parametrize("device", DEVICES)
 def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
@@ -235,15 +229,16 @@ def test_sde(device):
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
     for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
-        sde = VarianceExplodingDiffusion(
-            denoiser=denoiser,
-            rescale=rescale,
-            sigma_max=sigma_max,
-            sigma_min=sigma_min,
-            device=device,
-        )
-
         for solver in solvers:
+            sde = VarianceExplodingDiffusion(
+                denoiser=denoiser,
+                rescale=rescale,
+                sigma_max=sigma_max,
+                sigma_min=sigma_min,
+                solver=solver,
+                device=device,
+            )
+
             # Test generation
             sample_1, trajectory = sde.sample(
                 (1, 3, 64, 64),
@@ -271,6 +266,7 @@ def test_sde(device):
                 torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
                 < 1e-2
             )
+
     # Test posterior sampling
     sde = VarianceExplodingDiffusion(
         denoiser=denoisers[0],
@@ -281,7 +277,8 @@ def test_sde(device):
     )
     posterior = PosteriorDiffusion(
         data_fidelity=DPSDataFidelity(denoiser=denoiser),
-        unconditional_sde=sde,
+        sde=sde,
+        solver=solvers[0],
         dtype=torch.float32,
         device=device,
     )
@@ -292,7 +289,6 @@ def test_sde(device):
     x_hat = posterior.forward(
         y,
         physics,
-        solver=solvers[0],
         x_init=(1, 3, 64, 64),
         seed=10,
     )

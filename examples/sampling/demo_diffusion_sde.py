@@ -1,10 +1,10 @@
 r"""
-Image generation and Posterior Sampling with Stochastic Differential Equation Modeling
+Image generation and Posterior Sampling with Stochastic Differential Equations
 ====================================================================================================
 
-This code shows you how to use
-:meth:`deepinv.sampling.DiffusionSDE` to generate from a pre-trained denoiser and
-:meth:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling.
+This demo shows you how to use
+:class:`deepinv.sampling.DiffusionSDE` to perform unconditional image generation from a pre-trained denoiser and
+:class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling.
 
 
 Unconditional Image Generation
@@ -397,13 +397,13 @@ solver = EulerSolver(timesteps=timesteps, rng=rng)
 model = PosteriorDiffusion(
     data_fidelity=Zero(),
     unconditional_sde=sde,
+    solver=solver,
     dtype=dtype,
     device=device,
 )
-sample = model.forward(
+sample = model(
     y=None,
     physics=None,
-    solver=solver,
     x_init=(1, 3, 64, 64),
     seed=123,
     timesteps=timesteps,
@@ -422,6 +422,7 @@ y = physics(x)
 model = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(denoiser=denoiser),
     unconditional_sde=sde,
+    solver=solver,
     dtype=dtype,
     device=device,
 )
@@ -430,7 +431,6 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y,
     physics,
-    solver=solver,
     x_init=(1, 3, 64, 64),
     seed=1,
     timesteps=timesteps,

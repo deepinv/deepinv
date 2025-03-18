@@ -14,6 +14,7 @@ from torch.nn import Linear, GroupNorm
 
 class NCSNpp(Denoiser):
     r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
+
     Equivalent to the original implementation by Song et al., available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
@@ -211,20 +212,20 @@ class NCSNpp(Denoiser):
             self.to(device)
             self.device = device
 
-    def forward(self, x, noise_level, class_labels=None, augment_labels=None):
+    def forward(self, x, sigma, class_labels=None, augment_labels=None):
         r"""
         Run the denoiser on noisy image.
 
         :param torch.Tensor x: noisy image
-        :param torch.Tensor noise_level: noise level
+        :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
 
         :return torch.Tensor: denoised image.
         """
         # Mapping.
-        noise_level = self._handle_sigma(noise_level, x.dtype, x.device, x.size(0))
-        emb = self.map_noise(noise_level)
+        sigma = self._handle_sigma(sigma, x.dtype, x.device, x.size(0))
+        emb = self.map_noise(sigma)
         emb = (
             emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
         )  # swap sin/cos

@@ -15,6 +15,7 @@ from math import floor
 class ADMUNet(Denoiser):
     r"""
     Re-implementation of the architecture from the paper: `Diffusion Models Beat GANs on Image Synthesis <https://arxiv.org/abs/2105.05233>`_.
+
     Equivalent to the original implementation by Dhariwal and Nichol, available at: https://github.com/openai/guided-diffusion.
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections.
     Each residual block has a self-attention mechanism with `64` channels per attention head with the up/down-sampling from BigGAN..
@@ -157,20 +158,20 @@ class ADMUNet(Denoiser):
             self.to(device)
             self.device = device
 
-    def forward(self, x, noise_level, class_labels=None, augment_labels=None):
+    def forward(self, x, sigma, class_labels=None, augment_labels=None):
         r"""
         Run the denoiser on noisy image.
 
         :param torch.Tensor x: noisy image
-        :param torch.Tensor noise_level: noise level
+        :param Union[torch.Tensor, float] sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
 
-        :return torch.Tensor: denoised image.
+        :return: (:class:`torch.Tensor`) denoised image.
         """
         # Mapping.
-        noise_level = self._handle_sigma(noise_level, x.dtype, x.device, x.size(0))
-        emb = self.map_noise(noise_level)
+        sigma = self._handle_sigma(sigma, x.dtype, x.device, x.size(0))
+        emb = self.map_noise(sigma)
         if self.map_augment is not None and augment_labels is not None:
             emb = emb + self.map_augment(augment_labels)
         emb = silu(self.map_layer0(emb))
@@ -205,7 +206,7 @@ class ADMUNet(Denoiser):
 
         :param str model_name: Name of the model to load.
 
-        :return NCSNpp: The loaded model.
+        :return (:class:`deepinv.models.Denoiser`) The loaded model.
         """
         if "imagenet64" in model_name:
             default_64x64_config = dict(

@@ -1,27 +1,26 @@
 import torch
 from deepinv.optim.data_fidelity import L2
 
-# This file implements the p(y|x) terms as proposed in the `review paper <https://arxiv.org/pdf/2410.00083>`_ by Daras et al.
-
 
 class NoisyDataFidelity(L2):
     r"""
-    Preconditioned data fidelity term for noisy data :math:`\datafid{x}{y}=\distance{\forw{x'}}{y'}`.
+    Preconditioned data fidelity term for noisy data :math:`\datafid{x_t}{y} = \distance{\forw{x_t}}{y}`.
+    Here, :math:`x_t` is a perturbed versions of :math:`x`.
 
-    This is a base class for the conditional classes for approximating :math:`\log p(y|x)` used in diffusion
-    algorithms for inverse problems. Here, :math:`x'` and :math:`y'` are perturbed versions of :math:`x` and :math:`y`
-    and the associated data fidelity term is :math:`\datafid{x}{y}=\distance{\forw{x'}}{y'}`.
+    This is a base class for the conditional classes for approximating :math:`\log p_t(y|x_t)` used in diffusion
+    algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.
 
-    It comes with a `.grad` method computing the score
+    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`
 
     .. math::
 
         \begin{equation*}
-            \nabla_x \log p(y|x) = P(\forw{x'}-y'),
+            \nabla_{x_t} \log p_t(y|x_t) = P(\forw{x_t'}-y),
         \end{equation*}
 
 
-    where :math:`P` is a preconditioner. By default, :math:`P` is defined as :math:`A^\top` and this class matches the
+    where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
+    By default, :math:`P` is defined as :math:`A^\top`, :math:`x_t' = x_t` and this class matches the
     :class:`deepinv.optim.DataFidelity` class.
     """
 
@@ -82,7 +81,16 @@ class DPSDataFidelity(NoisyDataFidelity):
 
     This corresponds to the :math:`p(y|x)` prior as proposed in `Diffusion Probabilistic Models <https://arxiv.org/abs/2209.14687>`_.
 
-    :param denoiser: Denoiser network. # TODO: type?
+    :param deepinv.models.Denoiser denoiser: Denoiser network.
+
+    .. math::
+
+            \nabla_x \log p(y|x) = \left(\operatorname{Id}+\nabla_x D(x)\right)^\top A^\top \left(y-\forw{D(x)}\right)
+
+    .. note::
+        The preconditioning term is computed with automatic differentiation.
+
+    :param deepinv.models.Denoiser denoiser: Denoiser network
     """
 
     def __init__(self, denoiser=None):
@@ -97,20 +105,11 @@ class DPSDataFidelity(NoisyDataFidelity):
         self, x: torch.Tensor, y: torch.Tensor, physics, sigma, *args, **kwargs
     ) -> torch.Tensor:
         r"""
-        As explained in `Daras et al. <https://arxiv.org/abs/2410.00083>`_, the score is defined as
-
-        .. math::
-
-                \nabla_x \log p(y|x) = \left(\operatorname{Id}+\nabla_x D(x)\right)^\top A^\top \left(y-\forw{D(x)}\right)
-
-        .. note::
-            The preconditioning term is computed with autodiff.
-
         :param torch.Tensor x: Current iterate.
         :param torch.Tensor y: Input data.
-        :param physics: physics model
-        :param float sigma: Standard deviation of the noise. (unused)
-        :return: (torch.Tensor) score term.
+        :param deepinv.physics.Physics physics: physics model
+        :param float sigma: Standard deviation of the noise.
+        :return: (:class:`torch.Tensor`) score term.
         """
         with torch.enable_grad():
             x.requires_grad_(True)
@@ -125,7 +124,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         self, x: torch.Tensor, y: torch.Tensor, physics, sigma, clip=False
     ) -> torch.Tensor:
         r"""
-        Returns the loss term :math:`\distance{\forw{D(x)}}{y}`.
+        Returns the loss term :math:`\distance{\forw{\denoiser{\sigma}{x}}}{y}`.
 
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
@@ -134,9 +133,6 @@ class DPSDataFidelity(NoisyDataFidelity):
         :param bool clip: whether to clip the output of the denoiser to the range [-1, 1].
         :return: (torch.Tensor) loss term.
         """
-        # TODO: check that the following does not belong to the grad method but to the denoiser method itself.
-        # aux_x = x / 2 + 0.5
-        # x0_t = 2 * self.denoiser(x, sigma / 2) - 1
 
         x0_t = self.denoiser(x, sigma)
 
