@@ -1,5 +1,5 @@
 ---
-title: 'deepinverse: A Python package for solving imaging inverse problems with deep learning'
+title: 'Deepinverse: A Python package for solving imaging inverse problems with deep learning'
 tags:
   - Python
   - Pytorch
@@ -121,18 +121,18 @@ $N:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise af
 The forward operation is simply written in deepinv as `x_hat = physics(y)`.
 
 
-| **Family**                     | **Operators**                                                                 | **Generators**                                                                                                                                                                                                 |
-|--------------------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Pixelwise                      | `Denoising`<br>`Inpainting`<br>`Demosaicing`<br>`Decolorize`                  | `BernoulliSplittingMaskGenerator`<br>`GaussianSplittingMaskGenerator`<br>`Phase2PhaseSplittingMaskGenerator`<br>`Artifact2ArtifactSplittingMaskGenerator`                                                     |
-| Blur & Super-Resolution        | `Blur`<br>`BlurFFT`<br>`SpaceVaryingBlur`<br>`Downsampling`                   | `MotionBlurGenerator`<br>`DiffractionBlurGenerator`<br>`ProductConvolutionBlurGenerator`<br>`ConfocalBlurGenerator3D`<br>`DownsamplingGenerator3D`<br>`gaussian_blur`, `sinc_filter`<br>`bilinear_filter`, `bicubic_filter`               |
-| Magnetic Resonance Imaging (MRI) | `MRIMixin`<br>`MRI`<br>`MultiCoilMRI`<br>`DynamicMRI`<br>`SequentialMRI`<br>(All support 3D MRI) | `GaussianMaskGenerator`<br>`RandomMaskGenerator`<br>`EquispacedMaskGenerator`<br>                                                                                        |
+| **Family**  | **Operators**  | **Generators**    
+|-------------|----------------|---------------|
+| Pixelwise         | `Denoising`, `Inpainting`, `Demosaicing`, `Decolorize`                  | `BernoulliSplittingMaskGenerator`, `GaussianSplittingMaskGenerator`, `Phase2PhaseSplittingMaskGenerator`, `Artifact2ArtifactSplittingMaskGenerator`                                                     |
+| Blur & Super-Resolution        | `Blur`, `BlurFFT`, `SpaceVaryingBlur`, `Downsampling`                   | `MotionBlurGenerator`, `DiffractionBlurGenerator`, `ProductConvolutionBlurGenerator`, `ConfocalBlurGenerator3D`, `DownsamplingGenerator3D`, `gaussian_blur`, `sinc_filter`, `bilinear_filter`, `bicubic_filter`               |
+| Magnetic Resonance Imaging (MRI) | `MRIMixin`, `MRI`, `MultiCoilMRI`, `DynamicMRI`, `SequentialMRI`, (All support 3D MRI) | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator`,                                                                                         |
 | Tomography                     | `Tomography`                                                                  |                                                                                                                                                                                                               |
-| Remote Sensing & Multispectral | `Pansharpen`<br>`HyperSpectralUnmixing`<br>`CompressiveSpectralImaging`       |                                                                                                                                                                                                               |
-| Compressive                    | `CompressedSensing`<br>`StructuredRandom`<br>`SinglePixelCamera`              |                                                                                                                                                                                                               |
+| Remote Sensing & Multispectral | `Pansharpen`, `HyperSpectralUnmixing`, `CompressiveSpectralImaging`       |                                                                                                                                                                                                               |
+| Compressive                    | `CompressedSensing`, `StructuredRandom`, `SinglePixelCamera`              |                                                                                                                                                                                                               |
 | Radio Interferometric Imaging  | `RadioInterferometry`                                                         |                                                                                                                                                                                                               |
 | Single-Photon Lidar            | `SinglePhotonLidar`                                                           |                                                                                                                                                                                                               |
 | Dehazing                       | `Haze`                                                                        |                                                                                                                                                                                                               |
-| Phase Retrieval                | `PhaseRetrieval`<br>`RandomPhaseRetrieval`<br>`StructuredRandomPhaseRetrieval`<br>`Ptychography`<br>`PtychographyLinearOperator` | `build_probe`<br>`generate_shifts`                                                                                                                                                                             |
+| Phase Retrieval                | `PhaseRetrieval`, `RandomPhaseRetrieval`, `StructuredRandomPhaseRetrieval`, `Ptychography`, `PtychographyLinearOperator` | `build_probe`, `generate_shifts`                                                                                                                                                                             |
 
        
 # Reconstruction methods
@@ -147,8 +147,8 @@ In deepinv code, a reconstructor is evaluated as `x_hat = solver(y, A)`.
 
 | **Family of Methods**                     | **Description**                                                                 | **Requires Training** | **Iterative** | **Sampling** | **References** |
 |-------------------------------------------|--------------------------------------------------------------------------------|-----------------------|---------------|--------------|----------------|
-| Artifact Removal                          | Applies a neural network to a non-learned pseudo-inverse                        | Yes                   | No            | No           |    [@jin2017deep]            |
-| Plug-and-Play (PnP)                       | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | No           |                |
+| Artifact Removal    | Applies a neural network to a non-learned pseudo-inverse            | Yes                   | No            | No           |    [@jin2017deep]            |
+| Plug-and-Play (PnP)                       | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | No           |          |
 | Unfolded Networks                         | Constructs a trainable architecture by unrolling a PnP algorithm                 | Yes                   | Only DEQ      | No           |                |
 | Diffusion                                 | Leverages pretrained denoisers within an ODE/SDE                                 | No                    | Yes           | Yes          |                |
 | Non-learned Priors                        | Solves an optimization problem with hand-crafted priors                          | No                    | Yes           | No           |                |
@@ -164,9 +164,9 @@ In deepinv code, a reconstructor is evaluated as `x_hat = solver(y, A)`.
 The package contains losses for training $R_{\theta}$ which are especially designed for inverse problems.
 The losses can be roughly separated in 3 categories: i) Supervised losses using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$, ii) self-supervised losses using measurement data only $\{y_i\}_{i=1}^{N}$  and iii) network regularization losses which enforce some regularity condition on $R_{\theta}$.
 
-| **Category**               | **Loss**                                                                                     | **Assumptions**                                                                 |
-|----------------------------|---------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
-|| **Supervised Learning**  ||
+| **Category**      | **Loss**    | **Assumptions** |
+|-------------------|-------------|-----------------|
+|| **Supervised Learning**  || 
 | End2End    | `SupLoss` | Requires paired data. 
 | Adversarial    |  `SupAdversarialGeneratorLoss`, `SupAdversarialDiscriminatorLoss`                  |  Supervised adversarial loss.                             |
 || **Self-Supervised Learning** ||
