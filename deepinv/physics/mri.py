@@ -419,7 +419,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         """
 
-        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
+        return self.mask[..., None] * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,
