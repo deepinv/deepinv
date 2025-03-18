@@ -175,7 +175,7 @@ class GaussianNoise(NoiseModel):
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-            | :math:`[other \times gaussian](x) = [\lambda_1 \times gaussian(x_1), ..., \lambda_b \times gaussian(x_b)]`
+           | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
         :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.
