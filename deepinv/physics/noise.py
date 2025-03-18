@@ -148,7 +148,7 @@ class GaussianNoise(NoiseModel):
         r"""
         Sum of 2 gaussian noises via + operator.
 
-        :math:`N(x) = \sqrt{N_1(x)^2 + N_2(x)^2}`
+        :math:`\sigma = \sqrt{\sigma_1^2 + \sigma_2^2}`
 
         :param deepinv.physics.GaussianNoise other: Gaussian with standard deviation :math:`\sigma`
         :return: (:class:`deepinv.physics.GaussianNoise`) -- Gaussian noise with the sum of the linears operators.
