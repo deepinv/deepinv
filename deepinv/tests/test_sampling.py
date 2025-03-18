@@ -242,7 +242,6 @@ def test_sde(device):
             # Test generation
             sample_1, trajectory = sde.sample(
                 (1, 3, 64, 64),
-                solver=solver,
                 seed=10,
                 get_trajectory=True,
                 **kwargs,
@@ -254,7 +253,6 @@ def test_sde(device):
             # Test reproducibility
             sample_2, trajectory = sde.sample(
                 (1, 3, 64, 64),
-                solver=solver,
                 seed=10,
                 get_trajectory=True,
                 **kwargs,

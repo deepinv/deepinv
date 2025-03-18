@@ -322,7 +322,7 @@ class PosteriorDiffusion(Reconstructor):
 
     :param NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.data_fidelity.Zero`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
     :param DiffusionSDE sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
-    :param BaseSDESolver solver: the solver for the SDE.
+    :param BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
@@ -343,7 +343,7 @@ class PosteriorDiffusion(Reconstructor):
         self.data_fidelity = data_fidelity
         self.sde = sde
         assert (
-            solver is not None and sde.solver is not None
+            solver is not None or sde.solver is not None
         ), "A SDE solver must be specified."
         if solver is not None:
             self.solver = solver
@@ -389,7 +389,7 @@ class PosteriorDiffusion(Reconstructor):
         :param deepinv.physics.Physics physics: the forward operator.
         :param torch.Tensor x_init: the initial value for the sampling.
         :param int seed: the random seed.
-        :param torch.Tensor timesteps: the time steps for the solver.
+        :param torch.Tensor timesteps: the time steps for the solver. If `None`, the default time steps in the solver will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
         :param *args, **kwargs: the arguments and keyword arguments for the solver.
 
