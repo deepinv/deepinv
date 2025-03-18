@@ -120,13 +120,18 @@ Multiple popular easy-to-download datasets are available:
 
    * - :class:`deepinv.datasets.FastMRISliceDataset`
      - Over 100,000 MRI slices
-     - Complex numbers, 320x320 pixels
-     - A large-scale dataset of MRI knee and brain scans for training and evaluating MRI reconstruction methods.
+     - Complex, varying shape approx. 640x320
+     - Raw MRI knee and brain fully-sampled k-space data and RSS reconstructions from the FastMRI dataset.
 
    * - :class:`deepinv.datasets.SimpleFastMRISliceDataset`
      - 973 (knee) and 455 (brain) images
      - 320x320 fully-sampled reconstructed slices
-     - Easy-to-use in-memory prepared subset of 2D slices from the full FastMRI slice dataset for knees and brains.
+     - Easy-to-use in-memory prepared subset of 2D slices from the full FastMRI slice dataset for knees and brains, padded to standard size.
+
+   * - :class:`deepinv.datasets.CMRxReconSliceDataset`
+     - 300 patients, each with 8-13 slices
+     - Padded to 512x256x12 time steps
+     - Dynamic MRI sequences of cardiac cine from short axis (5-10 slices) and long axis (3 views) split by patient, from the CMRxRecon challenge.
 
    * - :class:`deepinv.datasets.LidcIdriSliceDataset`
      - Over 200,000 CT scan slices

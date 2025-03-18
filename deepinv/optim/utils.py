@@ -29,12 +29,167 @@ def check_conv(X_prev, X, it, crit_conv="residual", thres_conv=1e-3, verbose=Fal
         return False
 
 
+def least_squares(
+    A,
+    AT,
+    y,
+    z=0.0,
+    init=None,
+    gamma=None,
+    parallel_dim=0,
+    AAT=None,
+    ATA=None,
+    solver="CG",
+    max_iter=100,
+    tol=1e-6,
+    **kwargs,
+):
+    r"""
+    Solves :math:`\min_x \|Ax-y\|^2 + \frac{1}{\gamma}\|x-z\|^2` using the specified solver.
+
+    The solvers are stopped either when :math:`\|Ax-y\| \leq \text{tol} \times \|y\|` or
+    when the maximum number of iterations is reached.
+
+    Available solvers are:
+
+    - `'CG'`: `Conjugate Gradient <https://en.wikipedia.org/wiki/Conjugate_gradient_method>`_.
+    - `'BiCGStab'`: `Biconjugate Gradient Stabilized method <https://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method>`_
+    - `'lsqr'`: `Least Squares QR <https://www-leland.stanford.edu/group/SOL/software/lsqr/lsqr-toms82a.pdf>`_
+    - `'minres'`: `Minimal Residual Method <https://en.wikipedia.org/wiki/Minimal_residual_method>`_
+
+    .. note::
+
+        Both `'CG'` and `'BiCGStab'` are used for squared linear systems, while `'lsqr'` is used for rectangular systems.
+
+        If the chosen solver requires a squared system, we map to the problem to the normal equations:
+        If the size of :math:`y` is larger than :math:`x` (overcomplete problem), it computes :math:`(A^{\top} A)^{-1} A^{\top} y`,
+        otherwise (incomplete problem) it computes :math:`A^{\top} (A A^{\top})^{-1} y`.
+
+
+    :param Callable A: Linear operator :math:`A` as a callable function.
+    :param Callable AT: Adjoint operator :math:`A^{\top}` as a callable function.
+    :param torch.Tensor y: input tensor of shape (B, ...)
+    :param torch.Tensor z: input tensor of shape (B, ...) or scalar.
+    :param None, float gamma: (Optional) inverse regularization parameter.
+    :param str solver: solver to be used.
+    :param Callable AAT: (Optional) Efficient implementation of :math:`A(A^{\top}(x))`. If not provided, it is computed as :math:`A(A^{\top}(x))`.
+    :param Callable ATA: (Optional) Efficient implementation of :math:`A^{\top}(A(x))`. If not provided, it is computed as :math:`A^{\top}(A(x))`.
+    :param int max_iter: maximum number of iterations.
+    :param float tol: relative tolerance for stopping the algorithm.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param kwargs: Keyword arguments to be passed to the solver.
+    :return: (class:`torch.Tensor`) :math:`x` of shape (B, ...).
+    """
+
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+
+    if solver == "lsqr":  # rectangular solver
+
+        if gamma is not None:
+            eta = 1 / gamma
+        else:
+            eta = 0
+
+        x, _ = lsqr(
+            A,
+            AT,
+            y,
+            x0=z,
+            eta=eta,
+            max_iter=max_iter,
+            tol=tol,
+            parallel_dim=parallel_dim,
+            **kwargs,
+        )
+
+    else:
+        Aty = AT(y)
+        complete = Aty.shape == y.shape
+        overcomplete = Aty.flatten().shape[0] < y.flatten().shape[0]
+
+        if complete and (solver == "BiCGStab" or solver == "minres"):
+            H = lambda x: A(x)
+            b = y
+        else:
+            if AAT is None:
+                AAT = lambda x: A(AT(x))
+            if ATA is None:
+                ATA = lambda x: AT(A(x))
+
+            if gamma is not None:
+                b = AT(y) + 1 / gamma * z
+                H = lambda x: ATA(x) + 1 / gamma * x
+                overcomplete = False
+            else:
+                if not overcomplete:
+                    H = lambda x: AAT(x)
+                    b = y
+                else:
+                    H = lambda x: ATA(x)
+                    b = Aty
+
+        if solver == "CG":
+            x = conjugate_gradient(
+                A=H,
+                b=b,
+                init=init,
+                max_iter=max_iter,
+                tol=tol,
+                parallel_dim=parallel_dim,
+                **kwargs,
+            )
+        elif solver == "BiCGStab":
+            x = bicgstab(
+                A=H,
+                b=b,
+                init=init,
+                max_iter=max_iter,
+                tol=tol,
+                parallel_dim=parallel_dim,
+                **kwargs,
+            )
+        elif solver == "minres":
+            x = minres(
+                A=H,
+                b=b,
+                init=init,
+                max_iter=max_iter,
+                tol=tol,
+                parallel_dim=parallel_dim,
+                **kwargs,
+            )
+        else:
+            raise ValueError(
+                f"Solver {solver} not recognized. Choose between 'CG', 'lsqr' and 'BiCGStab'."
+            )
+
+        if gamma is None and not overcomplete and not complete:
+            x = AT(x)
+    return x
+
+
+def dot(a, b, dim):
+    if isinstance(a, TensorList):
+        aux = 0
+        for ai, bi in zip(a.x, b.x):
+            aux += (ai.conj() * bi).sum(
+                dim=dim, keepdim=True
+            )  # performs batched dot product
+        dot = aux
+    else:
+        dot = (a.conj() * b).sum(dim=dim, keepdim=True)  # performs batched dot product
+    return dot
+
+
 def conjugate_gradient(
     A: Callable,
     b: torch.Tensor,
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
+    parallel_dim=0,
+    init=None,
     verbose=False,
 ):
     """
@@ -49,45 +204,544 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param torch.Tensor init: Optional initial guess.
+    :param bool verbose: Output progress information in the console.
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
 
     """
 
-    x = zeros_like(b)
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+    if parallel_dim is None:
+        parallel_dim = []
 
-    def dot(a, b):
-        ndim = a[0].ndim if isinstance(a, TensorList) else a.ndim
-        dot = (a.conj() * b).sum(
-            dim=tuple(range(1, ndim)), keepdim=True
-        )  # performs batched dot product
-        if isinstance(dot, TensorList):
-            aux = 0
-            for d in dot:
-                aux += d
-            dot = aux
-        return dot
+    if isinstance(b, TensorList):
+        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
+    else:
+        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if init is not None:
+        x = init
+    else:
+        x = zeros_like(b)
 
     r = b - A(x)
     p = r
-    rsold = dot(r, r)
-
+    rsold = dot(r, r, dim=dim).real
+    flag = True
+    tol = dot(b, b, dim=dim).real * (tol**2)
     for _ in range(int(max_iter)):
         Ap = A(p)
-        alpha = rsold / (dot(p, Ap) + eps)
+        alpha = rsold / (dot(p, Ap, dim=dim) + eps)
         x = x + p * alpha
         r = r - Ap * alpha
-        rsnew = dot(r, r)
-        assert rsnew.isfinite().all(), "Conjugate gradient diverged"
-        if verbose:
-            print(f"Residual: {rsnew.abs()}")
-        if all(rsnew.abs() < tol**2):
+        rsnew = dot(r, r, dim=dim).real
+        if torch.all(rsnew < tol):
             if verbose:
-                print(f"Conjugate gradient converged after {_} iterations")
+                print("CG Converged at iteration", _)
+            flag = False
             break
         p = r + p * (rsnew / (rsold + eps))
         rsold = rsnew
 
+    if flag and verbose:
+        print("CG did not converge")
+
     return x
+
+
+def bicgstab(
+    A,
+    b,
+    init=None,
+    max_iter=1e2,
+    tol=1e-5,
+    parallel_dim=0,
+    verbose=False,
+    left_precon=lambda x: x,
+    right_precon=lambda x: x,
+):
+    """
+    Biconjugate gradient stabilized algorithm.
+
+    Solves :math:`Ax=b` with :math:`A` squared using the BiCGSTAB algorithm:
+
+    Van der Vorst, H. A. (1992). "Bi-CGSTAB: A Fast and Smoothly Converging Variant of Bi-CG for the Solution of Nonsymmetric Linear Systems". SIAM J. Sci. Stat. Comput. 13 (2): 631–644.
+
+    For more details see: http://en.wikipedia.org/wiki/Biconjugate_gradient_stabilized_method
+
+    :param Callable A: Linear operator as a callable function.
+    :param torch.Tensor b: input tensor of shape (B, ...)
+    :param torch.Tensor init: Optional initial guess.
+    :param int max_iter: maximum number of BiCGSTAB iterations.
+    :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param bool verbose: Output progress information in the console.
+    :param Callable left_precon: left preconditioner as a callable function.
+    :param Callable right_precon: right preconditioner as a callable function.
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
+    """
+
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+    if parallel_dim is None:
+        parallel_dim = []
+
+    if isinstance(b, TensorList):
+        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
+    else:
+        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    if init is not None:
+        x = init
+    else:
+        x = zeros_like(b)
+
+    r = b - A(x)
+    r_hat = r.clone()
+    rho = dot(r, r_hat, dim=dim)
+    p = r
+    max_iter = int(max_iter)
+
+    tol = dot(b, b, dim=dim).real * (tol**2)
+    flag = False
+    for i in range(max_iter):
+        y = right_precon(left_precon(p))
+        v = A(y)
+        alpha = rho / dot(r_hat, v, dim=dim)
+        h = x + alpha * y
+        s = r - alpha * v
+        z = right_precon(left_precon(s))
+        t = A(z)
+        omega = dot(left_precon(t), left_precon(s), dim=dim) / dot(
+            left_precon(t), left_precon(t), dim=dim
+        )
+
+        x = h + omega * z
+        r = s - omega * t
+        if torch.all(dot(r, r, dim=dim).real < tol):
+            flag = True
+            if verbose:
+                print("BiCGSTAB Converged at iteration", i)
+            break
+
+        rho_new = dot(r, r_hat, dim=dim)
+        beta = (rho_new / rho) * (alpha / omega)
+        p = r + beta * (p - omega * v)
+        rho = rho_new
+
+    if not flag and verbose:
+        print("BiCGSTAB did not converge")
+
+    return x
+
+
+def _sym_ortho(a, b):
+    """
+    Stable implementation of Givens rotation.
+
+    Adapted from https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
+
+    The routine '_sym_ortho' was added for numerical stability. This is
+    recommended by S.-C. Choi in "Iterative Methods for Singular Linear Equations and Least-Squares
+    Problems".  It removes the unpleasant potential of
+    ``1/eps`` in some important places.
+
+    """
+    if torch.any(b == 0):
+        return torch.sign(a), 0, a.abs()
+    elif torch.any(a == 0):
+        return 0, torch.sign(b), b.abs()
+    elif torch.any(b.abs() > a.abs()):
+        tau = a / b
+        s = torch.sign(b) / torch.sqrt(1 + tau * tau)
+        c = s * tau
+        r = b / s
+    else:
+        tau = b / a
+        c = torch.sign(a) / torch.sqrt(1 + tau * tau)
+        s = c * tau
+        r = a / c
+    return c, s, r
+
+
+def lsqr(
+    A,
+    AT,
+    b,
+    eta=0.0,
+    x0=None,
+    tol=1e-6,
+    conlim=1e8,
+    max_iter=100,
+    parallel_dim=0,
+    verbose=False,
+    **kwargs,
+):
+    r"""
+    LSQR algorithm for solving linear systems.
+
+    Code adapted from SciPy's implementation of LSQR: https://github.com/scipy/scipy/blob/v1.15.1/scipy/sparse/linalg/_isolve/lsqr.py
+
+    The function solves the linear system :math:`\min_x \|Ax-b\|^2 + \eta \|x-x_0\|^2` in the least squares sense
+    using the LSQR algorithm from
+
+    Paige, C. C. and M. A. Saunders, "LSQR: An Algorithm for Sparse Linear Equations And Sparse Least Squares," ACM Trans. Math. Soft., Vol.8, 1982, pp. 43-71.
+
+    :param Callable A: Linear operator as a callable function.
+    :param Callable AT: Adjoint operator as a callable function.
+    :param torch.Tensor b: input tensor of shape (B, ...)
+    :param float eta: damping parameter :math:`eta \geq 0`.
+    :param None, torch.Tensor x0: Optional :math:`x_0`, which is also used as the initial guess.
+    :param float tol: relative tolerance for stopping the LSQR algorithm.
+    :param float conlim: maximum value of the condition number of the system.
+    :param int max_iter: maximum number of LSQR iterations.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param bool verbose: Output progress information in the console.
+    :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
+    """
+
+    xt = AT(b)
+
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+    if parallel_dim is None:
+        parallel_dim = []
+
+    if isinstance(b, TensorList):
+        device = b[0].device
+    else:
+        device = b.device
+
+    def normf(u):
+        if isinstance(u, TensorList):
+            total = 0.0
+            dims = [[i for i in range(bi.ndim) if i not in parallel_dim] for bi in b]
+            for k in range(len(u)):
+                total += torch.linalg.vector_norm(
+                    u[k], dim=dims[k], keepdim=False
+                )  # don't keep dim as dims might be different
+            return total
+        else:
+            dim = [i for i in range(u.ndim) if i not in parallel_dim]
+            return torch.linalg.vector_norm(u, dim=dim, keepdim=False)
+
+    b_shape = []
+    if isinstance(b, TensorList):
+        for j in range(len(b)):
+            b_shape.append([])
+            for i in range(len(b[j].shape)):
+                b_shape[j].append(b[j].shape[i] if i in parallel_dim else 1)
+    else:
+        for i in range(len(b.shape)):
+            b_shape.append(b.shape[i] if i in parallel_dim else 1)
+
+    Atb_shape = []
+    for i in range(len(xt.shape)):
+        Atb_shape.append(xt.shape[i] if i in parallel_dim else 1)
+
+    def scalar(v, alpha, b_domain):
+        if b_domain:
+            if isinstance(v, TensorList):
+                return TensorList(
+                    [vi * alpha.view(bi_shape) for vi, bi_shape in zip(v, b_shape)]
+                )
+            else:
+                return v * alpha.view(b_shape)
+        else:
+            return v * alpha.view(Atb_shape)
+
+    if eta > 0:
+        if isinstance(eta, torch.Tensor):
+            eta_sqrt = torch.sqrt(eta)
+        else:
+            eta_sqrt = torch.tensor(eta, device=device).sqrt()
+
+    # ctol = 1 / conlim if conlim > 0 else 0
+    anorm = 0.0
+    acond = torch.zeros(1, device=device)
+    dampsq = eta
+    ddnorm = 0.0
+    # res2 = 0.0
+    # xnorm = 0.0
+    xxnorm = 0.0
+    z = 0.0
+    cs2 = -1.0
+    sn2 = 0.0
+
+    u = b.clone()
+    bnorm = normf(b)
+
+    if x0 is None:
+        x = zeros_like(xt)
+        beta = bnorm
+    else:
+        if isinstance(x0, float):
+            x = x0 * zeros_like(xt)
+        else:
+            x = x0.clone()
+
+        u -= A(x)
+        beta = normf(u)
+
+    if torch.all(beta > 0):
+        u = scalar(u, 1 / beta, b_domain=True)
+        v = AT(u)
+        alpha = normf(v)
+    else:
+        v = torch.zeros_like(x)
+        alpha = torch.zeros(1, device=device)
+
+    if torch.all(alpha > 0):
+        v = scalar(v, 1 / alpha, b_domain=False)  # v / view(alpha, Atb_shape)
+
+    w = v.clone()
+    rhobar = alpha
+    phibar = beta
+    arnorm = alpha * beta
+
+    if torch.any(arnorm == 0):
+        return x, acond
+
+    flag = False
+    for itn in range(max_iter):
+        u = A(v) - scalar(u, alpha, b_domain=True)
+        beta = normf(u)
+
+        if torch.all(beta > 0):
+            u = scalar(u, 1 / beta, b_domain=True)
+            anorm = torch.sqrt(anorm**2 + alpha**2 + beta**2 + dampsq)
+            v = AT(u) - scalar(v, beta, b_domain=False)
+            alpha = normf(v)
+            if torch.all(alpha > 0):
+                v = scalar(v, 1 / alpha, b_domain=False)
+
+        if eta > 0:
+            rhobar1 = torch.sqrt(rhobar**2 + dampsq)
+            cs1 = rhobar / rhobar1
+            sn1 = eta_sqrt / rhobar1
+            psi = sn1 * phibar
+            phibar = cs1 * phibar
+        else:
+            rhobar1 = rhobar
+            psi = 0.0
+
+        cs, sn, rho = _sym_ortho(rhobar1, beta)
+        theta = sn * alpha
+        rhobar = -cs * alpha
+        phi = cs * phibar
+        phibar = sn * phibar
+        # tau = sn * phi
+
+        t1 = phi / rho
+        t2 = -theta / rho
+        dk = scalar(w, 1 / rho, b_domain=False)
+
+        x = x + scalar(w, t1, b_domain=False)
+        w = v + scalar(w, t2, b_domain=False)
+        ddnorm = ddnorm + normf(dk) ** 2
+
+        # if calc_var:
+        #    var = var + dk ** 2
+
+        delta = sn2 * rho
+        gambar = -cs2 * rho
+        rhs = phi - delta * z
+        # zbar = rhs / gambar
+        # xnorm = torch.sqrt(xxnorm + zbar ** 2)
+        gamma = torch.sqrt(gambar**2 + theta**2)
+        cs2 = gambar / gamma
+        sn2 = theta / gamma
+        z = rhs / gamma
+        xxnorm = xxnorm + z**2
+
+        acond = anorm * torch.sqrt(ddnorm).mean()
+        rnorm = torch.sqrt(phibar**2 + psi**2)
+        # arnorm = alpha * abs(tau)
+
+        if torch.all(rnorm <= tol * bnorm):
+            flag = True
+            if verbose:
+                print("LSQR converged at iteration", itn)
+            break
+        elif torch.any(acond > conlim):
+            flag = True
+            if verbose:
+                print(f"LSQR reached condition number limit {conlim} at iteration", itn)
+            break
+
+    if not flag and verbose:
+        print("LSQR did not converge")
+
+    return x, acond.sqrt()
+
+
+def minres(
+    A,
+    b,
+    init=None,
+    max_iter=1e2,
+    tol=1e-5,
+    eps=1e-6,
+    parallel_dim=0,
+    verbose=False,
+    precon=lambda x: x.clone(),
+):
+    """
+    Minimal Residual Method for solving symmetric equations.
+
+    Solves :math:`Ax=b` with :math:`A` symmetric using the MINRES algorithm:
+
+    Christopher C. Paige, Michael A. Saunders (1975). "Solution of sparse indefinite systems of linear equations". SIAM Journal on Numerical Analysis. 12 (4): 617–629.
+
+    The method assumes that :math:`A` is hermite.
+    For more details see: https://en.wikipedia.org/wiki/Minimal_residual_method
+
+    Based on https://github.com/cornellius-gp/linear_operator
+    Modifications and simplifications for compatibility with deepinverse
+
+    :param Callable A: Linear operator as a callable function.
+    :param torch.Tensor b: input tensor of shape (B, ...)
+    :param torch.Tensor init: Optional initial guess.
+    :param int max_iter: maximum number of MINRES iterations.
+    :param float tol: absolute tolerance for stopping the MINRES algorithm.
+    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param bool verbose: Output progress information in the console.
+    :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
+    :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
+    """
+
+    if isinstance(parallel_dim, int):
+        parallel_dim = [parallel_dim]
+    if parallel_dim is None:
+        parallel_dim = []
+
+    if isinstance(b, TensorList):
+        dim = [i for i in range(b[0].ndim) if i not in parallel_dim]
+    else:
+        dim = [i for i in range(b.ndim) if i not in parallel_dim]
+
+    # Rescale b
+    b_norm = b.norm(2, dim=dim, keepdim=True)
+    b_is_zero = b_norm < 1e-10
+    b_norm = b_norm.masked_fill(b_is_zero, 1)
+    b = b / b_norm
+
+    # Create space for matmul product, solution
+    if init is not None:
+        solution = init / b_norm
+    else:
+        solution = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
+
+    # Variables for Lanczos terms
+    zvec_prev2 = torch.zeros(solution.shape, device=b.device)  # r_(k-1) in wiki
+    zvec_prev1 = b - A(solution)  # r_k in wiki
+    qvec_prev1 = precon(zvec_prev1)
+    alpha_curr = torch.zeros(b.shape, dtype=b.dtype, device=b.device)
+    alpha_curr = alpha_curr.norm(2, dim=dim, keepdim=True)
+    beta_prev = torch.abs(dot(zvec_prev1, qvec_prev1, dim=dim).sqrt()).clamp_min(eps)
+
+    # Divide by beta_prev
+    zvec_prev1 = zvec_prev1 / beta_prev
+    qvec_prev1 = qvec_prev1 / beta_prev
+
+    # Variables for the QR rotation
+    # 1) Components of the Givens rotations
+    cos_prev2 = torch.ones(alpha_curr.shape, dtype=b.dtype, device=b.device)
+    sin_prev2 = torch.zeros(alpha_curr.shape, dtype=b.dtype, device=b.device)
+    cos_prev1 = cos_prev2
+    sin_prev1 = sin_prev2
+
+    # Variables for the solution updates
+    # 1) The "search" vectors of the solution
+    # Equivalent to the vectors of Q R^{-1}, where Q is the matrix of Lanczos vectors and
+    # R is the QR factor of the tridiagonal Lanczos matrix.
+    search_prev2 = torch.zeros_like(solution)
+    search_prev1 = torch.zeros_like(solution)
+    # 2) The "scaling" terms of the search vectors
+    # Equivalent to the terms of V^T Q^T b, where Q is the matrix of Lanczos vectors and
+    # V is the QR orthonormal of the tridiagonal Lanczos matrix.
+    scale_prev = beta_prev
+
+    # Terms for checking for convergence
+    solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+    search_update_norm = torch.zeros_like(solution_norm)
+
+    # Perform iterations
+    for i in range(int(max_iter)):
+        # Perform matmul
+        prod = A(qvec_prev1)
+
+        # Get next Lanczos terms
+        # --> alpha_curr, beta_curr, qvec_curr
+        alpha_curr = dot(prod, qvec_prev1, dim=dim)
+        prod = prod - alpha_curr * zvec_prev1 - beta_prev * zvec_prev2
+        qvec_curr = precon(prod)
+
+        beta_curr = torch.abs(dot(prod, qvec_curr, dim=dim).sqrt()).clamp_min(eps)
+
+        prod = prod / beta_curr
+        qvec_curr = qvec_curr / beta_curr
+
+        # Perform JIT-ted update
+        ###########################################
+        # Start givens rotation
+        # Givens rotation from 2 steps ago
+        subsub_diag_term = sin_prev2 * beta_prev
+        sub_diag_term = cos_prev2 * beta_prev
+
+        # Givens rotation from 1 step ago
+        diag_term = alpha_curr * cos_prev1 - sin_prev1 * sub_diag_term
+        sub_diag_term = sub_diag_term * cos_prev1 + sin_prev1 * alpha_curr
+
+        # 3) Compute next Givens terms
+        radius_curr = torch.sqrt(diag_term * diag_term + beta_curr * beta_curr)
+        cos_curr = diag_term / radius_curr
+        sin_curr = beta_curr / radius_curr
+        # 4) Apply current Givens rotation
+        diag_term = diag_term * cos_curr + sin_curr * beta_curr
+
+        # Update the solution
+        # --> search_curr, scale_curr solution
+        # 1) Apply the latest Givens rotation to the Lanczos-b ( ||b|| e_1 )
+        # This is getting the scale terms for the "search" vectors
+        scale_curr = -scale_prev * sin_curr
+        # 2) Get the new search vector
+        search_curr = qvec_prev1 - sub_diag_term * search_prev1
+        search_curr = (search_curr - subsub_diag_term * search_prev2) / diag_term
+
+        # 3) Update the solution
+        search_update = search_curr * scale_prev * cos_curr
+        solution = solution + search_update
+        ###########################################
+
+        # Check convergence criterion
+        search_update_norm = search_update.norm(2, dim=dim).unsqueeze(-1)
+        solution_norm = solution.norm(2, dim=dim).unsqueeze(-1)
+        if (search_update_norm / solution_norm).max().item() < tol:
+            if verbose:
+                print("MINRES converged at iteration", i)
+            flag = False
+            break
+
+        # Update terms for next iteration
+        # Lanczos terms
+        zvec_prev2, zvec_prev1 = zvec_prev1, prod
+        qvec_prev1 = qvec_curr
+        beta_prev = beta_curr
+        # Givens rotations terms
+        cos_prev2, cos_prev1 = cos_prev1, cos_curr
+        sin_prev2, sin_prev1 = sin_prev1, sin_curr
+        # Search vector terms)
+        search_prev2, search_prev1 = search_prev1, search_curr
+        scale_prev = scale_curr
+
+    # For b-s that are close to zero, set them to zero
+    solution = solution.masked_fill(b_is_zero, 0)
+    if flag and verbose:
+        print(f"MINRES did not converge in {i} iterations!")
+    return solution * b_norm
 
 
 def gradient_descent(grad_f, x, step_size=1.0, max_iter=1e2, tol=1e-5):
@@ -322,7 +976,7 @@ class GaussianMixtureModel(nn.Module):
                 dataloader, verbose
             )
             # stopping criterion
-            self.set_weights = weights_new
+            self.set_weights(weights_new)
             self.mu.data = mu_new
             cov_new_reg = cov_new + cov_regularization * torch.eye(self.dimension)[
                 None, :, :
