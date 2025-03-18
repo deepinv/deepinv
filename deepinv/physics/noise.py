@@ -169,7 +169,7 @@ class GaussianNoise(NoiseModel):
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`\lambda` a float.
-            | :math:`[\lambda \times gaussian](x) = [\lambda \times gaussian(x_1), ..., \lambda \times gaussian(x_b)]`
+            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         2) If `other` is a :class:`torch.Tensor`, then the standard deviation of the GaussianNoise is multiplied by `other`.
 
