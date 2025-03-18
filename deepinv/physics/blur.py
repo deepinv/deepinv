@@ -235,10 +235,6 @@ class Downsampling(LinearPhysics):
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
-
-
 class Blur(LinearPhysics):
     r"""
 
