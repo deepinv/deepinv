@@ -85,25 +85,30 @@ bibliography: paper.bib
 
 # Summary
 
-`deepinv` is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
+`deepinv` is an open-source PyTorch-based [@paszke2019pytorch] library for solving imaging inverse problems with deep learning.
 The library aims to cover most steps in modern imaging pipelines, from the definition of the forward sensing operator
 to the training of unfolded reconstruction networks in a supervised or self-supervised way.
 
 # Statement of need
 
-Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography
-to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms
-are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results 
-reported in papers are often hard to reproduce. In order to tackle these pitfalls, an international group of research scientists has worked intensely in the last year to build 
-`deepinv` is an open-source PyTorch library [@paszke2019pytorch] for solving imaging inverse problems with deep learning, whose first stable
-version has been very recently released. DeepInverse aims to cover most of the steps in modern imaging pipelines,
-from the definition of the forward sensing operator to the training of unfolded reconstruction networks in a supervised or self-supervised way. 
-The main goal of this library is to become the standard open-source tool for researchers (experts in optimization,
-machine learning, etc.) and practitioners (biologists, physicists, etc.). 
-The `deepinv` has the following objectives: i) accelerate future research by enabling efficient testing and deployment
+Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. DeepInverse aims to cover most of the steps in modern imaging pipelines, from the definition of the forward sensing operator to the training of unfolded reconstruction networks in a supervised or self-supervised way. 
+The target audience of this library are both inverse problems researchers (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). 
+`deepinv` has the following objectives: i) accelerate future research by enabling efficient testing and deployment
 of new ideas, ii) enlarge the adoption of deep learning in inverse problems by lowering the entrance bar to new researchers 
 in the field, and iii) enhance research reproducibility via a common definition of imaging operators and reconstruction
 methods and a common framework for defining datasets for inverse problems.
+
+There are multiple python computational imaging libraries, such as  however none share the same scope as `deepinv`. 
+SCICO and Pyxu are two python library whose main focus are variational optimization and plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as a custom trainer and self-supervised losses, and do not cover diffusion methods, adversarial methods or unrolling networks. Moreover, `deepinv` provides a larger set of forward operators and generators.
+
+PyLops provides a linear operator class and many built-in linear operators. These operators are compatible with many SciPy solvers. SCICO is more focused on computational imaging that PyLops and has several specialized operators that PyLops does not.
+
+ODL provides a variety of operators and related infrastructure for prototyping of inverse problems. It is built on top of NumPy/SciPy, and does not support any of the advanced features of JAX.
+
+ProxImaL is a Python package for image optimization problems. Like SCICO and many of the other projects listed here, problems are specified by combining objects representing, operators, functionals, and solvers. It does not support any of the advanced features of JAX.
+
+ProxMin provides a set of proximal optimization algorithms for minimizing non-smooth functionals. It is built on top of NumPy/SciPy, and does not support any of the advanced features of JAX (however, an open issue suggests that JAX compatibility is planned).
+CVXPY provides a flexible language for defining optimization problems and a wide selection of solvers, but has limited support for matrix-free methods.
 
 
 ![Schematic of the library.\label{fig:schematic}](figures/deepinv_schematic_.png)
@@ -113,70 +118,110 @@ methods and a common framework for defining datasets for inverse problems.
 
 Imaging inverse problems can be expressed as 
 \begin{equation} \label{eq:solver}
-y = N(A(x))
+y = N_{\rho}(A_{\xi}(x))
 \end{equation}
-where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A:\mathcal{X}\mapsto\mathcal{Y}$ is a
+where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}:\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
-$N:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements.
-The forward operation is simply written in deepinv as `x_hat = physics(y)`.
+$N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements parameterized by $\sigma$ (e.g., the noise level or gain).
+The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where params is a dictionary with optional forward operator parameters.
 
 
 | **Family**  | **Operators**  | **Generators**    
 |-------------|----------------|---------------|
-| Pixelwise         | `Denoising`, `Inpainting`, `Demosaicing`, `Decolorize`                  | `BernoulliSplittingMaskGenerator`, `GaussianSplittingMaskGenerator`, `Phase2PhaseSplittingMaskGenerator`, `Artifact2ArtifactSplittingMaskGenerator`                                                     |
+| Pixelwise         | `Denoising`, `Inpainting`, `Demosaicing`, `Decolorize`  | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator`     |
 | Blur & Super-Resolution        | `Blur`, `BlurFFT`, `SpaceVaryingBlur`, `Downsampling`                   | `MotionBlurGenerator`, `DiffractionBlurGenerator`, `ProductConvolutionBlurGenerator`, `ConfocalBlurGenerator3D`, `DownsamplingGenerator3D`, `gaussian_blur`, `sinc_filter`, `bilinear_filter`, `bicubic_filter`               |
-| Magnetic Resonance Imaging (MRI) | `MRIMixin`, `MRI`, `MultiCoilMRI`, `DynamicMRI`, `SequentialMRI`, (All support 3D MRI) | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator`,                                                                                         |
-| Tomography                     | `Tomography`                                                                  |                                                                                                                                                                                                               |
-| Remote Sensing & Multispectral | `Pansharpen`, `HyperSpectralUnmixing`, `CompressiveSpectralImaging`       |                                                                                                                                                                                                               |
-| Compressive                    | `CompressedSensing`, `StructuredRandom`, `SinglePixelCamera`              |                                                                                                                                                                                                               |
-| Radio Interferometric Imaging  | `RadioInterferometry`                                                         |                                                                                                                                                                                                               |
-| Single-Photon Lidar            | `SinglePhotonLidar`                                                           |                                                                                                                                                                                                               |
-| Dehazing                       | `Haze`                                                                        |                                                                                                                                                                                                               |
-| Phase Retrieval                | `PhaseRetrieval`, `RandomPhaseRetrieval`, `StructuredRandomPhaseRetrieval`, `Ptychography`, `PtychographyLinearOperator` | `build_probe`, `generate_shifts`                                                                                                                                                                             |
+| Magnetic Resonance Imaging (MRI) | `MRIMixin`, `MRI`, `MultiCoilMRI`, `DynamicMRI`, `SequentialMRI`, (All support 3D MRI) | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator`     |
+| Tomography        | `Tomography`        |                 |
+| Remote Sensing & Multispectral | `Pansharpen`, `HyperSpectralUnmixing`, `CompressiveSpectralImaging`      |        |
+| Compressive          | `CompressedSensing`, `StructuredRandom`, `SinglePixelCamera`     |           |
+| Radio Interferometric Imaging  | `RadioInterferometry`      |                 |
+| Single-Photon Lidar      | `SinglePhotonLidar`                      |             |
+| Dehazing      | `Haze`          |       |
+| Phase Retrieval                | `PhaseRetrieval`, `RandomPhaseRetrieval`, `StructuredRandomPhaseRetrieval`, `Ptychography`, `PtychographyLinearOperator` | `build_probe`, `generate_shifts`          |
 
        
 # Reconstruction methods
 
-The library provides multiple solvers which depend on the acquisition physics:
+The library provides multiple solvers which depend on the forward operator and noise distribution:
 \begin{equation} \label{eq:solver}
-\hat{x} = R_{\theta}(y, A, N)
+\hat{x} = \operatorname{R}_{\theta}(y, A, N)
 \end{equation}
-where $R_{\theta}$ is a reconstruction network/algorithm with trainable parameters $\theta$ which can depends on the forward operator and noise distribution.
-In deepinv code, a reconstructor is evaluated as `x_hat = solver(y, A)`.
+where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with trainable parameters $\theta$.
+In deepinv code, a reconstructor is simply evaluated as `x_hat = model(y, physics)`.
+The library attempts to cover the wide variety of existing approaches for bulding $\operatorname{R}_{\theta}$, ranging from classical variational optimization algorithms, to diffusion methods using plug-and-play denoisers. 
 
 
-| **Family of Methods**                     | **Description**                                                                 | **Requires Training** | **Iterative** | **Sampling** | **References** |
-|-------------------------------------------|--------------------------------------------------------------------------------|-----------------------|---------------|--------------|----------------|
-| Artifact Removal    | Applies a neural network to a non-learned pseudo-inverse            | Yes                   | No            | No           |    [@jin2017deep]            |
-| Plug-and-Play (PnP)                       | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | No           |          |
-| Unfolded Networks                         | Constructs a trainable architecture by unrolling a PnP algorithm                 | Yes                   | Only DEQ      | No           |                |
-| Diffusion                                 | Leverages pretrained denoisers within an ODE/SDE                                 | No                    | Yes           | Yes          |                |
-| Non-learned Priors                        | Solves an optimization problem with hand-crafted priors                          | No                    | Yes           | No           |                |
-| Markov Chain Monte Carlo (MCMC)           | Leverages pretrained denoisers as priors within an optimization algorithm        | No                    | Yes           | Yes          |                |
-| Generative Adversarial Networks and Deep Image Prior | Uses a generator network to model the set of possible images                     | No                    | Yes           | Depends      |                |
-| Specific Network Architectures            | Off-the-shelf architectures for specific inverse problems                        | Yes                   | No            | No           |                |
-| Foundation Models            | Models trained for many imaging problems                        | Finetuning                   | No            | No           |                |
+**Artifact Removal**: The simplest way architecture for solving inverse problems [@jin2017deep] is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet. These architectures can be thus written as $\operatorname{R}_{\theta}(y, A,  \sigma) = \operatorname{D}_{\sigma}(A^{\top}y)$ where the adjoint can be replaced by any pseudoinverse of $A$.
 
+**Variational Optimization**: This methods consist of solving an optimization problem
+\begin{equation} \label{eq:var}
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,Ax) + g(x)
+\end{equation}
+where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term which incorporates knowledge about the noise parameters $\sigma$ and forward operator $A$, and $g:\mathcal{X}\mapsto\mathbb{R}_+$ is a regularization term that promotes plausible reconstructions.  
+
+**Plug-and-Play**: Plug-and-play methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
+ often using a deep denoiser. We provide popular PnP strategies such as DPIR.
+ 
+**Diffusion and Langevin methods**:  As with Plug-and-Play methods, diffusion and Langevin methods incorporate prior information via a pretrained denoiser, however, they are associated to a stochastic differential equation or an ordinary differential equation, instead of the optimization of \eqref{eq:var}.
+
+**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or plug-and-play approach, and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including the deep denoiser in the case of PnP.
+
+
+**Generative Adversarial Networks and Deep Image Prior**: Generative models exist in unconditional or conditional forms. Unconditional methods leverage a pretrained generator $G_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code tol solve an inverse problem via
+\begin{equation} \label{eq:var}
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,AG(z))
+\end{equation}
+The deep image prior uses an untrained $G$ leveraging the strong inductive bias of a specific autoencoder architecture. 
+
+Conditional methods use adversarial training to learn a network $\operatorname{R}_{\theta}(y, z, A_{\xi}, \sigma)$ which provides a set of  reconstructions by sampling different latent codes $z\in\mathcal{Z}$.
+
+**Foundation Models**: Foundation models are end-to-end architectures that incorporate knowledge of $A$ and $\sigma$ and are trained to reconstruct images across a wide variety of forward operators $A$ and noise distributions $N_{\sigma}$. Foundation models can be finetuned to unseen inverse problems using measurement data alone.
+
+The table below summarizes all the categories of reconstructors considered in the library:
+
+
+| **Family of Methods**                     | **Description**                                                                 | **Requires Training** | **Iterative** | **Sampling** |
+|-------------------------------------------|--------------------------------------------------------------------------------|-----------------------|---------------|---------------|
+| Artifact Removal    | Applies a neural network to a non-learned pseudo-inverse            | Yes                   | No            | No           |   
+| Variational Optimization       | Solves an optimization problem with hand-crafted priors               | No       | Yes           | No           |    
+| Plug-and-Play (PnP)      | Leverages pretrained denoisers as priors within an optimization algorithm    | No          | Yes           | No           |
+| Unfolded Networks        | Constructs a trainable architecture by unrolling a PnP algorithm   | Yes                   | Only DEQ      | No     |  
+| Diffusion & Langevin | Leverages pretrained denoisers within an SDE  | No        | Yes     | Yes     |   
+| Generative Adversarial Networks and Deep Image Prior | Uses a generator network to model the set of possible images       | No       | Yes           | Depends      |        
+| Foundation Models      | Models trained for many imaging problems     | Finetuning         | No            | No           |    
 
 
 # Training
 
-The package contains losses for training $R_{\theta}$ which are especially designed for inverse problems.
-The losses can be roughly separated in 3 categories: i) Supervised losses using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$, ii) self-supervised losses using measurement data only $\{y_i\}_{i=1}^{N}$  and iii) network regularization losses which enforce some regularity condition on $R_{\theta}$.
 
-| **Category**      | **Loss**    | **Assumptions** |
+The package provides losses for training $R_{\theta}$ which are especially designed for inverse problems. 
+
+
+**Supervised Losses**: Supervised losses using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ or pairs $\{(x_i,y_i)\}_{i=1}^{N}$. If the forward model is known, measurements are typically generated directly during training.
+
+| **Category**      | **Loss**    | **Description** |
 |-------------------|-------------|-----------------|
-|| **Supervised Learning**  || 
 | End2End    | `SupLoss` | Requires paired data. 
 | Adversarial    |  `SupAdversarialGeneratorLoss`, `SupAdversarialDiscriminatorLoss`                  |  Supervised adversarial loss.                             |
-|| **Self-Supervised Learning** ||
+
+
+
+**Self-supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$.
+
+| **Category**      | **Loss**    | **Description** |
+|-------------------|-------------|-----------------|
 | Splitting  | `SplittingLoss`, `Neighbor2Neighbor`, `Phase2PhaseLoss`, `Artifact2ArtifactLoss` | Independent noise across measurements or pixels. Splitting across time.       |
 |   SURE and Related Losses     | `SureGaussianLoss`,  `SurePoissonLoss`, `SurePGLoss`,`R2RLoss`                                           | Gaussian, Poisson, Poisson-Gaussian, or Gamma noise.                          |
 |     Nullspace losses      | `EILoss`, `MOEILoss`, `MOEILoss`          | Invariant distribution. Multiple operators |
 |   Adversarial       | `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss` |  Unsupervised adversarial loss. Unsupervised reconstruction & adversarial loss. |
 |   Other       | `TVLoss`| Total Variation regularization.|
-|| **Network Regularization** ||
-| | `JacobianSpectralNorm`, `FNEJacobianSpectralNorm`                                            | Controls the spectral norm of the Jacobian matrix. Promotes a firmly non-expansive network. |
+
+
+**Network regularization losses**:  Network regularization losses which enforce some regularity condition on $R_{\theta}$, generally having an upper bounded Lipschitz constant, or similarly being firmly non-expansive.
+
+|    **Loss**    | **Description** |
+|----------------|-----------------|
+| `JacobianSpectralNorm`, `FNEJacobianSpectralNorm`                                            |  Promotes a firmly non-expansive network. |
 
 
 # Acknowledgements
