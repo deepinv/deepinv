@@ -102,12 +102,12 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         )
 
         try:
-            x = torch.load(root_dir / file_name)
+            x = torch.load(root_dir / file_name, weights_only=True)
         except FileNotFoundError:
             if download:
                 url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
-                x = torch.load(root_dir / file_name)
+                x = torch.load(root_dir / file_name, weights_only=True)
             else:
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
@@ -380,14 +380,12 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
         :Example:
 
-        ::
+            Load local brain dataset and convert to simple dataset ::
 
-            from deepinv.datasets import FastMRISliceDataset
-            root = "/path/to/dataset/fastMRI/brain/multicoil_train"
-            dataset = FastMRISliceDataset(root=root, slice_index="middle")
-            subset = dataset.save_simple_dataset(
-                root + "/fastmri_brain_singlecoil.pt"
-            )
+                from deepinv.datasets import FastMRISliceDataset
+                root = "/path/to/dataset/fastMRI/brain/multicoil_train"
+                dataset = FastMRISliceDataset(root=root, slice_index="middle")
+                subset = dataset.save_simple_dataset(root + "/fastmri_brain_singlecoil.pt")
 
         :param str dataset_path: desired path of dataset to be saved with file extension e.g. ``fastmri_knee_singlecoil.pt``.
         :param bool pad_to_size: if not None, normalise images to 0-1 then pad to provided shape. Must be set if images are of varying size,
