@@ -39,7 +39,7 @@ extensions = [
     'sphinxcontrib.bibtex'
 ]
 
-bibtex_bibfiles = ['refs.bib']
+bibtex_bibfiles = ['../../paper/paper.bib']
 bibtex_default_style = 'plain'
 copybutton_exclude = ".linenos, .gp"
 
