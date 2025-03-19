@@ -111,18 +111,18 @@ where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 $N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements parameterized by $\sigma$ (e.g., the noise level or gain). The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with optional forward operator parameters. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes. The library provides high-level operator definitions which are associated with specific imaging applications (magnetic resonance imaging, computed tomography, radioastronomy, etc.), but also allows to perform operator algebra, like summing, concatenating or stacking operators. Moreover, the library provides multiple useful tools for handling linear operators, such as matrix-free linear solvers (conjugate gradient[@hestenes1952methods], MINRES[@paige1975solution], BiCGStab[@van1992bi] and LSQR[@paige1982lsqr]), and operator norm and condition number estimators. The table below summarizes the available forward operators:
 
-| **Family**  | **Operators**  | **Generators**    
-|-------------|----------------|---------------|
-| Pixelwise | `Denoising`, `Inpainting`, `Demosaicing`, `Decolorize`  | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator` |
-| Blur & Super-Resolution        | `Blur`, `BlurFFT`, `SpaceVaryingBlur`, `Downsampling` | `MotionBlurGenerator`, `DiffractionBlurGenerator`, `ProductConvolutionBlurGenerator`, `ConfocalBlurGenerator3D`, `DownsamplingGenerator3D`, `gaussian_blur`, `sinc_filter`, `bilinear_filter`, `bicubic_filter` |
-| Magnetic Resonance Imaging (MRI) | `MRIMixin`, `MRI`, `MultiCoilMRI`, `DynamicMRI`, `SequentialMRI`, (All support 3D MRI) | `GaussianMaskGenerator`, `RandomMaskGenerator`, `EquispacedMaskGenerator` |
-| Tomography | `Tomography` | |
-| Remote Sensing & Multispectral | `Pansharpen`, `HyperSpectralUnmixing`, `CompressiveSpectralImaging` | |
-| Compressive | `CompressedSensing`, `StructuredRandom`, `SinglePixelCamera` | |
-| Radio Interferometric Imaging  | `RadioInterferometry` | |
-| Single-Photon Lidar | `SinglePhotonLidar` | |
-| Dehazing | `Haze` | |
-| Phase Retrieval | `PhaseRetrieval`, `RandomPhaseRetrieval`, `StructuredRandomPhaseRetrieval`, `Ptychography`, `PtychographyLinearOperator` | `build_probe`, `generate_shifts` |
+| **Family**                     | **Operators**                                                                 | **Generators**                                                                 |
+|--------------------------------|------------------------------------------------------------------------------|--------------------------------------------------------------------------------|
+| Pixelwise                      | Denoising, inpainting, demosaicing, decolorize                               | Mask generators                                                                |
+| Blur & Super-Resolution        | Blur, space-varying Blur, downsampling  | Motion, Gaussian, diffraction, product-convolution, and confocal blurs. Sinc, bilinear and bicubic antialias filters. |
+| Magnetic Resonance Imaging (MRI) | Single and multi-Coil MRI, Dynamic MRI, Sequential MRI (All support 3D MRI) | Gaussian, random and equispaced masks |
+| Tomography                     | Parallel beam                                                                   |                                                                                |
+| Remote Sensing & Multispectral | Pansharpening, hyperspectral Unmixing, compressive Spectral Imaging          |                                                                                |
+| Compressive                    | Compressed sensing and single-pixel cea camera                  |                                                                                |
+| Radio Interferometric Imaging  | non-uniform Fourier transform                                   |                                                                                |
+| Single-photon Lidar            | TCSPC lidar                                                    |                                                                                |
+| Dehazing                       | Parametric haze model                                                                         |                                                                                |
+| Phase Retrieval                |  Random operators and ptychography | Probe generation |
 
 # Reconstruction methods
 
@@ -134,7 +134,7 @@ where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with tra
 In deepinv code, a reconstructor is simply evaluated as `x_hat = model(y, physics)`.
 The library covers a wide variety of existing approaches for bulding $\operatorname{R}_{\theta}$, ranging from classical variational optimization algorithms, to diffusion methods using plug-and-play denoisers. 
 
-**Artifact Removal**: The simplest way architecture for solving inverse problems [@jin2017deep] is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet. These architectures can be thus written as $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$ where the adjoint can be replaced by any pseudoinverse of $A$.
+**Artifact Removal**: The simplest way architecture for solving inverse problems [@jin2017deep] is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet. These architectures can be thus written as $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$ where the adjoint can be replaced by any pseudoinverse of $A_{\xi}$.
 
 **Variational Optimization**: This methods consist of solving an optimization problem [@chambolle2016introduction]
 \begin{equation} \label{eq:var}
@@ -149,9 +149,9 @@ where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fideli
 
 **Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or plug-and-play approach [@monga2021algorithm], and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including the deep denoiser in the case of PnP.
 
-**Generative Adversarial Networks and Deep Image Prior**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $G_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code tol solve an inverse problem via
+**Generative Adversarial Networks and Deep Image Prior**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $\operatorname{G}_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code tol solve an inverse problem via
 \begin{equation} \label{eq:var}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}G_{\theta}(z))
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}\operatorname{G}_{\theta}(z))
 \end{equation}
 The deep image prior [@ulyanov2018deeps] uses an untrained $\operatorname{G}_{\theta}$ leveraging the strong inductive bias of a specific autoencoder architecture. 
 
@@ -164,41 +164,26 @@ The table below summarizes all the categories of reconstructors considered in th
 
 | **Family of Methods** | **Description** | **Training** | **Iterative** | **Sampling** |
 |-----------------------|-----------------|-----------------------|---------------|--------------|
-| Artifact Removal | Applies a neural network to a non-learned pseudo-inverse | Yes | No | No |   
-| Variational Optimization | Solves an optimization problem with hand-crafted priors | No | Yes | No |    
-| Plug-and-Play (PnP) | Leverages pretrained denoisers as priors within an optimization algorithm | No | Yes | No |
-| Unfolded Networks | Constructs a trainable architecture by unrolling a PnP algorithm   | Yes | Only DEQ | No |  
+| Artifact Removal | Applies network to a non-learned pseudo-inverse | Yes | No | No |   
+| Variational Optimization | Solves optimization problem with hand-crafted priors | No | Yes | No |    
+| Plug-and-Play (PnP) | Leverages pretrained denoisers as priors within an optimization | No | Yes | No |
+| Unfolded Networks | Trainable architecture by unrolling an optimization   | Yes | Only DEQ | No |  
 | Diffusion & Langevin | Leverages pretrained denoisers within an SDE  | No | Yes | Yes |   
-| Generative Adversarial Networks and Deep Image Prior | Uses a generator network to model the set of possible images | No | Yes | Depends |
+| Generative Adversarial Networks and Deep Image Prior | Model plausible images via generator | No | Yes | Depends |
 | Foundation Models | Models trained for many imaging problems | Finetuning  | No   | No | 
 
 # Training
 
 The package provides losses for training $\operatorname{R}_{\theta}$ which are especially designed for inverse problems. 
 
-**Supervised Losses**: Supervised losses using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ or pairs $\{(x_i,y_i)\}_{i=1}^{N}$. If the forward model is known, measurements are typically generated directly during training.
+**Supervised Losses**: The supervised loss `SupLoss` using a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ or pairs $\{(x_i,y_i)\}_{i=1}^{N}$. If the forward model is known, measurements are typically generated directly during training.
 
-| **Category**| **Loss**    | **Description** |
-|-------------|-------------------|-----------------|
-| End2End    | `SupLoss` | Requires paired data. 
-| Adversarial    |  `SupAdversarialGeneratorLoss`, `SupAdversarialDiscriminatorLoss`|  Supervised adversarial loss.|
+**Self-supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$ which can be roughly classified in three classes:
+The first class consists of splitting losses [@batson2020noise2self], whereas . We also provide problem specific splitting, for denoising [@krull2021noise2void] [@huang2021neighbor2neighbor] and MRI [@yaman2020self] [@eldeniz2021phase2phase] [@liu2020rare]. The second class are Stein's Unbiased Risk estimator and related losses: we provide variants of SURE for Gaussian, Poisson and Poisson-Gaussian noise respectively, which can also be used without knowledge of the noise levels [@tachella2025unsure]. We also provide the closely related Recorrupted2Recorrupted [@pang2021recorrupted] which handles Gaussian, Poisson and Gamma noise distributions [@monroy2025gr2r]. The third class corresponds to Nullspace losses [@chenequivariant2021] [@tachella2022unsupervised]
 
-**Self-supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$ which can be roughly classified in splitting-based losses [@yaman2020self] [@krull2019noise2void] [@huang2021neighbor2neighbor] [@eldeniz2021phase2phase] [@liu2020rare], Stein's Unbiased Risk estimator and related losses [@pang2021recorrupted] [@tachella2025unsure] and nullspace losses [@chenequivariant2021] [@tachella2022unsupervised].
+**Adversarial Losses**:  `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss`
 
-| **Category**      | **Loss**    | **Description** |
-|-------------------|-------------|-----------------|
-| Splitting  | `SplittingLoss`, `Neighbor2Neighbor`, `Phase2PhaseLoss`, `Artifact2ArtifactLoss` | Independent noise across measurements or pixels. Splitting across time. |
-| SURE | `SureGaussianLoss`,  `SurePoissonLoss`, `SurePGLoss`,`R2RLoss` | Gaussian, Poisson, Poisson-Gaussian, or Gamma noise. |
-| Nullspace losses | `EILoss`, `MOEILoss`, `MOEILoss` | Invariant distribution. Multiple operators |
-| Adversarial | `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss` |  Unsupervised adversarial loss. Unsupervised reconstruction & adversarial loss. |
-| Other | `TVLoss` | Total Variation regularization.|
-
-**Network regularization losses**:  Network regularization losses which enforce some regularity condition on $\operatorname{R}_{\theta}$, generally having an upper bounded Lipschitz constant or similarly being firmly non-expansive [@pesquet2021learning].
-
-|    **Loss**    | **Description** |
-|----------------|-----------------|
-| `JacobianSpectralNorm`, `FNEJacobianSpectralNorm` |  Promotes a firmly non-expansive network. |
-
+**Network regularization losses**:  Network regularization losses which enforce some regularity condition on $\operatorname{R}_{\theta}$, generally having an upper bounded Lipschitz constant `JacobianSpectralNorm` or similarly being firmly non-expansive  `FNEJacobianSpectralNorm` [@pesquet2021learning].
 
 # Acknowledgements
 
