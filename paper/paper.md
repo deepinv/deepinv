@@ -111,8 +111,7 @@ y = N_{\sigma}(A_{\xi}(x))
 \end{equation}
 where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}:\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
-$N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements parameterized by $\sigma$ (e.g., the noise level or gain).
-The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with optional forward operator parameters. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes. The library provides high-level operator definitions which are associated with specific imaging applications (magnetic resonance imaging, computed tomography, radioastronomy, etc.), but also allows to perform operator algebra, like summing, concatenating or stacking operators. Moreover, the library provides multiple useful tools for handling linear operators, such as matrix-free linear solvers (conjugate gradient[], MINRES[], BiCGStab[] and LSQR[]), and operator norm and condition number estimators. The table below summarizes the available forward operators:
+$N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the measurements parameterized by $\sigma$ (e.g., the noise level or gain). The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with optional forward operator parameters. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes. The library provides high-level operator definitions which are associated with specific imaging applications (magnetic resonance imaging, computed tomography, radioastronomy, etc.), but also allows to perform operator algebra, like summing, concatenating or stacking operators. Moreover, the library provides multiple useful tools for handling linear operators, such as matrix-free linear solvers (conjugate gradient[@hestenes1952methods], MINRES[@paige1975solution], BiCGStab[@van1992bi] and LSQR[@paige1982lsqr]), and operator norm and condition number estimators. The table below summarizes the available forward operators:
 
 | **Family**  | **Operators**  | **Generators**    
 |-------------|----------------|---------------|
@@ -135,22 +134,22 @@ The library provides multiple solvers which depend on the forward operator and n
 \end{equation}
 where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with trainable parameters $\theta$.
 In deepinv code, a reconstructor is simply evaluated as `x_hat = model(y, physics)`.
-The library attempts to cover the wide variety of existing approaches for bulding $\operatorname{R}_{\theta}$, ranging from classical variational optimization algorithms, to diffusion methods using plug-and-play denoisers. 
+The library covers a wide variety of existing approaches for bulding $\operatorname{R}_{\theta}$, ranging from classical variational optimization algorithms, to diffusion methods using plug-and-play denoisers. 
 
 **Artifact Removal**: The simplest way architecture for solving inverse problems [@jin2017deep] is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet. These architectures can be thus written as $\operatorname{R}_{\theta}(y, A,  \sigma) = \operatorname{D}_{\sigma}(A^{\top}y)$ where the adjoint can be replaced by any pseudoinverse of $A$.
 
-**Variational Optimization**: This methods consist of solving an optimization problem
+**Variational Optimization**: This methods consist of solving an optimization problem [@chambolle2016introduction]
 \begin{equation} \label{eq:var}
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi} x) + g(x)
 \end{equation}
-where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term which can incorporate knowledge about the noise parameters $\sigma$ and forward operator $A$, and $g:\mathcal{X}\mapsto\mathbb{R}_+$ is a regularization term that promotes plausible reconstructions.  
+where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term which can incorporate knowledge about the noise parameters $\sigma$ and forward operator $A$, and $g:\mathcal{X}\mapsto\mathbb{R}_+$ is a regularization term that promotes plausible reconstructions. The library provides popular hand-crafted regularization functions, such as sparsity [@candes2008introduction] and total variation [@rudin1992nonlinear].
 
 **Plug-and-Play**: Plug-and-play methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
- often using a deep denoiser. We provide popular PnP strategies such as DPIR.
+ often using a deep denoiser [@kamilov2023plug]. We provide popular PnP strategies such as DPIR [@zhang2021plug].
  
-**Diffusion and Langevin methods**:  As with Plug-and-Play methods, diffusion and Langevin methods incorporate prior information via a pretrained denoiser, however, they are associated to a stochastic differential equation or an ordinary differential equation, instead of the optimization of \eqref{eq:var}.
+**Diffusion and Langevin methods**:  As with Plug-and-Play methods, diffusion [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising]  and Langevin methods [@laumont2022bayesian] incorporate prior information via a pretrained denoiser, however, they are associated to a stochastic differential equation or an ordinary differential equation, instead of the optimization of \eqref{eq:var}.
 
-**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or plug-and-play approach, and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including the deep denoiser in the case of PnP.
+**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or plug-and-play approach [@monga2021algorithm], and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including the deep denoiser in the case of PnP.
 
 **Generative Adversarial Networks and Deep Image Prior**: Generative models exist in unconditional or conditional forms. Unconditional methods leverage a pretrained generator $G_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code tol solve an inverse problem via
 \begin{equation} \label{eq:var}
@@ -158,7 +157,7 @@ where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fideli
 \end{equation}
 The deep image prior uses an untrained $G$ leveraging the strong inductive bias of a specific autoencoder architecture. 
 
-Conditional methods use adversarial training to learn a network $\operatorname{R}_{\theta}(y, z, A_{\xi}, \sigma)$ which provides a set of  reconstructions by sampling different latent codes $z\in\mathcal{Z}$.
+Conditional methods use adversarial training to learn a network $\operatorname{R}_{\theta}(y, z, A_{\xi}, \sigma)$ which provides a set of reconstructions by sampling different latent codes $z\in\mathcal{Z}$.
 
 **Foundation Models**: Foundation models are end-to-end architectures that incorporate knowledge of $A$ and $\sigma$ and are trained to reconstruct images across a wide variety of forward operators $A$ and noise distributions $N_{\sigma}$. Foundation models can be finetuned to unseen inverse problems using measurement data alone.
 
@@ -186,17 +185,17 @@ The package provides losses for training $R_{\theta}$ which are especially desig
 | End2End    | `SupLoss` | Requires paired data. 
 | Adversarial    |  `SupAdversarialGeneratorLoss`, `SupAdversarialDiscriminatorLoss`|  Supervised adversarial loss.|
 
-**Self-supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$.
+**Self-supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$ [@yaman2020self] [@krull2019noise2void] [@huang2021neighbor2neighbor] [@eldeniz2021phase2phase,@tachella2025unsure] [@chenequivariant2021] [@tachella2022unsupervised] [@liu2020rare].
 
 | **Category**      | **Loss**    | **Description** |
 |-------------------|-------------|-----------------|
 | Splitting  | `SplittingLoss`, `Neighbor2Neighbor`, `Phase2PhaseLoss`, `Artifact2ArtifactLoss` | Independent noise across measurements or pixels. Splitting across time. |
-|   SURE and Related Losses     | `SureGaussianLoss`,  `SurePoissonLoss`, `SurePGLoss`,`R2RLoss` | Gaussian, Poisson, Poisson-Gaussian, or Gamma noise. |
-|   Nullspace losses      | `EILoss`, `MOEILoss`, `MOEILoss` | Invariant distribution. Multiple operators |
-|   Adversarial       | `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss` |  Unsupervised adversarial loss. Unsupervised reconstruction & adversarial loss. |
-|   Other       | `TVLoss`| Total Variation regularization.|
+| SURE and Related Losses | `SureGaussianLoss`,  `SurePoissonLoss`, `SurePGLoss`,`R2RLoss` | Gaussian, Poisson, Poisson-Gaussian, or Gamma noise. |
+| Nullspace losses | `EILoss`, `MOEILoss`, `MOEILoss` | Invariant distribution. Multiple operators |
+| Adversarial | `UnsupAdversarialGeneratorLoss`, `UnsupAdversarialDiscriminatorLoss`, `UAIRGeneratorLoss` |  Unsupervised adversarial loss. Unsupervised reconstruction & adversarial loss. |
+| Other | `TVLoss` | Total Variation regularization.|
 
-**Network regularization losses**:  Network regularization losses which enforce some regularity condition on $R_{\theta}$, generally having an upper bounded Lipschitz constant, or similarly being firmly non-expansive.
+**Network regularization losses**:  Network regularization losses which enforce some regularity condition on $R_{\theta}$, generally having an upper bounded Lipschitz constant or similarly being firmly non-expansive [@pesquet2021learning].
 
 |    **Loss**    | **Description** |
 |----------------|-----------------|

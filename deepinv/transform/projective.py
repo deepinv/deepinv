@@ -160,8 +160,8 @@ class Homography(Transform):
     """
     Random projective transformations (homographies).
 
-    The homography is parameterised by
-    geometric parameters. By fixing these parameters, subgroup transformations are
+    The homography is parameterised by geometric parameters.
+    By fixing these parameters, subgroup transformations are
     retrieved, see Wang et al. "Perspective-Equivariant Imaging: an Unsupervised
     Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
 

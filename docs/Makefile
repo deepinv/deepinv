@@ -27,7 +27,7 @@ html-noplot:
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 html-fast:
-	$(SPHINXBUILD) -vv -D plot_gallery=0 -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
+	$(SPHINXBUILD) -D plot_gallery=0 -b html $(SPHINXOPTS) "$(SOURCEDIR)" "$(BUILDDIR)/html"
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

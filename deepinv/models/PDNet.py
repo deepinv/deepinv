@@ -13,7 +13,7 @@ class PDNet_PrimalBlock(nn.Module):
     r"""
     Primal block for the Primal-Dual unfolding model.
 
-    From https://arxiv.org/abs/1707.06474.
+    From :cite:p:`adler2018learned`.
 
     Primal variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current primal variable and the backprojected dual variable along
@@ -73,7 +73,7 @@ class PDNet_DualBlock(nn.Module):
     r"""
     Dual block for the Primal-Dual unfolding model.
 
-    From https://arxiv.org/abs/1707.06474.
+    From :cite:p:`adler2018learned`.
 
     Dual variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current dual variable with the projected primal variable and

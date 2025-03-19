@@ -16,7 +16,9 @@ class StudentGrad(nn.Module):
 class GSPnP(Denoiser):
     r"""
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
-    See https://arxiv.org/pdf/2110.03220.pdf.
+
+    Proposed in :cite:p:`hurault2022gradient`.
+
     Code from https://github.com/samuro95/GSPnP.
 
     :param torch.nn.Module denoiser: Denoiser model.

@@ -35,8 +35,7 @@ class DPIR(BaseOptim):
 
     This method uses a standard :math:`\ell_2` data fidelity term.
 
-    The DPIR method is described in Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017). "Learning deep CNN denoiser prior for image restoration"
-    In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
+    The DPIR method is described in :cite:p:`zhang2021plug`
 
     :param float sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.

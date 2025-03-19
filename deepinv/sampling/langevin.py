@@ -239,7 +239,7 @@ class ULA(MonteCarlo):
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
     The algorithm runs the following markov chain iteration
-    (Algorithm 2 from https://arxiv.org/abs/2103.04715):
+    (Algorithm 2 from :cite:p:`laumont2022bayesian`):
 
     .. math::
 
@@ -277,6 +277,8 @@ class ULA(MonteCarlo):
         of the function g_statistic. By default, it is the identity function (lambda x: x),
         and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
+
+    .. footnotebibliography
 
     """
 

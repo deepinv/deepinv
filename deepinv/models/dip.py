@@ -17,7 +17,7 @@ class ConvDecoder(nn.Module):
     r"""
     Convolutional decoder network.
 
-    The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
+    The architecture was introduced in :cite:p:`darestani2021accelerated`,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
@@ -96,8 +96,7 @@ class DeepImagePrior(Reconstructor):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-    <https://arxiv.org/abs/1711.10925>`_, and reconstructs
+    This method is based on the paper :cite:p:`ulyanov2018deep`, and reconstructs
     an image by minimizing the loss function
 
     .. math::
