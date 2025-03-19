@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
@@ -291,3 +292,4 @@ Authors
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Keying Guo: https://github.com/g-keying
+.. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
