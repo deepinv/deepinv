@@ -90,7 +90,7 @@ class R2RLoss(Loss):
     def __init__(
         self,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
-        noise_model: NoiseModel = GaussianNoise(0.1),
+        noise_model: NoiseModel = None,
         alpha=0.15,
         sigma=None,
         eval_n_samples=5,
@@ -163,6 +163,7 @@ def set_gaussian_corruptor(y, alpha, sigma):
 
 def set_binomial_corruptor(y, alpha, gamma):
     z = y / gamma
+    z = torch.maximum(torch.zeros_like(z), z)
     sampler = torch.distributions.Binomial(torch.round(z), alpha)
     corruptor = lambda: gamma * (z - sampler.sample()) / (1 - alpha)
     return corruptor
@@ -192,9 +193,22 @@ class R2RModel(torch.nn.Module):
 
     def forward(self, y, physics, update_parameters=False):
 
+        if self.noise_model is None:
+
+            if isinstance(physics.noise_model, NoiseModel):
+                self.curr_noise_model = physics.noise_model
+            else:
+                raise ValueError(
+                    "Noise model not found in physics module. Please provide noise model in the constructor."
+                )
+
+        elif isinstance(self.noise_model, NoiseModel):
+            self.curr_noise_model = self.noise_model
+
         eval_n_samples = 1 if self.training else self.eval_n_samples
         out = 0
         corruptor = self.get_corruptor(y)
+        self.curr_noise_model = None
 
         with torch.set_grad_enabled(self.training):
             for i in range(eval_n_samples):
@@ -210,24 +224,24 @@ class R2RModel(torch.nn.Module):
     def get_corruptor(self, y):
         alpha = self.alpha
 
-        if isinstance(self.noise_model, GaussianNoise):
+        if isinstance(self.curr_noise_model, GaussianNoise):
 
-            sigma = self.noise_model.sigma
+            sigma = self.curr_noise_model.sigma
             return set_gaussian_corruptor(y, alpha, sigma)
 
-        elif isinstance(self.noise_model, PoissonNoise):
+        elif isinstance(self.curr_noise_model, PoissonNoise):
 
-            gain = self.noise_model.gain
+            gain = self.curr_noise_model.gain
             return set_binomial_corruptor(y, alpha, gain)
 
-        elif isinstance(self.noise_model, GammaNoise):
+        elif isinstance(self.curr_noise_model, GammaNoise):
 
-            l = self.noise_model.l
+            l = self.curr_noise_model.l
             return set_beta_corruptor(y, alpha, l)
 
         else:
             raise ValueError(
-                f"Noise model {self.noise_model} not supported, available options are Gaussian, Poisson and Gamma."
+                f"Noise model {self.curr_noise_model} not supported, available options are Gaussian, Poisson and Gamma."
             )
 
     def get_corruption(self):

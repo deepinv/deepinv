@@ -121,11 +121,11 @@ model = dinv.models.ArtifactRemoval(
 #
 
 epochs = 1  # choose training epochs
-learning_rate = 1e-4
+learning_rate = 1e-3
 batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
-loss = dinv.loss.R2RLoss(noise_model=noise_model)
+loss = dinv.loss.R2RLoss(noise_model=None)
 model = loss.adapt_model(model)  # important step!
 
 # choose optimizer and scheduler
@@ -134,14 +134,14 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 
 # # start with a pretrained model to reduce training time
 
-if noise_name == "poisson":
-    file_name = "ckp_10_demo_r2r_poisson.pth"
-    url = get_weights_url(model_name="demo", file_name=file_name)
-    ckpt = torch.hub.load_state_dict_from_url(
-        url, map_location=lambda storage, loc: storage, file_name=file_name
-    )
-    # load a checkpoint to reduce training time
-    model.load_state_dict(ckpt["state_dict"])
+# if noise_name == "poisson":
+#     file_name = "ckp_10_demo_r2r_poisson.pth"
+#     url = get_weights_url(model_name="demo", file_name=file_name)
+#     ckpt = torch.hub.load_state_dict_from_url(
+#         url, map_location=lambda storage, loc: storage, file_name=file_name
+#     )
+#     # load a checkpoint to reduce training time
+#     model.load_state_dict(ckpt["state_dict"])
 
 # %%
 # Train the network
