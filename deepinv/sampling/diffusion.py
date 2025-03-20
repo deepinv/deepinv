@@ -319,13 +319,13 @@ class DiffPIR(Reconstructor):
         alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
-        sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
-        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
+        sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod).to(self.device)
+        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod).to(self.device)
         reduced_alpha_cumprod = torch.div(
             sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod
         )  # equivalent noise sigma on image
-        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
-        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod).to(self.device)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1).to(self.device)
 
         return (
             sqrt_1m_alphas_cumprod,
@@ -394,8 +394,8 @@ class DiffPIR(Reconstructor):
         sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
         sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
         return (
-            sqrt_recip_alphas_cumprod,
-            sqrt_recipm1_alphas_cumprod,
+            sqrt_recip_alphas_cumprod.to(self.device),
+            sqrt_recipm1_alphas_cumprod.to(self.device),
         )
 
     def forward(
@@ -428,7 +428,7 @@ class DiffPIR(Reconstructor):
         else:
             x = 2 * x_init - 1
 
-        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
+        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod(device=x.device)
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
@@ -438,7 +438,7 @@ class DiffPIR(Reconstructor):
 
                 # time step associated with the noise level sigmas[i]
                 t_i = self.find_nearest(
-                    self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
+                    self.reduced_alpha_cumprod.cpu().numpy(), curr_sigma.cpu().numpy()
                 )
                 at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
 
@@ -467,7 +467,7 @@ class DiffPIR(Reconstructor):
 
                     # Sampling step
                     t_im1 = self.find_nearest(
-                        self.reduced_alpha_cumprod,
+                        self.reduced_alpha_cumprod.cpu().numpy(),
                         self.sigmas[self.seq[i + 1]].cpu().numpy(),
                     )  # time step associated with the next noise level
 
