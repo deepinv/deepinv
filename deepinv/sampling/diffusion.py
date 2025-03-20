@@ -430,9 +430,7 @@ class DiffPIR(Reconstructor):
         else:
             x = 2 * x_init - 1
 
-        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod(
-            device=x.device
-        )
+        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod()
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):
