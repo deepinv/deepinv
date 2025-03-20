@@ -56,13 +56,17 @@ class R2RLoss(Loss):
         To obtain the best test performance, the trained model should be averaged at test time
         over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})`,
         where :math:`N>1`. This can be achieved using :meth:`adapt_model`.
+    
+    .. note::
+    
+        If the ``noise_model`` parameter is not provided, the noise model from the physics module will be used.
 
     .. deprecated:: 0.2.3
 
         The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model=deepinv.physics.GaussianNoise(sigma=sigma)`` parameter instead.
 
     :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.
-    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to Gaussian. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
+    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to None. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
     :param float alpha: Scaling factor of the corruption.
     :param int eval_n_samples: Number of samples used for the Monte Carlo approximation.
 
