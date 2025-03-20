@@ -1,0 +1,964 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>deepinv.datasets.fastmri &#8212; deepinverse 0.2 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../../_static/documentation_options.js?v=10f1778b"></script>
+    <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../../_static/copybutton.js?v=35a8b989"></script>
+    <script src="../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NSEKFKYSGR"></script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){ dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', 'G-NSEKFKYSGR');
+            </script>
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/deepinv/datasets/fastmri';</script>
+    <link rel="icon" href="../../../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../../_static/deepinv_logolarge.png" class="logo__image only-light" alt="deepinverse 0.2 documentation - Home"/>
+    <img src="../../../_static/logo_large_dark.png" class="logo__image only-dark pst-js-only" alt="deepinverse 0.2 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../contributing.html">
+    How to Contribute
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../quickstart.html">
+    Quickstart
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../auto_examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../user_guide.html">
+    User Guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../API.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../finding_help.html">
+    Finding Help
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../contributing.html">
+    How to Contribute
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../../community.html">
+    Community
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../../index.html" class="nav-link">Module code</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">deepinv.datasets.fastmri</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <h1>Source code for deepinv.datasets.fastmri</h1><div class="highlight"><pre>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Pytorch Dataset for fastMRI.</span>
+
+<span class="sd">Code modified from: https://github.com/facebookresearch/fastMRI/blob/main/fastmri/data/mri_data.py</span>
+
+<span class="sd">Copyright (c) Facebook, Inc. and its affiliates.</span>
+
+<span class="sd">This source code is licensed under the MIT license found in the</span>
+<span class="sd">LICENSE file in the root directory of this source tree.</span>
+
+<span class="sd">Key modifications:</span>
+<span class="sd">- Use torch.randperm instead of random shuffle</span>
+<span class="sd">- Convert to SimpleFastMRISliceDataset</span>
+<span class="sd">- Return torch tensors</span>
+<span class="sd">- Remove redundant sample_rate (this can be easily achieved using torch.utils.data.Subset)</span>
+<span class="sd">- Add slice_index parameter</span>
+<span class="sd">- Remove redundant challenge parameter</span>
+<span class="sd">- Clean up messy fastmri code</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torchvision.transforms</span><span class="w"> </span><span class="kn">import</span> <span class="n">Compose</span><span class="p">,</span> <span class="n">CenterCrop</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.datasets.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ToComplex</span><span class="p">,</span> <span class="n">Rescale</span><span class="p">,</span> <span class="n">download_archive</span><span class="p">,</span> <span class="n">loadmat</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deepinv.utils.demo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_image_url</span>
+
+
+<div class="viewcode-block" id="SimpleFastMRISliceDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.SimpleFastMRISliceDataset.html#deepinv.datasets.SimpleFastMRISliceDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleFastMRISliceDataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple FastMRI image dataset.</span>
+
+<span class="sd">    Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset for quick loading.</span>
+
+<span class="sd">    .. important::</span>
+
+<span class="sd">        By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement &lt;https://fastmri.med.nyu.edu/&gt;`_.</span>
+
+<span class="sd">    These datasets are generated using :func:`deepinv.datasets.FastMRISliceDataset.save_simple_dataset`.</span>
+<span class="sd">    You can use this to generate your own custom dataset and load using the ``file_name`` argument.</span>
+
+<span class="sd">    We provide a pregenerated mini saved subset for singlecoil FastMRI knees (total 2 images)</span>
+<span class="sd">    and RSS reconstructions of multicoil brains (total 2 images).</span>
+<span class="sd">    These originate from their respective fully-sampled volumes converted to images via root-sum-of-square (RSS).</span>
+<span class="sd">    Each slice is the middle slice from one independent volume.</span>
+<span class="sd">    The images are of shape (2x320x320) and are normalised per-sample (0-1) and padded.</span>
+<span class="sd">    Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.</span>
+
+<span class="sd">    .. note ::</span>
+
+<span class="sd">        Since images are obtained from RSS, the imaginary part of each sample is 0.</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Load mini demo knee dataset:</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.datasets import SimpleFastMRISliceDataset</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.utils import get_data_home</span>
+<span class="sd">        &gt;&gt;&gt; dataset = SimpleFastMRISliceDataset(get_data_home(), anatomy=&quot;knee&quot;, download=True)</span>
+<span class="sd">        &gt;&gt;&gt; len(dataset)</span>
+<span class="sd">        2</span>
+
+<span class="sd">    :param str, pathlib.Path root_dir: dataset root directory</span>
+<span class="sd">    :param str anatomy: load either fastmri &quot;knee&quot; or &quot;brain&quot; slice datasets.</span>
+<span class="sd">    :param str, pathlib.Path file_name: optional, name of local dataset to load, overrides ``anatomy``. If ``None``, load dataset based on ``anatomy`` parameter.</span>
+<span class="sd">    :param bool train: whether to use training set or test set, defaults to True</span>
+<span class="sd">    :param int sample_index: if specified only load this sample, defaults to None</span>
+<span class="sd">    :param float train_percent: percentage train for train/test split, defaults to 1.</span>
+<span class="sd">    :param Callable transform: optional transform for images, defaults to None</span>
+<span class="sd">    :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.</span>
+<span class="sd">        If dataset is already downloaded, it is not downloaded again. Default at False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+        <span class="n">anatomy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;knee&quot;</span><span class="p">,</span>
+        <span class="n">file_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">sample_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">train_percent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">download</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">anatomy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;knee&quot;</span><span class="p">,</span> <span class="s2">&quot;brain&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;anatomy must be either &#39;knee&#39; or &#39;brain&#39; or None.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">anatomy</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either anatomy or file_name must be passed.&quot;</span><span class="p">)</span>
+
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root_dir</span><span class="p">)</span>
+        <span class="n">file_name</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">file_name</span>
+            <span class="k">if</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;demo_mini_subset_fastmri_</span><span class="si">{</span><span class="n">anatomy</span><span class="si">}</span><span class="s2">.pt&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">root_dir</span> <span class="o">/</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">download</span><span class="p">:</span>
+                <span class="n">url</span> <span class="o">=</span> <span class="n">get_image_url</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">file_name</span><span class="p">))</span>
+                <span class="n">download_archive</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">root_dir</span> <span class="o">/</span> <span class="n">file_name</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">root_dir</span> <span class="o">/</span> <span class="n">file_name</span><span class="p">,</span> <span class="n">weights_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                    <span class="s2">&quot;Local dataset not downloaded. Download by setting download=True.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">ToComplex</span><span class="p">()]</span> <span class="o">+</span> <span class="p">([</span><span class="n">transform</span><span class="p">]</span> <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="n">train_percent</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">train_percent</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">sample_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">sample_index</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load images from memory and optionally apply transform.</span>
+
+<span class="sd">        :param int index: dataset index</span>
+<span class="sd">        :return: tensor of shape (2, H, W)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="FastMRISliceDataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FastMRISliceDataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset for `fastMRI &lt;https://fastmri.med.nyu.edu/&gt;`_ that provides access to raw MR image slices.</span>
+
+<span class="sd">    This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.</span>
+<span class="sd">    This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.</span>
+
+<span class="sd">    To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the volumes as ``h5`` files.</span>
+<span class="sd">    The fastMRI dataset includes two types of MRI scans: knee MRIs and the brain (neuro) MRIs, and containing training, validation, and masked test sets.</span>
+
+<span class="sd">    The dataset is loaded as pairs ``(kspace, target)`` where ``kspace`` are the measurements of shape ``(2, (N,) H, W)``</span>
+<span class="sd">    where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,</span>
+<span class="sd">    and ``target`` are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.</span>
+
+<span class="sd">    .. tip::</span>
+
+<span class="sd">        ``x`` and ``y`` are related by :meth:`deepinv.physics.MRI.A_adjoint` or :meth:`deepinv.physics.MultiCoilMRI.A_adjoint`</span>
+<span class="sd">        depending on if ``y`` are multicoil or not, with ``crop=True, rss=True``.</span>
+
+<span class="sd">    See the `fastMRI README &lt;https://github.com/facebookresearch/fastMRI/blob/main/fastmri/data/README.md&gt;`_ for more details.</span>
+
+<span class="sd">    **Raw data file structure:** ::</span>
+
+<span class="sd">        self.root --- file1000005.h5</span>
+<span class="sd">                   |</span>
+<span class="sd">                   -- xxxxxxxxxxx.h5</span>
+
+<span class="sd">    Each file contains the k-space data, reconstructed images and some metadata related to the scan.</span>
+<span class="sd">    When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        We also provide a simple FastMRI dataset class in :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.</span>
+<span class="sd">        This allows you to save and load the dataset as 2D singlecoil slices much faster and all in-memory.</span>
+<span class="sd">        You can generate this using the method ``save_simple_dataset``.</span>
+
+<span class="sd">    .. important::</span>
+
+<span class="sd">        By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement &lt;https://fastmri.med.nyu.edu/&gt;`_.</span>
+
+
+<span class="sd">    :param Union[str, pathlib.Path] root: Path to the dataset.</span>
+<span class="sd">    :param bool test: Whether the split is the `&quot;test&quot;` set, if yes, only return kspace measurements.</span>
+<span class="sd">    :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.</span>
+<span class="sd">    :param bool save_metadata_to_cache: Whether to cache dataset metadata.</span>
+<span class="sd">    :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset information for faster load times.</span>
+<span class="sd">    :param float subsample_volumes: (optional) proportion of volumes to be randomly subsampled (float between 0 and 1).</span>
+<span class="sd">    :param str, int, tuple slice_index: if `&quot;all&quot;`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,</span>
+<span class="sd">        if `&quot;middle&quot;`, keep the middle slice. If `&quot;random&quot;`, select random slice. Defaults to `&quot;all&quot;`.</span>
+<span class="sd">    :param Callable transform_kspace: optional transform function for (multicoil) kspace operating on images of shape (..., 2, H, W).</span>
+<span class="sd">    :param Callable transform_target: optional transform function for ground truth recon targets operating on single-channel images of shape (1, H, W).</span>
+<span class="sd">    :param torch.Generator, None rng: optional torch random generator for shuffle slice indices</span>
+
+<span class="sd">    |sep|</span>
+
+<span class="sd">    :Examples:</span>
+
+<span class="sd">        Instantiate dataset with sample data (from a demo multicoil brain volume):</span>
+
+<span class="sd">        &gt;&gt;&gt; from deepinv.datasets import FastMRISliceDataset, download_archive</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.utils import get_image_url, get_data_home</span>
+<span class="sd">        &gt;&gt;&gt; url = get_image_url(&quot;demo_fastmri_brain_multicoil.h5&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; root = get_data_home() / &quot;fastmri&quot; / &quot;brain&quot;</span>
+<span class="sd">        &gt;&gt;&gt; download_archive(url, root / &quot;demo.h5&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; dataset = FastMRISliceDataset(root=root, slice_index=&quot;all&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; len(dataset)</span>
+<span class="sd">        16</span>
+<span class="sd">        &gt;&gt;&gt; target, kspace = dataset[0]</span>
+<span class="sd">        &gt;&gt;&gt; target.shape # (1, W, W), varies per sample</span>
+<span class="sd">        torch.Size([1, 213, 213])</span>
+<span class="sd">        &gt;&gt;&gt; kspace.shape # (2, N, H, W), varies per sample</span>
+<span class="sd">        torch.Size([2, 4, 512, 213])</span>
+
+<span class="sd">        Normalise and pad images, and load one slice per volume:</span>
+
+<span class="sd">        &gt;&gt;&gt; from torchvision.transforms import Compose, CenterCrop</span>
+<span class="sd">        &gt;&gt;&gt; from deepinv.datasets.utils import Rescale</span>
+<span class="sd">        &gt;&gt;&gt; dataset = FastMRISliceDataset(root=root, slice_index=0, transform_target=Compose([Rescale(), CenterCrop(320)]))</span>
+
+<span class="sd">        Convert to a simple normalised padded in-memory slice dataset from the middle slices only:</span>
+
+<span class="sd">        &gt;&gt;&gt; simple_set = FastMRISliceDataset(root=root, slice_index=&quot;middle&quot;).save_simple_dataset(root.parent / &quot;simple_set.pt&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; len(simple_set)</span>
+<span class="sd">        1</span>
+
+<span class="sd">        Instantiate dataset with metadata cache (speeds up subsequent instantiation):</span>
+
+<span class="sd">        &gt;&gt;&gt; dataset = FastMRISliceDataset(root=root, load_metadata_from_cache=True, save_metadata_to_cache=True, metadata_cache_file=root.parent / &quot;cache.pkl&quot;) # doctest: +ELLIPSIS</span>
+<span class="sd">        Saving dataset cache to ...</span>
+<span class="sd">        &gt;&gt;&gt; import shutil; shutil.rmtree(root.parent)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FastMRISliceDataset.torch_shuffle">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.torch_shuffle">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">torch_shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">generator</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shuffle list reproducibly using torch generator.</span>
+
+<span class="sd">        :param list x: list to be shuffled</span>
+<span class="sd">        :param torch.Generator generator: torch Generator.</span>
+<span class="sd">        :return list: shuffled list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span></div>
+
+
+<div class="viewcode-block" id="FastMRISliceDataset.SliceSampleID">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.SliceSampleID">[docs]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">SliceSampleID</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Data structure containing ID and metadata of specific slices within MRI data files.&quot;&quot;&quot;</span>
+
+        <span class="n">fname</span><span class="p">:</span> <span class="n">Path</span>
+        <span class="n">slice_ind</span><span class="p">:</span> <span class="nb">int</span>
+        <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="FastMRISliceDataset.metadata_cache_manager">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.metadata_cache_manager">[docs]</a>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata_cache_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">samples</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read/write metadata cache file for populating list of sample ids.</span>
+
+<span class="sd">        :param Union[str, pathlib.Path] root: root dir to save to metadata cache</span>
+<span class="sd">        :param Any samples: iterable (list, dict etc.) for populating with samples to read/write to metadata cache</span>
+<span class="sd">        :yield: samples, either populated from metadata cache, or blank, to be yielded to be written to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_metadata_from_cache</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">dataset_cache</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">dataset_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">root</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;`metadata_cache_file` doesn&#39;t contain the metadata. Please &quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;either deactivate `load_dataset_from_cache` OR set `metadata_cache_file` properly.&quot;</span>
+                    <span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using dataset cache from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="n">samples</span> <span class="o">=</span> <span class="n">dataset_cache</span><span class="p">[</span><span class="n">root</span><span class="p">]</span>
+
+            <span class="k">yield</span> <span class="n">samples</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_metadata_from_cache</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span>
+            <span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find dataset cache at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="si">}</span><span class="s2">. Loading dataset from scratch.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">yield</span> <span class="n">samples</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_metadata_to_cache</span><span class="p">:</span>
+                <span class="n">dataset_cache</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">dataset_cache</span><span class="p">[</span><span class="n">root</span><span class="p">]</span> <span class="o">=</span> <span class="n">samples</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving dataset cache to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">cache_f</span><span class="p">:</span>
+                    <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">dataset_cache</span><span class="p">,</span> <span class="n">cache_f</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+        <span class="n">test</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">load_metadata_from_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">save_metadata_to_cache</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">metadata_cache_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dataset_cache.pkl&quot;</span><span class="p">,</span>
+        <span class="n">slice_index</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+        <span class="n">subsample_volumes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">transform_kspace</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transform_target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="n">test</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_kspace</span> <span class="o">=</span> <span class="n">transform_kspace</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span> <span class="o">=</span> <span class="n">transform_target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_metadata_from_cache</span> <span class="o">=</span> <span class="n">load_metadata_from_cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_metadata_to_cache</span> <span class="o">=</span> <span class="n">save_metadata_to_cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_file</span> <span class="o">=</span> <span class="n">metadata_cache_file</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The `root` folder doesn&#39;t exist. Please set `root` properly. Current value `</span><span class="si">{</span><span class="n">root</span><span class="si">}</span><span class="s2">`.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.h5&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">)]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The `root` folder doesn&#39;t contain only hdf5 files. Please set `root` properly. Current value `</span><span class="si">{</span><span class="n">root</span><span class="si">}</span><span class="s2">`.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">slice_index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span> <span class="s2">&quot;middle&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">slice_index</span><span class="p">,</span> <span class="nb">int</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;slice_index must be &quot;all&quot;, &quot;random&quot;, &quot;middle&quot;, or int.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Load all slices</span>
+        <span class="n">all_fnames</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()))</span>
+
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_cache_manager</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">))</span> <span class="k">as</span> <span class="n">samples</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">all_fnames</span><span class="p">):</span>
+                    <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_metadata</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">slice_ind</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;num_slices&quot;</span><span class="p">]):</span>
+                        <span class="n">samples</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">fname</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">SliceSampleID</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">slice_ind</span><span class="p">,</span> <span class="n">metadata</span><span class="p">)</span>
+                        <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
+
+        <span class="c1"># Random slice subsampling</span>
+        <span class="k">if</span> <span class="n">slice_index</span> <span class="o">!=</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">samples</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slice_index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">chosen_sample</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="n">slice_index</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">slice_index</span> <span class="o">==</span> <span class="s2">&quot;middle&quot;</span><span class="p">:</span>
+                    <span class="n">chosen_sample</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">slice_index</span> <span class="o">==</span> <span class="s2">&quot;random&quot;</span><span class="p">:</span>
+                    <span class="n">chosen_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torch_shuffle</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">rng</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">chosen_sample</span><span class="p">]</span>
+
+        <span class="c1"># Randomly keep a portion of MRI volumes</span>
+        <span class="k">if</span> <span class="n">subsample_volumes</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="n">subsampled_fnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torch_shuffle</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">generator</span><span class="o">=</span><span class="n">rng</span>
+            <span class="p">)[:</span> <span class="nb">round</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">all_fnames</span><span class="p">)</span> <span class="o">*</span> <span class="n">subsample_volumes</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">subsampled_fnames</span><span class="p">}</span>
+
+        <span class="c1"># Flatten to list of samples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="n">samp</span> <span class="k">for</span> <span class="n">samps</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">samp</span> <span class="ow">in</span> <span class="n">samps</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_retrieve_metadata</span><span class="p">(</span><span class="n">fname</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Open file and retrieve metadata.</span>
+<span class="sd">        Metadata includes number of slices in volume.</span>
+
+<span class="sd">        :param Union[str, pathlib.Path, os.PathLike] fname: filename to open</span>
+<span class="sd">        :return: metadata dict of key-value pairs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+            <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;num_slices&quot;</span><span class="p">:</span> <span class="n">hf</span><span class="p">[</span><span class="s2">&quot;kspace&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="n">metadata</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)&quot;&quot;&quot;</span>
+        <span class="n">fname</span><span class="p">,</span> <span class="n">slice_ind</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                <span class="n">hf</span><span class="p">[</span><span class="s2">&quot;kspace&quot;</span><span class="p">][</span><span class="n">slice_ind</span><span class="p">]</span>
+            <span class="p">)</span>  <span class="c1"># ((N,) H, W) dtype complex</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">view_as_real</span><span class="p">(</span><span class="n">kspace</span><span class="p">)</span>  <span class="c1"># ((N,) H, W, 2)</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># ((N,) 2, H, W)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_kspace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># torchvision transforms require (..., C, H, W)</span>
+                <span class="n">kspace</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_kspace</span><span class="p">(</span><span class="n">kspace</span><span class="p">)</span>
+            <span class="n">kspace</span> <span class="o">=</span> <span class="n">kspace</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># (2, N, H, W)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">:</span>
+                <span class="n">recons_key</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;reconstruction_esc&quot;</span>
+                    <span class="k">if</span> <span class="s2">&quot;reconstruction_esc&quot;</span> <span class="ow">in</span> <span class="n">hf</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                    <span class="k">else</span> <span class="s2">&quot;reconstruction_rss&quot;</span>
+                <span class="p">)</span>
+                <span class="c1"># to shape (1, H, W)</span>
+                <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">hf</span><span class="p">[</span><span class="n">recons_key</span><span class="p">][</span><span class="n">slice_ind</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">kspace</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">test</span> <span class="k">else</span> <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">kspace</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FastMRISliceDataset.save_simple_dataset">
+<a class="viewcode-back" href="../../../api/stubs/deepinv.datasets.FastMRISliceDataset.html#deepinv.datasets.FastMRISliceDataset.save_simple_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_simple_dataset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataset_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">pad_to_size</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">320</span><span class="p">,</span> <span class="mi">320</span><span class="p">),</span>
+        <span class="n">to_complex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleFastMRISliceDataset</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert dataset to a 2D singlecoil dataset and save as pickle file.</span>
+
+<span class="sd">        This allows the dataset to be loaded in memory with :class:`deepinv.datasets.fastmri.SimpleFastMRISliceDataset`.</span>
+
+<span class="sd">        :Example:</span>
+
+<span class="sd">            Load local brain dataset and convert to simple dataset ::</span>
+
+<span class="sd">                from deepinv.datasets import FastMRISliceDataset</span>
+<span class="sd">                root = &quot;/path/to/dataset/fastMRI/brain/multicoil_train&quot;</span>
+<span class="sd">                dataset = FastMRISliceDataset(root=root, slice_index=&quot;middle&quot;)</span>
+<span class="sd">                subset = dataset.save_simple_dataset(root + &quot;/fastmri_brain_singlecoil.pt&quot;)</span>
+
+<span class="sd">        :param str dataset_path: desired path of dataset to be saved with file extension e.g. ``fastmri_knee_singlecoil.pt``.</span>
+<span class="sd">        :param bool pad_to_size: if not None, normalise images to 0-1 then pad to provided shape. Must be set if images are of varying size,</span>
+<span class="sd">            in order to successfully stack images to tensor.</span>
+<span class="sd">        :return: loaded SimpleFastMRISliceDataset</span>
+<span class="sd">        :rtype: SimpleFastMRISliceDataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;save_simple_dataset can only be used when targets are provided, i.e. test = False.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">transform_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span>
+
+        <span class="n">transform_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">transform_target</span><span class="p">]</span> <span class="k">if</span> <span class="n">transform_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">transform_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">Rescale</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">pad_to_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">transform_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">CenterCrop</span><span class="p">(</span><span class="n">pad_to_size</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">to_complex</span><span class="p">:</span>
+            <span class="n">transform_target</span> <span class="o">+=</span> <span class="p">[</span><span class="n">ToComplex</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span> <span class="o">=</span> <span class="n">Compose</span><span class="p">(</span><span class="n">transform_list</span><span class="p">)</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()))]</span>
+
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_target</span> <span class="o">=</span> <span class="n">transform_target</span>
+
+        <span class="n">dataset_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">SimpleFastMRISliceDataset</span><span class="p">(</span>
+            <span class="n">root_dir</span><span class="o">=</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">file_name</span><span class="o">=</span><span class="n">dataset_path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">anatomy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">train_percent</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2024, deepinverse contributors.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.4.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
