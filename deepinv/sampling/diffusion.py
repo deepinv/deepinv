@@ -325,7 +325,9 @@ class DiffPIR(Reconstructor):
             sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod
         )  # equivalent noise sigma on image
         sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod).to(self.device)
-        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1).to(self.device)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1).to(
+            self.device
+        )
 
         return (
             sqrt_1m_alphas_cumprod,
@@ -428,7 +430,9 @@ class DiffPIR(Reconstructor):
         else:
             x = 2 * x_init - 1
 
-        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod(device=x.device)
+        sqrt_recip_alphas_cumprod, sqrt_recipm1_alphas_cumprod = self.get_alpha_prod(
+            device=x.device
+        )
 
         with torch.no_grad():
             for i in tqdm(range(len(self.seq)), disable=(not self.verbose)):

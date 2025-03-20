@@ -292,12 +292,15 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
                     (if ``type_t='noise_level'``).
         """
+        pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
+        x = torch.nn.functional.pad(x, pad)
         if type_t == "timestep":
-            return self.forward_diffusion(x, t, y=y)
+            out = self.forward_diffusion(x, t, y=y)
         elif type_t == "noise_level":
-            return self.forward_denoise(x, t, y=y)
+            out = self.forward_denoise(x, t, y=y)
         else:
             raise ValueError('type_t must be either "timestep" or "noise_level"')
+        return out[..., pad[-2] :, pad[-4] :]
 
     def convert_to_fp16(self):
         """
