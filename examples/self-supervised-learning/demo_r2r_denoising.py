@@ -67,13 +67,14 @@ test_dataset = datasets.MNIST(
 # defined physics
 predefined_noise_models = dict(
     gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-    poisson=dinv.physics.PoissonNoise(gain=0.5),
+    poisson=dinv.physics.PoissonNoise(gain=0.1),
     gamma=dinv.physics.GammaNoise(l=10.0),
 )
 
-noise_name = "poisson"
+noise_name = "gamma"
 noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
+operation = f"{operation}_{noise_name}"
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -153,7 +154,7 @@ verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
-    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True
+    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
@@ -169,7 +170,7 @@ trainer = dinv.Trainer(
     optimizer=optimizer,
     device=device,
     train_dataloader=train_dataloader,
-    eval_dataloader=test_dataloader,
+    eval_dataloader=None,
     plot_images=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,

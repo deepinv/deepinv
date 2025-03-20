@@ -152,9 +152,12 @@ class R2RLoss(Loss):
         :return: (:class:`torch.nn.Module`) Modified model.
         """
 
-        return R2RModel(
-            model, self.noise_model, self.alpha, self.eval_n_samples, **kwargs
-        )
+        if isinstance(model, R2RModel):
+            return model
+        else:
+            return R2RModel(
+                model, self.noise_model, self.alpha, self.eval_n_samples, **kwargs
+            )
 
 
 def set_gaussian_corruptor(y, alpha, sigma):
@@ -167,7 +170,6 @@ def set_gaussian_corruptor(y, alpha, sigma):
 
 def set_binomial_corruptor(y, alpha, gamma):
     z = y / gamma
-    z = torch.maximum(torch.zeros_like(z), z)
     sampler = torch.distributions.Binomial(torch.round(z), alpha)
     corruptor = lambda: gamma * (z - sampler.sample()) / (1 - alpha)
     return corruptor
@@ -208,6 +210,10 @@ class R2RModel(torch.nn.Module):
 
         elif isinstance(self.noise_model, NoiseModel):
             self.curr_noise_model = self.noise_model
+        else:
+            raise ValueError(
+                "Noise model not found in the constructor or physics module. Please provide noise model in the constructor."
+            )
 
         eval_n_samples = 1 if self.training else self.eval_n_samples
         out = 0
