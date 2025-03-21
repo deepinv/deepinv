@@ -10,8 +10,8 @@ your own GAN by using :class:`deepinv.training.AdversarialTrainer`. These
 examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
-This example is based on the papers DeblurGAN :cite:`kupyn2018deblurgan`, 
-Compressed Sensing using Generative Models (CSGM) :cite:`bora2017compressed`, 
+This example is based on the papers DeblurGAN :cite:`kupyn2018deblurgan`,
+Compressed Sensing using Generative Models (CSGM) :cite:`bora2017compressed`,
 AmbiantGAN :cite:`bora2018ambientgan`, and Unsupervised Adversarial Image Reconstruction (UAIR) :cite:`pajot2019unsupervised`.
 
 Adversarial networks are characterised by the addition of an adversarial

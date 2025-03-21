@@ -2,7 +2,7 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement the LISTA algorithm :cite:`gregor2010learning`, 
+This example shows how to implement the LISTA algorithm :cite:`gregor2010learning`,
 for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
 soft-thresholding proximal operator with learnable thresholding parameters.
 
