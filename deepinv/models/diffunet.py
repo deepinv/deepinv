@@ -293,7 +293,7 @@ class DiffUNet(Denoiser):
                     (if ``type_t='noise_level'``).
         """
         pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
-        x = torch.nn.functional.pad(x, pad)
+        x = torch.nn.functional.pad(x, pad, mode="circular")
         if type_t == "timestep":
             out = self.forward_diffusion(x, t, y=y)
         elif type_t == "noise_level":
