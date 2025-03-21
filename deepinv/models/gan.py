@@ -100,8 +100,7 @@ class PatchGANDiscriminator(nn.Module):
 class ESRGANDiscriminator(nn.Module):
     r"""ESRGAN Discriminator.
 
-    The ESRGAN discriminator model was originally proposed in `ESRGAN: Enhanced Super-Resolution Generative Adversarial
-    Networks <https://arxiv.org/abs/1809.00219>`_ (Wang et al.). Implementation taken from
+    The ESRGAN discriminator model was originally proposed in :cite:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
@@ -155,8 +154,7 @@ class ESRGANDiscriminator(nn.Module):
 class DCGANDiscriminator(nn.Module):
     r"""DCGAN Discriminator.
 
-    The DCGAN discriminator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
-    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.). Implementation taken from
+    The DCGAN discriminator model was originally proposed in :cite:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
@@ -199,8 +197,7 @@ class DCGANDiscriminator(nn.Module):
 class DCGANGenerator(nn.Module):
     r"""DCGAN Generator.
 
-    The DCGAN generator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
-    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.)
+    The DCGAN generator model was originally proposed in :cite:`radford2015unsupervised`
     and takes a latent sample as input.
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
@@ -265,8 +262,7 @@ class CSGMGenerator(Reconstructor):
     r"""CSGMGenerator(backbone_generator=DCGANGenerator(), inf_max_iter=2500, inf_tol=1e-4, inf_lr=1e-2, inf_progress_bar=False)
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
-    This approach was proposed in `Compressed Sensing using Generative Models <https://arxiv.org/abs/1703.03208>`_ and
-    `AmbientGAN: Generative models from lossy measurements <https://openreview.net/forum?id=Hy7fDog0b>`_ (Bora et al.).
+    This approach was proposed in :cite:`bora2017compressed` and :cite:`bora2018ambientgan`.
 
     At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
 

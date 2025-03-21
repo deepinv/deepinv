@@ -39,8 +39,7 @@ class Scale(Transform):
     by reflections. Additionally, resampling is performed
     using bicubic interpolation.
 
-    See the paper `Self-Supervised Learning for Image Super-Resolution and Deblurring <https://arxiv.org/abs/2312.11232>`_
-    for more details.
+    See the paper :cite:`scanvic2023self` for more details.
 
     Note each image in the batch is transformed independently.
 

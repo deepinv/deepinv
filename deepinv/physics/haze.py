@@ -7,7 +7,7 @@ class Haze(Physics):
     r"""
     Standard haze model
 
-    The operator is defined as https://ieeexplore.ieee.org/abstract/document/5567108/
+    The operator is defined as in :cite:`he2010single`.
 
      .. math::
 

@@ -271,7 +271,7 @@ def demo_mri_model(
 
     As a reconstruction network, we use an unrolled network (half-quadratic splitting)
     with a trainable denoising prior based on the DnCNN architecture, as an example of a
-    model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+    model-based deep learning architecture from MoDL :cite:`aggarwal2018modl`.
 
     :param Denoiser, torch.nn.Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
     :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.

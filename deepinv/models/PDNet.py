@@ -1,4 +1,3 @@
-# This is an implementation of https://arxiv.org/abs/1707.06474
 import torch
 import torch.nn as nn
 
