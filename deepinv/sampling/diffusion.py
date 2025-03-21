@@ -295,6 +295,7 @@ class DiffPIR(Reconstructor):
         self.device = device
         self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
         self.num_train_timesteps = 1000
+        self.sigma = sigma
 
         (
             self.sqrt_1m_alphas_cumprod,
@@ -448,7 +449,7 @@ class DiffPIR(Reconstructor):
                     i == 0
                 ):  # Initialization (simpler than the original code, may be suboptimal)
                     x = (
-                        x + curr_sigma * torch.randn_like(x)
+                        x + (curr_sigma ** 2 - 4.0 * self.sigma ** 2).sqrt() * torch.randn_like(x)
                     ) / sqrt_recip_alphas_cumprod[-1]
 
                 sigma_cur = curr_sigma
