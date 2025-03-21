@@ -130,8 +130,8 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 # Conditional GAN training
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Conditional GANs :cite:`kupyn2018deblurgan` are a type of GAN where the generator is conditioned on a label or input. 
-# In the context of imaging, this can be used to generate images from a given measurement. 
+# Conditional GANs :cite:`kupyn2018deblurgan` are a type of GAN where the generator is conditioned on a label or input.
+# In the context of imaging, this can be used to generate images from a given measurement.
 # In this example, we use a simple U-Net as the generator
 # and a PatchGAN discriminator. The forward pass of the generator is given by:
 #

@@ -186,7 +186,7 @@ denoiser = dinv.models.DnCNN(
 
 # %%
 # These backbones can be used within specific MRI models, such as
-# VarNet :cite:`hammernik2018learning`, E2E-VarNet :cite:`sriram2020end` and MoDL :cite:`aggarwal2018modl`, 
+# VarNet :cite:`hammernik2018learning`, E2E-VarNet :cite:`sriram2020end` and MoDL :cite:`aggarwal2018modl`,
 # for which we provide implementations:
 #
 

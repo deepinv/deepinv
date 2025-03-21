@@ -96,7 +96,7 @@ class Pansharpen(StackedLinearPhysics):
         """
         If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
 
-        See the review paper :cite:`vivone2014critical` for more details. 
+        See the review paper :cite:`vivone2014critical` for more details.
 
         :param deepinv.utils.TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
