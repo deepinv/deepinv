@@ -1,8 +1,8 @@
 r"""
-Regularization by Denoising (RED) :cite:`romano2017little` for Super-Resolution.
+Regularization by Denoising (RED) for Super-Resolution.
 ====================================================================================================
 
-We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) :cite:`hurault2021gradient` which provides an explicit prior.
+Implementation of :cite:`romano2017little` using as plug-in denoiser the Gradient-Step Denoiser (GSPnP) :cite:`hurault2021gradient` which provides an explicit prior.
 
 """
 
