@@ -148,7 +148,7 @@ class ScorePrior(Prior):
     .. note::
 
         If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
-        `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
+        `Regularization by Denoising (RED) :cite:`romano2017little` and doesn't require the normalization.
 
 
     .. note::
