@@ -5,9 +5,7 @@ from .tv import TVDenoiser
 
 class TGVDenoiser(Denoiser):
     r"""
-    Proximal operator of (2nd order) Total Generalised Variation operator.
-
-    (see K. Bredies, K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
+    Proximal operator of (2nd order) Total Generalised Variation operator from :cite:`bredies2010total`.
 
     This algorithm converges to the unique image :math:`x` (and the auxiliary vector field :math:`r`) minimizing
 

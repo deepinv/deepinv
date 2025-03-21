@@ -6,11 +6,7 @@ from .base import Denoiser
 
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
-    From Mohan et al.
-
-    "Robust And Interpretable Blind Image Denoising Via Bias-Free Convolutional Neural Networks"
-    S. Mohan, Z. Kadkhodaie, E. P. Simoncelli, C. Fernandez-Granda
-    Int'l. Conf. on Learning Representations (ICLR), Apr 2020.
+    From :cite:`mohan2019robust`.
     """
 
     def __init__(
