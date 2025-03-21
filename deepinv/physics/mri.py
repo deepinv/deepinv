@@ -1,6 +1,6 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple
 
-from numpy import ndarray
+import numpy as np
 import torch
 from torch import Tensor
 from torchvision.transforms import CenterCrop
@@ -27,7 +27,7 @@ class MRIMixin:
         :param torch.device, str device: mask intended device.
         """
         if mask is not None:
-            if isinstance(mask, ndarray):
+            if isinstance(mask, np.ndarray):
                 mask = torch.from_numpy(mask)
 
             mask = mask.to(device)
@@ -102,7 +102,7 @@ class MRIMixin:
             )
         )
 
-    def crop(self, x: Tensor, crop: bool = True) -> Tensor:
+    def crop(self, x: Tensor, crop: bool = True, shape: Tuple[int] = None) -> Tensor:
         """Center crop 2D image according to ``img_size``.
 
         This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
@@ -110,9 +110,10 @@ class MRIMixin:
         If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
 
         :param torch.Tensor x: input tensor of shape (...,H,W)
-        :param bool crop: whether to perform crop, defaults to True
+        :param bool crop: whether to perform crop, defaults to `True`
+        :param tuple[int] shape: optional shape to crop to. If `None`, crops to `img_size` attribute.
         """
-        crop_size = self.img_size[-2:]
+        crop_size = shape[-2:] if shape is not None else self.img_size[-2:]
         odd_h = crop_size[0] % 2 == 1
 
         if odd_h:
@@ -497,6 +498,31 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             + (self.img_size[-2:] if not self.three_d else self.img_size[-3:])
         )
         return torch.tensor(coil_maps).type(torch.complex64)
+
+    @staticmethod
+    def estimate_coil_maps(y: Tensor, calib_size: int) -> Tensor:
+        """Estimate coil sensitivity maps using ESPIRiT.
+
+        Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
+        """
+        try:
+            from sigpy.mri.app import EspiritCalib
+        except ImportError:
+            raise ImportError(
+                "sigpy is required to estimate sens maps. Install it using pip install sigpy"
+            )
+
+        return torch.from_numpy(
+            np.stack(
+                [
+                    EspiritCalib(yb, calib_size, show_pbar=False).run()
+                    for yb in MRIMixin.to_torch_complex(y).numpy()
+                ]
+            )
+        )
 
 
 class DynamicMRI(MRI, TimeMixin):

@@ -97,6 +97,8 @@ In order to learn from incomplete data, you can either:
    * - :class:`deepinv.loss.SplittingLoss`
      - | Assumes masks observe whole distribution.
        | (i.e. measurement splitting or data undersampling)
+   * - :class:`deepinv.loss.WeightedSplittingLoss`
+     - Splitting loss with K-weighting
    * - :class:`deepinv.loss.Phase2PhaseLoss`
      - Splitting loss but across time dimension
    * - :class:`deepinv.loss.Artifact2ArtifactLoss`
