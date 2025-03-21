@@ -79,7 +79,7 @@ class MOILoss(Loss):
                     "physics_generator must be passed if single physics is used or is None."
                 )
 
-    def next_physics(self, physics):
+    def next_physics(self, physics: Physics) -> Physics:
         """Create random physics.
 
         If physics is a list, select one at random. If physics generator is to be used, generate a new set of params at random.
@@ -94,7 +94,7 @@ class MOILoss(Loss):
                 self.physics if self.physics is not None else physics
             )
             params = self.physics_generator.step()
-            physics_cur.update_parameters(**params)
+            physics_cur.update(**params)
         return physics_cur
 
     def forward(self, x_net, physics, model, **kwargs):
