@@ -57,7 +57,7 @@ autodoc_typehints_description_target = "documented"
 autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
-
+autodoc_mock_imports = ["deepinv"]
 
 ####  userguide directive ###
 from docutils import nodes
