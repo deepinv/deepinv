@@ -29,6 +29,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Weighted-SSDU loss function + more mask generators (:gh:`401` by `Keying Guo`_ and `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- Estimate sens maps with sigpy, FastMRI load and save maps (:gh:`401` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -37,6 +38,7 @@ Fixed
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`401` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

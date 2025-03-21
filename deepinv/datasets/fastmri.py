@@ -24,13 +24,17 @@ from collections import defaultdict
 import pickle
 import warnings
 import os
+from natsort import natsorted
 import h5py
 from tqdm import tqdm
+import numpy as np
 import torch
 from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive, loadmat
 from deepinv.utils.demo import get_image_url
+from deepinv.physics.generator.mri import BaseMaskGenerator
+from deepinv.physics.mri import MultiCoilMRI
 
 
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
@@ -303,6 +307,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         transform_kspace: Optional[Callable] = None,
         transform_target: Optional[Callable] = None,
         rng: Optional[torch.Generator] = None,
+        mask_generator: Optional[BaseMaskGenerator] = None,
+        estimate_coil_maps: Union[bool, int] = False,
     ) -> None:
         self.root = root
         self.test = test
@@ -311,15 +317,12 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
+        self.mask_generator = mask_generator
+        self.estimate_coil_maps = estimate_coil_maps
 
         if not os.path.isdir(root):
             raise ValueError(
                 f"The `root` folder doesn't exist. Please set `root` properly. Current value `{root}`."
-            )
-
-        if not all([file.endswith(".h5") for file in os.listdir(root)]):
-            raise ValueError(
-                f"The `root` folder doesn't contain only hdf5 files. Please set `root` properly. Current value `{root}`."
             )
 
         if slice_index not in ("all", "random", "middle") and not isinstance(
@@ -328,7 +331,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             raise ValueError('slice_index must be "all", "random", "middle", or int.')
 
         # Load all slices
-        all_fnames = sorted(list(Path(root).iterdir()))
+        all_fnames = sorted(list(Path(root).glob("*.h5")))
 
         with self.metadata_cache_manager(root, defaultdict(list)) as samples:
             if len(samples) == 0:
@@ -377,7 +380,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[Any, Any]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         r"""Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)"""
         fname, slice_ind, metadata = self.samples[idx]
 
@@ -404,7 +407,33 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 if self.transform_target is not None:
                     target = self.transform_target(target)
 
-        return kspace if self.test else (target, kspace)
+        params = {}
+        if self.mask_generator is not None:
+            params["mask"] = self.generate_mask(kspace, str(fname) + str(slice_ind))
+            kspace *= params["mask"]
+        if self.estimate_coil_maps:
+            params["coil_maps"] = self.generate_maps(kspace)
+
+        return (
+            (() if self.test else (target,)) + (kspace,) + ((params,) if params else ())
+        )
+
+    def generate_mask(self, kspace: torch.Tensor, seed: Union[str, int]):
+        return self.mask_generator.step(
+            seed=seed,
+            img_size=kspace.shape[-2:],
+            batch_size=0,
+        )["mask"]
+
+    def generate_maps(self, kspace: torch.Tensor):
+        calib_size = (
+            self.mask_generator.n_center
+            if self.estimate_coil_maps == True
+            else self.estimate_coil_maps
+        )
+        return MultiCoilMRI.estimate_coil_maps(
+            kspace.unsqueeze(0), calib_size=calib_size
+        ).squeeze(0)
 
     def save_simple_dataset(
         self,
@@ -463,3 +492,36 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             transform=None,
             download=False,
         )
+
+    def save_local_dataset(self, data_dir: str) -> torch.utils.data.Dataset:
+        os.makedirs(data_dir, exist_ok=True)
+        for i in tqdm(range(self.__len__())):
+            x, y, params = self.__getitem__(i)
+            np.savez_compressed(
+                f"{str(data_dir)}/{i}.npz",
+                x=x.numpy(),
+                y=y.numpy(),
+                **{k: v.numpy() for (k, v) in params.items()},
+            )
+
+
+class LocalFastMRISliceDataset(torch.utils.data.Dataset):
+    def __init__(self, root: Union[str, Path]):
+        self.files = natsorted(Path(root).glob("*.npz"))
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        data = np.load(self.files[idx])
+
+        x = torch.tensor(data["x"]) if "x" in data else None
+        y = torch.tensor(data["y"])
+
+        params = {}
+        if "mask" in data:
+            params["mask"] = torch.tensor(data["mask"])
+        if "coil_maps" in data:
+            params["coil_maps"] = torch.tensor(data["coil_maps"])
+
+        return (() if x is None else (x,)) + (y,) + ((params,) if params else ())

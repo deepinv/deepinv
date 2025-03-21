@@ -58,8 +58,15 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         else:
             raise ValueError("img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
 
-        self.n_center = int(self.center_fraction * self.W)
-        self.n_lines = int(self.W // self.acc - self.n_center)
+        self.calculate_lines(self.W)
+
+    def calculate_lines(self, W: int):
+        """Calculate number of lines and centre lines from total width.
+
+        :param int W: total number of columns (width of mask)
+        """
+        self.n_center = int(self.center_fraction * W)
+        self.n_lines = int(W // self.acc - self.n_center)
 
         if self.n_lines < 0:
             raise ValueError(
@@ -108,9 +115,14 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         _T = self.T if self.T > 0 else 1
         _H, _W = (self.H, self.W) if img_size is None else img_size
 
-        mask = self.sample_mask(
-            torch.zeros((_B, self.C, _T, _H, _W), **self.factory_kwargs)
-        )
+        self.calculate_lines(_W)
+
+        mask = torch.zeros((_B, self.C, _T, _H, _W), **self.factory_kwargs)
+
+        if self.n_lines + self.n_center >= _W:
+            mask += 1
+        else:
+            mask = self.sample_mask(mask)
 
         if self.T == 0:
             mask = mask[:, :, 0, :, :]
@@ -153,7 +165,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
         :param int W: total number of columns (width of mask)
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-        return torch.ones(self.W, device=self.device)
+        return torch.ones(W, device=self.device)
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         pdf = self.get_pdf(_W := mask.shape[-1])
