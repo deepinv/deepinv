@@ -1,12 +1,9 @@
 r"""
-Regularization by Denoising (RED) for Super-Resolution.
+Regularization by Denoising (RED) :cite:`romano2017little` for Super-Resolution.
 ====================================================================================================
 
-We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) which provides an explicit prior.
+We use as plug-in denoiser the Gradient-Step Denoiser (GSPnP) :cite:`hurault2021gradient` which provides an explicit prior.
 
-Hurault, S., Leclaire, A., & Papadakis, N.
-"Gradient Step Denoiser for convergent Plug-and-Play"
-In International Conference on Learning Representations.
 """
 
 import deepinv as dinv
@@ -40,8 +37,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the Set3C dataset and a motion blur kernel from :cite:`levin2009understanding`.
 
 dataset_name = "set3c"
 img_size = 256 if torch.cuda.is_available() else 32
