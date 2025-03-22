@@ -163,7 +163,7 @@ class DDRM(Reconstructor):
             std = torch.ones_like(y_bar) * self.sigmas[0]
             mean[case] = y_bar[case]
             std[case] = (self.sigmas[0] ** 2 - nsr[case].pow(2)).sqrt()
-            x_bar = mean + std * torch.randn_like(y_bar)
+            x_bar = mean + std * torch.randn_like(y_bar) / np.sqrt(2.0)
             x_bar_prev = x_bar.clone()
 
             # denoise
@@ -175,9 +175,6 @@ class DDRM(Reconstructor):
 
                 case2 = torch.logical_and(case, (self.sigmas[t] < nsr))
                 case3 = torch.logical_and(case, (self.sigmas[t] >= nsr))
-
-                # n = np.prod(mask.shape)
-                # print(f'case: {case.sum()/n*100:.2f}, case2: {case2.sum()/n*100:.2f}, case3: {case3.sum()/n*100:.2f}')
 
                 mean = (
                     x_bar
@@ -196,7 +193,7 @@ class DDRM(Reconstructor):
                     self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
                 ).sqrt()
 
-                x_bar = mean + std * torch.randn_like(x_bar)
+                x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
                 x_bar_prev = x_bar.clone()
                 # denoise
                 x = self.denoiser(physics.V(x_bar), self.sigmas[t])
@@ -449,7 +446,9 @@ class DiffPIR(Reconstructor):
                     i == 0
                 ):  # Initialization (simpler than the original code, may be suboptimal)
                     x = (
-                        x + (curr_sigma ** 2 - 4.0 * self.sigma ** 2).sqrt() * torch.randn_like(x)
+                        x
+                        + (curr_sigma**2 - 4.0 * self.sigma**2).sqrt()
+                        * torch.randn_like(x)
                     ) / sqrt_recip_alphas_cumprod[-1]
 
                 sigma_cur = curr_sigma
