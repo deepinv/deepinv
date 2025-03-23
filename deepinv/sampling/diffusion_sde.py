@@ -4,7 +4,7 @@ import torch.nn as nn
 from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
 from deepinv.physics import Physics
-from deepinv.models.base import Reconstructor
+from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import Zero
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
@@ -90,6 +90,36 @@ class BaseSDE(nn.Module):
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
+    def sample_init(
+        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
+    ) -> Tensor:
+        r"""
+        Sample from the end-time distribution of the forward diffusion.
+
+        :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
+        """
+        raise NotImplementedError
+
+
+class _RescaledDenoiser(nn.Module):
+    r"""Adapts a denoiser trained on [0, 1] images to handle [-1, 1] images by rescaling inputs and outputs.
+
+    This wrapper transforms inputs `x` and `t` as `(x + 1) / 2` and `t / 2`, respectively, passes them through
+    the original denoiser, and rescales the output as `output * 2 - 1`. This is particularly useful in diffusion
+    sampling, where Gaussian noise (often with large magnitudes) is added, requiring consistent input/output
+    ranges across training and inference.
+
+
+    :param deepinv.models.Denoiser model: The original denoiser model trained on `[0, 1]` image data.
+    """
+
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, x: Tensor, t: float):
+        return self.model((x + 1.0) / 2.0, t / 2.0) * 2.0 - 1.0
+
 
 class DiffusionSDE(BaseSDE):
     r"""
@@ -144,14 +174,10 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
+        self.rescale = rescale
+
         if rescale:
-            self.denoiser = (
-                lambda x, sigma, *args, **kwargs: denoiser(
-                    (x + 1) * 0.5, sigma / 2, *args, **kwargs
-                )
-                * 2.0
-                - 1.0
-            )
+            self.denoiser = _RescaledDenoiser(denoiser)
         else:
             self.denoiser = denoiser
 
@@ -183,16 +209,6 @@ class DiffusionSDE(BaseSDE):
         :param Union[torch.Tensor, float] t: current time step
 
         :return torch.Tensor: the noise level at time step :attr:`t`.
-        """
-        raise NotImplementedError
-
-    def sample_init(
-        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
-    ) -> Tensor:
-        r"""
-        Sample from the initial distribution of the reverse-time diffusion, or the equivalently the end-time distribution of the corresponding forward diffusion.
-
-        :param shape: The shape of the the sample, of the form `(B, C, H, W)`.
         """
         raise NotImplementedError
 
@@ -291,12 +307,13 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
-        return self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
+        score = self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
             self.denoiser(
                 x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
-            ).to(self.dtype)
+            )
             - x
         )
+        return score.to(self.dtype)
 
 
 class PosteriorDiffusion(Reconstructor):
@@ -321,8 +338,10 @@ class PosteriorDiffusion(Reconstructor):
     The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
 
     :param NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.data_fidelity.Zero`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the (unconditional) score at time :math:`t` :math:`\nabla \log p_t`.
     :param DiffusionSDE sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
     :param BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
+    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
@@ -332,8 +351,10 @@ class PosteriorDiffusion(Reconstructor):
     def __init__(
         self,
         data_fidelity: NoisyDataFidelity = Zero(),
+        denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
+        rescale: bool = False,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -342,6 +363,15 @@ class PosteriorDiffusion(Reconstructor):
         super().__init__(device=device)
         self.data_fidelity = data_fidelity
         self.sde = sde
+        assert (
+            denoiser is not None or sde.denoiser is not None
+        ), "A denoiser must be specified."
+        if denoiser is not None:
+            if rescale:
+                self.sde.denoiser = _RescaledDenoiser(denoiser)
+            else:
+                self.sde.denoiser = denoiser
+
         assert (
             solver is not None or sde.solver is not None
         ), "A SDE solver must be specified."
@@ -393,7 +423,7 @@ class PosteriorDiffusion(Reconstructor):
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
         :param *args, **kwargs: the arguments and keyword arguments for the solver.
 
-        :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
+        :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
@@ -442,6 +472,7 @@ class PosteriorDiffusion(Reconstructor):
         if isinstance(self.data_fidelity, Zero):
             return self.sde.score(x, t, *args, **kwargs).to(self.dtype)
         else:
-            return self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
+            score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
                 x.to(torch.float32), y.to(torch.float32), physics, sigma
-            ).to(self.dtype)
+            )
+            return score.to(self.dtype)

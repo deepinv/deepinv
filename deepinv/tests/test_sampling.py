@@ -267,17 +267,16 @@ def test_sde(device):
 
     # Test posterior sampling
     sde = VarianceExplodingDiffusion(
-        denoiser=denoisers[0],
-        rescale=rescales[0],
         sigma_max=sigma_max,
         sigma_min=sigma_min,
         device=device,
     )
     posterior = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoiser),
+        data_fidelity=DPSDataFidelity(denoiser=denoisers[0]),
         sde=sde,
         solver=solvers[0],
-        dtype=torch.float32,
+        rescale=rescales[0],
+        dtype=torch.float64,
         device=device,
     )
     x = sample_2
