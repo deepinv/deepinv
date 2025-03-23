@@ -114,6 +114,7 @@ class DDRM(Reconstructor):
         eta=0.85,
         etab=1.0,
         verbose=False,
+        eps=1e-6
     ):
         super(DDRM, self).__init__()
         self.denoiser = denoiser
@@ -122,6 +123,7 @@ class DDRM(Reconstructor):
         self.eta = eta
         self.verbose = verbose
         self.etab = etab
+        self.eps = eps
 
     def forward(self, y, physics: deepinv.physics.DecomposablePhysics, seed=None):
         r"""
@@ -153,9 +155,9 @@ class DDRM(Reconstructor):
             c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
             case = mask > sigma_noise
-            y_bar[case] = y_bar[case] / mask[case]
+            y_bar[case] = y_bar[case] / (mask[case] + self.eps)
             nsr = torch.zeros_like(mask)
-            nsr[case] = sigma_noise / mask[case]
+            nsr[case] = sigma_noise / (mask[case] + self.eps)
 
             # iteration 1
             # compute init noise
@@ -182,7 +184,7 @@ class DDRM(Reconstructor):
                 )
                 mean[case2] = (
                     x_bar[case2]
-                    + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / nsr[case2]
+                    + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / (nsr[case2] + self.eps)
                 )
                 mean[case3] = (1.0 - self.etab) * x_bar[case3] + self.etab * y_bar[
                     case3
