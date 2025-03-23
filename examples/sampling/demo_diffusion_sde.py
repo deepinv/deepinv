@@ -8,7 +8,7 @@ This demo shows you how to use
 This method requires:
 
 * A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g.,
-:class:`deepinv.models.NCSNpp`). 
+:class:`deepinv.models.NCSNpp`).
 * A (noisy) data fidelity term (e.g., :class:`deepinv.sampling.DPSDataFidelity`).
 * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE. They can be defined through the :class:`deepinv.sampling.DiffusionSDE` (e.g., :class:`deepinv.sampling.VarianceExplodingDiffusion`).
 
@@ -28,8 +28,8 @@ where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :m
      \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
 
 The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
-second term is approximated by the (noisy) data-fidelity term (`data_fidelity`). 
-We implement various data-fidelity terms in 
+second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
+We implement various data-fidelity terms in
 :class:`deepinv.sampling.NoisyDataFidelity`.
 """
 
