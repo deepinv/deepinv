@@ -98,12 +98,12 @@ class BaseSDESolver(nn.Module):
         defined by the provided timesteps.
 
         :param deepinv.sampling.BaseSDE sde: the SDE to solve.
-        :param Tensor x_init: The initial state of the system.
+        :param torch.Tensor x_init: The initial state of the system.
         :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
-        :param Union[Tensor, ndarray] timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
+        :param torch.Tensor, np.ndarray timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
-        :param \*args: Variable length argument list to be passed to the step function.
-        :param \**kwargs: Arbitrary keyword arguments to be passed to the step function.
+        :param *args: Variable length argument list to be passed to the step function.
+        :param **kwargs: Arbitrary keyword arguments to be passed to the step function.
 
         :return: SDEOutput
         """

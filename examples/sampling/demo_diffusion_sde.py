@@ -48,7 +48,7 @@ import numpy as np
 import deepinv as dinv
 from deepinv.models import NCSNpp, EDMPrecond
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 
 # %%
@@ -243,7 +243,7 @@ dinv.utils.plot(
 # ---------------------------------------------------------
 #
 # The :class:`deepinv.sampling.PosteriorDiffusion` class can be used together with any (well-trained) denoisers for posterior sampling.
-# For example, we can use the :meth:`deepinv.models.DRUNet` for posterior sampling.
+# For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
 sigma_min = 0.02
@@ -327,8 +327,7 @@ dinv.utils.plot(
 
 # This method requires:
 
-# * A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g.,
-# :class:`deepinv.models.NCSNpp`).
+# * A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.models.NCSNpp`).
 # * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE.
 
 # The forward-time SDE is defined as follows, for :math:`t \in [0, T]`:
