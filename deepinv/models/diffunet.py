@@ -292,7 +292,7 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
                     (if ``type_t='noise_level'``).
         """
-        if x.shape[-2]<520 and x.shape[-1]<520:
+        if x.shape[-2] < 520 and x.shape[-1] < 520:
             pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
             x = torch.nn.functional.pad(x, pad, mode="circular")
             if type_t == "timestep":
@@ -303,9 +303,9 @@ class DiffUNet(Denoiser):
                 raise ValueError('type_t must be either "timestep" or "noise_level"')
             return out[..., pad[-2] :, pad[-4] :]
         else:
-            return self.patch_forward(x, t, y, patch_size=512, y=y, type_t=type_t)
+            return self.patch_forward(x, t, y=y, type_t=type_t, patch_size=512)
 
-    def patch_forward(self, x, *args_model, patch_size=512, **kwargs_model):
+    def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
         """
         Splits an image tensor into patches, applies the model to each patch, and reconstructs the full image.
 
@@ -337,18 +337,26 @@ class DiffUNet(Denoiser):
             for j in range(w_patches):
                 h_start = int(i * patch_size)
                 w_start = int(j * patch_size)
-                patch = x_padded[..., h_start:h_start + patch_size, w_start:w_start + patch_size]
+                patch = x_padded[
+                    ..., h_start : h_start + patch_size, w_start : w_start + patch_size
+                ]
 
                 # Apply model to the patch
-                E_patch = self.forward(patch, *args_model, **kwargs_model)
+                E_patch = self.forward(
+                    patch, t, patch_size=patch_size, y=y, type_t=type_t
+                )
 
                 # Place processed patch in the output tensor
-                E_padded[..., h_start:(h_start + patch_size), w_start:(w_start + patch_size)] = E_patch
+                E_padded[
+                    ...,
+                    h_start : (h_start + patch_size),
+                    w_start : (w_start + patch_size),
+                ] = E_patch
 
         # Crop back to original size
         E = E_padded[..., :H, :W]
 
-        return E[..., pad_input[-2]:, pad_input[-4]:]
+        return E[..., pad_input[-2] :, pad_input[-4] :]
 
     def convert_to_fp16(self):
         """
