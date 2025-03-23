@@ -274,6 +274,7 @@ def test_sde(device):
     posterior = PosteriorDiffusion(
         data_fidelity=DPSDataFidelity(denoiser=denoisers[0]),
         sde=sde,
+        denoiser=denoisers[0],
         solver=solvers[0],
         rescale=rescales[0],
         dtype=torch.float64,
