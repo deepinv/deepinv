@@ -342,9 +342,7 @@ class DiffUNet(Denoiser):
                 ]
 
                 # Apply model to the patch
-                E_patch = self.forward(
-                    patch, t, patch_size=patch_size, y=y, type_t=type_t
-                )
+                E_patch = self.forward(patch, t, y=y, type_t=type_t)
 
                 # Place processed patch in the output tensor
                 E_padded[
