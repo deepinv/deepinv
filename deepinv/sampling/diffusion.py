@@ -193,7 +193,7 @@ class DDRM(Reconstructor):
                 std = torch.ones_like(x_bar) * self.eta * self.sigmas[t]
                 std[case3] = (
                     self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
-                ).sqrt()
+                ).clamp(min=0).sqrt()
 
                 x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
                 x_bar_prev = x_bar.clone()
