@@ -3,22 +3,24 @@ Posterior Sampling for Inverse Problems with Stochastic Differential Equations m
 ====================================================================================================
 
 This demo shows you how to use
-:class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the `data_fidelity` term is not specified.
+:class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.
 
 This method requires:
 
-* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g.,
-:class:`deepinv.models.NCSNpp`).
+* A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.models.NCSNpp`).
+
 * A (noisy) data fidelity term (e.g., :class:`deepinv.sampling.DPSDataFidelity`).
+
 * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE. They can be defined through the :class:`deepinv.sampling.DiffusionSDE` (e.g., :class:`deepinv.sampling.VarianceExplodingDiffusion`).
 
-The
-:class:`deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
+The :class:`deepinv.sampling.PosteriorDiffusion` class can be used to perform posterior sampling for inverse problems.
 Consider the acquisition model:
+
 .. math::
      y = \noise{\forw{x}}.
 
 This class defines the reverse-time SDE for the posterior distribution :math:`p(x|y)` given the data :math:`y`:
+
 .. math::
      d\, x_t = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla_{x_t} \log p_t(x_t | y) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}
 
@@ -29,8 +31,7 @@ where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :m
 
 The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
-We implement various data-fidelity terms in
-:class:`deepinv.sampling.NoisyDataFidelity`.
+We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
 """
 
 # %% Define the underlying SDE for posterior sampling
@@ -50,7 +51,7 @@ from deepinv.models import NCSNpp, EDMPrecond
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
-
+figsize = 2.5
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -88,7 +89,8 @@ sde = VarianceExplodingDiffusion(
 # %%
 # Reverse-time SDE as sampling process
 # --------------------------------------
-#  When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
+#
+# When the data fidelity is not given, the posterior diffusion is equivalent to the unconditional diffusion.
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
 model = PosteriorDiffusion(
@@ -111,12 +113,14 @@ dinv.utils.plot(
     titles="Unconditional generation",
     show=True,
     save_fn="sde_sample.png",
+    figsize=(figsize, figsize),
 )
 dinv.utils.save_videos(
     trajectory_seed_1.cpu()[::10],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
+    figsize=(figsize, figsize),
 )
 
 # sphinx_gallery_start_ignore
@@ -139,17 +143,18 @@ except FileNotFoundError:
 # %%
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/sde_trajectory.gif
-#       :alt: example learn_samples
-#       :srcset: /auto_examples/images/sde_trajectory.gif
-#       :class: custom-gif
-#
 #    .. image-sg:: /auto_examples/images/sde_sample.png
 #       :alt: other example
 #       :srcset: /auto_examples/images/sde_sample.png
 #       :class: custom-gif
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory.gif
+#       :class: custom-gif
 
 # %%
+#
 # When the data fidelity is given, together with the measurements and the physics, this class can be used to perform posterior sampling for inverse problems.
 # For example, consider the inpainting problem, where we have a noisy image and we want to recover the original image.
 
@@ -178,15 +183,16 @@ x_hat, trajectory = model(
 dinv.utils.plot(
     [x, y, x_hat],
     show=True,
-    suptitle="Posterior Sampling",
     titles=["Original", "Measurement", "Posterior sample"],
+    save_fn="posterior_sample.png",
+    figsize=(figsize * 3, figsize),
 )
 # %% We can also save the trajectory of the posterior sample
 dinv.utils.save_videos(
     trajectory[::10],
     time_dim=0,
     save_fn="posterior_trajectory.gif",
-    figsize=(5, 5),
+    figsize=(figsize, figsize),
 )
 # sphinx_gallery_start_ignore
 # cleanup
@@ -199,6 +205,8 @@ try:
         Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
     shutil.copyfile("posterior_trajectory.gif", final_dir / "posterior_trajectory.gif")
+    shutil.copyfile("posterior_sample.png", final_dir / "posterior_sample.png")
+
 except FileNotFoundError:
     pass
 
@@ -208,6 +216,11 @@ except FileNotFoundError:
 # We obtain the following posterior trajectory
 #
 # .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample.png
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/posterior_sample.png
+#       :class: custom-gif
 #
 #    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
 #       :alt: example learn_samples
@@ -232,12 +245,41 @@ x_hat_seed_111 = model(
 dinv.utils.plot(
     [x_hat, x_hat_seed_111],
     titles=[
-        "seed 11",
-        "seed 111",
+        "posterior sample: seed 11",
+        "posterior sample: seed 111",
     ],
     show=True,
-    suptitle="Posterior samples",
+    save_fn="posterior_samples.png",
+    figsize=(figsize * 2, figsize),
 )
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile("posterior_samples.png", final_dir / "posterior_samples.png")
+
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# We obtain the following posterior trajectory
+#
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/posterior_samples.png
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/posterior_samples.png
+#       :class: custom-gif
+
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
 # ---------------------------------------------------------
@@ -278,10 +320,40 @@ x_hat, trajectory = model(
 dinv.utils.plot(
     [x, y, x_hat],
     show=True,
-    suptitle="Posterior Sampling with DRUNet",
-    titles=["Original", "Measurement", "Posterior sample"],
+    titles=["Original", "Measurement", "Posterior sample DRUNet"],
+    figsize=(figsize * 3, figsize),
+    save_fn="posterior_sample_DRUNet.png",
 )
-# %% # We can switch to a different denoiser, for example, the DiffUNet denoiser from the EDM framework.
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile(
+        "posterior_sample_DRUNet.png", final_dir / "posterior_sample_DRUNet.png"
+    )
+
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# We obtain the following posterior trajectory
+#
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.png
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
+#       :class: custom-gif
+# %%
+# We can switch to a different denoiser, for example, the DiffUNet denoiser from the EDM framework.
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
 sigma_min = 0.02
@@ -314,46 +386,77 @@ x_hat, trajectory = model(
 dinv.utils.plot(
     [x, y, x_hat],
     show=True,
-    suptitle="Posterior Sampling with DiffUNet",
-    titles=["Original", "Measurement", "Posterior sample"],
+    titles=["Original", "Measurement", "Posterior sample DiffUNet"],
+    save_fn="posterior_sample_DiffUNet.png",
+    figsize=(figsize * 3, figsize),
 )
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
 
-# Unconditional Image Generation
-# ==============================
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile(
+        "posterior_sample_DiffUNet.png", final_dir / "posterior_sample_DiffUNet.png"
+    )
 
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# We obtain the following posterior trajectory
+#
+# .. container:: image-row
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.png
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/posterior_sample_DiffUNet.png
+#       :class: custom-gif
+
+# %%
+# More on Unconditional Image Generation
+# --------------------------------------
+#
 # The :class:`deepinv.sampling.DiffusionSDE` class can also be used together with any (well-trained) denoisers for image generation. However, we recommend using the :class:`deepinv.sampling.PosteriorDiffusion` with the :class:`deepinv.optim.data_fidelity.Zero` data fidelity term.
-
+#
 # The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.13456.
-
+#
 # This method requires:
-
+#
 # * A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.models.NCSNpp`).
+#
 # * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE.
-
+#
 # The forward-time SDE is defined as follows, for :math:`t \in [0, T]`:
-
+#
 # .. math::
 #     d\, x_t = f(x_t, t) d\,t + g(t) d\, w_t.
-
+#
 # Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
 # The reverse-time SDE is defined as follows, running backward in time:
-
+#
 # .. math::
 #    d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t},
-
+#
 # where a scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
-
+#
 # This reverse-time SDE can be used as a generative process.
 # The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
-
+#
 # .. math::
 #     x_t \vert x_0 \sim \mathcal{N}(\mu_tx_0, \sigma_t^2 \mathrm{Id}),
-
+#
 # then
-
+#
 # .. math::
 #     \nabla \log p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
-
+#
 # Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
 # solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
@@ -399,6 +502,7 @@ dinv.utils.save_videos(
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory_ve.gif",
+    figsize=(figsize, figsize),
 )
 
 # sphinx_gallery_start_ignore
@@ -421,12 +525,12 @@ except FileNotFoundError:
 # %%
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/sde_trajectory_ve.gif
-#       :alt: example learn_samples
-#       :srcset: /auto_examples/images/sde_trajectory_ve.gif
-#       :class: custom-gif
-#
 #    .. image-sg:: /auto_examples/images/sde_sample_ve.png
 #       :alt: other example
 #       :srcset: /auto_examples/images/sde_sample_ve.png
+#       :class: custom-gif
+#
+#    .. image-sg:: /auto_examples/images/sde_trajectory_ve.gif
+#       :alt: example learn_samples
+#       :srcset: /auto_examples/images/sde_trajectory_ve.gif
 #       :class: custom-gif

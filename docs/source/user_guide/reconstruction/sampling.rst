@@ -79,8 +79,14 @@ The second term is the conditional score function, and can be approximated by th
    * - :class:`deepinv.sampling.PosteriorDiffusion`
      - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
 
+
+.. list-table:: Noisy data-fidelity terms
+   :header-rows: 1
    * - :class:`deepinv.sampling.NoisyDataFidelity`
      - The base class for defining the noisy data-fidelity term, used to estimate the conditional score in the posterior sampling with SDE.
+     
+   * - :class:`deepinv.sampling.DPSDataFidelity`
+     - The noisy data-fidelity term for the `Diffusion Posterior Sampling (DPS) method <https://arxiv.org/abs/2209.14687> `_
 
 We also provide generic methods for solving SDEs (and ODEs).
 
