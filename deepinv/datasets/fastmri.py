@@ -374,7 +374,19 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         :return: metadata dict of key-value pairs.
         """
         with h5py.File(fname, "r") as hf:
-            metadata = {"num_slices": hf["kspace"].shape[0]}
+            shape = hf["kspace"].shape
+            metadata = {
+                "width": shape[-1],  # W
+                "height": shape[-2],  # H
+                "num_slices": shape[0],  # D (depth)
+            } | (
+                {
+                    "coils": shape[1],  # N (coils)
+                }
+                if len(shape) == 4
+                else {}
+            )
+
         return metadata
 
     def __len__(self) -> int:
