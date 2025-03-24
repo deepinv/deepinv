@@ -8,7 +8,7 @@ from deepinv.optim.prior import Prior
 from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
-from deepinv.sampling.utils import Welford, projbox
+from deepinv.sampling.utils import Welford
 from deepinv.sampling.sampling_iterators import *
 from deepinv.optim.utils import check_conv
 from typing import Union
