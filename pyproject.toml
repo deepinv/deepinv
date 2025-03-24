@@ -30,6 +30,7 @@ dependencies = [
     "torchvision",
     "torchmetrics",
     "einops",
+    "setuptools==77.0.3",
     "wandb",
     "scipy",
     "natsort",
