@@ -7,7 +7,7 @@ from .data_fidelity import (
     PoissonLikelihood,
     AmplitudeLoss,
     LogPoissonLikelihood,
-    ZeroFidelity
+    ZeroFidelity,
 )
 from .optimizers import BaseOptim, optim_builder
 from .fixed_point import FixedPoint

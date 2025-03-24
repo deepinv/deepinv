@@ -189,7 +189,7 @@ class DiffusionSDE(BaseSDE):
         :param torch.Tensor, float t: current time step
         :param \*args: additional arguments for the `denoiser`.
         :param \*\*kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
-        
+
         :return: the score function :math:`\nabla \log p_t(x)`.
         :rtype: torch.Tensor
         """

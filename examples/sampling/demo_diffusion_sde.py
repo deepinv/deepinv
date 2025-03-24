@@ -228,7 +228,7 @@ except FileNotFoundError:
 #       :class: custom-gif
 
 
-# %% 
+# %%
 # Varying samples
 # ---------------
 #
@@ -355,9 +355,9 @@ except FileNotFoundError:
 #       :class: custom-gif
 
 # %%
-# 
+#
 # We can switch to a different denoiser, for example, the DiffUNet denoiser from the EDM framework.
-# 
+#
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
 sigma_min = 0.02
