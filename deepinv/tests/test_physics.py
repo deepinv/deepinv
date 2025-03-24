@@ -637,7 +637,9 @@ def test_MRI(mri, mri_img_size, device, rng):
         y1 = physics(x)
         if isinstance(physics, MultiCoilMRI):
             y1 = y1[:, :, 0]  # check 0th coil
-        assert torch.all((y1 == 0) == (mask == 0))
+        # check shapes
+        print(y1.shape, mask.shape, physics.mask.shape)
+        assert torch.all((y1 == 0) == (physics.mask == 0))
 
         # Set mask in forward
         y1 = physics(x, mask=mask2)
@@ -651,8 +653,8 @@ def test_MRI(mri, mri_img_size, device, rng):
             y1 = y1[:, :, 0]  # check 0th coil
         assert torch.all((y1 == 0) == (mask2 == 0))
 
-        # Set mask via update_parameters
-        physics.update_parameters(mask=mask)
+        # Set mask via update
+        physics.update(mask=mask)
         y1 = physics(x)
         if isinstance(physics, MultiCoilMRI):
             y1 = y1[:, :, 0]  # check 0th coil

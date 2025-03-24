@@ -148,6 +148,7 @@ class AdversarialTrainer(Trainer):
     losses_d: Union[Loss, List[Loss]] = None
     D: Module = None
     step_ratio_D: int = 1
+    global_optimizer_step: bool = False
 
     def setup_train(self, **kwargs):
         r"""
@@ -177,7 +178,9 @@ class AdversarialTrainer(Trainer):
                 "Gradient norm for discriminator", ":.2e"
             )
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
+    def compute_loss(
+        self, physics, x, y, train=True, epoch: int = None, backward: int = True
+    ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
@@ -186,12 +189,14 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
+        :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
 
-        self.optimizer.G.zero_grad()
+        if train and backward:  # remove gradient
+            self.optimizer.G.zero_grad()
 
         # Evaluate reconstruction network
         x_net = self.model_inference(y=y, physics=physics)
@@ -213,7 +218,7 @@ class AdversarialTrainer(Trainer):
                     D=self.D,
                     epoch=epoch,
                 )
-                loss_total += loss.mean()
+                loss_total = loss_total + loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     current_log = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
@@ -228,6 +233,8 @@ class AdversarialTrainer(Trainer):
             current_log.update(loss_total.item())
 
             logs[f"TotalLoss"] = current_log.avg
+        else:
+            loss_total = 0
 
         if train:
             loss_total.backward(retain_graph=True)  # Backward the total generator loss
@@ -236,12 +243,13 @@ class AdversarialTrainer(Trainer):
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            # Generator optimizer step
-            self.optimizer.G.step()
+            if backward:
+                self.optimizer.G.step()
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
             if train or self.display_losses_eval:
+
                 self.optimizer.D.zero_grad()
 
                 loss_total_d = 0
@@ -276,7 +284,7 @@ class AdversarialTrainer(Trainer):
 
                 self.optimizer.D.step()
 
-        return x_net, logs
+        return loss_total, x_net, logs
 
     def check_clip_grad_D(self):
         r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.

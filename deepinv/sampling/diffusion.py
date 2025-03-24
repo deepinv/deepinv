@@ -114,6 +114,7 @@ class DDRM(Reconstructor):
         eta=0.85,
         etab=1.0,
         verbose=False,
+        eps=1e-6,
     ):
         super(DDRM, self).__init__()
         self.denoiser = denoiser
@@ -122,6 +123,7 @@ class DDRM(Reconstructor):
         self.eta = eta
         self.verbose = verbose
         self.etab = etab
+        self.eps = eps
 
     def forward(self, y, physics: deepinv.physics.DecomposablePhysics, seed=None):
         r"""
@@ -153,9 +155,9 @@ class DDRM(Reconstructor):
             c = np.sqrt(1 - self.eta**2)
             y_bar = physics.U_adjoint(y)
             case = mask > sigma_noise
-            y_bar[case] = y_bar[case] / mask[case]
+            y_bar[case] = y_bar[case] / (mask[case] + self.eps)
             nsr = torch.zeros_like(mask)
-            nsr[case] = sigma_noise / mask[case]
+            nsr[case] = sigma_noise / (mask[case] + self.eps)
 
             # iteration 1
             # compute init noise
@@ -163,7 +165,7 @@ class DDRM(Reconstructor):
             std = torch.ones_like(y_bar) * self.sigmas[0]
             mean[case] = y_bar[case]
             std[case] = (self.sigmas[0] ** 2 - nsr[case].pow(2)).sqrt()
-            x_bar = mean + std * torch.randn_like(y_bar)
+            x_bar = mean + std * torch.randn_like(y_bar) / np.sqrt(2.0)
             x_bar_prev = x_bar.clone()
 
             # denoise
@@ -176,27 +178,25 @@ class DDRM(Reconstructor):
                 case2 = torch.logical_and(case, (self.sigmas[t] < nsr))
                 case3 = torch.logical_and(case, (self.sigmas[t] >= nsr))
 
-                # n = np.prod(mask.shape)
-                # print(f'case: {case.sum()/n*100:.2f}, case2: {case2.sum()/n*100:.2f}, case3: {case3.sum()/n*100:.2f}')
-
                 mean = (
                     x_bar
                     + c * self.sigmas[t] * (x_bar_prev - x_bar) / self.sigmas[t - 1]
                 )
-                mean[case2] = (
-                    x_bar[case2]
-                    + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / nsr[case2]
-                )
+                mean[case2] = x_bar[case2] + c * self.sigmas[t] * (
+                    y_bar[case2] - x_bar[case2]
+                ) / (nsr[case2] + self.eps)
                 mean[case3] = (1.0 - self.etab) * x_bar[case3] + self.etab * y_bar[
                     case3
                 ]
 
                 std = torch.ones_like(x_bar) * self.eta * self.sigmas[t]
                 std[case3] = (
-                    self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
-                ).sqrt()
+                    (self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2))
+                    .clamp(min=0)
+                    .sqrt()
+                )
 
-                x_bar = mean + std * torch.randn_like(x_bar)
+                x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
                 x_bar_prev = x_bar.clone()
                 # denoise
                 x = self.denoiser(physics.V(x_bar), self.sigmas[t])
@@ -295,6 +295,7 @@ class DiffPIR(Reconstructor):
         self.device = device
         self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
         self.num_train_timesteps = 1000
+        self.sigma = sigma
 
         (
             self.sqrt_1m_alphas_cumprod,
@@ -319,13 +320,15 @@ class DiffPIR(Reconstructor):
         alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
-        sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
-        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod)
+        sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod).to(self.device)
+        sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - alphas_cumprod).to(self.device)
         reduced_alpha_cumprod = torch.div(
             sqrt_1m_alphas_cumprod, sqrt_alphas_cumprod
         )  # equivalent noise sigma on image
-        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
-        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
+        sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod).to(self.device)
+        sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1).to(
+            self.device
+        )
 
         return (
             sqrt_1m_alphas_cumprod,
@@ -394,8 +397,8 @@ class DiffPIR(Reconstructor):
         sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
         sqrt_recipm1_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod - 1)
         return (
-            sqrt_recip_alphas_cumprod,
-            sqrt_recipm1_alphas_cumprod,
+            sqrt_recip_alphas_cumprod.to(self.device),
+            sqrt_recipm1_alphas_cumprod.to(self.device),
         )
 
     def forward(
@@ -438,7 +441,7 @@ class DiffPIR(Reconstructor):
 
                 # time step associated with the noise level sigmas[i]
                 t_i = self.find_nearest(
-                    self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
+                    self.reduced_alpha_cumprod.cpu().numpy(), curr_sigma.cpu().numpy()
                 )
                 at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
 
@@ -446,7 +449,9 @@ class DiffPIR(Reconstructor):
                     i == 0
                 ):  # Initialization (simpler than the original code, may be suboptimal)
                     x = (
-                        x + curr_sigma * torch.randn_like(x)
+                        x
+                        + (curr_sigma**2 - 4.0 * self.sigma**2).sqrt()
+                        * torch.randn_like(x)
                     ) / sqrt_recip_alphas_cumprod[-1]
 
                 sigma_cur = curr_sigma
@@ -467,7 +472,7 @@ class DiffPIR(Reconstructor):
 
                     # Sampling step
                     t_im1 = self.find_nearest(
-                        self.reduced_alpha_cumprod,
+                        self.reduced_alpha_cumprod.cpu().numpy(),
                         self.sigmas[self.seq[i + 1]].cpu().numpy(),
                     )  # time step associated with the next noise level
 

@@ -56,3 +56,36 @@ class SigmaGenerator(PhysicsGenerator):
             + self.sigma_min
         )
         return {"sigma": sigma}
+
+
+class GainGenerator(PhysicsGenerator):
+    def __init__(
+        self,
+        gain_min=0.1,
+        gain_max=0.4,
+        rng: torch.Generator = None,
+        device: str = "cpu",
+        dtype: torch.dtype = torch.float32,
+    ):
+        super().__init__(shape=(1,), rng=rng, device=device, dtype=dtype)
+        self.gain_min = gain_min
+        self.gain_max = gain_max
+
+    def step(self, batch_size=1, seed: int = None, **kwargs):
+        r"""
+        Generates a batch of noise levels.
+
+        :param int batch_size: batch size
+        :param int seed: the seed for the random number generator.
+
+        :return: dictionary with key **'sigma'**: tensor of size (batch_size,).
+        :rtype: dict
+
+        """
+        self.rng_manual_seed(seed)
+        gain = (
+            torch.rand(batch_size, generator=self.rng, **self.factory_kwargs)
+            * (self.gain_max - self.gain_min)
+            + self.gain_min
+        )
+        return {"gain": gain}

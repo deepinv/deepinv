@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.2"]
+#requires = ["setuptools>=61.2"]
+requires = ["setuptools==61.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -87,6 +88,7 @@ dataset = [
     "datasets",
     "pandas",
     "pydicom",
+    "mat73",
 ]
 
 

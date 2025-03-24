@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
@@ -24,11 +25,17 @@ New Features
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
+- CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
+- Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
+- Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
+- Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -283,3 +290,4 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php

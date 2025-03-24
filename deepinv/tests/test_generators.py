@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import deepinv as dinv
 import itertools
+from pathlib import Path
 
 # Avoiding nondeterministic algorithms
 import os
@@ -86,6 +87,9 @@ def find_generator(name, size, num_channels, device, dtype):
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
+    elif name == "GainGenerator":
+        g = dinv.physics.generator.GainGenerator(device=device, dtype=dtype)
+        keys = ["gain"]
     else:
         raise Exception("The generator chosen doesn't exist")
     return g, size, keys
@@ -353,3 +357,23 @@ def test_inpainting_generators(
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
     correct_pixelwise(mask3)
+
+
+from deepinv.physics.generator.base import seed_from_string
+
+
+def test_string_seed():
+    # Dummy long paths
+    paths = [f"{'deepinv/'*10}{p}" for p in Path("deepinv/tests").glob("*.py")]
+    seeds = [seed_from_string(p) for p in paths]
+
+    # Assert unique seeds
+    assert len(set(seeds)) == len(seeds)
+
+    # Assert seed in correct range for manual_seed
+    for s in seeds:
+        assert -0x8000_0000_0000_0000 < s < 0xFFFF_FFFF_FFFF_FFFF
+
+    # Assert generators different
+    states = [torch.Generator().manual_seed(s).get_state() for s in seeds]
+    assert len(set(states)) == len(states)
