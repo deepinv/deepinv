@@ -114,7 +114,7 @@ class DDRM(Reconstructor):
         eta=0.85,
         etab=1.0,
         verbose=False,
-        eps=1e-6
+        eps=1e-6,
     ):
         super(DDRM, self).__init__()
         self.denoiser = denoiser
@@ -182,18 +182,19 @@ class DDRM(Reconstructor):
                     x_bar
                     + c * self.sigmas[t] * (x_bar_prev - x_bar) / self.sigmas[t - 1]
                 )
-                mean[case2] = (
-                    x_bar[case2]
-                    + c * self.sigmas[t] * (y_bar[case2] - x_bar[case2]) / (nsr[case2] + self.eps)
-                )
+                mean[case2] = x_bar[case2] + c * self.sigmas[t] * (
+                    y_bar[case2] - x_bar[case2]
+                ) / (nsr[case2] + self.eps)
                 mean[case3] = (1.0 - self.etab) * x_bar[case3] + self.etab * y_bar[
                     case3
                 ]
 
                 std = torch.ones_like(x_bar) * self.eta * self.sigmas[t]
                 std[case3] = (
-                    self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2)
-                ).clamp(min=0).sqrt()
+                    (self.sigmas[t] ** 2 - (nsr[case3] * self.etab).pow(2))
+                    .clamp(min=0)
+                    .sqrt()
+                )
 
                 x_bar = mean + std * torch.randn_like(x_bar) / np.sqrt(2.0)
                 x_bar_prev = x_bar.clone()

@@ -715,7 +715,7 @@ class Trainer:
                 train=train,
             )
 
-    def plot(self, epoch, physics, x, y, x_net, train=True, show_y=True):
+    def plot(self, epoch, physics, x, y, x_net, train=True):
         r"""
         Plot and optinally save the reconstructions.
 
@@ -737,13 +737,8 @@ class Trainer:
             else:
                 x_nl = None
 
-            if show_y:
-                y_plot = y[1] if isinstance(y, TensorList) else y
-            else:
-                y_plot = None
-
             imgs, titles, grid_image, caption = prepare_images(
-                x, y=y_plot, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
+                x, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:
