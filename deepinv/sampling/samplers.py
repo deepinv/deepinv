@@ -11,6 +11,7 @@ from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford, projbox
 from deepinv.sampling.sampling_iterators import *
 from deepinv.optim.utils import check_conv
+from typing import Union
 
 
 class BaseSample(Reconstructor):
@@ -65,7 +66,7 @@ class BaseSample(Reconstructor):
         thresh_conv=1e-3,
         crit_conv="residual",
         thinning=10,
-        history_size: int | bool = 5,
+        history_size: Union[int, bool] = 5,
         verbose=False,
     ):
         super(BaseSample, self).__init__()
@@ -97,8 +98,8 @@ class BaseSample(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: torch.Tensor | None = None,
-        seed: int | None = None,
+        X_init: Union[torch.Tensor, None] = None,
+        seed: Union[int, None] = None,
     ) -> torch.Tensor:
         r"""
         Run the MCMC sampling chain and return the posterior sample mean.
@@ -120,8 +121,8 @@ class BaseSample(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: torch.Tensor | None = None,
-        seed: int | None = None,
+        X_init: Union[torch.Tensor, None] = None,
+        seed: Union[int, None] = None,
         g_statistics=[lambda x: x],
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -280,7 +281,9 @@ class BaseSample(Reconstructor):
         return self.var_convergence
 
 
-def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingIterator:
+def create_iterator(
+    iterator: Union[SamplingIterator, str], **kwargs
+) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
 
@@ -297,7 +300,7 @@ def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingItera
 
 
 def sample_builder(
-    iterator: SamplingIterator | str,
+    iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
     params_algo={},
