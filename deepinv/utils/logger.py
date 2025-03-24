@@ -20,6 +20,7 @@ class AverageMeter(object):
 
     def reset(self):
         """Reset meter values."""
+        self.vals = []
         self.val = 0.0
         self.avg = 0.0
         self.sum = 0.0
@@ -35,11 +36,13 @@ class AverageMeter(object):
         """
         if isinstance(val, np.ndarray):
             self.val = np.mean(val)
+            self.vals += val.tolist() if val.ndim > 0 else [val.tolist()]
             self.sum += np.sum(val) * n
             self.sum2 += np.sum(val**2) * n
             self.count += n * np.prod(val.shape)
         else:
             self.val = val
+            self.vals += [val]
             self.sum += val * n
             self.sum2 += val**2 * n
             self.count += n

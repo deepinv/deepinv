@@ -64,12 +64,21 @@ In this case, to update the :class:`deepinv.physics.Physics` parameters accordin
             physics = self.physics[g]
 
             # Update physics parameters deterministically (i.e. not using a random generator)
-            physics.update_parameters(mask=mask.to(self.device))
+            physics.update(mask=mask.to(self.device))
 
             return x.to(self.device), y.to(self.device), physics
 
-..note ::
+.. note::
 
     When using a dataset that has loads data as a 3-tuple, this is assumed to be ``(x, y, params)``
     where ``params`` is assumed to be a dict of parameters, e.g. generated from :class:`deepinv.datasets.generate_dataset`.
     Trainer will automatically load the parameters into the physics each iteration.
+
+.. warning::
+
+    When using the trainer for **unsupervised training**, one should be careful that each measurement should be constant across epochs.
+    Generally it is preferred to do offline training by using `online_measurements=False` and generating a dataset using :func:`deepinv.datasets.generate_dataset`.
+    
+    If you want to use online measurements, and your physics is random (i.e. you are either using a `physics_generator` or a noise model),
+    you must use `loop_random_online_physics=True` to reset the randomness every epoch, and a `DataLoader` with `shuffle=False` so the measurementsa
+    arrive in the same order every epoch.
