@@ -517,7 +517,7 @@ if __name__ == "__main__":
     )  # print prox_fA gives [0.6000, 3.6000]
 
 
-class Zero(DataFidelity):
+class ZeroFidelity(DataFidelity):
     r"""
     Zero data fidelity term :math:`\datafid{x}{y} = 0`.
     This is used to remove the data fidelity term in the loss function.

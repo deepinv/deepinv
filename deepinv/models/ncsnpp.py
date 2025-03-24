@@ -40,7 +40,7 @@ class NCSNpp(Denoiser):
     :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
     :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
 
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
     """
 

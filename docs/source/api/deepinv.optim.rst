@@ -52,6 +52,7 @@ Data Fidelity
    deepinv.optim.PoissonLikelihood
    deepinv.optim.LogPoissonLikelihood
    deepinv.optim.AmplitudeLoss
+   deepinv.optim.ZeroFidelity
 
 
 Priors

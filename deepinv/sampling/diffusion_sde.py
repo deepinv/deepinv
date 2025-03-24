@@ -5,7 +5,7 @@ from typing import Callable, Union, Tuple, Optional, List
 import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
-from deepinv.optim.data_fidelity import Zero
+from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 
@@ -20,9 +20,9 @@ class BaseSDE(nn.Module):
     where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :math:`w` is the standard Brownian motion.
     It defines the common interface for drift and diffusion functions.
 
-    :param callable drift: a time-dependent drift function :math:`f(x, t)`
-    :param callable diffusion: a time-dependent diffusion function :math:`g(t)`
-    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param Callable drift: a time-dependent drift function :math:`f(x, t)`
+    :param Callable diffusion: a time-dependent diffusion function :math:`g(t)`
+    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: the data type of the computations.
     :param torch.device device: the device for the computations.
     """
@@ -58,8 +58,8 @@ class BaseSDE(nn.Module):
         :param torch.Tensor x_init: initial value.
         :param int seed: the seed for the pseudo-random number generator used in the solver.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False
-        :param args: additional arguments for the solver.
-        :param kwargs: additional keyword arguments for the solver.
+        :param \*args: additional arguments for the solver.
+        :param \*\*kwargs: additional keyword arguments for the solver.
 
         :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
@@ -83,8 +83,8 @@ class BaseSDE(nn.Module):
 
         :param torch.Tensor x: current state.
         :param float t: discretized time step.
-        :param args: additional arguments for the drift.
-        :param kwargs: additional keyword arguments for the drift.
+        :param \*args: additional arguments for the drift.
+        :param \*\*kwargs: additional keyword arguments for the drift.
 
         :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
@@ -128,12 +128,12 @@ class DiffusionSDE(BaseSDE):
     .. math::
         d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}.
 
-    :param callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
-    :param callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
-    :param callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
+    :param Callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
+    :param Callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
+    :param Callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param bool rescale: whether to rescale the input to the denoiser to :math:`[-1, 1]`, default to `False`.
-    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -187,10 +187,10 @@ class DiffusionSDE(BaseSDE):
 
         :param torch.Tensor x: current state
         :param torch.Tensor, float t: current time step
-        :param args: additional arguments for the `denoiser`.
-        :param kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
+        :param \*args: additional arguments for the `denoiser`.
+        :param \*\*kwargs: additional keyword arguments for the `denoiser`, e.g., `class_labels` for class-conditional models.
+        
         :return: the score function :math:`\nabla \log p_t(x)`.
-
         :rtype: torch.Tensor
         """
         raise NotImplementedError
@@ -208,7 +208,8 @@ class DiffusionSDE(BaseSDE):
 
         :param torch.Tensor, float t: current time step
 
-        :return torch.Tensor: the noise level at time step :attr:`t`.
+        :return: the noise level at time step `t`.
+        :rtype: torch.Tensor
         """
         raise NotImplementedError
 
@@ -229,7 +230,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     :param float sigma_min: the minimum noise level.
     :param float sigma_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
-    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -337,10 +338,10 @@ class PosteriorDiffusion(Reconstructor):
 
     The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser using the well-known Tweedie's formula, while the second term is approximated by the (noisy) data-fidelity term. We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
 
-    :param deepinv.sampling.NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.data_fidelity.Zero`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
+    :param deepinv.sampling.NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.ZeroFidelity`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the (unconditional) score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.DiffusionSDE sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
-    :param deepinv.sampling.BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
+    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
     :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -350,7 +351,7 @@ class PosteriorDiffusion(Reconstructor):
 
     def __init__(
         self,
-        data_fidelity: NoisyDataFidelity = Zero(),
+        data_fidelity: NoisyDataFidelity = ZeroFidelity(),
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
@@ -421,7 +422,8 @@ class PosteriorDiffusion(Reconstructor):
         :param int seed: the random seed.
         :param torch.Tensor timesteps: the time steps for the solver. If `None`, the default time steps in the solver will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to `False`.
-        :param *args, **kwargs: the arguments and keyword arguments for the solver.
+        :param \*args: the additional arguments for the solver.
+        :param \*\*kwargs: the additional keyword arguments for the solver.
 
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
@@ -461,15 +463,15 @@ class PosteriorDiffusion(Reconstructor):
         :param deepinv.physics.Physics physics: the forward operator.
         :param torch.Tensor x: the current state.
         :param torch.Tensor, float t: the current time step.
-        :param args: additional arguments for the score function of the unconditional SDE.
-        :param kwargs: additional keyword arguments for the score function of the unconditional SDE.
+        :param \*args: additional arguments for the score function of the unconditional SDE.
+        :param \*\*kwargs: additional keyword arguments for the score function of the unconditional SDE.
 
         :return: the score function :math:`\nabla_{x_t} \log p_t(x_t \vert y)`.
         :rtype: torch.Tensor
         """
         sigma = self.sde.sigma_t(t).to(torch.float32)
 
-        if isinstance(self.data_fidelity, Zero):
+        if isinstance(self.data_fidelity, ZeroFidelity):
             return self.sde.score(x, t, *args, **kwargs).to(self.dtype)
         else:
             score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(

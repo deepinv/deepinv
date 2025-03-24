@@ -71,9 +71,9 @@ class BaseSDESolver(nn.Module):
         Perform a single step with step size from time `t0` to time `t1`, with current state `x0`.
 
         :param deepinv.sampling.BaseSDE sde: the SDE to solve.
-        :param float or Tensor t0: Time at the start of the step, of size (,).
-        :param float or Tensor t1: Time at the end of the step, of size (,).
-        :param Tensor x0: Current state of the system, of size (batch_size, d).
+        :param float or torch.Tensor t0: Time at the start of the step, of size (,).
+        :param float or torch.Tensor t1: Time at the end of the step, of size (,).
+        :param torch.Tensor x0: Current state of the system, of size (batch_size, d).
         :return: Updated state of the system after the step.
 
         :rtype: torch.Tensor
@@ -102,8 +102,8 @@ class BaseSDESolver(nn.Module):
         :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
         :param torch.Tensor, np.ndarray timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
-        :param *args: Variable length argument list to be passed to the step function.
-        :param **kwargs: Arbitrary keyword arguments to be passed to the step function.
+        :param \*args: Variable length argument list to be passed to the step function.
+        :param \*\*kwargs: Arbitrary keyword arguments to be passed to the step function.
 
         :return: SDEOutput
         """
@@ -180,7 +180,7 @@ class EulerSolver(BaseSDESolver):
     approximates the solution using the following update rule:
 
     .. math::
-        x_{t+dt} = x_t + f(x_t,t)dt + g(t) W_dt
+        x_{t+dt} = x_t + f(x_t,t)dt + g(t) W_{dt}
 
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 
@@ -205,8 +205,8 @@ class HeunSolver(BaseSDESolver):
     This solver uses the second-order Heun method to numerically integrate SDEs, defined as:
 
     .. math::
-        \tilde{x}_{t+dt} &= x_t + f(x_t,t)dt + g(t) W_dt \\
-        x_{t+dt} &= x_t + \frac{1}{2}[f(x_t,t) + f(\tilde{x}_{t+dt},t+dt)]dt + \frac{1}{2}[g(t) + g(t+dt)] W_dt
+        \tilde{x}_{t+dt} &= x_t + f(x_t,t)dt + g(t) W_{dt} \\
+        x_{t+dt} &= x_t + \frac{1}{2}[f(x_t,t) + f(\tilde{x}_{t+dt},t+dt)]dt + \frac{1}{2}[g(t) + g(t+dt)] W_{dt}
 
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.
 

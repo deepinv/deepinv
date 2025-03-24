@@ -59,7 +59,7 @@ from deepinv.sampling import (
     EulerSolver,
     VarianceExplodingDiffusion,
 )
-from deepinv.optim.data_fidelity import Zero
+from deepinv.optim import ZeroFidelity
 
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
@@ -94,7 +94,7 @@ sde = VarianceExplodingDiffusion(
 # Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
 
 model = PosteriorDiffusion(
-    data_fidelity=Zero(),
+    data_fidelity=ZeroFidelity(),
     sde=sde,
     denoiser=denoiser,
     solver=solver,
@@ -228,8 +228,9 @@ except FileNotFoundError:
 #       :class: custom-gif
 
 
-# %% Varying samples
-# -----------------
+# %% 
+# Varying samples
+# ---------------
 #
 # One can obtain varying samples by using a different seed.
 # To ensure the reproducibility, if the parameter `rng` is given, the same sample will
@@ -352,8 +353,11 @@ except FileNotFoundError:
 #       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
 #       :class: custom-gif
+
 # %%
+# 
 # We can switch to a different denoiser, for example, the DiffUNet denoiser from the EDM framework.
+# 
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
 sigma_min = 0.02
@@ -403,10 +407,8 @@ try:
     shutil.copyfile(
         "posterior_sample_DiffUNet.png", final_dir / "posterior_sample_DiffUNet.png"
     )
-
 except FileNotFoundError:
     pass
-
 # sphinx_gallery_end_ignore
 
 # %%
@@ -423,7 +425,7 @@ except FileNotFoundError:
 # More on Unconditional Image Generation
 # --------------------------------------
 #
-# The :class:`deepinv.sampling.DiffusionSDE` class can also be used together with any (well-trained) denoisers for image generation. However, we recommend using the :class:`deepinv.sampling.PosteriorDiffusion` with the :class:`deepinv.optim.data_fidelity.Zero` data fidelity term.
+# The :class:`deepinv.sampling.DiffusionSDE` class can also be used together with any (well-trained) denoisers for image generation. However, we recommend using the :class:`deepinv.sampling.PosteriorDiffusion` with the :class:`deepinv.optim.ZeroFidelity` data fidelity term.
 #
 # The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.13456.
 #

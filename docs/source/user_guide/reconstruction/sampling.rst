@@ -82,11 +82,15 @@ The second term is the conditional score function, and can be approximated by th
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
+
+   * - **Method**
+     - **Description**
+
    * - :class:`deepinv.sampling.NoisyDataFidelity`
      - The base class for defining the noisy data-fidelity term, used to estimate the conditional score in the posterior sampling with SDE.
      
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - The noisy data-fidelity term for the `Diffusion Posterior Sampling (DPS) method <https://arxiv.org/abs/2209.14687> `_
+     - The noisy data-fidelity term for the `Diffusion Posterior Sampling (DPS) method <https://arxiv.org/abs/2209.14687>`_
 
 We also provide generic methods for solving SDEs (and ODEs).
 
@@ -100,7 +104,7 @@ We also provide generic methods for solving SDEs (and ODEs).
      - Base class of the solvers.
 
    * - :class:`deepinv.sampling.sde_solver.EulerSolver`
-     - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method> `_ 
+     - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method>`_ 
 
    * - :class:`deepinv.sampling.sde_solver.HeunSolver`
      - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_

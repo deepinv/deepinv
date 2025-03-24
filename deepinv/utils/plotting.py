@@ -717,13 +717,13 @@ def plot_videos(
     This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
-    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_dim=2`. All videos must be same time-length.
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
-    Per frame of the videos, this function calls :func:deepinv.utils.plot, see its params to see how the frames are plotted.
-    To display an interactive HTML video in an IPython notebook, use `display=True. Note IPython must be installed for this.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+    To display an interactive HTML video in an IPython notebook, use `display=True`. Note IPython must be installed for this.
 
     |sep|
 
@@ -739,25 +739,24 @@ def plot_videos(
 
 
     :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above.
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None.
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`.
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1.
-        After indexing this dimension, the resulting images should be of shape (B,C,H,W). Defaults to 2.
-    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
+        After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2.
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
-    :param str rescale_mode: rescaling mode for :func:deepinv.utils.plot, defaults to "min_max"
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
-    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename.
-        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
-    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note `anim_writer might have to be specified. Defaults to None
-    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
-    :param bool return_anim: return matplotlib animation object, defaults to False
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename.
+        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to `None`
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to `None`
+    :param bool return_anim: return matplotlib animation object, defaults to `False`
     :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
-    :param plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
-    :param \** plot_kwargs: kwargs to pass to :func:deepinv.utils.plot
+    :param dict plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -828,9 +827,9 @@ def save_videos(
     r"""Saves an animation of a list of image sequences.
 
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
-    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
 
-    Per frame of the videos, this function calls :func:deepinv.utils.plot, see its params to see how the frames are plotted.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     |sep|
 
@@ -845,12 +844,12 @@ def save_videos(
 
 
     :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
-    :param str rescale_mode: rescaling mode for :func:deepinv.utils.plot, defaults to "min_max"
-    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note `anim_writer might have to be specified. Defaults to None
-    :param \** plot_kwargs: kwargs to pass to :func:deepinv.utils.plot
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
