@@ -19,9 +19,10 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
     deepinv.sampling.PosteriorDiffusion
     deepinv.sampling.NoisyDataFidelity
     deepinv.sampling.DPSDataFidelity
-    deepinv.sampling.sde_solver.BaseSDESolver
-    deepinv.sampling.sde_solver.EulerSolver
-    deepinv.sampling.sde_solver.HeunSolver
+    deepinv.sampling.BaseSDESolver
+    deepinv.sampling.EulerSolver
+    deepinv.sampling.HeunSolver
+    deepinv.sampling.SDEOutput
 
 
 Diffusion models for posterior sampling

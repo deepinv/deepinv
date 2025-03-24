@@ -33,7 +33,7 @@ class ADMUNet(Denoiser):
     :param list[int] attn_resolutions: List of resolutions with self-attention.
     :param float dropout: dropout probability used in residual blocks.
     :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
-    :param NoneType, torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+    :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(

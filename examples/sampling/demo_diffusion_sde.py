@@ -36,6 +36,7 @@ We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFi
 
 # %% Define the underlying SDE for posterior sampling
 # ---------------------------------------------------
+#
 # Let us import the necessary modules, define the denoiser and the SDE.
 #
 # In this example, we use the Variance-Exploding SDE, whose forward process is defined as:

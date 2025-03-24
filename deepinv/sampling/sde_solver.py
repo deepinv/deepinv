@@ -4,6 +4,7 @@ from torch import Tensor
 import warnings
 from typing import Optional, Union, Any
 from numpy import ndarray
+import numpy as np
 
 
 class SDEOutput(dict):
@@ -43,15 +44,14 @@ class BaseSDESolver(nn.Module):
     r"""
     Base class for solving Stochastic Differential Equations (SDEs) from :class:`deepinv.sampling.BaseSDE` of the form:
 
-    ..math:
-
-        d\, x_t = f(x_t, t) d\,t  + g(t) d\,w_t
+    .. math::
+        d x_{t} = f(x_t, t) dt + g(t) d w_{t}
 
     where :math:`f` is the drift term, :math:`g` is the diffusion coefficient, and :math:`w_t` is a standard Brownian process.
 
     Currently only supported for fixed time steps for numerical integration.
 
-    :param torch.Tensor timesteps: time steps at which the SDE will be discretized.e.
+    :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.e.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
     """
 
@@ -99,8 +99,8 @@ class BaseSDESolver(nn.Module):
 
         :param deepinv.sampling.BaseSDE sde: the SDE to solve.
         :param torch.Tensor x_init: The initial state of the system.
-        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
-        :param torch.Tensor, np.ndarray timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
+        :param int seed: The seed for the random number generator, if `rng` is provided.
+        :param torch.Tensor, numpy.ndarray, list timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \*\*kwargs: Arbitrary keyword arguments to be passed to the step function.
@@ -156,17 +156,17 @@ class BaseSDESolver(nn.Module):
         Equivalent to :func:`torch.randn_like` but supports a pseudorandom number generator argument.
 
         :param torch.Tensor input: The input tensor whose size will be used.
-        :param int seed: The seed for the random number generator, if :attr:`rng` is provided.
+        :param int seed: The seed for the random number generator, if `rng` is provided.
 
         :return: A tensor of the same size as input filled with random numbers from a normal distribution.
         :rtype: torch.Tensor
 
-        This method uses the :attr:`rng` attribute of the class, which is a pseudo-random number generator
-        for reproducibility. If a seed is provided, it will be used to set the state of :attr:`rng` before
+        This method uses the `rng` attribute of the class, which is a pseudo-random number generator
+        for reproducibility. If a seed is provided, it will be used to set the state of `rng` before
         generating the random numbers.
 
         .. note::
-           The :attr:`rng` attribute must be initialized for this method to work properly.
+           The `rng` attribute must be initialized for this method to work properly.
         """
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)

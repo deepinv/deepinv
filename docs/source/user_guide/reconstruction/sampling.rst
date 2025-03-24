@@ -100,13 +100,16 @@ We also provide generic methods for solving SDEs (and ODEs).
    * - **Method**
      - **Description**
   
-   * - :class:`deepinv.sampling.sde_solver.BaseSDESolver`
+   * - :class:`deepinv.sampling.BaseSDESolver`
      - Base class of the solvers.
 
-   * - :class:`deepinv.sampling.sde_solver.EulerSolver`
+   * - :class:`deepinv.sampling.SDEOutput`
+     - Container for storing the output of an SDE solver.
+
+   * - :class:`deepinv.sampling.EulerSolver`
      - `First order Euler solver <https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method>`_ 
 
-   * - :class:`deepinv.sampling.sde_solver.HeunSolver`
+   * - :class:`deepinv.sampling.HeunSolver`
      - `Second order Heun solver. <https://en.wikipedia.org/wiki/Heun%27s_method>`_
 
 

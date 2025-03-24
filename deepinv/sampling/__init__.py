@@ -8,4 +8,4 @@ from .diffusion_sde import (
     VarianceExplodingDiffusion,
     PosteriorDiffusion,
 )
-from .sde_solver import BaseSDESolver, EulerSolver, HeunSolver
+from .sde_solver import SDEOutput, BaseSDESolver, EulerSolver, HeunSolver

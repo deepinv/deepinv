@@ -12,7 +12,7 @@ from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
 
 class BaseSDE(nn.Module):
     r"""
-    Base class for Stochastic Differential Equation (SDE):
+    Base class for Stochastic Differential Equation (SDE):min_num_steps
 
     .. math::
         d x_{t} = f(x_t, t) dt + g(t) d w_{t}
@@ -22,7 +22,7 @@ class BaseSDE(nn.Module):
 
     :param Callable drift: a time-dependent drift function :math:`f(x, t)`
     :param Callable diffusion: a time-dependent diffusion function :math:`g(t)`
-    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: the data type of the computations.
     :param torch.device device: the device for the computations.
     """
@@ -133,7 +133,7 @@ class DiffusionSDE(BaseSDE):
     :param Callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
     :param bool rescale: whether to rescale the input to the denoiser to :math:`[-1, 1]`, default to `False`.
-    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -230,7 +230,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     :param float sigma_min: the minimum noise level.
     :param float sigma_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
-    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for solving the SDE.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
@@ -341,7 +341,7 @@ class PosteriorDiffusion(Reconstructor):
     :param deepinv.sampling.NoisyDataFidelity data_fidelity: the noisy data-fidelity term, used to approximate the score :math:`\nabla_{x_t} \log p_t(y \vert x_t)`. Default to :class:`deepinv.optim.ZeroFidelity`, which corresponds to the zero data-fidelity term and the sampling process boils down to the unconditional SDE sampling.
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the (unconditional) score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.DiffusionSDE sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
-    :param deepinv.sampling.sde_solver.BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
     :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
