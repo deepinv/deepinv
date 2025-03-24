@@ -1,7 +1,6 @@
 import torch.nn as nn
 from deepinv.sampling.utils import projbox
 import torch
-import numpy as np
 import time as time
 from deepinv.physics import LinearPhysics
 from deepinv.optim import PnP
@@ -111,7 +110,7 @@ class ULAIterator(SamplingIterator):
         alpha = cur_params["alpha"]
         sigma = cur_params["sigma"]
 
-        noise = torch.randn_like(x) * np.sqrt(2 * step_size)
+        noise = torch.randn_like(x) * torch.sqrt(2 * step_size)
         lhood = -cur_data_fidelity.grad(x, y, physics)
         lprior = -cur_prior.grad(x, sigma) * alpha
         x_t = x + step_size * (lhood + lprior) + noise
