@@ -359,7 +359,6 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-
         return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
@@ -424,6 +423,15 @@ class LinearPhysics(Physics):
             max_iter=self.max_iter,
             tol=self.tol,
         )
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the singular values of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if value is not None and hasattr(self, key):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
     def stack(self, other):
         r"""
@@ -798,6 +806,10 @@ class DecomposablePhysics(LinearPhysics):
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:
+            if (
+                isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
+            ):  # may be the case when mask is fft related
+                gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -960,7 +972,7 @@ class StackedPhysics(Physics):
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
     def __str__(self):
-        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
+        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()

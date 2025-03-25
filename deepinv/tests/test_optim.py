@@ -855,7 +855,7 @@ def test_least_square_solvers(device, solver, physics_name):
 
     tol = 0.01
     y = physics(x)
-    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol, use_fft=False)
     assert (
         (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
         / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
