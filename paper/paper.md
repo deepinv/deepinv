@@ -116,7 +116,7 @@ methods and a common framework for defining datasets for inverse problems.
 
 While other python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a focus learning-based methods.  SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom losses, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks. Moreover, `deepinv` provides a larger set of forward operators and generators. Another python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and does not include a large variety of solvers. There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators. Operator-specific libraries can be used together with deepinv as long as they are compatible with pytorch. 
 
-![Schematic of the library.\label{fig:schematic}](figures/deepinv_schematic_.png)
+![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
 # Inverse problems
 
