@@ -192,23 +192,20 @@ def test_sde(device):
         VarianceExplodingDiffusion,
         PosteriorDiffusion,
         DPSDataFidelity,
+        EulerSolver,
+        HeunSolver,
     )
-    from deepinv.sampling.sde_solver import EulerSolver, HeunSolver
     from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
 
     # Set up all denoisers
     denoisers = []
     rescales = []
     list_kwargs = []
-    denoisers.append(
-        EDMPrecond(model=NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")).to(device)
-    )
+    denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
     rescales.append(False)
     list_kwargs.append(dict())
 
-    denoisers.append(
-        EDMPrecond(model=ADMUNet.from_pretrained("imagenet64-cond")).to(device)
-    )
+    denoisers.append(EDMPrecond(model=ADMUNet(pretrained="download")).to(device))
     rescales.append(False)
     list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
 

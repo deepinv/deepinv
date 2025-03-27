@@ -61,10 +61,14 @@ class BaseSDESolver(nn.Module):
         rng: Optional[torch.Generator] = None,
     ):
         super().__init__()
-        self.timesteps = timesteps
+        if isinstance(timesteps, ndarray):
+            self.timesteps = torch.from_numpy(timesteps.copy())
+        elif isinstance(timesteps, Tensor):
+            self.timesteps = timesteps
         self.rng = rng
         if rng is not None:
             self.initial_random_state = rng.get_state()
+            self.timesteps = self.timesteps.to(rng.device)
 
     def step(self, sde, t0: float, t1: float, x0: Tensor, *args, **kwargs) -> Tensor:
         r"""
@@ -113,7 +117,11 @@ class BaseSDESolver(nn.Module):
         trajectory = [x_init.clone()] if get_trajectory else []
 
         if timesteps is None:
-            timesteps = self.timesteps
+            timesteps = self.timesteps.to(sde.device, sde.dtype)
+        else:
+            if isinstance(timesteps, ndarray):
+                timesteps = torch.from_numpy(timesteps.copy())
+            timesteps = timesteps.to(sde.device, sde.dtype)
 
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
             x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)

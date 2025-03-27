@@ -65,14 +65,14 @@ from deepinv.optim import ZeroFidelity
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
-unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
+unet = NCSNpp(pretrained="download")
 denoiser = EDMPrecond(model=unet).to(device)
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
 num_steps = 150
 rng = torch.Generator(device).manual_seed(42)
-timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+timesteps = torch.linspace(1, 0.001, num_steps)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 
@@ -173,10 +173,10 @@ model = PosteriorDiffusion(
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
+# Moreover, when the physics is given, the initial point can be inferred from the physics if not given explicitly.
 x_hat, trajectory = model(
     y,
     physics,
-    x_init=(1, 3, 64, 64),
     seed=11,
     get_trajectory=True,
 )
@@ -241,7 +241,6 @@ except FileNotFoundError:
 x_hat_seed_111 = model(
     y,
     physics,
-    x_init=(1, 3, 64, 64),
     seed=111,
 )
 dinv.utils.plot(
@@ -293,7 +292,7 @@ except FileNotFoundError:
 sigma_min = 0.02
 sigma_max = 2.0
 rng = torch.Generator(device)
-timesteps = np.linspace(0.001, 1, 200)[::-1]
+timesteps = torch.linspace(1, 0.001, 200)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
@@ -302,7 +301,7 @@ sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.1, device=device, dtype=dtype
 )
 model = PosteriorDiffusion(
-    data_fidelity=dinv.optim.data_fidelity.L2(sigma=0.6),
+    data_fidelity=dinv.optim.L2(sigma=0.6),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
@@ -314,7 +313,6 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y,
     physics,
-    x_init=(1, 3, 64, 64),
     seed=11,
     get_trajectory=True,
 )
@@ -364,7 +362,7 @@ denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 sigma_min = 0.02
 sigma_max = 5.0
 rng = torch.Generator(device)
-timesteps = np.linspace(0.001, 1, 200)[::-1]
+timesteps = torch.linspace(1, 0.001, 200)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.5, device=device, dtype=dtype
@@ -383,7 +381,6 @@ model = PosteriorDiffusion(
 x_hat, trajectory = model(
     y,
     physics,
-    x_init=(1, 3, 64, 64),
     seed=1,
     get_trajectory=True,
 )
@@ -420,120 +417,4 @@ except FileNotFoundError:
 #    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.png
 #       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.png
-#       :class: custom-gif
-
-# %%
-# More on Unconditional Image Generation
-# --------------------------------------
-#
-# The :class:`deepinv.sampling.DiffusionSDE` class can also be used together with any (well-trained) denoisers for image generation. However, we recommend using the :class:`deepinv.sampling.PosteriorDiffusion` with the :class:`deepinv.optim.ZeroFidelity` data fidelity term.
-#
-# The diffusion models with SDE paper can be found at https://arxiv.org/abs/2011.13456.
-#
-# This method requires:
-#
-# * A well-trained denoiser with varying noise levels (ideally with large noise levels) (e.g., :class:`deepinv.models.NCSNpp`).
-#
-# * Define a drift term :math:`f(x, t)` and a diffusion term :math:`g(t)` for the forward-time SDE.
-#
-# The forward-time SDE is defined as follows, for :math:`t \in [0, T]`:
-#
-# .. math::
-#     d\, x_t = f(x_t, t) d\,t + g(t) d\, w_t.
-#
-# Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
-# The reverse-time SDE is defined as follows, running backward in time:
-#
-# .. math::
-#    d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t},
-#
-# where a scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
-#
-# This reverse-time SDE can be used as a generative process.
-# The (Stein) score function :math:`\nabla \log p_t(x_t)` can be approximated by Tweedie's formula. In particular, if
-#
-# .. math::
-#     x_t \vert x_0 \sim \mathcal{N}(\mu_tx_0, \sigma_t^2 \mathrm{Id}),
-#
-# then
-#
-# .. math::
-#     \nabla \log p_t(x_t) = \frac{\mu_t  D_{\sigma_t}(x_t) -  x_t }{\sigma_t^2}.
-#
-# Starting from a random point following the end-point distribution :math:`p_T` of the forward process,
-# solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
-
-
-# %%
-# Load the pre-trained denoiser.
-unet = NCSNpp.from_pretrained("edm-ffhq64-uncond-ve")
-denoiser = EDMPrecond(model=unet).to(device)
-
-# %%
-# Define the SDE and the solver
-num_steps = 100
-timesteps = np.linspace(0, 1, num_steps)[::-1]
-rng = torch.Generator(device).manual_seed(42)
-solver = EulerSolver(timesteps=timesteps, rng=rng)
-
-sigma_min = 0.02
-sigma_max = 20
-sde = VarianceExplodingDiffusion(
-    denoiser=denoiser,
-    sigma_max=sigma_max,
-    sigma_min=sigma_min,
-    solver=solver,
-    device=device,
-    dtype=dtype,
-)
-
-# %%
-# Reverse-time SDE as generative process
-# --------------------------------------
-#
-# Sampling is performed by solving the reverse-time SDE. To do so, we generate a reverse-time trajectory.
-
-sample_seed_1, trajectory_seed_1 = sde.sample(
-    (1, 3, 64, 64), seed=1, get_trajectory=True
-)
-
-dinv.utils.plot(
-    sample_seed_1, titles="VE-SDE sample", save_fn="sde_sample_ve.png", show=True
-)
-dinv.utils.save_videos(
-    trajectory_seed_1.cpu()[::10],
-    time_dim=0,
-    titles=["VE-SDE Trajectory"],
-    save_fn="sde_trajectory_ve.gif",
-    figsize=(figsize, figsize),
-)
-
-# sphinx_gallery_start_ignore
-# cleanup
-import os
-import shutil
-from pathlib import Path
-
-
-try:
-    final_dir = (
-        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
-    )
-    shutil.copyfile("sde_trajectory_ve.gif", final_dir / "sde_trajectory_ve.gif")
-    shutil.copyfile("sde_sample_ve.png", final_dir / "sde_sample_ve.png")
-except FileNotFoundError:
-    pass
-
-# sphinx_gallery_end_ignore
-# %%
-# .. container:: image-row
-#
-#    .. image-sg:: /auto_examples/images/sde_sample_ve.png
-#       :alt: other example
-#       :srcset: /auto_examples/images/sde_sample_ve.png
-#       :class: custom-gif
-#
-#    .. image-sg:: /auto_examples/images/sde_trajectory_ve.gif
-#       :alt: example learn_samples
-#       :srcset: /auto_examples/images/sde_trajectory_ve.gif
 #       :class: custom-gif

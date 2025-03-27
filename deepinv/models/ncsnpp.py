@@ -10,6 +10,7 @@ from .utils import (
 )
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
+from .utils import get_weights_url
 
 
 class NCSNpp(Denoiser):
@@ -39,14 +40,18 @@ class NCSNpp(Denoiser):
     :param str encoder_type: Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
     :param str decoder_type: Decoder architecture: 'standard' for both DDPM++ and NCSN++.
     :param list resample_filter: Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
     """
 
     def __init__(
         self,
-        img_resolution: int,  # Image spatial resolution at input/output.
+        img_resolution: int = 64,  # Image spatial resolution at input/output.
         in_channels: int = 3,  # Number of color channels at input.
         out_channels: int = 3,  # Number of color channels at output.
         label_dim: int = 0,  # Number of class labels, 0 = unconditional.
@@ -73,6 +78,7 @@ class NCSNpp(Denoiser):
             3,
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
+        pretrained: str = None,
         device=None,
     ):
         assert embedding_type in ["fourier", "positional"]
@@ -208,6 +214,20 @@ class NCSNpp(Denoiser):
                     in_channels=cout, out_channels=out_channels, kernel=3, **init_zero
                 )
 
+        if pretrained is not None:
+            if (
+                pretrained.lower() == "edm-ffhq64-uncond-ve"
+                or pretrained.lower() == "download"
+            ):
+                name = "ncsnpp-ffhq64-uncond-ve.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt, strict=True)
+        self.eval()
         if device is not None:
             self.to(device)
             self.device = device
@@ -271,41 +291,6 @@ class NCSNpp(Denoiser):
                     x = torch.cat([x, skips.pop()], dim=1)
                 x = block(x, emb)
         return aux
-
-    @classmethod
-    def from_pretrained(cls, model_name: str = "edm-ffhq64-uncond-ve"):
-        r"""
-        Load a pretrained model from the Hugging Face Hub.
-
-        :param str model_name: Name of the model to load.
-
-        :return NCSNpp: The loaded model.
-        """
-        if "ffhq64" in model_name or "afhq64" in model_name:
-            default_64x64_config = dict(
-                img_resolution=64,
-                in_channels=3,
-                out_channels=3,
-                augment_dim=9,
-                model_channels=128,
-                channel_mult=[1, 2, 2, 2],
-                channel_mult_noise=2,
-                embedding_type="fourier",
-                encoder_type="residual",
-                decoder_type="standard",
-                resample_filter=[1, 3, 3, 1],
-            )
-            model = cls(**default_64x64_config)
-            model_url = f"https://huggingface.co/mhnguyen712/edm/resolve/main/ncsnpp-{model_name.lower()}.pt"
-            state_dict = torch.hub.load_state_dict_from_url(
-                model_url,
-                file_name=model_name,
-                map_location=lambda storage, loc: storage,
-            )
-            model.load_state_dict(state_dict)
-        else:
-            raise ValueError(f"Unsupported model name: {model_name}")
-        return model
 
     @staticmethod
     def _handle_sigma(sigma, dtype, device, batch_size):

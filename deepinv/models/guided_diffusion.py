@@ -10,6 +10,7 @@ from .base import Denoiser
 
 from torch.nn import Linear, GroupNorm
 from math import floor
+from .utils import get_weights_url
 
 
 class ADMUNet(Denoiser):
@@ -33,14 +34,19 @@ class ADMUNet(Denoiser):
     :param list[int] attn_resolutions: List of resolutions with self-attention.
     :param float dropout: dropout probability used in residual blocks.
     :param float label_dropout: Dropout probability of class labels for classifier-free guidance.
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (the default model is a conditional model trained on ImageNet at 64x64 resolution (`imagenet64-cond`) with default architecture).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
     def __init__(
         self,
-        img_resolution,  # Image resolution at input/output.
-        in_channels,  # Number of color channels at input.
-        out_channels,  # Number of color channels at output.
+        img_resolution: int = 64,  # Image resolution at input/output.
+        in_channels: int = 3,  # Number of color channels at input.
+        out_channels: int = 3,  # Number of color channels at output.
         label_dim=0,  # Number of class labels, 0 = unconditional.
         augment_dim=0,  # Augmentation label dimensionality, 0 = no augmentation.
         model_channels=192,  # Base multiplier for the number of channels.
@@ -55,11 +61,16 @@ class ADMUNet(Denoiser):
         attn_resolutions=[32, 16, 8],  # List of resolutions with self-attention.
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
+        pretrained: str = None,
         device=None,
         *args,
         **kwargs,
     ):
         super().__init__()
+        # The default model is a class-conditioned model with 1000 classes
+        if pretrained.lower() == "imagenet64-cond" or pretrained.lower() == "download":
+            label_dim = 1000
+
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
         init = dict(
@@ -154,6 +165,21 @@ class ADMUNet(Denoiser):
         self.out_conv = UpDownConv2d(
             in_channels=cout, out_channels=out_channels, kernel=3
         )
+        if pretrained is not None:
+            if (
+                pretrained.lower() == "edm-imagenet64-cond"
+                or pretrained.lower() == "download"
+            ):
+                name = "adm-imagenet64-cond.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt, strict=True)
+
+        self.eval()
         if device is not None:
             self.to(device)
             self.device = device
@@ -198,35 +224,6 @@ class ADMUNet(Denoiser):
             x = block(x, emb)
         x = self.out_conv(silu(self.out_norm(x)))
         return x
-
-    @classmethod
-    def from_pretrained(cls, model_name: str = "imagenet64-cond"):
-        r"""
-        Load a pretrained model from the Hugging Face Hub.
-
-        :param str model_name: Name of the model to load.
-
-        :return (:class:`deepinv.models.Denoiser`) The loaded model.
-        """
-        if "imagenet64" in model_name:
-            default_64x64_config = dict(
-                img_resolution=64,
-                in_channels=3,
-                out_channels=3,
-                augment_dim=0,
-                label_dim=1000,
-            )
-            model = cls(**default_64x64_config)
-            model_url = f"https://huggingface.co/mhnguyen712/edm/resolve/main/adm-{model_name.lower()}.pt"
-            state_dict = torch.hub.load_state_dict_from_url(
-                model_url,
-                file_name=model_name,
-                map_location=lambda storage, loc: storage,
-            )
-            model.load_state_dict(state_dict)
-        else:
-            raise ValueError(f"Unsupported model name: {model_name}")
-        return model
 
     @staticmethod
     def _handle_sigma(sigma, dtype, device, batch_size):

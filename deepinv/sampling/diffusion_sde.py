@@ -430,6 +430,10 @@ class PosteriorDiffusion(Reconstructor):
         self.solver.rng_manual_seed(seed)
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
+        elif x_init is None:
+            x_init = self.sde.sample_init(
+                physics.A_dagger(y).shape, rng=self.solver.rng
+            )
 
         solution = self.solver.sample(
             self.posterior,
