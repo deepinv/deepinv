@@ -486,8 +486,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
 
 class LocalDataset(torch.utils.data.Dataset):
-    def __init__(self, root: Union[str, Path], cache: float = False):
-        self.files = natsorted(Path(root).glob("*.npz"))
+    def __init__(self, root: Union[str, Path], pattern: str = "*.npz", cache: float = False):
+        self.files = natsorted(Path(root).glob(pattern))
         self.use_cache = cache
         self.cache = {}
 
@@ -513,7 +513,7 @@ class LocalDataset(torch.utils.data.Dataset):
         if x is None and not params:
             return y
         
-        return (x,) * bool(x) + (y,) + ((params,) if params else ())
+        return (() if x is None else (x,)) + (y,) + ((params,) if params else ())
 
 
 class FastMRITransform:
