@@ -120,6 +120,7 @@ Distance
    deepinv.optim.L1Distance
    deepinv.optim.AmplitudeLossDistance
    deepinv.optim.LogPoissonLikelihoodDistance
+   deepinv.optim.ZeroDistance
 
 Iterators
 ---------
