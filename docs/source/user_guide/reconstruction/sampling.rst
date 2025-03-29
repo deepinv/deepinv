@@ -13,7 +13,7 @@ where :math:`x` is the image to be reconstructed, :math:`y` are the measurements
 :math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
 is the negative log-prior.
 
-.. _diffusion_generation:
+.. _diffusion_posterior_sde:
 
 Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
 ---------------------------------------------------------------------------------------------------
@@ -34,7 +34,7 @@ The reverse-time SDE is defined as follows, running backward in time:
 
     d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}.
 
-The scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
+The scalar :math:`\alpha \in [0,1]` weighting the diffusion term. :math:`\alpha = 0` corresponds to the ordinary differential equation (ODE) sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
 
 This reverse-time SDE can be used as a generative process. 
 
@@ -53,7 +53,7 @@ then
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
-When turn out to Posterior Sampling, we need simply to repace the (unconditional) score function :math:`\nabla_{x_t} \log p_t(x_t)` by the conditional score function :math:`\nabla_{x_t} \log p_t(x_t|y)`. It can be decomposed using the Bayes' rule:
+In the case of posterior sampling, we need simply to repace the (unconditional) score function :math:`\nabla_{x_t} \log p_t(x_t)` by the conditional score function :math:`\nabla_{x_t} \log p_t(x_t|y)`. The conditional score can be decomposed using the Bayes' rule:
 
 .. math::
     \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
@@ -77,7 +77,7 @@ The second term is the conditional score function, and can be approximated by th
      - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.DiffusionSDE`
 
    * - :class:`deepinv.sampling.PosteriorDiffusion`
-     - The Diffusion SDE class for Posterior Sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
+     - The Diffusion SDE class for posterior sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
 
 
 .. list-table:: Noisy data-fidelity terms
@@ -114,16 +114,12 @@ We also provide generic methods for solving SDEs (and ODEs).
 
 
 
-.. _diffusion:
+.. _diffusion_custom:
 
-Diffusion models for posterior sampling
----------------------------------------
-We provide various sota diffusion methods for sampling from the posterior distribution.
-Diffusion methods produce a sample from the posterior ``x`` given a
-measurement ``y`` as ``x = model(y, physics)``,
-where ``model`` is the diffusion algorithm and ``physics`` is the forward operator.
+Custom diffusion posterior samplers
+-----------------------------------
 
-
+We also provide custom implementations of some popular diffusion methods for posterior sampling.
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
 obtains multiple samples to compute posterior statistics such as the mean or variance.

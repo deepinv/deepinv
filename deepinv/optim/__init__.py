@@ -38,4 +38,5 @@ from .distance import (
     L1Distance,
     AmplitudeLossDistance,
     LogPoissonLikelihoodDistance,
+    ZeroDistance,
 )

@@ -281,7 +281,7 @@ def test_sde(device):
     physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
     y = physics(x)
 
-    x_hat = posterior.forward(
+    x_hat = posterior(
         y,
         physics,
         x_init=(1, 3, 64, 64),

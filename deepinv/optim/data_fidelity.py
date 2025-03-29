@@ -6,6 +6,7 @@ from deepinv.optim.distance import (
     AmplitudeLossDistance,
     PoissonLikelihoodDistance,
     LogPoissonLikelihoodDistance,
+    ZeroDistance,
 )
 from deepinv.optim.potential import Potential
 import torch
@@ -526,12 +527,13 @@ class ZeroFidelity(DataFidelity):
 
     def __init__(self):
         super().__init__()
+        self.d = ZeroDistance()
 
     def fn(self, x, y, physics, *args, **kwargs):
         """
         This function returns zero for all inputs.
         """
-        return torch.stack([0] * len(x))
+        return torch.zeros(x.size(0), device=x.device, dtype=x.dtype)
 
     def grad(self, x, y, physics, *args, **kwargs):
         """

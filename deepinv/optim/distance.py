@@ -368,7 +368,7 @@ class LogPoissonLikelihoodDistance(Distance):
         return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)
 
 
-class Zero(Distance):
+class ZeroDistance(Distance):
     r"""
     Zero distance :math:`\distance{z}{y} = 0`.
     """
@@ -377,7 +377,7 @@ class Zero(Distance):
         super().__init__()
 
     def fn(self, x, y, *args, **kwargs):
-        return torch.zeros_like(x)
+        return 0.0
 
     def grad(self, x, *args, **kwargs):
         return torch.zeros_like(x)

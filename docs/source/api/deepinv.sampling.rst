@@ -6,7 +6,7 @@ Please refer to the :ref:`user guide <sampling>` for more details.
 
 Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
 ---------------------------------------------------------------------------------------------------
-.. userguide:: diffusion_generation
+.. userguide:: diffusion_posterior_sde
 
 .. autosummary::
    :toctree: stubs
@@ -25,10 +25,10 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
     deepinv.sampling.SDEOutput
 
 
-Diffusion models for posterior sampling
----------------------------------------
+Custom diffusion posterior samplers
+-----------------------------------
 
-.. userguide:: diffusion
+.. userguide:: diffusion_custom
 
 .. autosummary::
    :toctree: stubs

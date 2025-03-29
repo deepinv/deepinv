@@ -31,7 +31,7 @@ where :math:`f` is the drift term, :math:`g` is the diffusion coefficient and :m
 
 The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
-We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
+We implement various data-fidelity terms in `the documentations <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2>`_.
 """
 
 # %% Define the underlying SDE for posterior sampling
@@ -45,8 +45,6 @@ We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFi
 #     d\, x_t = \sigma(t) d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}\left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t
 
 import torch
-import numpy as np
-
 import deepinv as dinv
 from deepinv.models import NCSNpp, EDMPrecond
 
@@ -300,8 +298,11 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.1, device=device, dtype=dtype
 )
+
+# As a plug-and-play sampling method, we can also change the data fidelity term.
+# But the sample quality depends on the quality of the denoiser and the data fidelity term.
 model = PosteriorDiffusion(
-    data_fidelity=dinv.optim.L2(sigma=0.6),
+    data_fidelity=dinv.optim.L2(),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
