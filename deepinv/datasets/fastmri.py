@@ -326,9 +326,6 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             if len(samples) == 0:
                 for fname in tqdm(all_fnames):
                     metadata = self._retrieve_metadata(fname)
-                    if filter_id is not None and not filter_id(self.SliceSampleID(fname, 0, metadata)):
-                        continue
-
                     for slice_ind in range(metadata["num_slices"]):
                         samples[str(fname)].append(
                             self.SliceSampleID(fname, slice_ind, metadata)
@@ -363,6 +360,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
         # Flatten to list of samples
         self.samples = [samp for samps in self.samples.values() for samp in samps]
+
+        if filter_id is not None:
+            self.samples = list(filter(filter_id, self.samples))
 
     @staticmethod
     def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> Dict[str, Any]:
@@ -486,26 +486,35 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
 
 class LocalDataset(torch.utils.data.Dataset):
-    def __init__(self, root: Union[str, Path]):
+    def __init__(self, root: Union[str, Path], cache: float = False):
         self.files = natsorted(Path(root).glob("*.npz"))
+        self.use_cache = cache
+        self.cache = {}
 
     def __len__(self):
         return len(self.files)
 
     def __getitem__(self, idx):
-        data = np.load(self.files[idx])
+        f = self.files[idx]
+        
+        if f in self.cache:
+            data = self.cache[f]
+        else:
+            with np.load(f) as d:
+                data = dict(d)
+            if self.use_cache:
+                self.cache[f] = data
 
         x = torch.tensor(data["x"]) if "x" in data else None
         y = torch.tensor(data["y"])
+        
+        params = {k: torch.tensor(data[k]) for k in ["mask", "coil_maps"] if k in data}
 
-        params = {}
-        if "mask" in data:
-            params["mask"] = torch.tensor(data["mask"])
-        if "coil_maps" in data:
-            params["coil_maps"] = torch.tensor(data["coil_maps"])
+        if x is None and not params:
+            return y
+        
+        return (x,) * bool(x) + (y,) + ((params,) if params else ())
 
-        #TODO if just (y,) then return just y
-        return (() if x is None else (x,)) + (y,) + ((params,) if params else ())
 
 class FastMRITransform:
     def __init__(
