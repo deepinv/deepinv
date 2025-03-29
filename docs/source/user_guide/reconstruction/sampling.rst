@@ -13,7 +13,7 @@ where :math:`x` is the image to be reconstructed, :math:`y` are the measurements
 :math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
 is the negative log-prior.
 
-.. _diffusion_posterior_sde:
+.. _diffusion:
 
 Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling
 ---------------------------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ We also provide generic methods for solving SDEs (and ODEs).
 .. _diffusion_custom:
 
 Custom diffusion posterior samplers
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We also provide custom implementations of some popular diffusion methods for posterior sampling.
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
