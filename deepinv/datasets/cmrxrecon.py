@@ -11,7 +11,7 @@ from torch import Tensor
 import torch
 import torch.nn.functional as F
 
-from deepinv.datasets.fastmri import FastMRISliceDataset
+from deepinv.datasets.fastmri import FastMRISliceDataset, FastMRITransform
 from deepinv.datasets.utils import loadmat
 from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
@@ -224,7 +224,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
                     )
             else:
-                mask = self.generate_mask(kspace, str(fname) + str(slice_ind))
+                mask = FastMRITransform(mask_generator=self.mask_generator).generate_mask(kspace, str(fname) + str(slice_ind))
         else:
             mask = torch.ones_like(kspace)
 

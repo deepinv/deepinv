@@ -19,7 +19,7 @@ Key modifications:
 
 from pathlib import Path
 from contextlib import contextmanager
-from typing import Any, Callable, NamedTuple, Optional, Union, Tuple, Dict
+from typing import Any, Callable, NamedTuple, Optional, Union, Tuple, Dict, Any
 from collections import defaultdict
 import pickle
 import warnings
@@ -33,9 +33,9 @@ from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive, loadmat
 from deepinv.utils.demo import get_image_url
-from deepinv.physics.generator.mri import BaseMaskGenerator
-from deepinv.physics.mri import MultiCoilMRI
-
+from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
+from deepinv.physics.mri import MultiCoilMRI, MRIMixin
+from deepinv.physics.noise import NoiseModel
 
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
@@ -148,18 +148,17 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-class FastMRISliceDataset(torch.utils.data.Dataset):
+class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR image slices.
 
     This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.
     This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.
 
-    To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the volumes as ``h5`` files.
-    The fastMRI dataset includes two types of MRI scans: knee MRIs and the brain (neuro) MRIs, and containing training, validation, and masked test sets.
+    To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.
 
-    The dataset is loaded as pairs ``(kspace, target)`` where ``kspace`` are the measurements of shape ``(2, (N,) H, W)``
+    The dataset is loaded as pairs ``(x, y)`` where `y` are the kspace measurements of shape ``(2, (N,) H, W)``
     where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
-    and ``target`` are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
+    and `x` ("target") are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
 
     .. tip::
 
@@ -189,15 +188,14 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
 
 
     :param Union[str, pathlib.Path] root: Path to the dataset.
-    :param bool test: Whether the split is the `"test"` set, if yes, only return kspace measurements.
     :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
     :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset information for faster load times.
     :param float subsample_volumes: (optional) proportion of volumes to be randomly subsampled (float between 0 and 1).
     :param str, int, tuple slice_index: if `"all"`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,
-        if `"middle"`, keep the middle slice. If `"random"`, select random slice. Defaults to `"all"`.
-    :param Callable transform_kspace: optional transform function for (multicoil) kspace operating on images of shape (..., 2, H, W).
-    :param Callable transform_target: optional transform function for ground truth recon targets operating on single-channel images of shape (1, H, W).
+        if ``tuple`` or `int`s, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
+        middle slice, if `"random"`, select random slice. Defaults to `"all"`.
+    :param Callable transform: optional transform function taking in (multicoil) kspace of shape (2, (N,) H, W) and targets of shape (1, H, W).
     :param torch.Generator, None rng: optional torch random generator for shuffle slice indices
 
     |sep|
@@ -220,11 +218,13 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         >>> kspace.shape # (2, N, H, W), varies per sample
         torch.Size([2, 4, 512, 213])
 
-        Normalise and pad images, and load one slice per volume:
+        Load one slice per volume:
 
-        >>> from torchvision.transforms import Compose, CenterCrop
-        >>> from deepinv.datasets.utils import Rescale
-        >>> dataset = FastMRISliceDataset(root=root, slice_index=0, transform_target=Compose([Rescale(), CenterCrop(320)]))
+        >>> dataset = FastMRISliceDataset(root=root, slice_index=0)
+
+        Use MRI transform to mask, estimate sensitivity maps, normalise and/or crop:
+
+        >>> #TODO
 
         Convert to a simple normalised padded in-memory slice dataset from the middle slices only:
 
@@ -298,37 +298,26 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         root: Union[str, Path],
-        test: bool = False,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
         slice_index: Union[str, int] = "all",
         subsample_volumes: Optional[float] = 1.0,
-        transform_kspace: Optional[Callable] = None,
-        transform_target: Optional[Callable] = None,
+        transform: Optional[Callable] = None,
+        filter_id: Optional[Callable] = None,
         rng: Optional[torch.Generator] = None,
-        mask_generator: Optional[BaseMaskGenerator] = None,
-        estimate_coil_maps: Union[bool, int] = False,
+
     ) -> None:
         self.root = root
-        self.test = test
-        self.transform_kspace = transform_kspace
-        self.transform_target = transform_target
+        self.transform = transform
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
-        self.mask_generator = mask_generator
-        self.estimate_coil_maps = estimate_coil_maps
 
         if not os.path.isdir(root):
             raise ValueError(
                 f"The `root` folder doesn't exist. Please set `root` properly. Current value `{root}`."
-            )
-
-        if slice_index not in ("all", "random", "middle") and not isinstance(
-            slice_index, int
-        ):
-            raise ValueError('slice_index must be "all", "random", "middle", or int.')
+            )    
 
         # Load all slices
         all_fnames = sorted(list(Path(root).glob("*.h5")))
@@ -337,6 +326,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
             if len(samples) == 0:
                 for fname in tqdm(all_fnames):
                     metadata = self._retrieve_metadata(fname)
+                    if filter_id is not None and not filter_id(self.SliceSampleID(fname, 0, metadata)):
+                        continue
+
                     for slice_ind in range(metadata["num_slices"]):
                         samples[str(fname)].append(
                             self.SliceSampleID(fname, slice_ind, metadata)
@@ -348,12 +340,19 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         if slice_index != "all":
             for fname, samples in self.samples.items():
                 if isinstance(slice_index, int):
-                    chosen_sample = samples[slice_index]
-                elif slice_index == "middle":
-                    chosen_sample = samples[len(samples) // 2]
+                    chosen = samples[slice_index]
+                elif isinstance(slice_index, (tuple, list)):
+                    chosen = [samples[i] for i in slice_index]
+                elif "middle" in slice_index:
+                    i = slice_index.split("+")[-1]
+                    i = int(i) if "+" in slice_index and i.isdigit() else 0
+                    chosen = samples[len(samples) // 2 - i: len(samples) // 2 + i + 1]
                 elif slice_index == "random":
-                    chosen_sample = self.torch_shuffle(samples, generator=rng)[0]
-                self.samples[fname] = [chosen_sample]
+                    chosen = self.torch_shuffle(samples, generator=rng)[0]
+                else:
+                    raise ValueError('slice_index must be "all", "random", "middle", "middle+i", int or tuple.')
+                
+                self.samples[fname] = chosen if isinstance(chosen, list) else [chosen]
 
         # Randomly keep a portion of MRI volumes
         if subsample_volumes < 1.0:
@@ -393,59 +392,31 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        r"""Returns the idx-th sample from the dataset, i.e. kspace of shape (2, (N,) H, W) and target of shape (2, H, W)"""
+        r"""Returns idx-th target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
+        if target exists else just space (i.e. in challenge test set).
+        Outputs may be modifed by transform if specified."""
         fname, slice_ind, metadata = self.samples[idx]
 
         with h5py.File(fname, "r") as hf:
-            kspace = torch.from_numpy(
-                hf["kspace"][slice_ind]
-            )  # ((N,) H, W) dtype complex
-            kspace = torch.view_as_real(kspace)  # ((N,) H, W, 2)
-            kspace = kspace.moveaxis(-1, -3)  # ((N,) 2, H, W)
-            if self.transform_kspace is not None:
-                # torchvision transforms require (..., C, H, W)
-                kspace = self.transform_kspace(kspace)
-            kspace = kspace.moveaxis(-3, 0)  # (2, N, H, W)
+            # ((N,) H, W) dtype complex -> (2, (N,) H, W) real
+            kspace = self.from_torch_complex(torch.from_numpy(hf["kspace"][slice_ind]).unsqueeze(0)).squeeze(0)
 
-            if not self.test:
-                recons_key = (
+            if any("reconstruction" in key for key in hf.keys()):
+                # shape (1, H, W)
+                target = torch.from_numpy(hf[
                     "reconstruction_esc"
                     if "reconstruction_esc" in hf.keys()
                     else "reconstruction_rss"
-                )
-                # to shape (1, H, W)
-                target = torch.from_numpy(hf[recons_key][slice_ind]).unsqueeze(0)
+                ][slice_ind]).unsqueeze(0)
+            else:
+                target = None
 
-                if self.transform_target is not None:
-                    target = self.transform_target(target)
+        #TODO load mask if exists (i.e. challenge test set)
 
-        params = {}
-        if self.mask_generator is not None:
-            params["mask"] = self.generate_mask(kspace, str(fname) + str(slice_ind))
-            kspace *= params["mask"]
-        if self.estimate_coil_maps:
-            params["coil_maps"] = self.generate_maps(kspace)
-
-        return (
-            (() if self.test else (target,)) + (kspace,) + ((params,) if params else ())
-        )
-
-    def generate_mask(self, kspace: torch.Tensor, seed: Union[str, int]):
-        return self.mask_generator.step(
-            seed=seed,
-            img_size=kspace.shape[-2:],
-            batch_size=0,
-        )["mask"]
-
-    def generate_maps(self, kspace: torch.Tensor):
-        calib_size = (
-            self.mask_generator.n_center
-            if self.estimate_coil_maps == True
-            else self.estimate_coil_maps
-        )
-        return MultiCoilMRI.estimate_coil_maps(
-            kspace.unsqueeze(0), calib_size=calib_size
-        ).squeeze(0)
+        if self.transform is not None:
+            return self.transform(target, kspace, seed=str(fname) + str(slice_ind))
+        else:
+            return (target, kspace) if target is not None else kspace
 
     def save_simple_dataset(
         self,
@@ -472,11 +443,6 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         :return: loaded SimpleFastMRISliceDataset
         :rtype: SimpleFastMRISliceDataset
         """
-        if self.test:
-            raise ValueError(
-                "save_simple_dataset can only be used when targets are provided, i.e. test = False."
-            )
-
         transform_target = self.transform_target
 
         transform_list = [transform_target] if transform_target is not None else []
@@ -506,6 +472,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
         )
 
     def save_local_dataset(self, data_dir: str) -> torch.utils.data.Dataset:
+        #TODO generalise local dataset for all datasets
         os.makedirs(data_dir, exist_ok=True)
         for i in tqdm(range(self.__len__())):
             x, y, params = self.__getitem__(i)
@@ -515,9 +482,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset):
                 y=y.numpy(),
                 **{k: v.numpy() for (k, v) in params.items()},
             )
+        return LocalDataset(data_dir)
 
 
-class LocalFastMRISliceDataset(torch.utils.data.Dataset):
+class LocalDataset(torch.utils.data.Dataset):
     def __init__(self, root: Union[str, Path]):
         self.files = natsorted(Path(root).glob("*.npz"))
 
@@ -536,4 +504,137 @@ class LocalFastMRISliceDataset(torch.utils.data.Dataset):
         if "coil_maps" in data:
             params["coil_maps"] = torch.tensor(data["coil_maps"])
 
+        #TODO if just (y,) then return just y
         return (() if x is None else (x,)) + (y,) + ((params,) if params else ())
+
+class FastMRITransform:
+    def __init__(
+        self,
+        mask_generator: Optional[BaseMaskGenerator] = None,
+        estimate_coil_maps: Union[bool, int] = False,
+    ):
+        if 1:
+            # TODO mask_generator is None and estimate_coil_maps is True but not int. Either pass in mask_generator, or specify acs size with estimate_coil_maps
+            pass
+
+        self.mask_generator = mask_generator
+        self.estimate_coil_maps = estimate_coil_maps
+
+    def generate_mask(self, kspace: torch.Tensor, seed: Union[str, int]) -> torch.Tensor:
+        return self.mask_generator.step(
+            seed=seed,
+            img_size=kspace.shape[-2:],
+            batch_size=0,
+        )["mask"]
+
+    def generate_maps(self, kspace: torch.Tensor) -> torch.Tensor:
+        calib_size = (
+            self.mask_generator.n_center
+            if self.estimate_coil_maps == True
+            else self.estimate_coil_maps
+        )
+        return MultiCoilMRI.estimate_coil_maps(
+            kspace.unsqueeze(0), calib_size=calib_size
+        ).squeeze(0)
+
+    def __call__(self, target: torch.Tensor, kspace: torch.Tensor, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+        # target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
+        params = {}
+        if self.mask_generator is not None:
+            params["mask"] = self.generate_mask(kspace, seed)
+            kspace *= params["mask"]
+        if self.estimate_coil_maps:
+            params["coil_maps"] = self.generate_maps(kspace)
+
+        #TODO if just (y,) then return just y
+        return (
+            (() if target is None else (target,)) + (kspace,) + ((params,) if params else ())
+        )
+
+class FullMultiCoilFastMRITransform(FastMRITransform, MRIMixin):
+    def __init__(
+        self,
+        mask_generator: Optional[BaseMaskGenerator] = None,
+        estimate_coil_maps: Union[bool, int] = True,
+        crop_size: Tuple[int, int] = (384, 320),
+        rescale: bool = False,
+        prewhiten: Tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
+        noise_model: NoiseModel = None,
+        norm_percentile: float = .99,
+    ):
+        super().__init__(mask_generator, estimate_coil_maps)
+        self.crop_size = crop_size
+        self.prewhiten = prewhiten
+        self.norm_percentile = norm_percentile
+        self.noise_model = noise_model
+        self.rescale = rescale
+    
+    def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
+        # kspace of shape (2, (N,) H, W)
+        ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0) # N, H, W complex
+
+        n = ksp[:, self.prewhiten[0], self.prewhiten[1]].flatten(-2)
+        n -= n.mean(axis=-1, keepdim=True)
+        cov = n @ n.H # (N, N) complex
+
+        try:
+            ksp = ksp.flatten(-2) # N, H*W
+            ksp = torch.linalg.solve(torch.linalg.cholesky(cov), ksp)
+            return self.from_torch_complex(ksp.unflatten(-1, kspace.shape[-2:]).unsqueeze(0)).squeeze(0) # 2,N,H,W
+        except torch.linalg.LinAlgError:
+            # Non-PSD due to ksp all zeros
+            return kspace
+
+    def normalise(self, kspace: torch.Tensor) -> torch.Tensor:
+        # Extract ACS
+        acs = (
+            self.mask_generator.n_center
+            if self.estimate_coil_maps == True
+            else self.estimate_coil_maps
+        )
+        H, W = kspace.shape[-2:]
+        mask = torch.zeros_like(kspace)
+        mask[..., H // 2 - acs // 2 : H // 2 + ceildiv(acs, 2), W // 2 - acs // 2 : W // 2 + ceildiv(acs, 2)] = 1
+
+        # Normalise by percentile of RSS of ACS
+        return kspace / self.rss(self.kspace_to_im((kspace * mask).unsqueeze(0))).quantile(0.99)
+
+
+    def __call__(self, _: Any, kspace: torch.Tensor, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+        # kspace of shape (2, (N,) H, W)
+
+        # Pre-whiten
+        if self.prewhiten:
+            kspace = self.prewhiten_kspace(kspace)
+
+        # Add noise
+        if self.noise_model is not None:
+            kspace = self.noise_model(kspace) #TODO string seed here
+
+        # Crop in image space
+        kspace = self.im_to_kspace(self.crop(
+            self.kspace_to_im(kspace.unsqueeze(0)),
+            shape=self.crop_size,
+            rescale=self.rescale,
+        )).squeeze(0)
+
+        # Normalise kspace
+        kspace = self.normalise(kspace)
+
+        # Estimate sens maps
+        params = {"coil_maps": self.generate_maps(kspace)}
+
+        # PI-CS (least squares with CG and no regularisation)
+        target = MultiCoilMRI(img_size=self.crop_size, **params).A_dagger(kspace.unsqueeze(0)).squeeze(0)
+
+        # Generate masks
+        if self.mask_generator is not None:
+            params["mask"] = self.generate_mask(kspace, seed)
+            kspace *= params["mask"]
+
+        # Shapes:
+        # target 2, H, W float32
+        # kspace 2, N, H, W float32
+        # mask 1, H, W float32
+        # maps N, H, W complex64
+        return target, kspace, params
