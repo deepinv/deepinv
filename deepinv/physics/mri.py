@@ -3,7 +3,7 @@ from typing import List, Optional, Union, Tuple
 import numpy as np
 import torch
 from torch import Tensor
-from torchvision.transforms import CenterCrop
+from torchvision.transforms import CenterCrop, Resize
 
 from deepinv.physics.forward import DecomposablePhysics, LinearPhysics
 from deepinv.physics.time import TimeMixin
@@ -102,7 +102,7 @@ class MRIMixin:
             )
         )
 
-    def crop(self, x: Tensor, crop: bool = True, shape: Tuple[int] = None) -> Tensor:
+    def crop(self, x: Tensor, crop: bool = True, shape: Tuple[int, int] = None, rescale: bool = False) -> Tensor:
         """Center crop 2D image according to ``img_size``.
 
         This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
@@ -111,7 +111,7 @@ class MRIMixin:
 
         :param torch.Tensor x: input tensor of shape (...,H,W)
         :param bool crop: whether to perform crop, defaults to `True`
-        :param tuple[int] shape: optional shape to crop to. If `None`, crops to `img_size` attribute.
+        :param tuple[int, int] shape: optional shape (..., H,W) to crop to. If `None`, crops to `img_size` attribute.
         """
         crop_size = shape[-2:] if shape is not None else self.img_size[-2:]
         odd_h = crop_size[0] % 2 == 1
@@ -119,7 +119,11 @@ class MRIMixin:
         if odd_h:
             crop_size = (crop_size[0] + 1, crop_size[1])
 
-        cropped = CenterCrop(crop_size)(x)
+        if not rescale:
+            cropped = CenterCrop(crop_size)(x)
+        else:
+            # TODO careful here resizing will change aspect ratio
+            cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(*x.shape[:-2], *crop_size)
 
         if odd_h:
             cropped = cropped[..., :-1, :]
@@ -257,7 +261,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         mag: bool = False,
         crop: bool = False,
         **kwargs,
-    ):
+    ) -> Tensor:
         """Adjoint operator.
 
         Optionally perform crop and magnitude to match FastMRI data.
@@ -386,7 +390,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
 
-    def A(self, x, mask=None, coil_maps=None, **kwargs):
+    def A(self, x: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs) -> Tensor:
         r"""
         Applies linear operator.
 
@@ -406,13 +410,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
     def A_adjoint(
         self,
-        y,
-        mask=None,
-        coil_maps=None,
+        y: Tensor,
+        mask: Tensor = None,
+        coil_maps: Tensor = None,
         rss: bool = False,
         crop: bool = False,
         **kwargs,
-    ):
+    ) -> Tensor:
         r"""
         Applies adjoint linear operator.
 
@@ -439,10 +443,28 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             x = self.from_torch_complex(FiMy)
             x = self.rss(x, multicoil=True)  # [B,1,...,H,W]
         else:
+            # Use conj as coil maps are elementwise multiplication
             SiFiMy = torch.sum(torch.conj(self.coil_maps) * FiMy, dim=1)  # [B,...,H,W]
             x = self.from_torch_complex(SiFiMy)  # [B,2,...,H,W]
 
         return self.crop(x, crop=crop)
+
+    def A_dagger(self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs) -> Tensor:
+        r"""
+        Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
+
+        By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.utils.least_squares` for details.
+
+        Optionally update MRI mask or coil sensitivity maps on the fly.
+
+        :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :param torch.Tensor mask: optionally set the mask on-the-fly.
+        :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
+        :param dict **kwargs: kwargs to pass to base :meth:`deepinv.physics.LinearPhysics.A_dagger`.
+        :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)`
+        """
+        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        return super().A_dagger(y, **kwargs)
 
     def update_parameters(
         self,
@@ -480,7 +502,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
                 coil_maps.to(self.device), requires_grad=False
             )
 
-    def simulate_birdcage_csm(self, n_coils: int):
+    def simulate_birdcage_csm(self, n_coils: int) -> Tensor:
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
 
         :param int n_coils: number of coils N
