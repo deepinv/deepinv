@@ -324,6 +324,7 @@ def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
+    n_slices = 16
     img_shape = (213, 213)
 
     # Clean data shape
@@ -372,9 +373,24 @@ def test_FastMRISliceDataset(download_fastmri):
     # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
-    assert len(subset) == 16  # 16 slices
+    assert len(subset) == n_slices
     assert x.shape == (2, *rss_shape)
 
+    # Test slicing returns correct num of slices
+    def num_slices(slice_index):
+        return len(FastMRISliceDataset(
+            root=data_dir,
+            slice_index=slice_index,
+            load_metadata_from_cache=True,
+            metadata_cache_file="fastmrislicedataset_cache.pkl",
+        ).samples)
+    
+    assert (
+        num_slices("all"),
+        num_slices("middle"), num_slices("middle+1"),
+        num_slices(0), num_slices([0, 1]),
+        num_slices("random")
+    ) == (n_slices, 1, 3, 1, 2, 1)
 
 @pytest.fixture
 def download_CMRxRecon():
