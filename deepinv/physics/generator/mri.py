@@ -176,12 +176,13 @@ class RandomMaskGenerator(BaseMaskGenerator):
         # normalise distribution
         pdf = pdf / torch.sum(pdf)
         # select low-frequency lines according to pdf
-        for b in range(mask.shape[0]):
-            for t in range(mask.shape[2]):
-                idx = random_choice(
-                    _W, self.n_lines, replace=False, p=pdf, rng=self.rng
-                )
-                mask[b, :, t, :, idx] = 1
+        if self.n_lines > 0:
+            for b in range(mask.shape[0]):
+                for t in range(mask.shape[2]):
+                    idx = random_choice(
+                        _W, self.n_lines, replace=False, p=pdf, rng=self.rng
+                    )
+                    mask[b, :, t, :, idx] = 1
 
         # central lines are always sampled
         mask[
