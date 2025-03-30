@@ -131,7 +131,7 @@ def unfolded_builder(
         If an algorithm name (string), should be either ``"GD"`` (gradient descent), ``"PGD"`` (proximal gradient descent),
         ``"ADMM"`` (ADMM),
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford). See
-        <optim> for more details.
+        :any:`optim` for more details.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
         e.g. the stepsize, regularisation parameter, denoising standard deviation.
         Each value of the dictionary can be either Iterable (distinct value for each iteration) or
