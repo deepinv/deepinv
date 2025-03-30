@@ -108,12 +108,11 @@ def test_sampling_algo(algo, imsize, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
-def test_algo(name_algo, imsize, device):
-    test_sample = torch.ones((1, 3, 64, 64))
+def test_algo(name_algo, device):
+    test_sample = torch.ones((1, 3, 64, 64), device=device)
 
     sigma = 1
-    sigma_prior = 1
-    physics = dinv.physics.Denoising()
+    physics = dinv.physics.Denoising(device=device)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -121,7 +120,7 @@ def test_algo(name_algo, imsize, device):
 
     if name_algo == "DiffPIR":
         f = DiffPIR(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
@@ -129,14 +128,14 @@ def test_algo(name_algo, imsize, device):
         )
     elif name_algo == "DPS":
         f = DPS(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
             device=device,
         )
     else:
-        raise Exception("The sampling algorithm doesnt exist")
+        raise Exception("The sampling algorithm doesn't exist")
 
     x = f(y, physics)
 
@@ -186,3 +185,107 @@ def test_algo_inpaint(name_algo, device):
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
+
+
+def test_sde(device):
+    from deepinv.sampling import (
+        VarianceExplodingDiffusion,
+        PosteriorDiffusion,
+        DPSDataFidelity,
+        EulerSolver,
+        HeunSolver,
+    )
+    from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
+
+    # Set up all denoisers
+    denoisers = []
+    rescales = []
+    list_kwargs = []
+    denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
+    rescales.append(False)
+    list_kwargs.append(dict())
+
+    denoisers.append(EDMPrecond(model=ADMUNet(pretrained="download")).to(device))
+    rescales.append(False)
+    list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
+
+    denoisers.append(DRUNet(pretrained="download").to(device))
+    rescales.append(True)
+    list_kwargs.append(dict())
+
+    # Set up the SDE
+    sigma_max = 20
+    sigma_min = 0.02
+    num_steps = 20
+    rng = torch.Generator(device)
+
+    # Set up solvers
+    timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+    solvers = [
+        EulerSolver(timesteps=timesteps, rng=rng),
+        HeunSolver(timesteps=timesteps, rng=rng),
+    ]
+    for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
+        for solver in solvers:
+            sde = VarianceExplodingDiffusion(
+                denoiser=denoiser,
+                rescale=rescale,
+                sigma_max=sigma_max,
+                sigma_min=sigma_min,
+                solver=solver,
+                device=device,
+            )
+
+            # Test generation
+            sample_1, trajectory = sde.sample(
+                (1, 3, 64, 64),
+                seed=10,
+                get_trajectory=True,
+                **kwargs,
+            )
+            x_init_1 = trajectory[0]
+
+            assert sample_1.shape == (1, 3, 64, 64)
+
+            # Test reproducibility
+            sample_2, trajectory = sde.sample(
+                (1, 3, 64, 64),
+                seed=10,
+                get_trajectory=True,
+                **kwargs,
+            )
+            x_init_2 = trajectory[0]
+            # Test reproducibility
+            assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+            assert (
+                torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
+                < 1e-2
+            )
+
+    # Test posterior sampling
+    sde = VarianceExplodingDiffusion(
+        sigma_max=sigma_max,
+        sigma_min=sigma_min,
+        device=device,
+    )
+    posterior = PosteriorDiffusion(
+        data_fidelity=DPSDataFidelity(denoiser=denoisers[0]),
+        sde=sde,
+        denoiser=denoisers[0],
+        solver=solvers[0],
+        rescale=rescales[0],
+        dtype=torch.float64,
+        device=device,
+    )
+    x = sample_2
+    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
+    y = physics(x)
+
+    x_hat = posterior(
+        y,
+        physics,
+        x_init=(1, 3, 64, 64),
+        seed=10,
+    )
+
+    assert x_hat.shape == (1, 3, 64, 64)
