@@ -443,21 +443,16 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         :return: loaded SimpleFastMRISliceDataset
         :rtype: SimpleFastMRISliceDataset
         """
-        transform_target = self.transform_target
-
-        transform_list = [transform_target] if transform_target is not None else []
-        transform_list += [Rescale()]
+        transform = [Rescale()]
         if pad_to_size is not None:
-            transform_list += [CenterCrop(pad_to_size)]
+            transform += [CenterCrop(pad_to_size)]
         if to_complex:
-            transform_target += [ToComplex()]
-        self.transform_target = Compose(transform_list)
+            transform += [ToComplex()]
+        transform = Compose(transform)
 
-        xs = [self.__getitem__(i)[0].squeeze(0) for i in tqdm(range(self.__len__()))]
+        xs = [transform(self.__getitem__(i)[0]).squeeze(0) for i in tqdm(range(self.__len__()))]
 
         torch.save(torch.stack(xs), str(dataset_path))
-
-        self.transform_target = transform_target
 
         dataset_path = Path(dataset_path)
 
