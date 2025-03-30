@@ -570,6 +570,7 @@ class FullMultiCoilFastMRITransform(FastMRITransform, MRIMixin):
         prewhiten: Tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
         noise_model: NoiseModel = None,
         norm_percentile: float = .99,
+        target_method: str = "A_dagger",
     ):
         super().__init__(mask_generator, estimate_coil_maps)
         self.crop_size = crop_size
@@ -577,6 +578,7 @@ class FullMultiCoilFastMRITransform(FastMRITransform, MRIMixin):
         self.norm_percentile = norm_percentile
         self.noise_model = noise_model
         self.rescale = rescale
+        self.target_method = target_method
     
     def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
         # kspace of shape (2, (N,) H, W)
@@ -634,7 +636,18 @@ class FullMultiCoilFastMRITransform(FastMRITransform, MRIMixin):
         params = {"coil_maps": self.generate_maps(kspace)}
 
         # PI-CS (least squares with CG and no regularisation)
-        target = MultiCoilMRI(img_size=self.crop_size, **params).A_dagger(kspace.unsqueeze(0)).squeeze(0)
+        physics = MultiCoilMRI(img_size=self.crop_size, **params)
+        match self.target_method:
+            case "A_dagger":
+                target = physics.A_dagger(kspace.unsqueeze(0)).squeeze(0)
+            case "A_adjoint":
+                target = physics.A_adjoint(kspace.unsqueeze(0)).squeeze(0)
+            case "rss":
+                target = physics.A_adjoint(kspace.unsqueeze(0), rss=True).squeeze(0) # 1,H,W
+                target = torch.cat([target, torch.zeros_like(target)], dim=0)
+            case _:
+                raise ValueError("target_method invalid.")
+
 
         # Generate masks
         if self.mask_generator is not None:
