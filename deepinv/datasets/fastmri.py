@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, NamedTuple, Optional, Union, Tuple, Dict, Any
 from collections import defaultdict
 import pickle
+import math
 import warnings
 import os
 from natsort import natsorted
@@ -537,9 +538,11 @@ class FastMRITransform:
             if self.estimate_coil_maps == True
             else self.estimate_coil_maps
         )
-        return MultiCoilMRI.estimate_coil_maps(
+        coil_maps = MultiCoilMRI.estimate_coil_maps(
             kspace.unsqueeze(0), calib_size=calib_size
         ).squeeze(0)
+        coil_maps[coil_maps == 0] = 1 / math.sqrt(coil_maps.shape[0])
+        return coil_maps
 
     def __call__(self, target: torch.Tensor, kspace: torch.Tensor, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         # target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
