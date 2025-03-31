@@ -235,7 +235,7 @@ The table below summarizes all the categories of reconstruction methods consider
 |   |  |  |  |  |   
 | Diffusion & Langevin | Leverages pretrained denoisers within an ODE/SDE                | No | Yes | Yes |   
 |   |  |  |  |  |   
-| Generative Adversarial Networks and Deep Image Prior | Model plausible images via generator                            | No | Yes | Depends |
+| Generative Adversarial Networks | Model plausible images via generator                            | No | Yes | Depends |
 |   |  |  |  |  |   
 | Foundation Models | Models trained for many imaging problems                        | Finetuning  | No   | No |
 
