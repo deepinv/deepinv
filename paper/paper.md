@@ -247,7 +247,7 @@ The library also provides the `loss` module with losses for training $\operatorn
 If the forward model is known, measurements are typically generated directly during training from a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ .
 
 **Self-Supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$ which can be roughly classified in three classes:
-The first class consists of splitting losses [@batson2020noise2self], with operator-specific solutions for denoising [@krull2019noise2void] [@huang2021neighbor2neighbor] and MRI [@yaman2020self] [@eldeniz2021phase2phase] [@liu2020rare].
+The first class consists of splitting losses [@batson2019noise2self], with operator-specific solutions for denoising [@krull2019noise2void] [@huang2021neighbor2neighbor] and MRI [@yaman2020self] [@eldeniz2021phase2phase] [@liu2020rare].
 The second class are Stein's Unbiased Risk Estimate (SURE) and related losses: we provide variants of SURE for Gaussian, Poisson and Poisson-Gaussian noise respectively, which can also be used without knowledge of the noise levels [@tachella2025unsure]. The library includes the closely related Recorrupted2Recorrupted [@pang2021recorrupted] which handles Gaussian, Poisson and Gamma noise distributions [@monroy2025gr2r].
 The third class corresponds to nullspace losses, exploiting invariance of the image distribution to transformations [@chen2021equivariant] or access to multiple forward operators [@tachella2022unsupervised]
 
