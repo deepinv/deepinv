@@ -143,22 +143,23 @@ such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The 
 | **Family**                     | **Operators** $A$                                                   | **Generators**   $\xi$                                     |
 |--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
 | Pixelwise                      | Denoising, inpainting, demosaicing, decolorize                      | Mask generators                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Blur & Super-Resolution        | Blur, space-varying blur, downsampling                              | Motion, Gaussian, diffraction, product-convolution, and confocal blurs. Sinc, bilinear and bicubic antialias filters. |
+|                       |                    |                          |
 | Magnetic Resonance Imaging (MRI) | Single and multi-coil, dynamic and sequential (All support 3D MRI)  | Gaussian, random and equispaced masks |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Tomography                     | 2D Parallel beam                                                    |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Remote Sensing & Multispectral | Pansharpening, hyperspectral unmixing, compressive spectral imaging |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Compressive                    | Compressed sensing and single-pixel camera                          |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Radio Interferometric Imaging  | Non-uniform Fourier transform                                       |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Single-photon Lidar            | TCSPC lidar                                                         |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Dehazing                       | Parametric haze model                                               |                                                                                |
-|--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
+|                       |                    |                          |
 | Phase Retrieval                | Random operators and ptychography                                   | Probe generation |
 
 
@@ -225,17 +226,17 @@ The table below summarizes all the categories of reconstruction methods consider
 | **Family of Methods** | **Description**                                                 | **Training** | **Iterative** | **Sampling** |
 |-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
 | Artifact Removal | Applies network to a non-learned pseudo-inverse                 | Yes | No | No |   
-|-----------------------------------------------------------------------------------------------------------------------------------|
+|   |  |  |  |  |   
 | Variational Optimization | Solves optimization problem with hand-crafted priors            | No | Yes | No |    
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
+|   |  |  |  |  |   
 | Plug-and-Play (PnP) | Leverages pretrained denoisers as priors within an optimization | No | Yes | No |
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
+|   |  |  |  |  |   
 | Unfolded Networks | Trainable architecture by unrolling an optimization             | Yes | Only DEQ | No |  
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
+|   |  |  |  |  |   
 | Diffusion & Langevin | Leverages pretrained denoisers within an ODE/SDE                | No | Yes | Yes |   
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
+|   |  |  |  |  |   
 | Generative Adversarial Networks and Deep Image Prior | Model plausible images via generator                            | No | Yes | Depends |
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
+|   |  |  |  |  |   
 | Foundation Models | Models trained for many imaging problems                        | Finetuning  | No   | No |
 
 # Training
