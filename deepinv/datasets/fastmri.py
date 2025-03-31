@@ -541,6 +541,7 @@ class FastMRITransform:
         coil_maps = MultiCoilMRI.estimate_coil_maps(
             kspace.unsqueeze(0), calib_size=calib_size
         ).squeeze(0)
+        #TODO this should be optional
         coil_maps[coil_maps == 0] = 1 / math.sqrt(coil_maps.shape[0])
         return coil_maps
 
