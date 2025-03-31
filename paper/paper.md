@@ -22,7 +22,7 @@ authors:
     affiliation: 4
   - name: Dongdong Chen
     affiliation: 5
-  - name: Hai Minh
+  - name: Minh-Hai Nguyen
     affiliation: 9
   - name: Maxime Song
     affiliation: 14
@@ -171,7 +171,7 @@ The library provides multiple solvers which depend on the forward operator and n
 \end{equation}
 where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with (optional) trainable parameters $\theta$.
 In `deepinv` code, a reconstructor is simply evaluated as `x_hat = model(y, physics)`.
-The library covers a wide variety of existing approaches for bulding $\operatorname{R}_{\theta}$, which can be roughly divided into
+The library covers a wide variety of existing approaches for building $\operatorname{R}_{\theta}$, which can be roughly divided into
 optimization-based methods, sampling-based methods, and non-iterative methods.
 
 ### Optimization-based methods
@@ -186,7 +186,7 @@ The `optim` module in the library provides a wide variety of optimization algori
 **Variational Optimization**: The library provides popular hand-crafted regularization functions, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear] and mixed-norms regularizers.
 
 **Plug-and-Play**: Plug-and-Play (PnP) methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
- often using a deep denoiser [@kamilov2023plug]. The library provides popular pretrained denoisers, including DnCNN, DRUNet [@zhang2021plug], and other modern diffusion-based denoisers.
+ often using a deep denoiser [@kamilov2023plug]. The library provides popular pretrained denoisers, including DnCNN, DRUNet [@zhang2021plug], and other modern diffusion-based denoisers [@Karras2022edm].
  
 **Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including a deep denoiser in the case of PnP.
 
@@ -210,7 +210,7 @@ Non-iterative methods are part of the `models` module, and include artifact remo
 **Artifact Removal**: The simplest way of incorporating the forward operator into a network architecture is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet [@jin2017deep].
 These architectures can be thus written as $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$ where the backprojection can be replaced by any pseudoinverse of $A_{\xi}$.
 
-**Unconditional Generative Networks**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $\operatorname{G}_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code tol solve an inverse problem via
+**Unconditional Generative Networks**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $\operatorname{G}_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code to solve an inverse problem via
 \begin{equation} \label{eq:cond}
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}(\operatorname{G}_{\theta}(z)))
 \end{equation}
