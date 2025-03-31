@@ -552,9 +552,12 @@ def test_pseudo_inverse(name, device, rng):
     r = physics.A_adjoint(physics.A(x))  # project to range of A^T
     y = physics.A(r)
     error = torch.linalg.vector_norm(
-        physics.A_dagger(y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True) - r
+        physics.A_dagger(
+            y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True, use_fft=False
+        )
+        - r
     ) / torch.linalg.vector_norm(r)
-    assert error < 0.05
+    assert error < 0.02
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -992,6 +995,38 @@ def test_downsampling_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+def test_prox_l2_downsampling(device):
+
+    nchannels = ((1, 1), (3, 1), (3, 3))
+
+    for nchan_im, nchan_filt in nchannels:
+        size_im = ([nchan_im, 16, 16],)
+        filters = ["bicubic", "bilinear", "sinc"]
+
+        paddings = ("circular",)
+
+        for pad in paddings:
+            for sim in size_im:
+                for h in filters:
+
+                    x = torch.rand(sim)[None].to(device)
+
+                    physics = dinv.physics.Downsampling(
+                        sim, filter=h, padding=pad, device=device
+                    )
+
+                    y = physics(x)
+                    # next we test the speedup formula of prox with fft
+                    x_prox1 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=True
+                    )
+                    x_prox2 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=False
+                    )
+
+                    assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
 
 
 def test_mri_fft():
