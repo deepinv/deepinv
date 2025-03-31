@@ -70,7 +70,7 @@ affiliations:
     index: 1
   - name: Inria Paris Saclay, Palaiseau, France
     index: 2
-  - name: ENS Paris, Paris, France
+  - name: CNRS, ENS Paris, PSL
     index: 3
   - name: University of Edinburgh, Edinburgh, UK
     index: 4
