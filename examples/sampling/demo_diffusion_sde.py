@@ -51,7 +51,7 @@ from deepinv.models import NCSNpp, EDMPrecond
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 figsize = 2.5
-gif_frequency = 20  # Increase this value to save the GIF saving time
+gif_frequency = 5  # Increase this value to save the GIF saving time
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
