@@ -119,7 +119,7 @@ methods, datasets and metrics for inverse problems.
 
 While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
 Moreover, `deepinv` provides a larger set of realistic imaging operators.
-Another Python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover most classes of inverse solvers. 
+Another Python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
 There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provide MRI-specific operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
 These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch. 
 
@@ -139,7 +139,7 @@ optional forward operator parameters $\xi$, and our framework unifies the wide v
 The library provides high-level operator definitions which are associated with specific imaging applications 
 (magnetic resonance imaging, computed tomography, radioastronomy, etc.), and allows users to perform operator algebra,
 like summing, concatenating or stacking operators. `deepinv` comes with multiple useful tools for handling
-linear operators, such as adjoint and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
+linear operators, such as adjoint, pseudo-inverses and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
 and operator norm and condition number estimators [@paige1982lsqr]. Many common noise distributions are included in the library
 such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The table below summarizes the available forward operators:
 
@@ -191,7 +191,7 @@ The `optim` module in the library provides a wide variety of optimization algori
 **Plug-and-Play**: Plug-and-Play (PnP) methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
  often using a deep denoiser [@kamilov2023plug]. The library provides popular pretrained denoisers, including DnCNN, DRUNet [@zhang2021plug], and other modern diffusion-based denoisers [@Karras2022edm].
  
-**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm end-to-end, including optimization parameters and possibly the regularization term parameters, including a deep denoiser in the case of PnP.
+**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm end-to-end, including optimization parameters and possibly the regularization term parameters, for instance a deep denoiser.
 
 ### Sampling-based methods
 Reconstruction methods can also be defined via ordinary or stochastic differential equations, generally as a Markov chain defined by
@@ -260,7 +260,7 @@ l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}(\cdot)\ri
 
 and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`.
 
-**Supervised Losses**: Supervised learning can be done using a dataset of ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ by applying a metric to compute the difference between $x$ and $\hat{x}$.
+**Supervised Losses**: Supervised learning can be done using a dataset of ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ by applying a metric to compute the distance between $x$ and $\hat{x}$.
 If the forward model is known, measurements are typically generated directly during training from a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ .
 
 **Self-Supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$. We provide implementations of state-of-the-art losses from the literature [@wang2025benchmarking]. These can be roughly classified in three classes:
@@ -314,7 +314,7 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 
 # Philosophy
 
-`deepinv` is coded in modern Python following a test-driven development philosophy. The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`, and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive **user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation for classes including type annotations. To encourage reproducibility, the library passes random number generators for all random functionality Architecturally, `deepinv` is implemented using an object-oriented framework where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`), sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited from base classes (such as the operator pseudo-inverse), and mixins provide specialised methods. This framework reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised functionality while inheriting existing methods.
+`deepinv` is coded in modern Python following a test-driven development philosophy. The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`, and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive **user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation for classes including type annotations. To encourage reproducibility, the library passes random number generators for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`), sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited from base classes (such as the operator pseudo-inverse), and mixins provide specialised methods. This framework reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised functionality while inheriting existing methods.
 
 # Acknowledgements
 
