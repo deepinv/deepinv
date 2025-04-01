@@ -286,7 +286,13 @@ The library provides a common framework for defining and simulating datasets for
 |  |  |
 | Urban100 []  | Natural images |   
 |  |  |
+| Set14 [] |  Natural images   | 
+|  |  |
+| CBSD68 [] |  Natural images   | 
+|  |  |
 | Flickr2K []  | Natural images |   
+|  |  |
+| LSDIR []  | Natural images |   
 |  |  |
 | FastMRI [] | Knee and brain MRI scans |
 |  |  |
