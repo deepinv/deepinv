@@ -28,6 +28,7 @@ New Features
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- MoDL model (:gh:`435` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
