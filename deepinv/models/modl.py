@@ -7,8 +7,10 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.models import DnCNN, Denoiser
 from deepinv.unfolded import BaseUnfold
 
+
 class MoDL(BaseUnfold):
-    def __init__(self,
+    def __init__(
+        self,
         denoiser: Union[Denoiser, Module] = None,
         num_iter: int = 3,
     ):
@@ -43,11 +45,13 @@ class MoDL(BaseUnfold):
         lamb = [1.0] * num_iter  # initialization of the regularization parameter
         stepsize = [1.0] * num_iter  # initialization of the step sizes.
         sigma_denoiser = [0.01] * num_iter  # initialization of the denoiser parameters
-        params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-            "stepsize": stepsize,
-            "g_param": sigma_denoiser,
-            "lambda": lamb,
-        }
+        params_algo = (
+            {  # wrap all the restoration parameters in a 'params_algo' dictionary
+                "stepsize": stepsize,
+                "g_param": sigma_denoiser,
+                "lambda": lamb,
+            }
+        )
 
         trainable_params = [
             "lambda",
