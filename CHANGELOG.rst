@@ -27,7 +27,9 @@ New Features
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Weighted-SSDU loss function + more mask generators (:gh:`401` by `Keying Guo`_ and `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- Estimate sens maps with sigpy, FastMRI load and save maps (:gh:`401` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
@@ -36,6 +38,7 @@ Fixed
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`401` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -295,4 +298,5 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php

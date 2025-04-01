@@ -104,7 +104,7 @@ class Trainer:
     :param str save_path: Directory in which to save the trained model.
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
-        ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
+        ``'prox_l2'``, or ``'y'``. Default is ``'A_adjoint'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed.
     :param bool check_grad: Compute and print the gradient norm at each iteration.

@@ -1,8 +1,12 @@
-from typing import Tuple, Union
+from __future__ import annotations
+from typing import Tuple, Union, TYPE_CHECKING
 from warnings import warn
 import torch
-from deepinv.physics.generator import PhysicsGenerator
+from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.functional import random_choice
+
+if TYPE_CHECKING:
+    from deepinv.physics.generator.mri import BaseMaskGenerator
 
 
 class BernoulliSplittingMaskGenerator(PhysicsGenerator):
@@ -36,6 +40,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.dtype dtype: the data type of the generated parameters
     :param torch.Generator rng: torch random number generator.
     """
 
@@ -82,6 +87,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
                 batch_size = input_mask.shape[0]
             else:
                 # Singular batch dim exists in input_mask so use batch_size
+                # Removes batch dimensions
                 input_mask = input_mask[0]
 
         if batch_size is not None:
@@ -179,6 +185,65 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         return mask
 
 
+class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
+    """Multiplicative splitting mask generator.
+
+    Randomly generates binary masks using the given `physics_generator`, and multplies the `input_mask` (i.e. mask that is used to create accelerated measurements).
+
+    .. seealso::
+
+        :class:`deepinv.loss.WeightedSplittingLoss`
+            K-weighted splitting loss proposed in `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_,
+            where this splitting mask generator is used for self-supervised learning.
+
+    |sep|
+
+    :Examples:
+
+        >>> from deepinv.physics.generator import GaussianMaskGenerator, MultiplicativeSplittingMaskGenerator
+        >>> physics_generator = GaussianMaskGenerator((1, 128, 128), acceleration=4)
+        >>> orig_mask = physics_generator.step(batch_size=2)["mask"]
+        >>> split_generator = GaussianMaskGenerator((1, 128, 128), acceleration=2)
+        >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
+        >>> mask_generator.step(batch_size=2, input_mask=orig_mask)["mask"].shape
+        torch.Size([2, 1, 128, 128])
+
+    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
+    :param deepinv.physics.generator.BaseMaskGenerator split_generator: mask generator used for multiplicative splitting
+    :param str, torch.device device: device where the tensor is stored (default: 'cpu').
+    :param torch.Generator rng: torch random number generator.
+    :param torch.dtype dtype: the data type of the generated parameters
+    """
+
+    def __init__(
+        self,
+        tensor_size: Tuple[int],
+        split_generator: BaseMaskGenerator,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            tensor_size=tensor_size,
+            split_ratio=0.0,
+            pixelwise=True,
+            *args,
+            **kwargs,
+        )
+        self.split_generator = split_generator
+
+    def batch_step(self, input_mask: torch.Tensor = None) -> dict:
+        mask = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
+        if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
+            if input_mask.shape[-2:] == mask.shape[-2:]:
+                return mask * input_mask.to(self.device)
+            else:
+                raise ValueError(
+                    f"Input mask should be same shape as generated mask, but input has shape {input_mask.shape} and generated has shape {mask.shape}"
+                )
+        else:
+            return mask
+
+
 class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     """Randomly generate Gaussian splitting/inpainting masks.
 
@@ -211,6 +276,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     :param int, tuple[int] center_block: size of block in image center that is always kept for MRI autocalibration signal. Either int for square block or 2-tuple (h, w)
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: random number generator.
+    :param torch.dtype dtype: the data type of the generated parameters
     """
 
     def __init__(
@@ -244,6 +310,30 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
             if isinstance(center_block, int)
             else center_block
         )
+
+    def get_pdf(self, shape):
+        """
+        Generate a Gaussian distribution.
+
+        :param tuple shape: (nx, ny) dimensions.
+        :return: Gaussian Tensor of shape (nx, ny)
+        """
+        nx, ny = shape
+        centerx, centery = nx // 2, ny // 2
+
+        x, y = torch.meshgrid(
+            torch.arange(0, nx, 1, device=self.device),
+            torch.arange(0, ny, 1, device=self.device),
+            indexing="ij",
+        )
+
+        gaussian = torch.exp(
+            -(
+                (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
+                + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
+            )
+        )
+        return gaussian
 
     def batch_step(self, input_mask: torch.Tensor = None) -> dict:
         r"""
@@ -280,20 +370,10 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         nx, ny = input_mask.shape[-2:]
         centerx, centery = nx // 2, ny // 2
 
-        x, y = torch.meshgrid(
-            torch.arange(0, nx, 1, device=self.device),
-            torch.arange(0, ny, 1, device=self.device),
-            indexing="ij",
-        )
-
         # Create PDF
-        gaussian = torch.exp(
-            -(
-                (x - centerx) ** 2 / (2 * (nx / self.std_scale) ** 2)
-                + (y - centery) ** 2 / (2 * (ny / self.std_scale) ** 2)
-            )
-        )
-        prob_mask = input_mask * gaussian[..., :, :]
+        gaussian = self.get_pdf((nx, ny))
+
+        prob_mask = input_mask * gaussian[..., :, :]  # 2D prob map
 
         prob_mask[
             ...,
