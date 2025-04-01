@@ -187,9 +187,11 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
+@torch.no_grad()
 def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
@@ -213,79 +215,71 @@ def test_sde(device):
     rescales.append(True)
     list_kwargs.append(dict())
 
-    # Set up the SDE
-    sigma_max = 20
-    sigma_min = 0.02
+    # Set up the SDEs
     num_steps = 20
     rng = torch.Generator(device)
-
     # Set up solvers
-    timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+    timesteps = torch.linspace(1, 0.001, num_steps)
     solvers = [
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
+    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
     for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
         for solver in solvers:
-            sde = VarianceExplodingDiffusion(
-                denoiser=denoiser,
-                rescale=rescale,
-                sigma_max=sigma_max,
-                sigma_min=sigma_min,
-                solver=solver,
-                device=device,
-            )
+            for sde_class in sde_classes:
+                sde = sde_class(
+                    denoiser=denoiser,
+                    rescale=rescale,
+                    solver=solver,
+                    device=device,
+                )
+                # Test generation
+                sample_1, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_1 = trajectory[0]
 
-            # Test generation
-            sample_1, trajectory = sde.sample(
-                (1, 3, 64, 64),
-                seed=10,
-                get_trajectory=True,
-                **kwargs,
-            )
-            x_init_1 = trajectory[0]
+                assert sample_1.shape == (1, 3, 64, 64)
 
-            assert sample_1.shape == (1, 3, 64, 64)
+                # Test reproducibility
+                sample_2, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_2 = trajectory[0]
+                # Test reproducibility
+                assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+                assert (
+                    torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
+                    < 1e-2
+                )
 
-            # Test reproducibility
-            sample_2, trajectory = sde.sample(
-                (1, 3, 64, 64),
-                seed=10,
-                get_trajectory=True,
-                **kwargs,
-            )
-            x_init_2 = trajectory[0]
-            # Test reproducibility
-            assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
-            assert (
-                torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
-                < 1e-2
-            )
+                # Test posterior sampling
+                posterior = PosteriorDiffusion(
+                    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+                    sde=sde,
+                    denoiser=denoisers[0],
+                    solver=solvers[0],
+                    rescale=rescales[0],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                x = sample_2
+                physics = dinv.physics.Inpainting(
+                    tensor_size=x.shape[1:], mask=0.5, device=device
+                )
+                y = physics(x)
 
-    # Test posterior sampling
-    sde = VarianceExplodingDiffusion(
-        sigma_max=sigma_max,
-        sigma_min=sigma_min,
-        device=device,
-    )
-    posterior = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoisers[0]),
-        sde=sde,
-        denoiser=denoisers[0],
-        solver=solvers[0],
-        rescale=rescales[0],
-        dtype=torch.float64,
-        device=device,
-    )
-    x = sample_2
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
-    y = physics(x)
-
-    x_hat = posterior(
-        y,
-        physics,
-        x_init=(1, 3, 64, 64),
-        seed=10,
-    )
-
-    assert x_hat.shape == (1, 3, 64, 64)
+                x_hat = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=10,
+                )
+                assert x_hat.shape == (1, 3, 64, 64)

@@ -8,6 +8,7 @@ from deepinv.models.base import Reconstructor, Denoiser
 from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.sampling.sde_solver import BaseSDESolver, SDEOutput
 from deepinv.sampling.noisy_datafidelity import NoisyDataFidelity
+from copy import deepcopy
 
 
 class BaseSDE(nn.Module):
@@ -213,6 +214,17 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
+    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
+        r"""
+        The mean :math:`mu_t` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(\mu_t * x_t, \sigma_t^2 \mathrm{Id})`.
+
+        :param torch.Tensor, float t: current time step
+
+        :return: the mean of the condition distribution at time step `t`.
+        :rtype: torch.Tensor
+        """
+        raise NotImplementedError
+
 
 class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
@@ -307,14 +319,125 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
+    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
+        return 0.0
+
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
-        score = self.sigma_t(t).view(-1, 1, 1, 1) ** (-2) * (
-            self.denoiser(
-                x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
-            )
-            - x
+        std = self.sigma_t(t)
+        denoised = self.denoiser(
+            x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
+        ).to(self.dtype)
+        score = (denoised - x.to(self.dtype)) / std.view(-1, 1, 1, 1).pow(2)
+        return score
+
+
+class VariancePreservingDiffusion(DiffusionSDE):
+    r"""
+    `Variance-Preserving Stochastic Differential Equation (VP-SDE) <https://arxiv.org/abs/2011.13456>`_
+
+    The forward-time SDE is defined as follows:
+
+    .. math::
+        d\, x_t = -\frac{1}{2}\sigma(t)x_t d\, t + \sqrt{\sigma(t)} d\, w_t \quad \mbox{where } \sigma(t) = \sigma_{\mathrm{min}}  + t \left( \sigma_{\mathrm{max}} - \sigma_{\mathrm{min}}} \right)
+
+    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
+
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
+    :param float sigma_min: the minimum noise level.
+    :param float sigma_max: the maximum noise level.
+    :param float alpha: the weighting factor of the diffusion term.
+    :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
+    :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
+        We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
+        most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
+    :param torch.device device: device on which the computation is performed.
+    """
+
+    def __init__(
+        self,
+        denoiser: nn.Module = None,
+        rescale: bool = False,
+        beta_min: float = 0.1,
+        beta_max: float = 20.0,
+        alpha: float = 1.0,
+        solver: BaseSDESolver = None,
+        dtype=torch.float64,
+        device=torch.device("cpu"),
+        *args,
+        **kwargs,
+    ):
+        def forward_drift(x, t, *args, **kwargs):
+            r"""
+            The drift term of the forward VE-SDE is :math:`0`.
+
+            :param torch.Tensor x: The current state
+            :param torch.Tensor, float t: The current time
+            :return: The drift term, which is 0 for VE-SDE since it only has a diffusion term
+            :rtype: float
+            """
+            return -0.5 * self._beta_t(t).view(-1, 1, 1, 1) * x
+
+        def forward_diffusion(t):
+            r"""
+            The diffusion coefficient of the forward VE-SDE.
+
+            :param torch.Tensor, float t: The current time
+            :return: The diffusion coefficient at time t
+            :rtype: float
+            """
+            return self._beta_t(t).view(-1, 1, 1, 1).sqrt()
+
+        super().__init__(
+            forward_drift=forward_drift,
+            forward_diffusion=forward_diffusion,
+            alpha=alpha,
+            denoiser=denoiser,
+            rescale=rescale,
+            solver=solver,
+            dtype=dtype,
+            device=device,
+            *args,
+            *kwargs,
         )
-        return score.to(self.dtype)
+
+        self.beta_min = beta_min
+        self.beta_max = beta_max
+        self.beta_d = beta_max - beta_min
+
+    def sample_init(self, shape, rng: torch.Generator) -> Tensor:
+        r"""
+        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:`\sigma_{max}^2 \operatorname{Id}`.
+
+        :param tuple shape: The shape of the sample to generate
+        :param torch.Generator rng: Random number generator for reproducibility
+        :return: A sample from the prior distribution
+        :rtype: torch.Tensor
+        """
+        return torch.randn(shape, generator=rng, device=self.device, dtype=self.dtype)
+
+    def _beta_t(self, t: Union[Tensor, float]) -> Tensor:
+        t = self._handle_time_step(t)
+        return self.beta_min + t * self.beta_d
+
+    def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
+        t = self._handle_time_step(t)
+        return torch.sqrt(
+            1.0 - torch.exp(-0.5 * t**2 * self.beta_d - t * self.beta_min)
+        )
+
+    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
+        t = self._handle_time_step(t)
+        return torch.exp(-0.25 * t**2 * self.beta_d - 0.5 * t * self.beta_min)
+
+    def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
+        std = self.sigma_t(t)
+        mean = self.mean_t(t).view(-1, 1, 1, 1)
+        denoised = self.denoiser(
+            x.to(torch.float32), std.to(torch.float32), *args, **kwargs
+        ).to(self.dtype)
+        score = (denoised * mean - x.to(self.dtype)) / std.view(-1, 1, 1, 1).pow(2)
+        return score
 
 
 class PosteriorDiffusion(Reconstructor):
@@ -369,9 +492,12 @@ class PosteriorDiffusion(Reconstructor):
         ), "A denoiser must be specified."
         if denoiser is not None:
             if rescale:
-                self.sde.denoiser = _RescaledDenoiser(denoiser)
-            else:
-                self.sde.denoiser = denoiser
+                denoiser = _RescaledDenoiser(denoiser)
+            self.sde.denoiser = deepcopy(denoiser)
+        if hasattr(self.data_fidelity, "denoiser"):
+            if rescale:
+                denoiser = _RescaledDenoiser(denoiser)
+            self.data_fidelity.denoiser = deepcopy(denoiser)
 
         assert (
             solver is not None or sde.solver is not None
@@ -431,9 +557,14 @@ class PosteriorDiffusion(Reconstructor):
         if isinstance(x_init, (Tuple, List, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
         elif x_init is None:
-            x_init = self.sde.sample_init(
-                physics.A_dagger(y).shape, rng=self.solver.rng
-            )
+            if physics is not None:
+                x_init = self.sde.sample_init(
+                    physics.A_dagger(y).shape, rng=self.solver.rng
+                )
+            elif y is not None:
+                x_init = self.sde.sample_init(y.shape, rng=self.solver.rng)
+            else:
+                raise ValueError("Either `x_init` or `physics` must be specified.")
 
         solution = self.solver.sample(
             self.posterior,
@@ -473,12 +604,14 @@ class PosteriorDiffusion(Reconstructor):
         :return: the score function :math:`\nabla_{x_t} \log p_t(x_t \vert y)`.
         :rtype: torch.Tensor
         """
-        sigma = self.sde.sigma_t(t).to(torch.float32)
 
         if isinstance(self.data_fidelity, ZeroFidelity):
             return self.sde.score(x, t, *args, **kwargs).to(self.dtype)
         else:
+            from functools import partial
+
+            sigma = self.sde.sigma_t(t).to(torch.float32)
             score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
-                x.to(torch.float32), y.to(torch.float32), physics, sigma
+                x.to(torch.float32), y.to(torch.float32), physics=physics, sigma=sigma
             )
             return score.to(self.dtype)

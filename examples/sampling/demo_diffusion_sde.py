@@ -1,6 +1,6 @@
 r"""
-Posterior Sampling for Inverse Problems with Stochastic Differential Equations modeling.
-====================================================================================================
+Building your diffusion posterior sampling method using Stochastic Differential Equations
+=========================================================================================
 
 This demo shows you how to use
 :class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.
@@ -51,6 +51,7 @@ from deepinv.models import NCSNpp, EDMPrecond
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 figsize = 2.5
+gif_frequency = 20  # Increase this value to save the GIF saving time
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -110,12 +111,11 @@ sample_seed_1, trajectory_seed_1 = model(
 dinv.utils.plot(
     sample_seed_1,
     titles="Unconditional generation",
-    show=True,
     save_fn="sde_sample.png",
     figsize=(figsize, figsize),
 )
 dinv.utils.save_videos(
-    trajectory_seed_1.cpu()[::10],
+    trajectory_seed_1.cpu()[::gif_frequency],
     time_dim=0,
     titles=["VE-SDE Trajectory"],
     save_fn="sde_trajectory.gif",
@@ -140,12 +140,14 @@ except FileNotFoundError:
 
 # sphinx_gallery_end_ignore
 # %%
+# We obtain the following unconditional sample
+#
 # .. container:: image-row
 #
 #    .. image-sg:: /auto_examples/images/sde_sample.png
 #       :alt: other example
 #       :srcset: /auto_examples/images/sde_sample.png
-#       :class: custom-gif
+#       :class: custom-img
 #
 #    .. image-sg:: /auto_examples/images/sde_trajectory.gif
 #       :alt: example learn_samples
@@ -188,8 +190,9 @@ dinv.utils.plot(
 )
 # %% We can also save the trajectory of the posterior sample
 dinv.utils.save_videos(
-    trajectory[::10],
+    trajectory[::gif_frequency],
     time_dim=0,
+    titles=["Posterior sample with VE"],
     save_fn="posterior_trajectory.gif",
     figsize=(figsize, figsize),
 )
@@ -214,15 +217,12 @@ except FileNotFoundError:
 # %%
 # We obtain the following posterior trajectory
 #
-# .. container:: image-row
+# .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample.png
-#       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_sample.png
-#       :class: custom-gif
 #
 #    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
-#       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_trajectory.gif
 #       :class: custom-gif
 
@@ -247,7 +247,6 @@ dinv.utils.plot(
         "posterior sample: seed 11",
         "posterior sample: seed 111",
     ],
-    show=True,
     save_fn="posterior_samples.png",
     figsize=(figsize * 2, figsize),
 )
@@ -270,14 +269,97 @@ except FileNotFoundError:
 # sphinx_gallery_end_ignore
 
 # %%
-# We obtain the following posterior trajectory
+# We obtain the following posterior samples
 #
 # .. container:: image-row
 #
 #    .. image-sg:: /auto_examples/images/posterior_samples.png
-#       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_samples.png
-#       :class: custom-gif
+#
+# %%
+# Varying the SDE
+# ---------------
+#
+# One can also change the underlying SDE for sampling.
+# For example, we can also use the :class:`deepinv.sampling.VariancePreservingDiffusion` (correspond to DDPM discretization) for sampling
+from deepinv.sampling import VariancePreservingDiffusion
+
+sde = VariancePreservingDiffusion(device=device, dtype=dtype)
+model = PosteriorDiffusion(
+    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+    denoiser=denoiser,
+    sde=sde,
+    solver=solver,
+    device=device,
+    dtype=dtype,
+)
+
+x_hat_vp, trajectory_vp = model(
+    y,
+    physics,
+    seed=111,
+    timesteps=torch.linspace(1, 0.001, 400),
+    get_trajectory=True,
+)
+dinv.utils.plot(
+    [x_hat, x_hat_vp],
+    titles=[
+        "posterior sample with VE",
+        "posterior sample with VP",
+    ],
+    save_fn="posterior_sample_ve_vp.png",
+    figsize=(figsize * 2, figsize),
+)
+
+# We can also save the trajectory of the posterior sample
+dinv.utils.save_videos(
+    trajectory[::gif_frequency],
+    time_dim=0,
+    titles=["Posterior sample with VP"],
+    save_fn="posterior_trajectory_vp.gif",
+    figsize=(figsize, figsize),
+)
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.copyfile(
+        "posterior_sample_ve_vp.png", final_dir / "posterior_sample_ve_vp.png"
+    )
+    shutil.copyfile(
+        "posterior_trajectory_vp.gif", final_dir / "posterior_trajectory_vp.gif"
+    )
+
+
+except FileNotFoundError:
+    pass
+
+# sphinx_gallery_end_ignore
+
+# %%
+# We can comparing the sampling trajectory depending on the underlying SDE
+#
+# .. container:: image-col
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample_ve_vp.png
+#       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
+#
+#    .. container:: image-row
+#
+#       .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#           :srcset: /auto_examples/images/posterior_trajectory.gif
+#           :class: custom-gif
+#
+#       .. image-sg:: /auto_examples/images/posterior_trajectory_vp.gif
+#           :srcset: /auto_examples/images/posterior_trajectory_vp.gif
+#           :class: custom-gif
 
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
@@ -288,43 +370,64 @@ except FileNotFoundError:
 # We can also change the underlying SDE, for example change the `sigma_max` value.
 
 sigma_min = 0.02
-sigma_max = 2.0
+sigma_max = 7.0
 rng = torch.Generator(device)
-timesteps = torch.linspace(1, 0.001, 200)
+dtype = torch.float32
+timesteps = torch.linspace(1, 0.001, 400)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.1, device=device, dtype=dtype
+    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
+)
+x = dinv.utils.load_url_image(
+    dinv.utils.demo.get_image_url("butterfly.png"), img_size=256, resize_mode="resize"
+).to(device)
+
+mask = torch.ones_like(x)
+mask[..., 100:150, 125:175] = 0.0
+# mask = 0.4
+physics = dinv.physics.Inpainting(
+    mask=mask,
+    tensor_size=x.shape[1:],
+    device=device,
 )
 
-# As a plug-and-play sampling method, we can also change the data fidelity term.
-# But the sample quality depends on the quality of the denoiser and the data fidelity term.
+y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=dinv.optim.L2(),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
+    rescale=True,
     dtype=dtype,
     device=device,
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
 x_hat, trajectory = model(
-    y,
-    physics,
-    seed=11,
+    y=y,
+    physics=physics,
+    seed=12,
     get_trajectory=True,
 )
 # Here, we plot the original image, the measurement and the posterior sample
 dinv.utils.plot(
-    [x, y, x_hat],
-    show=True,
+    [x, y, x_hat.clip(0, 1)],
     titles=["Original", "Measurement", "Posterior sample DRUNet"],
     figsize=(figsize * 3, figsize),
     save_fn="posterior_sample_DRUNet.png",
 )
+
+# We can also save the trajectory of the posterior sample
+dinv.utils.save_videos(
+    trajectory[::gif_frequency].clip(0, 1),
+    time_dim=0,
+    titles=["Posterior trajectory DRUNet"],
+    save_fn="posterior_sample_DRUNet.gif",
+    figsize=(figsize, figsize),
+)
+
 # sphinx_gallery_start_ignore
 # cleanup
 import os
@@ -338,6 +441,9 @@ try:
     shutil.copyfile(
         "posterior_sample_DRUNet.png", final_dir / "posterior_sample_DRUNet.png"
     )
+    shutil.copyfile(
+        "posterior_sample_DRUNet.gif", final_dir / "posterior_sample_DRUNet.gif"
+    )
 
 except FileNotFoundError:
     pass
@@ -347,11 +453,13 @@ except FileNotFoundError:
 # %%
 # We obtain the following posterior trajectory
 #
-# .. container:: image-row
+# .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.png
-#       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.gif
+#       :srcset: /auto_examples/images/posterior_sample_DRUNet.gif
 #       :class: custom-gif
 
 # %%
@@ -361,15 +469,31 @@ except FileNotFoundError:
 denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 
 sigma_min = 0.02
-sigma_max = 5.0
+sigma_max = 100
 rng = torch.Generator(device)
-timesteps = torch.linspace(1, 0.001, 200)
+timesteps = torch.linspace(1, 0.001, 300)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.5, device=device, dtype=dtype
+    sigma_max=sigma_max, sigma_min=sigma_min, alpha=1.0, device=device, dtype=dtype
 )
+
+sde = VarianceExplodingDiffusion(device=device, dtype=dtype)
+x = dinv.utils.load_url_image(
+    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+    img_size=256,
+    resize_mode="resize",
+).to(device)
+
+physics = dinv.physics.Inpainting(
+    mask=0.5,
+    tensor_size=x.shape[1:],
+    device=device,
+)
+
+y = physics(x)
+
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+    data_fidelity=DPSDataFidelity(),
     denoiser=denoiser,
     rescale=True,
     sde=sde,
@@ -380,9 +504,9 @@ model = PosteriorDiffusion(
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
 x_hat, trajectory = model(
-    y,
-    physics,
-    seed=1,
+    y=y,
+    physics=physics,
+    seed=None,
     get_trajectory=True,
 )
 # Here, we plot the original image, the measurement and the posterior sample
@@ -393,6 +517,15 @@ dinv.utils.plot(
     save_fn="posterior_sample_DiffUNet.png",
     figsize=(figsize * 3, figsize),
 )
+# We can also save the trajectory of the posterior sample
+dinv.utils.save_videos(
+    trajectory[::gif_frequency],
+    time_dim=0,
+    titles=["Posterior trajectory DiffUNet"],
+    save_fn="posterior_sample_DiffUNet.gif",
+    figsize=(figsize, figsize),
+)
+
 # sphinx_gallery_start_ignore
 # cleanup
 import os
@@ -406,6 +539,9 @@ try:
     shutil.copyfile(
         "posterior_sample_DiffUNet.png", final_dir / "posterior_sample_DiffUNet.png"
     )
+    shutil.copyfile(
+        "posterior_sample_DiffUNet.gif", final_dir / "posterior_sample_DiffUNet.gif"
+    )
 except FileNotFoundError:
     pass
 # sphinx_gallery_end_ignore
@@ -413,9 +549,11 @@ except FileNotFoundError:
 # %%
 # We obtain the following posterior trajectory
 #
-# .. container:: image-row
+# .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.png
-#       :alt: example learn_samples
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.png
+#
+#    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.gif
+#       :srcset: /auto_examples/images/posterior_sample_DiffUNet.gif
 #       :class: custom-gif

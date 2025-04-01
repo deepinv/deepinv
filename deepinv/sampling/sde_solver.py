@@ -4,7 +4,7 @@ from torch import Tensor
 import warnings
 from typing import Optional, Union, Any
 from numpy import ndarray
-import numpy as np
+from tqdm import tqdm
 
 
 class SDEOutput(dict):
@@ -123,9 +123,11 @@ class BaseSDESolver(nn.Module):
                 timesteps = torch.from_numpy(timesteps.copy())
             timesteps = timesteps.to(sde.device, sde.dtype)
 
+        pb = tqdm(timesteps.size(0))
         for t_cur, t_next in zip(timesteps[:-1], timesteps[1:]):
             x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
+            pb.update(1)
             if get_trajectory:
                 trajectory.append(x.clone())
         if get_trajectory:

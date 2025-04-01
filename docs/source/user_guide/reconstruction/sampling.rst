@@ -3,11 +3,12 @@
 Diffusion and MCMC Algorithms
 =============================
 
-This package contains posterior sampling algorithms.
+This package contains posterior sampling algorithms. 
+The negative-log-posterior can be written as:
 
 .. math::
 
-    \log p(x|y,A) \propto d(Ax,y) + \reg{x},
+    -\log p(x|y,A) \propto d(Ax,y) + \reg{x},
 
 where :math:`x` is the image to be reconstructed, :math:`y` are the measurements,
 :math:`d(Ax,y) \propto - \log p(y|x,A)` is the negative log-likelihood and :math:`\reg{x}  \propto - \log p_{\sigma}(x)`
@@ -76,8 +77,11 @@ The second term is the conditional score function, and can be approximated by th
    * - :class:`deepinv.sampling.VarianceExplodingDiffusion`
      - The Variance-Exploding SDE, an instance of :meth:`deepinv.sampling.DiffusionSDE`
 
+   * - :class:`deepinv.sampling.VariancePreservingDiffusion`
+     - The Variance-Preserving SDE (corresponds to DDPM), an instance of :meth:`deepinv.sampling.DiffusionSDE`
+
    * - :class:`deepinv.sampling.PosteriorDiffusion`
-     - The Diffusion SDE class for posterior sampling, an subclass of :class:`deepinv.models.base.Reconstructor`
+     - The Diffusion SDE class for posterior sampling, a subclass of :class:`deepinv.models.base.Reconstructor`
 
 
 .. list-table:: Noisy data-fidelity terms
@@ -148,18 +152,11 @@ obtains multiple samples to compute posterior statistics such as the mean or var
 
 Markov Chain Monte Carlo
 ------------------------
-
+Unlike diffusion sampling methods, the MCMC method does not change the noise level :math:`\sigma` during the sampling process.
+It can be seen as a stochastic gradient method for minimizing the negative-log-posterior defined above, with a fixed value of :math:`sigma`.
 The negative log likelihood from :ref:`this list <data-fidelity>`:, which includes Gaussian noise,
 Poisson noise, etc. The negative log prior can be approximated using :class:`deepinv.optim.ScorePrior` with a
-:ref:`pretrained denoiser <denoisers>`, which leverages Tweedie's formula, i.e.,
-
-.. math::
-
-    - \nabla \log p_{\sigma}(x) \propto \left(x-\denoiser{x}{\sigma}\right)/\sigma^2
-
-where :math:`p_{\sigma} = p*\mathcal{N}(0,I\sigma^2)` is the prior convolved with a Gaussian kernel,
-:math:`\denoiser{\cdot}{\sigma}` is a (trained or model-based) denoiser with noise level :math:`\sigma`,
-which is typically set to a low value.
+:ref:`pretrained denoiser <denoisers>`, which leverages Tweedie's formula with :math:`\sigma` is typically set to a small value.
 
 .. note::
 

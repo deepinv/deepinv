@@ -16,6 +16,7 @@ Diffusion models with Stochastic Differential Equations for Image Generation and
     deepinv.sampling.BaseSDE
     deepinv.sampling.DiffusionSDE
     deepinv.sampling.VarianceExplodingDiffusion
+    deepinv.sampling.VariancePreservingDiffusion
     deepinv.sampling.PosteriorDiffusion
     deepinv.sampling.NoisyDataFidelity
     deepinv.sampling.DPSDataFidelity
