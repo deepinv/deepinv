@@ -660,3 +660,33 @@ def test_pannet():
     x_net = model(y, physics)
 
     assert x_net.shape == x.shape
+
+
+@pytest.mark.parametrize("device", [torch.device("cpu")])
+@pytest.mark.parametrize("image_size", [32, 64])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("batch_size", [1, 3])
+@pytest.mark.parametrize("precond", [True, False])
+@pytest.mark.parametrize("use_fp16", [True, False])
+def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp16):
+    # Load the pretrained model
+    model = dinv.models.NCSNpp(
+        img_resolution=image_size, in_channels=n_channels, out_channels=n_channels
+    )
+    if precond:
+        model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)
+    else:
+        model = model.to(device)
+    x = torch.rand(batch_size, n_channels, image_size, image_size, device=device)
+
+    y = model(x, 0.01)
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+    y = model(x, torch.tensor(0.01))
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+    y = model(x, torch.tensor([0.01]))
+    # Check the output tensor shape
+    assert y.shape == x.shape

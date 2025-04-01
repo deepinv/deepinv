@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -189,6 +189,45 @@ def test_data_fidelity_l1(device):
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
+
+
+def test_data_fidelity_zero(device):
+    # Define two points
+    x = torch.Tensor([[[1], [4], [-0.5]]]).to(device)
+    y = torch.Tensor([[[1], [1], [1]]]).to(device)
+
+    data_fidelity = ZeroFidelity()
+    assert data_fidelity.d(x, y) == 0.0
+
+    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
+    A_forward = lambda v: A @ v
+    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    assert data_fidelity(x, y, physics) == 0.0
+
+    # Check sub-differential
+    grad_manual = torch.zeros_like(x)
+    assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
+
+    # Check prox
+    threshold = 0.5
+    prox_manual = x
     assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
 
     # Testing that d.prox / d.grad and prox_d / grad_d are consistent

@@ -348,7 +348,7 @@ class LogPoissonLikelihoodDistance(Distance):
 
     .. math::
 
-        \distancz{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
+        \distance{z}{y} =  N_0 (1^{\top} \exp(-\mu z)+ \mu \exp(-\mu y)^{\top}x)
 
     Corresponds to LogPoissonNoise with the same arguments N0 and mu.
     There is no closed-form of the prox known.
@@ -366,3 +366,21 @@ class LogPoissonLikelihoodDistance(Distance):
         out1 = torch.exp(-x * self.mu) * self.N0
         out2 = torch.exp(-y * self.mu) * self.N0 * (x * self.mu)
         return (out1 + out2).reshape(x.shape[0], -1).sum(dim=1)
+
+
+class ZeroDistance(Distance):
+    r"""
+    Zero distance :math:`\distance{z}{y} = 0`.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def fn(self, x, y, *args, **kwargs):
+        return 0.0
+
+    def grad(self, x, *args, **kwargs):
+        return torch.zeros_like(x)
+
+    def prox(self, x, y, gamma=1.0, *args, **kwargs):
+        return x
