@@ -32,8 +32,6 @@ authors:
     affiliation: 7
   - name: Paul Escande  
     affiliation: 8
-  - name: Theo Gnassou  
-    affiliation: 6
   - name: Johannes Hertrich  
     affiliation: 2
   - name: Zhiyuan Hu  
