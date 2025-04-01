@@ -34,8 +34,6 @@ authors:
     affiliation: 7
   - name: Paul Escande  
     affiliation: 8
-  - name: Theo Gnassou  
-    affiliation: 6
   - name: Johannes Hertrich  
     affiliation: 2
   - name: Zhiyuan Hu  
@@ -63,14 +61,14 @@ authors:
   - name: Georg Schramm  
     affiliation: 4
   - name: Chao Tang  
-    affiliation: 4
+    affiliation: "5, 4"
   - name: Pierre Weiss  
     affiliation: 8  
 
 affiliations:
   - name: CNRS, ENS de Lyon, Univ Lyon, Lyon, France
     index: 1
-  - name: Inria Paris Saclay, Palaiseau, France
+  - name: Université Paris-Saclay, Inria, CEA, Palaiseau, France
     index: 2
   - name: CNRS, ENS Paris, PSL
     index: 3
