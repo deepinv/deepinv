@@ -307,7 +307,7 @@ The library provides a common framework for defining and simulating datasets for
 | NBU [] | Multispectral satellite images |
 
 # Evaluation
-Reconstruction methods can be evaluated using the `Trainer` class using metrics defined in our framework as
+Reconstruction methods can be evaluated on datasets using the method `Trainer.test` using metrics defined in our framework, which compute:
 \begin{equation} \label{eq:metric}
 m = \mathcal{L}\left(\hat{x}, x\right)
 \end{equation}
