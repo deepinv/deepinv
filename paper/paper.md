@@ -2,9 +2,10 @@
 title: 'DeepInverse: A Python package for solving imaging inverse problems with deep learning'
 tags:
   - Python
-  - Pytorch
+  - PyTorch
   - imaging inverse problems
   - computational imaging
+  - deep learning
 authors:
   - name: Julián Tachella
     orcid: 0000-0003-3878-9142
@@ -18,6 +19,7 @@ authors:
     equal-contrib: true 
     affiliation: 3
   - name: Andrew Wang
+    orcid: 0000-0003-0838-7986
     equal-contrib: true 
     affiliation: 4
   - name: Dongdong Chen
@@ -102,23 +104,26 @@ bibliography: paper.bib
 
 # Summary
 
-`deepinv` is an open-source pytorch-based library for solving imaging inverse problems with deep learning.
-The library aims to cover most steps in modern imaging pipelines, from the definition of the forward sensing operator
+`deepinv` is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
+The library covers all crucial steps in modern imaging pipelines, from the definition of the forward sensing operator
 to the training of reconstruction networks.
 
 # Statement of need
 
-Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. `deepinv` aims to overcome these limitations, by providing a unified framework for defining imaging operators and solvers, which leverages popular pytorch deep learning library [@paszke2019pytorch], making most modules compatible with auto-differentiation.
-The target audience of this library are both inverse problems researchers (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). `deepinv` has the following objectives: i) accelerate future research by enabling efficient testing and deployment
-of new ideas, ii) enlarge the adoption of deep learning in inverse problems by lowering the entrance bar to new researchers 
-in the field, and iii) enhance research reproducibility via a common definition of imaging operators and reconstruction
-methods and a common framework for defining datasets for inverse problems.
+Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. `deepinv` overcomes these limitations by providing a unified framework for defining imaging operators and solvers, which leverages the popular PyTorch deep learning library [@paszke2019pytorch], making most modules compatible with auto-differentiation.
+The target audience of this library are both researchers in inverse problems (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). `deepinv` has the following objectives:
 
-While other python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus learning-based methods.  SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom losses, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
-Moreover, `deepinv` provides a larger set of imaging operators.
-Another python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover most classes of inverse solvers. 
-There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
-These operator-specific libraries can be used together with deepinv as long as they are compatible with pytorch. 
+1. **Accelerate research** by enabling efficient testing, deployment and transfer
+of new ideas across imaging domains
+2. Enlarge the **adoption of deep learning in inverse problems** by lowering the entrance bar to new researchers and practitioners
+3. Enhance **research reproducibility** via a common framework for imaging operators, reconstruction
+methods and datasets for inverse problems.
+
+While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
+Moreover, `deepinv` provides a larger set of realistic imaging operators.
+Another Python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover most classes of inverse solvers. 
+There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provide MRI-specific operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
+These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch. 
 
 ![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
@@ -131,12 +136,12 @@ y = N_{\sigma}(A_{\xi}(x))
 where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}:\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 $N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the 
-measurements parameterized by $\sigma$ (e.g., the noise level or gain). The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with
+measurements parameterized by $\sigma$ (e.g. the noise level or gain). The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with
 optional forward operator parameters $\xi$. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes.
 The library provides high-level operator definitions which are associated with specific imaging applications 
-(magnetic resonance imaging, computed tomography, radioastronomy, etc.), but also allows to perform operator algebra,
+(magnetic resonance imaging, computed tomography, radioastronomy, etc.), and allows users to perform operator algebra,
 like summing, concatenating or stacking operators. `deepinv` comes with multiple useful tools for handling
-linear operators, such as matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
+linear operators, such as adjoint and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
 and operator norm and condition number estimators [@paige1982lsqr]. Many common noise distributions are included in the library
 such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The table below summarizes the available forward operators:
 
