@@ -111,24 +111,15 @@ class _RescaledDenoiser(nn.Module):
     sampling, where Gaussian noise (often with large magnitudes) is added, requiring consistent input/output
     ranges across training and inference.
 
-
     :param deepinv.models.Denoiser model: The original denoiser model trained on `[0, 1]` image data.
     """
 
     def __init__(self, model):
         super().__init__()
         self.model = model
-        if hasattr(model, "train_on_minus_one_one"):
-            self.train_on_minus_one_one = model.train_on_minus_one_one
-        else:
-            self.train_on_minus_one_one = False
 
     def forward(self, x: Tensor, t: float, *args, **kwargs):
-        if self.train_on_minus_one_one:
-            return self.model(x, t, *args, **kwargs)
-        else:
-            return self.model((x + 1.0) / 2.0, t / 2.0, *args, **kwargs) * 2.0 - 1.0
-
+        return self.model((x + 1.0) / 2.0, t / 2.0, *args, **kwargs) * 2.0 - 1.0
 
 class DiffusionSDE(BaseSDE):
     r"""
@@ -215,7 +206,7 @@ class DiffusionSDE(BaseSDE):
         """
         raise NotImplementedError
 
-    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
         r"""
         The mean :math:`mu_t` of the condition distribution :math:`p(x_t \vert x_0) \sim \mathcal{N}(\mu_t * x_t, \sigma_t^2 \mathrm{Id})`.
 
@@ -317,8 +308,8 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         t = self._handle_time_step(t)
         return self.sigma_min * (self.sigma_max / self.sigma_min) ** t
 
-    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
-        return 0.0
+    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
+        return torch.ones_like(self._handle_time_step(t))
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         std = self.sigma_t(t)
@@ -421,17 +412,16 @@ class VariancePreservingDiffusion(DiffusionSDE):
             1.0 - torch.exp(-0.5 * t**2 * self.beta_d - t * self.beta_min)
         )
 
-    def mean_t(self, t: Union[Tensor, float]) -> Tensor:
+    def scale_t(self, t: Union[Tensor, float]) -> Tensor:
         t = self._handle_time_step(t)
-        return torch.exp(-0.25 * t**2 * self.beta_d - 0.5 * t * self.beta_min)
+        scale = torch.exp(-0.25 * t**2 * self.beta_d - 0.5 * t * self.beta_min)
+        return torch.clip(scale, min=1e-3)
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
-        std = self.sigma_t(t)
-        mean = self.mean_t(t).view(-1, 1, 1, 1)
-        denoised = self.denoiser(
-            x.to(torch.float32), std.to(torch.float32), *args, **kwargs
-        ).to(self.dtype)
-        score = (denoised * mean - x.to(self.dtype)) / std.view(-1, 1, 1, 1).pow(2)
+        sigma = self.sigma_t(t)
+        scale = self.scale_t(t)
+        denoised = self.denoiser((x / scale.view(-1, 1, 1, 1)).to(torch.float32), (sigma / scale).to(torch.float32), *args, **kwargs).to(self.dtype)
+        score = (denoised * scale.view(-1, 1, 1, 1) - x.to(self.dtype)) / sigma.view(-1, 1, 1, 1).pow(2)
         return score
 
 
@@ -597,10 +587,9 @@ class PosteriorDiffusion(Reconstructor):
         if isinstance(self.data_fidelity, ZeroFidelity):
             return self.sde.score(x, t, *args, **kwargs).to(self.dtype)
         else:
-            from functools import partial
-
-            sigma = self.sde.sigma_t(t).to(torch.float32)
-            score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
-                x.to(torch.float32), y.to(torch.float32), physics=physics, sigma=sigma
-            )
+            unconditional_score = self.sde.score(x, t, *args, **kwargs)
+            scale = self.sde.scale_t(t)
+            sigma = self.sde.sigma_t(t)
+            conditional_score =  - self.data_fidelity.grad((x / scale).to(torch.float32) / scale, y.to(torch.float32), physics = physics, sigma = (sigma / scale).to(torch.float32))
+            score = unconditional_score + conditional_score
             return score.to(self.dtype)

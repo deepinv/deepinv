@@ -46,12 +46,12 @@ We implement various data-fidelity terms in `the documentations <https://deepinv
 
 import torch
 import deepinv as dinv
-from deepinv.models import NCSNpp, EDMPrecond
+from deepinv.models import NCSNpp
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 figsize = 2.5
-gif_frequency = 5  # Increase this value to save the GIF saving time
+gif_frequency = 50  # Increase this value to save the GIF saving time
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -64,8 +64,7 @@ from deepinv.optim import ZeroFidelity
 # In this example, we use the pre-trained FFHQ-64 model from the
 # EDM framework: https://arxiv.org/pdf/2206.00364 .
 # The network architecture is from Song et al: https://arxiv.org/abs/2011.13456 .
-unet = NCSNpp(pretrained="download")
-denoiser = EDMPrecond(model=unet).to(device)
+denoiser = NCSNpp(pretrained="download").to(device)
 
 # The solution is obtained by calling the SDE object with a desired solver (here, Euler).
 # The reproducibility of the SDE Solver class can be controlled by providing the pseudo-random number generator.
@@ -76,7 +75,7 @@ solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 
 sigma_min = 0.02
-sigma_max = 20
+sigma_max = 40
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
@@ -84,7 +83,7 @@ sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
 )
-
+# sde = VariancePreservingDiffusion(device=device, dtype=dtype)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -107,6 +106,7 @@ sample_seed_1, trajectory_seed_1 = model(
     x_init=(1, 3, 64, 64),
     seed=1,
     get_trajectory=True,
+
 )
 dinv.utils.plot(
     sample_seed_1,
@@ -392,9 +392,10 @@ timesteps = torch.linspace(1, 0.001, 400)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
-)
+# sde = VarianceExplodingDiffusion(
+#     sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
+# )
+sde = VariancePreservingDiffusion(beta_max=5., beta_min=0.01, device=device, dtype=dtype)
 x = dinv.utils.load_url_image(
     dinv.utils.demo.get_image_url("butterfly.png"), img_size=256, resize_mode="resize"
 ).to(device)
@@ -491,11 +492,11 @@ sigma_max = 100
 rng = torch.Generator(device)
 timesteps = torch.linspace(1, 0.001, 300)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
-sde = VarianceExplodingDiffusion(
-    sigma_max=sigma_max, sigma_min=sigma_min, alpha=1.0, device=device, dtype=dtype
-)
+# sde = VarianceExplodingDiffusion(
+#     sigma_max=sigma_max, sigma_min=sigma_min, alpha=1.0, device=device, dtype=dtype
+# )
 
-sde = VarianceExplodingDiffusion(device=device, dtype=dtype)
+sde = VariancePreservingDiffusion(device=device, dtype=dtype)
 x = dinv.utils.load_url_image(
     dinv.utils.demo.get_image_url("celeba_example.jpg"),
     img_size=256,
@@ -511,7 +512,7 @@ physics = dinv.physics.Inpainting(
 y = physics(x)
 
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
