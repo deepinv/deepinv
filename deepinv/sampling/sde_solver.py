@@ -53,6 +53,7 @@ class BaseSDESolver(nn.Module):
 
     :param torch.Tensor, numpy.ndarray, list timesteps: time steps at which the SDE will be discretized.e.
     :param torch.Generator rng: a random number generator for reproducibility, optional.
+    :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
     """
 
     def __init__(
@@ -93,6 +94,7 @@ class BaseSDESolver(nn.Module):
         *args,
         timesteps: Union[Tensor, ndarray] = None,
         get_trajectory: bool = False,
+        verbose: bool = False,
         **kwargs,
     ) -> SDEOutput:
         r"""
@@ -106,6 +108,7 @@ class BaseSDESolver(nn.Module):
         :param int seed: The seed for the random number generator, if `rng` is provided.
         :param torch.Tensor, numpy.ndarray, list timesteps: A sequence of time points at which to solve the SDE. If None, default timesteps will be used.
         :param bool get_trajectory: whether to return the full trajectory of the SDE or only the last sample, optional. Default to False.
+        :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
         :param \*args: Variable length argument list to be passed to the step function.
         :param \*\*kwargs: Arbitrary keyword arguments to be passed to the step function.
 
@@ -123,7 +126,9 @@ class BaseSDESolver(nn.Module):
                 timesteps = torch.from_numpy(timesteps.copy())
             timesteps = timesteps.to(sde.device, sde.dtype)
 
-        for t_cur, t_next in tqdm(zip(timesteps[:-1], timesteps[1:]), total=timesteps.size(0)-1):
+        for i in tqdm(range(len(timesteps) - 1), disable=not verbose):
+            t_cur = timesteps[:-1][i]
+            t_next = timesteps[1:][i]
             x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
             if get_trajectory:
@@ -188,6 +193,7 @@ class EulerSolver(BaseSDESolver):
     approximates the solution using the following update rule:
 
     .. math::
+
         x_{t+dt} = x_t + f(x_t,t)dt + g(t) W_{dt}
 
     where :math:`W_t` is a Gaussian random variable with mean 0 and variance dt.

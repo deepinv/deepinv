@@ -1,6 +1,6 @@
 r"""
-Building your custom sampling algorithm.
-========================================
+Building your custom MCMC sampling algorithm.
+=============================================
 
 This code shows how to build your custom sampling kernel. Here we build a preconditioned Unadjusted Langevin
 Algorithm (PreconULA) that takes advantage of the singular value decomposition of the forward operator

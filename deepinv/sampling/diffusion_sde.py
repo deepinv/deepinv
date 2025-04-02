@@ -229,7 +229,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
 
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
 
-    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t(x_t)`.
     :param float sigma_min: the minimum noise level.
     :param float sigma_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
@@ -409,19 +409,20 @@ class VariancePreservingDiffusion(DiffusionSDE):
     def sigma_t(self, t: Union[Tensor, float]) -> Tensor:
         t = self._handle_time_step(t)
         return torch.sqrt(
-            1.0 - torch.exp(-0.5 * t**2 * self.beta_d - t * self.beta_min)
+            torch.exp(.5 * t**2 * self.beta_d + t * self.beta_min) - 1.
         )
 
     def scale_t(self, t: Union[Tensor, float]) -> Tensor:
         t = self._handle_time_step(t)
-        scale = torch.exp(-0.25 * t**2 * self.beta_d - 0.5 * t * self.beta_min)
-        return torch.clip(scale, min=1e-3)
+        return 1 / torch.sqrt(torch.exp(.5 * t**2 * self.beta_d + t * self.beta_min))
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
-        sigma = self.sigma_t(t)
-        scale = self.scale_t(t)
-        denoised = self.denoiser((x / scale.view(-1, 1, 1, 1)).to(torch.float32), (sigma / scale).to(torch.float32), *args, **kwargs).to(self.dtype)
-        score = (denoised * scale.view(-1, 1, 1, 1) - x.to(self.dtype)) / sigma.view(-1, 1, 1, 1).pow(2)
+        std = self.sigma_t(t) # x_t = scale * x + scale * \sigma(t) * w
+        scale = self.scale_t(t).view(-1, 1, 1, 1)
+        denoised = scale * self.denoiser(
+            x.to(torch.float32) / scale, std.to(torch.float32), *args, **kwargs
+        ).to(self.dtype)
+        score = (denoised - x.to(self.dtype)) / (scale * std).view(-1, 1, 1, 1).pow(2)
         return score
 
 
@@ -453,7 +454,7 @@ class PosteriorDiffusion(Reconstructor):
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
-
+    :param bool verbose: whether to display a progress bar during the sampling process, optional. Default to False.
     """
 
     def __init__(
@@ -464,6 +465,7 @@ class PosteriorDiffusion(Reconstructor):
         solver: BaseSDESolver = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
+        verbose: bool = False,
         *args,
         **kwargs,
     ):
@@ -487,6 +489,7 @@ class PosteriorDiffusion(Reconstructor):
             self.solver = sde.solver
         self.dtype = dtype
         self.device = device
+        self.verbose = verbose
 
         def backward_drift(x, t, y, physics, *args, **kwargs):
             return -self.sde.forward_drift(x, t) + (
@@ -553,6 +556,7 @@ class PosteriorDiffusion(Reconstructor):
             physics=physics,
             timesteps=timesteps,
             get_trajectory=get_trajectory,
+            verbose=self.verbose,
             *args,
             **kwargs,
         )
@@ -587,9 +591,9 @@ class PosteriorDiffusion(Reconstructor):
         if isinstance(self.data_fidelity, ZeroFidelity):
             return self.sde.score(x, t, *args, **kwargs).to(self.dtype)
         else:
-            unconditional_score = self.sde.score(x, t, *args, **kwargs)
-            scale = self.sde.scale_t(t)
-            sigma = self.sde.sigma_t(t)
-            conditional_score =  - self.data_fidelity.grad((x / scale).to(torch.float32) / scale, y.to(torch.float32), physics = physics, sigma = (sigma / scale).to(torch.float32))
-            score = unconditional_score + conditional_score
+            sigma = self.sde.sigma_t(t).to(torch.float32)
+            scale = self.sde.scale_t(t) # xt = x0 * s(t) + s(t) * sigma(t) * w
+            score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad( # condition on xt/s(t) = x0 + sigma(t) * w
+                x.to(torch.float32) / scale, y.to(torch.float32), physics=physics, sigma=sigma
+            )
             return score.to(self.dtype)
