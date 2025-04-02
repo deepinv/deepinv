@@ -283,7 +283,7 @@ Due to the additional complexity of training adversarial networks, the library p
 The library provides a common framework for defining and simulating datasets for image reconstruction. Datasets return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and may also return physics parameters $\xi_i$. Given a dataset of reference images $\{x_i\}_{i=1}^{N}$, the library can be used to generate and save a simulated paired dataset to encourage reproducibility. The library also provides interfaces to some popular datasets to facilitate research in specific application domains: 
 
 - Div2K [@agustsson2017ntire]: Natural images
-- Urban100 [@lim2017enhanced]: Natural images
+- Urban100 [@lim2017enhanced]: Building images
 - Set14 [@zeyde2012single]: Natural images
 - CBSD68 [@martin2001database]: Natural images 
 - Flickr2K [@lim2017enhanced]: Natural images
