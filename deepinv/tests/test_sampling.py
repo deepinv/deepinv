@@ -201,7 +201,6 @@ def test_sde(device):
 
     # Set up all denoisers
     denoisers = []
-    rescales = []
     list_kwargs = []
     denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
     list_kwargs.append(dict())
@@ -239,9 +238,8 @@ def test_sde(device):
                 )
                 x_init_1 = trajectory[0]
 
+                # Test output shape
                 assert sample_1.shape == (1, 3, 64, 64)
-
-                # Test reproducibility
                 sample_2, trajectory = sde.sample(
                     (1, 3, 64, 64),
                     seed=10,
@@ -271,10 +269,22 @@ def test_sde(device):
                 )
                 y = physics(x)
 
-                x_hat = posterior(
+                x_hat_1 = posterior(
                     y,
                     physics,
                     x_init=(1, 3, 64, 64),
-                    seed=10,
+                    seed=111,
                 )
-                assert x_hat.shape == (1, 3, 64, 64)
+                # Test output shape
+                assert x_hat_1.shape == (1, 3, 64, 64)
+                # Test reproducibility
+                x_hat_2 = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=111,
+                )
+                assert (
+                    torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean")
+                    < 1e-2
+                )

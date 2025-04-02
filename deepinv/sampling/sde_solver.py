@@ -126,9 +126,11 @@ class BaseSDESolver(nn.Module):
                 timesteps = torch.from_numpy(timesteps.copy())
             timesteps = timesteps.to(sde.device, sde.dtype)
 
-        for i in tqdm(range(len(timesteps) - 1), disable=not verbose):
-            t_cur = timesteps[:-1][i]
-            t_next = timesteps[1:][i]
+        for t_cur, t_next in tqdm(
+            zip(timesteps[:-1], timesteps[1:]),
+            total=len(timesteps) - 1,
+            disable=not verbose,
+        ):
             x, cur_nfe = self.step(sde, t_cur, t_next, x, *args, **kwargs)
             nfe += cur_nfe
             if get_trajectory:

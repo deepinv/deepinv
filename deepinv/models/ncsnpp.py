@@ -12,6 +12,7 @@ from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from .utils import get_weights_url
 
+
 class NCSNpp(Denoiser):
     r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
 
@@ -81,7 +82,7 @@ class NCSNpp(Denoiser):
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
         pretrained: str = None,
-        sigma_data: float = 0.5, 
+        sigma_data: float = 0.5,
         device=None,
     ):
         assert embedding_type in ["fourier", "positional"]
@@ -296,7 +297,9 @@ class NCSNpp(Denoiser):
                 x = block(x, emb)
         return aux
 
-    def forward(self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs):
+    def forward(
+        self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs
+    ):
         r"""
         Run the denoiser on noisy image.
 
@@ -309,26 +312,27 @@ class NCSNpp(Denoiser):
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
         sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
-        
-        # Rescale [0,1] input to [-1,-1] 
+
+        # Rescale [0,1] input to [-1,-1]
         if self._train_on_minus_one_one:
-            x = (x - 0.5) * 2.0 
-            sigma = sigma * 2.
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
-        F_x = self.forward_unet(c_in * x,
+        F_x = self.forward_unet(
+            c_in * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
         D_x = c_skip * x + c_out * F_x
 
-        # Rescale [-1,1] output to [0,-1] 
+        # Rescale [-1,1] output to [0,-1]
         if self._train_on_minus_one_one:
-            return (D_x + 1.) / 2.
+            return (D_x + 1.0) / 2.0
         else:
             return D_x
 
