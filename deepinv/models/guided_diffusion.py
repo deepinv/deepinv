@@ -11,6 +11,7 @@ from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from math import floor
 from .utils import get_weights_url
+import warnings
 
 
 class ADMUNet(Denoiser):
@@ -175,6 +176,10 @@ class ADMUNet(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
+                warnings.warn(
+                    "The pre-trained model was trained on `[-1,1]` data and should be used together with the pre-conditioner `deepinv.models.EDMPrecond`."
+                )
+                self.train_on_minus_one_one = True
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)

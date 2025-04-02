@@ -144,7 +144,7 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/sde_sample.png  
+#    .. image-sg:: /auto_examples/images/sde_sample.png
 #       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/sde_sample.png
 #       :class: custom-img
@@ -226,13 +226,12 @@ except FileNotFoundError:
 #       :alt: example of posterior sample
 #       :srcset: /auto_examples/images/posterior_sample.png
 #       :optional:
-# 
+#
 #    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
 #       :alt: example of posterior trajectory
 #       :srcset: /auto_examples/images/posterior_trajectory.gif
 #       :class: custom-gif
 #       :optional:
-
 
 
 # %%
@@ -415,7 +414,6 @@ model = PosteriorDiffusion(
     denoiser=denoiser,
     sde=sde,
     solver=solver,
-    rescale=True,
     dtype=dtype,
     device=device,
 )
@@ -515,7 +513,6 @@ y = physics(x)
 model = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(),
     denoiser=denoiser,
-    rescale=True,
     sde=sde,
     solver=solver,
     dtype=dtype,

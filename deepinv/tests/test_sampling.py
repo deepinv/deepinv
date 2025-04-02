@@ -204,15 +204,12 @@ def test_sde(device):
     rescales = []
     list_kwargs = []
     denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
-    rescales.append(False)
     list_kwargs.append(dict())
 
     denoisers.append(EDMPrecond(model=ADMUNet(pretrained="download")).to(device))
-    rescales.append(False)
     list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
 
     denoisers.append(DRUNet(pretrained="download").to(device))
-    rescales.append(True)
     list_kwargs.append(dict())
 
     # Set up the SDEs
@@ -225,12 +222,11 @@ def test_sde(device):
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
     sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
-    for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
+    for denoiser, kwargs in zip(denoisers, list_kwargs):
         for solver in solvers:
             for sde_class in sde_classes:
                 sde = sde_class(
                     denoiser=denoiser,
-                    rescale=rescale,
                     solver=solver,
                     device=device,
                 )
@@ -266,7 +262,6 @@ def test_sde(device):
                     sde=sde,
                     denoiser=denoisers[0],
                     solver=solvers[0],
-                    rescale=rescales[0],
                     dtype=torch.float64,
                     device=device,
                 )

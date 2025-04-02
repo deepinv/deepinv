@@ -39,6 +39,10 @@ class EDMPrecond(Denoiser):
         self.use_fp16 = use_fp16
         self.sigma_data = sigma_data
         self.model = model
+        if hasattr(model, "train_on_minus_one_one"):
+            self.train_on_minus_one_one = model.train_on_minus_one_one
+        else:
+            self.train_on_minus_one_one = False
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)

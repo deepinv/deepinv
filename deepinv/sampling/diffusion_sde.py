@@ -103,7 +103,8 @@ class BaseSDE(nn.Module):
 
 
 class _RescaledDenoiser(nn.Module):
-    r"""Adapts a denoiser trained on [0, 1] images to handle [-1, 1] images by rescaling inputs and outputs.
+    r"""Adapts a denoiser trained on `[0, 1]` images to handle `[-1, 1]` images by rescaling inputs and outputs.
+    If the model was already trained on `[-1, 1]` images, it will return the original output.
 
     This wrapper transforms inputs `x` and `t` as `(x + 1) / 2` and `t / 2`, respectively, passes them through
     the original denoiser, and rescales the output as `output * 2 - 1`. This is particularly useful in diffusion
@@ -117,9 +118,16 @@ class _RescaledDenoiser(nn.Module):
     def __init__(self, model):
         super().__init__()
         self.model = model
+        if hasattr(model, "train_on_minus_one_one"):
+            self.train_on_minus_one_one = model.train_on_minus_one_one
+        else:
+            self.train_on_minus_one_one = False
 
-    def forward(self, x: Tensor, t: float):
-        return self.model((x + 1.0) / 2.0, t / 2.0) * 2.0 - 1.0
+    def forward(self, x: Tensor, t: float, *args, **kwargs):
+        if self.train_on_minus_one_one:
+            return self.model(x, t, *args, **kwargs)
+        else:
+            return self.model((x + 1.0) / 2.0, t / 2.0, *args, **kwargs) * 2.0 - 1.0
 
 
 class DiffusionSDE(BaseSDE):
@@ -173,7 +181,7 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.denoiser = _RescaledDenoiser(denoiser)
+        self.denoiser = deepcopy(_RescaledDenoiser(denoiser))
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         r"""
@@ -345,7 +353,7 @@ class VariancePreservingDiffusion(DiffusionSDE):
 
     def __init__(
         self,
-        denoiser: nn.Module = None,
+        denoiser: Denoiser = None,
         beta_min: float = 0.1,
         beta_max: float = 20.0,
         alpha: float = 1.0,

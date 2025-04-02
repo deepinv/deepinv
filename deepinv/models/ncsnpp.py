@@ -11,6 +11,7 @@ from .utils import (
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from .utils import get_weights_url
+import warnings
 
 
 class NCSNpp(Denoiser):
@@ -224,6 +225,10 @@ class NCSNpp(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
+                warnings.warn(
+                    "The pre-trained model was trained on `[-1,1]` data and should be used together with the pre-conditioner `deepinv.models.EDMPrecond`."
+                )
+                self.train_on_minus_one_one = True
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
@@ -240,7 +245,6 @@ class NCSNpp(Denoiser):
         :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
-
         :return torch.Tensor: denoised image.
         """
         # Mapping.
