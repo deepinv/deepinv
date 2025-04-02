@@ -286,8 +286,8 @@ The library provides a common framework for defining and simulating datasets for
 - Urban100 [@lim2017enhanced]: Natural images
 - Set14 [@zeyde2012single]: Natural images
 - CBSD68 [@martin2001database]: Natural images 
-- Flickr2K [@]: Natural images
-- LSDIR [li2023lsdir]: Natural images
+- Flickr2K [@lim2017enhanced]: Natural images
+- LSDIR [@li2023lsdir]: Natural images
 - FastMRI [@zbontar2018fastmri]: Knee and brain MRI scans
 - CMRxRecon [@wang2024cmrxrecon]: Dynamic cardiac MRI scans
 - LIDC-IDRI [@armato2011lung]: Lung CT scans 
