@@ -63,7 +63,7 @@ class ResNet(nn.Module):
 class PanNet(nn.Module):
     """PanNet architecture for pan-sharpening.
 
-    PanNet neural network from Yang et al. `PanNet: A Deep Network Architecture for Pan-Sharpening <https://ieeexplore.ieee.org/document/8237455/>`_, ICCV 2017.
+    PanNet neural network from :cite:`yang2017pannet`.
 
     Takes input measurements as a :class:`deepinv.utils.TensorList` with elements (MS, PAN),
     where MS is the low-resolution multispectral image of shape (B, C, H, W) and PAN is the

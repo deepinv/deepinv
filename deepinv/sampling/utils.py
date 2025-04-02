@@ -4,9 +4,7 @@ from torch import Tensor
 
 class Welford:
     r"""
-    Welford's algorithm for calculating mean and variance
-
-    https://doi.org/10.2307/1266577
+    Welford's algorithm :cite:`welford1962note`for calculating mean and variance.
     """
 
     def __init__(self, x):

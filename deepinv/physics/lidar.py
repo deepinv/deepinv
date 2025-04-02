@@ -7,7 +7,7 @@ class SinglePhotonLidar(Physics):
     r"""
     Single photon lidar operator for depth ranging.
 
-    See https://ieeexplore.ieee.org/abstract/document/9127841 for a review of this imaging method.
+    See :cite:`rapp2020advances` for a review of this imaging method.
 
     The forward operator is given by
 
