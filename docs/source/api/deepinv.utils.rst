@@ -18,6 +18,7 @@ Plotting
         deepinv.utils.plot_parameters
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
+        deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
 
 

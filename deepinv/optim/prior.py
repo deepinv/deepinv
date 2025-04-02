@@ -13,6 +13,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
+from typing import Callable
 
 
 class Prior(Potential):
@@ -176,7 +177,33 @@ class ScorePrior(Prior):
         :param torch.Tensor x: the input tensor.
         :param float sigma_denoiser: the noise level.
         """
-        return (1 / sigma_denoiser**2) * (x - self.denoiser(x, sigma_denoiser))
+        return self.stable_division(
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
+        )
+
+    def score(self, x, sigma_denoiser, *args, **kwargs):
+        r"""
+        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma_denoiser: the noise level.
+        """
+        return self.stable_division(
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
+        )
+
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
 
 
 class Tikhonov(Prior):

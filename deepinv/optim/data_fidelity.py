@@ -6,6 +6,7 @@ from deepinv.optim.distance import (
     AmplitudeLossDistance,
     PoissonLikelihoodDistance,
     LogPoissonLikelihoodDistance,
+    ZeroDistance,
 )
 from deepinv.optim.potential import Potential
 import torch
@@ -515,3 +516,45 @@ if __name__ == "__main__":
     prox = data_fidelity.prox(
         x, y, physics, gamma=1.0
     )  # print prox_fA gives [0.6000, 3.6000]
+
+
+class ZeroFidelity(DataFidelity):
+    r"""
+    Zero data fidelity term :math:`\datafid{x}{y} = 0`.
+    This is used to remove the data fidelity term in the loss function.
+
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.d = ZeroDistance()
+
+    def fn(self, x, y, physics, *args, **kwargs):
+        """
+        This function returns zero for all inputs.
+        """
+        return torch.zeros(x.size(0), device=x.device, dtype=x.dtype)
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        """
+        This function returns a zero image.
+        """
+        return torch.zeros_like(x)
+
+    def grad_d(self, u, y, *args, **kwargs):
+        """
+        This function returns a zero image.
+        """
+        return torch.zeros_like(u)
+
+    def prox_d(self, u, y, *args, **kwargs):
+        """
+        This function returns the input image.
+        """
+        return u
+
+    def prox_d_conjugate(self, u, y, *args, **kwargs):
+        """
+        This function returns the input image.
+        """
+        return u
