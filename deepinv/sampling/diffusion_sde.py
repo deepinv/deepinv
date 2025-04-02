@@ -133,7 +133,6 @@ class DiffusionSDE(BaseSDE):
     :param Callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
     :param Callable alpha: a scalar weighting the diffusion term. :math:`\alpha = 0` corresponds to the ODE sampling and :math:`\alpha > 0` corresponds to the SDE sampling.
     :param deepinv.models.Denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
-    :param bool rescale: whether to rescale the input to the denoiser to :math:`[-1, 1]`, default to `False`.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
@@ -147,7 +146,6 @@ class DiffusionSDE(BaseSDE):
         forward_diffusion: Callable,
         alpha: float = 1.0,
         denoiser: nn.Module = None,
-        rescale: bool = False,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
         device=torch.device("cpu"),
@@ -175,12 +173,7 @@ class DiffusionSDE(BaseSDE):
         self.forward_drift = forward_drift
         self.forward_diffusion = forward_diffusion
         self.solver = solver
-        self.rescale = rescale
-
-        if rescale:
-            self.denoiser = _RescaledDenoiser(denoiser)
-        else:
-            self.denoiser = denoiser
+        self.denoiser = _RescaledDenoiser(denoiser)
 
     def score(self, x: Tensor, t: Union[Tensor, float], *args, **kwargs) -> Tensor:
         r"""
@@ -238,7 +231,6 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
 
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
-    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param float sigma_min: the minimum noise level.
     :param float sigma_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
@@ -252,7 +244,6 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     def __init__(
         self,
         denoiser: nn.Module = None,
-        rescale: bool = False,
         sigma_min: float = 0.02,
         sigma_max: float = 100,
         alpha: float = 1.0,
@@ -290,7 +281,6 @@ class VarianceExplodingDiffusion(DiffusionSDE):
             forward_diffusion=forward_diffusion,
             alpha=alpha,
             denoiser=denoiser,
-            rescale=rescale,
             solver=solver,
             dtype=dtype,
             device=device,
@@ -343,7 +333,6 @@ class VariancePreservingDiffusion(DiffusionSDE):
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
 
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
-    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param float sigma_min: the minimum noise level.
     :param float sigma_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
@@ -357,7 +346,6 @@ class VariancePreservingDiffusion(DiffusionSDE):
     def __init__(
         self,
         denoiser: nn.Module = None,
-        rescale: bool = False,
         beta_min: float = 0.1,
         beta_max: float = 20.0,
         alpha: float = 1.0,
@@ -393,7 +381,6 @@ class VariancePreservingDiffusion(DiffusionSDE):
             forward_diffusion=forward_diffusion,
             alpha=alpha,
             denoiser=denoiser,
-            rescale=rescale,
             solver=solver,
             dtype=dtype,
             device=device,
@@ -465,7 +452,6 @@ class PosteriorDiffusion(Reconstructor):
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the (unconditional) score at time :math:`t` :math:`\nabla \log p_t`.
     :param deepinv.sampling.DiffusionSDE sde: the forward-time SDE, which defines the drift and diffusion terms of the reverse-time SDE.
     :param deepinv.sampling.BaseSDESolver solver: the solver for the SDE. If not specified, the solver from the `sde` will be used.
-    :param bool rescale: whether to rescale the input to the denoiser to [-1, 1].
     :param torch.dtype dtype: the data type of the sampling solver, except for the ``denoiser`` which will use ``torch.float32``.
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: the device for the computations.
@@ -478,7 +464,6 @@ class PosteriorDiffusion(Reconstructor):
         denoiser: Denoiser = None,
         sde: DiffusionSDE = None,
         solver: BaseSDESolver = None,
-        rescale: bool = False,
         dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
@@ -491,13 +476,9 @@ class PosteriorDiffusion(Reconstructor):
             denoiser is not None or sde.denoiser is not None
         ), "A denoiser must be specified."
         if denoiser is not None:
-            if rescale:
-                denoiser = _RescaledDenoiser(denoiser)
-            self.sde.denoiser = deepcopy(denoiser)
+            self.sde.denoiser = deepcopy(_RescaledDenoiser(denoiser))
         if hasattr(self.data_fidelity, "denoiser"):
-            if rescale:
-                denoiser = _RescaledDenoiser(denoiser)
-            self.data_fidelity.denoiser = deepcopy(denoiser)
+            self.data_fidelity.denoiser = deepcopy(_RescaledDenoiser(denoiser))
 
         assert (
             solver is not None or sde.solver is not None

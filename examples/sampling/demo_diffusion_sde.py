@@ -144,15 +144,18 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/sde_sample.png
-#       :alt: other example
+#    .. image-sg:: /auto_examples/images/sde_sample.png  
+#       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/sde_sample.png
 #       :class: custom-img
+#       :optional:
 #
 #    .. image-sg:: /auto_examples/images/sde_trajectory.gif
-#       :alt: example learn_samples
+#       :alt: example of unconditional trajectory
 #       :srcset: /auto_examples/images/sde_trajectory.gif
 #       :class: custom-gif
+#       :optional:
+
 
 # %%
 #
@@ -220,11 +223,16 @@ except FileNotFoundError:
 # .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample.png
+#       :alt: example of posterior sample
 #       :srcset: /auto_examples/images/posterior_sample.png
-#
+#       :optional:
+# 
 #    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#       :alt: example of posterior trajectory
 #       :srcset: /auto_examples/images/posterior_trajectory.gif
 #       :class: custom-gif
+#       :optional:
+
 
 
 # %%
@@ -274,7 +282,9 @@ except FileNotFoundError:
 # .. container:: image-row
 #
 #    .. image-sg:: /auto_examples/images/posterior_samples.png
+#       :alt: varying posterior samples
 #       :srcset: /auto_examples/images/posterior_samples.png
+#       :optional:
 #
 # %%
 # Varying the SDE
@@ -349,17 +359,23 @@ except FileNotFoundError:
 # .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_ve_vp.png
+#       :alt: posterior sample with VP
 #       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
+#       :optional:
 #
 #    .. container:: image-row
 #
 #       .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#           :alt: posterior trajectory with VE
 #           :srcset: /auto_examples/images/posterior_trajectory.gif
 #           :class: custom-gif
+#           :optional:
 #
 #       .. image-sg:: /auto_examples/images/posterior_trajectory_vp.gif
+#           :alt: posterior trajectory with VP
 #           :srcset: /auto_examples/images/posterior_trajectory_vp.gif
 #           :class: custom-gif
+#           :optional:
 
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
@@ -456,11 +472,15 @@ except FileNotFoundError:
 # .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.png
+#       :alt: posterior sample DRUNet
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
+#       :optional:
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.gif
+#       :alt: posterior trajectory DRUNet
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.gif
 #       :class: custom-gif
+#       :optional:
 
 # %%
 #
@@ -552,8 +572,12 @@ except FileNotFoundError:
 # .. container:: image-col
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.png
+#       :alt: posterior sample DiffUNet
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.png
+#       :optional:
 #
 #    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.gif
+#       :alt: posterior trajectory DiffUNet
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.gif
 #       :class: custom-gif
+#       :optional:
