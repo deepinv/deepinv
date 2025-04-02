@@ -141,7 +141,8 @@ The library provides high-level operator definitions which are associated with s
 like summing, concatenating or stacking operators. `deepinv` comes with multiple useful tools for handling
 linear operators, such as adjoint, pseudo-inverses and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
 and operator norm and condition number estimators [@paige1982lsqr]. Many common noise distributions are included in the library
-such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The table below summarizes the available forward operators:
+such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The table below summarizes the available forward operators
+at the time of writing, which are constantly being expanded and improved upon by the community:
 
 | **Family**                     | **Operators** $A$                                                   | **Generators**   $\xi$                                     |
 |--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
@@ -255,10 +256,11 @@ Training can be performed using the `Trainer` class, which is a high-level inter
 The library also provides the `loss` module with losses for training $\operatorname{R}_{\theta}$ which are especially designed for inverse problems, acting as a framework that unifies loss functions that are widely used in various inverse problems across domains. Loss functions are defined as
 
 \begin{equation} \label{eq:loss}
-l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}(\cdot)\right)
+l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right)
 \end{equation}
 
-and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`.
+and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`, where
+some inputs might be optional (e.g., $x$ is not needed for self-supervised losses).
 
 **Supervised Losses**: Supervised learning can be done using a dataset of ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ by applying a metric to compute the distance between $x$ and $\hat{x}$.
 If the forward model is known, measurements are typically generated directly during training from a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ .
@@ -280,38 +282,21 @@ Due to the additional complexity of training adversarial networks, the library p
 ## Datasets
 The library provides a common framework for defining and simulating datasets for image reconstruction. Datasets return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and may also return physics parameters $\xi_i$. Given a dataset of reference images $\{x_i\}_{i=1}^{N}$, the library can be used to generate and save a simulated paired dataset to encourage reproducibility. The library also provides interfaces to some popular datasets to facilitate research in specific application domains: 
 
-| **Dataset** | **Domain**    | 
-|---------|--------------------|
-| Div2K [] |  Natural images   | 
-|  |  |
-| Urban100 []  | Natural images |   
-|  |  |
-| Set14 [] |  Natural images   | 
-|  |  |
-| CBSD68 [] |  Natural images   | 
-|  |  |
-| Flickr2K []  | Natural images |   
-|  |  |
-| LSDIR []  | Natural images |   
-|  |  |
-| FastMRI [] | Knee and brain MRI scans |
-|  |  |
-| CMRxRecon [] | Dynamic cardiac MRI scans |
-|  |  |
-| LIDC-IDRI [] | Lung CT scans |
-|  |  |
-| FMD [] | Fluorescence microscopy images |
-|  |  |
-| Kohler [] | Motion blurred images |
-|  |  |
-| NBU [] | Multispectral satellite images |
+- Div2K [@agustsson2017ntire]: Natural images
+- Urban100 [@lim2017enhanced]: Natural images
+- Set14 [@zeyde2012single]: Natural images
+- CBSD68 [@martin2001database]: Natural images 
+- Flickr2K [@]: Natural images
+- LSDIR [li2023lsdir]: Natural images
+- FastMRI [@zbontar2018fastmri]: Knee and brain MRI scans
+- CMRxRecon [@wang2024cmrxrecon]: Dynamic cardiac MRI scans
+- LIDC-IDRI [@armato2011lung]: Lung CT scans 
+- FMD [@zhang2019poisson]: Fluorescence microscopy images
+- Kohler [@kohler2012recording]: Motion blurred images
+- NBU [@meng2021pansharpening]: Multispectral satellite images
 
 # Evaluation
-Reconstruction methods can be evaluated on datasets using the method `Trainer.test` using metrics defined in our framework, which compute:
-\begin{equation} \label{eq:metric}
-m = \mathcal{L}\left(\hat{x}, x\right)
-\end{equation}
-
+Reconstruction methods can be evaluated on datasets using the method `Trainer.test` using metrics defined in our framework.
 These are written in `deepinv` as `m = metric(x_hat, x)` in the case of full-reference metrics, or as `m = metric(x_hat)` for no-reference metrics, and provide common functionality such as input normalization and complex magnitude.
 
 Following the distortion-perception trade-off in image reconstruction problems, 
@@ -320,7 +305,17 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 
 # Philosophy
 
-`deepinv` is coded in modern Python following a test-driven development philosophy. The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`, and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive **user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation for classes including type annotations. To encourage reproducibility, the library passes random number generators for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`), sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited from base classes (such as the operator pseudo-inverse), and mixins provide specialised methods. This framework reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised functionality while inheriting existing methods.
+`deepinv` is coded in modern Python following a test-driven development philosophy.
+The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
+and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive
+**user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation
+for classes including type annotations. To encourage reproducibility, the library passes random number generators
+for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
+where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`),
+sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited
+from base classes (such as the operator pseudo-inverse), and mixins provide specialised methods. This framework
+reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised
+functionality while inheriting existing methods.
 
 # Acknowledgements
 
