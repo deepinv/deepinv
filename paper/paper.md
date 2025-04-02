@@ -2,9 +2,10 @@
 title: 'DeepInverse: A Python package for solving imaging inverse problems with deep learning'
 tags:
   - Python
-  - Pytorch
+  - PyTorch
   - imaging inverse problems
   - computational imaging
+  - deep learning
 authors:
   - name: Julián Tachella
     orcid: 0000-0003-3878-9142
@@ -18,6 +19,7 @@ authors:
     equal-contrib: true 
     affiliation: 3
   - name: Andrew Wang
+    orcid: 0000-0003-0838-7986
     equal-contrib: true 
     affiliation: 4
   - name: Dongdong Chen
@@ -100,23 +102,26 @@ bibliography: paper.bib
 
 # Summary
 
-`deepinv` is an open-source pytorch-based library for solving imaging inverse problems with deep learning.
-The library aims to cover most steps in modern imaging pipelines, from the definition of the forward sensing operator
+`deepinv` is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
+The library covers all crucial steps in modern imaging pipelines, from the definition of the forward sensing operator
 to the training of reconstruction networks.
 
 # Statement of need
 
-Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. `deepinv` aims to overcome these limitations, by providing a unified framework for defining imaging operators and solvers, which leverages popular pytorch deep learning library [@paszke2019pytorch], making most modules compatible with auto-differentiation.
-The target audience of this library are both inverse problems researchers (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). `deepinv` has the following objectives: i) accelerate future research by enabling efficient testing and deployment
-of new ideas, ii) enlarge the adoption of deep learning in inverse problems by lowering the entrance bar to new researchers 
-in the field, and iii) enhance research reproducibility via a common definition of imaging operators and reconstruction
-methods and a common framework for defining datasets for inverse problems.
+Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. `deepinv` overcomes these limitations by providing a unified framework for defining imaging operators and solvers, which leverages the popular PyTorch deep learning library [@paszke2019pytorch], making most modules compatible with auto-differentiation.
+The target audience of this library are both researchers in inverse problems (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). `deepinv` has the following objectives:
 
-While other python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus learning-based methods.  SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom losses, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
-Moreover, `deepinv` provides a larger set of imaging operators.
-Another python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover most classes of inverse solvers. 
-There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
-These operator-specific libraries can be used together with deepinv as long as they are compatible with pytorch. 
+1. **Accelerate research** by enabling efficient testing, deployment and transfer
+of new ideas across imaging domains
+2. Enlarge the **adoption of deep learning in inverse problems** by lowering the entrance bar to new researchers and practitioners
+3. Enhance **research reproducibility** via a common framework for imaging operators, reconstruction
+methods, datasets and metrics for inverse problems.
+
+While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico], Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
+Moreover, `deepinv` provides a larger set of realistic imaging operators.
+Another Python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
+There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provide MRI-specific operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
+These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch. 
 
 ![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
@@ -129,18 +134,18 @@ y = N_{\sigma}(A_{\xi}(x))
 where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}:\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 $N_{\sigma}:\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping which characterizes the noise affecting the 
-measurements parameterized by $\sigma$ (e.g., the noise level or gain). The forward operation is simply written in deepinv as `x_hat = physics(y, **params)` where `params` is a dictionary with
-optional forward operator parameters $\xi$. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes.
+measurements parameterized by $\sigma$ (e.g. the noise level or gain). The forward operation is simply written in `deepinv` as `x_hat = physics(y, **params)` where `params` is a dictionary with
+optional forward operator parameters $\xi$, and our framework unifies the wide variety of forward operators across various domains. Most forward operators in the library are matrix-free, scaling gracefully to large image sizes.
 The library provides high-level operator definitions which are associated with specific imaging applications 
-(magnetic resonance imaging, computed tomography, radioastronomy, etc.), but also allows to perform operator algebra,
+(magnetic resonance imaging, computed tomography, radioastronomy, etc.), and allows users to perform operator algebra,
 like summing, concatenating or stacking operators. `deepinv` comes with multiple useful tools for handling
-linear operators, such as matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
+linear operators, such as adjoint, pseudo-inverses and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
 and operator norm and condition number estimators [@paige1982lsqr]. Many common noise distributions are included in the library
 such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The table below summarizes the available forward operators:
 
 | **Family**                     | **Operators** $A$                                                   | **Generators**   $\xi$                                     |
 |--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
-| Pixelwise                      | Denoising, inpainting, demosaicing, decolorize                      | Mask generators                                                                |
+| Pixelwise                      | Denoising, inpainting, demosaicing, decolorize                      | Mask generators, noise level generators                                        |
 |                       |                    |                          |
 | Blur & Super-Resolution        | Blur, space-varying blur, downsampling                              | Motion, Gaussian, diffraction, product-convolution, and confocal blurs. Sinc, bilinear and bicubic antialias filters. |
 |                       |                    |                          |
@@ -163,7 +168,7 @@ such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and Gamma noise. The 
 
 # Reconstruction methods
 
-The library provides multiple solvers which depend on the forward operator and noise distribution:
+The library provides multiple solvers which depend on the forward operator and noise distribution. Our framework unifies the wide variety of solvers that are commonly used in the current literature:
 \begin{equation} \label{eq:solver}
 \hat{x} = \operatorname{R}_{\theta}(y, A_{\xi}, \sigma)
 \end{equation}
@@ -186,7 +191,7 @@ The `optim` module in the library provides a wide variety of optimization algori
 **Plug-and-Play**: Plug-and-Play (PnP) methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
  often using a deep denoiser [@kamilov2023plug]. The library provides popular pretrained denoisers, including DnCNN, DRUNet [@zhang2021plug], and other modern diffusion-based denoisers [@Karras2022edm].
  
-**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm, including optimization parameters and possibly the regularization term parameters, including a deep denoiser in the case of PnP.
+**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm end-to-end, including optimization parameters and possibly the regularization term parameters, for instance a deep denoiser.
 
 ### Sampling-based methods
 Reconstruction methods can also be defined via ordinary or stochastic differential equations, generally as a Markov chain defined by
@@ -205,8 +210,13 @@ define a Markov chain with stationary distribution close to the posterior distri
 ### Non-iterative methods
 Non-iterative methods are part of the `models` module, and include artifact removal, unconditional and conditional generative networks, and foundation models.
 
-**Artifact Removal**: The simplest way of incorporating the forward operator into a network architecture is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture such as a UNet [@jin2017deep].
-These architectures can be thus written as $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$ where the backprojection can be replaced by any pseudoinverse of $A_{\xi}$.
+**Artifact Removal**: The simplest way of incorporating the forward operator into a network architecture is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture $\operatorname{D}_{\sigma}$ such as a UNet [@jin2017deep].
+These architectures can be thus written as
+
+\begin{equation}
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)
+\end{equation}
+where the backprojection can be replaced by any pseudoinverse of $A_{\xi}$. The feedforward model is then trained end-to-end using a loss function (see *"Training"*).
 
 **Unconditional Generative Networks**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $\operatorname{G}_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code to solve an inverse problem via
 \begin{equation} \label{eq:cond}
@@ -239,27 +249,78 @@ The table below summarizes all the categories of reconstruction methods consider
 
 # Training
 
-Training can be performed using the `Trainer` class, which is a high-level interface for training reconstruction networks handling the training loop, logging, and checkpointing. 
-The library also provides the `loss` module with losses for training $\operatorname{R}_{\theta}$ which are especially designed for inverse problems:
+Training can be performed using the `Trainer` class, which is a high-level interface for training reconstruction networks. `Trainer` handles data ingestion, the training loop, logging, and checkpointing. 
 
-**Supervised Losses**: Supervised learning can be done using a dataset of ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$.
+## Losses
+The library also provides the `loss` module with losses for training $\operatorname{R}_{\theta}$ which are especially designed for inverse problems, acting as a framework that unifies loss functions that are widely used in various inverse problems across domains. Loss functions are defined as
+
+\begin{equation} \label{eq:loss}
+l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}(\cdot)\right)
+\end{equation}
+
+and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`.
+
+**Supervised Losses**: Supervised learning can be done using a dataset of ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ by applying a metric to compute the distance between $x$ and $\hat{x}$.
 If the forward model is known, measurements are typically generated directly during training from a dataset of ground-truth references $\{x_i\}_{i=1}^{N}$ .
 
-**Self-Supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$ which can be roughly classified in three classes:
+**Self-Supervised Losses**: Self-supervised losses rely on measurement data only $\{y_i\}_{i=1}^{N}$. We provide implementations of state-of-the-art losses from the literature [@wang2025benchmarking]. These can be roughly classified in three classes:
+
 The first class consists of splitting losses [@batson2019noise2self], with operator-specific solutions for denoising [@krull2019noise2void] [@huang2021neighbor2neighbor] and MRI [@yaman2020self] [@eldeniz2021phase2phase] [@liu2020rare].
 The second class are Stein's Unbiased Risk Estimate (SURE) and related losses: we provide variants of SURE for Gaussian, Poisson and Poisson-Gaussian noise respectively, which can also be used without knowledge of the noise levels [@tachella2025unsure]. The library includes the closely related Recorrupted2Recorrupted [@pang2021recorrupted] which handles Gaussian, Poisson and Gamma noise distributions [@monroy2025gr2r].
-The third class corresponds to nullspace losses, exploiting invariance of the image distribution to transformations [@chen2021equivariant] or access to multiple forward operators [@tachella2022unsupervised]
+The third class corresponds to nullspace losses, exploiting invariance of the image distribution to transformations [@chen2021equivariant] or access to multiple forward operators [@tachella2022unsupervised]. 
+
+The library provide image transforms $\tilde{x}=T_g x$ in the `transform` module where $g\in G$ parametrizes a transformation group, including a group-theoretic model for geometric transforms covering linear (Euclidean) and non-linear (projective, diffeomorphism) transforms [@wang2024perspective]. These can be used for data augmentation, equivariant imaging [@chen2021equivariant] and equivariant networks.
 
 **Network Regularization Losses**:  Network regularization losses which enforce some regularity condition on $\operatorname{R}_{\theta}$, generally having an upper bounded Lipschitz constant or similarly being firmly non-expansive [@pesquet2021learning].
 
 **Adversarial Losses**:  Adversarial losses are used to train conditional or unconditional generative networks. The library provides 
-both supervised [@bora2017compressed] and self-supervised (i.e., no ground-truth) [@bora2018ambientgan] adversarial losses.
-Due to the additional complexity of adversarial trainer, the library provides a specific `AdversarialTrainer` class.
+both supervised [@bora2017compressed] and self-supervised (i.e. no ground-truth) [@bora2018ambientgan] adversarial losses.
+Due to the additional complexity of training adversarial networks, the library provides a specific `AdversarialTrainer` sub-class.
 
-# Testing
-Reconstruction methods can be evaluated using the `Trainer` class. Following the distortion-perception trade-off in image reconstruction problems, 
-the library provides distortion metrics such as PSNR, SSIM [@wang2004image], and LPIPS [@zhang2018unreasonable], 
-as well as perceptual metrics such as NIQE [@mittal2012making] and QNR [@yeganeh2012objective], which can be used to evaluate the quality of the reconstructions.
+## Datasets
+The library provides a common framework for defining and simulating datasets for image reconstruction. Datasets return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and may also return physics parameters $\xi_i$. Given a dataset of reference images $\{x_i\}_{i=1}^{N}$, the library can be used to generate and save a simulated paired dataset to encourage reproducibility. The library also provides interfaces to some popular datasets to facilitate research in specific application domains: 
+
+| **Dataset** | **Domain**    | 
+|---------|--------------------|
+| Div2K [] |  Natural images   | 
+|  |  |
+| Urban100 []  | Natural images |   
+|  |  |
+| Set14 [] |  Natural images   | 
+|  |  |
+| CBSD68 [] |  Natural images   | 
+|  |  |
+| Flickr2K []  | Natural images |   
+|  |  |
+| LSDIR []  | Natural images |   
+|  |  |
+| FastMRI [] | Knee and brain MRI scans |
+|  |  |
+| CMRxRecon [] | Dynamic cardiac MRI scans |
+|  |  |
+| LIDC-IDRI [] | Lung CT scans |
+|  |  |
+| FMD [] | Fluorescence microscopy images |
+|  |  |
+| Kohler [] | Motion blurred images |
+|  |  |
+| NBU [] | Multispectral satellite images |
+
+# Evaluation
+Reconstruction methods can be evaluated on datasets using the method `Trainer.test` using metrics defined in our framework, which compute:
+\begin{equation} \label{eq:metric}
+m = \mathcal{L}\left(\hat{x}, x\right)
+\end{equation}
+
+These are written in `deepinv` as `m = metric(x_hat, x)` in the case of full-reference metrics, or as `m = metric(x_hat)` for no-reference metrics, and provide common functionality such as input normalization and complex magnitude.
+
+Following the distortion-perception trade-off in image reconstruction problems, 
+the library provides common popular distortion metrics such as PSNR, SSIM [@wang2004image], and LPIPS [@zhang2018unreasonable], 
+as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and QNR [@yeganeh2012objective], which can be used to evaluate the quality of the reconstructions.
+
+# Philosophy
+
+`deepinv` is coded in modern Python following a test-driven development philosophy. The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`, and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive **user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation for classes including type annotations. To encourage reproducibility, the library passes random number generators for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`), sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited from base classes (such as the operator pseudo-inverse), and mixins provide specialised methods. This framework reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised functionality while inheriting existing methods.
 
 # Acknowledgements
 

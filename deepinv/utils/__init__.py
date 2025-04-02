@@ -18,6 +18,7 @@ from .plotting import (
 )
 from .demo import (
     load_url_image,
+    load_example,
     load_image,
     load_dataset,
     load_degradation,
