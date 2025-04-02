@@ -29,7 +29,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     # For fixed trained model prior across iterations, initialize with a single model.
     max_iter = 30 if torch.cuda.is_available() else 20  # Number of unrolled iterations
     level = 3
-    if not unfolded_algo == "Unfolded_GradientDescent":
+    if not unfolded_algo == "GradientDescent":
         prior = [
             PnP(
                 denoiser=dinv.models.WaveletDenoiser(

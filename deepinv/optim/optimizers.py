@@ -655,16 +655,13 @@ class ADMM(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(ADMM, self).__init__(ADMMIteration(g_first=g_first, F_fn=F_fn), **kwargs)
 
-
 class DRS(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(DRS, self).__init__(DRSIteration(g_first=g_first, F_fn=F_fn), **kwargs)
 
-
 class GradientDescent(BaseOptim):
     def __init__(self, F_fn=None, **kwargs):
         super(GradientDescent, self).__init__(GDIteration(F_fn=F_fn), **kwargs)
-
 
 class MirrorDescent(BaseOptim):
     def __init__(self, bregman_potential=BregmanL2(), F_fn=None, **kwargs):
@@ -672,11 +669,9 @@ class MirrorDescent(BaseOptim):
             MDIteration(F_fn=F_fn, bregman_potential=bregman_potential), **kwargs
         )
 
-
 class HQS(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(HQS, self).__init__(HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs)
-
 
 class ProximalGradientDescent(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
@@ -684,13 +679,11 @@ class ProximalGradientDescent(BaseOptim):
             PGDIteration(g_first=g_first, F_fn=F_fn), **kwargs
         )
 
-
 class FISTA(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(FISTA, self).__init__(
             FISTAIteration(g_first=g_first, F_fn=F_fn), **kwargs
         )
-
 
 class ProximalMirrorDescent(BaseOptim):
     def __init__(
@@ -703,13 +696,11 @@ class ProximalMirrorDescent(BaseOptim):
             **kwargs,
         )
 
-
 class PrimalDualCP(BaseOptim):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn), **kwargs
         )
-
 
 class SpectralMethod(BaseOptim):
     def __init__(self, **kwargs):
