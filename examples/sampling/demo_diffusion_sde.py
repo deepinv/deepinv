@@ -79,7 +79,7 @@ solver = EulerSolver(timesteps=timesteps, rng=rng)
 
 
 sigma_min = 0.02
-sigma_max = 40
+sigma_max = 20
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max,
     sigma_min=sigma_min,
@@ -255,11 +255,11 @@ seed_2 = 111
 x_hat_new_seed = model(
     y,
     physics,
-    x_init=(2, 1, 64, 64),
+    x_init=(2, 3, 64, 64),
     seed=seed_2,
 )
 dinv.utils.plot(
-    torch.cat([x_hat, x_hat_new_seed], dim=0),
+    [x_hat, x_hat_new_seed[0:1], x_hat_new_seed[1:2]],
     titles=[
         f"posterior sample: seed {seed_1}",
         f"posterior sample: seed {seed_2}",

@@ -297,7 +297,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         denoised = self.denoiser(
             x.to(torch.float32), self.sigma_t(t).to(torch.float32), *args, **kwargs
         ).to(self.dtype)
-        score = (denoised - x.to(self.dtype)) / std.view(-1, 1, 1, 1).pow(2)
+        score = (denoised - x.to(self.dtype)) / std.pow(2)
         return score
 
 
@@ -400,12 +400,12 @@ class VariancePreservingDiffusion(DiffusionSDE):
         scale = self.scale_t(t)
 
         denoised = scale * self.denoiser(
-            (x / scale.view(-1, 1, 1, 1)).to(torch.float32),
+            (x / scale).to(torch.float32),
             sigma.to(torch.float32),
             *args,
             **kwargs,
         ).to(self.dtype)
-        score = (denoised - x.to(self.dtype)) / (scale * sigma).view(-1, 1, 1, 1).pow(2)
+        score = (denoised - x.to(self.dtype)) / (scale * sigma).pow(2)
 
         return score
 
@@ -578,7 +578,7 @@ class PosteriorDiffusion(Reconstructor):
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
             score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
-                (x / scale.view(-1, 1, 1, 1)).to(torch.float32),
+                (x / scale).to(torch.float32),
                 y.to(torch.float32),
                 physics=physics,
                 sigma=sigma.to(torch.float32),

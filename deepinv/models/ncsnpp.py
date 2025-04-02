@@ -323,12 +323,13 @@ class NCSNpp(Denoiser):
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
-            c_in * x,
+            c_in.view(-1, 1, 1, 1) * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
-        D_x = c_skip * x + c_out * F_x
+
+        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
 
         # Rescale [-1,1] output to [0,-1]
         if self._train_on_minus_one_one:
