@@ -164,6 +164,8 @@ which are used by most optimization algorithms.
      - :math:`N_0 (1^{\top} \exp(-\mu A(x))+ \mu \exp(-\mu y)^{\top}A(x))`
    * - :class:`deepinv.optim.AmplitudeLoss`
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
+   * - :class:`deepinv.optim.ZeroFidelity`
+     - :math:`\datafid{x}{y} = 0`. 
 
 
 .. _priors:

@@ -87,6 +87,7 @@ dataset = [
     "datasets",
     "pandas",
     "pydicom",
+    "mat73",
 ]
 
 

@@ -4,7 +4,7 @@ r"""
 Patch priors for limited-angle computed tomography
 ====================================================================================================
 
-In this example we use patch priors for limited angle computed tomography. More precisely, we consider the 
+In this example we use patch priors for limited angle computed tomography. More precisely, we consider the
 inverse problem :math:`y = \mathrm{noisy}(Ax)`, where :math:`A` is the discretized Radon transform
 with :math:`100` equispace angles between 20 and 160 degrees.
 For the reconstruction, we minimize the variational problem
@@ -22,7 +22,7 @@ Here, the regularizier :math:`g` is explicitly defined as
     g(x)=\sum_{i\in\mathcal{I}} h(P_i x),
     \end{equation*}
 
-where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch from the image :math:`x` and 
+where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch from the image :math:`x` and
 :math:`h` is a regularizer on the space of patches.
 We consider the following two choices of :math:`h`:
 
@@ -35,7 +35,7 @@ We consider the following two choices of :math:`h`:
   and Weiss, we refer to the denoising example...
 
 * The patch normalizing flow regularizer (PatchNR) was proposed in `"PatchNR: learning from very few images by patch normalizing flow regularization" <https://iopscience.iop.org/article/10.1088/1361-6420/acce5e/>`_.
-  It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function 
+  It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
 """
@@ -120,7 +120,7 @@ if retrain:
     )
 
     class NFTrainer(Trainer):
-        def compute_loss(self, physics, x, y, train=True):
+        def compute_loss(self, physics, x, y, train=True, epoch=None):
             logs = {}
 
             self.optimizer.zero_grad()  # Zero the gradients
