@@ -7,18 +7,20 @@ from deepinv.models import Denoiser
 
 class NoisyDataFidelity(DataFidelity):
     r"""
-    Preconditioned data fidelity term for noisy data :math:`\datafid{x_t}{y} = \distance{\forw{x_t}}{y}`.
-    Here, :math:`x_t` is a perturbed versions of :math:`x`.
+    Preconditioned data fidelity term for noisy data :math:`- \log p(y|x + \sigma(t) \omega)`
+    with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
 
     This is a base class for the conditional classes for approximating :math:`\log p_t(y|x_t)` used in diffusion
     algorithms for inverse problems, in :class:`deepinv.sampling.PosteriorDiffusion`.
 
-    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`
+    It comes with a `.grad` method computing the score :math:`\nabla_{x_t} \log p_t(y|x_t)`.
+
+    By default we have
 
     .. math::
 
         \begin{equation*}
-            \nabla_{x_t} \log p_t(y|x_t) = P(\forw{x_t'}-y),
+            \nabla_{x_t} \log p(y|x + \sigma(t) \omega) = P(\forw{x_t'}-y),
         \end{equation*}
 
 

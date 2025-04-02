@@ -1,6 +1,6 @@
 r"""
-Building your diffusion posterior sampling method using Stochastic Differential Equations
-=========================================================================================
+Building your diffusion posterior sampling method using SDEs
+============================================================
 
 This demo shows you how to use
 :class:`deepinv.sampling.PosteriorDiffusion` to perform posterior sampling. It also can be used to perform unconditional image generation with arbitrary denoisers, if the data fidelity term is not specified.
@@ -100,6 +100,7 @@ model = PosteriorDiffusion(
     solver=solver,
     dtype=dtype,
     device=device,
+    verbose=True,
 )
 sample_seed_1, trajectory_seed_1 = model(
     y=None,
@@ -170,6 +171,7 @@ model = PosteriorDiffusion(
     solver=solver,
     dtype=dtype,
     device=device,
+    verbose=True,
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
@@ -292,6 +294,7 @@ model = PosteriorDiffusion(
     solver=solver,
     device=device,
     dtype=dtype,
+    verbose=True,
 )
 
 x_hat_vp, trajectory_vp = model(
@@ -399,9 +402,9 @@ model = PosteriorDiffusion(
     denoiser=denoiser,
     sde=sde,
     solver=solver,
-    rescale=True,
     dtype=dtype,
     device=device,
+    verbose=True,
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
@@ -495,11 +498,11 @@ y = physics(x)
 model = PosteriorDiffusion(
     data_fidelity=DPSDataFidelity(),
     denoiser=denoiser,
-    rescale=True,
     sde=sde,
     solver=solver,
     dtype=dtype,
     device=device,
+    verbose=True
 )
 
 # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
