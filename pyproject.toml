@@ -64,7 +64,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "bibtex"
+    "sphinxcontrib.bibtex"
 ]
 
 # optional dependencies for specific denoisers
