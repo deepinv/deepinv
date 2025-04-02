@@ -16,7 +16,7 @@ from torchvision import transforms
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import ProximalGradientDescent
 from deepinv.utils.demo import get_data_home
 
 # %%
@@ -169,8 +169,8 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="PGD",
+model = ProximalGradientDescent(
+    unfold=True,
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,

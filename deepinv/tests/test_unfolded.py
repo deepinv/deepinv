@@ -4,15 +4,15 @@ import torch
 import deepinv as dinv
 from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded, deep_equilibrium
-
+from deepinv.optim import deep_equilibrium
+from deepinv import optim
 
 UNFOLDED_ALGO = [
-    "Unfolded_ProximalGradientDescent",
-    "Unfolded_HQS",
-    "Unfolded_GradientDescent",
-    "Unfolded_ADMM",
-    "Unfolded_FISTA",
+    "ProximalGradientDescent",
+    "HQS",
+    "GradientDescent",
+    "ADMM",
+    "FISTA",
 ]
 
 
@@ -71,7 +71,8 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     ]  # define which parameters from 'params_algo' are trainable
 
     # Define the unfolded trainable model.
-    model = getattr(unfolded, unfolded_algo)(
+    model = getattr(optim, unfolded_algo)(
+        unfold=True,
         params_algo=params_algo,
         trainable_params=trainable_params,
         data_fidelity=data_fidelity,

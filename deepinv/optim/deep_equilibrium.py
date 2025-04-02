@@ -1,12 +1,12 @@
 import torch
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
-from deepinv.unfolded.unfolded import BaseUnfold
+from deepinv.optim import BaseOptim
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import L2
 
 
-class BaseDEQ(BaseUnfold):
+class BaseDEQ(BaseOptim):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
 
@@ -48,7 +48,7 @@ class BaseDEQ(BaseUnfold):
         eps_anderson_acc_backward=1e-4,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, unfold=True, **kwargs)
         self.jacobian_free = jacobian_free
         self.max_iter_backward = max_iter_backward
         self.anderson_acceleration = anderson_acceleration_backward
@@ -197,3 +197,21 @@ def DEQ_builder(
         params_algo=params_algo,
         **kwargs,
     )
+
+
+class DEQ_GradientDescent(BaseDEQ):
+    def __init__(self, F_fn=None, **kwargs):
+        super(DEQ_GradientDescent, self).__init__(GDIteration(F_fn=F_fn), **kwargs)
+
+
+class DEQ_HQS(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
+
+class DEQ_ProximalGradientDescent(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )

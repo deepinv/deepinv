@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import DRS
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -136,13 +136,14 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="DRS",
-    params_algo=params_algo.copy(),
-    trainable_params=trainable_params,
+model = DRS(
+    prior=prior,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior,
+    verbose=verbose,
+    params_algo=params_algo.copy(),
+    unfold=True,
+    trainable_params=trainable_params,
 )
 
 # %%

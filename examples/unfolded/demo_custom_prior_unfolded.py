@@ -15,7 +15,7 @@ import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import Prior
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import ProximalGradientDescent
 from deepinv.utils.demo import get_data_home
 
 # %%
@@ -171,8 +171,8 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="PGD",
+model = ProximalGradientDescent(
+    unfold=True,
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
