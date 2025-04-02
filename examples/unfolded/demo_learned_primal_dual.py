@@ -119,6 +119,7 @@ class gStepPDNet(gStep):
         """
         return cur_prior.prox(x, w)
 
+
 class PDNet_optim(BaseOptim):
     def __init__(self, **kwargs):
         super(PDNet_optim, self).__init__(PDNetIteration(), **kwargs)

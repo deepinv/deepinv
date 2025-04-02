@@ -210,6 +210,7 @@ class DEQ_HQS(BaseDEQ):
             HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs
         )
 
+
 class DEQ_ProximalGradientDescent(BaseDEQ):
     def __init__(self, g_first=False, F_fn=None, **kwargs):
         super(DEQ_ProximalGradientDescent, self).__init__(

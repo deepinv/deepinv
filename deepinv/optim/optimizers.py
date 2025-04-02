@@ -11,6 +11,7 @@ from deepinv.optim.bregman import BregmanL2
 import torch.nn as nn
 from contextlib import nullcontext
 
+
 class BaseOptim(Reconstructor):
     r"""
     Class for optimization algorithms, consists in iterating a fixed-point operator.
@@ -252,7 +253,7 @@ class BaseOptim(Reconstructor):
         self.init_params_algo = params_algo
 
         # set trainable parameters
-        if self.unfold: 
+        if self.unfold:
             for param_key in trainable_params:
                 if param_key in self.init_params_algo.keys():
                     param_value = self.init_params_algo[param_key]
@@ -270,7 +271,9 @@ class BaseOptim(Reconstructor):
             self.params_algo = self.init_params_algo.copy()
             # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
             self.prior = nn.ModuleList(self.prior) if self.prior else None
-            self.data_fidelity = nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+            self.data_fidelity = (
+                nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+            )
 
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
