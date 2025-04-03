@@ -49,6 +49,7 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
+    "deepinv": ("https://deepinv.github.io/deepinv/", None),
 }
 
 # for python3 type hints
@@ -58,6 +59,8 @@ autodoc_typehints_description_target = "documented"
 autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
+# Create link to the API in the auto examples
+autodoc_inherit_docstrings = False
 
 
 ####  userguide directive ###
