@@ -54,6 +54,7 @@ noisy_image = image + sigma * torch.randn_like(image)
 # For this tour, we define an helper function to display comparison of various
 # restored images, with their PSNR values and zoom-in on a region of interest.
 
+
 def show_image_comparison(images, suptitle=None):
     """Display various images restoration with PSNR and zoom-in"""
 
@@ -68,7 +69,12 @@ def show_image_comparison(images, suptitle=None):
         ]
     # Plot the images with zoom-in
     fig = plot_inset(
-        list(images.values()), titles=titles, extract_size=0.2, extract_loc=(0.5, 0.), inset_size=0.5, return_fig=True
+        list(images.values()),
+        titles=titles,
+        extract_size=0.2,
+        extract_loc=(0.5, 0.0),
+        inset_size=0.5,
+        return_fig=True,
     )
 
     # Add a suptitle if it is provided
@@ -300,11 +306,13 @@ plt.legend()
 # to match the training noise level.
 # We can define a wrapper that automatically applies this rescaling.
 
+
 class AdaptedDenoiser:
     r"""
     This function rescales the input image to match the noise level of the model,
     applies the denoiser, and then rescales the output to the original noise level.
     """
+
     def __init__(self, model, sigma_train):
         self.model = model
         self.sigma_train = sigma_train
@@ -321,12 +329,13 @@ class AdaptedDenoiser:
         output = output * sigma / self.sigma_train
         return output
 
+
 # Apply to DnCNN and SwinIR
-sigma_train_dncnn = 2.0/255.0
+sigma_train_dncnn = 2.0 / 255.0
 adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 
 # Apply SwinIR
-sigma_train_swinir = 15.0/255.0
+sigma_train_swinir = 15.0 / 255.0
 adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
 
 denoiser_results = {
@@ -363,9 +372,9 @@ for name, d in adapted_denoisers.items():
     )
     print(f" done ({runtime:.2f}s)")
 df_adapted = pd.DataFrame(res)
-merge_df = pd.concat([
-    merge_df.query("~denoiser.isin(['DnCNN', 'SwinIR'])"), df_adapted
-])
+merge_df = pd.concat(
+    [merge_df.query("~denoiser.isin(['DnCNN', 'SwinIR'])"), df_adapted]
+)
 
 _, ax = plt.subplots()
 for name, g in merge_df.groupby("denoiser"):
