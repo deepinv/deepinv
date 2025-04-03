@@ -151,7 +151,7 @@ show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.
 #   correspond to ``sigma`` but to a threshold value, which needs to be adapted to the noise level.
 # - *Blind denoisers:* These denoisers estimate the level of noise in the input image
 #   to output the cleanest image possible. Example of blind denoisers are :class:`deepinv.models.SCUNet`
-#   or :class:`deepinv.models.Restformer`.
+#   or :class:`deepinv.models.Restormer`.
 #
 # Let us generate a set of noisy images with varying noise levels.
 
