@@ -50,8 +50,32 @@ torch.cuda.manual_seed(0)
 sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
 
-# Compute the PSNR of the noisy image
-psnr_noisy = dinv.metric.cal_psnr(image, noisy_image)
+# %%
+# For this tour, we define an helper function to display comparison of various
+# restored images, with their PSNR values and zoom-in on a region of interest.
+
+def show_image_comparison(images, suptitle=None):
+    """Display various images restoration with PSNR and zoom-in"""
+
+    titles = list(images.keys())
+    if "Original" in images:
+        # If the original image is in the dict, add PSNR in the titles.
+        image = images["Original"]
+        psnr = [dinv.metric.cal_psnr(image, im).item() for im in images.values()]
+        titles = [
+            f"{name} (PSNR: {psnr:.2f})" if name != "Original" else name
+            for name, psnr in zip(images.keys(), psnr)
+        ]
+    # Plot the images with zoom-in
+    fig = plot_inset(
+        list(images.values()), titles=titles, extract_size=0.2, extract_loc=(0.5, 0.), inset_size=0.5, return_fig=True
+    )
+
+    # Add a suptitle if it is provided
+    if suptitle:
+        plt.suptitle(suptitle, size=12)
+        fig.subplots_adjust(top=0.75)
+
 
 # %%
 # We are now ready to explore the different denoisers.
@@ -69,14 +93,14 @@ bm3d = dinv.models.BM3D()
 tgv = dinv.models.TGVDenoiser()
 wavelet = dinv.models.WaveletDictDenoiser()
 
-to_plot = {
+denoiser_results = {
     "Original": image,
     "Noisy": noisy_image,
     "BM3D": bm3d(noisy_image, sigma),
     "TGV": tgv(noisy_image, sigma),
     "Wavelet": wavelet(noisy_image, sigma),
 }
-plot(to_plot, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
+show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
 # %%
 # Deep Denoisers
@@ -90,15 +114,17 @@ plot(to_plot, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 dncnn = dinv.models.DnCNN()
 drunet = dinv.models.DRUNet()
 swinir = dinv.models.SwinIR()
+scunet = dinv.models.SCUNet()
 
-to_plot = {
+denoiser_results = {
     "Original": image,
     "Noisy": noisy_image,
     "DnCNN": dncnn(noisy_image, sigma),
     "DRUNet": drunet(noisy_image, sigma),
+    "SCUNet": scunet(noisy_image, sigma),
     "SwinIR": swinir(noisy_image, sigma),
 }
-plot(to_plot, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
+show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
 # %%
 # Comparing denoisers
@@ -147,17 +173,16 @@ res = [
 # time and performances.
 
 denoisers = {
-    "DRUNet": dinv.models.DRUNet,
-    # 'SwinIR': dinv.models.SwinIR, # SwinIR is slow for this example, skipping it in the doc
-    "SCUNet": dinv.models.SCUNet,
-    "DnCNN": dinv.models.DnCNN,
-    "BM3D": dinv.models.BM3D,
-    "Wavelet": dinv.models.WaveletDictDenoiser,
+    "DRUNet": drunet,
+    # 'SwinIR': sinwir, # SwinIR is slow for this example, skipping it in the doc
+    "SCUNet": scunet,
+    "DnCNN": dncnn,
+    "BM3D": bm3d,
+    "Wavelet": wavelet,
 }
 
-for name, cls in denoisers.items():
+for name, d in denoisers.items():
     print(f"Denoiser {name}...", end="", flush=True)
-    d = cls()
     t_start = time.perf_counter()
     with torch.no_grad():
         clean_images = d(noisy_images, noise_levels)
@@ -169,7 +194,7 @@ for name, cls in denoisers.items():
             for sigma, v in zip(noise_levels, psnr_x)
         ]
     )
-    print(f"done ({runtime:.2f}s)")
+    print(f" done ({runtime:.2f}s)")
 df = pd.DataFrame(res)
 
 # %%
@@ -250,27 +275,109 @@ axes[1].loglog(best_th_psnr["sigma"], best_th_psnr["th"], marker="o")
 axes[1].set_xlabel(r"$\sigma$")
 axes[1].set_ylabel(r"Best threshold")
 
-
 # %%
-# Finally, we can update our comparison of the different denoisers to account for the performances of
-# :class:`dinv.models.WaveletDictDenoiser` once the threshold have been tuned
+# With this tuning, we can update our comparison of the different denoisers to account for
+# the performances of :class:`dinv.models.WaveletDictDenoiser` once the threshold have been tuned
 
 merge_df = best_th_psnr.reset_index(drop=True).drop(columns="th")
-merge_df["denoiser"] = "Tuned Wavelet"
+merge_df["denoiser"] = "Wavelet (tuned)"
 merge_df = pd.concat([df.query("denoiser != 'Wavelet'"), merge_df])
 
-styles = {
-    "Noisy": dict(ls="--", color="black"),
-}
 _, ax = plt.subplots()
 for name, g in merge_df.groupby("denoiser"):
     g.plot(x="sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
 ax.set_xscale("log")
 plt.legend()
 
+# %%#
+# Adapting fixed-noise level denoisers
+# ------------------------------------
+#
+# For fixed-noise level denoiser, we also see poor performances, since these models were trained
+# for a given noise level which does not correspond to the noise level of the input image. See
+# :ref:`pretrained-weights <pretrained-weights>` for more details on the chose noise level.
+# A way to improve the performance of these models is to artificially rescale the input image
+# to match the training noise level.
+# We can define a wrapper that automatically applies this rescaling.
+
+class AdaptedDenoiser:
+    r"""
+    This function rescales the input image to match the noise level of the model,
+    applies the denoiser, and then rescales the output to the original noise level.
+    """
+    def __init__(self, model, sigma_train):
+        self.model = model
+        self.sigma_train = sigma_train
+
+    def __call__(self, image, sigma):
+        if isinstance(sigma, torch.Tensor):
+            # If sigma is a tensor, we assume it is one value per element in the batch
+            assert len(sigma) == image.shape[0]
+            sigma = sigma[:, None, None, None]
+
+        # Rescale the output to match the original noise level
+        rescaled_image = image / sigma * self.sigma_train
+        output = self.model(rescaled_image, self.sigma_train)
+        output = output * sigma / self.sigma_train
+        return output
+
+# Apply to DnCNN and SwinIR
+sigma_train_dncnn = 2.0/255.0
+adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
+
+# Apply SwinIR
+sigma_train_swinir = 15.0/255.0
+adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
+
+denoiser_results = {
+    f"Original": image,
+    f"Noisy": noisy_image,
+    f"DnCNN": dncnn(noisy_image, sigma),
+    f"DnCNN (adapted)": adapted_dncnn(noisy_image, sigma),
+    # f"SwinIR": swinir(noisy_image, sigma),
+    # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
+    f"DRUNet": drunet(noisy_image, sigma),
+}
+show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
 # %%
-# We can also now compare the tradeoff between computation time and performances of the different denoisers.
+# We can finally update our comparison with the adapted denoisers for DnCNN and SwinIR.
+
+adapted_denoisers = {
+    # "SwinIR": adapted_swinir, # SwinIR is slow for this example, skipping it in the doc
+    "DnCNN (adapted)": adapted_dncnn,
+}
+res = []
+for name, d in adapted_denoisers.items():
+    print(f"Denoiser {name}...", end="", flush=True)
+    t_start = time.perf_counter()
+    with torch.no_grad():
+        clean_images = d(noisy_images, noise_levels)
+        psnr_x = psnr(clean_images, image)
+    runtime = time.perf_counter() - t_start
+    res.extend(
+        [
+            {"sigma": sigma.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
+            for sigma, v in zip(noise_levels, psnr_x)
+        ]
+    )
+    print(f" done ({runtime:.2f}s)")
+df_adapted = pd.DataFrame(res)
+merge_df = pd.concat([
+    merge_df.query("~denoiser.isin(['DnCNN', 'SwinIR'])"), df_adapted
+])
+
+_, ax = plt.subplots()
+for name, g in merge_df.groupby("denoiser"):
+    g.plot(x="sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
+ax.set_xscale("log")
+plt.legend()
+
+# %%
+# We can see that the adapted denoisers achieve better performances than the original ones,
+# but they are still not as good as DRUNet which is trained for a wide range of noise levels.
+#
+# Finally, we can also compare the tradeoff between computation time and performances of the different denoisers.
 fig = plt.figure(figsize=(12, 6))
 grid = plt.GridSpec(2, 2, height_ratios=[0.25, 0.75])
 for i, sigma in enumerate(noise_levels[[0, 4]]):
@@ -287,3 +394,7 @@ for i, sigma in enumerate(noise_levels[[0, 4]]):
 ax_legend = fig.add_subplot(grid[0, :])
 ax_legend.legend(handles=handles, ncol=3, loc="center")
 ax_legend.set_axis_off()
+
+# %%
+# We see that depending on the noise-level, the tadeoff between computation time
+# and performances changes, with the deep denoisers performing the best
