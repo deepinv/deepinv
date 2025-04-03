@@ -50,6 +50,13 @@ class PDNet_PrimalBlock(nn.Module):
         self.nl_list = nn.ModuleList([nn.PReLU() for _ in range(self.depth - 1)])
 
     def forward(self, x, Atu):
+        r"""
+        Forward pass of the primal block.
+
+        :param torch.Tensor x: current primal variable.
+        :param torch.Tensor Atu: backprojected dual variable.
+        :return: (:class:`torch.Tensor`) the current primal variable.
+        """
         x_in = torch.cat((x, Atu), dim=1)
 
         x_ = self.in_conv(x_in)
@@ -103,6 +110,13 @@ class PDNet_DualBlock(nn.Module):
         self.nl_list = nn.ModuleList([nn.PReLU() for _ in range(self.depth - 1)])
 
     def forward(self, u, Ax_cur, y):
+        r"""
+        Forward pass of the dual block.
+
+        :param torch.Tensor u: current dual variable.
+        :param torch.Tensor Ax_cur: projection of the primal variable.
+        :param torch.Tensor y: measurements.
+        """
         x_in = torch.cat((u, Ax_cur, y), dim=1)
 
         x_ = self.in_conv(x_in)

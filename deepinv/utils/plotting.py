@@ -1,3 +1,4 @@
+import os
 import math
 import shutil
 from pathlib import Path
@@ -18,6 +19,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from PIL import Image
+import io
 
 
 def config_matplotlib(fontsize=17):
@@ -218,18 +222,22 @@ def plot(
         If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
         and plot at your desired location using ``fig.show()``.
 
-    :param list[torch.Tensor], dict[str -> torch.Tensor], torch.Tensor img_list: list of images, single image, or dict {titles: images} to plot.
+    :param list[torch.Tensor], dict[str, torch.Tensor], torch.Tensor img_list: list of images, dict of titles: images or,
+        single image to plot.
     :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_fn: path to save the plot as a single image (i.e. side-by-side).
-    :param None, str, Path save_dir: path to save the plots as individual images.
+    :param None, str, pathlib.Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
-    :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).
+    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
     :param bool show: show the image plot.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
-    :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
+    :param str interpolation: interpolation to use for the images.
+        See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
+        Default: none
     :param int dpi: DPI to save images.
     :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
     :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
@@ -282,7 +290,7 @@ def plot(
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle, size=12, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
@@ -294,7 +302,7 @@ def plot(
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i], size=9, wrap=True)
             axs[r, i].axis("off")
 
     if tight:
@@ -308,13 +316,15 @@ def plot(
 
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
-        save_dir_i = Path(save_dir) / Path(titles[i])
-        save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
+            save_dir_i = Path(save_dir) / Path(titles[i])
+            save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
+    else:
+        plt.close(fig)
 
     if return_fig and return_axs:
         return fig, axs
@@ -353,7 +363,7 @@ def scatter_plot(
 
     :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
     :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
@@ -448,7 +458,7 @@ def plot_curves(metrics, save_dir=None, show=True):
                 )
                 log_scale = True
             elif metric_name == "psnr":
-                label = r"$PSNR(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
+                label = r"$\text{PSNR}(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
                 log_scale = False
             elif metric_name == "cost":
                 label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
@@ -510,8 +520,8 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param torch.nn.Module model: the model whose parameters are plotted. The parameters are contained in the dictionary
         ``params_algo`` attribute of the model.
     :param dict init_params: the initial parameters of the model, before training. Defaults to ``None``.
-    :param str, Path save_dir: the directory where to save the plot. Defaults to ``None``.
-    :param show bool: whether to show the plot. Defaults to ``True``.
+    :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
+    :param bool show: whether to show the plot. Defaults to ``True``.
     """
 
     if save_dir:
@@ -707,13 +717,17 @@ def plot_videos(
 ):
     r"""Plots and animates a list of image sequences.
 
-    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :meth:`deepinv.utils.plot`
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
+    This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
-    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_dim=2`. All videos must be same time-length.
 
-    Per frame of the videos, this function calls :meth:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+    To display an interactive HTML video in an IPython notebook, use `display=True`. Note IPython must be installed for this.
 
     |sep|
 
@@ -728,18 +742,25 @@ def plot_videos(
         >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
+    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above.
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`.
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1.
+        After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2.
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None
-    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape [B,C,H,W]. Defaults to 2
-    :param str rescale_mode: rescaling mode for :meth:`deepinv.utils.plot`, defaults to "min_max"
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
-    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename. File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
-    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
-    :param bool return_anim: return matplotlib animation object, defaults to False
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename.
+        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to `None`
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to `None`
+    :param bool return_anim: return matplotlib animation object, defaults to `False`
     :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
-    :param \** plot_kwargs: kwargs to pass to :meth:`deepinv.utils.plot`
+    :param dict plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -761,10 +782,19 @@ def plot_videos(
             **plot_kwargs,
         )
 
+    def init():
+        # fig, axs = animate(0)
+        # plt.gcf().set_visible(not plt.gcf().get_visible())
+        return tuple()
+
     fig, axs = animate(0)
+    # plt.gcf().set_visible(not plt.gcf().get_visible())
+    # fig, axs = plt.subplots()
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
+        init_func=init,
         frames=vid_list[0].shape[time_dim],
         **anim_kwargs,
     )
@@ -787,6 +817,72 @@ def plot_videos(
             return HTML(anim.to_jshtml())
         except ImportError:
             warn("IPython can't be found. Install it to use display=True. Skipping...")
+
+
+def save_videos(
+    vid_list: Union[torch.Tensor, List[torch.Tensor]],
+    titles: Union[str, List[str]] = None,
+    time_dim: int = 2,
+    rescale_mode: str = "min_max",
+    figsize: Tuple[int] = None,
+    save_fn: str = None,
+    **plot_kwargs,
+):
+    r"""Saves an animation of a list of image sequences.
+
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
+
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+
+    |sep|
+
+    :Examples:
+
+        Display list of image sequences live in a notebook:
+
+        >>> from deepinv.utils import save_videos
+        >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+        >>> y = torch.rand((1, 3, 5, 16, 16))
+        >>> save_videos([x, y], save_fn="vid.gif") # Save video as GIF
+
+
+    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
+    """
+    if isinstance(vid_list, torch.Tensor):
+        vid_list = [vid_list]
+
+    for i, vid in enumerate(vid_list):
+        for t in range(vid.shape[time_dim]):
+            plot(
+                [vid.select(time_dim, t)],
+                titles=titles,
+                show=False,
+                rescale_mode=rescale_mode,
+                figsize=figsize,
+                save_fn="frame_" + str(t) + ".png",
+                **plot_kwargs,
+            )
+            # hide the plot
+            plt.close()
+
+    # load all frames and save them as a gif
+    frames = []
+    for t in range(vid_list[0].shape[time_dim]):
+        frames.append(Image.open("frame_" + str(t) + ".png"))
+    frames[0].save(
+        save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
+    )
+
+    # remove all frames
+    for t in range(vid_list[0].shape[time_dim]):
+        os.remove("frame_" + str(t) + ".png")
 
 
 def plot_ortho3D(
@@ -828,7 +924,7 @@ def plot_ortho3D(
 
     :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
-    :param None, str, Path save_dir: path to save the plot.
+    :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either 'min_max' (images are linearly rescaled between 0 and 1 using their min and max values) or 'clip' (images are clipped between 0 and 1).

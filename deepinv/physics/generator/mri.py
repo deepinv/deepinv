@@ -1,7 +1,9 @@
-import warnings
-import torch
+from abc import ABC, abstractmethod
 from typing import Optional, Tuple
-import numpy as np
+import warnings
+
+import torch
+
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import random_choice
 
@@ -10,7 +12,7 @@ def ceildiv(a: float, b: float) -> float:
     return -(a // -b)
 
 
-class BaseMaskGenerator(PhysicsGenerator):
+class BaseMaskGenerator(PhysicsGenerator, ABC):
     """Base generator for MRI acceleration masks.
 
     Generate a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and undersampling in the high frequencies.
@@ -68,6 +70,7 @@ class BaseMaskGenerator(PhysicsGenerator):
                 "Number of high frequency lines to be sampled is 0. Reduce acceleration factor or reduce center_fraction."
             )
 
+    @abstractmethod
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Given empty mask, sample lines according to child class sampling strategy.
 
@@ -76,26 +79,36 @@ class BaseMaskGenerator(PhysicsGenerator):
         :param torch.Tensor mask: empty mask of shape (B, C, T, H, W)
         :return torch.Tensor: sampled mask of shape (B, C, T, H, W)
         """
-        raise NotImplementedError()
+        pass
 
-    def step(self, batch_size=1, seed: int = None, **kwargs) -> dict:
+    def step(
+        self, batch_size=1, seed: int = None, img_size: Optional[Tuple] = None, **kwargs
+    ) -> dict:
         r"""
         Create a mask of vertical lines.
 
         :param int batch_size: batch_size.
-        :param int seed: the seed for the random number generator.
+        :param int seed: optional: the seed for the random number generator, to reseed on-the-fly.
+        :param tuple img_size: optionally reset the 2D image size on-the-fly, must be of form (H, W).
 
         :return: dictionary with key **'mask'**: tensor of size (batch_size, C, H, W) or (batch_size, C, T, H, W) with values in {0, 1}.
         :rtype: dict
         """
         self.rng_manual_seed(seed)
+
+        _B = 1 if batch_size == 0 else batch_size
         _T = self.T if self.T > 0 else 1
+        _H, _W = (self.H, self.W) if img_size is None else img_size
+
         mask = self.sample_mask(
-            torch.zeros((batch_size, self.C, _T, self.H, self.W), **self.factory_kwargs)
+            torch.zeros((_B, self.C, _T, _H, _W), **self.factory_kwargs)
         )
 
         if self.T == 0:
             mask = mask[:, :, 0, :, :]
+
+        if batch_size == 0:
+            mask = mask[0]
 
         return {"mask": mask}
 
@@ -126,20 +139,19 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
     """
 
-    def get_pdf(self) -> torch.Tensor:
+    def get_pdf(self, W: int) -> torch.Tensor:
         """Create one-dimensional uniform probability density function across columns, ignoring any fixed sampling columns.
 
+        :param int W: total number of columns (width of mask)
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
         return torch.ones(self.W, device=self.device)
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        pdf = self.get_pdf()
+        pdf = self.get_pdf(_W := mask.shape[-1])
 
         # lines are never randomly sampled from the already sampled center
-        pdf[
-            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)
-        ] = 0
+        pdf[_W // 2 - self.n_center // 2 : _W // 2 + ceildiv(self.n_center, 2)] = 0
 
         # normalise distribution
         pdf = pdf / torch.sum(pdf)
@@ -147,7 +159,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
         for b in range(mask.shape[0]):
             for t in range(mask.shape[2]):
                 idx = random_choice(
-                    self.W, self.n_lines, replace=False, p=pdf, rng=self.rng
+                    _W, self.n_lines, replace=False, p=pdf, rng=self.rng
                 )
                 mask[b, :, t, :, idx] = 1
 
@@ -157,7 +169,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
             :,
             :,
             :,
-            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2),
+            _W // 2 - self.n_center // 2 : _W // 2 + ceildiv(self.n_center, 2),
         ] = 1
 
         return mask
@@ -193,26 +205,17 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     """
 
-    def get_pdf(self) -> torch.Tensor:
+    def get_pdf(self, W: int) -> torch.Tensor:
         """Create one-dimensional Gaussian probability density function across columns, ignoring any fixed sampling columns.
 
         Add uniform distribution so that the probability of sampling high-frequency lines is non-zero.
 
+        :param int W: total number of columns (width of sampling mask)
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-
-        def normal_pdf(length, sensitivity):
-            return torch.exp(
-                -sensitivity
-                * (torch.arange(length, device=self.device) - length / 2) ** 2
-            )
-
-        pdf = normal_pdf(self.W, 0.5 / (self.W / 10.0) ** 2)
-        lmda = self.W / (2.0 * self.acc)
-
-        pdf += lmda * 1.0 / self.W
-
-        return pdf
+        x = torch.arange(W, device=self.device)
+        pdf = torch.exp(-(0.5 / (W / 10.0) ** 2) * (x - W / 2) ** 2)
+        return pdf + (W / (2.0 * self.acc) * 1.0 / W)
 
 
 class EquispacedMaskGenerator(BaseMaskGenerator):
@@ -244,12 +247,13 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
     """
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        pad = (self.W - self.n_center + 1) // 2
+        _W = mask.shape[-1]
+        pad = (_W - self.n_center + 1) // 2
         mask[:, :, :, :, pad : pad + self.n_center] = 1
 
         # determine acceleration rate by adjusting for the number of low frequencies
-        adjusted_accel = (self.acc * (self.n_center - self.W)) / (
-            self.n_center * self.acc - self.W
+        adjusted_accel = (self.acc * (self.n_center - _W)) / (
+            self.n_center * self.acc - _W
         )
         offset = torch.randint(
             low=0,
@@ -264,7 +268,7 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
                 accel_samples = (
                     torch.arange(
                         (t + offset[b]) % adjusted_accel,
-                        self.W - 1,
+                        _W - 1,
                         adjusted_accel,
                         device=self.device,
                     )

@@ -44,14 +44,18 @@ class BaseLossScheduler(Loss):
 
         When called, subselect losses based on defined schedule to be used at this pass, and apply to inputs.
 
-        :param Tensor x_net: model output
-        :param Tensor x: ground truth
-        :param Tensor y: measurement
+        :param torch.Tensor x_net: model output
+        :param torch.Tensor x: ground truth
+        :param torch.Tensor y: measurement
         :param Physics physics: measurement operator
-        :param Module model: reconstruction model
+        :param torch.nn.Module model: reconstruction model
         :param int epoch: current epoch
         """
         losses = self.schedule(epoch)
+
+        if len(losses) == 1 and isinstance(losses[0], (list, tuple)):
+            losses = losses[0]
+
         loss_total = 0.0
         for l in losses:
             loss_total += l.forward(
@@ -73,10 +77,11 @@ class BaseLossScheduler(Loss):
 
         Some loss functions require the model forward call to be adapted before the forward pass.
 
-        :param Module model: reconstruction model
+        :param torch.nn.Module model: reconstruction model
         """
         for l in self.losses:
-            model = l.adapt_model(model, **kwargs)
+            for _l in l if isinstance(l, (list, tuple)) else [l]:
+                model = _l.adapt_model(model, **kwargs)
         return model
 
 
@@ -85,6 +90,8 @@ class RandomLossScheduler(BaseLossScheduler):
     Schedule losses at random.
 
     The scheduler wraps a list of losses. Each time this is called, one loss is selected at random and used for the forward pass.
+
+    Optionally pass a weighting for each loss e.g. if `weightings=[3, 1]` then the first loss is 3 times more likely to be called than the second loss.
 
     :Example:
 
@@ -100,8 +107,21 @@ class RandomLossScheduler(BaseLossScheduler):
     :param Generator generator: torch random number generator, defaults to None
     """
 
+    def __init__(self, *loss, generator=None, weightings=None):
+        super().__init__(*loss, generator=generator)
+        self.weightings = weightings
+
+        if weightings is not None:
+            assert len(self.losses) == len(weightings)
+            self.weightings = sum([[i] * w for (i, w) in enumerate(weightings)], [])
+
     def schedule(self, epoch) -> List[Loss]:
-        choice = randint(2, (1,), generator=self.rng).item()
+        if self.weightings is None:
+            choice = randint(len(self.losses), (1,), generator=self.rng).item()
+        else:
+            choice = self.weightings[
+                randint(len(self.weightings), (1,), generator=self.rng).item()
+            ]
         return [self.losses[choice]]
 
 

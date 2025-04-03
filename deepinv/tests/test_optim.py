@@ -5,10 +5,11 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
+from deepinv.tests.test_physics import find_operator
 
 
 def custom_init_CP(y, physics):
@@ -188,6 +189,45 @@ def test_data_fidelity_l1(device):
     # Check prox
     threshold = 0.5
     prox_manual = torch.Tensor([[[1.0], [3.5], [0.0]]]).to(device)
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
+
+
+def test_data_fidelity_zero(device):
+    # Define two points
+    x = torch.Tensor([[[1], [4], [-0.5]]]).to(device)
+    y = torch.Tensor([[[1], [1], [1]]]).to(device)
+
+    data_fidelity = ZeroFidelity()
+    assert data_fidelity.d(x, y) == 0.0
+
+    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
+    A_forward = lambda v: A @ v
+    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    assert data_fidelity(x, y, physics) == 0.0
+
+    # Check sub-differential
+    grad_manual = torch.zeros_like(x)
+    assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
+
+    # Check prox
+    threshold = 0.5
+    prox_manual = x
     assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
 
     # Testing that d.prox / d.grad and prox_d / grad_d are consistent
@@ -837,3 +877,111 @@ def test_datafid_stacking(imsize, device):
     )
 
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
+
+
+solvers = ["CG", "BiCGStab", "lsqr", "minres"]
+least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
+
+
+@pytest.mark.parametrize("physics_name", least_squares_physics)
+@pytest.mark.parametrize("solver", solvers)
+def test_least_square_solvers(device, solver, physics_name):
+    batch_size = 4
+
+    physics, img_size, _, _ = find_operator(physics_name, device=device)
+
+    x = torch.randn((batch_size, *img_size), device=device)
+
+    tol = 0.01
+    y = physics(x)
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    assert (
+        (physics.A(x_hat) - y).pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / y.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < tol
+    ).all()
+
+    z = x.clone()
+    gamma = 1.0
+
+    x_hat = physics.prox_l2(z, y, gamma=gamma, solver=solver, tol=tol)
+
+    assert (
+        (x_hat - x).abs().pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        / x.pow(2).mean(dim=(1, 2, 3), keepdim=True)
+        < 3 * tol
+    ).all()
+
+    # test backprop
+    y.requires_grad = True
+    x_hat = physics.A_dagger(y, solver=solver, tol=tol)
+    loss = (x_hat - x).pow(2).mean()
+    loss.backward()
+    if not "inpainting" in physics_name:
+        assert y.grad.norm() > 0
+
+
+DTYPES = [torch.float32, torch.complex64]
+
+
+@pytest.mark.parametrize("solver", solvers)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_linear_system(device, solver, dtype):
+    # test the solution of linear systems with random matrices
+    batch_size = 4
+    dim = 32
+
+    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    if solver == "CG":
+        # CG is only for hermite positive definite matrices
+        mat = mat.adjoint() @ mat
+    if solver == "minres" or solver == "BiCGStab":
+        # minres is only for hermite matrices
+        # bcgstab currently only works for symmetric matrices (even though it should also work for non-symmetric)
+        mat = mat + mat.adjoint()
+    if solver == "BiCGStab" and torch.is_complex(mat):
+        # bicgstab currently doesn't work for complex-valued systems
+        return
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+
+    A = lambda x: (mat @ x.T).T
+    AT = lambda x: (mat.adjoint() @ x.T).T
+
+    tol = 1e-3
+    if solver == "CG":
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+    elif solver == "minres":
+        x = dinv.optim.utils.minres(A, b, tol=tol)
+    elif solver == "BiCGStab":
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+    elif solver == "lsqr":
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+    else:
+        raise ValueError("Solver not found")
+
+    x_star = torch.linalg.solve(mat, b.T).T
+
+    # consider relative error
+    assert (
+        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
+    )
+
+
+def test_condition_number(device):
+    imsize = (2, 1, 32, 32)
+
+    c = torch.rand(imsize, device=device) * 0.95 + 0.05
+
+    class DummyPhysics(dinv.physics.LinearPhysics):
+        def A(self, x, **kwargs):
+            return x * c
+
+        def A_adjoint(self, y, **kwargs):
+            return y * c
+
+    physics = DummyPhysics()
+    x = torch.randn(imsize, device=device)
+    cond = physics.condition_number(x)
+    gt_cond = c.max() / c.min()
+    rel_error = (cond - gt_cond).abs() / gt_cond
+    assert rel_error < 0.1

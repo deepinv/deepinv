@@ -1,4 +1,3 @@
-from torch import Tensor
 from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
@@ -21,7 +20,7 @@ class Pansharpen(StackedLinearPhysics):
     It is possible to assign a different noise model to the RGB and grayscale images.
 
     :param tuple[int] img_size: size of the high-resolution multispectral input image, must be of shape (C, H, W).
-    :param torch.Tensor, str, NoneType filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
+    :param torch.Tensor, str, None filter: Downsampling filter. It can be 'gaussian', 'bilinear' or 'bicubic' or a
         custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
@@ -91,14 +90,15 @@ class Pansharpen(StackedLinearPhysics):
         # Set convenience attributes
         self.downsampling = downsampling
         self.decolorize = decolorize
+        self.solver = "lsqr"  # more stable than CG
 
-    def A_dagger(self, y: TensorList, **kwargs) -> Tensor:
+    def A_dagger(self, y: TensorList, **kwargs):
         """
         If the Brovey method is used, compute the classical Brovey solution, otherwise compute the conjugate gradient solution.
 
         See `review paper <https://ieeexplore.ieee.org/document/6998089>`_ for details.
 
-        :param TensorList y: input tensorlist of (MS, PAN)
+        :param deepinv.utils.TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
         """
 
@@ -110,15 +110,9 @@ class Pansharpen(StackedLinearPhysics):
 
             x = self.downsampling.A_adjoint(y[0], **kwargs) * factor
             x *= y[1] / x.mean(1, keepdim=True)
+            return x
         else:
-            A = lambda x: self.A_A_adjoint(x)
-            b = y
-            x = conjugate_gradient(
-                A=A, b=b, max_iter=self.max_iter, tol=self.tol, eps=0.1
-            )
-            x = self.A_adjoint(x)
-
-        return x
+            return super().A_dagger(y, **kwargs)
 
 
 # test code

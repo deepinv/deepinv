@@ -1,3 +1,4 @@
+from typing import Union
 import os
 import csv
 from datetime import datetime
@@ -5,9 +6,12 @@ import platform
 import numpy as np
 
 
-# utils
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """Stores values and keeps track of averages and standard deviations.
+
+    :param str name: meter name for printing
+    :param str fmt: meter format for printing
+    """
 
     def __init__(self, name, fmt=":f"):
         self.name = name
@@ -15,6 +19,8 @@ class AverageMeter(object):
         self.reset()
 
     def reset(self):
+        """Reset meter values."""
+        self.vals = []
         self.val = 0.0
         self.avg = 0.0
         self.sum = 0.0
@@ -22,14 +28,21 @@ class AverageMeter(object):
         self.std = 0.0
         self.sum2 = 0.0
 
-    def update(self, val, n=1):
+    def update(self, val: Union[np.ndarray, float, int], n: int = 1) -> None:
+        """Update average meter.
+
+        :param numpy.ndarray, float, int val: either array (i.e. batch) of values or single value
+        :param int n: weight, defaults to 1
+        """
         if isinstance(val, np.ndarray):
             self.val = np.mean(val)
+            self.vals += val.tolist() if val.ndim > 0 else [val.tolist()]
             self.sum += np.sum(val) * n
             self.sum2 += np.sum(val**2) * n
             self.count += n * np.prod(val.shape)
         else:
             self.val = val
+            self.vals += [val]
             self.sum += val * n
             self.sum2 += val**2 * n
             self.count += n
@@ -64,10 +77,11 @@ class ProgressMeter(object):
         return "[" + fmt + "/" + fmt.format(num_epochs) + "]"
 
 
-# --------------------------------
-# logger
-# --------------------------------
 def get_timestamp() -> str:
+    """Get current timestamp string.
+
+    :return str: timestamp, with separators determined by system.
+    """
     sep = "_" if platform.system() == "Windows" else ":"
     return datetime.now().strftime(f"%y-%m-%d-%H{sep}%M{sep}%S")
 

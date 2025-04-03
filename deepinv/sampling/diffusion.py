@@ -1,4 +1,3 @@
-import torch.nn as nn
 import torch
 import numpy as np
 from tqdm import tqdm
@@ -19,7 +18,7 @@ class DiffusionSampler(MonteCarlo):
     :param torch.nn.Module diffusion: a diffusion model
     :param int max_iter: the maximum number of iterations
     :param tuple clip: the clip range
-    :param callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
+    :param Callable g_statistic: the algorithm computes mean and variance of the g function, by default :math:`g(x) = x`.
     :param float thres_conv: the convergence threshold for the mean and variance
     :param bool verbose: whether to print the progress
     :param bool save_chain: whether to save the chain
@@ -73,10 +72,10 @@ class DDRM(Reconstructor):
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
     It requires that the physics operator has a singular value decomposition, i.e.,
-    it is :meth:`deepinv.physics.DecomposablePhysics` class.
+    it is :class:`deepinv.physics.DecomposablePhysics` class.
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
-    :param list[int], numpy.array sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
+    :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
         order from 1 to 0.
     :param float eta: hyperparameter
     :param float etab: hyperparameter
@@ -311,12 +310,15 @@ class DiffPIR(Reconstructor):
         """
         Get the alpha and beta sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
         """
-        betas = np.linspace(
-            self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
+        betas = torch.linspace(
+            self.beta_start,
+            self.beta_end,
+            self.num_train_timesteps,
+            dtype=torch.float32,
+            device=self.device,
         )
-        betas = torch.from_numpy(betas).to(self.device)
         alphas = 1.0 - betas
-        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+        alphas_cumprod = torch.cumprod(alphas, axis=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
         sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
@@ -350,12 +352,16 @@ class DiffPIR(Reconstructor):
                 (self.sqrt_1m_alphas_cumprod[i] / self.sqrt_alphas_cumprod[i])
             )
             rhos.append(lambda_ * (sigma**2) / (sigma_ks[i] ** 2))
-        rhos, sigmas = torch.tensor(rhos).to(self.device), torch.tensor(sigmas).to(
-            self.device
+        rhos, sigmas = (
+            torch.tensor(rhos).to(self.device),
+            torch.tensor(sigmas).to(self.device),
         )
 
-        seq = np.sqrt(np.linspace(0, self.num_train_timesteps**2, self.max_iter))
-        seq = [int(s) for s in list(seq)]
+        seq = torch.sqrt(
+            torch.linspace(
+                0.0, self.num_train_timesteps**2, self.max_iter, device=self.device
+            )
+        ).type(torch.int32)
         seq[-1] = seq[-1] - 1
 
         return rhos, sigmas, seq
@@ -364,16 +370,15 @@ class DiffPIR(Reconstructor):
         """
         Find the argmin of the nearest value in an array.
         """
-        array = np.asarray(array)
-        idx = (np.abs(array - value)).argmin()
-        return torch.tensor([idx])
+        idx = torch.abs(array - value).argmin()
+        return idx
 
     def compute_alpha(self, betas, t):
         """
         Compute the alpha sequence from the beta sequence.
         """
         alphas = 1.0 - betas
-        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)
+        alphas_cumprod = torch.cumprod(alphas, axis=0)
         at = alphas_cumprod[t]
         return at
 
@@ -383,12 +388,15 @@ class DiffPIR(Reconstructor):
         """
         Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
         """
-        betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
-        betas = torch.from_numpy(
-            betas
-        )  # .to(self.device) Removing this for now, can be done outside
+        betas = torch.linspace(
+            beta_start,
+            beta_end,
+            num_train_timesteps,
+            dtype=torch.float32,
+            device=self.device,
+        )
         alphas = 1.0 - betas
-        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+        alphas_cumprod = torch.cumprod(alphas, axis=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
         sqrt_recip_alphas_cumprod = torch.sqrt(1.0 / alphas_cumprod)
@@ -437,9 +445,7 @@ class DiffPIR(Reconstructor):
                 curr_sigma = self.sigmas[self.seq[i]]
 
                 # time step associated with the noise level sigmas[i]
-                t_i = self.find_nearest(
-                    self.reduced_alpha_cumprod, curr_sigma.cpu().numpy()
-                )
+                t_i = self.find_nearest(self.reduced_alpha_cumprod, curr_sigma)
                 at = 1 / sqrt_recip_alphas_cumprod[t_i] ** 2
 
                 if (
@@ -468,7 +474,7 @@ class DiffPIR(Reconstructor):
                     # Sampling step
                     t_im1 = self.find_nearest(
                         self.reduced_alpha_cumprod,
-                        self.sigmas[self.seq[i + 1]].cpu().numpy(),
+                        self.sigmas[self.seq[i + 1]],
                     )  # time step associated with the next noise level
 
                     eps = (
@@ -480,10 +486,10 @@ class DiffPIR(Reconstructor):
                     x = (
                         self.sqrt_alphas_cumprod[t_im1] * x0
                         + self.sqrt_1m_alphas_cumprod[t_im1]
-                        * np.sqrt(1 - self.zeta)
+                        * (1 - self.zeta) ** 0.5
                         * eps
                         + self.sqrt_1m_alphas_cumprod[t_im1]
-                        * np.sqrt(self.zeta)
+                        * self.zeta**0.5
                         * torch.randn_like(x)
                     )  # sampling
 
@@ -571,13 +577,15 @@ class DPS(Reconstructor):
         Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
 
         """
-        betas = np.linspace(
-            self.beta_start, self.beta_end, self.num_train_timesteps, dtype=np.float32
+        betas = torch.linspace(
+            self.beta_start,
+            self.beta_end,
+            self.num_train_timesteps,
+            dtype=torch.float32,
+            device=self.device,
         )
-        betas = torch.from_numpy(betas).to(self.device)
-
         alpha_cumprod = (
-            1 - torch.cat([torch.zeros(1).to(betas.device), betas], dim=0)
+            1 - torch.cat([torch.zeros(1, device=self.device), betas], dim=0)
         ).cumprod(dim=0)
         return betas, alpha_cumprod
 

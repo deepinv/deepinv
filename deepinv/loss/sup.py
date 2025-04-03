@@ -1,7 +1,6 @@
 from typing import Union
 
 import torch
-import torch.nn as nn
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 
@@ -37,6 +36,6 @@ class SupLoss(Loss):
 
         :param torch.Tensor x_net: Reconstructed image :math:\inverse{y}.
         :param torch.Tensor x: Target (ground-truth) image.
-        :return: (torch.Tensor) loss.
+        :return: (:class:`torch.Tensor`) loss.
         """
         return self.metric(x_net, x)

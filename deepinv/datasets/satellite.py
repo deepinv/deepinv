@@ -4,7 +4,6 @@ import os
 
 from natsort import natsorted
 import numpy as np
-from scipy.io import loadmat
 
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
@@ -13,6 +12,7 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
     calculate_md5_for_folder,
+    loadmat,
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
@@ -42,6 +42,9 @@ class NBUDataset(Dataset):
 
         Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
 
+    See :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` for example using
+    this dataset with remote sensing inverse problems.
+
     |sep|
 
     :Examples:
@@ -58,7 +61,7 @@ class NBUDataset(Dataset):
             print(dataset.check_dataset_exists())
             print(len(dataset))
 
-    :param str, Path root_dir: NBU dataset root directory
+    :param str, pathlib.Path root_dir: NBU dataset root directory
     :param str satellite: satellite name, choose from the options above, defaults to "gaofen-1".
     :param bool return_pan: if ``True``, return panchromatic images as TensorList of (MS, PAN), if ``False``, just return multispectral images.
     :param Callable transform_ms: optional transform for multispectral images

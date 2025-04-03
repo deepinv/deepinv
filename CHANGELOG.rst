@@ -10,24 +10,52 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
+- New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
+- Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
 - Multispectral: NBU satellite image dataset, ERGAS+SAM metrics, PanNet, generalised pansharpening and decolorize (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - StackedPhysics: class definition, loss and data-fidelity (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Added HyperSpectral Unmixing operator (:gh:`353` by `Dongdong Chen`_ and `Andrew Wang`_)
+- Add CASSI operator (:gh:`377` by `Andrew Wang`_)
+
+- Add validation dataset to data generator (:gh:`363` by `Andrew Wang`_)
+- Add Rescale and ToComplex torchvision-style transforms (:gh:`363` by `Andrew Wang`_)
+- Add SimpleFastMRISliceDataset, simplify FastMRISliceDataset, add FastMRI tests (:gh:`363` by `Andrew Wang`_)
+- FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
+- Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
+- Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
+- CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
+- Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
+- Fixed device bug (:gh:`415` by `Dongdong Chen`_)
+- Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
+- Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+- Set sphinx warnings as errors (:gh:`379` by `Julian Tachella`_)
+- Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Changed the R2R loss to handle multiple noise distributions (:gh:`380` by `Brayan Monroy`_)
+- `Trainer.get_samples_online` using physics generator now updates physics params via both `update_parameters` and forward pass (:gh:`386` by `Andrew Wang`_)
+- Deprecate Trainer freq_plot in favour of plot_interval (:gh:`388` by `Andrew Wang`_)
 
 v0.2.2
 ----------------
 
 New Features
 ^^^^^^^^^^^^
+- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`)
+- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
+- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen` and `Samuel Hurault`)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen` and `Mathieu Terris`)
+
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
@@ -258,7 +286,7 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
-.. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
+.. _Minh Hai Nguyen: https://mh-nguyen712.github.io/
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
@@ -267,3 +295,4 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php

@@ -401,7 +401,7 @@ plot(
 # %%
 # Using the DiffPIR algorithm in your inverse problem
 # ------------------------------------------------------
-# You can readily use this algorithm via the :meth:`deepinv.sampling.DiffPIR` class.
+# You can readily use this algorithm via the :class:`deepinv.sampling.DiffPIR` class.
 #
 # ::
 #

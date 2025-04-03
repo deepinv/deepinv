@@ -1,6 +1,7 @@
 import pytest
 
 import math
+import numpy as np
 import torch
 
 import deepinv
@@ -10,13 +11,20 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+
 LIST_SURE = [
     "Gaussian",
     "Poisson",
     "PoissonGaussian",
     "GaussianUnknown",
     "PoissonGaussianUnknown",
+]
+
+LIST_R2R = [
+    "Gaussian",
+    "Poisson",
+    "Gamma",
 ]
 
 
@@ -62,10 +70,10 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.TVLoss())
     elif loss_name == "score":
         loss.append(dinv.loss.ScoreLoss(dinv.physics.GaussianNoise(0.1), 100))
-    elif loss_name == "sup":
+    elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
-        loss.append(dinv.loss.R2RLoss())
+        loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     else:
         raise Exception("The loss doesnt exist")
 
@@ -122,6 +130,57 @@ def test_sure(noise_type, device):
 
     rel_error = (sure - mse).abs() / mse
     assert rel_error < 0.9
+
+
+def choose_r2r(noise_type):
+    gain = 1.0
+    sigma = 0.1
+    l = 10.0
+
+    if noise_type == "Poisson":
+        noise_model = dinv.physics.PoissonNoise(gain)
+        loss = dinv.loss.R2RLoss(alpha=0.9999)
+    elif noise_type == "Gaussian":
+        noise_model = dinv.physics.GaussianNoise(sigma)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
+    elif noise_type == "Gamma":
+        noise_model = dinv.physics.GammaNoise(l)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
+    else:
+        raise Exception("The R2R loss doesnt exist")
+
+    return loss, noise_model
+
+
+@pytest.mark.parametrize("noise_type", LIST_R2R)
+def test_r2r(noise_type, device):
+    imsize = (3, 256, 256)  # a bigger image reduces the error
+    # choose backbone denoiser
+    backbone = dinv.models.MedianFilter()
+
+    # choose a reconstruction architecture
+    f = dinv.models.ArtifactRemoval(backbone)
+
+    # choose training losses
+    loss, noise = choose_r2r(noise_type)
+    f = loss.adapt_model(f)
+
+    # choose noise
+    torch.manual_seed(0)  # for reproducibility
+    physics = dinv.physics.Denoising(noise)
+
+    batch_size = 1
+    x = torch.ones((batch_size,) + imsize, device=device)
+    y = physics(x)
+
+    x_net = f(y, physics, update_parameters=True)
+    mse = deepinv.metric.MSE()(x, x_net)
+    r2r = loss(y=y, x_net=x_net, physics=physics, model=f)
+
+    rel_error = (r2r - mse).abs() / mse
+    rel_error = rel_error.item()
+    print(rel_error)
+    assert rel_error < 1.0
 
 
 @pytest.fixture
@@ -195,6 +254,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     trainer = dinv.Trainer(
         model=model,
         train_dataloader=dataloader,
+        eval_dataloader=test_dataloader,
         epochs=epochs,
         scheduler=scheduler,
         losses=loss,
@@ -205,6 +265,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         save_path=save_dir / "dinv_test",
         plot_images=False,
         verbose=False,
+        log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
     # test the untrained model
@@ -278,23 +339,81 @@ def test_measplit(device):
     assert split_loss > 0 and n2n_loss > 0
 
 
-LOSS_SCHEDULERS = ["random", "interleaved"]
+@pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
+@pytest.mark.parametrize("img_size", [(1, 320, 320)])
+@pytest.mark.parametrize("split_ratio", [0.6, 0.9])
+def test_measplit_masking(mode, img_size, split_ratio):
+    acc = 2
+
+    class DummyModel(torch.nn.Module):
+        def forward(self, y, physics, *args, **kwargs):
+            return y
+
+    class DummyModel2(torch.nn.Module):
+        def forward(self, y, physics, *args, **kwargs):
+            return physics.mask
+
+    if mode == "test_split_y":
+        model = DummyModel()
+        dummy_metric = lambda y2_hat, y2: y2 * y2.mean()
+    elif mode == "test_split_physics":
+        model = DummyModel2()
+        dummy_metric = lambda y2_hat, y2: y2_hat * y2.mean()
+
+    physics = dinv.physics.Inpainting(
+        img_size,
+        mask=dinv.physics.generator.GaussianMaskGenerator(img_size, acc).step()["mask"],
+    )
+    loss = dinv.loss.SplittingLoss(
+        eval_split_input=False,
+        mask_generator=dinv.physics.generator.GaussianSplittingMaskGenerator(
+            img_size, split_ratio=split_ratio
+        ),
+        metric=dummy_metric,
+    )
+    model.train()
+    model = loss.adapt_model(model)
+
+    x = torch.ones(img_size).unsqueeze(0)
+    y = physics(x)
+    with torch.no_grad():
+        out = model(y, physics, update_parameters=True)
+
+    assert torch.all(out == model.mask)
+    assert np.allclose(model.mask.mean().item() * acc, split_ratio, atol=1e-4)
+
+    if mode == "test_split_y":
+        y1 = out
+        y2 = loss(x, y, physics, model)
+        assert torch.all(y1 + y2 == y)
+    elif mode == "test_split_physics":
+        physics1mask = out
+        y2_hat = loss(x, y, physics, model)
+        assert torch.all(physics1mask + y2_hat == y)
+
+
+LOSS_SCHEDULERS = ["random", "interleaved", "random_weighted"]
 
 
 @pytest.mark.parametrize("scheduler_name", LOSS_SCHEDULERS)
 def test_loss_scheduler(scheduler_name):
+    # Skeleton model
+    class TestModel:
+        def __init__(self):
+            self.a = 0
+
     # Skeleton loss function
     class TestLoss(dinv.loss.Loss):
         def __init__(self, a=1):
             super().__init__()
-            self.adapted = False
             self.a = a
 
         def forward(self, x_net, x, y, physics, model, epoch, **kwargs):
             return self.a
 
-        def adapt_model(self, model, **kwargs):
-            self.adapted = True
+        def adapt_model(self, model: TestModel, **kwargs):
+            model.a += self.a
+            return model
 
     rng = torch.Generator().manual_seed(0)
 
@@ -302,16 +421,27 @@ def test_loss_scheduler(scheduler_name):
         l = RandomLossScheduler(TestLoss(1), TestLoss(2), generator=rng)
     elif scheduler_name == "interleaved":
         l = InterleavedLossScheduler(TestLoss(1), TestLoss(2))
+    elif scheduler_name == "random_weighted":
+        l = RandomLossScheduler(
+            [TestLoss(0), TestLoss(2)], TestLoss(1), generator=rng, weightings=[4, 1]
+        )
 
     # Loss scheduler adapts all inside losses
-    l.adapt_model(None)
-    assert l.losses[0].adapted == True
+    model = TestModel()
+    l.adapt_model(model)
+    assert model.a == 3
 
-    # Scheduler calls both losses eventually
+    # Scheduler calls all losses eventually
     loss_total = 0
+    loss_log = []
     for _ in range(20):
-        loss_total += l(None, None, None, None, None, None)
+        loss = l(None, None, None, None, None, None)
+        loss_total += loss
+        loss_log += [loss]
     assert loss_total > 20
+
+    if scheduler_name == "random_weighted":
+        assert loss_log.count(2) > loss_log.count(1)
 
 
 def test_stacked_loss(device, imsize):

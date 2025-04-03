@@ -15,18 +15,15 @@ Generating Datasets
    :nosignatures:
 
     deepinv.datasets.HDF5Dataset
-    deepinv.datasets.generate_dataset
 
-
-PatchDataset
-------------
 
 .. autosummary::
    :toctree: stubs
-   :template: myclass_template.rst
+   :template: myfunc_template.rst
    :nosignatures:
 
-    deepinv.datasets.PatchDataset
+   deepinv.datasets.generate_dataset
+
 
 Image Datasets
 --------------
@@ -42,9 +39,36 @@ Image Datasets
     deepinv.datasets.Set14HR
     deepinv.datasets.CBSD68
     deepinv.datasets.FastMRISliceDataset
+    deepinv.datasets.SimpleFastMRISliceDataset
+    deepinv.datasets.CMRxReconSliceDataset
     deepinv.datasets.LidcIdriSliceDataset
     deepinv.datasets.Flickr2kHR
     deepinv.datasets.LsdirHR
     deepinv.datasets.FMD
     deepinv.datasets.Kohler
     deepinv.datasets.NBUDataset
+
+
+Other Datasets
+--------------
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.PatchDataset
+    deepinv.datasets.utils.PlaceholderDataset
+
+
+Data Transforms
+---------------
+.. userguide:: data-transforms
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.utils.Rescale
+    deepinv.datasets.utils.ToComplex

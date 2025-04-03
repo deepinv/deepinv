@@ -168,9 +168,9 @@ class Homography(Transform):
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
 
-    Subgroup transformations include :class:`deepinv.transform.Affine`, :class:`deepinv.transform.Similarity`,
-    :class:`deepinv.transform.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
-    :class:`deepinv.transform.Rotation` and semigroup :class:`deepinv.transform.Scale`.
+    Subgroup transformations include :class:`deepinv.transform.projective.Affine`, :class:`deepinv.transform.projective.Similarity`,
+    :class:`deepinv.transform.projective.Euclidean` along with the basic :class:`deepinv.transform.Shift`,
+    :class:`deepinv.transform.Rotate` and semigroup :class:`deepinv.transform.Scale`.
 
     Transformations with perspective effects (i.e. pan+tilt) are recovered by setting
     theta_max > 0.
@@ -295,7 +295,8 @@ class Affine(Homography):
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
