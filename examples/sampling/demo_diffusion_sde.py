@@ -55,7 +55,7 @@ from deepinv.models import NCSNpp
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 figsize = 2.5
-gif_frequency = 5  # Increase this value to save the GIF saving time
+gif_frequency = 25  # Increase this value to save the GIF saving time
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -87,7 +87,6 @@ sde = VarianceExplodingDiffusion(
     device=device,
     dtype=dtype,
 )
-# sde = VariancePreservingDiffusion(device=device, dtype=dtype)
 
 # %%
 # Reverse-time SDE as sampling process
@@ -118,6 +117,7 @@ dinv.utils.plot(
     save_fn="sde_sample.png",
     figsize=(figsize, figsize),
 )
+
 dinv.utils.save_videos(
     trajectory_seed_1.cpu()[::gif_frequency],
     time_dim=0,
@@ -148,17 +148,17 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/sde_sample.png
+#    .. image-sg-ignore:: /auto_examples/images/sde_sample.png
 #       :alt: example of unconditional sample
 #       :srcset: /auto_examples/images/sde_sample.png
 #       :class: custom-img
-#       :optional:
+#       :ignore_missing: true
 #
-#    .. image-sg:: /auto_examples/images/sde_trajectory.gif
+#    .. image-sg-ignore:: /auto_examples/images/sde_trajectory.gif
 #       :alt: example of unconditional trajectory
 #       :srcset: /auto_examples/images/sde_trajectory.gif
 #       :class: custom-gif
-#       :optional:
+#       :ignore_missing: true
 
 
 # %%
@@ -229,16 +229,16 @@ except FileNotFoundError:
 #
 # .. container:: image-col
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample.png
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample.png
 #       :alt: example of posterior sample
 #       :srcset: /auto_examples/images/posterior_sample.png
-#       :optional:
+#       :ignore_missing: true
 #
-#    .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#    .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
 #       :alt: example of posterior trajectory
 #       :srcset: /auto_examples/images/posterior_trajectory.gif
+#       :ignore_missing: true
 #       :class: custom-gif
-#       :optional:
 
 
 # %%
@@ -291,10 +291,10 @@ except FileNotFoundError:
 #
 # .. container:: image-row
 #
-#    .. image-sg:: /auto_examples/images/posterior_samples.png
+#    .. image-sg-ignore:: /auto_examples/images/posterior_samples.png
 #       :alt: varying posterior samples
 #       :srcset: /auto_examples/images/posterior_samples.png
-#       :optional:
+#       :ignore_missing: true
 #
 
 
@@ -373,23 +373,23 @@ except FileNotFoundError:
 #
 # .. container:: image-col
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample_ve_vp.png
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_ve_vp.png
 #       :alt: posterior sample with VP
 #       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
-#       :optional:
+#       :ignore_missing: true
 #    .. container:: image-row
 #
-#       .. image-sg:: /auto_examples/images/posterior_trajectory.gif
+#       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
 #           :alt: posterior trajectory with VE
 #           :srcset: /auto_examples/images/posterior_trajectory.gif
+#           :ignore_missing: true
 #           :class: custom-gif
-#           :optional:
 #
-#       .. image-sg:: /auto_examples/images/posterior_trajectory_vp.gif
+#       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory_vp.gif
 #           :alt: posterior trajectory with VP
 #           :srcset: /auto_examples/images/posterior_trajectory_vp.gif
+#           :ignore_missing: true
 #           :class: custom-gif
-#           :optional:
 
 # %%
 # Plug-and-play Posterior Sampling with arbitrary denoisers
@@ -484,16 +484,16 @@ except FileNotFoundError:
 #
 # .. container:: image-col
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.png
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.png
 #       :alt: posterior sample DRUNet
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
-#       :optional:
+#       :ignore_missing: true
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample_DRUNet.gif
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.gif
 #       :alt: posterior trajectory DRUNet
 #       :srcset: /auto_examples/images/posterior_sample_DRUNet.gif
+#       :ignore_missing: true
 #       :class: custom-gif
-#       :optional:
 
 # %%
 #
@@ -584,13 +584,13 @@ except FileNotFoundError:
 #
 # .. container:: image-col
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.png
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DiffUNet.png
 #       :alt: posterior sample DiffUNet
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.png
-#       :optional:
+#       :ignore_missing: true
 #
-#    .. image-sg:: /auto_examples/images/posterior_sample_DiffUNet.gif
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DiffUNet.gif
 #       :alt: posterior trajectory DiffUNet
 #       :srcset: /auto_examples/images/posterior_sample_DiffUNet.gif
+#       :ignore_missing: true
 #       :class: custom-gif
-#       :optional:

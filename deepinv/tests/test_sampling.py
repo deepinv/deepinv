@@ -197,15 +197,15 @@ def test_sde(device):
         EulerSolver,
         HeunSolver,
     )
-    from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
+    from deepinv.models import NCSNpp, ADMUNet, DRUNet
 
     # Set up all denoisers
     denoisers = []
     list_kwargs = []
-    denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
+    denoisers.append(NCSNpp(pretrained="download").to(device))
     list_kwargs.append(dict())
 
-    denoisers.append(EDMPrecond(model=ADMUNet(pretrained="download")).to(device))
+    denoisers.append(ADMUNet(pretrained="download").to(device))
     list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
 
     denoisers.append(DRUNet(pretrained="download").to(device))
@@ -263,7 +263,11 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = sample_2
+                x = dinv.utils.load_url_image(
+                    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+                    img_size=64,
+                    resize_mode="resize",
+                ).to(device)
                 physics = dinv.physics.Inpainting(
                     tensor_size=x.shape[1:], mask=0.5, device=device
                 )
