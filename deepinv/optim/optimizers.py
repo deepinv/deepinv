@@ -652,57 +652,265 @@ def str_to_class(classname):
 
 
 class ADMM(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, unfold=False, device=torch.device("cpu"), g_first=False, F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(ADMM, self).__init__(ADMMIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(ADMM, self).__init__(
+            ADMMIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class DRS(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, g_first=False, unfold=False, device=torch.device("cpu"),  F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(DRS, self).__init__(DRSIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(DRS, self).__init__(
+            DRSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class GradientDescent(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, unfold=False, device=torch.device("cpu"), F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(GradientDescent, self).__init__(GDIteration(F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(GradientDescent, self).__init__(
+            GDIteration(F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class HQS(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, g_first=False, unfold=False, device=torch.device("cpu"),  F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(HQS, self).__init__(HQSIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class ProximalGradientDescent(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, g_first=False, unfold=False, device=torch.device("cpu"),  F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(ProximalGradientDescent, self).__init__(PGDIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class FISTA(BaseOptim):
-    def __init__(self, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, g_first=False, unfold=False, device=torch.device("cpu"),  F_fn=None, **kwargs):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(FISTA, self).__init__(FISTAIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(FISTA, self).__init__(
+            FISTAIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class MirrorDescent(BaseOptim):
-    def __init__(self, bregman_potential=BregmanL2(), data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, unfold=False, device=torch.device("cpu"), F_fn=None, **kwargs):
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(MirrorDescent, self).__init__(MDIteration(F_fn=F_fn, bregman_potential=bregman_potential), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(MirrorDescent, self).__init__(
+            MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class ProximalMirrorDescent(BaseOptim):
-    def __init__(self, bregman_potential=BregmanL2(), data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, unfold=False, device=torch.device("cpu"), g_first=False, F_fn=None, **kwargs):
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        **kwargs,
+    ):
         params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
-        super(ProximalMirrorDescent, self).__init__(PMDIteration(bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+        super(ProximalMirrorDescent, self).__init__(
+            PMDIteration(
+                bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
+            ),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class PrimalDualCP(BaseOptim):
-    def __init__(self, K = lambda x : x, K_adjoint = lambda x : x, data_fidelity=None, prior=None, lambda_reg=1.0, stepsize=1.0, g_param=None, max_iter=100, unfold=False, device=torch.device("cpu"), g_first=False, F_fn=None, **kwargs):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param, "K": K, "K_adjoint": K_adjoint}
-        super(PrimalDualCP, self).__init__(CPIteration(g_first=g_first, F_fn=F_fn), data_fidelity=data_fidelity, prior=prior, params_algo=params_algo, max_iter=max_iter, unfold=unfold, device=device, **kwargs)
+    def __init__(
+        self,
+        K=lambda x: x,
+        K_adjoint=lambda x: x,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "K": K,
+            "K_adjoint": K_adjoint,
+        }
+        super(PrimalDualCP, self).__init__(
+            CPIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
 
 
 class SpectralMethod(BaseOptim):
