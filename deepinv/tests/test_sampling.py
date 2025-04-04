@@ -292,3 +292,34 @@ def test_sde(device):
                     torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean")
                     < 1e-2
                 )
+
+
+@torch.no_grad()
+def test_noisy_data_fidelity(device):
+    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    import itertools
+
+    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_clip = [None, (-100, 100)]
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.gaussian_blur(sigma=(3, 3)), device=device
+    )
+    y = physics(x)
+    sigma = 0.1
+    for data_fid_class, clip in itertools.product(all_data_fid_classes, all_clip):
+        data_fid = data_fid_class(
+            denoiser=denoiser,
+            clip=clip,
+        )
+        # Test forward pass
+        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
+        # Test grad pass
+        assert data_fid.grad(x, y, physics, sigma).shape == x.shape
+        # Test preconditioning
+        try:
+            output = data_fid.precond(y, physics, sigma)
+            assert output.shape == x.shape
+        except NotImplementedError:
+            pass
