@@ -37,6 +37,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
 ]
+
 copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {
