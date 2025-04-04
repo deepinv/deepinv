@@ -41,6 +41,16 @@ class BaseSample(Reconstructor):
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
     Monte Carlo samples. It can also maintain a history of the `history_size` most recent samples.
 
+    Note on retained sample calculation:
+        With the default parameters (max_iter=100, burnin_ratio=0.2, thinning=10), the number
+        of samples actually used for statistics is calculated as follows:
+        
+        - Total iterations: 100
+        - Burn-in period: 100 * 0.2 = 20 iterations (discarded)
+        - Remaining iterations: 80
+        - With thinning of 10, we keep iterations 20, 30, 40, 50, 60, 70, 80, 90
+        - This results in 8 retained samples used for computing the posterior statistics
+
     :param deepinv.sampling.SamplingIterator iterator: The sampling iterator that defines the MCMC kernel
     :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics
     :param deepinv.optim.Prior prior: Negative log-prior
