@@ -122,9 +122,9 @@ class WaveletDenoiser(Denoiser):
         :param float, torch.Tensor ths: threshold.
         """
         return torch.maximum(
-            torch.tensor([0], device=x.device).type(x.dtype), x - abs(ths)
+            torch.tensor([0], device=x.device, dtype=x.dtype), x - abs(ths)
         ) + torch.minimum(
-            torch.tensor([0], device=x.device).type(x.dtype), x + abs(ths)
+            torch.tensor([0], device=x.device, dtype=x.dtype), x + abs(ths)
         )
 
     def prox_l0(self, x, ths=0.1):
