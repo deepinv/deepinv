@@ -11,7 +11,7 @@ from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford
 from deepinv.sampling.sampling_iterators import *
 from deepinv.optim.utils import check_conv
-from typing import Union
+from typing import Union, Dict, Callable, List
 
 
 class BaseSample(Reconstructor):
@@ -59,15 +59,15 @@ class BaseSample(Reconstructor):
         iterator: SamplingIterator,
         data_fidelity: DataFidelity,
         prior: Prior,
-        params_algo={"lambda": 1.0, "stepsize": 1.0},
-        max_iter=100,
-        callback=lambda x: x,
-        burnin_ratio=0.2,
-        thresh_conv=1e-3,
+        params_algo: Dict = {"lambda": 1.0, "stepsize": 1.0},
+        max_iter: int = 100,
+        callback: Callable = lambda x: x,
+        burnin_ratio: float = 0.2,
+        thresh_conv: float = 1e-3,
         crit_conv="residual",
-        thinning=10,
+        thinning: int = 10,
         history_size: Union[int, bool] = 5,
-        verbose=False,
+        verbose: bool = False,
     ):
         super(BaseSample, self).__init__()
         self.iterator = iterator
@@ -83,10 +83,9 @@ class BaseSample(Reconstructor):
         self.var_convergence = False
         self.thinning = thinning
         self.verbose = verbose
-        # self.clip = clip
         self.history_size = history_size
 
-        # initialize history, to zero
+        # initialize history to zero
         if history_size is True:
             self.history = []
         elif history_size:
@@ -98,8 +97,8 @@ class BaseSample(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: Union[torch.Tensor, None] = None,
-        seed: Union[int, None] = None,
+        X_init: torch.Tensor | None = None,
+        seed: int | None = None,
     ) -> torch.Tensor:
         r"""
         Run the MCMC sampling chain and return the posterior sample mean.
@@ -122,8 +121,8 @@ class BaseSample(Reconstructor):
         y: torch.Tensor,
         physics: Physics,
         X_init: Union[torch.Tensor, None] = None,
-        seed: Union[int, None] = None,
-        g_statistics=[lambda x: x],
+        seed: int | None = None,
+        g_statistics: Callable | List[Callable] = [lambda x: x],
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -139,6 +138,9 @@ class BaseSample(Reconstructor):
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
         :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
+            The sampler will compute the posterior mean and variance of each function in the list. 
+            Default: ``lambda x: x`` (identity function)
+        :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
             | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
@@ -173,6 +175,9 @@ class BaseSample(Reconstructor):
 
         self.mean_convergence = False
         self.var_convergence = False
+
+        if not isinstance(g_statistics, list):
+            g_statistics = [g_statistics]
 
         # Initialize Welford trackers for each g_statistic
         statistics = []
@@ -244,7 +249,7 @@ class BaseSample(Reconstructor):
             return means[0], vars[0]
         return means, vars
 
-    def get_chain(self) -> list[torch.Tensor]:
+    def get_chain(self) -> List[torch.Tensor]:
         r"""
         Retrieve the stored history of samples.
 
@@ -268,22 +273,20 @@ class BaseSample(Reconstructor):
             )
         return list(self.history)
 
-    def mean_has_converged(self):
+    def mean_has_converged(self) -> bool:
         r"""
         Returns a boolean indicating if the posterior mean verifies the convergence criteria.
         """
         return self.mean_convergence
 
-    def var_has_converged(self):
+    def var_has_converged(self) -> bool:
         r"""
         Returns a boolean indicating if the posterior variance verifies the convergence criteria.
         """
         return self.var_convergence
 
 
-def create_iterator(
-    iterator: Union[SamplingIterator, str], **kwargs
-) -> SamplingIterator:
+def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
 
@@ -300,18 +303,18 @@ def create_iterator(
 
 
 def sample_builder(
-    iterator: Union[SamplingIterator, str],
+    iterator: SamplingIterator | str,
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo={},
-    max_iter=100,
-    thresh_conv=1e-3,
-    burnin_ratio=0.2,
-    thinning=10,
-    history_size=5,
-    verbose=False,
+    params_algo: Dict = {},
+    max_iter: int = 100,
+    thresh_conv: float = 1e-3,
+    burnin_ratio: float = 0.2,
+    thinning: int = 10,
+    history_size: int = 5,
+    verbose: bool = False,
     **kwargs,
-):
+) -> BaseSample:
     r"""
     Helper function for building an instance of the :class:`deepinv.sampling.BaseSample` class.
 

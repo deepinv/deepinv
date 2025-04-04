@@ -1,8 +1,11 @@
 import time as time
-
+from typing import Callable, Tuple
+from torch import Tensor
 import deepinv.optim
 
 from deepinv.sampling.samplers import BaseSample
+from deepinv.optim import ScorePrior
+from deepinv.physics import Physics
 from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator
 
 
@@ -45,28 +48,28 @@ class ULA(BaseSample):
     :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
-    :param Callable g_statistic: The sampler will compute the posterior mean and variance
-        of the function g_statistic. By default, it is the identity function (lambda x: x),
-        and thus the sampler computes the posterior mean and variance.
+    :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+        The sampler will compute the posterior mean and variance of each function in the list. 
+        Default: ``lambda x: x`` (identity function)
     :param bool verbose: prints progress of the algorithm.
 
     """
 
     def __init__(
         self,
-        prior,
+        prior: ScorePrior,
         data_fidelity,
         step_size: float = 1.0,
         sigma: float = 0.05,
         alpha: float = 1.0,
         max_iter: int = 1e3,
-        thinning=5,
-        burnin_ratio=0.2,
-        clip=(-1.0, 2.0),
-        thresh_conv=1e-3,
-        save_chain=False,
-        g_statistic=lambda x: x,
-        verbose=False,
+        thinning: int = 5,
+        burnin_ratio: float = 0.2,
+        clip: tuple = (-1.0, 2.0),
+        thresh_conv: float = 1e-3,
+        save_chain: bool = False,
+        g_statistics: list[Callable] | Callable = lambda x: x,
+        verbose: bool = False,
     ):
         params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
         iterator = ULAIterator(clip=clip)
@@ -82,9 +85,15 @@ class ULA(BaseSample):
             history_size=save_chain,
             verbose=verbose,
         )
-        self.g_statistics = [g_statistic]
+        self.g_statistics = g_statistics
 
-    def forward(self, y, physics, seed=None, x_init=None):
+    def forward(
+        self,
+        y: Tensor,
+        physics: Physics,
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+    ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
@@ -128,9 +137,9 @@ class SKRock(BaseSample):
     :param bool verbose: prints progress of the algorithm.
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
-    :param Callable g_statistic: The sampler will compute the posterior mean and variance
-        of the function g_statistic. By default, it is the identity function (lambda x: x),
-        and thus the sampler computes the posterior mean and variance.
+    :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+        The sampler will compute the posterior mean and variance of each function in the list. 
+        Default: ``lambda x: x`` (identity function)
 
     """
 
@@ -138,20 +147,20 @@ class SKRock(BaseSample):
         self,
         prior: deepinv.optim.ScorePrior,
         data_fidelity,
-        step_size=1.0,
-        inner_iter=10,
-        eta=0.05,
-        alpha=1.0,
-        max_iter=1e3,
-        burnin_ratio=0.2,
-        thinning=10,
-        clip=(-1.0, 2.0),
-        thresh_conv=1e-3,
-        save_chain=False,
-        g_statistic=lambda x: x,
-        verbose=False,
-        sigma=0.05,
-    ):
+        step_size: float = 1.0,
+        inner_iter: int = 10,
+        eta: float = 0.05,
+        alpha: float = 1.0,
+        max_iter: int = 1e3,
+        burnin_ratio: float = 0.2,
+        thinning: int = 10,
+        clip: Tuple[float, float] = (-1.0, 2.0),
+        thresh_conv: float = 1e-3,
+        save_chain: bool = False,
+        g_statistics: list[Callable] | Callable = lambda x: x,
+        verbose: bool = False,
+        sigma: float = 0.05,
+    ) -> None:
         params_algo = {
             "step_size": step_size,
             "alpha": alpha,
@@ -172,9 +181,15 @@ class SKRock(BaseSample):
             history_size=save_chain,
             verbose=verbose,
         )
-        self.g_statistics = [g_statistic]
+        self.g_statistics = g_statistics
 
-    def forward(self, y, physics, seed=None, x_init=None):
+    def forward(
+        self,
+        y: Tensor,
+        physics: Physics,
+        seed: None | int = None,
+        x_init: None | Tensor = None,
+    ) -> Tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 

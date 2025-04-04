@@ -1,13 +1,17 @@
 import torch.nn as nn
 from deepinv.sampling.utils import projbox
 import torch
+from torch import Tensor
 import time as time
 import numpy as np
 from deepinv.physics import LinearPhysics
 from deepinv.optim import PnP
+from deepinv.physics import Physics
 from deepinv.optim.prior import ScorePrior
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
-from deepinv.loss.regularisers import JacobianSpectralNorm
+from deepinv.optim.data_fidelity import DataFidelity
+
+from typing import Dict, Optional, Tuple, Any
 
 
 class ULAIterator(SamplingIterator):
@@ -46,15 +50,15 @@ class ULAIterator(SamplingIterator):
 
     def forward(
         self,
-        x,
-        y,
-        physics,
-        cur_data_fidelity,
+        x: Tensor,
+        y: Tensor,
+        physics: Physics,
+        cur_data_fidelity:DataFidelity,
         cur_prior: ScorePrior,
-        cur_params,
+        cur_params: Dict[str, float],
         *args,
         **kwargs,
-    ):
+    ) -> Tensor:
         r"""
         Performs a single ULA sampling step using the Unadjusted Langevin Algorithm.
 
@@ -119,16 +123,3 @@ class ULAIterator(SamplingIterator):
             x_t = projbox(x_t, self.clip[0], self.clip[1])
         return x_t
 
-
-#
-# def compute_step_size(self, x, y, physics: LinearPhysics, prior: ScorePrior):
-#     if not isinstance(physics, LinearPhysics):
-#         # TODO: raise warning here
-#         return 0.01
-#     physicsnorm = physics.compute_norm(x)
-#     # NOTE: eval wrong here?
-#     reg_l2 = JacobianSpectralNorm(max_iter=10, tol=1e-3, eval_mode=True, verbose=False)
-#     jacy = prior.denoiser(y)
-#     priornorm = reg_l2(jacy, y)
-#     return 1/(priornorm + physicsnorm)
-#

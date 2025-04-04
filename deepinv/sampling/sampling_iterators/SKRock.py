@@ -3,10 +3,16 @@ from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
 import time as time
+from typing import Dict, Optional, Tuple, Any
 
 from deepinv.optim import ScorePrior
 from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
+from deepinv.optim.data_fidelity import DataFidelity
+from deepinv.physics import Physics
 
+# First kind Chebyshev functions
+T_s = lambda s, u: np.cosh(s * np.arccosh(u))
+T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
 
 class SKRockIterator(SamplingIterator):
     r"""
@@ -25,21 +31,21 @@ class SKRockIterator(SamplingIterator):
         Useful for images where pixel values should stay within a specific range (e.g., (0,1) or (0,255)). Default: ``None``
     """
 
-    def __init__(self, clip=None):
+    def __init__(self, clip: Optional[Tuple[float, float]] = None):
         super().__init__()
         self.clip = clip
 
     def forward(
         self,
-        x,
-        y,
-        physics,
-        cur_data_fidelity,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        cur_data_fidelity: DataFidelity,
         cur_prior: ScorePrior,
-        cur_params,
+        cur_params: Dict[str, float],
         *args,
         **kwargs,
-    ):
+    ) -> torch.Tensor:
         r"""
         Performs a single SK-ROCK sampling step.
 
@@ -110,11 +116,6 @@ class SKRockIterator(SamplingIterator):
             cur_prior.grad(u, sigma)
         )
 
-        # TODO: could be in init
-        # First kind Chebyshev functions
-        T_s = lambda s, u: np.cosh(s * np.arccosh(u))
-        T_prime_s = lambda s, u: s * np.sinh(s * np.arccosh(u)) / np.sqrt(u**2 - 1)
-
         # Compute SK-ROCK parameters
         w0 = 1 + eta / (inner_iter**2)  # parameter \omega_0
         w1 = T_s(inner_iter, w0) / T_prime_s(inner_iter, w0)  # parameter \omega_1
@@ -142,3 +143,7 @@ class SKRockIterator(SamplingIterator):
             xts = projbox(xts, self.clip[0], self.clip[1])
 
         return xts
+
+
+# Alias for SKRockIterator
+SKROCKIterator = SKRockIterator
