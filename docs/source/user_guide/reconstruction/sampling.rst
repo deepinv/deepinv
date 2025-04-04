@@ -13,7 +13,7 @@ These methods build a Markov chain
 
 such that the samples :math:`x_t` for large :math:`t` are approximately sampled according to the posterior distribution :math:`p(x|y)`.
 
-.. _diffusion:g
+.. _diffusion:
 
 Diffusion models
 ----------------

@@ -34,7 +34,7 @@ The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be d
 .. math::
      \nabla_{x_t} \log p_t(x_t | y) = \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t(y | x_t).
 
-The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
+The first term is the score function of the unconditional SDE, which is typically approximated by an MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
 We implement various data-fidelity terms in `the user guide <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2>`_.
 """
