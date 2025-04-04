@@ -103,13 +103,9 @@ use_bicubic_init = False  # Use bicubic interpolation to initialize the algorith
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
-
-params_algo = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "lambda": lamb,
-}
+lambda_reg, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+    operation, noise_level_img
+)
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -152,7 +148,9 @@ model = ProximalGradientDescent(
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,
-    params_algo=params_algo,
+    g_param=sigma_denoiser,
+    lambda_reg=lambda_reg,
+    stepsize=stepsize,
     early_stop=early_stop,
     max_iter=max_iter,
     crit_conv=crit_conv,

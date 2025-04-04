@@ -77,7 +77,8 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-params_algo = {"stepsize": 0.01 * SCALING, "g_param": noise_level_img}
+stepsize = 0.01 * SCALING
+sigma_denoiser = noise_level_img
 max_iter = 100
 early_stop = True
 
@@ -99,16 +100,20 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 
 # instantiate the algorithm class to solve the IP problem.
 # initialize with the rescaled adjoint such that the initialization lives already at the correct scale
+init = lambda y, physics: {
+    "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
+}
+
+# define the model
 model = ProximalGradientDescent(
-    prior=prior,
     data_fidelity=data_fidelity,
+    prior=prior,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
-    custom_init=lambda y, physics: {
-        "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
-    },
+    custom_init=init,
 )
 
 # Set the model to evaluation mode. We do not require training here.

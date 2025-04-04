@@ -320,8 +320,7 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0 / (1.5 * opnorm)
-lamb = 1e-3 * opnorm  # wavelet regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-3 * opnorm  # wavelet regularisation parameter
 max_iter = 50
 early_stop = True
 
@@ -329,10 +328,11 @@ early_stop = True
 model = FISTA(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     custom_init=custom_init,
 )
 

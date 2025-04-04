@@ -231,7 +231,6 @@ model = optim_builder(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,
-    params_algo=params_algo,
 )
 
 # %%

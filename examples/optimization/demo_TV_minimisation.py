@@ -143,8 +143,7 @@ plot_convergence_metrics = (
 
 # Algorithm parameters
 stepsize = 1.0
-lamb = 1e-2  # TV regularisation parameter
-params_algo = {"stepsize": stepsize, "lambda": lamb}
+lambda_reg = 1e-2  # TV regularisation parameter
 max_iter = 300
 early_stop = True
 
@@ -152,10 +151,11 @@ early_stop = True
 model = ProximalGradientDescent(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
 )
 
 # %%

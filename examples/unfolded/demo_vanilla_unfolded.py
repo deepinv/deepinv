@@ -141,7 +141,9 @@ model = DRS(
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo.copy(),
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    beta=beta,
     unfold=True,
     trainable_params=trainable_params,
 )

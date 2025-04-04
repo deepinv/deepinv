@@ -658,15 +658,23 @@ class ADMM(BaseOptim):
         prior=None,
         lambda_reg=1.0,
         stepsize=1.0,
+        beta=1.0,
         g_param=None,
         max_iter=100,
         unfold=False,
         device=torch.device("cpu"),
         g_first=False,
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
         super(ADMM, self).__init__(
             ADMMIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -686,15 +694,23 @@ class DRS(BaseOptim):
         prior=None,
         lambda_reg=1.0,
         stepsize=1.0,
+        beta=1.0,
         g_param=None,
         max_iter=100,
         g_first=False,
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
         super(DRS, self).__init__(
             DRSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -719,9 +735,15 @@ class GradientDescent(BaseOptim):
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(GradientDescent, self).__init__(
             GDIteration(F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -747,9 +769,15 @@ class HQS(BaseOptim):
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(HQS, self).__init__(
             HQSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -775,9 +803,15 @@ class ProximalGradientDescent(BaseOptim):
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(ProximalGradientDescent, self).__init__(
             PGDIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -803,9 +837,15 @@ class FISTA(BaseOptim):
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(FISTA, self).__init__(
             FISTAIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -831,9 +871,15 @@ class MirrorDescent(BaseOptim):
         unfold=False,
         device=torch.device("cpu"),
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(MirrorDescent, self).__init__(
             MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
@@ -860,9 +906,15 @@ class ProximalMirrorDescent(BaseOptim):
         device=torch.device("cpu"),
         g_first=False,
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {"lambda": lambda_reg, "stepsize": stepsize, "g_param": g_param}
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(ProximalMirrorDescent, self).__init__(
             PMDIteration(
                 bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
@@ -886,21 +938,25 @@ class PrimalDualCP(BaseOptim):
         prior=None,
         lambda_reg=1.0,
         stepsize=1.0,
+        beta=1.0,
         g_param=None,
         max_iter=100,
         unfold=False,
         device=torch.device("cpu"),
         g_first=False,
         F_fn=None,
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-            "K": K,
-            "K_adjoint": K_adjoint,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+                "K": K,
+                "K_adjoint": K_adjoint,
+            }
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -911,8 +967,3 @@ class PrimalDualCP(BaseOptim):
             device=device,
             **kwargs,
         )
-
-
-class SpectralMethod(BaseOptim):
-    def __init__(self, **kwargs):
-        super(SpectralMethod, self).__init__(SMIteration(), **kwargs)

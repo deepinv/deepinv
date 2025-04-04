@@ -111,7 +111,6 @@ dataset = dinv.datasets.HDF5Dataset(path=dinv_dataset_path, train=True)
 
 # load specific parameters for DPIR
 sigma_denoiser, stepsize, max_iter = get_DPIR_params(noise_level_img)
-params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
 early_stop = False  # Do not stop algorithm with convergence criteria
 
 # Select the data fidelity term
@@ -124,10 +123,11 @@ prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
 model = HQS(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=True,
-    params_algo=params_algo,
 )
 
 # Set the model to evaluation mode. We do not require training here.

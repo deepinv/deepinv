@@ -147,9 +147,8 @@ plot_convergence_metrics = (
 )
 
 # Algorithm parameters
-lamb = 0.1  # wavelet regularisation parameter
+lambda_reg = 0.1  # wavelet regularisation parameter
 stepsize = 1.0  # stepsize for the PGD algorithm
-params_algo = {"stepsize": stepsize, "lambda": lamb}
 max_iter = 300
 early_stop = True
 backtracking = False
@@ -158,10 +157,11 @@ backtracking = False
 model = DRS(
     prior=prior,
     data_fidelity=data_fidelity,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
     backtracking=backtracking,
 )
 
