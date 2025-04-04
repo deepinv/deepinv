@@ -73,7 +73,6 @@ Other
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
     deepinv.utils.dirac_like
-    deepinv.utils.demo.demo_mri_model
 
 .. autosummary::
    :toctree: stubs
