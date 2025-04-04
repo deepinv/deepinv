@@ -407,7 +407,7 @@ class DiffUNet(Denoiser):
         :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
         :return: an `(N, C, ...)` Tensor of outputs.
         """
-        if sigma is not torch.tensor:
+        if not isinstance(sigma, torch.Tensor):
             sigma = torch.tensor(sigma).to(x.device)
 
         alpha = 1 / (1 + 4 * sigma**2)

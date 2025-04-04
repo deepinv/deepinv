@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 
 class Welford:
@@ -29,10 +30,10 @@ class Welford:
             return self.S
 
 
-def refl_projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+def refl_projbox(x, lower: Tensor, upper: Tensor) -> Tensor:
     x = torch.abs(x)
     return torch.clamp(x, min=lower, max=upper)
 
 
-def projbox(x, lower: torch.Tensor, upper: torch.Tensor) -> torch.Tensor:
+def projbox(x, lower: Tensor, upper: Tensor) -> Tensor:
     return torch.clamp(x, min=lower, max=upper)

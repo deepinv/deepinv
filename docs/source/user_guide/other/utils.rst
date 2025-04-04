@@ -37,6 +37,8 @@ We provide other plotting functions that are useful for inverse problems:
      - Plots a list of images with zoomed-in insets extracted from the images.
    * - :func:`deepinv.utils.plot_videos`
      - Plots and animates a list of image sequences.
+   * - :func:`deepinv.utils.save_videos`
+     - Save a list of image sequences.
    * - :func:`deepinv.utils.plot_ortho3D`
      - Plots 3D orthographic projections for analyzing data or model outputs in three dimensions.
 

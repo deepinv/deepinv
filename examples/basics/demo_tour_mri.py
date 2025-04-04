@@ -14,7 +14,7 @@ available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:
    :class:`deepinv.datasets.SimpleFastMRISliceDataset`
 -  Models: :class:`deepinv.models.VarNet`
    (`VarNet <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`__/`E2E-VarNet <https://arxiv.org/abs/2004.06688>`__),
-   :class:`deepinv.utils.demo.demo_mri_model` (a simple
+   :class:`deepinv.models.MoDL` (a simple
    `MoDL <https://ieeexplore.ieee.org/document/8434321>`__ unrolled
    model)
 
@@ -194,7 +194,7 @@ denoiser = dinv.models.DnCNN(
 
 model = dinv.models.VarNet(denoiser, num_cascades=2, mode="varnet").to(device)
 
-model = dinv.utils.demo.demo_mri_model(denoiser, num_iter=2, device=device).to(device)
+model = dinv.models.MoDL(denoiser, num_iter=2).to(device)
 
 
 # %%

@@ -73,7 +73,7 @@ def choose_loss(loss_name, rng=None):
     elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
-        loss.append(dinv.loss.R2RLoss())
+        loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     else:
         raise Exception("The loss doesnt exist")
 
@@ -139,13 +139,13 @@ def choose_r2r(noise_type):
 
     if noise_type == "Poisson":
         noise_model = dinv.physics.PoissonNoise(gain)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.9999)
+        loss = dinv.loss.R2RLoss(alpha=0.9999)
     elif noise_type == "Gaussian":
         noise_model = dinv.physics.GaussianNoise(sigma)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     else:
         raise Exception("The R2R loss doesnt exist")
 
