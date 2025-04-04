@@ -21,7 +21,6 @@ from .optimizers import (
     FISTA,
     ProximalMirrorDescent,
     PrimalDualCP,
-    SpectralMethod,
 )
 from .fixed_point import FixedPoint
 from .prior import (
