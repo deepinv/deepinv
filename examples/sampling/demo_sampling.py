@@ -101,15 +101,20 @@ prior = dinv.optim.ScorePrior(
 
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
-iterations = int(5e3) if torch.cuda.is_available() else 10
-f = dinv.sampling.ULA(
+iterations = int(5e3) if torch.cuda.is_available() else 100
+params = {
+    "step_size": step_size,
+    "alpha": regularization,
+    "sigma": sigma_denoiser,
+}
+f = dinv.sampling.sample_builder(
+    "ULA",
     prior=prior,
     data_fidelity=likelihood,
     max_iter=iterations,
-    alpha=regularization,
-    step_size=step_size,
+    params_algo=params,
+    thinning=1,
     verbose=True,
-    sigma=sigma_denoiser,
 )
 
 # %%
@@ -126,7 +131,7 @@ y = physics(x)
 # The sampling algorithm returns the posterior mean and variance.
 # We compare the posterior mean with a simple linear reconstruction.
 
-mean, var = f(y, physics)
+mean, var = f.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)
