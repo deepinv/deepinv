@@ -90,7 +90,7 @@ def show_image_comparison(images, suptitle=None):
 # -------------------
 #
 # DeepInv provides a set of classical denoisers such as :class:`deepinv.models.BM3D`,
-# :class:`deepinv.models.TGVDenoiser`, or :class:`deepinv.models.WaveletDenoiser`.
+# :class:`deepinv.models.TGVDenoiser`, or :class:`deepinv.models.WaveletDictDenoiser`.
 #
 # They can be easily used simply by instanciating their corresponding class,
 # and calling them with the noisy image and the noise level.
@@ -283,7 +283,7 @@ axes[1].set_ylabel(r"Best threshold")
 
 # %%
 # With this tuning, we can update our comparison of the different denoisers to account for
-# the performances of :class:`dinv.models.WaveletDictDenoiser` once the threshold have been tuned
+# the performances of :class:`deepinv.models.WaveletDictDenoiser` once the threshold have been tuned
 
 merge_df = best_th_psnr.reset_index(drop=True).drop(columns="th")
 merge_df["denoiser"] = "Wavelet (tuned)"
