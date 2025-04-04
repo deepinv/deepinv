@@ -45,7 +45,7 @@ class BaseSample(Reconstructor):
     :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics
     :param deepinv.optim.Prior prior: Negative log-prior
     :param dict params_algo: Dictionary containing the parameters for the algorithm
-    :param int max_iter: Number of Monte Carlo iterations. Default: 100
+    :param int max_iter: The number of Monte Carlo iterations to perform. Default: 100
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
@@ -64,7 +64,7 @@ class BaseSample(Reconstructor):
         callback: Callable = lambda x: x,
         burnin_ratio: float = 0.2,
         thresh_conv: float = 1e-3,
-        crit_conv="residual",
+        crit_conv: str ="residual",
         thinning: int = 10,
         history_size: Union[int, bool] = 5,
         verbose: bool = False,
@@ -189,7 +189,7 @@ class BaseSample(Reconstructor):
         var_prevs = [stat.var().clone() for stat in statistics]
 
         # Run the chain
-        for i in tqdm(range(self.max_iter), disable=(not self.verbose)):
+        for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             X_t = self.iterator(
                 X_t,
                 y,
@@ -200,10 +200,10 @@ class BaseSample(Reconstructor):
                 **kwargs,
             )
 
-            if i >= (self.max_iter * self.burnin_ratio) and i % self.thinning == 0:
+            if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
                 self.callback(X_t)
                 # Store previous means and variances for convergence check
-                if i >= (self.max_iter - self.thinning):
+                if it >= (self.max_iter - self.thinning):
                     mean_prevs = [stat.mean().clone() for stat in statistics]
                     var_prevs = [stat.var().clone() for stat in statistics]
 
@@ -217,13 +217,13 @@ class BaseSample(Reconstructor):
         self.mean_convergence = True
         self.var_convergence = True
 
-        if i > 1:
+        if it > 1:
             # Check convergence for each statistic
             for j, stat in enumerate(statistics):
                 if not check_conv(
                     {"est": (mean_prevs[j],)},
                     {"est": (stat.mean(),)},
-                    i,
+                    it,
                     self.crit_conv,
                     self.thresh_conv,
                     self.verbose,
@@ -233,7 +233,7 @@ class BaseSample(Reconstructor):
                 if not check_conv(
                     {"est": (var_prevs[j],)},
                     {"est": (stat.var(),)},
-                    i,
+                    it,
                     self.crit_conv,
                     self.thresh_conv,
                     self.verbose,
