@@ -17,8 +17,9 @@ The :class:`deepinv.sampling.PosteriorDiffusion` class can be used to perform po
 Consider the acquisition model:
 
 .. math::
-     y = \noise{\forw{x}}.
+     y = \noise{\forw{x}}
 
+where :math:`\forw{x}` is the forward operator (e.g., a convolutional operator) and :math:`\noise{\cdot}` is the noise operator (e.g., Gaussian noise).
 This class defines the reverse-time SDE for the posterior distribution :math:`p(x|y)` given the data :math:`y`:
 
 .. math::
@@ -35,7 +36,7 @@ The (conditional) score function :math:`\nabla_{x_t} \log p_t(x_t | y)` can be d
 
 The first term is the score function of the unconditional SDE, which is typically approximated by a MMSE denoiser (`denoiser`) using the well-known Tweedie's formula, while the
 second term is approximated by the (noisy) data-fidelity term (`data_fidelity`).
-We implement various data-fidelity terms in `the documentations <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2>`_.
+We implement various data-fidelity terms in `the user guide <https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html#id2>`_.
 """
 
 # %% Define the underlying SDE for posterior sampling
