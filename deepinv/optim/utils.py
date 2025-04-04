@@ -587,6 +587,7 @@ def minres(
     parallel_dim=0,
     verbose=False,
     precon=lambda x: x.clone(),
+    flag=True,
 ):
     """
     Minimal Residual Method for solving symmetric equations.
@@ -740,7 +741,7 @@ def minres(
     # For b-s that are close to zero, set them to zero
     solution = solution.masked_fill(b_is_zero, 0)
     if flag and verbose:
-        print(f"MINRES did not converge in {i} iterations!")
+        print(f"MINRES did not converge in {int(max_iter)} iterations!")
     return solution * b_norm
 
 

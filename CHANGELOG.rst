@@ -32,6 +32,7 @@ New Features
 
 Fixed
 ^^^^^
+- Fixed flag bug in minres least squared solver (:gh:`426` by `Mohammad Sadegh Salehi`_)
 - Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
@@ -297,3 +298,4 @@ Authors
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Mohammad Sadegh Salehi: https://mohammadsadeghsalehi.github.io
