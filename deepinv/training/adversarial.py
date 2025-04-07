@@ -142,6 +142,7 @@ class AdversarialTrainer(Trainer):
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
     :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
+    :param bool global_optimizer_step: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
     """
 
     optimizer: AdversarialOptimizer
