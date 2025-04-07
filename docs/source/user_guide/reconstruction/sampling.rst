@@ -42,7 +42,7 @@ Under this forward process, we have that
     x_t \vert x_0 \sim \mathcal{N}\left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),
 
 where the **scaling** over time is :math:`s(t) = \exp\left( \int_0^t f(r) d\,r \right)` and
-the **normalized noise level** is :math:`\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)} d\,r}`.
+the **normalized noise level** is :math:`\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)^2} d\,r}`.
 
 The **reverse-time SDE** is defined as follows, running backwards in time (from :math:`T` to :math:`0`)
 
@@ -69,28 +69,28 @@ that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E}\{ x|x+\sigma
 Starting from a random point following the end-point distribution :math:`p_T` of the forward process, 
 solving the reverse-time SDE gives us a sample of the data distribution :math:`p_0`.
 
-The base class for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
+The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :class:`deepinv.sampling.DiffusionSDE`.
 
 .. list-table:: Stochastic Differential Equations
    :header-rows: 1
 
    * - **SDE**
-     - **f(t)**
-     - **g(t)**
-     - **Scaling s(t)**
-     - **Noise \sigma(t)**
+     - :math:`f(t)`
+     - :math:`g(t)`
+     - Scaling :math:`s(t)`
+     - Noise level :math:`\sigma(t)`
 
-   * - :class:`deepinv.sampling.VarianceExplodingDiffusion`
-     - :math:`0`,
-     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`,
-     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`,
+   * - :class:`Variance Exploding <deepinv.sampling.VarianceExplodingDiffusion>`
+     - :math:`0`
+     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
+     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
      - :math:`1`
 
-   * - :class:`deepinv.sampling.VariancePreservingDiffusion`
-     - :math:`-\frac{1}{2}\left(\beta_{\mathrm{min}}  + t \beta_d \right)`,
-     - :math:`\sqrt{\beta_{\mathrm{min}}  + t \beta_{d}}`,
-     - :math:`1/\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}}`,
-     - :math:`\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}-1}`,
+   * - :class:`Variance Preserving <deepinv.sampling.VariancePreservingDiffusion>`
+     - :math:`-\frac{1}{2}\left(\beta_{\mathrm{min}}  + t \beta_d \right)`
+     - :math:`\sqrt{\beta_{\mathrm{min}}  + t \beta_{d}}`
+     - :math:`1/\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}}`
+     - :math:`\sqrt{e^{\frac{1}{2}\beta_{d}t^2+\beta_{\mathrm{min}}t}-1}`
 
 Solvers
 ~~~~~~~
@@ -122,7 +122,7 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 
 .. math::
 
-    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t(y | \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega).
+    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y | \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).
 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
