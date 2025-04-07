@@ -307,7 +307,7 @@ class DiffUNet(Denoiser):
 
     def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
         """
-        Splits an image tensor into patches, applies the model to each patch, and reconstructs the full image.
+        Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
         :param x: Input low-quality image tensor of shape (B, C, H, W).
         :param patch_size: Size of the patches to split into.
