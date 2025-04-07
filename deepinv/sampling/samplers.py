@@ -44,7 +44,7 @@ class BaseSample(Reconstructor):
     Note on retained sample calculation:
         With the default parameters (max_iter=100, burnin_ratio=0.2, thinning=10), the number
         of samples actually used for statistics is calculated as follows:
-        
+
         - Total iterations: 100
         - Burn-in period: 100 * 0.2 = 20 iterations (discarded)
         - Remaining iterations: 80
@@ -54,7 +54,6 @@ class BaseSample(Reconstructor):
     :param deepinv.sampling.SamplingIterator iterator: The sampling iterator that defines the MCMC kernel
     :param deepinv.optim.DataFidelity data_fidelity: Negative log-likelihood function linked with the noise distribution in the acquisition physics
     :param deepinv.optim.Prior prior: Negative log-prior
-    :param dict params_algo: Dictionary containing the parameters for the algorithm
     :param int max_iter: The number of Monte Carlo iterations to perform. Default: 100
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
@@ -69,12 +68,11 @@ class BaseSample(Reconstructor):
         iterator: SamplingIterator,
         data_fidelity: DataFidelity,
         prior: Prior,
-        params_algo: Dict = {"lambda": 1.0, "stepsize": 1.0},
         max_iter: int = 100,
         callback: Callable = lambda x: x,
         burnin_ratio: float = 0.2,
         thresh_conv: float = 1e-3,
-        crit_conv: str ="residual",
+        crit_conv: str = "residual",
         thinning: int = 10,
         history_size: Union[int, bool] = 5,
         verbose: bool = False,
@@ -83,7 +81,6 @@ class BaseSample(Reconstructor):
         self.iterator = iterator
         self.data_fidelity = data_fidelity
         self.prior = prior
-        self.params_algo = params_algo
         self.max_iter = max_iter
         self.burnin_ratio = burnin_ratio
         self.thresh_conv = thresh_conv
@@ -148,7 +145,7 @@ class BaseSample(Reconstructor):
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
         :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
-            The sampler will compute the posterior mean and variance of each function in the list. 
+            The sampler will compute the posterior mean and variance of each function in the list.
             Default: ``lambda x: x`` (identity function)
         :param Union[List[Callable], Callable] g_statistics: List of functions for which to compute posterior statistics, or a single function.
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
@@ -206,7 +203,6 @@ class BaseSample(Reconstructor):
                 physics,
                 self.data_fidelity,
                 self.prior,
-                self.params_algo,
                 **kwargs,
             )
 
@@ -296,7 +292,9 @@ class BaseSample(Reconstructor):
         return self.var_convergence
 
 
-def create_iterator(iterator: Union[SamplingIterator, str], **kwargs) -> SamplingIterator:
+def create_iterator(
+    iterator: Union[SamplingIterator, str], cur_params, **kwargs
+) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
 
@@ -306,7 +304,7 @@ def create_iterator(iterator: Union[SamplingIterator, str], **kwargs) -> Samplin
     if isinstance(iterator, str):
         # If a string is provided, create an instance of the named class
         iterator_fn = str_to_class(iterator + "Iterator")
-        return iterator_fn(**kwargs)
+        return iterator_fn(cur_params, **kwargs)
     else:
         # If already a SamplingIterator instance, return as is
         return iterator
@@ -340,13 +338,12 @@ def sample_builder(
     :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter
     :return: Configured BaseSample instance in eval mode
     """
-    iterator = create_iterator(iterator, **kwargs)
+    iterator = create_iterator(iterator, params_algo, **kwargs)
     # Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)
     return BaseSample(
         iterator,
         data_fidelity=data_fidelity,
         prior=prior,
-        params_algo=params_algo,
         max_iter=max_iter,
         thresh_conv=thresh_conv,
         burnin_ratio=burnin_ratio,

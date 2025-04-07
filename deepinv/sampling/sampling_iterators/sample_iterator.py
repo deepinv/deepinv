@@ -13,10 +13,17 @@ class SamplingIterator(nn.Module):
 
     All samplers should implement the forward method which performs a single sampling step
     in the Markov chain :math:`X_t \rightarrow X_{t+1}`.
+
+    :param dict algo_params: Dictionary containing the parameters for the sampling algorithm
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        algo_params: Dict[str, Any],
+        **kwargs,
+    ):
         super(SamplingIterator, self).__init__()
+        self.algo_params = algo_params
 
     def forward(
         self,
@@ -25,7 +32,6 @@ class SamplingIterator(nn.Module):
         physics: Physics,
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
-        cur_params: Dict[str, Any],
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -40,7 +46,6 @@ class SamplingIterator(nn.Module):
         :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood
         :param Prior cur_prior: Negative log-prior term
-        :param dict cur_params: Dictionary containing the parameters for the sampling algorithm
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
         :return: Next state :math:`X_{t+1}` in the Markov chain

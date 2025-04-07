@@ -49,7 +49,7 @@ class ULA(BaseSample):
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
     :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list. 
+        The sampler will compute the posterior mean and variance of each function in the list.
         Default: ``lambda x: x`` (identity function)
     :param bool verbose: prints progress of the algorithm.
 
@@ -71,14 +71,13 @@ class ULA(BaseSample):
         g_statistics: Union[List[Callable], Callable] = lambda x: x,
         verbose: bool = False,
     ):
-        params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
-        iterator = ULAIterator(clip=clip)
+        algo_params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
+        iterator = ULAIterator(algo_params, clip=clip)
         super().__init__(
             iterator,
             data_fidelity,
             prior,
             max_iter=max_iter,
-            params_algo=params_algo,
             thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             thinning=thinning,
@@ -138,7 +137,7 @@ class SKRock(BaseSample):
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
     :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list. 
+        The sampler will compute the posterior mean and variance of each function in the list.
         Default: ``lambda x: x`` (identity function)
 
     """
@@ -161,20 +160,19 @@ class SKRock(BaseSample):
         verbose: bool = False,
         sigma: float = 0.05,
     ) -> None:
-        params_algo = {
+        algo_params = {
             "step_size": step_size,
             "alpha": alpha,
             "sigma": sigma,
             "eta": eta,
             "inner_iter": inner_iter,
         }
-        iterator = SKRockIterator(clip=clip)
+        iterator = SKRockIterator(algo_params=algo_params, clip=clip)
         super().__init__(
             iterator,
             data_fidelity,
             prior,
             max_iter=max_iter,
-            params_algo=params_algo,
             thresh_conv=thresh_conv,
             burnin_ratio=burnin_ratio,
             thinning=thinning,
