@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, DDRM
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -142,7 +142,7 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
@@ -167,6 +167,8 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+    elif name_algo == "DDRM":
+        algorithm = DDRM(model)
 
     with torch.no_grad():
         out = algorithm(y, physics)

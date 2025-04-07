@@ -79,7 +79,7 @@ class GainGenerator(PhysicsGenerator):
     >>> generator = GainGenerator()
     >>> sigma_dict = generator.step(seed=0) # dict_keys(['sigma'])
     >>> print(sigma_dict['gain'])
-    tensor([0.2532])
+    tensor([0.2489])
 
     """
 

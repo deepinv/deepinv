@@ -133,7 +133,6 @@ class DDRM(Reconstructor):
             decomposition.
         :param int seed: the seed for the random number generator.
         """
-        # assert physics.__class__ == deepinv.physics.DecomposablePhysics, 'The forward operator requires a singular value decomposition'
         with torch.no_grad():
             if seed:
                 np.random.seed(seed)
