@@ -22,7 +22,6 @@ class Denoiser(torch.nn.Module):
     def __init__(self, device="cpu"):
         super().__init__()
         self.to(device)
-        self.train_on_minus_one_one = False
 
     def forward(self, x, sigma, **kwargs):
         r"""

@@ -180,7 +180,7 @@ class ADMUNet(Denoiser):
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
 
-                self._train_on_minus_one_one = True
+                self._train_on_minus_one_one = True  # Pretrained on [-1,1]
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
@@ -208,9 +208,10 @@ class ADMUNet(Denoiser):
         sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
 
         # Rescale [0,1] input to [-1,-1]
-        if self._train_on_minus_one_one:
-            x = (x - 0.5) * 2.0
-            sigma = sigma * 2.0
+        if hasattr(self, "_train_on_minus_one_one"):
+            if self._train_on_minus_one_one:
+                x = (x - 0.5) * 2.0
+                sigma = sigma * 2.0
         c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
         c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
