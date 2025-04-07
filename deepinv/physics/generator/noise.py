@@ -4,9 +4,9 @@ from deepinv.physics.generator import PhysicsGenerator
 
 class SigmaGenerator(PhysicsGenerator):
     r"""
-    Generator for the noise level :math:`\sigma` in the Gaussian noise model.
+    Generator for the noise level :math:`\sigma` in the :class:`Gaussian noise model <deepinv.physics.GaussianNoise>`.
 
-    The noise level is sampled uniformly from the interval :math:`[\text{sigma_min}, \text{sigma_max}]`.
+    The noise level is sampled uniformly from the interval :math:`[\sigma_{\text{min}}, \sigma_{\text{max}}]`.
 
     :param float sigma_min: minimum noise level
     :param float sigma_max: maximum noise level
@@ -59,7 +59,7 @@ class SigmaGenerator(PhysicsGenerator):
 
 
 class GainGenerator(PhysicsGenerator):
-   r"""
+    r"""
 
     Generator for the noise level :math:`\gamma` in the :class:`Poisson noise model <deepinv.physics.PoissonNoise>`.
 
@@ -82,6 +82,7 @@ class GainGenerator(PhysicsGenerator):
     tensor([0.2532])
 
     """
+
     def __init__(
         self,
         gain_min=0.1,

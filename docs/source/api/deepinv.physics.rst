@@ -118,6 +118,7 @@ Noise distributions
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
    deepinv.physics.generator.SigmaGenerator
+   deepinv.physics.generator.GainGenerator
 
 
 .. autosummary::
