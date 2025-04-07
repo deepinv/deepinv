@@ -311,7 +311,8 @@ class DiffUNet(Denoiser):
 
         :param x: Input low-quality image tensor of shape (B, C, H, W).
         :param patch_size: Size of the patches to split into.
-        :param *args, **kwargs: Additional arguments for the model.
+        :param \*args: Additional positional arguments for the model.
+        :param \*\*kwargs: Additional keyword arguments for the model.
 
         :return: Reconstructed image tensor.
         """
