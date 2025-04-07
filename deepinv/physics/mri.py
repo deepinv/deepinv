@@ -422,8 +422,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :return: noisy measurements
 
         """
-
-        return self.mask[..., None] * self.noise_model(x, **kwargs)
+        mask = self.mask
+        if mask.dim() == x.dim() - 1:
+            # Insert a singleton channel dimension at index 2
+            mask = mask.unsqueeze(2)
+        # result = mask * self.noise_model(x, **kwargs)
+        return mask * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,
