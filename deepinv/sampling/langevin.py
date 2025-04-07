@@ -1,5 +1,5 @@
 import time as time
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union, List
 from torch import Tensor
 import deepinv.optim
 
@@ -68,7 +68,7 @@ class ULA(BaseSample):
         clip: tuple = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: list[Callable] | Callable = lambda x: x,
+        g_statistics: Union[List[Callable], Callable] = lambda x: x,
         verbose: bool = False,
     ):
         params_algo = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
@@ -91,8 +91,8 @@ class ULA(BaseSample):
         self,
         y: Tensor,
         physics: Physics,
-        seed: None | int = None,
-        x_init: None | Tensor = None,
+        seed: Union[None, int] = None,
+        x_init: Union[None, Tensor] = None,
     ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -137,7 +137,7 @@ class SKRock(BaseSample):
     :param bool verbose: prints progress of the algorithm.
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
-    :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+    :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
         The sampler will compute the posterior mean and variance of each function in the list. 
         Default: ``lambda x: x`` (identity function)
 
@@ -157,7 +157,7 @@ class SKRock(BaseSample):
         clip: Tuple[float, float] = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: list[Callable] | Callable = lambda x: x,
+        g_statistics: Union[List[Callable], Callable] = lambda x: x,
         verbose: bool = False,
         sigma: float = 0.05,
     ) -> None:
@@ -187,8 +187,8 @@ class SKRock(BaseSample):
         self,
         y: Tensor,
         physics: Physics,
-        seed: None | int = None,
-        x_init: None | Tensor = None,
+        seed: Union[None, int] = None,
+        x_init: Union[None, Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.

@@ -11,7 +11,7 @@ from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
 from deepinv.sampling.utils import Welford
 from deepinv.sampling.sampling_iterators import *
 from deepinv.optim.utils import check_conv
-from typing import Union, Dict, Callable, List
+from typing import Union, Dict, Callable, List, Tuple
 
 
 class BaseSample(Reconstructor):
@@ -107,8 +107,8 @@ class BaseSample(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: torch.Tensor | None = None,
-        seed: int | None = None,
+        X_init: Union[torch.Tensor, None] = None,
+        seed: Union[int, None] = None,
     ) -> torch.Tensor:
         r"""
         Run the MCMC sampling chain and return the posterior sample mean.
@@ -131,10 +131,10 @@ class BaseSample(Reconstructor):
         y: torch.Tensor,
         physics: Physics,
         X_init: Union[torch.Tensor, None] = None,
-        seed: int | None = None,
-        g_statistics: Callable | List[Callable] = [lambda x: x],
+        seed: Union[int, None] = None,
+        g_statistics: Union[Callable, List[Callable]] = [lambda x: x],
         **kwargs,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Execute the MCMC sampling chain and compute posterior statistics.
 
@@ -150,7 +150,7 @@ class BaseSample(Reconstructor):
         :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
             The sampler will compute the posterior mean and variance of each function in the list. 
             Default: ``lambda x: x`` (identity function)
-        :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+        :param Union[List[Callable], Callable] g_statistics: List of functions for which to compute posterior statistics, or a single function.
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
             | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
@@ -296,7 +296,7 @@ class BaseSample(Reconstructor):
         return self.var_convergence
 
 
-def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingIterator:
+def create_iterator(iterator: Union[SamplingIterator, str], **kwargs) -> SamplingIterator:
     r"""
     Helper function for creating an iterator instance of the :class:`deepinv.sampling.SamplingIterator` class.
 
@@ -313,7 +313,7 @@ def create_iterator(iterator: SamplingIterator | str, **kwargs) -> SamplingItera
 
 
 def sample_builder(
-    iterator: SamplingIterator | str,
+    iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
     params_algo: Dict = {},
