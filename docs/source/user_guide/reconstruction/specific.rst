@@ -12,7 +12,7 @@ taken from the respective literatures.
      - Description
    * - :class:`deepinv.models.VarNet`
      - VarNet/E2E-VarNet MRI reconstruction models
-   * - :class:`deepinv.utils.demo.demo_mri_model`
+   * - :class:`deepinv.models.MoDL`
      - MoDL MRI reconstruction model
    * - :class:`deepinv.models.PanNet`
      - PanNet architecture for multispectral pan-sharpening reconstruction.

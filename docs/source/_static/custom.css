@@ -1,0 +1,15 @@
+a.sphx-glr-backref-instance {
+    text-decoration: underline;
+}
+
+.image-row {
+    display: flex;
+    justify-content: center; /* Center the images */
+    align-items: center;    /* Align them vertically */
+    gap: 10px;              /* Add spacing between images */
+}
+.custom-gif {
+    width: 50%;  /* Adjust the percentage as needed */
+    margin: 0 auto;
+    display: block;
+}
