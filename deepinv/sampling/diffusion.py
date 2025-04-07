@@ -492,7 +492,7 @@ class DiffPIR(Reconstructor):
                         * (1 - self.zeta) ** 0.5
                         * eps
                         + self.sqrt_1m_alphas_cumprod[t_im1]
-                        * self.zeta ** 0.5
+                        * self.zeta**0.5
                         * torch.randn_like(x)
                     )  # sampling
 
