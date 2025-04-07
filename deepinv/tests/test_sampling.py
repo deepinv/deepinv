@@ -269,6 +269,7 @@ def test_build_algo(algo, imsize, device):
 
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
+
 def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
