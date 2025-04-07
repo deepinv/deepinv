@@ -59,6 +59,29 @@ class SigmaGenerator(PhysicsGenerator):
 
 
 class GainGenerator(PhysicsGenerator):
+   r"""
+
+    Generator for the noise level :math:`\gamma` in the :class:`Poisson noise model <deepinv.physics.PoissonNoise>`.
+
+    The gain is sampled uniformly from the interval :math:`[\gamma_\text{min}, \gamma_\text{max}]`.
+
+    :param float gain_min: minimum noise level
+    :param float gain_max: maximum noise level
+    :param torch.Generator rng: random number generator
+    :param str device: device where the tensor is stored
+    :param torch.dtype dtype: data type of the generated tensor.
+
+    |sep|
+
+    :Examples:
+
+    >>> from deepinv.physics.generator import SigmaGenerator
+    >>> generator = GainGenerator()
+    >>> sigma_dict = generator.step(seed=0) # dict_keys(['sigma'])
+    >>> print(sigma_dict['gain'])
+    tensor([0.2532])
+
+    """
     def __init__(
         self,
         gain_min=0.1,
