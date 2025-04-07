@@ -13,7 +13,7 @@ class DownsamplingGenerator(PhysicsGenerator):
     >>> from deepinv.physics.generator import DownsamplingGenerator
     >>> list_filters = ["bilinear", "bicubic", "gaussian"]
     >>> list_factors = [2, 4]
-    >>> generator = DownSamplingGenerator(filters=list_filters, factors=list_factors)
+    >>> generator = DownsamplingGenerator(filters=list_filters, factors=list_factors)
     >>> ds = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
     >>> filter = ds['filter']
     >>> factor = ds['factor']
