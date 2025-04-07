@@ -87,26 +87,21 @@ y = physics(x)
 
 
 class PULAIterator(dinv.sampling.SamplingIterator):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, algo_params):
+        super().__init__(algo_params)
 
     def forward(
-        self, x, y, physics, cur_data_fidelity, cur_prior, cur_params, *args, **kwargs
+        self, x, y, physics, data_fidelity, prior
     ) -> torch.Tensor:
-        step_size = cur_params["step_size"]
-        epsilon = cur_params.get("epsilon", 0.01)
-        alpha = cur_params.get("alpha", 1.0)
-        sigma = cur_params["sigma"]
-
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
 
-        step_size = step_size / (epsilon + physics.mask.pow(2))
+        step_size = self.algo_params["step_size"] / (self.algo_params["epsilon"] + physics.mask.pow(2))
 
         noise = torch.randn_like(x_bar)
-        sigma2_noise = 1 / cur_data_fidelity.norm
+        sigma2_noise = 1 / data_fidelity.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
-        lprior = -physics.V_adjoint(cur_prior.grad(x, sigma)) * alpha
+        lprior = -physics.V_adjoint(prior.grad(x, self.algo_params["sigma"])) * self.algo_params["alpha"]
 
         return x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
@@ -147,31 +142,38 @@ iterations = int(1e2) if torch.cuda.is_available() else 10
 step_size = 0.5 * (sigma**2)
 denoiser_sigma = 0.1
 
-# parameters for ULA/ PULA
-params = {
+# parameters for PULA
+params_pula = {
     "step_size": step_size,
     "sigma": denoiser_sigma,
     "alpha": 1.0,
+    "epsilon": 0.01
 }
 
 # build our PULA sampler
 pula = dinv.sampling.sample_builder(
-    PULAIterator(),
+    PULAIterator(params_pula),
     likelihood,
     prior,
-    params,
     max_iter=iterations,
     burnin_ratio=0.1,
     thinning=1,
     verbose=True,
 )
 
+# parameters for ULA
+params_ula = {
+    "step_size": step_size,
+    "sigma": denoiser_sigma,
+    "alpha": 1.0,
+}
+
 # build our ULA sampler
 ula = dinv.sampling.sample_builder(
     "ULA",
     likelihood,
     prior,
-    params,
+    params_algo=params_ula,
     max_iter=iterations,
     burnin_ratio=0.1,
     thinning=1,
