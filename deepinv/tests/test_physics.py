@@ -677,6 +677,60 @@ def test_MRI(mri, mri_img_size, device, rng):
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
 
+@pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
+def test_MRI_noise_domain(mri, mri_img_size, device, rng):
+    r"""
+    Test that MRI noise addition is 0 where mask is 0
+
+    :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :param rng: (torch.Generator)
+    """
+
+    B, C, T, H, W = mri_img_size
+    if rng.device != device:
+        rng = torch.Generator(device=device).manual_seed(0)
+    x, y = (
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    )
+
+    coil_maps_kwarg = {}
+
+    if mri is MRI:
+        x = x[:, :, 0, :, :]
+        y = y[:, :, 0, :, :]
+    elif mri is MultiCoilMRI:
+        # y treat T as coil dim for tests
+        x = x[:, :, 0, :, :]
+        coil_maps_kwarg = {"coil_maps": T}
+
+    for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+        # Remove time dim for static MRI
+        _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
+
+        mask, mask2 = (
+            torch.ones(_mask_size, device=device)
+            - torch.eye(*_mask_size[-2:], device=device),
+            torch.zeros(_mask_size, device=device)
+            + torch.eye(*_mask_size[-2:], device=device),
+        )
+
+        # Set mask in constructor
+        physics = mri(
+            mask=mask,
+            img_size=mri_img_size,
+            device=device,
+            noise_model=dinv.physics.noise.GaussianNoise(sigma=0.1).to(device),
+            **coil_maps_kwarg,
+        )
+        y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
+
+        assert torch.all((y1 == 0) == (physics.mask == 0))
+
+
 @pytest.mark.parametrize("name", OPERATORS)
 def test_concatenation(name, device):
     if "pansharpen" in name:  # TODO: fix pansharpening
@@ -824,10 +878,13 @@ def test_noise(device, noise_type):
     assert y1.shape == x.shape
 
 
-def test_noise_domain(device):
+def test_noise_domain_inpainting(device):
     r"""
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
+
+    This concerns the inpainting operator and mri, but due to all the possibilities for setting the MRI operator, we
+    test the feature on MRI in test_MRI_noise_domain.
     """
     x = torch.ones((1, 3, 12, 7), device=device)
     mask = torch.ones_like(x[0])
