@@ -45,6 +45,7 @@ intersphinx_mapping = {
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
+    "deepinv": ("https://deepinv.github.io/deepinv/", None),
 }
 
 # for python3 type hints
@@ -54,6 +55,8 @@ autodoc_typehints_description_target = "documented"
 autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
+# Create link to the API in the auto examples
+autodoc_inherit_docstrings = False
 
 
 ####  userguide directive ###
@@ -178,7 +181,9 @@ numfig_secnum_depth = 3
 
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
-html_static_path = []
+# html_static_path = []
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
     "quickstart": [],
     "contributing": [],

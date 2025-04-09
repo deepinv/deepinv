@@ -352,7 +352,7 @@ class LinearPhysics(Physics):
         .. note::
 
             If the problem is non-linear, there is not a well-defined transpose operation,
-            but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.
 
         :param torch.Tensor y: measurements.
         :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
@@ -842,7 +842,7 @@ class Denoising(DecomposablePhysics):
 
     The linear operator is just the identity mapping :math:`A(x)=x`
 
-    :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module.
 
     |sep|
 
