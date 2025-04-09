@@ -82,9 +82,13 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
-        imgs = [x]
-        titles = ["Ground truth"]
-        caption = "From left to right: Ground truth, "
+        imgs = []
+        titles = []
+        caption = "From left to right: "
+        if not torch.any(torch.isnan(x)):
+            imgs.append(x)
+            titles.append("Ground truth")
+            caption += "Ground truth, "
         if y.shape == x.shape:
             imgs.append(y)
             titles.append("Measurement")

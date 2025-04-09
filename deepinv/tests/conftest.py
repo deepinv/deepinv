@@ -22,7 +22,7 @@ def toymatrix():
 
 @pytest.fixture
 def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
+    return DummyCircles(samples=2, imsize=imsize)
 
 
 @pytest.fixture

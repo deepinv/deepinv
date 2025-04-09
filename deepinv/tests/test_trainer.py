@@ -8,7 +8,7 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
-from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise
+from deepinv.physics.noise import GaussianNoise, PoissonNoise
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -317,3 +317,78 @@ def test_trainer_test_metrics(device, rng):
     assert np.isclose(
         np.std(results["PSNR no learning_vals"]), results["PSNR no learning_std"]
     )
+
+
+@pytest.fixture
+def dummy_model(device):
+    class DummyModel(dinv.models.Reconstructor):
+        def __init__(self):
+            super().__init__()
+            self.param = torch.nn.Parameter(torch.ones(1), requires_grad=True)
+            self.median = dinv.models.MedianFilter()
+
+        def forward(self, y, physics, **kwargs):
+            x = physics.A_adjoint(y)
+            return (x + self.param * self.median(x)) / 2.0
+
+    return DummyModel().to(device)
+
+
+def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
+    # Measurements only dataset
+    class DummyDataset(Dataset):
+        def __len__(self):
+            return len(dummy_dataset)
+
+        def __getitem__(self, i):
+            return torch.nan, dummy_dataset[i]
+
+    model = dummy_model
+    dataset = DummyDataset()
+    dataloader = DataLoader(dataset, batch_size=1)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+    losses = dinv.loss.MCLoss()
+    trainer = dinv.Trainer(
+        model=model,
+        losses=losses,
+        plot_images=True,
+        epochs=1,
+        physics=physics,
+        train_dataloader=dataloader,
+        optimizer=optimizer,
+    )
+    # Check that the model is trained without errors
+    trainer.train()
+
+
+def test_early_stop(dummy_dataset, imsize, device, dummy_model):
+    torch.manual_seed(0)
+    model = dummy_model
+    # split dataset
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=1)
+    eval_dataloader = DataLoader(eval_data, batch_size=1)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    losses = dinv.loss.MCLoss()
+    trainer = dinv.Trainer(
+        model=model,
+        losses=losses,
+        early_stop=True,
+        epochs=100,
+        physics=physics,
+        train_dataloader=dataloader,
+        eval_dataloader=eval_dataloader,
+        online_measurements=True,
+        optimizer=optimizer,
+        verbose=False,
+    )
+    # Check that the model is trained without errors
+    trainer.train()
+    last = trainer.eval_metrics_history["PSNR"][-1]
+    best = max(trainer.eval_metrics_history["PSNR"])
+
+    metrics = trainer.test(eval_dataloader)
+
+    assert metrics["PSNR"] == best and metrics["PSNR"] > last

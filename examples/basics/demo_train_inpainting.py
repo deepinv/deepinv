@@ -161,7 +161,7 @@ trainer = dinv.Trainer(
     scheduler=scheduler,
     losses=losses,
     optimizer=optimizer,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )
