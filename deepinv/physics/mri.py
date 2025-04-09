@@ -287,18 +287,17 @@ class MRI(MRIMixin, DecomposablePhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(
-                        mask=mask,
-                        three_d=getattr(self, "three_d", False),
-                        device=self.device,
-                    )
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(
+                    mask=mask,
+                    three_d=getattr(self, "three_d", False),
+                    device=self.device,
+                )
+                if check_mask
+                else mask
             )
+
+            self.register_buffer("mask", mask)
 
 
 class MultiCoilMRI(MRIMixin, LinearPhysics):
@@ -457,14 +456,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
+                if check_mask
+                else mask
             )
+            self.register_buffer("mask", mask)
 
         if coil_maps is not None:
             while len(coil_maps.shape) < (
@@ -475,9 +472,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             if not coil_maps.is_complex():
                 raise ValueError("coil_maps should be of torch complex dtype.")
 
-            self.coil_maps = torch.nn.Parameter(
-                coil_maps.to(self.device), requires_grad=False
-            )
+            self.register_buffer("coil_maps", coil_maps.to(self.device))
 
     def simulate_birdcage_csm(self, n_coils: int):
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.

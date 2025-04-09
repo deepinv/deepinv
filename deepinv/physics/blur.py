@@ -241,7 +241,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
-        self.update_parameters(filter=filter, **kwargs)
+        self.register_buffer("filter", filter)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -274,20 +274,6 @@ class Blur(LinearPhysics):
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
-
-    def update_parameters(self, filter=None, **kwargs):
-        r"""
-        Updates the current filter.
-
-        :param torch.Tensor filter: New filter to be applied to the input image.
-        """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(
-                filter.to(self.device), requires_grad=False
-            )
-
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
 
 
 class BlurFFT(DecomposablePhysics):
@@ -367,7 +353,7 @@ class BlurFFT(DecomposablePhysics):
     def V(self, x):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
-    def update_parameters(self, filter=None, **kwargs):
+    def update_parameters(self, filter: Tensor = None, **kwargs):
         r"""
         Updates the current filter.
 
@@ -385,7 +371,7 @@ class BlurFFT(DecomposablePhysics):
             self.angle = torch.exp(-1.0j * self.angle).to(self.device)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
+            self.register_buffer("mask", mask)
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
@@ -492,7 +478,13 @@ class SpaceVaryingBlur(LinearPhysics):
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
+    def update_parameters(
+        self,
+        filters: Tensor = None,
+        multipliers: Tensor = None,
+        padding: str = None,
+        **kwargs,
+    ):
         r"""
         Updates the current parameters.
 
@@ -501,9 +493,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
         if filters is not None:
-            self.filters = torch.nn.Parameter(filters, requires_grad=False)
+            self.register_buffer("filters", filters)
         if multipliers is not None:
-            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
+            self.register_buffer("multipliers", multipliers)
         if padding is not None:
             self.padding = padding
 

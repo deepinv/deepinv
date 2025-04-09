@@ -122,7 +122,7 @@ class HyperSpectralUnmixing(LinearPhysics):
                 raise ValueError(
                     "Number of endmembers and bands should be same as before."
                 )
-            self.M = torch.nn.Parameter(M.to(self.device), requires_grad=False)
+            self.register_buffer("M", M)
 
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)

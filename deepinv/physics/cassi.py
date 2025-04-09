@@ -93,11 +93,11 @@ class CompressiveSpectralImaging(LinearPhysics):
                 rng=rng,
             ).step()["mask"]
 
-        self.update_parameters(mask=mask, **kwargs)
-
         # In SS-CASSI, masking happens on the padded image after shearing
         if self.mode == "ss":
-            self.mask = self.pad(self.mask)
+            mask = self.pad(mask)
+
+        self.update_parameters(mask=mask)
 
     def pad(self, x: Tensor) -> Tensor:
         """Pad image on bottom or on right.
@@ -221,6 +221,3 @@ class CompressiveSpectralImaging(LinearPhysics):
         if x.shape[1:] != self.img_size:
             raise ValueError("Output must be same shape as img_size.")
         return x
-
-    def update_parameters(self, mask: Tensor, **kwargs):
-        self.mask = mask if mask is not None else self.mask

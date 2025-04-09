@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from typing import Callable
 import warnings
+from torch import Tensor
 
 
 class NoiseModel(nn.Module):
@@ -90,6 +91,22 @@ class NoiseModel(nn.Module):
         self.rng_manual_seed(seed)
         return torch.empty_like(input).normal_(generator=self.rng)
 
+    def update_parameters(self, **kwargs):
+        r"""
+
+        Update the parameters of the noise model.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        if kwargs:
+            for key, value in kwargs.items():
+                if (
+                    value is not None
+                    and hasattr(self, key)
+                    and isinstance(value, torch.Tensor)
+                ):
+                    self.register_buffer(key, value)
+
 
 class GaussianNoise(NoiseModel):
     r"""
@@ -115,7 +132,9 @@ class GaussianNoise(NoiseModel):
 
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(sigma=sigma)
+        if not isinstance(sigma, Tensor):
+            sigma = torch.as_tensor(sigma)
+        self.register_buffer("sigma", sigma)
 
     def forward(self, x, sigma=None, seed=None, **kwargs):
         r"""
@@ -135,15 +154,6 @@ class GaussianNoise(NoiseModel):
         else:
             sigma = self.sigma
         return x + self.randn_like(x, seed=seed) * sigma
-
-    def update_parameters(self, sigma=None, **kwargs):
-        r"""
-        Updates the standard deviation of the noise.
-
-        :param float, torch.Tensor sigma: standard deviation of the noise.
-        """
-        if sigma is not None:
-            self.sigma = to_nn_parameter(sigma)
 
 
 class UniformGaussianNoise(NoiseModel):
@@ -175,8 +185,8 @@ class UniformGaussianNoise(NoiseModel):
 
     def __init__(self, sigma_min=0.0, sigma_max=0.5, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.sigma_min = sigma_min
-        self.sigma_max = sigma_max
+        self.register_buffer("sigma_min", torch.as_tensor(sigma_min))
+        self.register_buffer("sigma_max", torch.as_tensor(sigma_max))
 
     def forward(self, x, seed: int = None, **kwargs):
         r"""
@@ -236,7 +246,7 @@ class PoissonNoise(NoiseModel):
     ):
         super().__init__(rng=rng)
         self.normalize = to_nn_parameter(normalize)
-        self.update_parameters(gain=gain)
+        self.register_buffer("gain", torch.as_tensor(gain))
         self.clip_positive = clip_positive
 
     def forward(self, x, gain=None, seed: int = None, **kwargs):
@@ -257,15 +267,6 @@ class PoissonNoise(NoiseModel):
         if self.normalize:
             y *= self.gain
         return y
-
-    def update_parameters(self, gain=None, **kwargs):
-        r"""
-        Updates the gain of the noise.
-
-        :param float, torch.Tensor gain: gain of the noise.
-        """
-        if gain is not None:
-            self.gain = to_nn_parameter(gain)
 
 
 class GammaNoise(NoiseModel):
@@ -288,7 +289,7 @@ class GammaNoise(NoiseModel):
         super().__init__(rng=None)
         if isinstance(l, int):
             l = float(l)
-        self.update_parameters(l=l)
+        self.register_buffer("l", torch.as_tensor(l))
 
     def forward(self, x, l=None, **kwargs):
         r"""
@@ -303,15 +304,6 @@ class GammaNoise(NoiseModel):
             self.l.to(x.device), self.l.to(x.device) / x
         )
         return d.sample()
-
-    def update_parameters(self, l=None, **kwargs):
-        r"""
-        Updates the noise level.
-
-        :param float, torch.Tensor ell: noise level.
-        """
-        if l is not None:
-            self.l = to_nn_parameter(l)
 
 
 class PoissonGaussianNoise(NoiseModel):
@@ -340,7 +332,8 @@ class PoissonGaussianNoise(NoiseModel):
 
     def __init__(self, gain=1.0, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(gain=gain, sigma=sigma)
+        self.register_buffer("gain", torch.as_tensor(gain))
+        self.register_buffer("sigma", torch.as_tensor(sigma))
 
     def forward(self, x, gain=None, sigma=None, seed: int = None, **kwargs):
         r"""
@@ -359,19 +352,6 @@ class PoissonGaussianNoise(NoiseModel):
         y = torch.poisson(x / self.gain, generator=self.rng) * self.gain
         y += self.randn_like(x) * self.sigma
         return y
-
-    def update_parameters(self, gain=None, sigma=None, **kwargs):
-        r"""
-        Updates the gain and standard deviation of the noise.
-
-        :param float, torch.Tensor gain: gain of the noise.
-        :param float, torch.Tensor sigma: standard deviation of the noise.
-        """
-        if gain is not None:
-            self.gain = to_nn_parameter(gain)
-
-        if sigma is not None:
-            self.sigma = to_nn_parameter(sigma)
 
 
 class UniformNoise(NoiseModel):
@@ -398,7 +378,7 @@ class UniformNoise(NoiseModel):
 
     def __init__(self, a=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(a=a)
+        self.register_buffer("a", torch.as_tensor(a))
 
     def forward(self, x, a=None, seed: int = None, **kwargs):
         r"""
@@ -411,15 +391,6 @@ class UniformNoise(NoiseModel):
         """
         self.update_parameters(a=a)
         return x + (self.rand_like(x, seed=seed) - 0.5) * 2 * self.a
-
-    def update_parameters(self, a=None, **kwargs):
-        r"""
-        Updates the amplitude of the noise.
-
-        :param float, torch.Tensor a: amplitude of the noise.
-        """
-        if a is not None:
-            self.a = to_nn_parameter(a)
 
 
 class LogPoissonNoise(NoiseModel):
@@ -457,7 +428,8 @@ class LogPoissonNoise(NoiseModel):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.update_parameters(mu=mu, N0=N0)
+        self.register_buffer("mu", torch.as_tensor(mu))
+        self.register_buffer("N0", torch.as_tensor(N0))
 
     def forward(self, x, mu=None, N0=None, seed: int = None, **kwargs):
         r"""
@@ -476,23 +448,3 @@ class LogPoissonNoise(NoiseModel):
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y
-
-    def update_parameters(self, mu=None, N0=None, **kwargs):
-        r"""
-        Updates the number of photons and normalization constant.
-
-        :param float, torch.Tensor mu: number of photons.
-        :param float, torch.Tensor N0: normalization constant.
-        """
-        if mu is not None:
-            self.mu = to_nn_parameter(mu)
-
-        if N0 is not None:
-            self.N0 = to_nn_parameter(N0)
-
-
-def to_nn_parameter(x):
-    if isinstance(x, torch.Tensor):
-        return torch.nn.Parameter(x, requires_grad=False)
-    else:
-        return torch.nn.Parameter(torch.tensor(x), requires_grad=False)

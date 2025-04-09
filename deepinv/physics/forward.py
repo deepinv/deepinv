@@ -235,12 +235,12 @@ class Physics(torch.nn.Module):  # parent class for forward models
         # check if noise model has a method named update_parameters
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
-    
+
     def update_parameters(self, **kwargs):
         r"""
-        
+
         Update the parameters of the forward operator.
-        
+
         :param dict kwargs: dictionary of parameters to update.
         """
         if kwargs:
@@ -251,6 +251,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
                     self.register_buffer(key, value)
+
 
 class LinearPhysics(Physics):
     r"""
@@ -835,20 +836,6 @@ class DecomposablePhysics(LinearPhysics):
             mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
-
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the singular values of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                self.register_buffer(key, value)
-                # setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
