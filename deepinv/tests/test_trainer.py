@@ -356,6 +356,7 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
         epochs=1,
         physics=physics,
         metrics=dinv.loss.MCLoss(),
+        online_measurements=False,
         train_dataloader=dataloader,
         optimizer=optimizer,
     )
