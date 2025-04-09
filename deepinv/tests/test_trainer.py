@@ -355,6 +355,7 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
         plot_images=True,
         epochs=1,
         physics=physics,
+        metrics=dinv.loss.MCLoss(),
         train_dataloader=dataloader,
         optimizer=optimizer,
     )
@@ -362,22 +363,28 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
     trainer.train()
 
 
-def test_early_stop(dummy_dataset, imsize, device, dummy_model):
+@pytest.mark.parametrize("early_stop", [True, False])
+@pytest.mark.parametrize("max_batch_steps", [3, 100000])
+def test_early_stop(
+    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps
+):
     torch.manual_seed(0)
     model = dummy_model
     # split dataset
+    epochs = 100 if early_stop else 4
     train_data, eval_data = dummy_dataset, dummy_dataset
-    dataloader = DataLoader(train_data, batch_size=1)
-    eval_dataloader = DataLoader(eval_data, batch_size=1)
+    dataloader = DataLoader(train_data, batch_size=2)
+    eval_dataloader = DataLoader(eval_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1)
     losses = dinv.loss.MCLoss()
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
-        early_stop=True,
-        epochs=100,
+        early_stop=early_stop,
+        epochs=epochs,
         physics=physics,
+        max_batch_steps=max_batch_steps,
         train_dataloader=dataloader,
         eval_dataloader=eval_dataloader,
         online_measurements=True,
@@ -386,9 +393,15 @@ def test_early_stop(dummy_dataset, imsize, device, dummy_model):
     )
     # Check that the model is trained without errors
     trainer.train()
-    last = trainer.eval_metrics_history["PSNR"][-1]
-    best = max(trainer.eval_metrics_history["PSNR"])
 
-    metrics = trainer.test(eval_dataloader)
-
-    assert metrics["PSNR"] == best and metrics["PSNR"] > last
+    metrics_history = trainer.eval_metrics_history["PSNR"]
+    if max_batch_steps == 3:
+        assert len(metrics_history) <= len(dataloader) * epochs
+    elif early_stop:
+        assert len(metrics_history) < epochs
+        last = metrics_history[-1]
+        best = max(metrics_history)
+        metrics = trainer.test(eval_dataloader)
+        assert metrics["PSNR"] == best and metrics["PSNR"] > last
+    else:
+        assert len(metrics_history) == epochs

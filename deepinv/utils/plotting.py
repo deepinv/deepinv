@@ -75,7 +75,7 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
 
     It prepares the images for plotting by rescaling them and concatenating them in a grid.
 
-    :param torch.Tensor x: Ground truth.
+    :param torch.Tensor, None x: Ground truth, or None if not available.
     :param torch.Tensor y: Measurement.
     :param torch.Tensor x_net: Reconstruction network output.
     :param torch.Tensor x_nl: No-learning reconstruction.
@@ -85,11 +85,11 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
         imgs = []
         titles = []
         caption = "From left to right: "
-        if not torch.any(torch.isnan(x)):
+        if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
-        if y.shape == x.shape:
+        if len(y.shape) == 4:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "

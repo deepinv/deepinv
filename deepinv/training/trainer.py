@@ -39,23 +39,12 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    .. tip::
-        If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
-        first metric in the list, using the following format:
-        ``save_path/yyyy-mm-dd_hh-mm-ss/best_model.pth.tar``.
-
     Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
     the **dataloaders** should return one of the following options:
 
     1. `(x, y)` or `(x, y, params)`, which requires `online_measurements=False` (default) otherwise `y` will be ignored and new measurements will be generated online.
     2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner as `y=physics(x)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
-    3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`  and use options 1 or 2 above with `online_measurements=False`.
-
-    .. note::
-
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
-        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
-        a dictionary with the setup for wandb.
+    3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`. Set `online_measurements=False`.
 
     .. note::
 
@@ -66,6 +55,78 @@ class Trainer:
         ``y`` is the measurement vector, ``physics`` is the forward operator
         and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
+
+    .. note::
+
+        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
+        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
+        a dictionary with the setup for wandb.
+
+    :Basics:
+
+    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+        or any other custom reconstruction network.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
+        a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
+    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
+        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
+        parameters of the forward operator or noise realizations, can change between each sample;
+        the measurements are loaded from the training dataset. Default is ``False``.
+    :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
+
+    |sep|
+
+    :Optimization:
+
+    :param None, torch.optim.Optimizer optimizer: Torch optimizer for training the network. Default is ``None``.
+    :param int epochs: Number of training epochs.
+        Default is 100. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
+    :param int max_batch_steps: Number of gradient steps per iteration.
+        Default is 1e10. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
+    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
+    :param bool early_stop: If ``True``, the training stops when the evaluation loss is not improving. Default is ``False``.
+        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterium` method.
+    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
+        Optionally wrap losses using a loss scheduler for more advanced training.
+        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+        Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
+        using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
+    :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
+
+    |sep|
+
+    :Evaluation:
+
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
+        should provide a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
+    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
+        They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
+        :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
+    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
+        the model on the evaluation set. Default is ``1``.
+    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
+        This is useful for visualising train progress inside an epoch, not just over epochs.
+        If ``False`` (default), log average over dataset per epoch (standard training).
+
+    .. tip::
+        If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
+        first metric in the list, using the following format:
+        ``save_path/yyyy-mm-dd_hh-mm-ss/ckp_best.pth.tar``. The user can modify the strategy for saving the best model
+        by overriding the :func:`deepinv.Trainer.save_best_model` method.
+
+    |sep|
+
+    :Physics Generators:
+
+    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
+        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
+        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
+    :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
+        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
+        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``. Default is ``False``.
 
     .. warning::
 
@@ -79,54 +140,22 @@ class Trainer:
         An alternative, safer solution is to generate and save params offline using :func:`deepinv.datasets.generate_dataset`.
         The params dict will then be automatically updated every time data is loaded.
 
-    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
-        or any other custom reconstruction network.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param int epochs: Number of training epochs.
-        Default is 100. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
-    :param int max_batch_steps: Number of gradient steps per iteration.
-        Default is 1e10. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network. Default is ``None``.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-        a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
-    :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        Optionally wrap losses using a loss scheduler for more advanced training.
-        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
-        Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
-        using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-        should provide a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
-    :param bool early_stop: If ``True``, the training stops when the evaluation loss is not improving. Default is ``False``.
-    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
-        parameters of the forward operator or noise realizations, can change between each sample;
-        the measurements are loaded from the training dataset. Default is ``False``.
-    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
-        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
-        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
-    :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
-        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
-        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``. Default is ``False``.
-    :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
-        They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
-        :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
-    :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
-    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded. Default is None.
+    |sep|
+
+    :Model Saving:
+
     :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
+    :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
+    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded. Default is None.
+
+    |sep|
+
+    :Plotting:
+
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_dagger'``.
-    :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
-    :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
-    :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
-    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
-    :param int eval_interval: Number of epochs (or train iters, if ``log_train_batch=True``) between each evaluation of
-        the model on the evaluation set. Default is ``1``.
     :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
@@ -134,14 +163,25 @@ class Trainer:
     :param bool plot_measurements: Plot the measurements y, default=`True`.
     :param bool plot_convergence_metrics: Plot convergence metrics for model, default=`False`.
     :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
-    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
-    :param bool log_train_batch: if ``True``, log train batch and eval-set metrics and losses for each train batch during training.
-        This is useful for visualising train progress inside an epoch, not just over epochs.
-        If ``False`` (default), log average over dataset per epoch (standard training).
+
+    |sep|
+
+    :Verbose:
+
     :param bool verbose: Output training progress information in the console. Default is ``True``.
     :param bool verbose_individual_losses: If ``True``, the value of individual losses are printed during training.
         Otherwise, only the total loss is printed. Default is ``True``.
     :param bool show_progress_bar: Show a progress bar during training. Default is ``True``.
+    :param bool check_grad: Compute and print the gradient norm at each iteration. Default is ``False``.
+    :param bool display_losses_eval: If ``True``, the losses are displayed during evaluation. Default is ``False``.
+
+    |sep|
+
+    :Weights & Biases:
+
+    :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
+    :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
+
     """
 
     model: torch.nn.Module
@@ -202,8 +242,6 @@ class Trainer:
         self.save_path = Path(self.save_path) if self.save_path else None
 
         self.G = len(self.train_dataloader)
-
-        self.best_metric = None
 
         if self.freq_plot is not None:
             warnings.warn(
@@ -446,6 +484,9 @@ class Trainer:
         else:
             x = x.to(self.device)
 
+        if x.numel() == 1 and torch.isnan(x):
+            x = None  # unsupervised case
+
         y = y.to(self.device)
         physics = self.physics[g]
 
@@ -588,6 +629,9 @@ class Trainer:
                     x_net=x_net,
                     x=x,
                     epoch=epoch,
+                    model=self.model,
+                    y=y,
+                    physics=physics,
                 )
 
                 current_log = (
@@ -784,7 +828,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, epoch, eval_metrics=None, state={}, best_model=False):
+    def save_model(self, filename, epoch, state={}):
         r"""
         Save the model.
 
@@ -793,17 +837,12 @@ class Trainer:
         :param int epoch: Current epoch.
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
-        :param bool best_model: If ``True``, the model is saved as the best model.
         """
 
         if not self.save_path:
             return
 
-        if (
-            best_model
-            or (epoch > 0 and epoch % self.ckp_interval == 0)
-            or epoch + 1 == self.epochs
-        ):
+        if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
             os.makedirs(str(self.save_path), exist_ok=True)
             state = state | {
                 "epoch": epoch,
@@ -811,15 +850,13 @@ class Trainer:
                 "loss": self.loss_history,
                 "optimizer": self.optimizer.state_dict(),
             }
-            if eval_metrics is not None:
-                state["eval_metrics"] = eval_metrics
+            state["eval_metrics"] = self.eval_metrics_history
             if self.wandb_vis:
                 state["wandb_id"] = wandb.run.id
 
-            name = "best_model.pth.tar" if best_model else f"ckp_{epoch}.pth.tar"
             torch.save(
                 state,
-                os.path.join(Path(self.save_path), Path(name)),
+                os.path.join(Path(self.save_path), Path(filename)),
             )
 
     def reset_metrics(self):
@@ -842,6 +879,61 @@ class Trainer:
 
         for l in self.logs_metrics_eval:
             l.reset()
+
+    def save_best_model(self, epoch, train_ite, metric_history, metrics, **kwargs):
+        r"""
+        Save the best model using validation metrics.
+
+        :param int epoch: Current epoch.
+        :param int train_ite: Current gradient iteration, gives a more fine-grained control than epochs.
+        :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
+        :param list metrics: List of metrics used for evaluation.
+        """
+        if train_ite > 1:  # do at least one gradient step
+            k = 0  # index of the first metric
+            history = metric_history[metrics[k].__class__.__name__]
+            if hasattr(metrics[k], "lower_better"):
+                lower_better = metrics[k].lower_better
+            else:  # assume is a loss which is always lower is better
+                lower_better = True
+
+            best_metric = min(history) if lower_better else max(history)
+            curr_metric = history[-1]
+            if (lower_better and curr_metric <= best_metric) or (
+                not lower_better and curr_metric >= best_metric
+            ):
+                # Saving the model
+                self.save_model("ckp_best.pth.tar", epoch)
+                if self.verbose:
+                    print(f"Best model saved at epoch {epoch + 1}")
+
+    def stop_criterium(self, epoch, train_ite, metric_history, metrics, **kwargs):
+        r"""
+        Stop criterium for early stopping.
+
+        :param int epoch: Current epoch.
+        :param int train_ite: Current gradient iteration, gives a more fine-grained control than epochs.
+        :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
+        :param list metrics: List of metrics used for evaluation.
+        """
+        k = 0  # use first metric
+
+        history = metric_history[metrics[k].__class__.__name__]
+        if hasattr(metrics[k], "lower_better"):
+            lower_better = metrics[k].lower_better
+        else:  # assume is a loss which is always lower is better
+            lower_better = True
+
+        best_metric = min(history) if lower_better else max(history)
+        best_epoch = history.index(best_metric)
+
+        if self.verbose:
+            print(
+                "Early stopping triggered as validation metrics have not improved in "
+                "the last 5 epochs, disable it with early_stop=False"
+            )
+
+        return epoch > 5 + best_epoch
 
     def train(
         self,
@@ -949,41 +1041,20 @@ class Trainer:
                             metric
                         )  # store metrics history
 
-                        if k == 0:
-                            # save the best model using the first metric
-                            if hasattr(self.metrics[k], "lower_better"):
-                                lower_better = self.metrics[k].lower_better
-                            else:  # assume is a loss which is always lower is better
-                                lower_better = True
+                        self.save_best_model(
+                            epoch,
+                            train_ite,
+                            self.eval_metrics_history,
+                            self.metrics,
+                        )
 
-                            if (
-                                self.best_metric is None
-                                or (
-                                    lower_better and metric < self.best_metric["metric"]
-                                )
-                                or (
-                                    not lower_better
-                                    and metric > self.best_metric["metric"]
-                                )
-                            ):
-                                self.best_metric = {
-                                    "metric": metric,
-                                    "train_ite": train_ite,
-                                    "epoch": epoch,
-                                }
-                                # Saving the model
-                                self.save_model(
-                                    epoch,
-                                    self.eval_metrics_history if perform_eval else None,
-                                    best_model=True,
-                                )
-                                if self.verbose:
-                                    print(f"Best model saved at epoch {epoch + 1}")
-                            elif (
-                                self.early_stop
-                                and epoch > 5 + self.best_metric["epoch"]
-                            ):
-                                stop_flag = True
+                        if self.early_stop:
+                            stop_flag = self.stop_criterium(
+                                epoch,
+                                train_ite,
+                                self.eval_metrics_history,
+                                self.metrics,
+                            )
 
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
@@ -994,23 +1065,9 @@ class Trainer:
             if self.scheduler:
                 self.scheduler.step()
 
-            self.save_model(epoch, self.eval_metrics_history if perform_eval else None)
+            self.save_model(f"ckp_{epoch}.pth.tar", epoch)
 
             if stop_flag:
-                if (
-                    self.verbose
-                    and self.early_stop
-                    and epoch > 5 + self.best_metric["epoch"]
-                ):
-                    print(
-                        "Early stopping triggered as validation metrics have not improved in "
-                        "the last 5 epochs, disable it with early_stop=False"
-                    )
-                else:
-                    print(
-                        "Maximum number of gradient steps reached, stopping training,"
-                        " disable with max_batch_steps=None"
-                    )
                 break
 
         if self.wandb_vis:
@@ -1018,13 +1075,15 @@ class Trainer:
             wandb.finish()
 
         # load best model
-        if self.best_metric is not None:
-            checkpoint = torch.load(
-                os.path.join(Path(self.save_path), Path("best_model.pth.tar")),
-                map_location=self.device,
-                weights_only=False,
-            )
-            self.model.load_state_dict(checkpoint["state_dict"])
+        if self.save_path is not None:
+            path = os.path.join(Path(self.save_path), Path("ckp_best.pth.tar"))
+            if os.path.exists(path):
+                checkpoint = torch.load(
+                    path,
+                    map_location=self.device,
+                    weights_only=False,
+                )
+                self.model.load_state_dict(checkpoint["state_dict"])
 
         return self.model
 
@@ -1123,7 +1182,7 @@ def train(
         This function is deprecated and will be removed in future versions. Please use
         :class:`deepinv.Trainer` instead.
 
-    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
