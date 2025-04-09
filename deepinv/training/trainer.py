@@ -40,8 +40,8 @@ class Trainer:
     and ``eval_metrics`` the evaluation metrics history.
 
     .. tip::
-        If a validation dataloader `eval_dataloader` is provided, the trainer will save the best model according to the
-        first metric in the list, and save it in the following format:
+        If a validation dataloader `eval_dataloader` is provided, the trainer will also **save the best model** according to the
+        first metric in the list, using the following format:
         ``save_path/yyyy-mm-dd_hh-mm-ss/best_model.pth.tar``.
 
     Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
@@ -94,7 +94,7 @@ class Trainer:
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
         Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
-        using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.physics.SupLoss>`.
+        using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
         where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
