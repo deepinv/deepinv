@@ -605,6 +605,8 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
+    # add a note 
+
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
@@ -667,6 +669,7 @@ class ADMM(BaseOptim):
         F_fn=None,
         params_algo=None,
         **kwargs,
+        # add an unfolded mode for DEQ
     ):
         if params_algo is None:
             params_algo = {
@@ -711,6 +714,7 @@ class DRS(BaseOptim):
                 "g_param": g_param,
                 "beta": beta,
             }
+        # add assert for the necessary arguments 
         super(DRS, self).__init__(
             DRSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
