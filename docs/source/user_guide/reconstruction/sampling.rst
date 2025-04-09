@@ -32,23 +32,24 @@ The **forward-time SDE** is defined as follows, from time :math:`0` to :math:`T`
 
 .. math::
 
-    d\, x_t = f(t) x_t d\,t + g(t) d\, \omega_t.
+    d x_t = f(t) x_t dt + g(t) d w_t.
 
+where :math:`w_t` is a Brownian process. 
 Let :math:`p_t` denote the distribution of the random vector :math:`x_t`.
-Under this forward process, we have that
+Under this forward process, we have that:
 
 .. math::
 
-    x_t \vert x_0 \sim \mathcal{N}\left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),
+    x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),
 
 where the **scaling** over time is :math:`s(t) = \exp\left( \int_0^t f(r) d\,r \right)` and
 the **normalized noise level** is :math:`\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)^2} d\,r}`.
 
-The **reverse-time SDE** is defined as follows, running backwards in time (from :math:`T` to :math:`0`)
+The **reverse-time SDE** is defined as follows, running backwards in time (from :math:`T` to :math:`0`):
 
 .. math::
 
-    d\, x_{t} = \left( f(t) x_t - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_{t}(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, \omega_{t}.
+    d x_{t} = \left( f(t) x_t - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_{t}(x_t) \right) dt + g(t) \sqrt{\alpha} d w_{t}.
 
 where :math:`\alpha \in [0,1]` is a scalar weighting the diffusion term (:math:`\alpha = 0` corresponds to the ordinary differential equation (ODE) sampling
 and :math:`\alpha > 0` corresponds to the SDE sampling), and :math:`\nabla \log p_{t}(x_t)` is the score function that can be approximated by (a properly scaled version of)
@@ -56,10 +57,10 @@ Tweedie's formula:
 
 .. math::
 
-    \nabla \log p_t(x_t) =  \frac{\left( \mathbb{E}\{s(t)x_0|x_t\} -  x_t \right)}{s(t)^2\sigma(t)^2} \approx \frac{\left(s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t \right)}{s(t)^2\sigma(t)^2}.
+    \nabla \log p_t(x_t) =  \frac{\mathbb{E}\left[ s(t)x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.
 
 where :math:`\denoiser{\cdot}{\sigma}` is a denoiser trained to denoise images with noise level :math:`\sigma`
-that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E}\{ x|x+\sigma\omega\}` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
+that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma\omega ]` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
 
 .. note::
 
@@ -83,8 +84,8 @@ The base classes for defining a SDEs are :class:`deepinv.sampling.BaseSDE` and :
    * - :class:`Variance Exploding <deepinv.sampling.VarianceExplodingDiffusion>`
      - :math:`0`
      - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
-     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
      - :math:`1`
+     - :math:`\sigma_{\mathrm{min}}\left(\frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}}\right)^t`
 
    * - :class:`Variance Preserving <deepinv.sampling.VariancePreservingDiffusion>`
      - :math:`-\frac{1}{2}\left(\beta_{\mathrm{min}}  + t \beta_d \right)`
@@ -122,7 +123,7 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 
 .. math::
 
-    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y | \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).
+    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y \vert \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).
 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.

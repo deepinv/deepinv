@@ -104,10 +104,17 @@ class BaseSDE(nn.Module):
 
 class DiffusionSDE(BaseSDE):
     r"""
-    Reverse-time Diffusion Stochastic Differential Equation defined by
+    Define the Reverse-time Diffusion Stochastic Differential Equation.
+
+    Given a forward-time SDE of the form:
 
     .. math::
-        d\, x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) d\,t + g(t) \sqrt{\alpha} d\, w_{t}.
+        d x_t = f(x_t, t) dt + g(t)d w_t
+
+    This class define the following reverse-time SDE:
+
+    .. math::
+        d x_{t} = \left( f(x_t, t) - \frac{1 + \alpha}{2} g(t)^2 \nabla \log p_t(x_t) \right) dt + g(t) \sqrt{\alpha} d w_{t}.
 
     :param Callable drift: a time-dependent drift function :math:`f(x, t)` of the forward-time SDE.
     :param Callable diffusion: a time-dependent diffusion function :math:`g(t)` of the forward-time SDE.
@@ -206,7 +213,14 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     The forward-time SDE is defined as follows:
 
     .. math::
-        d\, x_t = g(t) d\, w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
+        d x_t = g(t) d w_t \quad \mbox{where } g(t) = \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t
+
+    The reverse-time SDE is defined as follows:
+
+    .. math::
+        d x_t = -\frac{1 + \alpha}{2} \sigma_{\mathrm{min}}^2 \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^{2t} \nabla \log p_t(x_t) dt + \sqrt{\alpha} \sigma_{\mathrm{min}} \left( \frac{\sigma_{\mathrm{max}}}{\sigma_{\mathrm{min}}} \right)^t d w_t
+
+    where :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
 
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
 
@@ -308,13 +322,20 @@ class VariancePreservingDiffusion(DiffusionSDE):
     The forward-time SDE is defined as follows:
 
     .. math::
-        d\, x_t = -\frac{1}{2}\beta(t)x_t d\, t + \sqrt{\beta(t)} d\, w_t \quad \mbox{where } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}}} \right)
+        d x_t = -\frac{1}{2} \beta(t) x_t dt + \sqrt{\beta(t)} d w_t \quad \mbox{ where } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right)
+
+    The reverse-time SDE is defined as follows:
+
+    .. math::
+        d x_t = -\left(\frac{1}{2} \beta(t) x_t + \frac{1 + \alpha}{2} \beta(t) \nabla \log p_t(x_t) \right) dt + \sqrt{\alpha \beta(t)} d w_t
+
+    where :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
 
     This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
 
     :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
-    :param float sigma_min: the minimum noise level.
-    :param float sigma_max: the maximum noise level.
+    :param float beta_min: the minimum noise level.
+    :param float beta_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
     :param deepinv.sampling.BaseSDESolver solver: the solver for solving the SDE.
     :param torch.dtype dtype: data type of the computation, except for the ``denoiser`` which will use ``torch.float32``.
@@ -374,7 +395,7 @@ class VariancePreservingDiffusion(DiffusionSDE):
 
     def sample_init(self, shape, rng: torch.Generator) -> Tensor:
         r"""
-        Sample from the initial distribution of the reverse-time diffusion SDE, which is a Gaussian with zero mean and covariance matrix :math:`\sigma_{max}^2 \operatorname{Id}`.
+        Sample from the initial distribution of the reverse-time diffusion SDE, which is the standard Gaussian distribution.
 
         :param tuple shape: The shape of the sample to generate
         :param torch.Generator rng: Random number generator for reproducibility
