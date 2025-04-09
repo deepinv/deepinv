@@ -486,6 +486,7 @@ class Trainer:
 
         if x.numel() == 1 and torch.isnan(x):
             x = None  # unsupervised case
+            assert not self.online_measurements, "online_measurements must be False if no ground truth x is provided"
 
         y = y.to(self.device)
         physics = self.physics[g]
