@@ -40,8 +40,8 @@ class Trainer:
     and ``eval_metrics`` the evaluation metrics history.
 
     .. tip::
-        If an validation `eval_dataloader` is provided, the trainer will save the best model using the
-        first metric in the list of metrics as the validation metric, and save it in the following format:
+        If a validation dataloader `eval_dataloader` is provided, the trainer will save the best model according to the
+        first metric in the list, and save it in the following format:
         ``save_path/yyyy-mm-dd_hh-mm-ss/best_model.pth.tar``.
 
     Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
@@ -86,32 +86,33 @@ class Trainer:
         Default is 100. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param int max_batch_steps: Number of gradient steps per iteration.
         Default is 1e10. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
-    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
+    :param torch.optim.Optimizer optimizer: Torch optimizer for training the network. Default is ``None``.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
         a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
-        Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
+        Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
+        using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.physics.SupLoss>`.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration.
+        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
     :param bool early_stop: If ``True``, the training stops when the evaluation loss is not improving. Default is ``False``.
-    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations.
+    :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
     :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
         ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
         parameters of the forward operator or noise realizations, can change between each sample;
         the measurements are loaded from the training dataset. Default is ``False``.
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
-        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``.
+        Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
     :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
-        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``.
+        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``. Default is ``False``.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
-        :ref:`See the libraries' evaluation metrics <metric>`.
+        :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
     :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
     :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded. Default is None.
     :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
