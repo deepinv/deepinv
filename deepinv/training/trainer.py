@@ -150,15 +150,17 @@ class Trainer:
 
     |sep|
 
-    :Plotting:
+    :Comparison with Pseudoinverse Baseline:
 
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
         :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_dagger'``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
-        If ``1``, plots at each epoch. Default is ``1``.
-    :param int freq_plot: deprecated. Use ``plot_interval``
+
+    |sep|
+
+    :Plotting:
+
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs. Default is ``False``.
     :param bool plot_measurements: Plot the measurements y, default=`True`.
     :param bool plot_convergence_metrics: Plot convergence metrics for model, default=`False`.
@@ -181,6 +183,9 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
+    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+        If ``1``, plots at each epoch. Default is ``1``.
+    :param int freq_plot: deprecated. Use ``plot_interval``
 
     """
 
