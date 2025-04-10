@@ -380,11 +380,13 @@ class Trainer:
             self.model.load_state_dict(checkpoint["state_dict"])
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
+            if "scheduler" in checkpoint and self.scheduler is not None:
+                self.scheduler.load_state_dict(checkpoint["scheduler"])
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
             if "epoch" in checkpoint:
-                self.epoch_start = checkpoint["epoch"]
+                self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
@@ -872,6 +874,7 @@ class Trainer:
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
                 "optimizer": self.optimizer.state_dict(),
+                "scheduler": self.scheduler.state_dict(),
             }
             state["eval_metrics"] = self.eval_metrics_history
             if self.wandb_vis:
