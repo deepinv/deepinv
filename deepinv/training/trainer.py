@@ -434,12 +434,13 @@ class Trainer:
         :param int g: Current dataloader index.
         :returns: a tuple containing at least: the ground truth, the measurement, and the current physics operator.
         """
-        data = next(
-            iterators[g]
-        )  # In this case the dataloader outputs also a class label
+        data = next(iterators[g])
 
-        if type(data) is tuple or type(data) is list:
+        if isinstance(data, (tuple, list)):
             x = data[0]
+            warnings.warn(
+                "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
+            )
         else:
             x = data
 
@@ -483,6 +484,10 @@ class Trainer:
             x, y, params = *data, None
         elif len(data) == 3:
             x, y, params = data
+        else:
+            raise ValueError(
+                "Dataloader returns too many items. For offline learning, dataloader should either return (x, y) or (x, y, params)."
+            )
 
         if type(x) is list or type(x) is tuple:
             x = [s.to(self.device) for s in x]
@@ -491,9 +496,6 @@ class Trainer:
 
         if x.numel() == 1 and torch.isnan(x):
             x = None  # unsupervised case
-            assert (
-                not self.online_measurements
-            ), "online_measurements must be False if no ground truth x is provided"
 
         y = y.to(self.device)
         physics = self.physics[g]
@@ -516,11 +518,16 @@ class Trainer:
         :returns: the tuple returned by the get_samples_online or get_samples_offline function.
         """
         if self.online_measurements:  # the measurements y are created on-the-fly
-            samples = self.get_samples_online(iterators, g)
+            x, y, physics = self.get_samples_online(iterators, g)
+            if torch.isnan(x).all():
+                raise ValueError("Online measurements can't be used if x is all NaN.")
         else:  # the measurements y were pre-computed
-            samples = self.get_samples_offline(iterators, g)
+            x, y, physics = self.get_samples_offline(iterators, g)
 
-        return samples
+        if torch.isinf(x).any() or torch.isnan(x).any():
+            warnings.warn("x contains NaN or inf values.")
+
+        return x, y, physics
 
     def model_inference(self, y, physics, x=None, train=True, **kwargs):
         r"""
