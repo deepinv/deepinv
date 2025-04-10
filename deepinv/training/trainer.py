@@ -43,7 +43,7 @@ class Trainer:
     the **dataloaders** should return one of the following options:
 
     1. `(x, y)` or `(x, y, params)`, which requires `online_measurements=False` (default) otherwise `y` will be ignored and new measurements will be generated online.
-    2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner as `y=physics(x)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
+    2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner (optionally with parameters) as `y=physics(x)` or `y=physics(x, **params)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
     3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`. Set `online_measurements=False`.
 
     .. note::
@@ -74,7 +74,7 @@ class Trainer:
         or any other custom reconstruction network.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
-        above for the expected output.
+        above for how we expect data to be provided.
     :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
         `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
     :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
@@ -87,13 +87,13 @@ class Trainer:
     :param int epochs: Number of training epochs.
         Default is 100. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param int max_batch_steps: Number of gradient steps per iteration.
-        Default is `1e10`. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
+        Default is `1e10`. The trainer will perform batch steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
-    :param bool early_stop: If ``True``, the training stops when the evaluation loss is not improving. Default is ``False``.
+    :param bool early_stop: If ``True``, the training stops when the evaluation metric is not improving. Default is ``False``.
         The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
-        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+        :ref:`See the libraries' training losses <loss>`.
         Where relevant, the underlying metric should have ``reduction=None`` as we perform the averaging
         using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes. Default is :class:`supervised loss <deepinv.loss.SupLoss>`.
     :param float grad_clip: Gradient clipping value for the optimizer. If None, no gradient clipping is performed. Default is None.
@@ -103,7 +103,7 @@ class Trainer:
     :Evaluation:
 
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
-        see options 1 to 3 above for the expected output.
+        see options 1 to 3 above for how we expect data to be provided.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
@@ -124,7 +124,7 @@ class Trainer:
     :Physics Generators:
 
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating
-        the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
+        the physics operators. If not `None`, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
     :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch.
@@ -132,8 +132,8 @@ class Trainer:
 
     .. warning::
 
-        If a physics generator or a noise model is used to generate random physics operators parameters
-        for online measurements, the generated measurements will randomly vary each epoch.
+        If the physics changes at each iteration for online measurements (e.g. if `physics_generator` is used to generate random physics operators or noise model is used),
+        the generated measurements will randomly vary each epoch.
         If this is not desired (i.e. you want the same online measurements each epoch), set ``loop_random_online_physics=True``.
         This resets the physics generator and noise model's random generators every epoch.
 
@@ -443,10 +443,13 @@ class Trainer:
 
         if isinstance(data, (tuple, list)):
             x = data[0]
-            params = data[1] if len(data) > 1 and isinstance(data[1], dict) else {}
-            warnings.warn(
-                "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
-            )
+
+            if len(data) == 2 and isinstance(data[1], dict):
+                params = data[1]
+            else:
+                warnings.warn(
+                    "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
+                )
         else:
             x = data
             params = {}
@@ -464,11 +467,14 @@ class Trainer:
                 )
 
             params = self.physics_generator[g].step(batch_size=x.size(0))
+        else:
+            y = physics(x)
+            params = None
+
+        if params:
             # Update parameters both via update and, if implemented in physics, via forward pass
             physics.update(**params)
             y = physics(x, **params)
-        else:
-            y = physics(x)
 
         return x, y, physics
 
@@ -1119,8 +1125,8 @@ class Trainer:
         r"""
         Test the model, compute metrics and plot images.
 
-        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s) should provide a
-            a signal x or a tuple of (x, y) signal/measurement pairs.
+        :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] test_dataloader: Test data loader(s), see options 1 to 3
+            above for how we expect data to be provided.
         :param str save_path: Directory in which to save the plotted images.
         :param bool compare_no_learning: If ``True``, the linear reconstruction is compared to the network reconstruction.
         :param bool log_raw_metrics: if `True`, also return non-aggregated metrics as a list.
@@ -1208,12 +1214,12 @@ def train(
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
     :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-        a signal x or a tuple of (x, y) signal/measurement pairs.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
+        above for how we expect data to be provided.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         :ref:`See the libraries' training losses <loss>`.
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-        should provide a signal x or a tuple of (x, y) signal/measurement pairs.
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s), see options 1 to 3
+        above for how we expect data to be provided.
     :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
