@@ -82,8 +82,7 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None or factor is not None:
-            self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -162,35 +161,38 @@ class Downsampling(LinearPhysics):
 
     def update_parameters(self, filter=None, factor=None, **kwargs):
         r"""
-        Updates the current filter.
+        Updates the current filter and/or factor.
 
         :param torch.Tensor filter: New filter to be applied to the input image.
+        :param int factor: New downsampling factor to be applied to the input image.
         """
         if factor is not None:
             self.factor = factor
 
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(self.device)
-        if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
-                self.device
-            )
-        elif filter == "gaussian":
-            self.filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
-            ).to(self.device)
-        elif filter == "bilinear":
-            self.filter = torch.nn.Parameter(
-                bilinear_filter(self.factor), requires_grad=False
-            ).to(self.device)
-        elif filter == "bicubic":
-            self.filter = torch.nn.Parameter(
-                bicubic_filter(self.factor), requires_grad=False
-            ).to(self.device)
-        elif filter == "sinc":
-            self.filter = torch.nn.Parameter(
-                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
-            ).to(self.device)
+        if filter is not None:
+            if isinstance(filter, torch.nn.Parameter):
+                self.filter = filter.requires_grad_(False).to(self.device)
+            if isinstance(filter, torch.Tensor):
+                self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                    self.device
+                )
+            elif filter == "gaussian":
+                self.filter = torch.nn.Parameter(
+                    gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
+                ).to(self.device)
+            elif filter == "bilinear":
+                self.filter = torch.nn.Parameter(
+                    bilinear_filter(self.factor), requires_grad=False
+                ).to(self.device)
+            elif filter == "bicubic":
+                self.filter = torch.nn.Parameter(
+                    bicubic_filter(self.factor), requires_grad=False
+                ).to(self.device)
+            elif filter == "sinc":
+                self.filter = torch.nn.Parameter(
+                    sinc_filter(self.factor, length=4 * self.factor),
+                    requires_grad=False,
+                ).to(self.device)
 
         if self.filter is not None:
             self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(

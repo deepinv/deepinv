@@ -196,7 +196,7 @@ class AdversarialTrainer(Trainer):
         """
         logs = {}
 
-        if train and backward:  # remove gradient
+        if train and step:  # remove gradient
             self.optimizer.G.zero_grad()
 
         # Evaluate reconstruction network

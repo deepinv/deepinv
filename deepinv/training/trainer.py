@@ -645,7 +645,6 @@ class Trainer:
         :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
-        :param bool optimizer_step_multi_dataset: If ``True``, perform backward pass on all datasets before optimizer step.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
         if train and self.optimizer_step_multi_dataset:
