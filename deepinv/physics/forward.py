@@ -1068,4 +1068,5 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         :param dict kwargs: dictionary of parameters to update.
         """
         for physics in self.physics_list:
-            physics.update_parameters(**kwargs)
+            if hasattr(physics, "update_parameters"):
+                physics.update_parameters(**kwargs)

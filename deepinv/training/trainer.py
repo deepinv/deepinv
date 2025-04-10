@@ -118,6 +118,7 @@ class Trainer:
         first metric in the list, using the following format:
         ``save_path/yyyy-mm-dd_hh-mm-ss/ckp_best.pth.tar``. The user can modify the strategy for saving the best model
         by overriding the :func:`deepinv.Trainer.save_best_model` method.
+        The best model can be also loaded using the :func:`deepinv.Trainer.load_best_model` method.
 
     |sep|
 
@@ -933,7 +934,7 @@ class Trainer:
             if self.verbose:
                 print(f"Best model saved at epoch {epoch + 1}")
 
-    def get_best_model(self):
+    def load_best_model(self):
         r"""
         Load the best model.
 

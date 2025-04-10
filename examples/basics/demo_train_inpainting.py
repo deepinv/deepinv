@@ -167,7 +167,7 @@ trainer = dinv.Trainer(
 )
 trainer.train()
 # load model with best validation PSNR
-model = trainer.get_best_model()
+model = trainer.load_best_model()
 
 # %%
 # Test the network
