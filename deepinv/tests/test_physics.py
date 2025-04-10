@@ -697,7 +697,7 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
 
     coil_maps_kwarg = {}
 
-    if mri is MRI:
+    if isinstance(mri, MRI):
         x = x[:, :, 0, :, :]
         y = y[:, :, 0, :, :]
     elif mri is MultiCoilMRI:
