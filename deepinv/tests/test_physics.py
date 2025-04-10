@@ -709,7 +709,9 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
         # Remove time dim for static MRI
         _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
 
-        mask = torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:], device=device)
+        mask = torch.ones(_mask_size, device=device) - torch.eye(
+            *_mask_size[-2:], device=device
+        )
 
         # Set mask in constructor
         physics = mri(
