@@ -1074,20 +1074,20 @@ class Trainer:
                             metric
                         )  # store metrics history
 
-                        self.save_best_model(
+                    self.save_best_model(
+                        epoch,
+                        train_ite,
+                        self.eval_metrics_history,
+                        self.metrics,
+                    )
+
+                    if self.early_stop:
+                        stop_flag = self.stop_criterion(
                             epoch,
                             train_ite,
                             self.eval_metrics_history,
                             self.metrics,
                         )
-
-                        if self.early_stop:
-                            stop_flag = self.stop_criterion(
-                                epoch,
-                                train_ite,
-                                self.eval_metrics_history,
-                                self.metrics,
-                            )
 
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
