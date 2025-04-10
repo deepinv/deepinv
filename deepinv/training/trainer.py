@@ -656,12 +656,11 @@ class Trainer:
         with torch.no_grad():
             for k, l in enumerate(self.metrics):
                 metric = l(
-                    x_net=x_net,
                     x=x,
-                    epoch=epoch,
-                    model=self.model,
+                    x_net=x_net,
                     y=y,
                     physics=physics,
+                    model=self.model,
                 )
 
                 current_log = (
