@@ -66,8 +66,10 @@ def no_plot():
         matplotlib.use("Agg", force=True)
         import matplotlib.pyplot as plt
 
+        plt.close("all")
         importlib.reload(plt)
         yield
     finally:
+        plt.close("all")
         matplotlib.use(original_backend, force=True)
         importlib.reload(plt)

@@ -306,9 +306,11 @@ def test_trainer_test_metrics(device, rng):
         show_progress_bar=False,
         device=device,
         online_measurements=True,
+        plot_images=True,
     )
-    _ = trainer.train()
-    results = trainer.test(dataloader, log_raw_metrics=True)
+    with no_plot():
+        _ = trainer.train()
+        results = trainer.test(dataloader, log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
     assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
@@ -395,18 +397,19 @@ def test_early_stop(
         online_measurements=True,
         optimizer=optimizer,
         verbose=False,
+        plot_images=True,
     )
-    # Check that the model is trained without errors
-    trainer.train()
+    with no_plot():
+        trainer.train()
 
-    metrics_history = trainer.eval_metrics_history["PSNR"]
-    if max_batch_steps == 3:
-        assert len(metrics_history) <= len(dataloader) * epochs
-    elif early_stop:
-        assert len(metrics_history) < epochs
-        last = metrics_history[-1]
-        best = max(metrics_history)
-        metrics = trainer.test(eval_dataloader)
-        assert metrics["PSNR"] == best and metrics["PSNR"] > last
-    else:
-        assert len(metrics_history) == epochs
+        metrics_history = trainer.eval_metrics_history["PSNR"]
+        if max_batch_steps == 3:
+            assert len(metrics_history) <= len(dataloader) * epochs
+        elif early_stop:
+            assert len(metrics_history) < epochs
+            last = metrics_history[-1]
+            best = max(metrics_history)
+            metrics = trainer.test(eval_dataloader)
+            assert metrics["PSNR"] == best and metrics["PSNR"] > last
+        else:
+            assert len(metrics_history) == epochs
