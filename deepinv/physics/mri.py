@@ -420,14 +420,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor x:  clean measurements
         :param None, float noise_level: optional noise level parameter
         :return: noisy measurements
-
         """
-        mask = self.mask
-        if mask.dim() == x.dim() - 1:
-            # Insert a singleton channel dimension at index 2
-            mask = mask.unsqueeze(2)
-        # result = mask * self.noise_model(x, **kwargs)
-        return mask * self.noise_model(x, **kwargs)
+        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,

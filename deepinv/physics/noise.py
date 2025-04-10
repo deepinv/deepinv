@@ -161,7 +161,7 @@ class GaussianNoise(NoiseModel):
 
     def __mul__(self, other):
         r"""
-        Element-wise multiplication of a GaussianNoise via * operator.
+        Element-wise multiplication of a GaussianNoise via `*` operator.
 
         0) If `other` is a :class:`NoiseModel`, then applies the NoiseModel multiplication.
 
@@ -175,7 +175,7 @@ class GaussianNoise(NoiseModel):
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-           | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
+            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
         :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.

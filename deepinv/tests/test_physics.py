@@ -697,10 +697,10 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
 
     coil_maps_kwarg = {}
 
-    if isinstance(mri, MRI):
+    if mri is MRI:
         x = x[:, :, 0, :, :]
         y = y[:, :, 0, :, :]
-    elif isinstance(mri, MultiCoilMRI):
+    elif mri is MultiCoilMRI:
         # y treat T as coil dim for tests
         x = x[:, :, 0, :, :]
         coil_maps_kwarg = {"coil_maps": T}
@@ -709,12 +709,7 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
         # Remove time dim for static MRI
         _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
 
-        mask, mask2 = (
-            torch.ones(_mask_size, device=device)
-            - torch.eye(*_mask_size[-2:], device=device),
-            torch.zeros(_mask_size, device=device)
-            + torch.eye(*_mask_size[-2:], device=device),
-        )
+        mask = torch.ones(_mask_size, device=device) - torch.eye(*_mask_size[-2:], device=device)
 
         # Set mask in constructor
         physics = mri(
