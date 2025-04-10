@@ -410,6 +410,6 @@ def test_early_stop(
             last = metrics_history[-1]
             best = max(metrics_history)
             metrics = trainer.test(eval_dataloader)
-            assert metrics["PSNR"] == best and metrics["PSNR"] > last
+            assert metrics["PSNR"] < best and metrics["PSNR"] == last
         else:
             assert len(metrics_history) == epochs

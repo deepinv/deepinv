@@ -70,17 +70,14 @@ class Trainer:
 
     :Basics:
 
-    :param torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
+    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
         or any other custom reconstruction network.
-    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
-    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
-        a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
-    :param bool online_measurements: Generate the measurements in an online manner at each iteration by calling
-        ``physics(x)``. This results in a wider range of measurements if the physics' parameters, such as
-        parameters of the forward operator or noise realizations, can change between each sample;
-        the measurements are loaded from the training dataset. Default is ``False``.
-    :param str device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
+    :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
+    :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
+        above for the expected output.
+    :param bool online_measurements: Generate new measurements `y` in an online manner at each iteration by calling
+        `y=physics(x)`. If `False` (default), the measurements are loaded from the training dataset.
+    :param str, torch.device device: Device on which to run the training (e.g., 'cuda' or 'cpu'). Default is 'cuda' if available, otherwise 'cpu'.
 
     |sep|
 
@@ -90,10 +87,10 @@ class Trainer:
     :param int epochs: Number of training epochs.
         Default is 100. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param int max_batch_steps: Number of gradient steps per iteration.
-        Default is 1e10. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
+        Default is `1e10`. The trainer will perform gradient steps equal to the `min(epochs*n_batches, max_batch_steps)`.
     :param None, torch.optim.lr_scheduler.LRScheduler scheduler: Torch scheduler for changing the learning rate across iterations. Default is ``None``.
     :param bool early_stop: If ``True``, the training stops when the evaluation loss is not improving. Default is ``False``.
-        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterium` method.
+        The user can modify the strategy for saving the best model by overriding the :func:`deepinv.Trainer.stop_criterion` method.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
         Optionally wrap losses using a loss scheduler for more advanced training.
         :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
@@ -105,9 +102,8 @@ class Trainer:
 
     :Evaluation:
 
-    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
-        should provide a signal `x` or a tuple of `(x, y)` signal/measurement pairs or a tuple `(x, y, params)`
-        where `params` is a dict of physics generator parameters to be loaded into the physics each iteration. Default is ``None``.
+    :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s),
+        see options 1 to 3 above for the expected output.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`. Default is :class:`PSNR <deepinv.loss.metric.PSNR>`.
@@ -127,12 +123,12 @@ class Trainer:
 
     :Physics Generators:
 
-    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
+    :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional :ref:`physics generator <physics_generators>` for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
     :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch.
-        Used in conjunction with ``online_measurements=True`` and ``physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
+        Used in conjunction with ``online_measurements=True`` and `physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
 
     .. warning::
 
@@ -447,11 +443,13 @@ class Trainer:
 
         if isinstance(data, (tuple, list)):
             x = data[0]
+            params = data[1] if len(data) > 1 and isinstance(data[1], dict) else {}
             warnings.warn(
                 "Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x."
             )
         else:
             x = data
+            params = {}
 
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
@@ -460,6 +458,11 @@ class Trainer:
         physics = self.physics[g]
 
         if self.physics_generator is not None:
+            if params:  # not empty params
+                warnings.warn(
+                    "Physics generator is provided but dataloader also returns params. Ignoring params from dataloader."
+                )
+
             params = self.physics_generator[g].step(batch_size=x.size(0))
             # Update parameters both via update and, if implemented in physics, via forward pass
             physics.update(**params)
@@ -873,8 +876,8 @@ class Trainer:
                 "epoch": epoch,
                 "state_dict": self.model.state_dict(),
                 "loss": self.loss_history,
-                "optimizer": self.optimizer.state_dict(),
-                "scheduler": self.scheduler.state_dict(),
+                "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+                "scheduler": self.scheduler.state_dict() if self.scheduler else None,
             }
             state["eval_metrics"] = self.eval_metrics_history
             if self.wandb_vis:
@@ -882,7 +885,7 @@ class Trainer:
 
             torch.save(
                 state,
-                os.path.join(Path(self.save_path), Path(filename)),
+                Path(self.save_path) / Path(filename),
             )
 
     def reset_metrics(self):
@@ -910,18 +913,18 @@ class Trainer:
         r"""
         Save the best model using validation metrics.
 
+        By default, uses validation based on first metric. Override this method to provide custom criterion.
+
         :param int epoch: Current epoch.
-        :param int train_ite: Current gradient iteration, gives a more fine-grained control than epochs.
+        :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
+            number of batches) + current batch within epoch
         :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
         :param list metrics: List of metrics used for evaluation.
         """
-        if train_ite > 1:  # do at least one gradient step
+        if train_ite > 1:  # do at least one batch step
             k = 0  # index of the first metric
             history = metric_history[metrics[k].__class__.__name__]
-            if hasattr(metrics[k], "lower_better"):
-                lower_better = metrics[k].lower_better
-            else:  # assume is a loss which is always lower is better
-                lower_better = True
+            lower_better = getattr(metrics[k], "lower_better", True)
 
             best_metric = min(history) if lower_better else max(history)
             curr_metric = history[-1]
@@ -933,33 +936,36 @@ class Trainer:
                 if self.verbose:
                     print(f"Best model saved at epoch {epoch + 1}")
 
-    def stop_criterium(self, epoch, train_ite, metric_history, metrics, **kwargs):
+    def stop_criterion(self, epoch, train_ite, metric_history, metrics, **kwargs):
         r"""
-        Stop criterium for early stopping.
+        Stop criterion for early stopping.
+
+        By default, stops optimization when first eval metric doesn't improve in the last 5 epochs.
+
+        Override this method to early stop on a custom condition.
 
         :param int epoch: Current epoch.
-        :param int train_ite: Current gradient iteration, gives a more fine-grained control than epochs.
+        :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times` number
+            of batches) + current batch within epoch
         :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
         :param list metrics: List of metrics used for evaluation.
         """
         k = 0  # use first metric
 
         history = metric_history[metrics[k].__class__.__name__]
-        if hasattr(metrics[k], "lower_better"):
-            lower_better = metrics[k].lower_better
-        else:  # assume is a loss which is always lower is better
-            lower_better = True
+        lower_better = getattr(metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric)
 
-        if self.verbose:
+        early_stop = epoch > 5 + best_epoch
+        if early_stop and self.verbose:
             print(
                 "Early stopping triggered as validation metrics have not improved in "
                 "the last 5 epochs, disable it with early_stop=False"
             )
 
-        return epoch > 5 + best_epoch
+        return early_stop
 
     def train(
         self,
@@ -1075,7 +1081,7 @@ class Trainer:
                         )
 
                         if self.early_stop:
-                            stop_flag = self.stop_criterium(
+                            stop_flag = self.stop_criterion(
                                 epoch,
                                 train_ite,
                                 self.eval_metrics_history,
@@ -1099,17 +1105,6 @@ class Trainer:
         if self.wandb_vis:
             wandb.save("model.h5")
             wandb.finish()
-
-        # load best model
-        if self.save_path is not None:
-            path = os.path.join(Path(self.save_path), Path("ckp_best.pth.tar"))
-            if os.path.exists(path):
-                checkpoint = torch.load(
-                    path,
-                    map_location=self.device,
-                    weights_only=False,
-                )
-                self.model.load_state_dict(checkpoint["state_dict"])
 
         return self.model
 
@@ -1208,15 +1203,14 @@ def train(
         This function is deprecated and will be removed in future versions. Please use
         :class:`deepinv.Trainer` instead.
 
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be PnP, unrolled, artifact removal
-        or any other custom reconstruction network.
+    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: Forward operator(s) used by the reconstruction network.
     :param int epochs: Number of training epochs. Default is 100.
     :param torch.optim.Optimizer optimizer: Torch optimizer for training the network.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s) should provide a
         a signal x or a tuple of (x, y) signal/measurement pairs.
     :param deepinv.loss.Loss, list[deepinv.loss.Loss] losses: Loss or list of losses used for training the model.
-        :ref:`See the libraries' training losses <loss>`. By default, it uses the supervised mean squared error.
+        :ref:`See the libraries' training losses <loss>`.
     :param None, torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] eval_dataloader: Evaluation data loader(s)
         should provide a signal x or a tuple of (x, y) signal/measurement pairs.
     :param args: Other positional arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
