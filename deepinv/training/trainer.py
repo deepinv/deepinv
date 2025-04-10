@@ -977,7 +977,7 @@ class Trainer:
         if early_stop and self.verbose:
             print(
                 "Early stopping triggered as validation metrics have not improved in "
-                "the last 5 epochs, disable it with early_stop=False"
+                "the last 3 validation steps, disable it with early_stop=False"
             )
 
         return early_stop
