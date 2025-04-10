@@ -919,20 +919,19 @@ class Trainer:
         :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
             number of batches) + current batch within epoch
         """
-        if train_ite > 1:  # do at least one batch step
-            k = 0  # index of the first metric
-            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
-            lower_better = getattr(self.metrics[k], "lower_better", True)
+        k = 0  # index of the first metric
+        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+        lower_better = getattr(self.metrics[k], "lower_better", True)
 
-            best_metric = min(history) if lower_better else max(history)
-            curr_metric = history[-1]
-            if (lower_better and curr_metric <= best_metric) or (
-                not lower_better and curr_metric >= best_metric
-            ):
-                # Saving the model
-                self.save_model("ckp_best.pth.tar", epoch)
-                if self.verbose:
-                    print(f"Best model saved at epoch {epoch + 1}")
+        best_metric = min(history) if lower_better else max(history)
+        curr_metric = history[-1]
+        if (lower_better and curr_metric <= best_metric) or (
+            not lower_better and curr_metric >= best_metric
+        ):
+            # Saving the model
+            self.save_model("ckp_best.pth.tar", epoch)
+            if self.verbose:
+                print(f"Best model saved at epoch {epoch + 1}")
 
     def get_best_model(self):
         r"""
@@ -956,7 +955,7 @@ class Trainer:
         r"""
         Stop criterion for early stopping.
 
-        By default, stops optimization when first eval metric doesn't improve in the last 2 evaluations.
+        By default, stops optimization when first eval metric doesn't improve in the last 3 evaluations.
 
         Override this method to early stop on a custom condition.
 
