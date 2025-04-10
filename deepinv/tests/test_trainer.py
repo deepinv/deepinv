@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import matplotlib as mpl
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -10,6 +9,8 @@ from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
+
+from conftest import no_plot
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -351,9 +352,6 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss()
 
-    original_backend = mpl.get_backend()
-    mpl.use("Agg")
-
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
@@ -365,10 +363,9 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
         train_dataloader=dataloader,
         optimizer=optimizer,
     )
-    # Check that the model is trained without errors
-    trainer.train()
-
-    mpl.use(original_backend)
+    with no_plot():
+        # Check that the model is trained without errors
+        trainer.train()
 
 
 @pytest.mark.parametrize("early_stop", [True, False])
