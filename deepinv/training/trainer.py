@@ -357,7 +357,7 @@ class Trainer:
 
         _ = self.load_model()
 
-    def load_model(self, ckpt_pretrained: str = None) -> dict:
+    def load_model(self, ckpt_pretrained: Union[str, Path] = None) -> dict:
         """Load model from checkpoint.
 
         :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
@@ -371,7 +371,7 @@ class Trainer:
 
         if ckpt_pretrained is not None:
             checkpoint = torch.load(
-                ckpt_pretrained, map_location=self.device, weights_only=True
+                ckpt_pretrained, map_location=self.device, weights_only=False
             )
             self.model.load_state_dict(checkpoint["state_dict"])
             if "optimizer" in checkpoint and self.optimizer is not None:
@@ -935,11 +935,29 @@ class Trainer:
                 if self.verbose:
                     print(f"Best model saved at epoch {epoch + 1}")
 
+    def get_best_model(self):
+        r"""
+        Load the best model.
+
+        It loads the model from the checkpoint saved during training.
+
+        :returns: The model.
+        """
+        if not self.save_path:
+            raise ValueError(
+                "No save path provided. Please provide a save path to load the best model."
+            )
+        else:
+            self.load_model(
+                ckpt_pretrained=Path(self.save_path) / Path("ckp_best.pth.tar")
+            )
+        return self.model
+
     def stop_criterion(self, epoch, train_ite, **kwargs):
         r"""
         Stop criterion for early stopping.
 
-        By default, stops optimization when first eval metric doesn't improve in the last 5 epochs.
+        By default, stops optimization when first eval metric doesn't improve in the last 2 evaluations.
 
         Override this method to early stop on a custom condition.
 
@@ -957,7 +975,7 @@ class Trainer:
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric)
 
-        early_stop = epoch > 5 + best_epoch
+        early_stop = epoch > 2 * self.eval_interval + best_epoch
         if early_stop and self.verbose:
             print(
                 "Early stopping triggered as validation metrics have not improved in "
@@ -1044,6 +1062,7 @@ class Trainer:
 
                     self.model.eval()
                     # close train progress bar
+                    progress_bar.update(1)
                     progress_bar.close()
                     for j in (
                         eval_progress_bar := tqdm(

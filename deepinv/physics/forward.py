@@ -226,10 +226,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         if hasattr(self, "update_parameters"):
             self.update_parameters(**kwargs)
-        else:
-            raise NotImplementedError(
-                "update_parameters method not implemented for this physics operator"
-            )
 
         # if self.noise_model is not None:
         # check if noise model has a method named update_parameters
