@@ -269,6 +269,205 @@ def test_trainer_physics_generator_params(
         assert all([a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
 
 
+def test_trainer_identity(imsize, rng, device):
+    r"""
+    A simple test to check that the trainer manages to learn specific functions.
+
+    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+
+    In this test, we check that a model can learn the identity function on several datasets simultaneously.
+    """
+    N = 10
+
+    class DummyDataset(Dataset):
+        r"""
+        Defines a constant value image dataset
+        """
+
+        def __init__(self, value=1.0):
+            self.value = value
+
+        def __getitem__(self, i):
+            return torch.ones(imsize) * self.value
+
+        def __len__(self):
+            return N
+
+    class DummyPhysics(Physics):
+        # Identity
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.f = 1
+
+        def A(self, x: torch.Tensor, f: float = None, **kwargs) -> float:
+            # NOTE for training with get_samples_online, this following line is technically redundant
+            self.update_parameters(f=f)
+            return x
+
+        def update_parameters(self, f=None, **kwargs):
+            self.f = f if f is not None else self.f
+
+    def get_physics():
+        r"""
+        Returns a physics object with a Gaussian noise model
+        """
+        physics = DummyPhysics()
+        physics.set_noise_model(GaussianNoise(rng=rng, sigma=1e-4))
+        return physics
+
+    class DummyPhysicsGenerator(PhysicsGenerator):
+        # Dummy generator that outputs random factors
+        def step(self, batch_size=1, seed=None, **kwargs):
+            self.rng_manual_seed(seed)
+            return {
+                "f": torch.rand((batch_size,), generator=self.rng, device=device).item()
+            }
+
+    mean_value_dataset_0 = -0.4
+    mean_value_dataset_1 = 1.9
+
+    list_physics = [get_physics(), get_physics()]
+    list_generators = [DummyPhysicsGenerator(), DummyPhysicsGenerator()]
+    list_dataloaders = [
+        DataLoader(DummyDataset(value=mean_value_dataset_0), batch_size=1),
+        DataLoader(DummyDataset(value=mean_value_dataset_1), batch_size=1),
+    ]
+
+    class DummyModel(torch.nn.Module):
+        r"""
+        If physics = Identity, then this model outputs A(x)=x * param.
+        """
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.dummy_param = torch.nn.Parameter(torch.zeros(1), requires_grad=True)
+
+        def forward(self, y=0.0, physics=None, **kwargs):
+            return self.dummy_param * y
+
+    dummy_model = DummyModel()
+    optimizer = torch.optim.Adam(dummy_model.parameters(), lr=1e-2, weight_decay=0.0)
+
+    trainer = Trainer(
+        model=dummy_model,
+        physics=list_physics,
+        optimizer=optimizer,
+        train_dataloader=list_dataloaders,  # NO SHUFFLE
+        online_measurements=True,
+        physics_generator=list_generators,
+        loop_random_online_physics=True,  # IMPORTANT
+        global_optimizer_step=True,  # this is what we test in this function
+        epochs=100,
+        device=device,
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+    )
+
+    trainer.train()
+
+    # the model should learn the identity, i.e. dummy_parm = 1.0
+    assert torch.isclose(dummy_model.dummy_param, torch.tensor(1.0), atol=1e-6)
+
+
+def test_trainer_multidatasets(imsize, rng, device):
+    r"""
+    A simple test to check that the trainer manages to learn specific functions.
+
+    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+
+    In this test, we train a model to learn the average of two datasets.
+    """
+    N = 10
+
+    class DummyDataset(Dataset):
+        r"""
+        Defines a constant value image dataset
+        """
+
+        def __init__(self, value=1.0):
+            self.value = value
+
+        def __getitem__(self, i):
+            return torch.ones(imsize) * self.value
+
+        def __len__(self):
+            return N
+
+    class DummyPhysics(Physics):
+        # Dummy physics which sums images, and multiplies by a parameter f
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.f = 1
+
+        def A(self, x: torch.Tensor, f: float = None, **kwargs) -> float:
+            # NOTE for training with get_samples_online, this following line is technically redundant
+            self.update_parameters(f=f)
+            return x
+
+        def update_parameters(self, f=None, **kwargs):
+            self.f = f if f is not None else self.f
+
+    def get_physics():
+        r"""
+        Returns a physics object with a Gaussian noise model
+        """
+        physics = DummyPhysics()
+        physics.set_noise_model(GaussianNoise(rng=rng, sigma=1e-4))
+        return physics
+
+    class DummyPhysicsGenerator(PhysicsGenerator):
+        # Dummy generator that outputs random factors
+        def step(self, batch_size=1, seed=None, **kwargs):
+            self.rng_manual_seed(seed)
+            return {
+                "f": torch.rand((batch_size,), generator=self.rng, device=device).item()
+            }
+
+    mean_value_dataset_0 = -0.4
+    mean_value_dataset_1 = 1.9
+
+    list_physics = [get_physics(), get_physics()]
+    list_generators = [DummyPhysicsGenerator(), DummyPhysicsGenerator()]
+    list_dataloaders = [
+        DataLoader(DummyDataset(value=mean_value_dataset_0), batch_size=1),
+        DataLoader(DummyDataset(value=mean_value_dataset_1), batch_size=1),
+    ]
+
+    class DummyModel(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.dummy_param = torch.nn.Parameter(torch.zeros(1), requires_grad=True)
+
+        def forward(self, y=0.0, physics=None, **kwargs):
+            return self.dummy_param * torch.ones_like(y)
+
+    dummy_model = DummyModel()
+    optimizer = torch.optim.Adam(dummy_model.parameters(), lr=1e-2, weight_decay=0.0)
+
+    trainer = Trainer(
+        model=dummy_model,
+        physics=list_physics,
+        optimizer=optimizer,
+        train_dataloader=list_dataloaders,  # NO SHUFFLE
+        online_measurements=True,
+        physics_generator=list_generators,
+        loop_random_online_physics=True,  # IMPORTANT
+        global_optimizer_step=True,  # this is what we test in this function
+        epochs=100,
+        device=device,
+        save_path=None,
+        verbose=False,
+        show_progress_bar=False,
+    )
+
+    trainer.train()
+
+    avg_value = (mean_value_dataset_0 + mean_value_dataset_1) / 2.0
+
+    assert torch.isclose(dummy_model.dummy_param, torch.tensor(avg_value), atol=1e-6)
+
+
 def test_trainer_load_model(tmp_path):
     class TempModel(torch.nn.Module):
         def __init__(self, *args, **kwargs):

@@ -44,7 +44,6 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         tensor_size: Tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
-        random_split_ratio: bool = False,
         min_split_ratio: float = 0.0,
         max_split_ratio: float = 1.0,
         device: torch.device = torch.device("cpu"),
@@ -57,7 +56,6 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise
-        self.random_split_ratio = random_split_ratio
         self.min_split_ratio = min_split_ratio
         self.max_split_ratio = max_split_ratio
 
