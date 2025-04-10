@@ -746,7 +746,7 @@ class Trainer:
                 x_nl = None
 
             imgs, titles, grid_image, caption = prepare_images(
-                x, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
+                x, y=y, x_net=x_net, x_nl=x_nl, rescale_mode=self.rescale_mode
             )
 
         if plot_images:

@@ -75,10 +75,10 @@ class GainGenerator(PhysicsGenerator):
 
     :Examples:
 
-    >>> from deepinv.physics.generator import SigmaGenerator
+    >>> from deepinv.physics.generator import GainGenerator
     >>> generator = GainGenerator()
-    >>> sigma_dict = generator.step(seed=0) # dict_keys(['sigma'])
-    >>> print(sigma_dict['gain'])
+    >>> params = generator.step(seed=0) # params(['gain'])
+    >>> print(params['gain'])
     tensor([0.2489])
 
     """
@@ -102,7 +102,7 @@ class GainGenerator(PhysicsGenerator):
         :param int batch_size: batch size
         :param int seed: the seed for the random number generator.
 
-        :return: dictionary with key **'sigma'**: tensor of size (batch_size,).
+        :return: dictionary with key **'gain'**: tensor of size (batch_size,).
         :rtype: dict
 
         """
