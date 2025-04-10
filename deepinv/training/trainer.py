@@ -96,7 +96,7 @@ class Trainer:
     :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
         so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
         Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``.
-    :param bool global_optimizer_step: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
+    :param bool optimizer_step_multi_dataset: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
     :param Metric, list[Metric] metrics: Metric or list of metrics used for evaluating the model.
         They should have ``reduction=None`` as we perform the averaging using :class:`deepinv.utils.AverageMeter` to deal with uneven batch sizes.
         :ref:`See the libraries' evaluation metrics <metric>`.
@@ -143,7 +143,7 @@ class Trainer:
     online_measurements: bool = False
     physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
-    global_optimizer_step: bool = True
+    optimizer_step_multi_dataset: bool = True
     metrics: Union[Metric, List[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
@@ -485,9 +485,7 @@ class Trainer:
 
         return x_net
 
-    def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, backward=False
-    ):
+    def compute_loss(self, physics, x, y, train=True, epoch: int = None, step=False):
         r"""
         Compute the loss and perform the backward pass.
 
@@ -498,13 +496,13 @@ class Trainer:
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :param bool backward: Whether to perform backward when computing the loss.
+        :param bool step: Whether to perform an optimization step when computing the loss.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
 
-        if train and backward:
+        if train and step:
             self.optimizer.zero_grad()
 
         # Evaluate reconstruction network
@@ -545,7 +543,7 @@ class Trainer:
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            if backward:
+            if step:
                 self.optimizer.step()  # Optimizer step
 
         return loss_total, x_net, logs
@@ -647,10 +645,10 @@ class Trainer:
         :param int train_ite: train iteration, only needed for logging if ``Trainer.log_train_batch=True``
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param bool last_batch: If ``True``, the last batch of the epoch is being processed.
-        :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
+        :param bool optimizer_step_multi_dataset: If ``True``, perform backward pass on all datasets before optimizer step.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if train and self.global_optimizer_step:
+        if train and self.optimizer_step_multi_dataset:
             self.optimizer.zero_grad()  # Clear stored gradients
 
         # random permulation of the dataloaders
@@ -673,7 +671,7 @@ class Trainer:
                 y,
                 train=train,
                 epoch=epoch,
-                backward=(not self.global_optimizer_step),
+                step=(not self.optimizer_step_multi_dataset),
             )
             loss += loss_cur
 
@@ -691,7 +689,7 @@ class Trainer:
         if self.log_train_batch and train:
             self.log_metrics_wandb(logs, step=train_ite, train=train)
 
-        if train and self.global_optimizer_step:
+        if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
 
         if last_batch:

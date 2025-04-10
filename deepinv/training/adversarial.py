@@ -180,7 +180,7 @@ class AdversarialTrainer(Trainer):
             )
 
     def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, backward: int = True
+        self, physics, x, y, train=True, epoch: int = None, step: int = True
     ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
@@ -190,7 +190,7 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
+        :param bool step: If ``True``, perform an optimization step on all datasets before optimizer step.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
@@ -244,7 +244,7 @@ class AdversarialTrainer(Trainer):
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            if backward:
+            if step:
                 self.optimizer.G.step()
 
         ### Train Discriminator
