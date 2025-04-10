@@ -48,19 +48,25 @@ class Trainer:
 
     .. note::
 
-        The losses and evaluation metrics
-        can be chosen from :ref:`the libraries' training losses <loss>`, or can be a custom loss function,
-        as long as it takes as input ``(x, x_net, y, physics, model)`` and returns a scalar, where ``x`` is the ground
-        reconstruction, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
+        The losses and evaluation metrics can be chosen from :ref:`our training losses <loss>` or :ref:`our metrics <metric>`
+
+        Custom losses can be used, as long as it takes as input ``(x, x_net, y, physics, model)``
+        and returns a tensor of length `batch_size` (i.e. `reduction=None` in the underlying metric, as we perform averaging to deal with uneven batch sizes),
+        where ``x`` is the ground truth, ``x_net`` is the network reconstruction :math:`\inversef{y}{A}`,
         ``y`` is the measurement vector, ``physics`` is the forward operator
         and ``model`` is the reconstruction network. Note that not all inputs need to be used by the loss,
         e.g., self-supervised losses will not make use of ``x``.
+
+        Custom metrics can also be used in the exact same way as custom losses.
 
     .. note::
 
         The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
         by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
         a dictionary with the setup for wandb.
+
+    Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
+    **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
 
     :Basics:
 
@@ -124,9 +130,9 @@ class Trainer:
     :param None, deepinv.physics.generator.PhysicsGenerator physics_generator: Optional physics generator for generating
         the physics operators. If not None, the physics operators are randomly sampled at each iteration using the generator.
         Should be used in conjunction with ``online_measurements=True``, no effect when ``online_measurements=False``. Also see ``loop_random_online_physics``. Default is ``None``.
-    :param bool loop_random_online_physics: if True, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
-        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If False, generates new physics every epoch.
-        Used in conjunction with ``physics_generator`` and ``online_measurements=True``, no effect when ``online_measurements=False``. Default is ``False``.
+    :param bool loop_random_online_physics: if `True`, resets the physics generator **and** noise model back to its initial state at the beginning of each epoch,
+        so that the same measurements are generated each epoch. Requires `shuffle=False` in dataloaders. If `False`, generates new physics every epoch.
+        Used in conjunction with ``online_measurements=True`` and ``physics_generator` or noise model in `physics`, no effect when ``online_measurements=False``. Default is ``False``.
 
     .. warning::
 
@@ -146,7 +152,7 @@ class Trainer:
 
     :param str save_path: Directory in which to save the trained model. Default is ``"."`` (current folder).
     :param int ckp_interval: The model is saved every ``ckp_interval`` epochs. Default is ``1``.
-    :param str ckpt_pretrained: path of the pretrained checkpoint. If None, no pretrained checkpoint is loaded. Default is None.
+    :param str ckpt_pretrained: path of the pretrained checkpoint. If `None` (default), no pretrained checkpoint is loaded.
 
     |sep|
 
@@ -364,6 +370,7 @@ class Trainer:
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
             ckpt_pretrained = self.ckpt_pretrained
+            # Set to None to prevent it being loaded again
             self.ckpt_pretrained = None
 
         if ckpt_pretrained is not None:
@@ -444,6 +451,9 @@ class Trainer:
         else:
             x = data
 
+        if torch.isnan(x).all():
+            raise ValueError("Online measurements can't be used if x is all NaN.")
+
         x = x.to(self.device)
         physics = self.physics[g]
 
@@ -519,8 +529,6 @@ class Trainer:
         """
         if self.online_measurements:  # the measurements y are created on-the-fly
             x, y, physics = self.get_samples_online(iterators, g)
-            if torch.isnan(x).all():
-                raise ValueError("Online measurements can't be used if x is all NaN.")
         else:  # the measurements y were pre-computed
             x, y, physics = self.get_samples_offline(iterators, g)
 
