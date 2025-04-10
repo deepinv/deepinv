@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import matplotlib as mpl
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -349,6 +350,10 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss()
+
+    original_backend = mpl.get_backend()
+    mpl.use("Agg")
+
     trainer = dinv.Trainer(
         model=model,
         losses=losses,
@@ -362,6 +367,8 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
     )
     # Check that the model is trained without errors
     trainer.train()
+
+    mpl.use(original_backend)
 
 
 @pytest.mark.parametrize("early_stop", [True, False])
