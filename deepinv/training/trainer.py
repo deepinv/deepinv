@@ -535,7 +535,7 @@ class Trainer:
                 )
                 meters.update(loss_total.item())
                 logs[f"TotalLoss"] = meters.avg
-        else:  # question: what do we want to do at test time?
+        else:  # TODO question: what do we want to do at test time?
             loss_total = 0
 
         if train:
