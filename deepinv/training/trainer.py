@@ -441,6 +441,7 @@ class Trainer:
         """
         data = next(iterators[g])
 
+        params = {}
         if isinstance(data, (tuple, list)):
             x = data[0]
 
@@ -452,7 +453,6 @@ class Trainer:
                 )
         else:
             x = data
-            params = {}
 
         if torch.isnan(x).all():
             raise ValueError("Online measurements can't be used if x is all NaN.")
@@ -465,16 +465,11 @@ class Trainer:
                 warnings.warn(
                     "Physics generator is provided but dataloader also returns params. Ignoring params from dataloader."
                 )
-
             params = self.physics_generator[g].step(batch_size=x.size(0))
-        else:
-            y = physics(x)
-            params = None
 
-        if params:
-            # Update parameters both via update and, if implemented in physics, via forward pass
-            physics.update(**params)
-            y = physics(x, **params)
+        # Update parameters both via update and, if implemented in physics, via forward pass
+        physics.update(**params)
+        y = physics(x, **params)
 
         return x, y, physics
 
@@ -916,7 +911,7 @@ class Trainer:
         for l in self.logs_metrics_eval:
             l.reset()
 
-    def save_best_model(self, epoch, train_ite, metric_history, metrics, **kwargs):
+    def save_best_model(self, epoch, train_ite, **kwargs):
         r"""
         Save the best model using validation metrics.
 
@@ -925,13 +920,11 @@ class Trainer:
         :param int epoch: Current epoch.
         :param int train_ite: Current training batch iteration, equal to (current epoch :math:`\times`
             number of batches) + current batch within epoch
-        :param dict metric_history: Dictionary containing the metrics history, with the metric name as key.
-        :param list metrics: List of metrics used for evaluation.
         """
         if train_ite > 1:  # do at least one batch step
             k = 0  # index of the first metric
-            history = metric_history[metrics[k].__class__.__name__]
-            lower_better = getattr(metrics[k], "lower_better", True)
+            history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+            lower_better = getattr(self.metrics[k], "lower_better", True)
 
             best_metric = min(history) if lower_better else max(history)
             curr_metric = history[-1]
@@ -943,7 +936,7 @@ class Trainer:
                 if self.verbose:
                     print(f"Best model saved at epoch {epoch + 1}")
 
-    def stop_criterion(self, epoch, train_ite, metric_history, metrics, **kwargs):
+    def stop_criterion(self, epoch, train_ite, **kwargs):
         r"""
         Stop criterion for early stopping.
 
@@ -959,8 +952,8 @@ class Trainer:
         """
         k = 0  # use first metric
 
-        history = metric_history[metrics[k].__class__.__name__]
-        lower_better = getattr(metrics[k], "lower_better", True)
+        history = self.eval_metrics_history[self.metrics[k].__class__.__name__]
+        lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
         best_epoch = history.index(best_metric)
@@ -1080,20 +1073,10 @@ class Trainer:
                             metric
                         )  # store metrics history
 
-                    self.save_best_model(
-                        epoch,
-                        train_ite,
-                        self.eval_metrics_history,
-                        self.metrics,
-                    )
+                    self.save_best_model(epoch, train_ite)
 
                     if self.early_stop:
-                        stop_flag = self.stop_criterion(
-                            epoch,
-                            train_ite,
-                            self.eval_metrics_history,
-                            self.metrics,
-                        )
+                        stop_flag = self.stop_criterion(epoch, train_ite)
 
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
