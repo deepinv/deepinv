@@ -636,7 +636,6 @@ class Trainer:
         train_ite=None,
         train=True,
         last_batch=False,
-        global_optimizer_step=True,
     ):
         r"""
         Train/Eval a batch.
@@ -651,7 +650,7 @@ class Trainer:
         :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
         :returns: The current physics operator, the ground truth, the measurement, and the network reconstruction.
         """
-        if train and global_optimizer_step:
+        if train and self.global_optimizer_step:
             self.optimizer.zero_grad()  # Clear stored gradients
 
         # random permulation of the dataloaders
@@ -674,7 +673,7 @@ class Trainer:
                 y,
                 train=train,
                 epoch=epoch,
-                backward=not global_optimizer_step,
+                backward=(not self.global_optimizer_step),
             )
             loss += loss_cur
 
@@ -692,7 +691,7 @@ class Trainer:
         if self.log_train_batch and train:
             self.log_metrics_wandb(logs, step=train_ite, train=train)
 
-        if train and global_optimizer_step:
+        if train and self.global_optimizer_step:
             self.optimizer.step()  # Optimizer step
 
         if last_batch:
@@ -896,7 +895,6 @@ class Trainer:
                     train_ite=train_ite,
                     train=True,
                     last_batch=last_batch,
-                    global_optimizer_step=self.global_optimizer_step,
                 )
 
                 perform_eval = self.eval_dataloader and (
