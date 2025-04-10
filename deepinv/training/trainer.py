@@ -871,23 +871,22 @@ class Trainer:
         if not self.save_path:
             return
 
-        if (epoch > 0 and epoch % self.ckp_interval == 0) or epoch + 1 == self.epochs:
-            os.makedirs(str(self.save_path), exist_ok=True)
-            state = state | {
-                "epoch": epoch,
-                "state_dict": self.model.state_dict(),
-                "loss": self.loss_history,
-                "optimizer": self.optimizer.state_dict() if self.optimizer else None,
-                "scheduler": self.scheduler.state_dict() if self.scheduler else None,
-            }
-            state["eval_metrics"] = self.eval_metrics_history
-            if self.wandb_vis:
-                state["wandb_id"] = wandb.run.id
+        os.makedirs(str(self.save_path), exist_ok=True)
+        state = state | {
+            "epoch": epoch,
+            "state_dict": self.model.state_dict(),
+            "loss": self.loss_history,
+            "optimizer": self.optimizer.state_dict() if self.optimizer else None,
+            "scheduler": self.scheduler.state_dict() if self.scheduler else None,
+        }
+        state["eval_metrics"] = self.eval_metrics_history
+        if self.wandb_vis:
+            state["wandb_id"] = wandb.run.id
 
-            torch.save(
-                state,
-                Path(self.save_path) / Path(filename),
-            )
+        torch.save(
+            state,
+            Path(self.save_path) / Path(filename),
+        )
 
     def reset_metrics(self):
         r"""
@@ -1098,6 +1097,8 @@ class Trainer:
 
                 if train_ite + 1 > self.max_batch_steps:
                     stop_flag = True
+                    progress_bar.update(1)
+                    progress_bar.close()
                     break
 
             self.loss_history.append(self.logs_total_loss_train.avg)
@@ -1105,7 +1106,10 @@ class Trainer:
             if self.scheduler:
                 self.scheduler.step()
 
-            self.save_model(f"ckp_{epoch}.pth.tar", epoch)
+            if (
+                epoch > 0 and epoch % self.ckp_interval == 0
+            ) or epoch + 1 == self.epochs:
+                self.save_model(f"ckp_{epoch}.pth.tar", epoch)
 
             if stop_flag:
                 break
