@@ -537,8 +537,9 @@ class Trainer:
         else:  # the measurements y were pre-computed
             x, y, physics = self.get_samples_offline(iterators, g)
 
-        if torch.isinf(x).any() or torch.isnan(x).any():
-            warnings.warn("x contains NaN or inf values.")
+        if x is not None:  # If x is None, we are in unsupervised case
+            if torch.isinf(x).any() or torch.isnan(x).any():
+                warnings.warn("x contains NaN or inf values.")
 
         return x, y, physics
 
