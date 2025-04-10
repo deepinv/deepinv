@@ -972,7 +972,7 @@ class Trainer:
         lower_better = getattr(self.metrics[k], "lower_better", True)
 
         best_metric = min(history) if lower_better else max(history)
-        best_epoch = history.index(best_metric)
+        best_epoch = history.index(best_metric) * self.eval_interval
 
         early_stop = epoch > 2 * self.eval_interval + best_epoch
         if early_stop and self.verbose:
