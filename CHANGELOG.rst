@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added early-stopping callback for Trainer and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
 - Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
