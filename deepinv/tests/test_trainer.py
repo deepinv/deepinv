@@ -338,21 +338,31 @@ def dummy_model(device):
     return DummyModel().to(device)
 
 
-def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
-    # Measurements only dataset
+@pytest.mark.parametrize("ground_truth", [True, False])
+@pytest.mark.parametrize("generate_params", [True, False])
+def test_dataloader_formats(
+    dummy_dataset, imsize, device, dummy_model, generate_params, ground_truth
+):
+
+    generator = dinv.physics.generator.RandomMaskGenerator(img_size=imsize)
+
     class DummyDataset(Dataset):
         def __len__(self):
             return len(dummy_dataset)
 
         def __getitem__(self, i):
-            return torch.nan, dummy_dataset[i]
+            params = generator.step(0)
+            x = dummy_dataset[i]
+            y = dummy_dataset[i] * params["mask"]
+            out = (x, y) if ground_truth else (torch.nan, y)
+            return out + (params,) if generate_params else out
 
     model = dummy_model
     dataset = DummyDataset()
     dataloader = DataLoader(dataset, batch_size=1)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
-    losses = dinv.loss.MCLoss()
+    losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
 
     trainer = dinv.Trainer(
         model=model,
@@ -361,7 +371,7 @@ def test_measurements_only(dummy_dataset, imsize, device, dummy_model):
         epochs=1,
         physics=physics,
         metrics=dinv.loss.MCLoss(),
-        online_measurements=False,
+        online_measurements=ground_truth,
         train_dataloader=dataloader,
         optimizer=optimizer,
     )
