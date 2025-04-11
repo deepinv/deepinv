@@ -339,30 +339,80 @@ def dummy_model(device):
 
 
 @pytest.mark.parametrize("ground_truth", [True, False])
+@pytest.mark.parametrize("measurements", [True, False])
+@pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("generate_params", [True, False])
 def test_dataloader_formats(
-    dummy_dataset, imsize, device, dummy_model, generate_params, ground_truth
+    imsize,
+    device,
+    dummy_model,
+    generate_params,
+    ground_truth,
+    measurements,
+    online_measurements,
+    rng,
 ):
+    """Test dataloader return formats
 
-    generator = dinv.physics.generator.RandomMaskGenerator(img_size=imsize)
+    :param bool ground_truth: whether dataset return x
+    :param bool measurements: whether dataset return y
+    :param bool generate_params: whether dataset return params
+    :param bool online_measurements: whether trainer overrides measurements online
+    """
+    if not ground_truth and not measurements:
+        pytest.skip("Must be some data returned")
+
+    if online_measurements and not ground_truth:
+        pytest.skip("Online measurements require ground truth.")
+
+    if not measurements and not online_measurements:
+        pytest.skip("Measurements are neither loaded nor generated online")
+
+    # Offline generator at low split ratio
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        tensor_size=imsize, split_ratio=0.1, rng=rng, device=device
+    )
 
     class DummyDataset(Dataset):
         def __len__(self):
-            return len(dummy_dataset)
+            return 10
 
         def __getitem__(self, i):
-            params = generator.step(0)
-            x = dummy_dataset[i]
-            y = dummy_dataset[i] * params["mask"]
-            out = (x, y) if ground_truth else (torch.nan, y)
-            return out + (params,) if generate_params else out
+            params = generator.step(1)
+            params["mask"] = params["mask"].squeeze(0)
+            x = torch.ones(imsize)
+            y = x * params["mask"]
+            if ground_truth:
+                if measurements:
+                    if generate_params:
+                        return x, y, params
+                    else:
+                        return x, y
+                else:
+                    if generate_params:
+                        return x, params
+                    else:
+                        return x
+            else:
+                if measurements:
+                    if generate_params:
+                        return torch.nan, y, params
+                    else:
+                        return torch.nan, y
+                else:
+                    raise ValueError("Some data must be returned")
 
     model = dummy_model
     dataset = DummyDataset()
     dataloader = DataLoader(dataset, batch_size=1)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, mask=1.0, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
+
+    # Online generator at higher split ratio
+    generator2 = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        tensor_size=imsize, split_ratio=0.9, rng=rng, device=device
+    )
 
     trainer = dinv.Trainer(
         model=model,
@@ -370,11 +420,55 @@ def test_dataloader_formats(
         plot_images=True,
         epochs=1,
         physics=physics,
+        physics_generator=generator2,
         metrics=dinv.loss.MCLoss(),
-        online_measurements=ground_truth,
+        online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
     )
+    trainer.setup_train()
+    x, y, physics = trainer.get_samples([iter(dataloader)], 0)
+
+    # fmt: off
+    def assert_x_none(x): assert x is None
+    def assert_x_full(x): assert x.mean() == 1.
+    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded 
+    def assert_physics_offline(physics): assert physics.mask.mean() < .2
+    def assert_physics_online(physics): assert physics.mask.mean() > .8
+    def assert_y_offline(y): assert y.mean() < .2
+    def assert_y_online(y): assert y.mean() > .8
+
+    if ground_truth:
+        if online_measurements:
+            if measurements:
+                if generate_params: # x, y, params online, both y and physics ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                else: # x, y online, y ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+            else:
+                if generate_params: # x, params online, params ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                else: # x online
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+        else:
+            if measurements:
+                if generate_params: # x, y, params offline
+                    assert_x_full(x); assert_y_offline(y); assert_physics_offline(physics)
+                else: # x, y offline
+                    assert_x_full(x); assert_y_offline(y); assert_physics_unchanged(physics)
+            else:
+                raise ValueError("measurements are neither loaded nor generated")
+    else:
+        if online_measurements:
+            raise ValueError("online measurements requires GT")
+        if not measurements:
+            raise ValueError("some data must be returned")
+        if generate_params: # y, params
+            assert_x_none(x); assert_y_offline(y); assert_physics_offline(physics)
+        else: # y
+            assert_x_none(x); assert_y_offline(y); assert_physics_unchanged(physics)
+    # fmt: off
+
     with no_plot():
         # Check that the model is trained without errors
         trainer.train()

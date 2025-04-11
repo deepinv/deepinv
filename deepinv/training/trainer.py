@@ -499,6 +499,10 @@ class Trainer:
 
         if len(data) == 2:
             x, y, params = *data, None
+            if isinstance(y, dict):  # x,params offline
+                raise ValueError(
+                    "If online_measurements=False, measurements y must be provided as a tensor."
+                )
         elif len(data) == 3:
             x, y, params = data
         else:
