@@ -56,7 +56,7 @@ from deepinv.models import NCSNpp
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float64
 figsize = 2.5
-gif_frequency = 25  # Increase this value to save the GIF saving time
+gif_frequency = 10  # Increase this value to save the GIF saving time
 # %%
 from deepinv.sampling import (
     PosteriorDiffusion,
@@ -169,7 +169,7 @@ except FileNotFoundError:
 # We can use the :class:`deepinv.sampling.DPSDataFidelity` as the data fidelity term.
 
 x = sample_seed_1
-physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.4, device=device)
+physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
 y = physics(x)
 
 model = PosteriorDiffusion(
@@ -243,68 +243,21 @@ except FileNotFoundError:
 
 
 # %%
-# Varying samples
-# ---------------
+#   .. note::
 #
-# One can obtain varying samples by using a different seed.
-# To ensure the reproducibility, if the parameter `rng` is given, the same sample will
-# be generated when the same seed is used.
-# We can also draw multiple samples in parallel by giving the initial shape
-
-# By changing the seed, we can obtain different samples:
-seed_2 = 111
-x_hat_new_seed = model(
-    y,
-    physics,
-    x_init=(2, 3, 64, 64),
-    seed=seed_2,
-)
-dinv.utils.plot(
-    [x_hat, x_hat_new_seed[0:1], x_hat_new_seed[1:2]],
-    titles=[
-        f"posterior sample: seed {seed_1}",
-        f"posterior sample: seed {seed_2}",
-        f"posterior sample: seed {seed_2}",
-    ],
-    save_fn="posterior_samples.png",
-    figsize=(figsize * 3, figsize),
-)
-
-# sphinx_gallery_start_ignore
-# cleanup
-import os
-import shutil
-from pathlib import Path
-
-try:
-    final_dir = (
-        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
-    )
-    shutil.move("posterior_samples.png", final_dir / "posterior_samples.png")
-
-except FileNotFoundError:
-    pass
-
-# sphinx_gallery_end_ignore
-
-# %%
-# We obtain the following posterior samples
+#       **Reproducibility**: To ensure the reproducibility, if the parameter `rng` is given, the same sample will
+#       be generated when the same seed is used.
+#       One can obtain varying samples by using a different seed.
 #
-# .. container:: image-row
+#       **Parallel sampling**: one can draw multiple samples in parallel by giving the initial shape, e.g., `x_init = (B, C, H, W)`
 #
-#    .. image-sg-ignore:: /auto_examples/images/posterior_samples.png
-#       :alt: varying posterior samples
-#       :srcset: /auto_examples/images/posterior_samples.png
-#       :ignore_missing: true
-#
-
 
 # %%
 # Varying the SDE
 # ---------------
 #
 # One can also change the underlying SDE for sampling.
-# For example, we can also use the Variance-Preserving (VP or DDPM) in :class:`deepinv.sampling.VariancePreservingDiffusion`, whose forward process is defined as:
+# For example, we can also use the Variance-Preserving (VP or DDPM) in :class:`deepinv.sampling.VariancePreservingDiffusion`, whose forward drift and diffusion term are defined as:
 #
 # .. math::
 #     f(x_t, t) = -\frac{1}{2} \beta(t)x_t \qquad \mbox{ and } \qquad g(t) = \beta(t)  \qquad \mbox{ with } \beta(t) = \beta_{\mathrm{min}}  + t \left( \beta_{\mathrm{max}} - \beta_{\mathrm{min}} \right).
@@ -326,7 +279,7 @@ x_hat_vp, trajectory_vp = model(
     y,
     physics,
     seed=111,
-    timesteps=torch.linspace(1, 0.001, 400),
+    timesteps=torch.linspace(1, 0.001, 300),
     get_trajectory=True,
 )
 dinv.utils.plot(
@@ -404,7 +357,7 @@ sigma_min = 0.02
 sigma_max = 7.0
 rng = torch.Generator(device)
 dtype = torch.float32
-timesteps = torch.linspace(1, 0.001, 400)
+timesteps = torch.linspace(1, 0.001, 300)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
@@ -505,7 +458,7 @@ denoiser = dinv.models.DiffUNet(pretrained="download").to(device)
 sigma_min = 0.02
 sigma_max = 100
 rng = torch.Generator(device)
-timesteps = torch.linspace(1, 0.001, 300)
+timesteps = torch.linspace(1, 0.001, 200)
 solver = EulerSolver(timesteps=timesteps, rng=rng)
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, sigma_min=sigma_min, alpha=1.0, device=device, dtype=dtype

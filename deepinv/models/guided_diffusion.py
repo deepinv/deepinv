@@ -41,7 +41,7 @@ class ADMUNet(Denoiser):
         online repository (the default model is a conditional model trained on ImageNet at 64x64 resolution (`imagenet64-cond`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-    :param float sigma_data: The standard deviation of the data distribution. Default to `0.5`.
+    :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
     """
 
@@ -65,7 +65,7 @@ class ADMUNet(Denoiser):
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
         pretrained: str = None,
-        sigma_data: float = 0.5,
+        pixel_std: float = 0.75,
         device=None,
         *args,
         **kwargs,
@@ -88,7 +88,7 @@ class ADMUNet(Denoiser):
             dropout=dropout,
             init=init,
         )
-
+        self.pixel_std = pixel_std
         # Mapping.
         self.map_noise = PositionalEmbedding(num_channels=model_channels)
         self.map_augment = (
@@ -181,12 +181,12 @@ class ADMUNet(Denoiser):
                 )
 
                 self._train_on_minus_one_one = True  # Pretrained on [-1,1]
+                self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
 
         self.eval()
-        self.sigma_data = sigma_data
         if device is not None:
             self.to(device)
             self.device = device
@@ -212,9 +212,9 @@ class ADMUNet(Denoiser):
             if self._train_on_minus_one_one:
                 x = (x - 0.5) * 2.0
                 sigma = sigma * 2.0
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
-        c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+        c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
+        c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
+        c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
