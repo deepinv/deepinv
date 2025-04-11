@@ -183,7 +183,7 @@ class BaseSample(Reconstructor):
         self.mean_convergence = False
         self.var_convergence = False
 
-        if not isinstance(g_statistics, list):
+        if not isinstance(g_statistics, List):
             g_statistics = [g_statistics]
 
         # Initialize Welford trackers for each g_statistic
@@ -203,6 +203,7 @@ class BaseSample(Reconstructor):
                 physics,
                 self.data_fidelity,
                 self.prior,
+                it,
                 **kwargs,
             )
 

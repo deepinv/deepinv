@@ -32,6 +32,7 @@ class SamplingIterator(nn.Module):
         physics: Physics,
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
+        iteration: int,
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -46,6 +47,7 @@ class SamplingIterator(nn.Module):
         :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood
         :param Prior cur_prior: Negative log-prior term
+        :param int iteration: Current iteration number in the sampling process (zero-indexed)
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
         :return: Next state :math:`X_{t+1}` in the Markov chain

@@ -88,6 +88,7 @@ class ULAIterator(SamplingIterator):
         physics: Physics,
         cur_data_fidelity: DataFidelity,
         cur_prior: ScorePrior,
+        iteration: int,
         *args,
         **kwargs,
     ) -> Tensor:
@@ -107,6 +108,7 @@ class ULAIterator(SamplingIterator):
         :param Physics physics: Forward operator :math:`A` that models the measurement process
         :param DataFidelity cur_data_fidelity: Negative log-likelihood function
         :param ScorePrior cur_prior: Score-based prior model for :math:`\nabla \log p(x)`
+        :param int iteration: Current iteration number in the sampling process (zero-indexed)
 
         :return: Next state :math:`x_{t+1}` in the Markov chain
         :rtype: torch.Tensor

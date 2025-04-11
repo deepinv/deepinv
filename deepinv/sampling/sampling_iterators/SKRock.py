@@ -86,6 +86,7 @@ class SKRockIterator(SamplingIterator):
         physics: Physics,
         cur_data_fidelity: DataFidelity,
         cur_prior: ScorePrior,
+        iteration: int,
         *args,
         **kwargs,
     ) -> torch.Tensor:
@@ -103,8 +104,6 @@ class SKRockIterator(SamplingIterator):
         """
 
         # Define posterior gradient
-        #
-        # TODO: not the posterior
         posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + self.algo_params["alpha"] * (
             cur_prior.grad(u, self.algo_params["sigma"])
         )

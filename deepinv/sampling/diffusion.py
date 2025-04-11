@@ -22,7 +22,8 @@ class DiffusionIterator(SamplingIterator):
         y: torch.Tensor,
         physics,
         cur_data_fidelity,
-        prior
+        prior,
+        iteration
     ) -> torch.Tensor:
         # run one sampling kernel iteration
         x = prior(y, physics)
