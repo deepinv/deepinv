@@ -12,7 +12,7 @@ from deepinv.sampling.utils import projbox
 
 
 class DiffusionIterator(SamplingIterator):
-    def __init__(self,cur_params=None, clip=None):
+    def __init__(self, cur_params=None, clip=None):
         super(SamplingIterator, self).__init__()
         self.clip = clip
 
@@ -23,7 +23,7 @@ class DiffusionIterator(SamplingIterator):
         physics,
         cur_data_fidelity,
         prior,
-        iteration
+        iteration,
     ) -> torch.Tensor:
         # run one sampling kernel iteration
         x = prior(y, physics)

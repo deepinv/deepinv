@@ -62,7 +62,7 @@ class ULAIterator(SamplingIterator):
 
     """
 
-    def __init__(self,algo_params:Dict[str, float], clip=None):
+    def __init__(self, algo_params: Dict[str, float], clip=None):
         super().__init__(algo_params)
 
         # Raise an error if these are not supplied
@@ -116,7 +116,9 @@ class ULAIterator(SamplingIterator):
 
         noise = torch.randn_like(x) * np.sqrt(2 * self.algo_params["step_size"])
         lhood = -cur_data_fidelity.grad(x, y, physics)
-        lprior = -cur_prior.grad(x, self.algo_params["sigma"]) * self.algo_params["alpha"]
+        lprior = (
+            -cur_prior.grad(x, self.algo_params["sigma"]) * self.algo_params["alpha"]
+        )
         x_t = x + self.algo_params["step_size"] * (lhood + lprior) + noise
         if self.clip:
             x_t = projbox(x_t, self.clip[0], self.clip[1])

@@ -104,13 +104,17 @@ class SKRockIterator(SamplingIterator):
         """
 
         # Define posterior gradient
-        posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + self.algo_params["alpha"] * (
-            cur_prior.grad(u, self.algo_params["sigma"])
-        )
+        posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + self.algo_params[
+            "alpha"
+        ] * (cur_prior.grad(u, self.algo_params["sigma"]))
 
         # Compute SK-ROCK parameters
-        w0 = 1 + self.algo_params["eta"] / (self.algo_params["inner_iter"]**2)  # parameter \omega_0
-        w1 = T_s(self.algo_params["inner_iter"], w0) / T_prime_s(self.algo_params["inner_iter"], w0)  # parameter \omega_1
+        w0 = 1 + self.algo_params["eta"] / (
+            self.algo_params["inner_iter"] ** 2
+        )  # parameter \omega_0
+        w1 = T_s(self.algo_params["inner_iter"], w0) / T_prime_s(
+            self.algo_params["inner_iter"], w0
+        )  # parameter \omega_1
         mu1 = w1 / w0  # parameter \mu_1
         nu1 = self.algo_params["inner_iter"] * w1 / 2  # parameter \nu_1
         kappa1 = self.algo_params["inner_iter"] * (w1 / w0)  # parameter \kappa_1
@@ -120,7 +124,11 @@ class SKRockIterator(SamplingIterator):
 
         # First internal iteration (s=1)
         xts_2 = x.clone()
-        xts = x.clone() - mu1 * self.algo_params["step_size"] * posterior(x + nu1 * noise) + kappa1 * noise
+        xts = (
+            x.clone()
+            - mu1 * self.algo_params["step_size"] * posterior(x + nu1 * noise)
+            + kappa1 * noise
+        )
 
         # Remaining internal iterations
         for js in range(2, self.algo_params["inner_iter"] + 1):
@@ -128,7 +136,11 @@ class SKRockIterator(SamplingIterator):
             mu = 2 * w1 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \mu_js
             nu = 2 * w0 * T_s(js - 1, w0) / T_s(js, w0)  # parameter \nu_js
             kappa = 1 - nu  # parameter \kappa_js
-            xts = -mu * self.algo_params["step_size"] * posterior(xts) + nu * xts + kappa * xts_2
+            xts = (
+                -mu * self.algo_params["step_size"] * posterior(xts)
+                + nu * xts
+                + kappa * xts_2
+            )
             xts_2 = xts_1
 
         if self.clip:

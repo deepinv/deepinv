@@ -90,18 +90,21 @@ class PULAIterator(dinv.sampling.SamplingIterator):
     def __init__(self, algo_params):
         super().__init__(algo_params)
 
-    def forward(
-        self, x, y, physics, data_fidelity, prior
-    ) -> torch.Tensor:
+    def forward(self, x, y, physics, data_fidelity, prior) -> torch.Tensor:
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
 
-        step_size = self.algo_params["step_size"] / (self.algo_params["epsilon"] + physics.mask.pow(2))
+        step_size = self.algo_params["step_size"] / (
+            self.algo_params["epsilon"] + physics.mask.pow(2)
+        )
 
         noise = torch.randn_like(x_bar)
         sigma2_noise = 1 / data_fidelity.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
-        lprior = -physics.V_adjoint(prior.grad(x, self.algo_params["sigma"])) * self.algo_params["alpha"]
+        lprior = (
+            -physics.V_adjoint(prior.grad(x, self.algo_params["sigma"]))
+            * self.algo_params["alpha"]
+        )
 
         return x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
@@ -147,7 +150,7 @@ params_pula = {
     "step_size": step_size,
     "sigma": denoiser_sigma,
     "alpha": 1.0,
-    "epsilon": 0.01
+    "epsilon": 0.01,
 }
 
 # build our PULA sampler
