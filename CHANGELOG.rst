@@ -10,6 +10,19 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3
+----------------
+
+New Features
+^^^^^^^^^^^^
 - Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
