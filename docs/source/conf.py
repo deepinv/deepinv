@@ -25,7 +25,7 @@ copyright = "2024, deepinverse contributors"
 author = (
     "Julian Tachella, Matthieu Terris, Samuel Hurault, Dongdong Chen and Andrew Wang"
 )
-release = "0.2"
+release = "0.3"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
