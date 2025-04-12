@@ -90,7 +90,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
             titles.append("Ground truth")
             caption += "Ground truth, "
 
-        if y is not None and y.shape == x.shape:
+        if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
