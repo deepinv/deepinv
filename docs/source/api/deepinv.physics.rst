@@ -77,6 +77,7 @@ Generators
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
    deepinv.physics.generator.PSFGenerator
    deepinv.physics.generator.MotionBlurGenerator
+   deepinv.physics.generator.DownsamplingGenerator
    deepinv.physics.generator.DiffractionBlurGenerator
    deepinv.physics.generator.DiffractionBlurGenerator3D
    deepinv.physics.generator.ProductConvolutionBlurGenerator
@@ -117,6 +118,7 @@ Noise distributions
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
    deepinv.physics.generator.SigmaGenerator
+   deepinv.physics.generator.GainGenerator
 
 
 .. autosummary::

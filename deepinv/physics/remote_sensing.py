@@ -33,6 +33,8 @@ class Pansharpen(StackedLinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
+    :param bool normalize: if ``True``, normalize the downsampling operator to have unit norm.
+    :param float eps: small value to avoid division by zero in the Brovey method.
 
     |sep|
 
@@ -65,6 +67,8 @@ class Pansharpen(StackedLinearPhysics):
         use_brovey=True,
         device="cpu",
         padding="circular",
+        normalize=False,
+        eps=1e-6,
         **kwargs,
     ):
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
@@ -72,6 +76,8 @@ class Pansharpen(StackedLinearPhysics):
         noise_color = noise_color if noise_color is not None else lambda x: x
         noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.use_brovey = use_brovey
+        self.normalize = normalize
+        self.eps = eps
 
         downsampling = Downsampling(
             img_size=img_size,
@@ -103,13 +109,13 @@ class Pansharpen(StackedLinearPhysics):
         """
 
         if self.use_brovey:
-            if self.downsampling.filter is not None:
+            if self.downsampling.filter is not None and not self.normalize:
                 factor = self.downsampling.factor**2
             else:
                 factor = 1
 
             x = self.downsampling.A_adjoint(y[0], **kwargs) * factor
-            x *= y[1] / x.mean(1, keepdim=True)
+            x = x * y[1] / (x.mean(1, keepdim=True) + self.eps)
             return x
         else:
             return super().A_dagger(y, **kwargs)

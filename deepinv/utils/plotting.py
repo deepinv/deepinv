@@ -69,13 +69,13 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
+def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
     It prepares the images for plotting by rescaling them and concatenating them in a grid.
 
-    :param torch.Tensor, None x: Ground truth, or None if not available.
+    :param torch.Tensor x: Ground truth.
     :param torch.Tensor y: Measurement.
     :param torch.Tensor x_net: Reconstruction network output.
     :param torch.Tensor x_nl: No-learning reconstruction.
@@ -85,32 +85,32 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
         imgs = []
         titles = []
         caption = "From left to right: "
-        if len(y.shape) == 4:
-            imgs.append(y)
-            titles.append("Measurement")
-            if y.shape == x_net.shape:  # for wandb
-                caption += "Measurement, "
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
+
+        if y is not None and y.shape == x.shape:
+            imgs.append(y)
+            titles.append("Measurement")
+            caption += "Measurement, "
 
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
 
-        imgs.append(x_net)
-        titles.append("Reconstruction")
-        caption += "Reconstruction"
+        if x_net is not None:
+            imgs.append(x_net)
+            titles.append("Reconstruction")
+            caption += "Reconstruction"
 
-        if imgs[0].shape != imgs[1].shape:  # wandb doesn't allow different imsizes
-            vis_array = torch.cat(imgs[1:], dim=0)
-        else:
-            vis_array = torch.cat(imgs, dim=0)
-        for i in range(len(vis_array)):
-            vis_array[i] = rescale_img(vis_array[i], rescale_mode=rescale_mode)
-        grid_image = make_grid(vis_array, nrow=y.shape[0])
+        vis_array = []
+        for img in imgs:
+            out = preprocess_img(img, rescale_mode=rescale_mode)
+            vis_array.append(out)
+        vis_array = torch.cat(vis_array)
+        grid_image = make_grid(vis_array, nrow=x.shape[0])
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)

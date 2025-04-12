@@ -21,9 +21,9 @@ class EDMPrecond(Denoiser):
 
     ..math::
         \begin{align}
-        c_{\mathrm{skip}}(\sigma) &= \frac{\sigma_{\mathrm{data}}^2}{\sigma^2 + \sigma_{\mathrm{data}}^2}   \\
-        c_{\mathrm{out}}(\sigma) &= \sigma \frac{\sigma_{\mathrm{data}}{\sqrt{\sigma^2 + \sigma_{\mathrm{data}}^2}}               \\
-        c_{\mathrm{in}}(\sigma) &= \frac{1}{\sqrt{\sigma^2 + \sigma_{\mathrm{data}}^2}}                     \\
+        c_{\mathrm{skip}}(\sigma) &= \frac{\sigma_{\mathrm{pixel}}^2}{\sigma^2 + \sigma_{\mathrm{pixel}}^2}   \\
+        c_{\mathrm{out}}(\sigma) &= \sigma \frac{\sigma_{\mathrm{pixel}}{\sqrt{\sigma^2 + \sigma_{\mathrm{pixel}}^2}}               \\
+        c_{\mathrm{in}}(\sigma) &= \frac{1}{\sqrt{\sigma^2 + \sigma_{\mathrm{pixel}}^2}}                     \\
         c_{\mathrm{noise}}(\sigma) &= \log(\sigma) / 4
         \end{align}
 
@@ -33,11 +33,11 @@ class EDMPrecond(Denoiser):
         self,
         model,
         use_fp16=False,  # Execute the underlying model at FP16 precision?
-        sigma_data=0.5,  # Expected standard deviation of the training data.
+        pixel_std=0.75,  # Expected standard deviation of the training data in pixel.
     ):
         super().__init__()
         self.use_fp16 = use_fp16
-        self.sigma_data = sigma_data
+        self.pixel_std = pixel_std
         self.model = model
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
@@ -51,9 +51,9 @@ class EDMPrecond(Denoiser):
             else torch.float32
         )
 
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
-        c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
+        c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
+        c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
+        c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         F_x = self.model(
