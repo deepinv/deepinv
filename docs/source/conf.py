@@ -6,8 +6,13 @@
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
 from sphinx_gallery.sorting import ExplicitOrder
+from sphinx_gallery.directives import ImageSg
 import sys
 import os
+from pathlib import Path
+from sphinx.util import logging
+
+logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
@@ -97,8 +102,23 @@ class UserGuideMacro(Directive):
         return [paragraph_node]
 
 
+class TolerantImageSg(ImageSg):
+    option_spec = ImageSg.option_spec.copy()
+    option_spec["ignore_missing"] = lambda x: True if x.lower() == "true" else False
+
+    def run(self):
+        image_path = self.arguments[0]
+        ignore_missing = self.options.get("ignore_missing", False)
+        full_path = os.path.join(basedir, "docs", "source", image_path.strip("/"))
+        if (not os.path.exists(full_path)) and ignore_missing:
+            logger.info(f"Ignoring missing image: {full_path}")
+            return []  # Return empty node list to skip rendering
+        return super().run()
+
+
 def setup(app):
     app.add_directive("userguide", UserGuideMacro)
+    app.add_directive("image-sg-ignore", TolerantImageSg)
 
 
 #############################
@@ -180,7 +200,6 @@ numfig_secnum_depth = 3
 
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
-# html_static_path = []
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
