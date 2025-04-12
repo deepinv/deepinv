@@ -640,6 +640,7 @@ def test_varnet(varnet_type, device):
         plot_images=False,
         compare_no_learning=True,
         device=device,
+        optimizer_step_multi_dataset=True,
     ).train()
 
     x_hat = model(y, physics)

@@ -164,6 +164,8 @@ def test_sure(noise_type, device):
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
+    print("sizes = ", x.size(), y.size())
+
     x_net = f(y, physics)
     mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
