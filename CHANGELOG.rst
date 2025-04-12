@@ -37,6 +37,7 @@ Fixed
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
+- Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -52,10 +53,11 @@ v0.2.2
 
 New Features
 ^^^^^^^^^^^^
-- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`)
-- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen` and `Samuel Hurault`)
-- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen` and `Samuel Hurault`)
-- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen` and `Mathieu Terris`)
+- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`_)
+- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`_ and `Mathieu Terris`_)
+- Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_) 
 
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
@@ -120,8 +122,8 @@ New Features
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 - Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
-- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
-- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
+- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`_)
+- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`_)
 - Added stride, shape in `PatchDataset` (:gh:`308` by apolychronou)
 
 Fixed
@@ -134,7 +136,7 @@ Fixed
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
-- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
+- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
