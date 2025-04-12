@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
 
+import warnings
+
 import torch
 from torch.nn import Module
 

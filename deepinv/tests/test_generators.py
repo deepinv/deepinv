@@ -26,8 +26,6 @@ GENERATORS = [
     "DiffractionBlurGenerator",
     "ProductConvolutionBlurGenerator",
     "SigmaGenerator",
-    "DownsamplingGenerator",
-    "BernoulliSplittingMaskGenerator",
 ]
 
 MIXTURES = list(itertools.combinations(GENERATORS, 2))
