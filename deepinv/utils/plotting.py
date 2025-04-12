@@ -110,7 +110,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
             out = preprocess_img(img, rescale_mode=rescale_mode)
             vis_array.append(out)
         vis_array = torch.cat(vis_array)
-        grid_image = make_grid(vis_array, nrow=x.shape[0])
+        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
