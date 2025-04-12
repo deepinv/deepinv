@@ -138,18 +138,27 @@ class AdversarialTrainer(Trainer):
 
     See :class:`deepinv.Trainer` for additional parameters.
 
+    .. warning::
+
+        The multi-dataset option is not available yet when using an adversarial trainer. The `optimizer_step_multi_dataset` parameter is therefore automatically set to `False` if not set to `False` by the user.
+
+
     :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
     :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
     :param int step_ratio_D: every iteration, train D this many times, allowing for imbalanced generator/discriminator training. Defaults to 1.
-    :param bool global_optimizer_step: If ``True``, the optimizer step is performed once on all datasets. If ``False``, the optimizer step is performed on each dataset separately.
     """
 
     optimizer: AdversarialOptimizer
     losses_d: Union[Loss, List[Loss]] = None
     D: Module = None
     step_ratio_D: int = 1
-    global_optimizer_step: bool = False
+
+    if optimizer_step_multi_dataset:
+        warnings.warn(
+            "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
+        )
+        optimizer_step_multi_dataset = False
 
     def setup_train(self, **kwargs):
         r"""

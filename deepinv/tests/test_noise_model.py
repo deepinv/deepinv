@@ -1,7 +1,6 @@
 import pytest
 import torch
-import numpy as np
-from deepinv.physics.forward import adjoint_function
+import math
 import deepinv as dinv
 
 # Noise model which has a `rng` attribute
@@ -69,3 +68,48 @@ def test_rng(name, device, rng, dtype):
     y_3 = noise_model(x, seed=0)
     assert torch.allclose(y_1, y_3)
     assert not torch.allclose(y_1, y_2)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_gaussian_noise_arithmetics(device, rng, dtype):
+
+    sigma_0 = 0.01
+    sigma_1 = 0.05
+    sigma_2 = 0.2
+
+    multiplication_value = 0.5
+
+    noise_model_0 = dinv.physics.GaussianNoise(sigma_0, rng=rng)
+    noise_model_1 = dinv.physics.GaussianNoise(sigma_1, rng=rng)
+    noise_model_2 = dinv.physics.GaussianNoise(sigma_2, rng=rng)
+
+    # addition
+    noise_model = noise_model_0 + noise_model_1 + noise_model_2
+    assert math.isclose(
+        noise_model.sigma.item(),
+        (sigma_0**2 + sigma_1**2 + sigma_2**2) ** (0.5),
+        abs_tol=1e-5,
+    )
+
+    # multiplication
+
+    # right
+    noise_model = noise_model_0 * multiplication_value
+    assert math.isclose(
+        noise_model.sigma.item(), (sigma_0 * multiplication_value), abs_tol=1e-5
+    )
+
+    # left
+    noise_model = multiplication_value * noise_model_0
+    assert math.isclose(
+        noise_model.sigma.item(), (sigma_0 * multiplication_value), abs_tol=1e-5
+    )
+
+    # factorisation
+    noise_model = (noise_model_0 + noise_model_1) * multiplication_value
+    assert math.isclose(
+        noise_model.sigma.item(),
+        ((sigma_0**2 + sigma_1**2) ** (0.5)) * multiplication_value,
+        abs_tol=1e-5,
+    )
