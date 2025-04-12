@@ -154,17 +154,17 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    if optimizer_step_multi_dataset:
-        warnings.warn(
-            "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
-        )
-        optimizer_step_multi_dataset = False
-
     def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
         super().setup_train(**kwargs)
+
+        if self.optimizer_step_multi_dataset:
+            warnings.warn(
+                "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
+            )
+            self.optimizer_step_multi_dataset = False
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
