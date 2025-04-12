@@ -5,6 +5,10 @@ import torch
 import deepinv as dinv
 from deepinv.tests.dummy_datasets.datasets import DummyCircles
 
+import matplotlib
+import importlib
+from contextlib import contextmanager
+
 
 @pytest.fixture
 def device():
@@ -22,7 +26,7 @@ def toymatrix():
 
 @pytest.fixture
 def dummy_dataset(imsize, device):
-    return DummyCircles(samples=1, imsize=imsize)
+    return DummyCircles(samples=2, imsize=imsize)
 
 
 @pytest.fixture
@@ -52,3 +56,20 @@ def imsize_2_channel():
 @pytest.fixture
 def rng(device):
     return torch.Generator(device).manual_seed(0)
+
+
+@contextmanager
+def no_plot():
+    """Wrap any statement to send matplotlib calls to not display plots."""
+    original_backend = matplotlib.get_backend()
+    try:
+        matplotlib.use("Agg", force=True)
+        import matplotlib.pyplot as plt
+
+        plt.close("all")
+        importlib.reload(plt)
+        yield
+    finally:
+        plt.close("all")
+        matplotlib.use(original_backend, force=True)
+        importlib.reload(plt)

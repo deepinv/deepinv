@@ -8,7 +8,9 @@ from deepinv.tests.dummy_datasets.datasets import DummyCircles
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
-from deepinv.physics.noise import NoiseModel, GaussianNoise, PoissonNoise
+from deepinv.physics.noise import GaussianNoise, PoissonNoise
+
+from conftest import no_plot
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -474,9 +476,11 @@ def test_trainer_test_metrics(device, rng):
         show_progress_bar=False,
         device=device,
         online_measurements=True,
+        plot_images=True,
     )
-    _ = trainer.train()
-    results = trainer.test(dataloader, log_raw_metrics=True)
+    with no_plot():
+        _ = trainer.train()
+        results = trainer.test(dataloader, log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
     assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
@@ -487,3 +491,199 @@ def test_trainer_test_metrics(device, rng):
     assert np.isclose(
         np.std(results["PSNR no learning_vals"]), results["PSNR no learning_std"]
     )
+
+
+@pytest.fixture
+def dummy_model(device):
+    class DummyModel(dinv.models.Reconstructor):
+        def __init__(self):
+            super().__init__()
+            self.param = torch.nn.Parameter(torch.ones(1), requires_grad=True)
+            self.median = dinv.models.MedianFilter()
+
+        def forward(self, y, physics, **kwargs):
+            x = physics.A_adjoint(y)
+            return (x + self.param * self.median(x)) / 2.0
+
+    return DummyModel().to(device)
+
+
+@pytest.mark.parametrize("ground_truth", [True, False])
+@pytest.mark.parametrize("measurements", [True, False])
+@pytest.mark.parametrize("online_measurements", [True, False])
+@pytest.mark.parametrize("generate_params", [True, False])
+def test_dataloader_formats(
+    imsize,
+    device,
+    dummy_model,
+    generate_params,
+    ground_truth,
+    measurements,
+    online_measurements,
+    rng,
+):
+    """Test dataloader return formats
+
+    :param bool ground_truth: whether dataset return x
+    :param bool measurements: whether dataset return y
+    :param bool generate_params: whether dataset return params
+    :param bool online_measurements: whether trainer overrides measurements online
+    """
+    if not ground_truth and not measurements:
+        pytest.skip("Must be some data returned")
+
+    if online_measurements and not ground_truth:
+        pytest.skip("Online measurements require ground truth.")
+
+    if not measurements and not online_measurements:
+        pytest.skip("Measurements are neither loaded nor generated online")
+
+    # Offline generator at low split ratio
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        tensor_size=imsize, split_ratio=0.1, rng=rng, device=device
+    )
+
+    class DummyDataset(Dataset):
+        def __len__(self):
+            return 10
+
+        def __getitem__(self, i):
+            params = generator.step(1)
+            params["mask"] = params["mask"].squeeze(0)
+            x = torch.ones(imsize)
+            y = x * params["mask"]
+            if ground_truth:
+                if measurements:
+                    if generate_params:
+                        return x, y, params
+                    else:
+                        return x, y
+                else:
+                    if generate_params:
+                        return x, params
+                    else:
+                        return x
+            else:
+                if measurements:
+                    if generate_params:
+                        return torch.nan, y, params
+                    else:
+                        return torch.nan, y
+                else:
+                    raise ValueError("Some data must be returned")
+
+    model = dummy_model
+    dataset = DummyDataset()
+    dataloader = DataLoader(dataset, batch_size=1)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, mask=1.0, device=device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+    losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
+
+    # Online generator at higher split ratio
+    generator2 = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        tensor_size=imsize, split_ratio=0.9, rng=rng, device=device
+    )
+
+    trainer = dinv.Trainer(
+        model=model,
+        losses=losses,
+        plot_images=True,
+        epochs=1,
+        physics=physics,
+        physics_generator=generator2,
+        metrics=dinv.loss.MCLoss(),
+        online_measurements=online_measurements,
+        train_dataloader=dataloader,
+        optimizer=optimizer,
+    )
+    trainer.setup_train()
+    x, y, physics = trainer.get_samples([iter(dataloader)], 0)
+
+    # fmt: off
+    def assert_x_none(x): assert x is None
+    def assert_x_full(x): assert x.mean() == 1.
+    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded 
+    def assert_physics_offline(physics): assert physics.mask.mean() < .2
+    def assert_physics_online(physics): assert physics.mask.mean() > .8
+    def assert_y_offline(y): assert y.mean() < .2
+    def assert_y_online(y): assert y.mean() > .8
+
+    if ground_truth:
+        if online_measurements:
+            if measurements:
+                if generate_params: # x, y, params online, both y and physics ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                else: # x, y online, y ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+            else:
+                if generate_params: # x, params online, params ignored
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+                else: # x online
+                    assert_x_full(x); assert_y_online(y); assert_physics_online(physics)
+        else:
+            if measurements:
+                if generate_params: # x, y, params offline
+                    assert_x_full(x); assert_y_offline(y); assert_physics_offline(physics)
+                else: # x, y offline
+                    assert_x_full(x); assert_y_offline(y); assert_physics_unchanged(physics)
+            else:
+                raise ValueError("measurements are neither loaded nor generated")
+    else:
+        if online_measurements:
+            raise ValueError("online measurements requires GT")
+        if not measurements:
+            raise ValueError("some data must be returned")
+        if generate_params: # y, params
+            assert_x_none(x); assert_y_offline(y); assert_physics_offline(physics)
+        else: # y
+            assert_x_none(x); assert_y_offline(y); assert_physics_unchanged(physics)
+    # fmt: off
+
+    with no_plot():
+        # Check that the model is trained without errors
+        trainer.train()
+
+
+@pytest.mark.parametrize("early_stop", [True, False])
+@pytest.mark.parametrize("max_batch_steps", [3, 100000])
+def test_early_stop(
+    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps
+):
+    torch.manual_seed(0)
+    model = dummy_model
+    # split dataset
+    epochs = 100 if early_stop else 4
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1)
+    losses = dinv.loss.MCLoss()
+    trainer = dinv.Trainer(
+        model=model,
+        losses=losses,
+        early_stop=early_stop,
+        epochs=epochs,
+        physics=physics,
+        max_batch_steps=max_batch_steps,
+        train_dataloader=dataloader,
+        eval_dataloader=eval_dataloader,
+        online_measurements=True,
+        optimizer=optimizer,
+        verbose=False,
+        plot_images=True,
+    )
+    with no_plot():
+        trainer.train()
+
+        metrics_history = trainer.eval_metrics_history["PSNR"]
+        if max_batch_steps == 3:
+            assert len(metrics_history) <= len(dataloader) * epochs
+        elif early_stop:
+            assert len(metrics_history) < epochs
+            last = metrics_history[-1]
+            best = max(metrics_history)
+            metrics = trainer.test(eval_dataloader)
+            assert metrics["PSNR"] < best and metrics["PSNR"] == last
+        else:
+            assert len(metrics_history) == epochs

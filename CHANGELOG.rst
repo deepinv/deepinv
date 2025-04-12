@@ -10,6 +10,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Added early-stopping callback for Trainer and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
 - Add various generators for the physics module (downsampling, variable masks for inpainting, PoissonGaussian generators etc) (:gh:`384` by `Matthieu Terris`_)
 - Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
@@ -60,7 +61,7 @@ New Features
 - Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
 - Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
 - Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`_ and `Mathieu Terris`_)
-- Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_) 
+- Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
 
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)

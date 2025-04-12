@@ -11,6 +11,8 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
+from conftest import no_plot
+
 LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 
 LIST_SURE = [
@@ -305,17 +307,18 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=False,
+        plot_images=True,
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    with no_plot():
+        # test the untrained model
+        initial_test = trainer.test(test_dataloader=test_dataloader)
 
-    # train the network
-    trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+        # train the network
+        trainer.train()
+        final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
