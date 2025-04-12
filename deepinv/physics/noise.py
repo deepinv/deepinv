@@ -115,8 +115,8 @@ class GaussianNoise(NoiseModel):
         >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
         >>> gaussian_noise = gaussian_noise_1 + gaussian_noise_2
         >>> y = gaussian_noise(x)
-        >>> gaussian_noise.sigma
-        tensor([5.0])
+        >>> gaussian_noise.sigma.item()
+        5.0
 
         We can also multiply a GaussianNoise by a float:
 
@@ -124,8 +124,8 @@ class GaussianNoise(NoiseModel):
 
         >>> scaled_gaussian_noise = 3.0 * gaussian_noise
         >>> y = scaled_gaussian_noise(x)
-        >>> scaled_gaussian_noise.sigma
-        tensor([15.0])
+        >>> scaled_gaussian_noise.sigma.item()
+        15.0
 
         We can also create a batch of GaussianNoise with different standard deviations:
 
