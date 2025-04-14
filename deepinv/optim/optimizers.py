@@ -5,6 +5,7 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
+from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
@@ -115,10 +116,10 @@ class BaseOptim(Reconstructor):
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
-        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None``.
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
     :param list, deepinv.optim.Prior: regularization prior.
         Either a single instance (same prior for each iteration) or a list of instances of
-        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -197,7 +198,9 @@ class BaseOptim(Reconstructor):
             self.prior = prior
 
         # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
-        if not isinstance(data_fidelity, Iterable):
+        if data_fidelity is None:
+            self.data_fidelity = [ZeroFidelity()]
+        elif not isinstance(data_fidelity, Iterable):
             self.data_fidelity = [data_fidelity]
         else:
             self.data_fidelity = data_fidelity
@@ -605,7 +608,10 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
-    # add a note 
+    .. note::
+
+        Since 0.2.3, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g. 
+        ``model = ProximalGradientDescent(data_fidelity, prior, ...)``. 
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
@@ -654,6 +660,50 @@ def str_to_class(classname):
 
 
 class ADMM(BaseOptim):
+    """
+    ADMM module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    If the attribute ``g_first`` is set to False (by default), the ADMM algorithm  writes (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_)
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
+        z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
+        \end{aligned}
+        \end{equation*}
+
+    where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
+    inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.ADMMIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float beta: ADMM relaxation parameter :math:`\beta`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: ``["lambda", "stepsize", "g_param", "beta"]``. 
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    """
     def __init__(
         self,
         data_fidelity=None,
@@ -664,10 +714,11 @@ class ADMM(BaseOptim):
         g_param=None,
         max_iter=100,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=["lambda", "stepsize", "g_param", "beta"],
         g_first=False,
         F_fn=None,
         params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
         # add an unfolded mode for DEQ
     ):
