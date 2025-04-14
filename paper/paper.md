@@ -185,14 +185,19 @@ These methods consist of solving an optimization problem [@chambolle2016introduc
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}(x)) + g(x)
 \end{equation}
 where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term which can incorporate knowledge about the noise parameters $\sigma$, and $g:\mathcal{X}\mapsto\mathbb{R}_+$ is a regularization term that promotes plausible reconstructions.
-The `optim` module in the library provides a wide variety of optimization algorithms:
+The `optim` module includes classical fidelity terms (e.g., $L^1$, $L^2$, Poisson log-likelihood) and offers a wide range of regularization priors:
 
-**Variational Optimization**: The library provides popular hand-crafted regularization functions, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear] and mixed-norms regularizers.
+**Hand-crafted priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations.
 
-**Plug-and-Play**: Plug-and-Play (PnP) methods replace the proximal operator or gradient of the regularization term $g$ by a pretrained denoiser, i.e.,
- often using a deep denoiser [@kamilov2023plug]. The library provides popular pretrained denoisers, including DnCNN, DRUNet [@zhang2021plug], and other modern diffusion-based denoisers [@Karras2022edm].
- 
-**Unfolded Networks and Deep Equilibrium**: Unfolded networks consist of fixing the number of optimization iterations of a variational or PnP approach [@monga2021algorithm], and training the parameters of the resulting algorithm end-to-end, including optimization parameters and possibly the regularization term parameters, for instance a deep denoiser.
+**Denoising Plug-and-Play priors**: Plug-and-Play (PnP) methods replace the proximal operator [@venkatakrishnan2013plug] or the gradient [@romano2017little] of the regularization term $g$ with a pretrained denoiser, often based on deep learning. The library provides access to widely used pretrained denoisers, including DnCNN [@zhang2017beyond], DRUNet [@zhang2021plug], and recent diffusion-based denoisers such as DDPM [@ho2020denoising] and NCSN [@song2020score].
+
+The `optim` module also includes solvers for problem~\eqref{eq:var} using:
+
+**Optimization algorithms**: The library contains several classical algorithms [@dossal2024optimizationorderalgorithms] for minimizing the sum of two functions, including Proximal Gradient Descent, FISTA, ADMM, Douglas-Rachford Splitting, and Primal-Dual methods.
+
+**Unfolded networks and Deep Equilibrium models**: Unfolded networks [@gregor2010learning] are obtained by unrolling a fixed number of iterations of an optimization algorithm and training the parameters end-to-end, including both optimization hyperparameters and deep regularization priors. Standart unfolded methods train via brackpropagation the optimization algorithm, while Deep Equilibrium methods [@bai2019deep] implicitly differentiate the fixed point of the algorithm.
+
+
 
 ### Sampling-based methods
 Reconstruction methods can also be defined via ordinary or stochastic differential equations, generally as a Markov chain defined by
