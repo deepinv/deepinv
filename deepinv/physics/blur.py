@@ -8,6 +8,7 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
+    conv_transpose2d_fft,
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
@@ -69,39 +70,11 @@ class Downsampling(LinearPhysics):
         # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
         self.imsize = img_size
         self.padding = padding
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(device)
-        if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
-        elif filter is None:
-            self.filter = filter
-        elif filter == "gaussian":
-            self.filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(device)
-        elif filter == "bilinear":
-            self.filter = torch.nn.Parameter(
-                bilinear_filter(self.factor), requires_grad=False
-            ).to(device)
-        elif filter == "bicubic":
-            self.filter = torch.nn.Parameter(
-                bicubic_filter(self.factor), requires_grad=False
-            ).to(device)
-        elif filter == "sinc":
-            self.filter = torch.nn.Parameter(
-                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
-            ).to(device)
-        else:
-            raise Exception("The chosen downsampling filter doesn't exist")
+        self.device = device
+        self.filter = filter
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
-        if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
-            self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = self.Fhc * self.Fh
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
-
-    def A(self, x, filter=None, **kwargs):
+    def A(self, x, filter=None, factor=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
 
@@ -109,16 +82,16 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
+
         return x
 
-    def A_adjoint(self, y, filter=None, **kwargs):
+    def A_adjoint(self, y, filter=None, factor=None, **kwargs):
         r"""
         Adjoint operator of the downsampling operator.
 
@@ -126,8 +99,8 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        if filter is not None or factor is not None:
+            self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         imsize = self.imsize
 
@@ -148,7 +121,10 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(x, self.filter, padding=self.padding)
+            x = conv_transpose2d(
+                x, self.filter, padding=self.padding
+            )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
@@ -182,6 +158,50 @@ class Downsampling(LinearPhysics):
             return (z_hat - r) * gamma
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
+
+    def update_parameters(self, filter=None, factor=None, **kwargs):
+        r"""
+        Updates the current filter and/or factor.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        :param int factor: New downsampling factor to be applied to the input image.
+        """
+        if factor is not None:
+            self.factor = factor
+
+        if filter is not None:
+            if isinstance(filter, torch.nn.Parameter):
+                self.filter = filter.requires_grad_(False).to(self.device)
+            if isinstance(filter, torch.Tensor):
+                self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                    self.device
+                )
+            elif filter == "gaussian":
+                self.filter = torch.nn.Parameter(
+                    gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
+                ).to(self.device)
+            elif filter == "bilinear":
+                self.filter = torch.nn.Parameter(
+                    bilinear_filter(self.factor), requires_grad=False
+                ).to(self.device)
+            elif filter == "bicubic":
+                self.filter = torch.nn.Parameter(
+                    bicubic_filter(self.factor), requires_grad=False
+                ).to(self.device)
+            elif filter == "sinc":
+                self.filter = torch.nn.Parameter(
+                    sinc_filter(self.factor, length=4 * self.factor),
+                    requires_grad=False,
+                ).to(self.device)
+
+        if self.filter is not None:
+            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
+                self.device
+            )
+            self.Fhc = torch.nn.Parameter(torch.conj(self.Fh), requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
+            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
+            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
 
 
 class Blur(LinearPhysics):
@@ -567,7 +587,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-def kaiser_window(beta, length):
+def kaiser_window(beta, length, device="cpu"):
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
         raise ValueError("beta must be greater than 0")
@@ -576,12 +596,12 @@ def kaiser_window(beta, length):
     if length == 1:
         return torch.tensor([1.0])
     half = (length - 1) / 2
-    n = torch.arange(length)
-    beta = torch.tensor(beta)
+    n = torch.arange(length, device=device)
+    beta = torch.tensor(beta, device=device)
     return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
-def sinc_filter(factor=2, length=11, windowed=True):
+def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     r"""
     Anti-aliasing sinc filter multiplied by a Kaiser window.
 
@@ -606,9 +626,9 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 2 * (2 - 1.414213) / factor
+    deltaf = 2 * (2 - 1.4142136) / factor
 
-    n = torch.arange(length) - (length - 1) / 2
+    n = torch.arange(length, device=device) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
@@ -620,7 +640,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
         else:
             beta = 0.1102 * (A - 8.7)
 
-        filter = filter * kaiser_window(beta, length)
+        filter = filter * kaiser_window(beta, length, device=device)
 
     filter = filter.unsqueeze(0)
     filter = filter * filter.T

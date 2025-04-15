@@ -13,6 +13,7 @@ from .diffusion_sde import (
     BaseSDE,
     DiffusionSDE,
     VarianceExplodingDiffusion,
+    VariancePreservingDiffusion,
     PosteriorDiffusion,
 )
 from .sde_solver import SDEOutput, BaseSDESolver, EulerSolver, HeunSolver

@@ -254,19 +254,19 @@ def conv_transpose2d_fft(
     filter_f = filter_fft_2d(filter, img_size, real_fft)
     y_f = fft.rfft2(y) if real_fft else fft.fft2(y)
 
-    return fft.irfft2(y_f * torch.conj(filter_f)).real
+    return fft.irfft2(y_f * torch.conj(filter_f), s=(H, W)).real
 
 
 def filter_fft_2d(filter, img_size, real_fft=True):
-    ph = int((filter.shape[2] - 1) / 2)
-    pw = int((filter.shape[3] - 1) / 2)
+    ph = int((filter.shape[-2] - 1) / 2)
+    pw = int((filter.shape[-1] - 1) / 2)
 
     filt2 = torch.zeros(
         tuple(filter.shape[:2]) + tuple(img_size[-2:]), device=filter.device
     )
 
-    filt2[..., : filter.shape[2], : filter.shape[3]] = filter
-    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
+    filt2[..., : filter.shape[-2], : filter.shape[-1]] = filter
+    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(-2, -1))
 
     return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 

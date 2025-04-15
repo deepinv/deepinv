@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sample_builder
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sample_builder, DDRM
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -142,7 +142,7 @@ def test_algo(name_algo, device):
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
@@ -167,6 +167,8 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+    elif name_algo == "DDRM":
+        algorithm = DDRM(model)
 
     with torch.no_grad():
         out = algorithm(y, physics)
@@ -270,105 +272,139 @@ def test_build_algo(algo, imsize, device):
     assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
 
 
+@torch.no_grad()
 def test_sde(device):
     from deepinv.sampling import (
         VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
         PosteriorDiffusion,
         DPSDataFidelity,
         EulerSolver,
         HeunSolver,
     )
-    from deepinv.models import NCSNpp, ADMUNet, EDMPrecond, DRUNet
+    from deepinv.models import NCSNpp, ADMUNet, DRUNet
 
     # Set up all denoisers
     denoisers = []
-    rescales = []
     list_kwargs = []
-    denoisers.append(EDMPrecond(model=NCSNpp(pretrained="download")).to(device))
-    rescales.append(False)
+    denoisers.append(NCSNpp(pretrained="download").to(device))
     list_kwargs.append(dict())
 
-    denoisers.append(EDMPrecond(model=ADMUNet(pretrained="download")).to(device))
-    rescales.append(False)
+    denoisers.append(ADMUNet(pretrained="download").to(device))
     list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
 
     denoisers.append(DRUNet(pretrained="download").to(device))
-    rescales.append(True)
     list_kwargs.append(dict())
 
-    # Set up the SDE
-    sigma_max = 20
-    sigma_min = 0.02
+    # Set up the SDEs
     num_steps = 20
     rng = torch.Generator(device)
-
     # Set up solvers
-    timesteps = np.linspace(0.001, 1, num_steps)[::-1]
+    timesteps = torch.linspace(1, 0.001, num_steps)
     solvers = [
         EulerSolver(timesteps=timesteps, rng=rng),
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
-    for denoiser, rescale, kwargs in zip(denoisers, rescales, list_kwargs):
+    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+    for denoiser, kwargs in zip(denoisers, list_kwargs):
         for solver in solvers:
-            sde = VarianceExplodingDiffusion(
-                denoiser=denoiser,
-                rescale=rescale,
-                sigma_max=sigma_max,
-                sigma_min=sigma_min,
-                solver=solver,
-                device=device,
-            )
+            for sde_class in sde_classes:
+                sde = sde_class(
+                    denoiser=denoiser,
+                    solver=solver,
+                    device=device,
+                )
+                # Test generation
+                sample_1, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_1 = trajectory[0]
 
-            # Test generation
-            sample_1, trajectory = sde.sample(
-                (1, 3, 64, 64),
-                seed=10,
-                get_trajectory=True,
-                **kwargs,
-            )
-            x_init_1 = trajectory[0]
+                # Test output shape
+                assert sample_1.shape == (1, 3, 64, 64)
+                sample_2, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_2 = trajectory[0]
+                # Test reproducibility
+                assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+                assert (
+                    torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
+                    < 1e-2
+                )
 
-            assert sample_1.shape == (1, 3, 64, 64)
+                # Test posterior sampling
+                posterior = PosteriorDiffusion(
+                    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+                    sde=sde,
+                    denoiser=denoisers[0],
+                    solver=solvers[0],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                x = dinv.utils.load_url_image(
+                    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+                    img_size=64,
+                    resize_mode="resize",
+                ).to(device)
+                physics = dinv.physics.Inpainting(
+                    tensor_size=x.shape[1:], mask=0.5, device=device
+                )
+                y = physics(x)
 
-            # Test reproducibility
-            sample_2, trajectory = sde.sample(
-                (1, 3, 64, 64),
-                seed=10,
-                get_trajectory=True,
-                **kwargs,
-            )
-            x_init_2 = trajectory[0]
-            # Test reproducibility
-            assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
-            assert (
-                torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
-                < 1e-2
-            )
+                x_hat_1 = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=111,
+                )
+                # Test output shape
+                assert x_hat_1.shape == (1, 3, 64, 64)
+                # Test reproducibility
+                x_hat_2 = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=111,
+                )
+                assert (
+                    torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean")
+                    < 1e-2
+                )
 
-    # Test posterior sampling
-    sde = VarianceExplodingDiffusion(
-        sigma_max=sigma_max,
-        sigma_min=sigma_min,
-        device=device,
+
+@torch.no_grad()
+def test_noisy_data_fidelity(device):
+    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    import itertools
+
+    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_clip = [None, (-100, 100)]
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.gaussian_blur(sigma=(3, 3)), device=device
     )
-    posterior = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoisers[0]),
-        sde=sde,
-        denoiser=denoisers[0],
-        solver=solvers[0],
-        rescale=rescales[0],
-        dtype=torch.float64,
-        device=device,
-    )
-    x = sample_2
-    physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=0.5, device=device)
     y = physics(x)
-
-    x_hat = posterior(
-        y,
-        physics,
-        x_init=(1, 3, 64, 64),
-        seed=10,
-    )
-
-    assert x_hat.shape == (1, 3, 64, 64)
+    sigma = 0.1
+    for data_fid_class, clip in itertools.product(all_data_fid_classes, all_clip):
+        data_fid = data_fid_class(
+            denoiser=denoiser,
+            clip=clip,
+        )
+        # Test forward pass
+        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
+        # Test grad pass
+        assert data_fid.grad(x, y, physics, sigma).shape == x.shape
+        # Test preconditioning
+        try:
+            output = data_fid.precond(y, physics, sigma)
+            assert output.shape == x.shape
+        except NotImplementedError:
+            pass

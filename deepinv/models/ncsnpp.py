@@ -18,6 +18,8 @@ class NCSNpp(Denoiser):
 
     Equivalent to the original implementation by Song et al., available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
 
+    The model is also pre-conditioned by the method described in the paper `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
     The model also supports an additional class condition model.
     Each residual block has a self-attention mechanism with multiple channels per attention head.
@@ -45,6 +47,7 @@ class NCSNpp(Denoiser):
         online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
     """
@@ -79,6 +82,7 @@ class NCSNpp(Denoiser):
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
         pretrained: str = None,
+        pixel_std: float = 0.75,
         device=None,
     ):
         assert embedding_type in ["fourier", "positional"]
@@ -105,7 +109,7 @@ class NCSNpp(Denoiser):
             init_zero=init_zero,
             init_attn=init_attn,
         )
-
+        self.pixel_std = pixel_std
         # Mapping.
         self.map_noise = (
             PositionalEmbedding(num_channels=noise_channels, endpoint=True)
@@ -224,27 +228,28 @@ class NCSNpp(Denoiser):
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
+                self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
+        else:
+            self._train_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
             self.device = device
 
-    def forward(self, x, sigma, class_labels=None, augment_labels=None):
+    def forward_unet(self, x, sigma, class_labels=None, augment_labels=None):
         r"""
-        Run the denoiser on noisy image.
+        Run the unet.
 
         :param torch.Tensor x: noisy image
         :param Union[torch.Tensor, float]  sigma: noise level
         :param torch.Tensor class_labels: class labels
         :param torch.Tensor augment_labels: augmentation labels
-
         :return torch.Tensor: denoised image.
         """
-        # Mapping.
-        sigma = self._handle_sigma(sigma, x.dtype, x.device, x.size(0))
         emb = self.map_noise(sigma)
         emb = (
             emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
@@ -291,6 +296,47 @@ class NCSNpp(Denoiser):
                     x = torch.cat([x, skips.pop()], dim=1)
                 x = block(x, emb)
         return aux
+
+    def forward(
+        self, x, sigma, class_labels=None, augment_labels=None, *args, **kwargs
+    ):
+        r"""
+        Run the denoiser on noisy image.
+
+        :param torch.Tensor x: noisy image
+        :param Union[torch.Tensor, float]  sigma: noise level
+        :param torch.Tensor class_labels: class labels
+        :param torch.Tensor augment_labels: augmentation labels
+        :return torch.Tensor: denoised image.
+        """
+        if class_labels is not None:
+            class_labels = class_labels.to(torch.float32)
+        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        # Rescale [0,1] input to [-1,-1]
+        if hasattr(self, "_train_on_minus_one_one"):
+            if self._train_on_minus_one_one:
+                x = (x - 0.5) * 2.0
+                sigma = sigma * 2.0
+        c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
+        c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
+        c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
+        c_noise = sigma.log() / 4
+
+        F_x = self.forward_unet(
+            c_in.view(-1, 1, 1, 1) * x,
+            c_noise.flatten(),
+            class_labels=class_labels,
+            augment_labels=augment_labels,
+        )
+
+        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
+
+        # Rescale [-1,1] output to [0,-1]
+        if self._train_on_minus_one_one:
+            return (D_x + 1.0) / 2.0
+        else:
+            return D_x
 
     @staticmethod
     def _handle_sigma(sigma, dtype, device, batch_size):
