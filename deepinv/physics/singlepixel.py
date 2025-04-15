@@ -136,13 +136,10 @@ class SinglePixelCamera(DecomposablePhysics):
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
             mask = mask.to(device).unsqueeze(0).type(dtype)
-            self.vh = vh.to(device).type(dtype)
-            self.u = u.to(device).type(dtype)
+            self.register_buffer("vh", vh.to(device).type(dtype))
+            self.register_buffer("u", u.to(device).type(dtype))
 
-            self.u = torch.nn.Parameter(self.u, requires_grad=False)
-            self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
-
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.register_buffer("mask", mask)
 
     def V_adjoint(self, x):
         if self.fast:
@@ -200,58 +197,3 @@ def get_permutation_list(n):
         rev2[l] = rev[gray_decode(l)]
 
     return rev2
-
-
-# test code
-# if __name__ == "__main__":
-#     import matplotlib.pyplot as plt
-#     import deepinv as dinv
-#     import torchvision
-#
-#     device = "cuda:0"
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#     x = torchvision.transforms.Resize((16, 8))(x)
-#
-#     m = 20
-#     physics = SinglePixelCamera(m, (3, 16, 8), fast=False, device=device)
-#
-#     y = physics(x)
-#
-#     xhat = physics.A_adjoint(y)
-#
-#     dinv.utils.plot([x, xhat])
-#
-#     print(physics.adjointness_test(x))
-#     print(physics.compute_norm(x))
-#     # mi = min(int(np.sqrt(m)), x.shape[-2])
-#     # mj = min(m - mi, x.shape[-2])
-#     #
-#     # revi = get_permutation_list(x.shape[-2])[:mi]
-#     # revj = get_permutation_list(x.shape[-1])[:mj]
-#     #
-#     # mask = torch.zeros_like(x)
-#     # for i in range(len(revi)):
-#     #     for j in range(len(revj)):
-#     #         mask[0, :, revi[i], revj[j]] = 1
-#     #
-#     # # generate low pass hadamard mask
-#     # f = hadamard_2d(x)
-#     # f = f * mask
-#     # out = hadamard_2d(f)
-#     #
-#     # dinv.utils.plot_batch([x, out, f])
-#     #
-#     # rev = get_permutation_list(8)
-#     # imgs = []
-#     # for i in range(8):
-#     #     y = torch.zeros((8, 1, 8, 8), device=dinv.device)
-#     #     for j in range(8):
-#     #         x = torch.zeros((8, 8), device=dinv.device)
-#     #         x[rev[i], rev[j]] = 1
-#     #         x = hadamard_2d(x)
-#     #         y[j, 0, :, :] = x
-#     #
-#     #     imgs.append(y)
-#     #
-#     # dinv.utils.plot_batch(imgs)

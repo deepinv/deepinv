@@ -2,6 +2,7 @@ from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
 from deepinv.physics.functional import random_choice
+from torch import Tensor
 
 
 def dst1(x):
@@ -131,33 +132,30 @@ class CompressedSensing(LinearPhysics):
 
         if self.fast:
             self.n = n
-            self.D = torch.where(
+            D = torch.where(
                 torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
             )
 
-            self.mask = torch.zeros(self.n, device=device)
+            mask = torch.zeros(self.n, device=device)
             idx = torch.sort(
                 random_choice(self.n, size=m, replace=False, rng=self.rng)
             ).values
-            self.mask[idx] = 1
-            self.mask = self.mask.type(torch.bool)
+            mask[idx] = 1
+            mask = mask.type(torch.bool)
 
-            self.D = torch.nn.Parameter(self.D, requires_grad=False)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+            self.register_buffer("D", D)
+            self.register_buffer("mask", mask)
         else:
-            self._A = torch.randn(
+            _A = torch.randn(
                 (m, n), device=device, dtype=dtype, generator=self.rng
             ) / np.sqrt(m)
-            self._A_dagger = torch.linalg.pinv(self._A)
-            self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-            self._A_adjoint = (
-                torch.nn.Parameter(self._A.conj().T, requires_grad=False)
-                .type(dtype)
-                .to(device)
-            )
+            _A_dagger = torch.linalg.pinv(_A)
 
-    def A(self, x, **kwargs):
+            self.register_buffer("_A", _A)
+            self.register_buffer("_A_dagger", _A_dagger)
+            self.register_buffer("_A_adjoint", self._A.conj().T.type(dtype).to(device))
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -174,7 +172,7 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         N = y.shape[0]
         C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
@@ -195,7 +193,7 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         if self.fast:
             return self.A_adjoint(y)
@@ -209,35 +207,3 @@ class CompressedSensing(LinearPhysics):
             x = torch.einsum("im, nm->in", y, self._A_dagger)
             x = x.reshape(N, C, H, W)
         return x
-
-
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#
-#     # for comparing fast=True and fast=False forward matrices.
-#     for i in range(1):
-#         n = 2 ** (i + 4)
-#         im_size = (1, n, n)
-#         m = int(np.prod(im_size))
-#         x = torch.randn((1,) + im_size, device=device)
-#
-#         print((dst1(dst1(x)) - x).flatten().abs().sum())
-#
-#         physics = CompressedSensing(img_shape=im_size, m=m, fast=True, device=device)
-#
-#         print((physics.A_adjoint(physics.A(x)) - x).flatten().abs().sum())
-#         print(f"adjointness: {physics.adjointness_test(x)}")
-#         print(f"norm: {physics.power_method(x, verbose=False)}")
-#         start = torch.cuda.Event(enable_timing=True)
-#         end = torch.cuda.Event(enable_timing=True)
-#         start.record()
-#         for j in range(100):
-#             y = physics.A(x)
-#             xhat = physics.A_dagger(y)
-#         end.record()
-#
-#         # print((xhat-x).pow(2).flatten().mean())
-#
-#         # Waits for everything to finish running
-#         torch.cuda.synchronize()
-#         print(start.elapsed_time(end))

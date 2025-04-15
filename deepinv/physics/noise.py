@@ -108,6 +108,24 @@ class NoiseModel(nn.Module):
                     self.register_buffer(key, value)
 
 
+class ZeroNoise(NoiseModel):
+    r"""
+    Zero noise model :math:`y=z`, serve as a place holder.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+
+    def forward(self, x, *args, **kwargs):
+        r"""
+        Return the same input.
+
+        :param torch.Tensor x: measurements.
+        :returns: x.
+        """
+        return x
+
+
 class GaussianNoise(NoiseModel):
     r"""
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
@@ -207,8 +225,8 @@ class GaussianNoise(NoiseModel):
             other, torch.Tensor
         ):  # should be a float or a torch.Tensor
             if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
-                self.sigma = to_nn_parameter(
-                    self.sigma.reshape((self.sigma.size(0),) + (1,) * (other.dim() - 1))
+                self.sigma = self.sigma.reshape(
+                    (self.sigma.size(0),) + (1,) * (other.dim() - 1)
                 )
             return GaussianNoise(sigma=self.sigma * other)
         else:
@@ -274,8 +292,8 @@ class GaussianNoise(NoiseModel):
             other, torch.Tensor
         ):  # should be a float or a torch.Tensor
             if isinstance(self.sigma, torch.Tensor) and self.sigma.dim() > 0:
-                self.sigma = to_nn_parameter(
-                    self.sigma.reshape((self.sigma.size(0),) + (1,) * (other.dim() - 1))
+                self.sigma = self.sigma.reshape(
+                    (self.sigma.size(0),) + (1,) * (other.dim() - 1)
                 )
             return GaussianNoise(sigma=self.sigma * other)
         else:
@@ -310,7 +328,7 @@ class GaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(sigma=sigma)
+        self.update_parameters(sigma=sigma, **kwargs)
         if isinstance(self.sigma, torch.Tensor):
             sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
         else:
@@ -407,9 +425,9 @@ class PoissonNoise(NoiseModel):
         self, gain=1.0, normalize=True, clip_positive=False, rng: torch.Generator = None
     ):
         super().__init__(rng=rng)
-        self.normalize = to_nn_parameter(normalize)
-        self.register_buffer("gain", torch.as_tensor(gain))
+        self.normalize = normalize
         self.clip_positive = clip_positive
+        self.register_buffer("gain", torch.as_tensor(gain))
 
     def forward(self, x, gain=None, seed: int = None, **kwargs):
         r"""
@@ -420,7 +438,7 @@ class PoissonNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(gain=gain)
+        self.update_parameters(gain=gain, **kwargs)
         self.rng_manual_seed(seed)
         if isinstance(self.gain, torch.Tensor):
             gain = self.gain[(...,) + (None,) * (x.dim() - 1)].to(x.device)
@@ -465,7 +483,7 @@ class GammaNoise(NoiseModel):
         :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
-        self.update_parameters(l=l)
+        self.update_parameters(l=l, **kwargs)
         d = torch.distributions.gamma.Gamma(
             self.l.to(x.device), self.l.to(x.device) / x
         )
@@ -501,7 +519,6 @@ class PoissonGaussianNoise(NoiseModel):
     ):
         super().__init__(rng=rng)
         self.clip_positive = clip_positive
-        self.update_parameters(gain=gain, sigma=sigma)
         self.register_buffer("gain", torch.as_tensor(gain))
         self.register_buffer("sigma", torch.as_tensor(sigma))
 
@@ -517,7 +534,7 @@ class PoissonGaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(gain=gain, sigma=sigma)
+        self.update_parameters(gain=gain, sigma=sigma, **kwargs)
         self.rng_manual_seed(seed)
 
         if isinstance(self.gain, torch.Tensor):
@@ -575,7 +592,7 @@ class UniformNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(a=a)
+        self.update_parameters(a=a, **kwargs)
         return x + (self.rand_like(x, seed=seed) - 0.5) * 2 * self.a
 
 
@@ -629,7 +646,7 @@ class LogPoissonNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(mu=mu, N0=N0)
+        self.update_parameters(mu=mu, N0=N0, **kwargs)
         self.rng_manual_seed(seed)
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu

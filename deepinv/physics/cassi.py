@@ -97,7 +97,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         if self.mode == "ss":
             mask = self.pad(mask)
 
-        self.update_parameters(mask=mask)
+        self.register_buffer("mask", mask)
 
     def pad(self, x: Tensor) -> Tensor:
         """Pad image on bottom or on right.
@@ -164,7 +164,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         if x.shape[1:] != self.img_size:
             raise ValueError("Input must be same shape as img_shape.")
 
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         # fmt: off
         if self.mode == "ss":
@@ -196,7 +196,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         :param torch.Tensor mask: CASSI mask
         :return: (:class:`torch.Tensor`) output image
         """
-        self.update_parameters(mask=mask)
+        self.update_parameters(mask=mask, **kwargs)
 
         # fmt: off
         if self.mode == "ss":

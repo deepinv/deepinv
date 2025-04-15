@@ -2,7 +2,7 @@ from typing import Union
 
 import torch
 from torch import Tensor
-from deepinv.physics.noise import GaussianNoise
+from deepinv.physics.noise import GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
 
@@ -38,7 +38,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(
         self,
         A=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
+        noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         solver="gradient_descent",
         max_iter=50,
@@ -218,31 +218,14 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the parameters of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
-
     def update(self, **kwargs):
         r"""
-        Update the parameters of the forward operator.
+        Update the parameters of the physics: forward operator and noise model.
 
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
-
-        # if self.noise_model is not None:
-        # check if noise model has a method named update_parameters
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
+        self.noise_model.update_parameters(**kwargs)
 
     def update_parameters(self, **kwargs):
         r"""
@@ -694,7 +677,7 @@ class DecomposablePhysics(LinearPhysics):
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
-        self.mask = mask
+        self.register_buffer("mask", mask)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
         r"""

@@ -8,7 +8,6 @@ from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
-    conv_transpose2d_fft,
     filter_fft_2d,
     product_convolution2d,
     product_convolution2d_adjoint,
@@ -71,7 +70,9 @@ class Downsampling(LinearPhysics):
         self.imsize = img_size
         self.padding = padding
         self.device = device
-        self.filter = filter
+
+        self.register_buffer("filter", None)
+        self.register_buffer("factor", None)
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
     def A(self, x, filter=None, factor=None, **kwargs):
@@ -99,8 +100,7 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None or factor is not None:
-            self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         imsize = self.imsize
 
@@ -167,41 +167,33 @@ class Downsampling(LinearPhysics):
         :param int factor: New downsampling factor to be applied to the input image.
         """
         if factor is not None:
-            self.factor = factor
+            self.register_buffer("factor", torch.tensor(factor).to(self.device))
 
         if filter is not None:
-            if isinstance(filter, torch.nn.Parameter):
-                self.filter = filter.requires_grad_(False).to(self.device)
             if isinstance(filter, torch.Tensor):
-                self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
+                filter = filter.to(self.device)
+            elif filter == "gaussian":
+                self.filter = gaussian_blur(sigma=(self.factor, self.factor)).to(
                     self.device
                 )
-            elif filter == "gaussian":
-                self.filter = torch.nn.Parameter(
-                    gaussian_blur(sigma=(self.factor, self.factor)), requires_grad=False
-                ).to(self.device)
             elif filter == "bilinear":
-                self.filter = torch.nn.Parameter(
-                    bilinear_filter(self.factor), requires_grad=False
-                ).to(self.device)
+                self.filter = bilinear_filter(self.factor).to(self.device)
             elif filter == "bicubic":
-                self.filter = torch.nn.Parameter(
-                    bicubic_filter(self.factor), requires_grad=False
-                ).to(self.device)
+                self.filter = bicubic_filter(self.factor).to(self.device)
             elif filter == "sinc":
-                self.filter = torch.nn.Parameter(
-                    sinc_filter(self.factor, length=4 * self.factor),
-                    requires_grad=False,
-                ).to(self.device)
+                self.filter = sinc_filter(self.factor, length=4 * self.factor).to(
+                    self.device
+                )
+
+            self.register_buffer("filter", filter)
 
         if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, self.imsize, real_fft=False).to(
-                self.device
+            self.register_buffer(
+                "Fh",
+                filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device),
             )
-            self.Fhc = torch.nn.Parameter(torch.conj(self.Fh), requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
+            self.register_buffer("Fhc", torch.conj(self.Fh))
+            self.register_buffer("Fh2", self.Fhc * self.Fh)
 
 
 class Blur(LinearPhysics):
@@ -261,6 +253,7 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
+        filter = filter.to(device) if isinstance(filter, torch.Tensor) else filter
         self.register_buffer("filter", filter)
 
     def A(self, x, filter=None, **kwargs):
@@ -382,18 +375,16 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None:
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
-                self.device
-            )
-
+            filter = filter.to(self.device)
             mask = filter_fft_2d(filter, self.img_size).to(self.device)
             self.angle = torch.angle(mask)
             self.angle = torch.exp(-1.0j * self.angle).to(self.device)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
             self.register_buffer("mask", mask)
+            self.register_buffer("filter", filter)
 
-        if hasattr(self.noise_model, "update_parameters"):
+        if hasattr(self, "noise_model"):
             self.noise_model.update_parameters(**kwargs)
 
 

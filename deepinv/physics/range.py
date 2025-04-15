@@ -1,7 +1,5 @@
-import numpy as np
 import torch
 from deepinv.physics.forward import DecomposablePhysics
-from math import sqrt
 
 
 class Decolorize(DecomposablePhysics):
@@ -41,28 +39,29 @@ class Decolorize(DecomposablePhysics):
     def __init__(self, channels=3, srf="rec601", device="cpu", **kwargs):
         super().__init__(**kwargs)
         if srf is None or srf == "rec601":
-            self.srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
+            srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
         elif srf in ("average", "flat"):
-            self.srf = [1 / channels] * channels
+            srf = [1 / channels] * channels
         elif srf == "random":
-            self.srf = torch.rand(channels, device=device)
-            self.srf /= self.srf.sum()
+            srf = torch.rand(channels, device=device)
+            srf /= srf.sum()
         elif isinstance(srf, (tuple, list)):
-            self.srf = srf
+            pass
         else:
             raise ValueError("Invalid srf")
 
-        if len(self.srf) < channels:
+        if len(srf) < channels:
             # pad with zeros
             self.srf += [0] * (channels - len(self.srf))
-        elif len(self.srf) > channels:
+        elif len(srf) > channels:
             raise ValueError("srf should be of length equal to or less than channels.")
 
-        self.srf = torch.tensor(self.srf, device=device)
-        assert torch.allclose(sum(self.srf), torch.ones(1, device=device), rtol=1e-4)
+        assert torch.allclose(sum(srf), torch.ones(1, device=device), rtol=1e-4)
 
-        self.mask = torch.linalg.vector_norm(self.srf)
-        self.srf = self.srf.view(1, len(self.srf), 1, 1)
+        self.register_buffer(
+            "srf", torch.tensor(self.srf, device=device).view(1, len(self.srf), 1, 1)
+        )
+        self.register_buffer("mask", torch.linalg.vector_norm(self.srf))
 
     def V_adjoint(self, x):
         if x.shape[1] != self.srf.shape[1]:
@@ -79,17 +78,3 @@ class Decolorize(DecomposablePhysics):
         return (
             y.expand(y.shape[0], self.srf.shape[1], *y.shape[2:]) * self.srf / self.mask
         )
-
-
-# # test code
-# if __name__ == "__main__":
-#    device = "cuda:0"
-#    import deepinv as dinv
-#    device = "cpu"
-#    x = torch.randn((1, 3, 32, 32), device=device)
-#    physics = Decolorize(device=device)
-#    y = physics(x)
-#    print(physics.adjointness_test(x))
-#    print(physics.compute_norm(x))
-#    xhat = physics.A_adjoint(y)
-#    dinv.utils.plot([x, xhat, y])

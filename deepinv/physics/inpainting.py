@@ -95,7 +95,7 @@ class Inpainting(DecomposablePhysics):
     ):
         super().__init__(**kwargs)
 
-        if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
+        if isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif isinstance(mask, float):
             gen = BernoulliSplittingMaskGenerator(
@@ -117,7 +117,7 @@ class Inpainting(DecomposablePhysics):
             mask = mask.unsqueeze(0)
 
         self.tensor_size = tensor_size
-        self.update_parameters(mask=mask)
+        self.register_buffer("mask", mask)
 
     def noise(self, x, **kwargs):
         r"""
