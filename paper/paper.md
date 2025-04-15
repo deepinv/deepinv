@@ -185,7 +185,7 @@ These methods consist of solving an optimization problem [@chambolle2016introduc
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}(x)) + g(x)
 \end{equation}
 where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term which can incorporate knowledge about the noise parameters $\sigma$, and $g:\mathcal{X}\mapsto\mathbb{R}_+$ is a regularization term that promotes plausible reconstructions.
-The `optim` module includes classical fidelity terms (e.g., $L^1$, $L^2$, Poisson log-likelihood) and offers a wide range of regularization priors:
+The `optim` module includes classical fidelity terms (e.g., $\ell_1$, $\ell_2$, Poisson log-likelihood) and offers a wide range of regularization priors:
 
 **Hand-crafted priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations.
 
