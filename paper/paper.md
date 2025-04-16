@@ -322,6 +322,10 @@ from base classes (such as the operator pseudo-inverse), and mixins provide spec
 reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialised
 functionality while inheriting existing methods.
 
+# Perspectives
+
+DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress. The community is continuously contributing more methods, such as more realistic physics operators and more advanced training techniques, to reflect the state-of-the-art in imaging with deep learning, addressing the needs and interests of researchers and practitioners alike.
+
 # Acknowledgements
 
 Julián Tachella acknowledges support by the ANR grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
