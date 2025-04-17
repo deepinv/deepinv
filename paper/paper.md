@@ -106,7 +106,7 @@ bibliography: paper.bib
 The library covers all crucial steps in modern imaging pipelines, from the definition of the forward sensing operator
 to the training of reconstruction networks.
 
-# Statement of need
+# Statement of Need
 
 Deep neural networks have become ubiquitous in various imaging inverse problems, from computational photography to astronomical and medical imaging. Despite the ever-increasing research effort in the field, most learning-based algorithms are built from scratch, are hard to generalize beyond the specific problem they were designed to solve, and the results reported in papers are often hard to reproduce. `deepinv` overcomes these limitations by providing a unified framework for defining imaging operators and solvers, which leverages the popular PyTorch deep learning library [@paszke2019pytorch], making most modules compatible with auto-differentiation.
 The target audience of this library are both researchers in inverse problems (experts in optimization, machine learning, etc.) and practitioners (biologists, physicists, etc.). `deepinv` has the following objectives:
@@ -125,7 +125,7 @@ These operator-specific libraries can be used together with `deepinv` as long as
 
 ![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
-# Inverse problems
+# Inverse Problems
 
 Imaging inverse problems can be expressed as 
 \begin{equation} \label{eq:solver}
@@ -167,7 +167,7 @@ at the time of writing, which are constantly being expanded and improved upon by
 | Phase Retrieval                | Random operators and ptychography                                   | Probe generation |
 
 
-# Reconstruction methods
+# Reconstruction Methods
 
 The library provides multiple solvers which depend on the forward operator and noise distribution. Our framework unifies the wide variety of solvers that are commonly used in the current literature:
 \begin{equation} \label{eq:solver}
@@ -178,7 +178,7 @@ In `deepinv` code, a reconstructor is simply evaluated as `x_hat = model(y, phys
 The library covers a wide variety of existing approaches for building $\operatorname{R}_{\theta}$, which can be roughly divided into
 optimization-based methods, sampling-based methods, and non-iterative methods.
 
-### Optimization-based methods
+### Optimization-Based Methods
 
 These methods consist of solving an optimization problem [@chambolle2016introduction]
 \begin{equation} \label{eq:var}
@@ -195,7 +195,7 @@ The `optim` module also includes solvers for the minimization problem in \eqref{
 
 **Optimization Algorithms**: The library contains several classical algorithms [@dossal2024optimizationorderalgorithms] for minimizing the sum of two functions, including proximal gradient descent, FISTA, ADMM, Douglas-Rachford Splitting, and primal-dual methods.
 
-**Unfolded networks and Deep Equilibrium Models**: Unfolded networks [@gregor2010learning] are obtained by unrolling a fixed number of iterations of an optimization algorithm and training the parameters end-to-end, including both optimization hyperparameters and deep regularization priors. Standard unfolded methods train via brackpropagation the optimization algorithm, while deep equilibrium methods [@bai2019deep] implicitly differentiate the fixed point of the algorithm.
+**Unfolded Networks and Deep Equilibrium Models**: Unfolded networks [@gregor2010learning] are obtained by unrolling a fixed number of iterations of an optimization algorithm and training the parameters end-to-end, including both optimization hyperparameters and deep regularization priors. Standard unfolded methods train via brackpropagation the optimization algorithm, while deep equilibrium methods [@bai2019deep] implicitly differentiate the fixed point of the algorithm.
 
 
 
