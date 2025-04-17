@@ -47,6 +47,8 @@ New Features
 
 Fixed
 ^^^^^
+
+- Fixed flag bug in minres least squared solver (:gh:`428` by `Mohammad Sadegh Salehi`_)
 - Fixed MRI noise bug in kernel of mask (:gh:`384` by `Matthieu Terris`_)
 - Support for multi-physics / multi-dataset during training fixed (:gh:`384` by `Matthieu Terris`_)
 - Fixed device bug (:gh:`415` by `Dongdong Chen`_)
@@ -316,3 +318,4 @@ Authors
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Mohammad Sadegh Salehi: https://mohammadsadeghsalehi.github.io
