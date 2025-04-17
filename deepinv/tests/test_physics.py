@@ -552,9 +552,12 @@ def test_pseudo_inverse(name, device, rng):
     r = physics.A_adjoint(physics.A(x))  # project to range of A^T
     y = physics.A(r)
     error = torch.linalg.vector_norm(
-        physics.A_dagger(y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True) - r
+        physics.A_dagger(
+            y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True, use_fft=False
+        )
+        - r
     ) / torch.linalg.vector_norm(r)
-    assert error < 0.05
+    assert error < 0.02
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -637,7 +640,9 @@ def test_MRI(mri, mri_img_size, device, rng):
         y1 = physics(x)
         if isinstance(physics, MultiCoilMRI):
             y1 = y1[:, :, 0]  # check 0th coil
-        assert torch.all((y1 == 0) == (mask == 0))
+        # check shapes
+        print(y1.shape, mask.shape, physics.mask.shape)
+        assert torch.all((y1 == 0) == (physics.mask == 0))
 
         # Set mask in forward
         y1 = physics(x, mask=mask2)
@@ -670,6 +675,57 @@ def test_MRI(mri, mri_img_size, device, rng):
             assert y.shape[:3] == (x.shape[0], 2, T)  # B,C,N(=T)
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
+
+
+@pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
+def test_MRI_noise_domain(mri, mri_img_size, device, rng):
+    r"""
+    Test that MRI noise addition is 0 where mask is 0
+
+    :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :param rng: (torch.Generator)
+    """
+
+    B, C, T, H, W = mri_img_size
+    if rng.device != device:
+        rng = torch.Generator(device=device).manual_seed(0)
+    x, y = (
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    )
+
+    coil_maps_kwarg = {}
+
+    if mri is MRI:
+        x = x[:, :, 0, :, :]
+        y = y[:, :, 0, :, :]
+    elif mri is MultiCoilMRI:
+        # y treat T as coil dim for tests
+        x = x[:, :, 0, :, :]
+        coil_maps_kwarg = {"coil_maps": T}
+
+    for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+        # Remove time dim for static MRI
+        _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
+
+        mask = torch.ones(_mask_size, device=device) - torch.eye(
+            *_mask_size[-2:], device=device
+        )
+
+        # Set mask in constructor
+        physics = mri(
+            mask=mask,
+            img_size=mri_img_size,
+            device=device,
+            noise_model=dinv.physics.noise.GaussianNoise(sigma=0.1).to(device),
+            **coil_maps_kwarg,
+        )
+        y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
+
+        assert torch.all((y1 == 0) == (physics.mask == 0))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -819,10 +875,13 @@ def test_noise(device, noise_type):
     assert y1.shape == x.shape
 
 
-def test_noise_domain(device):
+def test_noise_domain_inpainting(device):
     r"""
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
+
+    This concerns the inpainting operator and mri, but due to all the possibilities for setting the MRI operator, we
+    test the feature on MRI in test_MRI_noise_domain.
     """
     x = torch.ones((1, 3, 12, 7), device=device)
     mask = torch.ones_like(x[0])
@@ -990,6 +1049,38 @@ def test_downsampling_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+def test_prox_l2_downsampling(device):
+
+    nchannels = ((1, 1), (3, 1), (3, 3))
+
+    for nchan_im, nchan_filt in nchannels:
+        size_im = ([nchan_im, 16, 16],)
+        filters = ["bicubic", "bilinear", "sinc"]
+
+        paddings = ("circular",)
+
+        for pad in paddings:
+            for sim in size_im:
+                for h in filters:
+
+                    x = torch.rand(sim)[None].to(device)
+
+                    physics = dinv.physics.Downsampling(
+                        sim, filter=h, padding=pad, device=device
+                    )
+
+                    y = physics(x)
+                    # next we test the speedup formula of prox with fft
+                    x_prox1 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=True
+                    )
+                    x_prox2 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=False
+                    )
+
+                    assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
 
 
 def test_mri_fft():
