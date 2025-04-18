@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from numpy import ndarray
 import torch
 from torch import Tensor
 from torchvision.transforms import CenterCrop
@@ -26,6 +27,9 @@ class MRIMixin:
         :param torch.device, str device: mask intended device.
         """
         if mask is not None:
+            if isinstance(mask, ndarray):
+                mask = torch.from_numpy(mask)
+
             mask = mask.to(device)
 
             while len(mask.shape) < (
@@ -168,7 +172,7 @@ class MRI(MRIMixin, DecomposablePhysics):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, C,..., H, W) with C=2, where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part. The ``...`` is an optional depth dimension for 3D MRI data.
 
-    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
+    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update``.
 
     .. note::
 
@@ -210,7 +214,7 @@ class MRI(MRIMixin, DecomposablePhysics):
         <BLANKLINE>
                  [[ 0.3744,  1.8622],
                   [ 0.0603, -0.6209]]]])
-        >>> physics.update_parameters(mask=mask) # Update mask on the fly
+        >>> physics.update(mask=mask) # Update mask on the fly
         >>> physics(x)
         tensor([[[[ 0.0000, -1.4290],
                   [ 0.4564, -0.0000]],
@@ -275,6 +279,16 @@ class MRI(MRIMixin, DecomposablePhysics):
         if crop:
             x = self.crop(x, crop=crop)
         return x  # (B,C,...,H,W) where C=1 if mag else 2
+
+    def noise(self, x, **kwargs):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        noise = self.U(self.noise_model(x, **kwargs) * self.mask)
+        return noise
 
     def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
         """Update MRI subsampling mask.
@@ -348,7 +362,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         >>> physics(x).shape # B,C,N,H,W
         torch.Size([1, 2, 1, 2, 2])
         >>> coil_maps = torch.randn(1, 5, 2, 2, dtype=torch.complex64) # Define 5-coil sensitivity maps
-        >>> physics.update_parameters(coil_maps=coil_maps) # Update coil maps on the fly
+        >>> physics.update(coil_maps=coil_maps) # Update coil maps on the fly
         >>> physics(x).shape
         torch.Size([1, 2, 5, 2, 2])
 
@@ -398,6 +412,16 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         FSx = self.fft(Sx, dim=(-3, -2, -1) if self.three_d else (-2, -1))
         MFSx = self.mask[:, :, None] * self.from_torch_complex(FSx)  # [B,2,N,...,H,W]
         return MFSx
+
+    def noise(self, x, **kwargs) -> Tensor:
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)` and takes the mask into account.
+
+        :param torch.Tensor x:  clean measurements
+        :param None, float noise_level: optional noise level parameter
+        :return: noisy measurements
+        """
+        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,
@@ -512,7 +536,7 @@ class DynamicMRI(MRI, TimeMixin):
     The complex images :math:`x` and measurements :math:`y` should be of size (B, 2, T, H, W) where the first channel corresponds to the real part
     and the second channel corresponds to the imaginary part.
 
-    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update_parameters``.
+    A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``) or using ``update``.
 
     .. note::
 
@@ -534,7 +558,7 @@ class DynamicMRI(MRI, TimeMixin):
         >>> x = torch.randn(1, 2, 2, 2, 2) # Define random video of shape (B,C,T,H,W)
         >>> mask = torch.rand_like(x) > 0.75 # Define random 4x subsampling mask
         >>> physics = DynamicMRI(mask=mask) # Physics with given mask
-        >>> physics.update_parameters(mask=mask) # Alternatively set mask on-the-fly
+        >>> physics.update(mask=mask) # Alternatively set mask on-the-fly
         >>> physics(x)
         tensor([[[[[-0.0000,  0.7969],
                    [-0.0000, -0.0000]],
@@ -642,7 +666,7 @@ class SequentialMRI(DynamicMRI):
     and thus have a fast pseudo-inverse and prox operators.
 
     A fixed mask can be set at initialisation, or a new mask can be set either at forward (using ``physics(x, mask=mask)``)
-    or using ``update_parameters``.
+    or using ``update``.
 
     .. note::
 
@@ -663,7 +687,7 @@ class SequentialMRI(DynamicMRI):
         >>> x = torch.randn(1, 2, 2, 2) # Define random image of shape (B,C,H,W)
         >>> mask = torch.zeros(1, 2, 3, 2, 2) # Empty demo time-varying mask with 3 frames
         >>> physics = SequentialMRI(mask=mask) # Physics with given mask
-        >>> physics.update_parameters(mask=mask) # Alternatively set mask on-the-fly
+        >>> physics.update(mask=mask) # Alternatively set mask on-the-fly
         >>> physics(x).shape # MRI sequential samples
         torch.Size([1, 2, 3, 2, 2])
 

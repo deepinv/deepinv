@@ -6,7 +6,7 @@ This is a simple example to show how to use a mirror descent algorithm for solvi
 
 The Mirror descent with RED denoiser writes
 
-.. math:: 
+.. math::
 
     x_{k+1} = \nabla \phi ( \nabla \phi^*(x_k) - \tau \nabla \distance{A(x_k)}{y} - \tau ( x_k - D_\sigma(x)))
 

@@ -29,7 +29,7 @@ class Inpainting(DecomposablePhysics):
         distribution with probability equal to ``mask``. If the input is a :class:`torch.Tensor` matching `tensor_size`,
         the mask will be set to this tensor. If ``mask`` is :class:`torch.Tensor`, it must be shape that is broadcastable
         to input shape and will be broadcast during forward call.
-        If ``None``, it must be set during forward pass or using ``update_parameters`` method.
+        If ``None``, it must be set during forward pass or using ``update`` method.
     :param tuple tensor_size: size of the input images without batch dimension e.g. of shape ``(C, H, W)`` or ``(C, M)`` or ``(M,)``.
     :param torch.device device: gpu or cpu.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
@@ -76,7 +76,7 @@ class Inpainting(DecomposablePhysics):
         tensor([[[[-0.4033, -0.0000,  0.1820],
                   [-0.8567,  1.1006, -1.0712],
                   [ 0.1227, -0.0000,  0.3731]]]])
-        >>> physics.update_parameters(**params) # Alternatively update mask before forward call
+        >>> physics.update(**params) # Alternatively update mask before forward call
         >>> physics(x)
         tensor([[[[-0.4033, -0.0000,  0.1820],
                   [-0.8567,  1.1006, -1.0712],
@@ -141,7 +141,7 @@ class Inpainting(DecomposablePhysics):
         otherwise the default implementation of LinearPhysics is used (see :func:`deepinv.physics.LinearPhysics.__mul__`).
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.Physics`) concantenated operator
+        :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
 

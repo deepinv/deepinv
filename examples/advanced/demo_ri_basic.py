@@ -2,8 +2,8 @@
 Radio interferometric imaging with deepinverse
 ==============================================
 
-In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse. 
-The following example and data are taken from `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_. 
+In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.
+The following example and data are taken from `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
 If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check `BASPLib <https://basp-group.github.io/BASPLib/>`_.
 
 """

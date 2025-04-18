@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 from typing import List, Union
 import warnings
+from hashlib import sha256
+
+
+def seed_from_string(seed: str) -> int:
+    """Generate 64 bit seed from string.
+
+    Taken from https://stackoverflow.com/questions/41699857/initialize-pseudo-random-generator-with-a-string
+
+    :param str seed: string
+    :return: integer seed
+    """
+    return int(sha256(seed.encode("utf-8")).hexdigest(), 16) % 0xFFFF_FFFF_FFFF_FFFF
 
 
 class PhysicsGenerator(nn.Module):
@@ -82,15 +94,21 @@ class PhysicsGenerator(nn.Module):
 
         return self.step_func(batch_size, seed, **kwargs)
 
-    def rng_manual_seed(self, seed: int = None):
+    def rng_manual_seed(self, seed: Union[int, str] = None):
         r"""
         Sets the seed for the random number generator.
 
-        :param int seed: the seed to set for the random number generator.
-         If not provided, the current state of the random number generator is used.
-         Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
+        :param int, str seed: the seed to set for the random number generator. If string passed,
+            generate seed from the hash of the string.
+            If not provided, the current state of the random number generator is used.
+            Note: The `torch.manual_seed` is triggered when a the random number generator is not initialized.
         """
         if seed is not None:
+            if isinstance(seed, str):
+                seed = seed_from_string(seed)
+            elif not isinstance(seed, int):
+                raise ValueError("seed must either be int or str.")
+
             self.rng = self.rng.manual_seed(seed)
 
     def reset_rng(self):

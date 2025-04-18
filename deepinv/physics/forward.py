@@ -190,7 +190,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
             x^* \in \underset{x}{\arg\min} \quad \|\forw{x}-y\|^2.
 
         :param str solver: solver to use. If the physics are non-linear, the only available solver is `'gradient_descent'`.
-            For linear operators, the options are `'CG'`, `'lsqr'` and `'BiCGStab'` (see :func:`deepinv.optim.utils.least_squares` for more details).
+            For linear operators, the options are `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'` (see :func:`deepinv.optim.utils.least_squares` for more details).
         :param int max_iter: maximum number of iterations for the solver.
         :param float tol: relative tolerance for the solver, stopping when :math:`\|A(x) - y\| < \text{tol} \|y\|`.
         """
@@ -218,18 +218,26 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if (
+                value is not None
+                and hasattr(self, key)
+                and isinstance(value, torch.Tensor)
+            ):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
+
     def update(self, **kwargs):
         r"""
         Update the parameters of the forward operator.
 
         :param dict kwargs: dictionary of parameters to update.
         """
-        if hasattr(self, "update_parameters"):
-            self.update_parameters(**kwargs)
-        else:
-            raise NotImplementedError(
-                "update_parameters method not implemented for this physics operator"
-            )
+        self.update_parameters(**kwargs)
 
         # if self.noise_model is not None:
         # check if noise model has a method named update_parameters
@@ -270,7 +278,7 @@ class LinearPhysics(Physics):
         is used for computing it, and this parameter fixes the maximum number of conjugate gradient iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, a least squares algorithm
         is used for computing it, and this parameter fixes the relative tolerance of the least squares algorithm.
-    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'` and `'BiCGStab'`. See :func:`deepinv.optim.utils.least_squares` for more details.
+    :param str solver: least squares solver to use. Choose between `'CG'`, `'lsqr'`, `'BiCGStab'` and `'minres'`. See :func:`deepinv.optim.utils.least_squares` for more details.
 
     |sep|
 
@@ -352,14 +360,13 @@ class LinearPhysics(Physics):
         .. note::
 
             If the problem is non-linear, there is not a well-defined transpose operation,
-            but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.
 
         :param torch.Tensor y: measurements.
         :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-
         return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
@@ -798,6 +805,10 @@ class DecomposablePhysics(LinearPhysics):
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:
+            if (
+                isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
+            ):  # may be the case when mask is fft related
+                gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -810,12 +821,9 @@ class DecomposablePhysics(LinearPhysics):
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-
-        # TODO should this happen here or at the end of A_dagger?
         self.update_parameters(mask=mask, **kwargs)
 
         # avoid division by singular value = 0
-
         if not isinstance(self.mask, float):
             mask = torch.zeros_like(self.mask)
             mask[self.mask > 1e-5] = 1 / self.mask[self.mask > 1e-5]
@@ -823,19 +831,6 @@ class DecomposablePhysics(LinearPhysics):
             mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
-
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the singular values of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
@@ -845,7 +840,7 @@ class Denoising(DecomposablePhysics):
 
     The linear operator is just the identity mapping :math:`A(x)=x`
 
-    :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module.
 
     |sep|
 
@@ -963,7 +958,7 @@ class StackedPhysics(Physics):
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
     def __str__(self):
-        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
+        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()

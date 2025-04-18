@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
 
+import warnings
+
 import torch
 from torch.nn import Module
 
@@ -138,6 +140,11 @@ class AdversarialTrainer(Trainer):
 
     See :class:`deepinv.Trainer` for additional parameters.
 
+    .. warning::
+
+        The multi-dataset option is not available yet when using an adversarial trainer. The `optimizer_step_multi_dataset` parameter is therefore automatically set to `False` if not set to `False` by the user.
+
+
     :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
     :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
@@ -154,6 +161,12 @@ class AdversarialTrainer(Trainer):
         After usual Trainer setup, setup losses for discriminator too.
         """
         super().setup_train(**kwargs)
+
+        if self.optimizer_step_multi_dataset:
+            warnings.warn(
+                "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
+            )
+            self.optimizer_step_multi_dataset = False
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
@@ -178,7 +191,9 @@ class AdversarialTrainer(Trainer):
         if checkpoint is not None:
             self.D.load_state_dict(checkpoint["state_dict_D"])
 
-    def compute_loss(self, physics, x, y, train=True, epoch: int = None):
+    def compute_loss(
+        self, physics, x, y, train=True, epoch: int = None, step: int = True
+    ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
@@ -189,12 +204,13 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
+        :param bool step: If ``True``, perform an optimization step on all datasets before optimizer step.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
 
-        if train:
+        if train and step:  # remove gradient
             self.optimizer.G.zero_grad()
 
         # Evaluate reconstruction network
@@ -217,7 +233,7 @@ class AdversarialTrainer(Trainer):
                     D=self.D,
                     epoch=epoch,
                 )
-                loss_total += loss.mean()
+                loss_total = loss_total + loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
                     meters = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
@@ -226,9 +242,14 @@ class AdversarialTrainer(Trainer):
                     cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
-            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
-            meters.update(loss_total.item())
-            logs[f"TotalLoss"] = meters.avg
+            current_log = (
+                self.logs_total_loss_train if train else self.logs_total_loss_eval
+            )
+            current_log.update(loss_total.item())
+
+            logs[f"TotalLoss"] = current_log.avg
+        else:
+            loss_total = 0
 
         if train:
             loss_total.backward(retain_graph=True)  # Backward the total generator loss
@@ -237,12 +258,13 @@ class AdversarialTrainer(Trainer):
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            # Generator optimizer step
-            self.optimizer.G.step()
+            if step:
+                self.optimizer.G.step()
 
         ### Train Discriminator
         for _ in range(self.step_ratio_D):
             if train or self.display_losses_eval:
+
                 self.optimizer.D.zero_grad()
 
                 loss_total_d = 0
@@ -277,7 +299,7 @@ class AdversarialTrainer(Trainer):
 
                 self.optimizer.D.step()
 
-        return x_net, logs
+        return loss_total, x_net, logs
 
     def check_clip_grad_D(self):
         r"""Check the discriminator's gradient norm and perform gradient clipping if necessary.

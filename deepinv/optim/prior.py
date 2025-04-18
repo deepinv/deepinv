@@ -13,6 +13,7 @@ from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
+from typing import Callable
 
 
 class Prior(Potential):
@@ -176,7 +177,33 @@ class ScorePrior(Prior):
         :param torch.Tensor x: the input tensor.
         :param float sigma_denoiser: the noise level.
         """
-        return (1 / sigma_denoiser**2) * (x - self.denoiser(x, sigma_denoiser))
+        return self.stable_division(
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
+        )
+
+    def score(self, x, sigma_denoiser, *args, **kwargs):
+        r"""
+        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma_denoiser: the noise level.
+        """
+        return self.stable_division(
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
+        )
+
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
 
 
 class Tikhonov(Prior):
@@ -655,13 +682,19 @@ class L12Prior(Prior):
         :return torch.Tensor: proximity operator at :math:`x`.
         """
 
-        tau_gamma = torch.tensor(gamma)
-
-        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)
+        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)  # Compute the norm
+        z2 = torch.max(
+            z, gamma * torch.ones_like(z)
+        )  # Compute its max w.r.t. gamma at each point
+        z3 = torch.ones_like(z)  # Construct a mask of ones
+        mask_z = z > 0  # Find locations where z (hence x) is not already zero
+        z3[mask_z] = (
+            z3[mask_z] - gamma / z2[mask_z]
+        )  # If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
+        # Oth. z3 = 1- gamma/z2
+        z4 = torch.multiply(
+            x, z3
+        )  # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)
         # Creating a mask to avoid diving by zero
         # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
-        mask_z = z > 0
-        z[mask_z] = torch.max(z[mask_z], tau_gamma)
-        z[mask_z] = torch.tensor(1.0) - tau_gamma / z[mask_z]
-
-        return torch.multiply(z, x)
+        return z4

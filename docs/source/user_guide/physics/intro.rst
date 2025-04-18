@@ -80,7 +80,7 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> physics = Blur(filter=theta) # we instantiate a blur operator with its convolution filter
    >>> y = physics(x)
    >>> theta2 = torch.randn((1, 1, 2, 2)) # a random 2x2 filter
-   >>> physics.update_parameters(filter=theta2)
+   >>> physics.update(filter=theta2)
    >>> y2 = physics(x)
    >>>
    >>> # A second possibility

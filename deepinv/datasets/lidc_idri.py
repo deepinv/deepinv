@@ -121,7 +121,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         n_scans = len(sorted_filtered_df)
         for i in range(n_scans):
             patient_id = sorted_filtered_df.iloc[i]["Subject ID"]
-            scan_folder_path = sorted_filtered_df.iloc[i]["Download Timestamp"]
+            scan_folder_path = sorted_filtered_df.iloc[i]["File Location"]
 
             # replace WINDOWS path separator into the curent system path separator
             scan_folder_path = scan_folder_path.replace("\\", os.sep)

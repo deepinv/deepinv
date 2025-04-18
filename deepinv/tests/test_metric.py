@@ -105,6 +105,11 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device)
     assert m(x_hat, x, None, model=None, some_other_kwarg=None) != 0
     assert m(x_net=x_hat, x=x, some_other_kwarg=None) != 0
 
+    # Test summing metrics
+    dummy_metric = metric.Metric(metric=lambda *a, **kw: 1)
+    m2 = m + dummy_metric
+    assert m2(x_hat, x) == m(x_hat, x) + 1
+
     # Test no reduce works
     x_hat = torch.cat([x_hat] * 3)
     m = choose_metric(

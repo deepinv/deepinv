@@ -38,7 +38,9 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset):
     ).to(device)
 
     csgm_generator = dinv.models.CSGMGenerator(
-        dinv.models.DCGANGenerator(nz=10, ngf=8, nc=imsize[0]), inf_max_iter=20
+        dinv.models.DCGANGenerator(nz=10, ngf=8, nc=imsize[0]),
+        inf_max_iter=100,
+        inf_tol=0.001,
     ).to(device)
 
     if combo_name == "DeblurGAN":
@@ -125,6 +127,7 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
         show_progress_bar=False,
         save_path=None,
         device=device,
+        optimizer_step_multi_dataset=False,
     )
 
     # initial_psnr = trainer.test(test_dataloader)[0]

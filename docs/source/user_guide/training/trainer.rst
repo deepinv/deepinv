@@ -7,7 +7,12 @@ Training a reconstruction model can be done using the :class:`deepinv.Trainer` c
 to fit your needs. A trainer can be used for both training :func:`deepinv.Trainer.train`
 and testing :func:`deepinv.Trainer.test` a model, and can be used to save and load models.
 
-See :ref:`sphx_glr_auto_examples_basics_demo_train_inpainting.py` for a simple example of how to use the trainer.
+.. seealso::
+    
+    See :ref:`sphx_glr_auto_examples_basics_demo_train_inpainting.py` for a simple example of how to use the trainer.
+
+    :class:`deepinv.Trainer`
+        See here for full descriptions of options provided by Trainer and how you should provide your data.
 
 The class provides a flexible training loop that can be customized by the user. In particular, the user can
 rewrite the :func:`deepinv.Trainer.compute_loss` method to define their custom training step without having
@@ -64,12 +69,21 @@ In this case, to update the :class:`deepinv.physics.Physics` parameters accordin
             physics = self.physics[g]
 
             # Update physics parameters deterministically (i.e. not using a random generator)
-            physics.update_parameters(mask=mask.to(self.device))
+            physics.update(mask=mask.to(self.device))
 
             return x.to(self.device), y.to(self.device), physics
 
-..note ::
+.. note::
 
     When using a dataset that has loads data as a 3-tuple, this is assumed to be ``(x, y, params)``
     where ``params`` is assumed to be a dict of parameters, e.g. generated from :class:`deepinv.datasets.generate_dataset`.
     Trainer will automatically load the parameters into the physics each iteration.
+
+.. warning::
+
+    When using the trainer for **unsupervised training**, one should be careful that each measurement should be constant across epochs.
+    Generally it is preferred to do offline training by using `online_measurements=False` and generating a dataset using :func:`deepinv.datasets.generate_dataset`.
+    
+    If you want to use online measurements, and your physics is random (i.e. you are either using a `physics_generator` or a noise model),
+    you must use `loop_random_online_physics=True` to reset the randomness every epoch, and a `DataLoader` with `shuffle=False` so the measurements
+    arrive in the same order every epoch.

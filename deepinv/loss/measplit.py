@@ -263,6 +263,9 @@ class SplittingLoss(Loss):
                     pixelwise=self.pixelwise,
                     device=y.device,
                 )
+                warn(
+                    "Mask generator does not exist or its mask size mismatches input size. Using new Bernoulli mask generator."
+                )
 
             with torch.set_grad_enabled(self.training):
                 if not self.eval_split_input and not self.training:
@@ -311,15 +314,15 @@ class SplittingLoss(Loss):
                 # Perform input masking
                 mask = self.mask_generator.step(
                     y.size(0), input_mask=getattr(physics, "mask", None)
-                )
+                )["mask"]
                 y1, physics1 = self.split(mask, y, physics)
 
                 # Forward pass
                 x_hat = self.model(y1, physics1)
 
                 # Output masking
-                mask2 = getattr(physics, "mask", 1.0) - mask["mask"]
-                out += self.split(mask2, x_hat)
+                mask2 = getattr(physics, "mask", 1.0) - mask
+                out += self.split(mask2, x_hat, None)
                 normaliser += mask2
 
             out[normaliser != 0] /= normaliser[normaliser != 0]
@@ -478,9 +481,7 @@ class Phase2PhaseLoss(SplittingLoss):
             return y_split_reduced
 
         physics_split_reduced = deepcopy(physics_split)
-        physics_split_reduced.update_parameters(
-            mask=remove_zeros(physics_split.mask, mask)
-        )
+        physics_split_reduced.update(mask=remove_zeros(physics_split.mask, mask))
 
         return y_split_reduced, physics_split_reduced
 

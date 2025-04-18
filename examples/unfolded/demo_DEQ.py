@@ -128,6 +128,7 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(devic
 max_iter = 20 if torch.cuda.is_available() else 10
 stepsize = [1.0]  # stepsize of the algorithm
 sigma_denoiser = [0.03]  # noise level parameter of the denoiser
+jacobian_free = False  # does not perform Jacobian inversion.
 
 params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
     "stepsize": stepsize,
@@ -151,6 +152,7 @@ model = DEQ_builder(
     history_size_backward=3,
     history_size=3,
     max_iter_backward=20,
+    jacobian_free=jacobian_free,
 )
 
 # %%
@@ -201,11 +203,12 @@ trainer = dinv.Trainer(
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
-model = trainer.train()
+trainer.train()
+model = trainer.load_best_model()  # load model with best validation PSNR
 
 # %%
 # Test the network
