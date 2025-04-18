@@ -598,7 +598,7 @@ def test_time_agnostic_net():
     assert x_net.shape == y.shape
 
 
-@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet"))
+@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
 
     def dummy_dataset(imsize, device):
@@ -620,11 +620,15 @@ def test_varnet(varnet_type, device):
         def __len__(self):
             return 1
 
-    model = dinv.models.VarNet(
-        num_cascades=3,
-        mode=varnet_type,
-        denoiser=dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device),
-    ).to(device)
+    denoiser = dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device)
+    if varnet_type == "modl":
+        model = dinv.models.MoDL(denoiser=denoiser, num_iter=3).to(device)
+    else:
+        model = dinv.models.VarNet(
+            num_cascades=3,
+            mode=varnet_type,
+            denoiser=denoiser,
+        ).to(device)
 
     model = dinv.Trainer(
         model=model,
@@ -636,6 +640,7 @@ def test_varnet(varnet_type, device):
         plot_images=False,
         compare_no_learning=True,
         device=device,
+        optimizer_step_multi_dataset=True,
     ).train()
 
     x_hat = model(y, physics)
@@ -659,3 +664,33 @@ def test_pannet():
     x_net = model(y, physics)
 
     assert x_net.shape == x.shape
+
+
+@pytest.mark.parametrize("device", [torch.device("cpu")])
+@pytest.mark.parametrize("image_size", [32, 64])
+@pytest.mark.parametrize("n_channels", [1, 3])
+@pytest.mark.parametrize("batch_size", [1, 3])
+@pytest.mark.parametrize("precond", [True, False])
+@pytest.mark.parametrize("use_fp16", [True, False])
+def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp16):
+    # Load the pretrained model
+    model = dinv.models.NCSNpp(
+        img_resolution=image_size, in_channels=n_channels, out_channels=n_channels
+    )
+    if precond:
+        model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)
+    else:
+        model = model.to(device)
+    x = torch.rand(batch_size, n_channels, image_size, image_size, device=device)
+
+    y = model(x, 0.01)
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+    y = model(x, torch.tensor(0.01))
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+    y = model(x, torch.tensor([0.01]))
+    # Check the output tensor shape
+    assert y.shape == x.shape

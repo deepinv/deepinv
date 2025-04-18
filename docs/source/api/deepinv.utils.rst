@@ -18,6 +18,7 @@ Plotting
         deepinv.utils.plot_parameters
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
+        deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
 
 
@@ -72,7 +73,6 @@ Other
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
     deepinv.utils.dirac_like
-    deepinv.utils.demo.demo_mri_model
 
 .. autosummary::
    :toctree: stubs

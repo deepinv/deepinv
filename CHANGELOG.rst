@@ -10,6 +10,25 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
+- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3
+----------------
+
+New Features
+^^^^^^^^^^^^
+- Added early-stopping callback for Trainer and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
+- Add various generators for the physics module (downsampling, variable masks for inpainting, PoissonGaussian generators etc) (:gh:`384` by `Matthieu Terris`_)
+- Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
@@ -24,13 +43,22 @@ New Features
 - FastMRI now compatible with MRI and MultiCoilMRI physics (:gh:`363` by `Andrew Wang`_)
 - Add VarNet/E2E-VarNet model and generalise ArtifactRemoval (:gh:`363` by `Andrew Wang`_)
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
-- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
-- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+- CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
+- Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
+- Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- MoDL model (:gh:`435` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
+- Fixed MRI noise bug in kernel of mask (:gh:`384` by `Matthieu Terris`_)
+- Support for multi-physics / multi-dataset during training fixed (:gh:`384` by `Matthieu Terris`_)
+- Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
+- Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
+- Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
+- Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
+- Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
@@ -46,6 +74,12 @@ v0.2.2
 
 New Features
 ^^^^^^^^^^^^
+- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`_)
+- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`_ and `Mathieu Terris`_)
+- Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
+
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
@@ -109,8 +143,8 @@ New Features
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 - Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
-- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
-- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
+- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`_)
+- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`_)
 - Added stride, shape in `PatchDataset` (:gh:`308` by apolychronou)
 
 Fixed
@@ -123,7 +157,7 @@ Fixed
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
-- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
+- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -276,7 +310,7 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
-.. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
+.. _Minh Hai Nguyen: https://mh-nguyen712.github.io/
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
@@ -285,3 +319,4 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
