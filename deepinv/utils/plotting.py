@@ -28,7 +28,11 @@ def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
-    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+    if shutil.which("latex"):
+        plt.rcParams["text.usetex"] = True
+        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
+    else:
+        plt.rcParams["text.usetex"] = False
 
 
 def resize_pad_square_tensor(tensor, size):
