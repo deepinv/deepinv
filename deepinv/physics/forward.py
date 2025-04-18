@@ -218,18 +218,26 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if (
+                value is not None
+                and hasattr(self, key)
+                and isinstance(value, torch.Tensor)
+            ):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
+
     def update(self, **kwargs):
         r"""
         Update the parameters of the forward operator.
 
         :param dict kwargs: dictionary of parameters to update.
         """
-        if hasattr(self, "update_parameters"):
-            self.update_parameters(**kwargs)
-        else:
-            raise NotImplementedError(
-                "update_parameters method not implemented for this physics operator"
-            )
+        self.update_parameters(**kwargs)
 
         # if self.noise_model is not None:
         # check if noise model has a method named update_parameters
@@ -359,7 +367,6 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-
         return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
@@ -798,6 +805,10 @@ class DecomposablePhysics(LinearPhysics):
         if isinstance(self.mask, float):
             scaling = self.mask**2 + 1 / gamma
         else:
+            if (
+                isinstance(gamma, torch.Tensor) and gamma.dim() < self.mask.dim()
+            ):  # may be the case when mask is fft related
+                gamma = gamma[(...,) + (None,) * (self.mask.dim() - gamma.dim())]
             scaling = torch.conj(self.mask) * self.mask + 1 / gamma
         x = self.V(self.V_adjoint(b) / scaling)
         return x
@@ -820,19 +831,6 @@ class DecomposablePhysics(LinearPhysics):
             mask = 1 / self.mask
 
         return self.V(self.U_adjoint(y) * mask)
-
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the singular values of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
 
 
 class Denoising(DecomposablePhysics):
@@ -960,7 +958,7 @@ class StackedPhysics(Physics):
         return TensorList([physics.A(x, **kwargs) for physics in self.physics_list])
 
     def __str__(self):
-        return "StackedPhysics(" + sum([f"{p}\n" for p in self.physics_list]) + ")"
+        return "StackedPhysics(" + "\n".join([f"{p}" for p in self.physics_list]) + ")"
 
     def __repr__(self):
         return self.__str__()

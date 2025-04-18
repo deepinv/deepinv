@@ -319,7 +319,9 @@ plt.show()
 
 # Initialization
 x = 2 * physics.A_adjoint(y) - 1  # Rescale
-x = (x + sigmas[seq[0]] * torch.randn_like(x)) / sqrt_recip_alphas_cumprod[
+x = (
+    x + (sigmas[seq[0]] ** 2 - 4 * sigma_noise**2).sqrt() * torch.randn_like(x)
+) / sqrt_recip_alphas_cumprod[
     -1
 ]  # Add noise (simpler than the original code, may be suboptimal)
 
