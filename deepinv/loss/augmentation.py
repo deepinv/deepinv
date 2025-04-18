@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Union
+from copy import deepcopy
 
 import torch
 import torch.nn as nn
@@ -17,8 +18,8 @@ from deepinv.transform.shift import Shift
 from deepinv.transform.augmentation import RandomPhaseError, RandomNoise
 
 
-class VORTEXLoss(Loss):
-    r"""Measurement data augmentation loss.
+class AugmentConsistencyLoss(Loss):
+    r"""Data augmentation consistency (DAC) loss.
 
     Performs data augmentation in measurement domain as proposed by
     `VORTEX: Physics-Driven Data Augmentations Using Consistency Training for Robust Accelerated MRI Reconstruction <https://arxiv.org/abs/2111.02549>`_.
@@ -27,22 +28,23 @@ class VORTEXLoss(Loss):
 
     :math:`\mathcal{L}(T_e\inverse{y,A},\inverse{T_i y,A T_e^{-1}})`
 
-    where :math:`T_1` is a random :class:`deepinv.transform.Transform` defined in k-space and
-    :math:`T_2` is a random :class:`deepinv.transform.Transform` defined in image space.
-    By default, for :math:`T_1` we add random noise :class:`deepinv.transform.RandomNoise` and random phase error :class:`deepinv.transform.RandomPhaseError`.
-    By default, for :math:`T_2` we use random shift :class:`deepinv.transform.Shift` and random rotates :class:`deepinv.transform.Rotate`.
+    where :math:`T_i` is a :class:`deepinv.transform.Transform` for which we should learn an invariant mapping,
+    and :math:`T_e` is a :class:`deepinv.transform.Transform` for which we should learn an equivariant mapping.
+
+    .. note::
+
+        If :math:`T_e` is specified, the mapping is performed in the image domain and the model is assumed to take :math:`A^\top y` as input.
+
+    By default, for :math:`T_i` we add random noise :class:`deepinv.transform.RandomNoise` and random phase error :class:`deepinv.transform.RandomPhaseError`.
+    By default, for :math:`T_e` we use random shift :class:`deepinv.transform.Shift` and random rotates :class:`deepinv.transform.Rotate`.
 
     .. note::
 
         See :ref:`transform` for a guide on all available transforms, and how to compose them. For example, you can easily
         compose further transforms such as  ``Rotate(rng=rng, multiples=90) | Scale(factors=[0.75, 1.25], rng=rng) | Reflect(rng=rng)``.
 
-    .. note::
-
-        For now, this loss is only available for MRI and Inpainting problems, but it is easily generalisable to other problems.
-
-    :param deepinv.transform.Transform T_1: k-space transform.
-    :param deepinv.transform.Transform T_2: image transform.
+    :param deepinv.transform.Transform T_i: invariant transform performed on :math:`y`.
+    :param deepinv.transform.Transform T_e: equivariant transform performed on :math:`A^\top y`.
     :param deepinv.loss.metric.Metric, torch.nn.Module metric: metric for calculating loss.
     :param bool no_grad: if ``True``, only propagate gradients through augmented branch as per original paper,
         if ``False``, propagate through both branches.
@@ -51,8 +53,8 @@ class VORTEXLoss(Loss):
 
     def __init__(
         self,
-        T_1: Transform = None,
-        T_2: Transform = None,
+        T_i: Transform = None,
+        T_e: Transform = None,
         metric: Union[Metric, nn.Module] = torch.nn.MSELoss(),
         no_grad: bool = True,
         rng: torch.Generator = None,
@@ -61,59 +63,17 @@ class VORTEXLoss(Loss):
     ):
         super().__init__(*args, **kwargs)
         self.metric = metric
-        self.T_1 = (
-            T_1
-            if T_1 is not None
-            else RandomPhaseError(scale=0.1, rng=rng) * RandomNoise(rng=rng)
-        )
-        self.T_2 = (
-            T_2
-            if T_2 is not None
+        self.T_i = T_i if T_i is not None else RandomNoise(rng=rng)
+        self.T_e = (
+            T_e
+            if T_e is not None
             else Shift(shift_max=0.1, rng=rng) | Rotate(rng=rng, limits=15)
         )
         self.no_grad = no_grad
 
-    class TransformedPhysics(LinearPhysics):
-        """Pre-multiply physics with transform.
-
-        :param deepinv.physics.Physics: original physics (only supports MRI and Inpainting for now)
-        :param deepinv.transform.Transform: transform object
-        :param dict transform_params: fixed parameters for deterministic transform.
-        """
-
-        def __init__(
-            self,
-            physics: Union[MRI, Inpainting],
-            transform: Transform,
-            transform_params: dict,
-            *args,
-            **kwargs,
-        ):
-            super().__init__(
-                *args,
-                img_size=getattr(physics, "img_size", None),
-                tensor_size=getattr(physics, "tensor_size", None),
-                mask=getattr(physics, "mask", None),
-                device=getattr(physics, "device", None),
-                three_d=getattr(physics, "three_d", None),
-                **kwargs,
-            )
-            self.transform = transform
-            self.transform_params = transform_params
-
-        def A(self, x, *args, **kwargs):
-            return super().A(
-                self.transform.inverse(x, **self.transform_params), *args, **kwargs
-            )
-
-        def A_adjoint(self, y, *args, **kwargs):
-            return self.transform(
-                super().A_adjoint(y, *args, **kwargs), **self.transform_params
-            )
-
     def forward(self, x_net: Tensor, y: Tensor, physics: MRI, model, **kwargs):
         r"""
-        VORTEX loss forward pass.
+        Data augmentation consistency loss forward pass.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\inverse{y}`.
         :param torch.Tensor y: Measurement.
@@ -126,13 +86,25 @@ class VORTEXLoss(Loss):
             x_net = x_net.detach()
 
         # Sample image transform
-        e_params = self.T_2.get_params(x_net)
+        e_params = self.T_e.get_params(x_net)
 
         # Augment input
-        x_aug = self.T_2(physics.A_adjoint(self.T_1(y)), **e_params)
+        x_aug = self.T_e(physics.A_adjoint(self.T_i(y)), **e_params)
+
+        # Transform physics
+        physics2 = deepcopy(physics)
+        A, A_adjoint, A_dagger = physics2.A, physics2.A_adjoint, physics2.A_dagger
+        physics2.A = lambda x, *args, **kwargs: A(
+            self.T_e.inverse(x, **e_params), *args, **kwargs
+        )
+        physics2.A_adjoint = lambda y, *args, **kwargs: self.T_e(
+            A_adjoint(y, *args, **kwargs), **e_params
+        )
+        physics2.A_dagger = lambda y, *args, **kwargs: self.T_e(
+            A_dagger(y, *args, **kwargs), **e_params
+        )
 
         # Pass through network
-        physics2 = self.TransformedPhysics(physics, self.T_2, e_params)
         x_aug_net = model(physics2(x_aug), physics2)
 
-        return self.metric(self.T_2(x_net, **e_params), x_aug_net)
+        return self.metric(self.T_e(x_net, **e_params), x_aug_net)

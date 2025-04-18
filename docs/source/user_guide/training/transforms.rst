@@ -81,6 +81,9 @@ We provide the following simple geometric transforms.
      - No
      - Yes
 
+   * - :class:`deepinv.transform.Identity`
+     - No
+     - Yes
 
 Advanced transforms
 -------------------

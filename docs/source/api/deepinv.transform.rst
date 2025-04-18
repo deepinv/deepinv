@@ -27,6 +27,7 @@ Simple transforms
     deepinv.transform.Shift
     deepinv.transform.Scale
     deepinv.transform.Reflect
+    deepinv.transform.Identity
 
 Advanced transforms
 -------------------

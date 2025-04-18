@@ -42,4 +42,4 @@ from .metric import (
     cal_mae,
 )
 
-from .augmentation import VORTEXLoss
+from .augmentation import AugmentConsistencyLoss
