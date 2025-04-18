@@ -330,7 +330,7 @@ class PoissonNoise(NoiseModel):
         self, gain=1.0, normalize=True, clip_positive=False, rng: torch.Generator = None
     ):
         super().__init__(rng=rng)
-        self.normalize = to_nn_parameter(normalize)
+        self.normalize = normalize
         self.update_parameters(gain=gain)
         self.clip_positive = clip_positive
 
