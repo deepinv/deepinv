@@ -1,0 +1,9 @@
+﻿multiplier
+==========
+
+.. currentmodule:: deepinv.physics.functional
+
+.. autofunction:: multiplier
+
+.. minigallery:: deepinv.physics.functional.multiplier
+    :add-heading: Examples using ``multiplier``:
