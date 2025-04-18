@@ -15,7 +15,7 @@ from deepinv.physics.inpainting import Inpainting
 from deepinv.transform.base import Transform
 from deepinv.transform.rotate import Rotate
 from deepinv.transform.shift import Shift
-from deepinv.transform.augmentation import RandomPhaseError, RandomNoise
+from deepinv.transform.augmentation import RandomNoise
 
 
 class AugmentConsistencyLoss(Loss):
