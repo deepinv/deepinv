@@ -280,6 +280,16 @@ class MRI(MRIMixin, DecomposablePhysics):
             x = self.crop(x, crop=crop)
         return x  # (B,C,...,H,W) where C=1 if mag else 2
 
+    def noise(self, x, **kwargs):
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)`
+
+        :param torch.Tensor x:  clean measurements
+        :return torch.Tensor: noisy measurements
+        """
+        noise = self.U(self.noise_model(x, **kwargs) * self.mask)
+        return noise
+
     def update_parameters(self, mask: Tensor = None, check_mask: bool = True, **kwargs):
         """Update MRI subsampling mask.
 
@@ -402,6 +412,16 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         FSx = self.fft(Sx, dim=(-3, -2, -1) if self.three_d else (-2, -1))
         MFSx = self.mask[:, :, None] * self.from_torch_complex(FSx)  # [B,2,N,...,H,W]
         return MFSx
+
+    def noise(self, x, **kwargs) -> Tensor:
+        r"""
+        Incorporates noise into the measurements :math:`\tilde{y} = N(y)` and takes the mask into account.
+
+        :param torch.Tensor x:  clean measurements
+        :param None, float noise_level: optional noise level parameter
+        :return: noisy measurements
+        """
+        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,

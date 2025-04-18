@@ -27,14 +27,25 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
         >>> from deepinv.physics import Inpainting
-        >>> physics = Inpainting((1, 3, 3), 0.9)
-        >>> gen = BernoulliSplittingMaskGenerator((1, 3, 3), split_ratio=0.6)
+        >>> physics = Inpainting((1, 100, 100), 0.9)
+        >>> gen = BernoulliSplittingMaskGenerator((1, 100, 100), split_ratio=0.6)
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
-        torch.Size([2, 1, 3, 3])
+        torch.Size([2, 1, 100, 100])
+
+        Generate splitting mask from given input_mask with random split ratio for each sample in the batch
+        >>> gen = BernoulliSplittingMaskGenerator((1, 100, 100), split_ratio=0.6, random_split_ratio=True, min_split_ratio=0.1, max_split_ratio=0.9)
+        >>> mask = gen.step(batch_size=2, input_mask=physics.mask, seed=10)["mask"]
+        >>> (mask[0] == 0).sum()/mask[0].numel()  # 0.1 < split_ratio < 0.9
+        tensor(0.5782)
+        >>> (mask[1] == 0).sum()/mask[1].numel()  # 0.1 < split_ratio < 0.9
+        tensor(0.2905)
 
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
+    :param bool random_split_ratio: if True, split_ratio is randomly sampled from [min_split_ratio, max_split_ratio] at each step.
+    :param float min_split_ratio: minimum split ratio. Only used if random_split_ratio is True.
+    :param float max_split_ratio: maximum split ratio. Only used if random_split_ratio is True.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: torch random number generator.
     """
@@ -44,6 +55,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         tensor_size: Tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
+        random_split_ratio: bool = False,
+        min_split_ratio: float = 0.0,
+        max_split_ratio: float = 1.0,
         device: torch.device = torch.device("cpu"),
         dtype: torch.dtype = torch.float32,
         rng: torch.Generator = None,
@@ -54,6 +68,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         self.tensor_size = tensor_size
         self.split_ratio = split_ratio
         self.pixelwise = pixelwise
+        self.random_split_ratio = random_split_ratio
+        self.min_split_ratio = min_split_ratio
+        self.max_split_ratio = max_split_ratio
 
     def step(
         self, batch_size=1, input_mask: torch.Tensor = None, seed: int = None, **kwargs
@@ -144,6 +161,13 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         :param torch.Tensor, None input_mask: optional mask to be split. If ``None``, all pixels are considered. If not ``None``, only pixels where ``mask==1`` are considered. Batch dimension should not be included in shape.
         """
         pixelwise = self.check_pixelwise(input_mask)
+
+        if self.random_split_ratio:
+            self.split_ratio = (
+                torch.rand(1, generator=self.rng, **self.factory_kwargs)
+                * (self.max_split_ratio - self.min_split_ratio)
+                + self.min_split_ratio
+            )
 
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
             input_mask = input_mask.to(self.device)

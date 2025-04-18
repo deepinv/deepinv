@@ -15,8 +15,9 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils.demo import get_data_home, load_degradation, demo_mri_model
+from deepinv.utils import get_data_home, load_degradation
 from deepinv.models.utils import get_weights_url
+from deepinv.models import MoDL
 
 # %%
 # Setup paths for data loading and results.
@@ -103,12 +104,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # Set up the reconstruction network
 # ---------------------------------------------------------------
 #
-# As a reconstruction network, we use an unrolled network (half-quadratic splitting)
-# with a trainable denoising prior based on the DnCNN architecture as an example
-# of a model-based deep learning architecture from MoDL :cite:`aggarwal2018modl`.
-# See :func:`deepinv.utils.demo.demo_mri_model` for details.
+# As a (static) reconstruction network, we use an unrolled network
+# (half-quadratic splitting) with a trainable denoising prior based on the
+# DnCNN architecture which was proposed in `MoDL :cite:`aggarwal2018modl`.
+# See :class:`deepinv.models.MoDL` for details.
+#
 
-model = demo_mri_model(device=device)
+model = MoDL()
 
 
 # %%
