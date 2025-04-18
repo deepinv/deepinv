@@ -15,7 +15,7 @@ from .mri import (
     EquispacedMaskGenerator,
     PolyOrderMaskGenerator,
 )
-from .noise import SigmaGenerator
+from .noise import SigmaGenerator, GainGenerator
 from .inpainting import (
     BernoulliSplittingMaskGenerator,
     GaussianSplittingMaskGenerator,
@@ -23,3 +23,4 @@ from .inpainting import (
     Phase2PhaseSplittingMaskGenerator,
     MultiplicativeSplittingMaskGenerator,
 )
+from .downsampling import DownsamplingGenerator

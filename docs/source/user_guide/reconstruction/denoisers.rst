@@ -91,7 +91,16 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C; H, W = 128, 256,...
      - No
      - No
-
+   * - :class:`deepinv.models.NCSNpp`
+     - CNN-Transformer
+     - Any C, H, W
+     - RGB, diffusion
+     - Yes
+   * - :class:`deepinv.models.ADMUNet`
+     - CNN-Transformer
+     - Any C, H, W
+     - RGB, diffusion
+     - Yes
 
 .. _non-learned-denoisers:
 

@@ -57,12 +57,16 @@ class R2RLoss(Loss):
         over multiple realizations of the added noise, i.e. :math:`\hat{x} = \frac{1}{N}\sum_{i=1}^N R(y_1^{(i)})`,
         where :math:`N>1`. This can be achieved using :meth:`adapt_model`.
 
+    .. note::
+
+        If the ``noise_model`` parameter is not provided, the noise model from the physics module will be used.
+
     .. deprecated:: 0.2.3
 
         The ``sigma`` paramater is deprecated and will be removed in future versions. Use ``noise_model=deepinv.physics.GaussianNoise(sigma=sigma)`` parameter instead.
 
     :param Metric, torch.nn.Module metric: Metric for calculating loss, defaults to MSE.
-    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to Gaussian. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
+    :param NoiseModel noise_model: Noise model of the natural exponential family, defaults to None. Implemented options are :class:`deepinv.physics.GaussianNoise`, :class:`deepinv.physics.PoissonNoise` and :class:`deepinv.physics.GammaNoise`
     :param float alpha: Scaling factor of the corruption.
     :param int eval_n_samples: Number of samples used for the Monte Carlo approximation.
 
@@ -90,8 +94,8 @@ class R2RLoss(Loss):
     def __init__(
         self,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
-        noise_model: NoiseModel = GaussianNoise(0.1),
-        alpha=0.5,
+        noise_model: NoiseModel = None,
+        alpha=0.15,
         sigma=None,
         eval_n_samples=5,
     ):
@@ -148,9 +152,12 @@ class R2RLoss(Loss):
         :return: (:class:`torch.nn.Module`) Modified model.
         """
 
-        return R2RModel(
-            model, self.noise_model, self.alpha, self.eval_n_samples, **kwargs
-        )
+        if isinstance(model, R2RModel):
+            return model
+        else:
+            return R2RModel(
+                model, self.noise_model, self.alpha, self.eval_n_samples, **kwargs
+            )
 
 
 def set_gaussian_corruptor(y, alpha, sigma):
@@ -192,9 +199,26 @@ class R2RModel(torch.nn.Module):
 
     def forward(self, y, physics, update_parameters=False):
 
+        if self.noise_model is None:
+
+            if isinstance(physics.noise_model, NoiseModel):
+                self.curr_noise_model = physics.noise_model
+            else:
+                raise ValueError(
+                    "Noise model not found in physics module. Please provide noise model in the constructor."
+                )
+
+        elif isinstance(self.noise_model, NoiseModel):
+            self.curr_noise_model = self.noise_model
+        else:
+            raise ValueError(
+                "Noise model not found in the constructor or physics module. Please provide noise model in the constructor."
+            )
+
         eval_n_samples = 1 if self.training else self.eval_n_samples
         out = 0
         corruptor = self.get_corruptor(y)
+        self.curr_noise_model = None
 
         with torch.set_grad_enabled(self.training):
             for i in range(eval_n_samples):
@@ -210,24 +234,24 @@ class R2RModel(torch.nn.Module):
     def get_corruptor(self, y):
         alpha = self.alpha
 
-        if isinstance(self.noise_model, GaussianNoise):
+        if isinstance(self.curr_noise_model, GaussianNoise):
 
-            sigma = self.noise_model.sigma
+            sigma = self.curr_noise_model.sigma
             return set_gaussian_corruptor(y, alpha, sigma)
 
-        elif isinstance(self.noise_model, PoissonNoise):
+        elif isinstance(self.curr_noise_model, PoissonNoise):
 
-            gain = self.noise_model.gain
+            gain = self.curr_noise_model.gain
             return set_binomial_corruptor(y, alpha, gain)
 
-        elif isinstance(self.noise_model, GammaNoise):
+        elif isinstance(self.curr_noise_model, GammaNoise):
 
-            l = self.noise_model.l
+            l = self.curr_noise_model.l
             return set_beta_corruptor(y, alpha, l)
 
         else:
             raise ValueError(
-                f"Noise model {self.noise_model} not supported, available options are Gaussian, Poisson and Gamma."
+                f"Noise model {self.curr_noise_model} not supported, available options are Gaussian, Poisson and Gamma."
             )
 
     def get_corruption(self):

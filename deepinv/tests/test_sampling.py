@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, DDRM
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -108,12 +108,11 @@ def test_sampling_algo(algo, imsize, device):
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
-def test_algo(name_algo, imsize, device):
-    test_sample = torch.ones((1, 3, 64, 64))
+def test_algo(name_algo, device):
+    test_sample = torch.ones((1, 3, 64, 64), device=device)
 
     sigma = 1
-    sigma_prior = 1
-    physics = dinv.physics.Denoising()
+    physics = dinv.physics.Denoising(device=device)
     physics.noise_model = dinv.physics.GaussianNoise(sigma)
     y = physics(test_sample)
 
@@ -121,7 +120,7 @@ def test_algo(name_algo, imsize, device):
 
     if name_algo == "DiffPIR":
         f = DiffPIR(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
@@ -129,21 +128,21 @@ def test_algo(name_algo, imsize, device):
         )
     elif name_algo == "DPS":
         f = DPS(
-            dinv.models.DiffUNet(),
+            dinv.models.DiffUNet().to(device),
             likelihood,
             max_iter=5,
             verbose=False,
             device=device,
         )
     else:
-        raise Exception("The sampling algorithm doesnt exist")
+        raise Exception("The sampling algorithm doesn't exist")
 
     x = f(y, physics)
 
     assert x.shape == test_sample.shape
 
 
-@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
+@pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS", "DDRM"])
 def test_algo_inpaint(name_algo, device):
     from deepinv.models import DiffUNet
 
@@ -168,6 +167,8 @@ def test_algo_inpaint(name_algo, device):
         )
     elif name_algo == "DPS":
         algorithm = DPS(model, likelihood, max_iter=100, verbose=False, device=device)
+    elif name_algo == "DDRM":
+        algorithm = DDRM(model)
 
     with torch.no_grad():
         out = algorithm(y, physics)
@@ -186,3 +187,141 @@ def test_algo_inpaint(name_algo, device):
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
+
+
+@torch.no_grad()
+def test_sde(device):
+    from deepinv.sampling import (
+        VarianceExplodingDiffusion,
+        VariancePreservingDiffusion,
+        PosteriorDiffusion,
+        DPSDataFidelity,
+        EulerSolver,
+        HeunSolver,
+    )
+    from deepinv.models import NCSNpp, ADMUNet, DRUNet
+
+    # Set up all denoisers
+    denoisers = []
+    list_kwargs = []
+    denoisers.append(NCSNpp(pretrained="download").to(device))
+    list_kwargs.append(dict())
+
+    denoisers.append(ADMUNet(pretrained="download").to(device))
+    list_kwargs.append(dict(class_labels=torch.eye(1000, device=device)[0:1]))
+
+    denoisers.append(DRUNet(pretrained="download").to(device))
+    list_kwargs.append(dict())
+
+    # Set up the SDEs
+    num_steps = 20
+    rng = torch.Generator(device)
+    # Set up solvers
+    timesteps = torch.linspace(1, 0.001, num_steps)
+    solvers = [
+        EulerSolver(timesteps=timesteps, rng=rng),
+        HeunSolver(timesteps=timesteps, rng=rng),
+    ]
+    sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
+    for denoiser, kwargs in zip(denoisers, list_kwargs):
+        for solver in solvers:
+            for sde_class in sde_classes:
+                sde = sde_class(
+                    denoiser=denoiser,
+                    solver=solver,
+                    device=device,
+                )
+                # Test generation
+                sample_1, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_1 = trajectory[0]
+
+                # Test output shape
+                assert sample_1.shape == (1, 3, 64, 64)
+                sample_2, trajectory = sde.sample(
+                    (1, 3, 64, 64),
+                    seed=10,
+                    get_trajectory=True,
+                    **kwargs,
+                )
+                x_init_2 = trajectory[0]
+                # Test reproducibility
+                assert torch.allclose(x_init_1, x_init_2, atol=1e-5, rtol=1e-5)
+                assert (
+                    torch.nn.functional.mse_loss(sample_1, sample_2, reduction="mean")
+                    < 1e-2
+                )
+
+                # Test posterior sampling
+                posterior = PosteriorDiffusion(
+                    data_fidelity=DPSDataFidelity(denoiser=denoiser),
+                    sde=sde,
+                    denoiser=denoisers[0],
+                    solver=solvers[0],
+                    dtype=torch.float64,
+                    device=device,
+                )
+                x = dinv.utils.load_url_image(
+                    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+                    img_size=64,
+                    resize_mode="resize",
+                ).to(device)
+                physics = dinv.physics.Inpainting(
+                    tensor_size=x.shape[1:], mask=0.5, device=device
+                )
+                y = physics(x)
+
+                x_hat_1 = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=111,
+                )
+                # Test output shape
+                assert x_hat_1.shape == (1, 3, 64, 64)
+                # Test reproducibility
+                x_hat_2 = posterior(
+                    y,
+                    physics,
+                    x_init=(1, 3, 64, 64),
+                    seed=111,
+                )
+                assert (
+                    torch.nn.functional.mse_loss(x_hat_1, x_hat_2, reduction="mean")
+                    < 1e-2
+                )
+
+
+@torch.no_grad()
+def test_noisy_data_fidelity(device):
+    from deepinv.sampling import DPSDataFidelity, NoisyDataFidelity
+    import itertools
+
+    all_data_fid_classes = [NoisyDataFidelity, DPSDataFidelity]
+    all_clip = [None, (-100, 100)]
+    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+    x = torch.rand(2, 3, 64, 64, device=device)
+    physics = dinv.physics.Blur(
+        filter=dinv.physics.blur.gaussian_blur(sigma=(3, 3)), device=device
+    )
+    y = physics(x)
+    sigma = 0.1
+    for data_fid_class, clip in itertools.product(all_data_fid_classes, all_clip):
+        data_fid = data_fid_class(
+            denoiser=denoiser,
+            clip=clip,
+        )
+        # Test forward pass
+        assert data_fid(x, y, physics, sigma).shape == torch.Size([x.size(0)])
+        # Test grad pass
+        assert data_fid.grad(x, y, physics, sigma).shape == x.shape
+        # Test preconditioning
+        try:
+            output = data_fid.precond(y, physics, sigma)
+            assert output.shape == x.shape
+        except NotImplementedError:
+            pass

@@ -141,7 +141,7 @@ class Inpainting(DecomposablePhysics):
         otherwise the default implementation of LinearPhysics is used (see :func:`deepinv.physics.LinearPhysics.__mul__`).
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.Physics`) concantenated operator
+        :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
 

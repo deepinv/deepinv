@@ -11,6 +11,8 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
+from conftest import no_plot
+
 LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 
 LIST_SURE = [
@@ -30,23 +32,63 @@ LIST_R2R = [
 
 def test_jacobian_spectral_values(toymatrix):
     # Define the Jacobian regularisers we want to check
-    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-3, eval_mode=False, verbose=True)
+    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
     reg_FNE_l2 = FNEJacobianSpectralNorm(
-        max_iter=100, tol=1e-3, eval_mode=False, verbose=True
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True
     )
 
     # Setup our toy example; here y = A@x
-    x_detached = torch.randn_like(toymatrix).requires_grad_()
-    out = toymatrix @ x_detached
+    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
+    out = x_detached @ toymatrix
 
     def model(x):
-        return toymatrix @ x
+        return x @ toymatrix
 
     regl2 = reg_l2(out, x_detached)
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
 
     assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
     assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
+
+
+@pytest.mark.parametrize("reduction", ["none", "mean", "sum", "max"])
+def test_jacobian_spectral_values(toymatrix, reduction):
+    ### Test reduction types on batches of images
+    B, C, H, W = 5, 3, 8, 8
+    toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
+
+    x_detached = torch.randn(B, C, H, W).requires_grad_()
+    out = toy_operators * x_detached
+
+    def model(x):
+        return toy_operators * x
+
+    # Nonec -> return all spectral norms
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    if reduction == "none":
+        reg_l2_target = toy_operators.squeeze()
+        reg_fne_target = 2 * toy_operators.squeeze() - 1
+    elif reduction == "mean":
+        reg_l2_target = toy_operators.mean()
+        reg_fne_target = 2 * toy_operators.sum() / toy_operators.shape[0] - 1
+    elif reduction == "sum":
+        reg_l2_target = toy_operators.sum()
+        reg_fne_target = 2 * toy_operators.sum() - toy_operators.shape[0]
+    elif reduction == "max":
+        reg_l2_target = toy_operators.max()
+        reg_fne_target = 2 * toy_operators.max() - 1
+
+    assert torch.allclose(regl2, reg_l2_target, rtol=1e-3)
+    assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
 def choose_loss(loss_name, rng=None):
@@ -73,7 +115,7 @@ def choose_loss(loss_name, rng=None):
     elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
-        loss.append(dinv.loss.R2RLoss())
+        loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     else:
         raise Exception("The loss doesnt exist")
 
@@ -124,6 +166,8 @@ def test_sure(noise_type, device):
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
+    print("sizes = ", x.size(), y.size())
+
     x_net = f(y, physics)
     mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
@@ -139,13 +183,13 @@ def choose_r2r(noise_type):
 
     if noise_type == "Poisson":
         noise_model = dinv.physics.PoissonNoise(gain)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.9999)
+        loss = dinv.loss.R2RLoss(alpha=0.9999)
     elif noise_type == "Gaussian":
         noise_model = dinv.physics.GaussianNoise(sigma)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     else:
         raise Exception("The R2R loss doesnt exist")
 
@@ -263,17 +307,18 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=False,
+        plot_images=True,
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    with no_plot():
+        # test the untrained model
+        initial_test = trainer.test(test_dataloader=test_dataloader)
 
-    # train the network
-    trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+        # train the network
+        trainer.train()
+        final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
