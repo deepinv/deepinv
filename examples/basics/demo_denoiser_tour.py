@@ -26,7 +26,6 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot_inset
 from deepinv.utils.demo import load_url_image, get_image_url
 
-
 # %%
 # Load test images
 # ----------------
@@ -55,16 +54,16 @@ noisy_image = image + sigma * torch.randn_like(image)
 # restored images, with their PSNR values and zoom-in on a region of interest.
 
 
-def show_image_comparison(images, suptitle=None):
+def show_image_comparison(images, suptitle=None, ref=None):
     """Display various images restoration with PSNR and zoom-in"""
 
     titles = list(images.keys())
-    if "Original" in images:
+    if "Original" in images or ref is not None:
         # If the original image is in the dict, add PSNR in the titles.
-        image = images["Original"]
+        image = images["Original"] if "Original" in images else ref
         psnr = [dinv.metric.cal_psnr(image, im).item() for im in images.values()]
         titles = [
-            f"{name} (PSNR: {psnr:.2f})" if name != "Original" else name
+            f"{name} \n (PSNR: {psnr:.2f})" if name != "Original" else name
             for name, psnr in zip(images.keys(), psnr)
         ]
     # Plot the images with zoom-in
@@ -75,12 +74,16 @@ def show_image_comparison(images, suptitle=None):
         extract_loc=(0.5, 0.0),
         inset_size=0.5,
         return_fig=True,
+        show=False,
+        figsize=(len(images) * 1.5, 2.5),
     )
 
     # Add a suptitle if it is provided
     if suptitle:
         plt.suptitle(suptitle, size=12)
-        fig.subplots_adjust(top=0.75)
+        plt.tight_layout()
+        fig.subplots_adjust(top=0.85, bottom=0.02, left=0.02, right=0.95)
+        plt.show()
 
 
 # %%
@@ -212,11 +215,15 @@ styles = {
     "Noisy": dict(ls="--", color="black"),
 }
 groups = df.groupby("denoiser")
-_, ax = plt.subplots()
+_, ax = plt.subplots(figsize=(6, 4))
 for name, g in groups:
-    g.plot(x="sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
+    g.plot(x=r"sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
 ax.set_xscale("log")
-plt.legend()
+ax.set_xlabel(r"$\sigma$")
+ax.set_ylabel("PSNR")
+plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0)
+plt.tight_layout()
+plt.show()
 
 
 # %%
@@ -255,6 +262,7 @@ df_wavelet = pd.DataFrame(res)
 # %%
 # We can now display how the performances vary with the value of the threshold,
 # and what is the best threshold for each noise level.
+# sphinx_gallery_thumbnail_number = 3
 groups = df_wavelet.groupby("sigma")
 best_th_psnr = groups.apply(lambda g: g.loc[g["psnr"].idxmax()])
 
@@ -280,6 +288,7 @@ axes[1].set_title("Best threshold for each noise level")
 axes[1].loglog(best_th_psnr["sigma"], best_th_psnr["th"], marker="o")
 axes[1].set_xlabel(r"$\sigma$")
 axes[1].set_ylabel(r"Best threshold")
+plt.tight_layout()
 
 # %%
 # With this tuning, we can update our comparison of the different denoisers to account for
@@ -289,11 +298,14 @@ merge_df = best_th_psnr.reset_index(drop=True).drop(columns="th")
 merge_df["denoiser"] = "Wavelet (tuned)"
 merge_df = pd.concat([df.query("denoiser != 'Wavelet'"), merge_df])
 
-_, ax = plt.subplots()
+_, ax = plt.subplots(figsize=(6, 4))
 for name, g in merge_df.groupby("denoiser"):
-    g.plot(x="sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
+    g.plot(x=r"sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
 ax.set_xscale("log")
-plt.legend()
+ax.set_xlabel(r"$\sigma$")
+ax.set_ylabel("PSNR")
+plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0)
+plt.tight_layout()
 
 # %%#
 # Adapting fixed-noise level denoisers
@@ -338,17 +350,27 @@ adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 sigma_train_swinir = 15.0 / 255.0
 adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
 
+sigma = 0.2
+noisy_image = image + sigma * torch.randn_like(image)
+
+# sphinx_gallery_multi_image = "single"
 denoiser_results = {
     f"Original": image,
     f"Noisy": noisy_image,
     f"DnCNN": dncnn(noisy_image, sigma),
     f"DnCNN (adapted)": adapted_dncnn(noisy_image, sigma),
-    # f"SwinIR": swinir(noisy_image, sigma),
-    # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
-    f"DRUNet": drunet(noisy_image, sigma),
 }
 show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
+denoiser_results = {
+    f"SwinIR": swinir(noisy_image, sigma),
+    f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
+    f"DRUNet": drunet(noisy_image, sigma),
+    f"SCUNet": scunet(noisy_image, sigma),
+}
+show_image_comparison(
+    denoiser_results, ref=image, suptitle=rf"Noise level $\sigma={sigma:.2f}$"
+)
 # %%
 # We can finally update our comparison with the adapted denoisers for DnCNN and SwinIR.
 
@@ -376,11 +398,15 @@ merge_df = pd.concat(
     [merge_df.query("~denoiser.isin(['DnCNN', 'SwinIR'])"), df_adapted]
 )
 
-_, ax = plt.subplots()
+_, ax = plt.subplots(figsize=(6, 4))
 for name, g in merge_df.groupby("denoiser"):
-    g.plot(x="sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
+    g.plot(x=r"sigma", y="psnr", label=name, ax=ax, **styles.get(name, {}))
 ax.set_xscale("log")
-plt.legend()
+ax.set_xlabel(r"$\sigma$")
+ax.set_ylabel("PSNR")
+plt.legend(bbox_to_anchor=(1.02, 1), loc="upper left", borderaxespad=0)
+plt.tight_layout()
+plt.show()
 
 # %%
 # We can see that the adapted denoisers achieve better performances than the original ones,

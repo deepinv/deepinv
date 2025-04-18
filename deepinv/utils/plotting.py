@@ -323,8 +323,6 @@ def plot(
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
-    else:
-        plt.close(fig)
 
     if return_fig and return_axs:
         return fig, axs
@@ -332,6 +330,8 @@ def plot(
         return fig
     elif return_axs:
         return axs
+    elif show:
+        plt.close(fig)
 
 
 def scatter_plot(
