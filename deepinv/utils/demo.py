@@ -235,6 +235,17 @@ def load_url_image(
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 
+def load_example(name, img_size=512, grayscale=True, **kwargs):
+    r"""
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.demo.load_url_image`.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param int, tuple[int] img_size: Size of the image to return, defaults to 512.
+    :param bool grayscale: Whether to convert the image to grayscale, defaults to `True`.
+    :return: :class:`torch.Tensor` containing the image.
+    """
+    url = f"https://huggingface.co/datasets/deepinv/images/resolve/main/{name}?download=true"
+    return load_url_image(url=url, img_size=img_size, grayscale=grayscale, **kwargs)
 
 def load_torch_url(url):
     r"""

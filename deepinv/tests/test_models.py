@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles, DummyModel
 
 
 MODEL_LIST_1_CHANNEL = [
@@ -303,14 +303,7 @@ def test_equivariant(imsize, device, batch_size):
     assert x_hat.shape == x.shape
 
     # 2. Check that the equivariance module yields the identity when the denoiser is the identity
-    class DummyIdentity(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-
-        def forward(self, x, sigma):
-            return x
-
-    model_id = DummyIdentity()
+    model_id = DummyModel()
 
     list_transforms = [
         dinv.transform.Rotate(

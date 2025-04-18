@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict
 from copy import deepcopy
 from warnings import warn
 import torch
@@ -7,7 +7,7 @@ from deepinv.physics import Inpainting, Physics
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.generator import (
-    PhysicsGenerator,
+    BaseMaskGenerator,
     BernoulliSplittingMaskGenerator,
     Phase2PhaseSplittingMaskGenerator,
     Artifact2ArtifactSplittingMaskGenerator,
@@ -68,7 +68,7 @@ class SplittingLoss(Loss):
         which is set as the mean squared error by default.
     :param float split_ratio: splitting ratio, should be between 0 and 1. The size of :math:`y_1` increases
         with the splitting ratio. Ignored if ``mask_generator`` passed.
-    :param deepinv.physics.generator.PhysicsGenerator, None mask_generator: function to generate the mask. If
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator, None mask_generator: function to generate the mask. If
         None, the :class:`deepinv.physics.generator.BernoulliSplittingMaskGenerator` is used, with the parameters ``split_ratio`` and ``pixelwise``.
     :param int eval_n_samples: Number of samples used for averaging at evaluation time. Must be greater than 0.
     :param bool eval_split_input: if True, perform input measurement splitting during evaluation. If False, use full measurement at eval (no MC samples are performed and eval_split_output will have no effect)
@@ -101,7 +101,7 @@ class SplittingLoss(Loss):
         self,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         split_ratio: float = 0.9,
-        mask_generator: Optional[PhysicsGenerator] = None,
+        mask_generator: Optional[BernoulliSplittingMaskGenerator] = None,
         eval_n_samples=5,
         eval_split_input=True,
         eval_split_output=False,
@@ -139,13 +139,14 @@ class SplittingLoss(Loss):
 
         return y_split, physics_split
 
-    def forward(self, x_net, y, physics, model, **kwargs):
+    def forward(self, x_net, y, physics, model, normalize_loss: bool = True, **kwargs):
         r"""
         Computes the measurement splitting loss
 
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
+        :param bool normalize_loss: whether normalize output by output mask mean
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists
@@ -155,9 +156,9 @@ class SplittingLoss(Loss):
         mask2 = getattr(physics, "mask", 1.0) - mask
         y2, physics2 = self.split(mask2, y, physics)
 
-        loss_ms = self.metric(physics2.A(x_net), y2)
+        l = self.metric(physics2.A(x_net), y2)
 
-        return loss_ms / mask2.mean()  # normalize loss
+        return l / mask2.mean() if normalize_loss else l
 
     def adapt_model(
         self, model: torch.nn.Module, eval_n_samples=None
@@ -202,7 +203,7 @@ class SplittingLoss(Loss):
             )
 
     class SplittingModel(Reconstructor):
-        """
+        r"""
         Model wrapper when using SplittingLoss.
 
         Performs input splitting during forward pass. At evaluation,
@@ -243,7 +244,7 @@ class SplittingLoss(Loss):
             self.pixelwise = pixelwise
 
         @staticmethod
-        def split(mask, y, physics):
+        def split(mask, y, physics=None):
             return SplittingLoss.split(mask, y, physics)
 
         def forward(
@@ -253,18 +254,18 @@ class SplittingLoss(Loss):
             Adapted model forward pass for input splitting. During training, only one splitting realisation is performed for computational efficiency.
             """
 
-            if (
-                self.mask_generator is None
-                or self.mask_generator.tensor_size != y.size()[1:]
-            ):
+            if self.mask_generator is None:
+                warn("Mask generator not defined. Using new Bernoulli mask generator.")
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    tensor_size=y.size()[1:],
+                    tensor_size=y.shape[1:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
                 )
-                warn(
-                    "Mask generator does not exist or its mask size mismatches input size. Using new Bernoulli mask generator."
+
+            if self.mask_generator.tensor_size[-2:] != y.shape[-2:]:
+                raise ValueError(
+                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.tensor_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -322,7 +323,7 @@ class SplittingLoss(Loss):
 
                 # Output masking
                 mask2 = getattr(physics, "mask", 1.0) - mask
-                out += self.split(mask2, x_hat, None)
+                out += self.split(mask2, x_hat)
                 normaliser += mask2
 
             out[normaliser != 0] /= normaliser[normaliser != 0]
@@ -335,6 +336,122 @@ class SplittingLoss(Loss):
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
             return self.mask
+
+
+class WeightedSplittingLoss(SplittingLoss):
+    r"""
+    K-Weighted Splitting Loss
+
+    Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    The loss is related to the original splitting loss as follows:
+
+    .. math::
+
+        \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
+
+    where :math:`K` is derived from the pdf of the (original) acceleration mask and (further) splitting mask:
+
+    .. math::
+
+        \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
+
+    and :math:`\mathbf{P}=\mathbb{E}[\mathbf{M}_i],\tilde{\mathbf{P}}=\mathbb{E}[\mathbf{M}_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
+
+    .. note::
+
+        To match the original paper, the loss should be used with the splitting mask :class:`deepinv.physics.generator.MultiplicativeSplittingMaskGenerator`
+        where the input additional subsampling mask should be the same type as that used to generate the measurements.
+
+        Note the method was originally proposed for accelerated MRI problems (where the measurements are generated via a mask generator).
+
+        Note also that we assume that all masks are 1D mask in the W dimension repeated in all other dimensions.
+
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+    :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
+    :param float eps: small value to avoid division by zero.
+
+    |sep|
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.physics.generator import GaussianMaskGenerator, MultiplicativeSplittingMaskGenerator
+    >>> from deepinv.loss import WeightedSplittingLoss
+    >>> physics_generator = GaussianMaskGenerator((128, 128), acceleration=4)
+    >>> split_generator = GaussianMaskGenerator((128, 128), acceleration=2)
+    >>> mask_generator = MultiplicativeSplittingMaskGenerator((1, 128, 128), split_generator)
+    >>> loss = WeightedSplittingLoss(mask_generator, physics_generator)
+
+    """
+
+    class DifferenceMetric(torch.nn.Module):
+        """Helper metric to just compute the difference between y1 and y2"""
+
+        def forward(self, y1, y2):
+            """Metric forward pass."""
+            return y1 - y2
+
+    def __init__(
+        self,
+        mask_generator: BernoulliSplittingMaskGenerator,
+        physics_generator: BaseMaskGenerator,
+        eps: float = 1e-9,
+    ):
+
+        super().__init__(
+            eval_split_input=False, pixelwise=True, metric=self.DifferenceMetric()
+        )
+        self.mask_generator = mask_generator
+        self.physics_generator = physics_generator
+        self.name = "WeightedSplitting"
+        self.k = self.compute_k(eps=eps)
+        self.weight = (1 - self.k).clamp(min=eps) ** (-0.5)
+
+    def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
+        """
+        Compute K for K-weighted splitting loss where K is a diagonal matrix of shape (H, W).
+
+        Estimates the 1D PDFs of the mask generators empirically.
+
+        :param float eps: small value to avoid division by zero.
+        """
+
+        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0)
+        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0)
+
+        if P.shape != P_tilde.shape:
+            raise ValueError(
+                "physics_generator and mask_generator should produce same size masks."
+            )
+
+        # Reduce to 1D PDF in W dimension
+        while len(P.shape) > 1:
+            P, P_tilde = P[0], P_tilde[0]
+
+        # makes sure P_tilde < 1
+        P_tilde[P_tilde > (1 - eps)] = 1 - eps
+
+        diag_1_minus_PtP = 1 - P_tilde * P
+        diag_1_minus_PtP = diag_1_minus_PtP.clamp(min=eps)
+        inv_diag_1_minus_PtP = 1 / diag_1_minus_PtP
+        diag_1_minus_P = 1 - P
+
+        # element-wise multiplication to get K
+        k_weight = inv_diag_1_minus_PtP * diag_1_minus_P
+        return k_weight.unsqueeze(0)
+
+    def forward(self, x_net, y, physics, model, **kwargs):
+
+        # Compute the residual
+        residual = super().forward(
+            x_net, y, physics, model, normalize_loss=False, **kwargs
+        )
+
+        # Apply weight
+        weighted_residual = self.weight.expand_as(residual) * residual
+
+        # Compute L2 loss
+        return (weighted_residual**2).mean()
 
 
 class Phase2PhaseLoss(SplittingLoss):
@@ -481,7 +598,9 @@ class Phase2PhaseLoss(SplittingLoss):
             return y_split_reduced
 
         physics_split_reduced = deepcopy(physics_split)
-        physics_split_reduced.update(mask=remove_zeros(physics_split.mask, mask))
+        physics_split_reduced.update_parameters(
+            mask=remove_zeros(physics_split.mask, mask)
+        )
 
         return y_split_reduced, physics_split_reduced
 
