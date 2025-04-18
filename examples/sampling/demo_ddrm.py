@@ -2,10 +2,8 @@ r"""
 Image reconstruction with a diffusion model
 ====================================================================================================
 
-This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the
+This code shows you how to use the DDRM diffusion algorithm :cite:`kawar2022denoising` to reconstruct images and also compute the
 uncertainty of a reconstruction from incomplete and noisy measurements.
-
-The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
 The DDRM method requires that:
 
