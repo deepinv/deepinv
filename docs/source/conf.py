@@ -63,13 +63,9 @@ autodoc_typehints_description_target = "documented"
 autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
-<<<<<<< HEAD
-autodoc_mock_imports = ["deepinv"]
-=======
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
 
->>>>>>> main
 
 ####  userguide directive ###
 from docutils import nodes
