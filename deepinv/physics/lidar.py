@@ -37,7 +37,7 @@ class SinglePhotonLidar(Physics):
         grid = torch.meshgrid(torch.arange(bins), indexing="ij")[0].to(device)
         self.noise_model = PoissonNoise(rng=rng)
 
-        h = ((grid - 3 * sigma) / self.sigma).pow(2)
+        h = ((grid - 3 * sigma) / sigma).pow(2)
         h = torch.exp(-h / 2.0)
         h = h[: int(6 * sigma)]
         h = h / h.sum()

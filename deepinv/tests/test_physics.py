@@ -67,6 +67,39 @@ PHASE_RETRIEVAL_OPERATORS = [
     "ptychography",
 ]
 
+PARAMETERIZED_OPERATORS = [
+    "CS",
+    "fastCS",
+    "inpainting",
+    "demosaicing",
+    "denoising",
+    "colorize",
+    "fftdeblur",
+    "singlepixel",
+    "blur",
+    "composition",
+    "composition2",
+    "space_blur",
+    "hyperspectral_unmixing",
+    "3Ddeblur_valid",
+    "3Ddeblur_circular",
+    "super_resolution",
+    "fast_singlepixel",
+    "MRI",
+    "DynamicMRI",
+    "MultiCoilMRI",
+    "3DMRI",
+    "3DMultiCoilMRI",
+    "aliased_pansharpen",
+    "pansharpen",
+    "complex_compressed_sensing",
+    "radio",
+    "radio_weighted",
+    "structured_random",
+    "cassi",
+    "ptychography_linear",
+]
+
 NOISES = [
     "Gaussian",
     "Poisson",
@@ -493,8 +526,8 @@ def test_operators_norm(name, device, rng):
     if name == "radio_weighted":  # weighted nufft norm is not tested
         return
 
-    if name == "singlepixel" or name == "CS":
-        device = torch.device("cpu")
+    # if name == "singlepixel" or name == "CS":
+    #     device = torch.device("cpu")
 
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
@@ -949,22 +982,23 @@ def test_reset_noise(device):
     :return: asserts error is > 0
     """
     x = torch.ones((1, 3, 3), device=device).unsqueeze(0)
-    physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(0.1)
+    rng = torch.Generator(device)
+    physics = dinv.physics.Denoising(device=device)
+    physics.noise_model = dinv.physics.GaussianNoise(0.1, rng=rng)
 
     y1 = physics(x)
     y2 = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
 
-    physics.noise_model = dinv.physics.PoissonNoise(0.1)
+    physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
 
     y1 = physics(x)
     y2 = physics(x, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
 
-    physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3)
+    physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3, rng=rng)
     y1 = physics(x)
     y2 = physics(x, sigma=0.2, gain=0.2)
 
@@ -1191,7 +1225,7 @@ def test_decolorize(srf, device, imsize, multispectral_channels):
 def test_CASSI(shear_dir, imsize, device, multispectral_channels, rng, cassi_mode):
     channels = multispectral_channels
 
-    x = torch.ones(1, channels, *imsize[-2:])
+    x = torch.ones(1, channels, *imsize[-2:]).to(device)
     physics = dinv.physics.CompressiveSpectralImaging(
         (channels, *imsize[-2:]),
         mask=None,
@@ -1240,5 +1274,24 @@ def test_unmixing(device):
     )
     x_hat = physics.A_adjoint(y)
 
-    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
-    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
+    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0], device=device))
+    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0], device=device))
+
+
+# @pytest.mark.parametrize("name", OPERATORS)
+# def test_operators_differentiability(name, device):
+#     r"""
+#     Tests if a forward operator is differentiable (can perform back-propagation).
+
+#     :param name: operator name (see find_operator)
+#     :param device: (torch.device) cpu or cuda:x
+#     :return: asserts differentiability
+#     """
+#     physics, imsize, _, dtype = find_operator(name, device)
+
+#     if name == "radio":
+#         dtype = torch.cfloat
+
+#     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0).requires_grad_(True)
+#     y = physics.A(x)
+#     assert y.requires_grad == True

@@ -107,6 +107,16 @@ class NoiseModel(nn.Module):
                 ):
                     self.register_buffer(key, value)
 
+    def _float_to_tensor(self, value):
+        if value is None:
+            return value
+        elif isinstance(value, (float, int)):
+            return torch.tensor(value, dtype=torch.float32)
+        elif isinstance(value, torch.Tensor):
+            return value
+        else:
+            raise ValueError
+
 
 class ZeroNoise(NoiseModel):
     r"""
@@ -180,7 +190,7 @@ class GaussianNoise(NoiseModel):
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
         if not isinstance(sigma, Tensor):
-            sigma = torch.as_tensor(sigma)
+            sigma = torch.as_tensor(sigma).to(getattr(rng, "device", "cpu"))
         self.register_buffer("sigma", sigma)
 
     def __add__(self, other):
@@ -328,12 +338,13 @@ class GaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(sigma=sigma, **kwargs)
-        if isinstance(self.sigma, torch.Tensor):
-            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
-        else:
-            sigma = self.sigma
-        return x + self.randn_like(x, seed=seed) * sigma
+        self.update_parameters(sigma=self._float_to_tensor(sigma), **kwargs)
+        self.to(x.device)
+        return (
+            x
+            + self.randn_like(x, seed=seed)
+            * self.sigma[(...,) + (None,) * (x.dim() - 1)]
+        )
 
 
 class UniformGaussianNoise(NoiseModel):
@@ -365,8 +376,12 @@ class UniformGaussianNoise(NoiseModel):
 
     def __init__(self, sigma_min=0.0, sigma_max=0.5, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.register_buffer("sigma_min", torch.as_tensor(sigma_min))
-        self.register_buffer("sigma_max", torch.as_tensor(sigma_max))
+        self.register_buffer(
+            "sigma_min", torch.as_tensor(sigma_min).to(getattr(rng, "device", "cpu"))
+        )
+        self.register_buffer(
+            "sigma_max", torch.as_tensor(sigma_max).to(getattr(rng, "device", "cpu"))
+        )
 
     def forward(self, x, seed: int = None, **kwargs):
         r"""
@@ -377,6 +392,8 @@ class UniformGaussianNoise(NoiseModel):
         :returns: noisy measurements.
         """
         self.rng_manual_seed(seed)
+        self.update_parameters(**kwargs)
+        self.to(x.device)
         sigma = (
             torch.rand(
                 (x.shape[0], 1) + (1,) * (x.dim() - 2),
@@ -427,7 +444,9 @@ class PoissonNoise(NoiseModel):
         super().__init__(rng=rng)
         self.normalize = normalize
         self.clip_positive = clip_positive
-        self.register_buffer("gain", torch.as_tensor(gain))
+        self.register_buffer(
+            "gain", torch.as_tensor(gain).to(getattr(rng, "device", "cpu"))
+        )
 
     def forward(self, x, gain=None, seed: int = None, **kwargs):
         r"""
@@ -438,12 +457,11 @@ class PoissonNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(gain=gain, **kwargs)
+        self.update_parameters(gain=self._float_to_tensor(gain), **kwargs)
         self.rng_manual_seed(seed)
-        if isinstance(self.gain, torch.Tensor):
-            gain = self.gain[(...,) + (None,) * (x.dim() - 1)].to(x.device)
-        else:
-            gain = self.gain.to(x.device)
+        self.to(x.device)
+        gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
+
         y = torch.poisson(
             torch.clip(x / gain, min=0.0) if self.clip_positive else x / gain,
             generator=self.rng,
@@ -483,10 +501,9 @@ class GammaNoise(NoiseModel):
         :param None, float, torch.Tensor l: noise level. If not None, it will overwrite the current noise level.
         :returns: noisy measurements
         """
-        self.update_parameters(l=l, **kwargs)
-        d = torch.distributions.gamma.Gamma(
-            self.l.to(x.device), self.l.to(x.device) / x
-        )
+        self.update_parameters(l=self._float_to_tensor(l), **kwargs)
+        self.to(x.device)
+        d = torch.distributions.gamma.Gamma(self.l, self.l / x)
         return d.sample()
 
 
@@ -519,8 +536,12 @@ class PoissonGaussianNoise(NoiseModel):
     ):
         super().__init__(rng=rng)
         self.clip_positive = clip_positive
-        self.register_buffer("gain", torch.as_tensor(gain))
-        self.register_buffer("sigma", torch.as_tensor(sigma))
+        self.register_buffer(
+            "gain", torch.as_tensor(gain).to(getattr(rng, "device", "cpu"))
+        )
+        self.register_buffer(
+            "sigma", torch.as_tensor(sigma).to(getattr(rng, "device", "cpu"))
+        )
 
     def forward(self, x, gain=None, sigma=None, seed: int = None, **kwargs):
         r"""
@@ -534,18 +555,16 @@ class PoissonGaussianNoise(NoiseModel):
 
         :returns: noisy measurements
         """
-        self.update_parameters(gain=gain, sigma=sigma, **kwargs)
+        self.update_parameters(
+            gain=self._float_to_tensor(gain),
+            sigma=self._float_to_tensor(sigma),
+            **kwargs,
+        )
         self.rng_manual_seed(seed)
+        self.to(x.device)
 
-        if isinstance(self.gain, torch.Tensor):
-            gain = self.gain[(...,) + (None,) * (x.dim() - 1)].to(x.device)
-        else:
-            gain = self.gain.to(x.device)
-
-        if isinstance(self.sigma, torch.Tensor):
-            sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)].to(x.device)
-        else:
-            sigma = self.sigma.to(x.device)
+        gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
+        sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
 
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
@@ -581,7 +600,7 @@ class UniformNoise(NoiseModel):
 
     def __init__(self, a=0.1, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.register_buffer("a", torch.as_tensor(a))
+        self.register_buffer("a", torch.as_tensor(a).to(getattr(rng, "device", "cpu")))
 
     def forward(self, x, a=None, seed: int = None, **kwargs):
         r"""
@@ -592,8 +611,14 @@ class UniformNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(a=a, **kwargs)
-        return x + (self.rand_like(x, seed=seed) - 0.5) * 2 * self.a
+        self.update_parameters(a=self._float_to_tensor(a), **kwargs)
+        self.to(x.device)
+        return (
+            x
+            + (self.rand_like(x, seed=seed) - 0.5)
+            * 2
+            * self.a[(...,) + (None,) * (x.dim() - 1)]
+        )
 
 
 class LogPoissonNoise(NoiseModel):
@@ -631,8 +656,12 @@ class LogPoissonNoise(NoiseModel):
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):
         super().__init__(rng=rng)
-        self.register_buffer("mu", torch.as_tensor(mu))
-        self.register_buffer("N0", torch.as_tensor(N0))
+        self.register_buffer(
+            "mu", torch.as_tensor(mu).to(getattr(rng, "device", "cpu"))
+        )
+        self.register_buffer(
+            "N0", torch.as_tensor(N0).to(getattr(rng, "device", "cpu"))
+        )
 
     def forward(self, x, mu=None, N0=None, seed: int = None, **kwargs):
         r"""
@@ -646,8 +675,11 @@ class LogPoissonNoise(NoiseModel):
         :param int seed: the seed for the random number generator, if `rng` is provided.
         :returns: noisy measurements
         """
-        self.update_parameters(mu=mu, N0=N0, **kwargs)
+        self.update_parameters(
+            mu=self._float_to_tensor(mu), N0=self._float_to_tensor(N0), **kwargs
+        )
         self.rng_manual_seed(seed)
+        self.to(x.device)
         N1_tilde = torch.poisson(self.N0 * torch.exp(-x * self.mu), generator=self.rng)
         y = -torch.log(N1_tilde / self.N0) / self.mu
         return y

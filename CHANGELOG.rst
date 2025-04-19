@@ -55,6 +55,8 @@ Fixed
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
+- Fix device inconsistency in test files (:gh:`TODO` by `Minh Hai Nguyen`_)
+
 
 Changed
 ^^^^^^^

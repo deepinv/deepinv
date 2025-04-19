@@ -64,9 +64,9 @@ class Downsampling(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
         # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
+
         self.imsize = img_size
         self.padding = padding
         self.device = device
@@ -173,17 +173,17 @@ class Downsampling(LinearPhysics):
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(self.device)
             elif filter == "gaussian":
-                self.filter = gaussian_blur(sigma=(self.factor, self.factor)).to(
-                    self.device
-                )
+                filter = gaussian_blur(
+                    sigma=(self.factor.item(), self.factor.item())
+                ).to(self.device)
             elif filter == "bilinear":
-                self.filter = bilinear_filter(self.factor).to(self.device)
+                filter = bilinear_filter(self.factor.item()).to(self.device)
             elif filter == "bicubic":
-                self.filter = bicubic_filter(self.factor).to(self.device)
+                filter = bicubic_filter(self.factor.item()).to(self.device)
             elif filter == "sinc":
-                self.filter = sinc_filter(self.factor, length=4 * self.factor).to(
-                    self.device
-                )
+                filter = sinc_filter(
+                    self.factor.item(), length=4 * self.factor.item()
+                ).to(self.device)
 
             self.register_buffer("filter", filter)
 
@@ -194,6 +194,8 @@ class Downsampling(LinearPhysics):
             )
             self.register_buffer("Fhc", torch.conj(self.Fh))
             self.register_buffer("Fh2", self.Fhc * self.Fh)
+
+        super().update_parameters(**kwargs)
 
 
 class Blur(LinearPhysics):
@@ -384,8 +386,7 @@ class BlurFFT(DecomposablePhysics):
             self.register_buffer("mask", mask)
             self.register_buffer("filter", filter)
 
-        if hasattr(self, "noise_model"):
-            self.noise_model.update_parameters(**kwargs)
+        super().update_parameters(**kwargs)
 
 
 class SpaceVaryingBlur(LinearPhysics):
@@ -509,6 +510,7 @@ class SpaceVaryingBlur(LinearPhysics):
             self.register_buffer("multipliers", multipliers)
         if padding is not None:
             self.padding = padding
+        super().update_parameters(**kwargs)
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -609,6 +611,9 @@ def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
+
     deltaf = 2 * (2 - 1.4142136) / factor
 
     n = torch.arange(length, device=device) - (length - 1) / 2
@@ -651,11 +656,13 @@ def bilinear_filter(factor=2):
 
     :param int factor: downsampling factor
     """
-    x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
-    w = 1 - np.abs(x)
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
+    x = torch.arange(start=-factor + 0.5, end=factor, step=1) / factor
+    w = 1 - x.abs()
+    w = torch.outer(w, w)
+    w = w / torch.sum(w)
+    return w.unsqueeze(0).unsqueeze(0)
 
 
 def bicubic_filter(factor=2):
@@ -678,15 +685,13 @@ def bicubic_filter(factor=2):
 
     :param int factor: downsampling factor
     """
-    x = np.arange(start=-2 * factor + 0.5, stop=2 * factor, step=1) / factor
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
+    x = torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1) / factor
     a = -0.5
-    x = np.abs(x)
-    w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
-    w += (
-        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
-        * (x > 1)
-        * (x < 2)
-    )
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
+    x = x.abs()
+    w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
+    w += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
+    w = torch.outer(w, w)
+    w = w / torch.sum(w)
+    return w.unsqueeze(0).unsqueeze(0)

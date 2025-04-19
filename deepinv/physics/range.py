@@ -39,29 +39,30 @@ class Decolorize(DecomposablePhysics):
     def __init__(self, channels=3, srf="rec601", device="cpu", **kwargs):
         super().__init__(**kwargs)
         if srf is None or srf == "rec601":
-            srf = [0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851]
+            srf = torch.tensor([0.4472 * 0.66851, 0.8781 * 0.66851, 0.1706 * 0.66851])
         elif srf in ("average", "flat"):
-            srf = [1 / channels] * channels
+            srf = torch.tensor([1 / channels] * channels)
         elif srf == "random":
             srf = torch.rand(channels, device=device)
             srf /= srf.sum()
         elif isinstance(srf, (tuple, list)):
-            pass
+            srf = torch.tensor(srf)
         else:
             raise ValueError("Invalid srf")
 
-        if len(srf) < channels:
+        if srf.size(0) < channels:
             # pad with zeros
-            self.srf += [0] * (channels - len(self.srf))
-        elif len(srf) > channels:
+            srf = torch.cat([srf, torch.tensor([0] * (channels - srf.size(0)))])
+
+        elif srf.size(0) > channels:
             raise ValueError("srf should be of length equal to or less than channels.")
 
-        assert torch.allclose(sum(srf), torch.ones(1, device=device), rtol=1e-4)
+        assert torch.allclose(srf.sum(), torch.tensor(1.0), rtol=1e-4)
 
+        self.register_buffer("srf", srf.to(device).view(1, channels, 1, 1))
         self.register_buffer(
-            "srf", torch.tensor(self.srf, device=device).view(1, len(self.srf), 1, 1)
+            "mask", torch.linalg.vector_norm(self.srf, dim=1, keepdim=True)
         )
-        self.register_buffer("mask", torch.linalg.vector_norm(self.srf))
 
     def V_adjoint(self, x):
         if x.shape[1] != self.srf.shape[1]:

@@ -63,8 +63,8 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         self.E, self.C = M.shape
 
-        self.register_buffer("M", M)
-        self.register_buffer("M_pinv", torch.linalg.pinv(self.M))
+        self.register_buffer("M", M.to(device))
+        self.register_buffer("M_pinv", torch.linalg.pinv(self.M.to(device)))
 
     def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
         r"""

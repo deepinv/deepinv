@@ -225,12 +225,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
-        self.noise_model.update_parameters(**kwargs)
+        # if hasattr(self.noise_model, "update_parameters"):
+        #     self.noise_model.update_parameters(**kwargs)
 
     def update_parameters(self, **kwargs):
         r"""
 
-        Update the parameters of the forward operator.
+        Update the parameters of the forward operator and the noise model.
 
         :param dict kwargs: dictionary of parameters to update.
         """
@@ -242,6 +243,8 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
                     self.register_buffer(key, value)
+            if hasattr(self.noise_model, "update_parameters"):
+                self.noise_model.update_parameters(**kwargs)
 
 
 class LinearPhysics(Physics):
