@@ -77,6 +77,8 @@ class Metric(Module):
                 )
             elif norm_inputs.lower() == "min_max":
                 normalizer = lambda x: rescale_img(x, rescale_mode="min_max")
+            elif norm_inputs.lower() == "clip":
+                normalizer = lambda x: rescale_img(x, rescale_mode="clip")
             elif norm_inputs.lower() == "l2":
                 normalizer = lambda x: x / norm(x)
             elif norm_inputs.lower() == "none":
@@ -112,11 +114,12 @@ class Metric(Module):
         r"""Calculate metric on data.
 
         Override this function to implement your own metric. Always include ``args`` and ``kwargs`` arguments.
+        Do not perform reduction.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
         :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
-        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
+        :return torch.Tensor: calculated unreduced metric of shape ``(B,)``.
         """
         return self._metric(x_net, x, *args, **kwargs)
 

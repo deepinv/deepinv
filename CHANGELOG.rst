@@ -11,6 +11,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add HaarPSI metric (:gh:`456` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
