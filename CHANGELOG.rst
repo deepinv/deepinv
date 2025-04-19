@@ -17,6 +17,8 @@ Changed
 Fixed
 ^^^^^
 
+- Fix UAIR loss (:gh:`409` by `Andrew Wang`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
 
 v0.3
 ----------------
