@@ -3,6 +3,7 @@ import torch.nn as nn
 from typing import Callable
 import warnings
 from torch import Tensor
+import warnings
 
 
 class NoiseModel(nn.Module):
@@ -116,6 +117,38 @@ class NoiseModel(nn.Module):
             return value
         else:
             raise ValueError
+
+    # To handle the transfer between CPU/GPU properly
+    def to(self, *args, **kwargs):
+        super().to(*args, **kwargs)
+        device = self._get_device_from_args(*args, **kwargs)
+        if device is not None and self.rng is not None:
+            state = self.rng.get_state()
+            # Move the generator to the specified device
+            self.rng = torch.Generator(device=device)
+            try:
+                self.rng.set_state(state)
+            except RuntimeError:
+                warnings.warn(
+                    "Moving the random number generator between CPU/GPU is not possible. Re-initializing the generator."
+                )
+
+        return self
+
+    # Helper to extract device from .to() arguments
+    def _get_device_from_args(self, *args, **kwargs):
+        if args:
+            if isinstance(args[0], torch.device):
+                return args[0]
+            elif isinstance(args[0], str):
+                return torch.device(args[0])
+        if "device" in kwargs:
+            return (
+                torch.device(kwargs["device"])
+                if isinstance(kwargs["device"], str)
+                else kwargs["device"]
+            )
+        return None
 
 
 class ZeroNoise(NoiseModel):

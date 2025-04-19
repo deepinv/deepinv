@@ -242,6 +242,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
         # Check and update mask
         self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return self.im_to_kspace(x, three_d=self.three_d)
@@ -576,14 +577,13 @@ class DynamicMRI(MRI, TimeMixin):
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
-        mask = self.check_mask(self.mask if mask is None else mask)
+        mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
+        mask_flatten = self.flatten(mask.expand(*x.shape))
 
-        mask_flatten = self.flatten(mask.expand(*x.shape)).to(x.device)
         y = self.unflatten(
             super().A(self.flatten(x), mask_flatten, check_mask=False),
             batch_size=x.shape[0],
         )
-
         self.update_parameters(mask=mask, check_mask=False, **kwargs)
         return y
 
@@ -598,17 +598,16 @@ class DynamicMRI(MRI, TimeMixin):
         :param torch.Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
         :param bool mag: perform complex magnitude.
         """
-        mask = self.check_mask(self.mask if mask is None else mask)
-
-        mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
+        mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
+        mask_flatten = self.flatten(mask.expand(*y.shape))
         x = self.unflatten(
             super().A_adjoint(
                 self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag
             ),
             batch_size=y.shape[0],
         )
-
         self.update_parameters(mask=mask, check_mask=False, **kwargs)
+
         return x
 
     def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:

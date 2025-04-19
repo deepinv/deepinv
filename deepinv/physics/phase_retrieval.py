@@ -354,30 +354,29 @@ class PtychographyLinearOperator(LinearPhysics):
         self.device = device
         self.img_size = img_size
 
-        if probe is not None:
-            self.probe = probe
+        if shifts is None:
+            self.n_img = 25
+            shifts = torch.tensor(generate_shifts(img_size=img_size, n_img=self.n_img))
         else:
+            self.n_img = len(shifts)
+
+        self.register_buffer("shifts", shifts)
+
+        if probe is None:
             probe = build_probe(
                 img_size=img_size, type="disk", probe_radius=10, device=device
             )
 
-        self.init_probe = probe.clone()
+        self.register_buffer("init_probe", probe.clone())
 
-        if shifts is not None:
-            self.shifts = shifts
-            self.n_img = len(shifts)
-        else:
-            self.n_img = 25
-            self.shifts = generate_shifts(img_size=img_size, n_img=self.n_img)
-
-        self.probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
-        self.probe = torch.cat(
-            [
-                self.shift(self.probe, x_shift, y_shift)
-                for x_shift, y_shift in self.shifts
-            ],
+        probe = probe / self.get_overlap_img(self.shifts).mean().sqrt()
+        probe = torch.cat(
+            [self.shift(probe, x_shift, y_shift) for x_shift, y_shift in self.shifts],
             dim=0,
         ).unsqueeze(0)
+
+        self.register_buffer("probe", probe)
+        self.to(device)
 
     def A(self, x, **kwargs):
         """
