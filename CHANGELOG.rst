@@ -11,6 +11,9 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
