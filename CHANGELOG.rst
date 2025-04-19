@@ -11,12 +11,15 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add multi-operator unsup adversarial loss (:gh:`409` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
 
+- Fix UAIR loss (:gh:`409` by `Andrew Wang`_)
 
 v0.3
 ----------------
