@@ -19,6 +19,7 @@ METRICS = [
     "NIQE",
     "ERGAS",
     "SAM",
+    "HaarPSI"
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
@@ -58,16 +59,22 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "ERGAS":
-        return metric.ERGAS(factor=4)
+        return metric.ERGAS(factor=4, **kwargs)
     elif metric_name == "SAM":
-        return metric.SpectralAngleMapper()
+        return metric.SpectralAngleMapper(**kwargs)
+    elif metric_name == "HaarPSI":
+        kwargs.pop("norm_inputs")
+        return metric.HaarPSI(norm_inputs="clip", **kwargs)
+    else:
+        raise ValueError("Incorrect metric name.")
 
 
 @pytest.mark.parametrize("metric_name", METRICS)
 @pytest.mark.parametrize("complex_abs", [True])
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
-def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device):
+@pytest.mark.parametrize("channels", [1, 3])
+def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device, channels):
     m = choose_metric(
         metric_name,
         device,
@@ -90,8 +97,14 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device)
         assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
         return
 
+    if channels == 1 and complex_abs:
+        pytest.skip("1 channel can't do complex abs")
+
+    if channels == 1:
+        x = x[:, :1]
+
     if complex_abs:
-        x = x[:, :2, ...]
+        x = x[:, :2]
 
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 

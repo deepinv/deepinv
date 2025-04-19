@@ -12,6 +12,7 @@ New Features
 ^^^^^^^^^^^^
 
 - Estimate sens maps with sigpy, FastMRI load and save maps (:gh:`401` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`401` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
