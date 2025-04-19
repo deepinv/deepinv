@@ -209,7 +209,7 @@ Unlike diffusion sampling methods, MCMC methods generally use a fixed noise leve
         p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-All MCMC methods inherit from :class:`deepinv.sampling.MonteCarlo`.
+All MCMC methods inherit from :class:`deepinv.sampling.BaseSample`.
 We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.
 
 
