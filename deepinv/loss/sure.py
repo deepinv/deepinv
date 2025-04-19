@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from deepinv.models.base import Reconstructor
     from deepinv.physics.forward import Physics
 
+
 def hutch_div(y, physics, f, mc_iter=1, rng=None):
     r"""
     Hutch divergence for A(f(x)).
