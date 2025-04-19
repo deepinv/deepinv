@@ -28,7 +28,7 @@ def imsize():
     return (3, 64, 64)
 
 
-def choose_adversarial_combo(combo_name, imsize, device, dataset):
+def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
     unet = dinv.models.UNet(
         in_channels=imsize[0],
         out_channels=imsize[0],
@@ -70,8 +70,12 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset):
     elif combo_name == "AmbientGAN":
         generator = csgm_generator
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)
-        gen_loss = adversarial.UnsupAdversarialGeneratorLoss(device=device)
-        dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
+        gen_loss = adversarial.UnsupAdversarialGeneratorLoss(
+            device=device, metric=metric
+        )
+        dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(
+            device=device, metric=metric
+        )
     elif combo_name == "MultiOperatorAdversarial":
         generator = unet
         discrimin = dinv.models.SkipConvDiscriminator(
@@ -85,21 +89,28 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset):
             dataloader_factory=dataloader_factory,
             physics_generator_factory=physics_generator_factory,
             device=device,
+            metric=metric,
         )
         dis_loss = adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss(
             dataloader_factory=dataloader_factory,
             physics_generator_factory=physics_generator_factory,
             device=device,
+            metric=metric,
         )
 
     return generator, discrimin, gen_loss, dis_loss
 
 
 @pytest.mark.parametrize("combo_name", ADVERSARIAL_COMBOS)
-def test_adversarial_training(combo_name, imsize, device, physics, dataset):
+@pytest.mark.parametrize("metric", [None, "A_adjoint"])
+def test_adversarial_training(combo_name, imsize, device, physics, dataset, metric):
     model, D, gen_loss, dis_loss = choose_adversarial_combo(
-        combo_name, imsize, device, dataset
+        combo_name, imsize, device, dataset, metric
     )
+    if metric is not None and isinstance(
+        dis_loss, adversarial.SupAdversarialDiscriminatorLoss
+    ):
+        pytest.skip("Metric does not apply for supervised loss.")
 
     optimizer = dinv.training.adversarial.AdversarialOptimizer(
         torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-8),

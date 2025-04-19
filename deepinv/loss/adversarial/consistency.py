@@ -159,8 +159,8 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
         :param deepinv.physics.Physics physics: measurement operator.
         """
         if self.metric is not None:
-            x_tilde = physics.__getattr__(self.metric)(y)
-            x_hat = physics.__getattr__(self.metric)(y_hat)
+            x_tilde = getattr(physics, self.metric)(y)
+            x_hat = getattr(physics, self.metric)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y, y_hat, D)
@@ -219,8 +219,8 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
         :param deepinv.physics.Physics physics: measurement operator.
         """
         if self.metric is not None:
-            x_tilde = physics.__getattr__(self.metric)(y)
-            x_hat = physics.__getattr__(self.metric)(y_hat)
+            x_tilde = getattr(physics, self.metric)(y)
+            x_hat = getattr(physics, self.metric)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y, y_hat, D)
@@ -229,7 +229,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 class MultiOperatorUnsupAdversarialGeneratorLoss(
     MultiOperatorMixin, UnsupAdversarialGeneratorLoss
 ):
-    """Multi-operator unsupervised adversarial loss for generator.
+    r"""Multi-operator unsupervised adversarial loss for generator.
 
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
 
@@ -313,8 +313,8 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
 
         if self.metric is not None:
             physics_full = self.physics_like(physics)
-            x_tilde = physics_full.__getattr__(self.metric)(y_tilde)
-            x_hat = physics_new.__getattr__(self.metric)(y_hat)
+            x_tilde = getattr(physics_full, self.metric)(y_tilde)
+            x_hat = getattr(physics_new, self.metric)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y_tilde, y_hat, D)
@@ -323,7 +323,7 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
 class MultiOperatorUnsupAdversarialDiscriminatorLoss(
     MultiOperatorMixin, UnsupAdversarialDiscriminatorLoss
 ):
-    """Multi-operator unsupervised adversarial loss for discriminator.
+    r"""Multi-operator unsupervised adversarial loss for discriminator.
 
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
 
@@ -363,8 +363,8 @@ class MultiOperatorUnsupAdversarialDiscriminatorLoss(
 
         if self.metric is not None:
             physics_full = self.physics_like(physics)
-            x_tilde = physics_full.__getattr__(self.metric)(y_tilde)
-            x_hat = physics_new.__getattr__(self.metric)(y_hat)
+            x_tilde = getattr(physics_full, self.metric)(y_tilde)
+            x_hat = getattr(physics_new, self.metric)(y_hat)
             return self.adversarial_loss(x_tilde, x_hat, D)
         else:
             return self.adversarial_loss(y_tilde, y_hat, D)

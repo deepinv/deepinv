@@ -61,9 +61,9 @@ class MultiOperatorMixin:
         physics_new = deepcopy(physics)
         if hasattr(physics, "mask"):
             if isinstance(physics.mask, Tensor):
-                physics_new.mask = torch.ones_like(physics.mask)
+                physics_new.update(mask=torch.ones_like(physics.mask))
             elif isinstance(physics.mask, float):
-                physics_new.mask = 1.0
+                physics_new.update(mask=1.0)
             else:
                 raise ValueError("physics mask must be either Tensor or float.")
         return physics_new
