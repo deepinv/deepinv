@@ -550,7 +550,7 @@ class HaarPSI(Metric):
         C: float = 5.0,
         alpha: float = 4.9,
         preprocess_with_subsampling: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.C = C
