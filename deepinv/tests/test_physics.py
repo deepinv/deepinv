@@ -526,9 +526,9 @@ def test_operators_norm(name, device, rng):
     if name == "radio_weighted":  # weighted nufft norm is not tested
         return
 
-    # if name == "singlepixel" or name == "CS":
-    #     device = torch.device("cpu")
-
+    if name == "singlepixel" or name == "CS":
+        device = torch.device("cpu")
+        rng = torch.Generator("cpu")
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
@@ -1012,7 +1012,6 @@ def test_tomography(device):
 
     :param device: (torch.device) cpu or cuda:x
     """
-    PI = 4 * torch.ones(1).atan()
     for normalize in [True, False]:
         for parallel_computation in [True, False]:
             for fan_beam in [True, False]:
@@ -1031,7 +1030,7 @@ def test_tomography(device):
                     x = torch.randn(imsize, device=device).unsqueeze(0)
                     r = (
                         physics.A_adjoint(physics.A(x))
-                        * PI.item()
+                        * torch.pi
                         / (2 * len(physics.radon.theta))
                     )
                     y = physics.A(r)
