@@ -11,6 +11,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Add ENSURE loss (:gh:`430` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 

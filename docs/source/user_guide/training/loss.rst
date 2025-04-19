@@ -74,6 +74,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.ScoreLoss`
      - Poisson, Gaussian or Gamma noise
      - No
+   * - :class:`deepinv.loss.SureGaussianLoss`
+     - Gaussian noise and multiple forward operators
+     - No
 
 In order to learn from incomplete data, you can either:
 
