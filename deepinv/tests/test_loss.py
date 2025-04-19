@@ -127,7 +127,7 @@ def choose_loss(loss_name, rng=None):
     elif loss_name == "vortex":
         loss.append(
             dinv.loss.AugmentConsistencyLoss(
-                T_1=dinv.transform.RandomNoise(), T_2=dinv.transform.Shift()
+                T_i=dinv.transform.RandomNoise(), T_e=dinv.transform.Shift()
             )
         )
     else:
