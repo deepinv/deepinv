@@ -13,7 +13,15 @@ from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 from conftest import no_plot
 
-LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = [
+    "sup",
+    "sup_log_train_batch",
+    "mcei",
+    "mcei-scale",
+    "mcei-homography",
+    "r2r",
+    "ensure",
+]
 
 LIST_SURE = [
     "Gaussian",
@@ -91,7 +99,7 @@ def test_jacobian_spectral_values(toymatrix, reduction):
     assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
-def choose_loss(loss_name, rng=None):
+def choose_loss(loss_name, rng=None, imsize=None):
     loss = []
     if loss_name == "mcei":
         loss.append(dinv.loss.MCLoss())
@@ -116,6 +124,13 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
+    elif loss_name == "ensure":
+        loss.append(
+            dinv.loss.ENSURELoss(
+                0.01,
+                dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
@@ -276,7 +291,7 @@ def test_notraining(physics, tmp_path, imsize, device):
 @pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     # choose training losses
-    loss = choose_loss(loss_name, rng)
+    loss = choose_loss(loss_name, rng, imsize)
 
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
@@ -307,7 +322,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=True,
+        plot_images=(loss_name == LOSSES[0]),  # save time
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
