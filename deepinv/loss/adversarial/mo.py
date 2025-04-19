@@ -4,6 +4,7 @@ from copy import deepcopy
 
 from torch.utils.data import DataLoader
 from torch import Tensor
+import torch
 
 if TYPE_CHECKING:
     from deepinv.physics.generator.base import PhysicsGenerator
@@ -47,9 +48,25 @@ class MultiOperatorMixin:
         if self.physics_generator is not None:
             physics_cur = deepcopy(physics)
             params = self.physics_generator.step(batch_size=batch_size)
-            physics_cur.update_parameters(**params)
+            physics_cur.update(**params)
             return physics_cur
         return physics
+
+    def physics_like(self, physics: Physics) -> Physics:
+        """Copy physics, setting masks to ones (fully-sampled).
+
+        :param deepinv.physics.Physics physics: input physics.
+        :return deepinv.physics.Physics: new physics with fully-sampled mask of ones.
+        """
+        physics_new = deepcopy(physics)
+        if hasattr(physics, "mask"):
+            if isinstance(physics.mask, Tensor):
+                physics_new.mask = torch.ones_like(physics.mask)
+            elif isinstance(physics.mask, float):
+                physics_new.mask = 1.0
+            else:
+                raise ValueError("physics mask must be either Tensor or float.")
+        return physics_new
 
     def next_data(self) -> Tensor:
         """Return new data samples.

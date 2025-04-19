@@ -120,10 +120,12 @@ class ESRGANDiscriminator(nn.Module):
 
     :param tuple input_shape: shape of input image
     :param list[int] hidden_dims: number of channels in each hidden layer.
-    :param bool bn: whether to have batchnorm layers.
+    :param bool batch_norm: whether to have batchnorm layers.
     """
 
-    def __init__(self, input_shape: tuple, hidden_dims=[64, 128, 256, 512], bn=True):
+    def __init__(
+        self, input_shape: tuple, hidden_dims=[64, 128, 256, 512], batch_norm=True
+    ):
         super().__init__()
         self.input_shape = input_shape
         in_channels, in_height, in_width = self.input_shape
@@ -137,13 +139,13 @@ class ESRGANDiscriminator(nn.Module):
             layers.append(
                 nn.Conv2d(in_filters, out_filters, kernel_size=3, stride=1, padding=1)
             )
-            if not first_block and bn:
+            if not first_block and batch_norm:
                 layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             layers.append(
                 nn.Conv2d(out_filters, out_filters, kernel_size=3, stride=2, padding=1)
             )
-            if bn:
+            if batch_norm:
                 layers.append(nn.BatchNorm2d(out_filters))
             layers.append(nn.LeakyReLU(0.2, inplace=True))
             return layers
