@@ -7,6 +7,7 @@ import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.physics.mri import MRI, MRIMixin
+from deepinv.physics.inpainting import Inpainting
 
 if TYPE_CHECKING:
     from deepinv.physics.generator.base import PhysicsGenerator
@@ -453,7 +454,7 @@ class ENSURELoss(SureGaussianLoss):
     r"""
     ENSURE loss for image reconstruction in Gaussian noise.
 
-    The loss function extends :class:`deepinv.loss.SUREGaussianLoss` and is designed for the following noise model:
+    The loss function extends :class:`.SUREGaussianLoss` and is designed for the following noise model:
 
     .. math::
 
@@ -475,7 +476,7 @@ class ENSURELoss(SureGaussianLoss):
 
     .. warning::
 
-        We currently only provide an implementation for the :class:`single-coil MRI setting <deepinv.physics.MRI>`,
+        We currently only provide an implementation for :class:`single-coil MRI <deepinv.physics.MRI>` and :class:`inpainting <deepinv.physics.Inpainting>`,
         where `A^\top=A^\dagger` such that :math:`P=A^{\top}A,W^2=\mathbb{E}\left[P\right]`.
 
     :param float sigma: Standard deviation of the Gaussian noise.
@@ -515,6 +516,8 @@ class ENSURELoss(SureGaussianLoss):
     ) -> Tensor:
         if isinstance(physics, MRI):
             metric = lambda y: MRIMixin().kspace_to_im(y * self.dsqrti)
+        elif isinstance(physics, Inpainting):
+            metric = lambda y: y * self.dsqrti
         else:
             raise ValueError(
                 "ENSURE loss is currently only implemented for single-coil MRI."
