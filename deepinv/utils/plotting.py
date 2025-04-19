@@ -619,7 +619,13 @@ def plot_inset(
     """
 
     fig = plot(
-        img_list, titles, show=False, close=False, return_fig=True, cmap=cmap, figsize=figsize
+        img_list,
+        titles,
+        show=False,
+        close=False,
+        return_fig=True,
+        cmap=cmap,
+        figsize=figsize,
     )
     axs = fig.axes
     batch_size = img_list[0].shape[0]
