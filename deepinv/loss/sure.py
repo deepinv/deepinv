@@ -454,7 +454,7 @@ class ENSURELoss(SureGaussianLoss):
     r"""
     ENSURE loss for image reconstruction in Gaussian noise.
 
-    The loss function extends :class:`deepinv.loss.sure.SUREGaussianLoss` and is designed for the following noise model:
+    The loss function extends :class:`deepinv.loss.SureGaussianLoss` and is designed for the following noise model:
 
     .. math::
 
