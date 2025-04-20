@@ -411,7 +411,7 @@ class LinearPhysics(Physics):
 
     def __mul__(self, other):
         r"""
-        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
+        Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
         The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
@@ -419,15 +419,11 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(
-            self.A_adjoint(x, **kwargs), **kwargs
-        )
         noise = self.noise_model
         sensor = self.sensor_model
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
+        return ComposedLinearPhysics(
+            self,
+            other=other,
             noise_model=noise,
             sensor_model=sensor,
             max_iter=self.max_iter,
@@ -616,6 +612,41 @@ class LinearPhysics(Physics):
             solver=self.solver,
             **kwargs,
         )
+
+
+class ComposedLinearPhysics(LinearPhysics):
+    r"""
+    Composing two linear physics
+    """
+
+    def __init__(
+        self, physics: LinearPhysics, other: LinearPhysics, device=None, *args, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.physics = physics
+        self.other = other
+        self.to(device)
+
+    def A(self, x: Tensor, *args, **kwargs) -> Tensor:
+        self.update_parameters(**kwargs)
+        x = self.other.A(x, *args, **kwargs)
+        x = self.physics.A(x, *args, **kwargs)
+        return x
+
+    def A_adjoint(self, x: Tensor, *args, **kwargs) -> Tensor:
+        self.update_parameters(**kwargs)
+        x = self.other.A_adjoint(x, *args, **kwargs)
+        x = self.physics.A_adjoint(x, *args, **kwargs)
+        return x
+
+    def to(self, *args, **kwargs):
+        self.physics.to(*args, **kwargs)
+        self.other.to(*args, **kwargs)
+        return self
+
+    def update_parameters(self, **kwargs):
+        self.physics.update_parameters(**kwargs)
+        self.other.update_parameters(**kwargs)
 
 
 class DecomposablePhysics(LinearPhysics):

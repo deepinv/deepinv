@@ -7,6 +7,7 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
+from deepinv.utils import TensorList
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -1278,56 +1279,80 @@ def find_operator(name, device):
 #     assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0], device=device))
 
 
-# @pytest.mark.parametrize("name", OPERATORS)
-# def test_operators_differentiability(name, device):
-#     r"""
-#     Tests if a forward operator is differentiable (can perform back-propagation).
+@pytest.mark.parametrize("name", OPERATORS)
+def test_operators_differentiability(name, device):
+    r"""
+    Tests if a forward operator is differentiable (can perform back-propagation).
 
-#     :param name: operator name (see find_operator)
-#     :param device: (torch.device) cpu or cuda:x
-#     :return: asserts differentiability
-#     """
-#     physics, imsize, _, dtype = find_operator(name, device)
+    :param name: operator name (see find_operator)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts differentiability
+    """
+    physics, imsize, _, dtype = find_operator(name, device)
 
-#     # Torch auto grad only do not support complex tensor yet
-#     if name == "radio":
-#         dtype = torch.cfloat
+    if name == "radio":
+        dtype = torch.cfloat
 
-#     # Differentiate w.r.t to input image
-#     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-#     y = physics.A(x)
-#     x_hat = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0).requires_grad_(True)
-#     with torch.enable_grad():
-#         loss = torch.nn.functional.mse_loss(physics.A(x_hat), y)
-#         loss.backward()
-#     assert x_hat.requires_grad == True
-#     assert x_hat.grad is not None
-#     assert torch.all(~torch.isnan(x_hat.grad))
+    # Only test for floating point tensor
+    valid_dtype = [torch.float16, torch.float32, torch.float64]
+    if dtype in valid_dtype:
+        # Differentiate w.r.t to input image
+        x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+        y = physics.A(x)
+        x_hat = (
+            torch.randn(imsize, device=device, dtype=dtype)
+            .unsqueeze(0)
+            .requires_grad_(True)
+        )
+        with torch.enable_grad():
+            y_hat = physics.A(x_hat)
+            if isinstance(y_hat, TensorList):
+                for y_hat_item, y_item in zip(y_hat.x, y.x):
+                    loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
+                    loss.backward()
+                    assert x_hat.requires_grad == True
+                    assert x_hat.grad is not None
+                    assert torch.all(~torch.isnan(x_hat.grad))
+            else:
+                loss = torch.nn.functional.mse_loss(y_hat, y)
+                loss.backward()
+                assert x_hat.requires_grad == True
+                assert x_hat.grad is not None
+                assert torch.all(~torch.isnan(x_hat.grad))
 
-#     # Differentiate w.r.t to physics parameters
-#     if not physics._buffers == dict(): # If the buffers are not empty (i.e. there is a parameter)
-#         x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
-#         parameters = dict(physics.named_buffers()).copy()
-#         # Set requires grad
-#         for k, v in parameters.items():
-#             parameters[k] = v.requires_grad_(True)
+        # Differentiate w.r.t to physics parameters
+        if (
+            not physics._buffers == dict()
+        ):  # If the buffers are not empty (i.e. there is a parameter)
+            x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+            parameters = dict(physics.named_buffers()).copy()
+            # Set requires grad
+            for k, v in parameters.items():
+                if v.dtype in valid_dtype:
+                    parameters[k] = v.requires_grad_(True)
 
-#         with torch.enable_grad():
-#             loss = torch.nn.functional.mse_loss(physics.A(x, **parameters), y)
-#             loss.backward()
+            with torch.enable_grad():
+                y_hat = physics.A(x, **parameters)
+                if isinstance(y_hat, TensorList):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x):
+                        loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
+                        loss.backward()
 
-#         for k, v in parameters.items():
-#             assert v.requires_grad == True
-#             assert v.grad is not None
-#             assert torch.all(~torch.isnan(v.grad))
+                        for k, v in parameters.items():
+                            if v.dtype in valid_dtype:
+                                assert v.requires_grad == True
+                                assert v.grad is not None
+                                assert torch.all(~torch.isnan(v.grad))
 
-#         # the buffers are the same as the parameters (same pointers)
-#         for k, v in physics.named_buffers():
-#             assert v.requires_grad == True
-#             assert v.grad is not None
-#             assert torch.all(~torch.isnan(v.grad))
+                else:
+                    loss = torch.nn.functional.mse_loss(y_hat, y)
+                    loss.backward()
 
-from deepinv.utils import TensorList
+                    for k, v in parameters.items():
+                        if v.dtype in valid_dtype:
+                            assert v.requires_grad == True
+                            assert v.grad is not None
+                            assert torch.all(~torch.isnan(v.grad))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -1350,7 +1375,6 @@ def test_device_consistency(name):
     assert y1.device == torch.device("cpu")
     # Move to GPU if cuda is available
     if torch.cuda.is_available():
-        # cuda = dinv.utils.nn.get_freer_gpu()
         torch.manual_seed(11)
         cuda = torch.device("cuda:0")
         physics = physics.to(cuda)

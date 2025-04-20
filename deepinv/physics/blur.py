@@ -72,7 +72,6 @@ class Downsampling(LinearPhysics):
         self.device = device
 
         self.register_buffer("filter", None)
-        self.register_buffer("factor", None)
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
     def A(self, x, filter=None, factor=None, **kwargs):
@@ -167,23 +166,22 @@ class Downsampling(LinearPhysics):
         :param int factor: New downsampling factor to be applied to the input image.
         """
         if factor is not None:
-            self.register_buffer("factor", torch.tensor(factor).to(self.device))
+            assert isinstance(factor, int), "downsampling factor should be an integer"
+            self.factor = factor
 
         if filter is not None:
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(self.device)
             elif filter == "gaussian":
-                filter = gaussian_blur(
-                    sigma=(self.factor.item(), self.factor.item())
-                ).to(self.device)
+                filter = gaussian_blur(sigma=(self.factor, self.factor)).to(self.device)
             elif filter == "bilinear":
-                filter = bilinear_filter(self.factor.item()).to(self.device)
+                filter = bilinear_filter(self.factor).to(self.device)
             elif filter == "bicubic":
-                filter = bicubic_filter(self.factor.item()).to(self.device)
+                filter = bicubic_filter(self.factor).to(self.device)
             elif filter == "sinc":
-                filter = sinc_filter(
-                    self.factor.item(), length=4 * self.factor.item()
-                ).to(self.device)
+                filter = sinc_filter(self.factor, length=4 * self.factor).to(
+                    self.device
+                )
 
             self.register_buffer("filter", filter)
 
@@ -336,16 +334,16 @@ class BlurFFT(DecomposablePhysics):
 
     def __init__(self, img_size, filter=None, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.device = device
         self.img_size = img_size
         self.update_parameters(filter=filter, **kwargs)
+        self.to(device)
 
     def A(self, x, filter=None, **kwargs):
-        self.update_parameters(filter, **kwargs)
+        self.update_parameters(filter=filter, **kwargs)
         return super().A(x)
 
     def A_adjoint(self, x, filter=None, **kwargs):
-        self.update_parameters(filter, **kwargs)
+        self.update_parameters(filter=filter, **kwargs)
         return super().A_adjoint(x)
 
     def V_adjoint(self, x):
@@ -377,12 +375,11 @@ class BlurFFT(DecomposablePhysics):
         if filter is not None:
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
-            filter = filter.to(self.device)
-            mask = filter_fft_2d(filter, self.img_size).to(self.device)
-            self.angle = torch.angle(mask)
-            self.angle = torch.exp(-1.0j * self.angle).to(self.device)
+            mask = filter_fft_2d(filter, self.img_size)
+            angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
+            self.register_buffer("angle", torch.exp(-1.0j * angle))
             self.register_buffer("mask", mask)
             self.register_buffer("filter", filter)
 
