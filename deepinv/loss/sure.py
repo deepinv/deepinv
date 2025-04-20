@@ -520,7 +520,7 @@ class ENSURELoss(SureGaussianLoss):
             metric = lambda y: y * self.dsqrti
         else:
             raise ValueError(
-                "ENSURE loss is currently only implemented for single-coil MRI."
+                "ENSURE loss is currently only implemented for single-coil MRI or inpainting."
             )
 
         y1 = physics.A(x_net)
