@@ -635,8 +635,8 @@ class ComposedLinearPhysics(LinearPhysics):
 
     def A_adjoint(self, x: Tensor, *args, **kwargs) -> Tensor:
         self.update_parameters(**kwargs)
-        x = self.other.A_adjoint(x, *args, **kwargs)
         x = self.physics.A_adjoint(x, *args, **kwargs)
+        x = self.other.A_adjoint(x, *args, **kwargs)
         return x
 
     def to(self, *args, **kwargs):

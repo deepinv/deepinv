@@ -158,8 +158,10 @@ class StructuredRandom(LinearPhysics):
                 ],
                 dim=0,
             )
-
+        elif isinstance(diagonals, list):
+            diagonals = torch.stack(diagonals, dim=0)
         self.register_buffer("diagonals", diagonals)
+        self.to(device)
 
     def A(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         if self.mode == "oversampling":

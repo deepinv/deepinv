@@ -178,6 +178,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         )
         super().__init__(B, **kwargs)
         self.name = "Random Phase Retrieval"
+        self.to(device)
 
     def get_A_squared_mean(self):
         return self.B._A.var() + self.B._A.mean() ** 2
@@ -296,6 +297,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
         super().__init__(B, **kwargs)
         self.name = "Structured Random Phase Retrieval"
+        self.to(device)
 
     def B_dagger(self, y):
         return self.B.A_adjoint(y)
@@ -475,6 +477,7 @@ class Ptychography(PhaseRetrieval):
 
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"
+        self.to(device)
 
 
 def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
