@@ -70,15 +70,14 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
 
 
 @pytest.mark.parametrize("metric_name", METRICS)
-@pytest.mark.parametrize("complex_abs", [True])
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
-@pytest.mark.parametrize("channels", [1, 3])
-def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device, channels):
+@pytest.mark.parametrize("channels", [1, 2, 3])
+def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
     m = choose_metric(
         metric_name,
         device,
-        complex_abs=complex_abs,
+        complex_abs=channels == 2,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
         reduction="mean",
@@ -97,15 +96,12 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device,
         assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
         return
 
-    if channels == 1 and complex_abs:
-        pytest.skip("1 channel can't do complex abs")
+    x = x[:, :channels]
 
-    if channels == 1:
-        x = x[:, :1]
+    if metric_name in ("SAM", "ERGAS") and channels < 3:
+        pytest.skip("ERGAS or SAM must have multichannels.")
 
-    if complex_abs:
-        x = x[:, :2]
-
+    print("SHAPE", x.shape)
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
     # Test metric worse when image worse
@@ -128,7 +124,7 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device,
     m = choose_metric(
         metric_name,
         device,
-        complex_abs=complex_abs,
+        complex_abs=channels == 2,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
         reduction="none",
