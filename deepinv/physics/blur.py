@@ -73,6 +73,7 @@ class Downsampling(LinearPhysics):
 
         self.register_buffer("filter", None)
         self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.to(device)
 
     def A(self, x, filter=None, factor=None, **kwargs):
         r"""
@@ -379,10 +380,11 @@ class BlurFFT(DecomposablePhysics):
             angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
+
+            self.register_buffer("filter", filter)
             self.register_buffer("angle", torch.exp(-1.0j * angle))
             self.register_buffer("mask", mask)
-            self.register_buffer("filter", filter)
-
+        
         super().update_parameters(**kwargs)
 
 

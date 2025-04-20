@@ -249,7 +249,7 @@ class MRI(MRIMixin, DecomposablePhysics):
 
     def V(self, x: Tensor) -> Tensor:
         return self.kspace_to_im(x, three_d=self.three_d)
-
+    
     def A_adjoint(
         self,
         y: Tensor,
