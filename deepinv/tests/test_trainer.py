@@ -263,6 +263,10 @@ def test_trainer_physics_generator_params(
             self.update_parameters(f=f)
             return x.sum() * self.f
 
+        def update_parameters(self, f: float, **kwargs):
+            self.f = f
+            super().update_parameters(**kwargs)
+
     physics = DummyPhysics()
     if noise == "gaussian":
         physics.set_noise_model(GaussianNoise(rng=rng1))
