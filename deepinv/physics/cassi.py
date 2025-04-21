@@ -98,6 +98,7 @@ class CompressiveSpectralImaging(LinearPhysics):
             mask = self.pad(mask)
 
         self.register_buffer("mask", mask)
+        self.to(device)
 
     def pad(self, x: Tensor) -> Tensor:
         """Pad image on bottom or on right.

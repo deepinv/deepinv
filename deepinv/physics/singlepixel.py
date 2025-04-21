@@ -140,6 +140,7 @@ class SinglePixelCamera(DecomposablePhysics):
             self.register_buffer("u", u.to(device).type(dtype))
 
         self.register_buffer("mask", mask)
+        self.to(device)
 
     def V_adjoint(self, x):
         if self.fast:

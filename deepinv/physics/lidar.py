@@ -47,6 +47,7 @@ class SinglePhotonLidar(Physics):
         )  # set impulse response function
         self.register_buffer("grid", grid.unsqueeze(0).unsqueeze(2).unsqueeze(3))
         self.register_buffer("sigma", torch.tensor(sigma, device=device))
+        self.to(device)
 
     def A(self, x, **kwargs):
         r"""

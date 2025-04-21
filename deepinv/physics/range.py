@@ -63,6 +63,7 @@ class Decolorize(DecomposablePhysics):
         self.register_buffer(
             "mask", torch.linalg.vector_norm(self.srf, dim=1, keepdim=True)
         )
+        self.to(device)
 
     def V_adjoint(self, x):
         if x.shape[1] != self.srf.shape[1]:

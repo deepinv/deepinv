@@ -395,7 +395,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
 
-        self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
+        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        self.to(device)
 
     def A(self, x, mask=None, coil_maps=None, **kwargs):
         r"""

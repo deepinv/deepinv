@@ -72,7 +72,12 @@ class NoiseModel(nn.Module):
         r"""
         Reset the random number generator to its initial state.
         """
-        self.rng.set_state(self.initial_random_state)
+        if self.rng is not None:
+            self.rng.set_state(self.initial_random_state)
+        else:
+            warnings.warn(
+                "Cannot reset state for random number generator because it is not initialized. This is ignore."
+            )
 
     def rand_like(self, input: torch.Tensor, seed: int = None):
         r"""

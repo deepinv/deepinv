@@ -136,7 +136,9 @@ def test_get_samples(
         )
         param_name = "filter"
     elif physics_type == "inpainting":
-        physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, rng=rng)
+        physics = dinv.physics.Inpainting(
+            tensor_size=imsize, device=device, rng=rng, mask=0.1
+        )
         param_name = "mask"
 
     # Define physics generator

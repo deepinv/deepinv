@@ -254,8 +254,11 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
-        filter = filter.to(device) if isinstance(filter, torch.Tensor) else filter
+        assert (
+            isinstance(filter, Tensor) or filter is None
+        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
         self.register_buffer("filter", filter)
+        self.to(device)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -333,21 +336,24 @@ class BlurFFT(DecomposablePhysics):
                   [0.0000, 0.0000, 0.0000]]]])
     """
 
-    def __init__(self, img_size, filter=None, device="cpu", **kwargs):
+    def __init__(self, img_size, filter: Tensor = None, device="cpu", **kwargs):
         super().__init__(**kwargs)
         self.img_size = img_size
+        assert (
+            isinstance(filter, Tensor) or filter is None
+        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
         self.update_parameters(filter=filter, **kwargs)
         self.to(device)
 
-    def A(self, x, filter=None, **kwargs):
+    def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         self.update_parameters(filter=filter, **kwargs)
         return super().A(x)
 
-    def A_adjoint(self, x, filter=None, **kwargs):
+    def A_adjoint(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
         self.update_parameters(filter=filter, **kwargs)
         return super().A_adjoint(x)
 
-    def V_adjoint(self, x):
+    def V_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)
@@ -373,7 +379,7 @@ class BlurFFT(DecomposablePhysics):
 
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
-        if filter is not None:
+        if filter is not None and isinstance(filter, Tensor):
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
             mask = filter_fft_2d(filter, self.img_size)
@@ -431,11 +437,19 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, filters=None, multipliers=None, padding=None, **kwargs):
+    def __init__(
+        self,
+        filters: Tensor = None,
+        multipliers: Tensor = None,
+        padding: str = None,
+        device="cpu",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
             self.update_parameters(filters, multipliers, padding, **kwargs)
+        self.to(device)
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
@@ -503,9 +517,9 @@ class SpaceVaryingBlur(LinearPhysics):
         :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
-        if filters is not None:
+        if filters is not None and isinstance(filters, Tensor):
             self.register_buffer("filters", filters)
-        if multipliers is not None:
+        if multipliers is not None and isinstance(filters, Tensor):
             self.register_buffer("multipliers", multipliers)
         if padding is not None:
             self.padding = padding

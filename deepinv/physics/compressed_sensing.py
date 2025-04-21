@@ -154,6 +154,7 @@ class CompressedSensing(LinearPhysics):
             self.register_buffer("_A", _A)
             self.register_buffer("_A_dagger", _A_dagger)
             self.register_buffer("_A_adjoint", self._A.conj().T.type(dtype).to(device))
+        self.to(device)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
