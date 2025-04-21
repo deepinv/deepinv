@@ -58,6 +58,7 @@ Fixed
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
+- Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
 - Fix device inconsistency in test files, physics classes and noise models (:gh:`TODO` by `Minh Hai Nguyen`_)
 
 
