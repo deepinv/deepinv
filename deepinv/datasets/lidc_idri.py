@@ -5,6 +5,8 @@ from typing import (
     Optional,
 )
 import os
+
+import numpy
 import torch
 import numpy as np
 
@@ -52,6 +54,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
+    :param bool hu: If True, convert pixel values to Hounsfield Units (HU). Default is False.
 
     |sep|
 
@@ -88,12 +91,14 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         self,
         root: str,
         transform: Optional[Callable] = None,
+        hu: bool = False,
     ) -> None:
         if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 
         self.root = root
         self.transform = transform
+        self.hu = hu
 
         ### LOAD CSV to find CT scan folder paths --------------------------------------
 
@@ -149,11 +154,26 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         slice_fname, scan_folder_path, _ = self.sample_identifiers[idx]
         slice_path = os.path.join(scan_folder_path, slice_fname)
 
+        slice_data = dcmread(slice_path)
+
+        # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
+        # It is obtained from the associated DICOM (.dcm) file, and it is often
+        # int16 but sometimes uint16 (e.g., for idx = 11095).
+        # For homogeneity purposes, we cast them all to int16.
+
         # type: numpy.ndarray
         # dtype: int16
         # shape: (512, 512)
-        # TODO : check impact of the conversion to np.int16
-        slice_array = dcmread(slice_path).pixel_array.astype(np.int16)
+        slice_array = slice_data.pixel_array.astype(np.int16)
+
+        if self.hu:
+            # int16 -> float32
+            slice_array = slice_array.astype(np.float32)
+            # Array units -> Hounsfield Units (HU)
+            # Sources:
+            # https://gist.github.com/somada141/df9af37e567ba566902e
+            # https://fr.mathworks.com/matlabcentral/answers/153570-how-can-i-obtain-hounsfield-units-hu-from-a-dcm-image
+            slice_array = slice_array * slice_data.RescaleSlope + slice_data.RescaleIntercept
 
         if self.transform is not None:
             slice_array = self.transform(slice_array)
