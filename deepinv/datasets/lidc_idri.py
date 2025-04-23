@@ -18,10 +18,11 @@ except:
         "pandas is not available. Please install the pandas package with `pip install pandas`."
     )
 try:
+    import pydicom
     from pydicom import dcmread
 except:
     error_import = ImportError(
-        "dicom is not available. Please install the dicom package with `pip install dicom`."
+        "pydicom is not available. Please install the pydicom package with `pip install pydicom`."
     )
 
 
@@ -156,24 +157,28 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         slice_data = dcmread(slice_path)
 
-        # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
-        # It is obtained from the associated DICOM (.dcm) file, and it is often
-        # int16 but sometimes uint16 (e.g., for idx = 11095).
-        # For homogeneity purposes, we cast them all to int16.
-
-        # type: numpy.ndarray
-        # dtype: int16
-        # shape: (512, 512)
-        slice_array = slice_data.pixel_array.astype(np.int16)
-
         if self.hu:
-            # int16 -> float32
+            # Raw CT values -> Hounsfield Units (HUs)
+            # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
+            slice_array = pydicom.pixels.apply_rescale(slice_data.pixel_array, slice_data)
+
+            # NOTE: pydicom.pixels.apply_rescale returns float64 arrays. Most
+            # applications do not need double precision so we cast it back to
+            # float32 for improved memory efficiency.
+
+            # float64 -> float32
             slice_array = slice_array.astype(np.float32)
-            # Array units -> Hounsfield Units (HU)
-            # Sources:
-            # https://gist.github.com/somada141/df9af37e567ba566902e
-            # https://fr.mathworks.com/matlabcentral/answers/153570-how-can-i-obtain-hounsfield-units-hu-from-a-dcm-image
-            slice_array = slice_array * slice_data.RescaleSlope + slice_data.RescaleIntercept
+        else:
+            # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
+            # It is obtained from the associated DICOM (.dcm) file, and it is often
+            # int16 but sometimes uint16 (e.g., for idx = 11095).
+            # For homogeneity purposes, we cast them all to int16.
+
+            # type: numpy.ndarray
+            # dtype: int16|float32
+            # shape: (512, 512)
+            slice_array = slice_data.pixel_array
+            slice_array = slice_array.astype(np.int16)
 
         if self.transform is not None:
             slice_array = self.transform(slice_array)
