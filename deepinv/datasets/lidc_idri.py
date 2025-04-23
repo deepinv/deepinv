@@ -158,24 +158,30 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         slice_data = dcmread(slice_path)
 
         if self.hu:
-            # Raw CT values -> Hounsfield Units (HUs)
-            # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
-            slice_array = pydicom.pixels.apply_rescale(slice_data.pixel_array, slice_data)
+            # Raw CT values -> Hounsfield Units (HUs)
+            # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
+            slice_array = pydicom.pixels.apply_rescale(
+                slice_data.pixel_array, slice_data
+            )
 
-            # NOTE: pydicom.pixels.apply_rescale returns float64 arrays. Most
+            # NOTE: pydicom.pixels.apply_rescale returns float64 arrays. Most
             # applications do not need double precision so we cast it back to
             # float32 for improved memory efficiency.
 
             # float64 -> float32
+
+            # type: numpy.ndarray
+            # dtype: float32
+            # shape: (512, 512)
             slice_array = slice_array.astype(np.float32)
         else:
             # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
             # It is obtained from the associated DICOM (.dcm) file, and it is often
             # int16 but sometimes uint16 (e.g., for idx = 11095).
-            # For homogeneity purposes, we cast them all to int16.
+            # For homogeneity purposes, we cast them all to int16.
 
             # type: numpy.ndarray
-            # dtype: int16|float32
+            # dtype: int16
             # shape: (512, 512)
             slice_array = slice_data.pixel_array
             slice_array = slice_array.astype(np.int16)
