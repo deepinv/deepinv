@@ -45,6 +45,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
