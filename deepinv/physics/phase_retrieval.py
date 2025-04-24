@@ -525,8 +525,8 @@ def generate_shifts(img_size, n_img=25, fov=None):
         raise ValueError("n_img needs to be a perfect square")
 
     side_n_img = int(np.sqrt(n_img))
-    shifts = np.linspace(start_shift, end_shift, side_n_img).astype(int)
-    y_shifts, x_shifts = np.meshgrid(shifts, shifts, indexing="ij")
-    return np.concatenate(
-        [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], axis=1
+    shifts = torch.linspace(start_shift, end_shift, side_n_img).to(torch.int32)
+    y_shifts, x_shifts = torch.meshgrid(shifts, shifts, indexing="ij")
+    return torch.concatenate(
+        [x_shifts.reshape(n_img, 1), y_shifts.reshape(n_img, 1)], dim=1
     )
