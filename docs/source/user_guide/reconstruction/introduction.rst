@@ -76,3 +76,13 @@ description of their reconstruction performance and speed.
         Some algorithms might be better at reconstructing images with good perceptual quality (e.g. diffusion methods)
         whereas other methods are better at reconstructing images with low distortion (close to the ground truth).
 
+
+Equivariant models
+^^^^^^^^^^^^^^^^^^
+Reconstructors and denoisers can be turned into equivariant versions by wrapping them with the
+:class:`deepinv.models.EquivariantReconstructor` or :class:`deepinv.models.EquivariantDenoiser` classes, which symmetrize the reconstructor/denoiser
+with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate`
+or :class:`deepinv.transform.Reflect`. You retain full flexibility by passing in the transform of choice.
+The models can either be averaged over the entire group of transformation (making the denoiser equivariant) or
+performed on 1 or n transformations sampled uniformly at random in the group, making the models a Monte-Carlo
+estimator of the exact equivariant model.

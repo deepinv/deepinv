@@ -212,6 +212,31 @@ def test_transform_identity(
     )
 
 
+@pytest.mark.parametrize("transform_name", TRANSFORMS)
+@pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
+def test_batchwise_transform(
+    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng
+):
+    if add_time_dim:
+        pattern = torch.stack((pattern, pattern), dim=2)
+
+    if device.type != "cpu" and transform_name in (
+        "homography",
+        "euclidean",
+        "similarity",
+        "affine",
+        "pantiltrotate",
+    ):
+        # more reliable with a cpu rng here
+        rng = torch.Generator().manual_seed(0)
+
+    t = choose_transform(transform_name, device=device, rng=rng)
+    params = t.get_params(pattern)
+    x1 = t(pattern, **params)
+    x2 = t(torch.cat([pattern] * t.n_trans), batchwise=False, **params)
+    assert torch.allclose(x1, x2)
+
+
 def test_rotate_90():
     # Test if rotate with theta=90 results in exact pixel rotation
     x = torch.randn(1, 2, 16, 16)
@@ -235,6 +260,13 @@ def test_batch_size(batch_size):
     xt = transform.symmetrize(lambda x: x, average=True, collate_batch=False)(x)
     assert torch.allclose(x, xt)
 
+    # Test model symmetrization
+    physics = dinv.physics.Denoising()
+    model = dinv.models.ArtifactRemoval(backbone_net=lambda x, sigma: x)
+    xt = transform.symmetrize(model, average=True, collate_batch=False)(x, physics)
+    assert torch.allclose(x, xt)
+    xt = transform.symmetrize(model, average=True, collate_batch=True)(x, physics)
+    assert torch.allclose(x, xt)
 
 def test_shift_time():
     # Video with moving line
