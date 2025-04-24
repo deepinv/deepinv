@@ -3,6 +3,8 @@ from itertools import product
 from typing import Tuple, Callable, Any
 import torch
 from deepinv.physics.time import TimeMixin
+from deepinv.models.base import Reconstructor
+from deepinv.physics.forward import LinearPhysics
 
 
 class TransformParam(torch.Tensor):
@@ -58,6 +60,13 @@ class Transform(torch.nn.Module, TimeMixin):
         Deterministically transform an image:
 
         >>> y = transform(transform(x, x_shift=[1]), x_shift=[-1])
+        >>> torch.all(x == y)
+        tensor(True)
+
+        Deterministically apply transform and inverse to an image:
+
+        >>> params = {'x_shift':[1]}
+        >>> y = transform.inverse(transform(x, **params), **params)
         >>> torch.all(x == y)
         tensor(True)
 
@@ -167,12 +176,14 @@ class Transform(torch.nn.Module, TimeMixin):
         """
         return NotImplementedError()
 
-    def transform(self, x: torch.Tensor, **params) -> torch.Tensor:
+    def transform(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Transform image given transform parameters.
 
         Given randomly generated params (e.g. rotation degrees), deterministically transform the image x.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
+        :param bool batchwise: if True, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
+            If False, params will attempt to match each image in batch to keep constant ``len(out)=len(x)``. No effect when ``n_trans==1``
         :param params: parameters e.g. degrees or shifts provided as keyword args.
         :return: torch.Tensor: transformed image.
         """
@@ -181,9 +192,26 @@ class Transform(torch.nn.Module, TimeMixin):
             if self._check_x_5D(x) and self.flatten_video_input
             else self._transform
         )
-        return transform(x, **params)
 
-    def forward(self, x: torch.Tensor, **params) -> torch.Tensor:
+        if batchwise:
+            return transform(x, **params)
+
+        assert (
+            len(x) % self.n_trans == 0
+        ), "The number of batches is not divisible by the number of transforms. Set batchwise to True"
+        B = len(x) // self.n_trans
+
+        return torch.cat(
+            [
+                transform(
+                    x[B * i : B * (i + 1)],
+                    **{k: p[[i]] for k, p in params.items() if len(p) == self.n_trans},
+                )
+                for i in range(self.n_trans)
+            ]
+        )
+
+    def forward(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Perform random transformation on image.
 
         Calls ``get_params`` to generate random params for image, then ``transform`` to deterministically transform.
@@ -191,11 +219,12 @@ class Transform(torch.nn.Module, TimeMixin):
         For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
 
         :param torch.Tensor x: input image of shape (B,C,H,W)
+        :param bool batchwise: if True, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
         :return torch.Tensor: randomly transformed images concatenated along the first dimension
         """
-        return self.transform(x, **(self.get_params(x) if not params else params))
+        return self.transform(x, batchwise=batchwise, **(self.get_params(x) if not params else params))
 
-    def inverse(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
+    def inverse(self, x: torch.Tensor, batchwise=False, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group).
 
         For purely deterministic transformation, pass in custom params and ``get_params`` will be ignored.
@@ -206,25 +235,7 @@ class Transform(torch.nn.Module, TimeMixin):
         :return torch.Tensor: randomly transformed images
         """
         inv_params = self.invert_params(self.get_params(x) if not params else params)
-
-        if batchwise:
-            return self.transform(x, **inv_params)
-
-        assert len(x) % self.n_trans == 0, "batchwise must be True"
-        B = len(x) // self.n_trans
-        return torch.cat(
-            [
-                self.transform(
-                    x[i].unsqueeze(0),
-                    **{
-                        k: p[[i // B]]
-                        for k, p in inv_params.items()
-                        if len(p) == self.n_trans
-                    },
-                )
-                for i in range(len(x))
-            ]
-        )
+        return self.transform(x, batchwise=batchwise, **inv_params)
 
     def identity(self, x: torch.Tensor, average: bool = False) -> torch.Tensor:
         """Sanity check function that should do nothing.
@@ -277,6 +288,41 @@ class Transform(torch.nn.Module, TimeMixin):
         :return Callable[[torch.Tensor, Any], torch.Tensor]: decorated function.
         """
 
+        def symmetrized_reconstructor(y, physics, *args, **kwargs):
+            params = self.get_params(physics.A_adjoint(y))
+            if self.constant_shape and collate_batch:
+                # construct n_tran problems and solve them in parallel
+                B = y.size(0)
+                y = torch.cat([y] * self.n_trans)
+                t = LinearPhysics(
+                    A=lambda x: self.transform(x, batchwise=False, **params),
+                    A_adjoint=lambda x: self.inverse(x, batchwise=False, **params),
+                )
+                xt = self.transform(
+                    f(y, physics=physics * t, *args, **kwargs),
+                    batchwise=False,
+                    **params,
+                )
+                return (
+                    xt.reshape((-1, B) + xt.size()[1:]).mean(axis=0) if average else xt
+                )
+            else:
+                out = []
+                for _params in self.iterate_params(params):
+                    # Step through n_trans (or combinations) one-by-one
+                    t = LinearPhysics(
+                        A=lambda x: self.transform(x, **_params),
+                        A_adjoint=lambda x: self.inverse(x, **_params),
+                    )
+                    out.append(
+                        self.transform(
+                            f(y, physics=physics * t, *args, **kwargs), **_params
+                        )
+                    )
+                return (
+                    torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
+                )
+
         def symmetrized(x, *args, **kwargs):
             params = self.get_params(x)
             if self.constant_shape and collate_batch:
@@ -300,11 +346,16 @@ class Transform(torch.nn.Module, TimeMixin):
                     torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
                 )
 
-        return lambda x, *args, **kwargs: (
-            self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
-            if self._check_x_5D(x) and self.flatten_video_input
-            else symmetrized(x, *args, **kwargs)
-        )
+        if isinstance(f, Reconstructor):
+            return lambda y, physics, *args, **kwargs: symmetrized_reconstructor(
+                y, physics, *args, **kwargs
+            )
+        else:
+            return lambda x, *args, **kwargs: (
+                self.wrap_flatten_C(symmetrized)(x, *args, **kwargs)
+                if self._check_x_5D(x) and self.flatten_video_input
+                else symmetrized(x, *args, **kwargs)
+            )
 
     def __mul__(self, other: Transform):
         """
@@ -314,12 +365,31 @@ class Transform(torch.nn.Module, TimeMixin):
         :return: (deepinv.transform.Transform) chained operator
         """
 
+        def interleave_batches(x, N):
+            B = x.size(0)
+            assert B % N == 0, "B must be divisible by N"
+
+            G = B // N  # Number of groups
+            _x = x.view(N, G, *x.shape[1:])  # (G, N, ...)
+            _x = _x.transpose(0, 1)
+            return _x.reshape_as(x)  # (B, ...)
+
+        def deinterleave_batches(x, N):
+            B = x.size(0)
+            assert B % N == 0, "B must be divisible by N"
+
+            G = B // N
+            _x = x.view(G, N, *x.shape[1:])  # (N, G, ...)
+            _x = _x.transpose(0, 1)  # (G, N, ...)
+            return _x.reshape_as(x)
+
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
                 super().__init__()
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
+                self.n_trans = self.t1.n_trans * self.t2.n_trans
 
             def _get_params(self, x: torch.Tensor) -> dict:
                 return self.t1._get_params(x) | self.t2._get_params(x)
@@ -327,28 +397,32 @@ class Transform(torch.nn.Module, TimeMixin):
             def _transform(self, x: torch.Tensor, **params) -> torch.Tensor:
                 return self.t2._transform(self.t1._transform(x, **params), **params)
 
-            def inverse(
+            def transform(
                 self, x: torch.Tensor, batchwise=True, **params
             ) -> torch.Tensor:
-                # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
                 if batchwise:
-                    return self.t1.inverse(self.t2.inverse(x, **params), **params)
+                    return self._transform(x, **params)
+                else:
+                    # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
+                    x = deinterleave_batches(x, self.t1.n_trans)
+                    x = self.t1.transform(x, batchwise=batchwise, **params)
+                    x = interleave_batches(x, self.t1.n_trans)
+                    x = self.t2.transform(x, batchwise=batchwise, **params)
+                    return x
 
-                out = []
-                for i in range(self.t2.n_trans):
-                    _x = torch.chunk(x, self.t2.n_trans)[i]
-                    __x = self.t2.inverse(
-                        _x,
-                        **{
-                            k: p[[i]]
-                            for k, p in params.items()
-                            if len(p) == self.t2.n_trans
-                        },
-                    )
-                    ___x = self.t1.inverse(__x, batchwise=False, **params)
-                    out.append(___x)
-
-                return torch.cat(out)
+            def inverse(
+                self, x: torch.Tensor, batchwise=False, **params
+            ) -> torch.Tensor:
+                params = self.get_params(x) if not params else params
+                if batchwise:
+                    return self.t1.inverse(self.t2.inverse(x, batchwise=batchwise, **params), batchwise=batchwise, **params)
+                else:
+                    # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
+                    x = self.t2.inverse(x, batchwise=batchwise, **params)
+                    x = deinterleave_batches(x, self.t1.n_trans)
+                    x = self.t1.inverse(x, batchwise=batchwise, **params)
+                    x = interleave_batches(x, self.t1.n_trans)
+                    return x
 
         return ChainTransform(self, other)
 

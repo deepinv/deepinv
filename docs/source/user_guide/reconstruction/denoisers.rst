@@ -143,16 +143,6 @@ and rely on hand-crafted priors.
 Denoisers Utilities
 ~~~~~~~~~~~~~~~~~~~
 
-Equivariant denoisers
-^^^^^^^^^^^^^^^^^^^^^
-Denoisers can be turned into equivariant denoisers by wrapping them with the
-:class:`deepinv.models.EquivariantDenoiser` class, which symmetrizes the denoiser
-with respect to a transform from our :ref:`available transforms <transform>` such as :class:`deepinv.transform.Rotate`
-or :class:`deepinv.transform.Reflect`. You retain full flexibility by passing in the transform of choice.
-The denoising can either be averaged over the entire group of transformation (making the denoiser equivariant) or
-performed on 1 or n transformations sampled uniformly at random in the group, making the denoiser a Monte-Carlo
-estimator of the exact equivariant denoiser.
-
 Complex denoisers
 ^^^^^^^^^^^^^^^^^
 Most denoisers in the library are designed to process real images. However, some problems, e.g., phase retrieval,

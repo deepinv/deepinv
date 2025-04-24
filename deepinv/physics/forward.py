@@ -63,16 +63,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
-        A = lambda x: self.A(other.A(x))  # (A' = A_1 A_2)
-        noise = self.noise_model
-        sensor = self.sensor_model
-        return Physics(
-            A=A,
-            noise_model=noise,
-            sensor_model=sensor,
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return compose(other, self)
 
     def stack(self, other):
         r"""
@@ -417,20 +408,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(
-            self.A_adjoint(x, **kwargs), **kwargs
-        )
-        noise = self.noise_model
-        sensor = self.sensor_model
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
-            noise_model=noise,
-            sensor_model=sensor,
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return compose(other, self)
 
     def stack(self, other):
         r"""
@@ -921,6 +899,21 @@ def stack(*physics: Union[Physics, LinearPhysics]):
         return StackedPhysics(physics)
 
 
+def compose(*physics: Union[Physics, LinearPhysics]):
+    r"""
+    Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    """
+    if all(isinstance(phys, LinearPhysics) for phys in physics):
+        return ComposedLinearPhysics(physics)
+    else:
+        return ComposedPhysics(physics)
+
+
 class StackedPhysics(Physics):
     r"""
     Stacks multiple physics operators into a single operator.
@@ -1070,3 +1063,107 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
         """
         for physics in self.physics_list:
             physics.update_parameters(**kwargs)
+
+
+class ComposedPhysics(Physics):
+    r"""
+    Composes multiple physics operators into a single operator.
+
+    The measurements produced by the resulting model are defined as
+
+    .. math::
+
+        A(x) = N_k(A_k(\dots(A_1(x))))
+
+    where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to compose.
+    """
+
+    def __init__(self, physics_list: list[Physics], **kwargs):
+        super(ComposedPhysics, self).__init__()
+
+        self.physics_list = []
+        for physics in physics_list:
+            self.physics_list.extend(
+                [physics]
+                if not isinstance(physics, ComposedPhysics)
+                else physics.physics_list
+            )
+        self.noise_model = physics_list[-1].noise_model
+
+    def A(self, x: Tensor, **kwargs):
+        r"""
+        Computes forward of composed operator
+
+        .. math::
+
+            y = N_k(A_k(\dots(A_1(x))))
+
+        :param torch.Tensor x: signal/image
+        :return: measurements
+        """
+        for i, physics in enumerate(self.physics_list):
+            x = physics.A(x, **kwargs)
+        return x
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of each operator in the composed operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
+
+    def __str__(self):
+        return (
+            "ComposedPhysics("
+            + "\n".join([f"{p}" for p in reversed(self.physics_list)])
+            + ")"
+        )
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __getitem__(self, item):
+        r"""
+        Returns the physics operator at index `item`.
+
+        :param int item: index of the physics operator
+        """
+        return self.physics_list[item]
+
+
+class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
+    r"""
+    Composes multiple linear physics operators into a single operator.
+
+    The measurements produced by the resulting model are defined as
+
+    .. math::
+
+        Ax = N_k(A_k\dotsA_1(x))
+
+    where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
+
+    :param list[deepinv.physics.Physics] physics_list: list of physics operators to compose.
+    """
+
+    def __init__(self, physics_list: list[Physics], **kwargs):
+        super(ComposedLinearPhysics, self).__init__(physics_list, **kwargs)
+
+    def A_adjoint(self, y: Tensor, **kwargs):
+        r"""
+        Computes adjoint of composed operator
+
+        .. math::
+
+            x = A_1^{\top}(A_2^{\top}(\dots(N_k^{\top}(y))))
+
+        :param torch.Tensor y: measurements
+        :return: signal/image
+        """
+        for i, physics in enumerate(reversed(self.physics_list)):
+            y = physics.A_adjoint(y, **kwargs)
+        return y

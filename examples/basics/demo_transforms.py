@@ -6,8 +6,8 @@ We demonstrate the use of our ``deepinv.transform`` module for use in
 solving imaging problems. These can be used for:
 
 1. Data augmentation (similar to ``torchvision.transforms``)
-2. Building equivariant denoisers
-   (:class:`deepinv.models.EquivariantDenoiser`) for robust denoising
+2. Building equivariant reconstructors or denoisers
+   (:class:`deepinv.models.EquivariantReconstructor` and :class:`deepinv.models.EquivariantDenoiser`) for robust reconstruction/denoising
    (e.g from `Terris et al., Equivariant plug-and-play image
    reconstruction <https://arxiv.org/abs/2312.01831>`__)
 3. Self-supervised learning using Equivariant Imaging from `Chen et al.,
@@ -34,6 +34,7 @@ Note that all our transforms can easily be inverted using the method ``transform
 First, load a sample image.
 
 """
+import torch
 
 import deepinv as dinv
 from torchvision.transforms import Compose, ColorJitter, RandomErasing, Resize
@@ -61,7 +62,7 @@ transform3 = dinv.transform.CPABDiffeomorphism()
 
 dinv.utils.plot(
     [x, transform(x), transform2(x), transform3(x)],
-    titles=["Orig", "Transform 1", "Transform 2", "Transform 3"],
+    titles=["Original", "Transform 1", "Transform 2", "Transform 3"],
 )
 
 
@@ -96,14 +97,46 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 # (:class:`deepinv.models.EquivariantDenoiser`):
 #
 
-sigma = 0.1
+sigma = 0.05
 physics = dinv.physics.GaussianNoise(sigma=sigma)
-y = physics(Resize(128)(x))
+x = Resize(128)(x)
+y = physics(x)
 
-model = dinv.models.MedianFilter()
-model_eq = dinv.models.EquivariantDenoiser(model, transform=transform)
+model = dinv.models.DRUNet()
+model_eq = dinv.models.EquivariantDenoiser(model, transform=transform, random=False)
 
-dinv.utils.plot([x, y, model(y, sigma=sigma), model_eq(y, sigma=sigma)])
+with torch.no_grad():
+    x_hat = model(y, sigma=sigma)
+    x_hat_eq = model_eq(y, sigma=sigma)
+
+dinv.utils.plot([x, y, x_hat, x_hat_eq], ["Ground-truth", "Noisy {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
+                                          "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
+                                          "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item())])
+
+
+# %%
+# We can also turn any reconstruction model into an equivariant counterpart
+# (:class:`deepinv.models.EquivariantReconstructor`):
+#
+# .. math::
+#    \mathcal{R}^{\text{eq}}(y, A) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g(\mathcal{R}(y, AT_g))
+#
+
+filter = torch.zeros((1, 1, 7, 7), device=x.device)
+filter[0, 0, 3, :] = 1/7
+physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=filter, device=x.device, noise_model=dinv.physics.GaussianNoise(sigma=sigma))
+y = physics(x)
+
+model = dinv.optim.DPIR(device='cpu')
+model_eq = dinv.models.EquivariantReconstructor(model, transform=transform, random=False)
+
+with torch.no_grad():
+    x_hat = model(y, physics)
+    x_hat_eq = model_eq(y, physics)
+
+dinv.utils.plot([x, y, x_hat, x_hat_eq], ["Ground-truth", "Blurry {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
+                                          "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
+                                          "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item())])
 
 
 # %%
@@ -121,7 +154,7 @@ t = dinv.transform.projective.PanTiltRotate(n_trans=2, theta_max=10, theta_z_max
 # Symmetrize function with respect to transform
 f_s = t.symmetrize(f, average=True)
 dinv.utils.plot(
-    [x, f(x), f_s(x)], titles=["Orig", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
+    [x, f(x), f_s(x)], titles=["Original", "$f(x)$", "$\\sum_i T_i^{-1}f(T_ix)$"]
 )
 
 
