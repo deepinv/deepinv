@@ -337,7 +337,8 @@ class AdaptedDenoiser:
 
         # Rescale the output to match the original noise level
         rescaled_image = image / sigma * self.sigma_train
-        output = self.model(rescaled_image, self.sigma_train)
+        with torch.no_grad():
+            output = self.model(rescaled_image, self.sigma_train)
         output = output * sigma / self.sigma_train
         return output
 
