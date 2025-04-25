@@ -348,8 +348,8 @@ sigma_train_dncnn = 2.0 / 255.0
 adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 
 # Apply SwinIR
-sigma_train_swinir = 15.0 / 255.0
-adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
+# sigma_train_swinir = 15.0 / 255.0
+# adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
 
 sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
@@ -364,8 +364,8 @@ denoiser_results = {
 show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
 denoiser_results = {
-    f"SwinIR": swinir(noisy_image, sigma),
-    f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
+    # f"SwinIR": swinir(noisy_image, sigma),
+    # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
     f"DRUNet": drunet(noisy_image, sigma),
     f"SCUNet": scunet(noisy_image, sigma),
 }
