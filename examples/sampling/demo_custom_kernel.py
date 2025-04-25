@@ -90,7 +90,7 @@ class PULAIterator(dinv.sampling.SamplingIterator):
     def __init__(self, algo_params):
         super().__init__(algo_params)
 
-    def forward(self, x, y, physics, data_fidelity, prior) -> torch.Tensor:
+    def forward(self, x, y, physics, data_fidelity, prior, iteration) -> torch.Tensor:
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
 

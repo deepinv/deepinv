@@ -210,7 +210,33 @@ Unlike diffusion sampling methods, MCMC methods generally use a fixed noise leve
 
 
 All MCMC methods inherit from :class:`deepinv.sampling.BaseSample`.
-We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.
+The function :func:`deepinv.sampling.sample_builder` returns an instance of :class:`deepinv.sampling.BaseSample` with the
+optimization algorithm of choice, either a predefined one (``"SKRock"``, ``"ULA"``),
+or with a user-defined one. For example, we can use ULA with a score prior:
+
+.. doctest::
+
+    >>> model = dinv.optim.optim_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
+                                    params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
+    >>> x_hat = model(y, physics)
+
+
+Some predefined samplers are provided:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Algorithm
+     - Parameters
+
+   * - :class:`ULA <deepinv.sampling.ULAIterator>`
+     - ``"step_size"``, ``"alpha"``, ``"sigma"``
+
+   * - :class:`SKROCK <deepinv.sampling.SKRockIterator>`
+     - ``"step_size"``, ``"alpha"``, ``"inner_iter"``, ``"eta"``, ``"sigma"``
+
+
+Some predefined classes are also provided:
 
 
 .. list-table:: MCMC methods

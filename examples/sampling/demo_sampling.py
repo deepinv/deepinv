@@ -94,14 +94,14 @@ prior = dinv.optim.ScorePrior(
 # --------------------------------------------------------------
 #
 # Here we use the Unadjusted Langevin Algorithm (ULA) to sample from the posterior defined in
-# :class:`deepinv.sampling.ULA`.
+# :class:`deepinv.sampling.ULAIterator`.
 # The hyperparameter ``step_size`` controls the step size of the MCMC sampler,
 # ``regularization`` controls the strength of the prior and
 # ``iterations`` controls the number of iterations of the sampler.
 
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
-iterations = int(5e3) if torch.cuda.is_available() else 100
+iterations = int(5e3) if torch.cuda.is_available() else 10
 params = {
     "step_size": step_size,
     "alpha": regularization,
