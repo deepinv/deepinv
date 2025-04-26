@@ -11,6 +11,8 @@ Operators
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
 The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
+The physics classes are implemented a differentiable manner: one can differentiate w.r.t to the input :math:`x` or the parameters 
+:math:`\theta` through the physics. 
 
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1

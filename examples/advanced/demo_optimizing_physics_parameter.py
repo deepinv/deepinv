@@ -23,9 +23,8 @@ This can be reformulated as the following optimization problem:
 
 This problem can be addressed by first-order optimization if we can compute the gradient of the above function with respect to :math:`\theta`.
 The dependence between the operator :math:`A` and the parameter :math:`theta` can be complicated.
-
 Physics classes in DeepInverse are implemented in a differentiable (from a programming viewpoint) manner.
-We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient
+We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient of the above loss function w.r.t to the physics parameters :math:`\theta`.
 """
 
 # %%
@@ -33,6 +32,7 @@ We can leverage the automatic differentiation engine provided in Pytorch to comp
 import deepinv as dinv
 import torch
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float32
@@ -77,16 +77,12 @@ def loss_fn(physics, x, y, filter):
 
 
 def gradient(physics, x, y, filter):
-    return torch.func.grad(loss_fn, argnums=-1)(physics, x, y, filter)
-
-
-# def gradient(physics, x, y, filter):
-#     filter = filter.clone().requires_grad_(True)
-#     with torch.enable_grad():
-#         y_hat = physics.A(x, filter=filter)
-#         loss = torch.nn.functional.mse_loss(y_hat, y)
-#         loss.backward()
-#     return filter.grad
+    filter = filter.clone().requires_grad_(True)
+    with torch.enable_grad():
+        y_hat = physics.A(x, filter=filter)
+        loss = torch.nn.functional.mse_loss(y_hat, y)
+        loss.backward()
+    return filter.grad
 
 
 def projection_simplex_sort(v):
@@ -124,7 +120,7 @@ def projected_gradient_descent(physics, x, y, kernel_init, n_iter=100, stepsize=
 kernel_init = torch.zeros_like(true_kernel)
 kernel_init[..., 5:-5, 5:-5] = 1.0
 kernel_init = projection_simplex_sort(kernel_init)
-n_iter = 100
+n_iter = 1000
 stepsize = 0.7
 kernel_hat, losses = projected_gradient_descent(
     physics, x, y, kernel_init, n_iter, stepsize
@@ -136,9 +132,7 @@ dinv.utils.plot(
     suptitle="Result with Projected Gradient Descent",
 )
 
-import matplotlib.pyplot as plt
-
-plt.figure()
+plt.figure(figsize=(4, 2.5))
 plt.plot(range(n_iter), losses)
 plt.title("Loss evolution")
 plt.yscale("log")
@@ -155,11 +149,11 @@ kernel_init[..., 5:-5, 5:-5] = 1.0
 kernel_init = projection_simplex_sort(kernel_init)
 
 kernel_hat = kernel_init.clone()
-optimizer = torch.optim.Adam([kernel_hat], lr=0.7)
+optimizer = torch.optim.Adam([kernel_hat], lr=0.1)
 
 # We will alternate a gradient step and a projection step
 losses = []
-n_iter = 100
+n_iter = 500
 for i in tqdm(range(n_iter)):
     # update the gradient
     optimizer.zero_grad()
@@ -179,9 +173,8 @@ dinv.utils.plot(
     suptitle="Result with ADAM",
 )
 
-import matplotlib.pyplot as plt
 
-plt.figure()
+plt.figure(figsize=(4, 2.5))
 plt.plot(range(n_iter), losses)
 plt.title("Loss evolution")
 plt.yscale("log")
