@@ -45,11 +45,11 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
-- Add ComposedLinearPhysics (used my __mul__ method) (:gh:`TODO` by `Minh Hai Nguyen`_)
-- Register physics-dependent parameters to module buffers (:gh:`TODO` by `Minh Hai Nguyen`_)
-- Add example on optimizing physics parameters (:gh:`TODO` by `Minh Hai Nguyen`_)
-- Add `device` property to TensorList (:gh:`TODO` by `Minh Hai Nguyen`_)
-- Add test physics device transfer and differentiablity (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Add ComposedLinearPhysics (used my __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_)
+- Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
+- Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
+- Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)
+- Add test physics device transfer and differentiablity (:gh:`462` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -62,7 +62,7 @@ Fixed
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
-- Fix device inconsistency in test_physics, physics classes and noise models (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Fix device inconsistency in test_physics, physics classes and noise models (:gh:`462` by `Minh Hai Nguyen`_)
 
 
 
