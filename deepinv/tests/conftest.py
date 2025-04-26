@@ -73,3 +73,17 @@ def no_plot():
         plt.close("all")
         matplotlib.use(original_backend, force=True)
         importlib.reload(plt)
+
+
+
+@pytest.fixture(autouse=True, scope="session")
+def silence_torch_downloads():
+    r'''
+    Hide the download progress bar during pytest
+    '''
+    original = torch.hub.download_url_to_file
+
+    def silent_download(url, dst, hash_prefix=None, progress=True):
+        return original(url, dst, hash_prefix, progress=False)
+
+    torch.hub.download_url_to_file = silent_download
