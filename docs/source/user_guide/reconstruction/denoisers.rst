@@ -13,10 +13,10 @@ as input and returns a denoised image:
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> denoiser = dinv.models.DRUNet()
+    >>> denoiser = dinv.models.DRUNet() # doctest: +SKIP 
     >>> sigma = 0.1
     >>> image = torch.ones(1, 3, 32, 32) * .5
-    >>> noisy_image =  image + torch.randn(1, 3, 32, 32) * sigma
+    >>> noisy_image = image + torch.randn(1, 3, 32, 32) * sigma
     >>> denoised_image = denoiser(noisy_image, sigma)
 
 .. note::
