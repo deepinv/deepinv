@@ -98,7 +98,7 @@ class DDRM(Reconstructor):
         ...   device=device,
         ... )
         >>> y = physics(x) # measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
