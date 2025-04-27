@@ -45,8 +45,7 @@ jobs:
 
       - name: Test with pytest and generate coverage report
         run: |
-          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v deepinv/tests/test_loss.py::test_losses
-
+          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
 
