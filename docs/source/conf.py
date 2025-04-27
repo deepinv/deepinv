@@ -127,14 +127,17 @@ def setup(app):
 # Add a IGNORE_RESULT option to skip some line output
 # From: https://stackoverflow.com/a/69780437/2642845
 
-IGNORE_RESULT = doctest.register_optionflag('IGNORE_RESULT')
+IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
 
 OutputChecker = doctest.OutputChecker
+
+
 class CustomOutputChecker(OutputChecker):
     def check_output(self, want, got, optionflags):
         if IGNORE_RESULT & optionflags:
             return True
         return OutputChecker.check_output(self, want, got, optionflags)
+
 
 doctest.OutputChecker = CustomOutputChecker
 
