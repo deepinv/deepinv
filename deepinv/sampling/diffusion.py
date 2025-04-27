@@ -245,7 +245,7 @@ class DiffPIR(Reconstructor):
         between 3.0 and 25.0 depending on the problem). Default: ``7.0``.
     :param bool verbose: if ``True``, print progress
     :param str device: the device to use for the computations
-    
+
     |sep|
 
     :Examples:
@@ -253,7 +253,7 @@ class DiffPIR(Reconstructor):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu' 
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
@@ -262,14 +262,14 @@ class DiffPIR(Reconstructor):
         ... )
         >>> y = physics(x) # Measurements
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = DiffPIR(
+        >>> model = dinv.sampling.DiffPIR(
         ...   model=denoiser,
         ...   data_fidelity=dinv.optim.data_fidelity.L2()
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
         tensor([True])
-        
+
     """
 
     def __init__(

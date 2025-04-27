@@ -141,6 +141,11 @@ class CustomOutputChecker(OutputChecker):
 
 doctest.OutputChecker = CustomOutputChecker
 
+doctest_global_setup = """
+import torch
+import numpy as np
+"""
+
 
 #############################
 
