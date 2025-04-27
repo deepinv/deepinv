@@ -11,7 +11,7 @@ on:
 
 # Cancel in-progress runs when pushing a new commit on the PR
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
