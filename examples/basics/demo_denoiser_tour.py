@@ -263,7 +263,7 @@ df_wavelet = pd.DataFrame(res)
 # We can now display how the performances vary with the value of the threshold,
 # and what is the best threshold for each noise level.
 # sphinx_gallery_thumbnail_number = 3
-groups = df_wavelet.groupby("sigma")
+groups = df_wavelet.groupby("sigma")[['sigma', 'psnr', 'th']]
 best_th_psnr = groups.apply(lambda g: g.loc[g["psnr"].idxmax()])
 
 fig, axes = plt.subplots(1, 2, figsize=(15, 4))
