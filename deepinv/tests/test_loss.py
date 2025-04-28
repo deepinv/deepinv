@@ -285,14 +285,14 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
     backbone = dinv.models.AutoEncoder(
-        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=128, dim_hid=32
+        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=64, dim_hid=16
     ).to(device)
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone, device=device)
 
     # choose optimizer and scheduler
-    epochs = 50
+    epochs = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 

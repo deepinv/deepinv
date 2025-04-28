@@ -8,6 +8,12 @@ on:
     branches:
     - main
 
+
+# Cancel in-progress runs when pushing a new commit on the PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test deep inverse ${{ matrix.name }}
@@ -26,14 +32,12 @@ jobs:
             extra: dataset,denoisers,test
             name: "windows all dependencies"
 
-    env:
-      VERSION_PYTHON: ${{ matrix.version_python }}
-
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.VERSION_PYTHON }}
+          python-version: ${{ matrix.version_python }}
+          cache: 'pip' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
         run: |
@@ -41,8 +45,7 @@ jobs:
 
       - name: Test with pytest and generate coverage report
         run: |
-          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy
-
+          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
 
