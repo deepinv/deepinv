@@ -168,8 +168,8 @@ noisy_images = image + noise_levels[:, None, None, None] * noise
 psnr = dinv.loss.metric.PSNR()
 psnr_x = psnr(noisy_images, image)
 res = [
-    {"sigma": sigma.item(), "denoiser": "Noisy", "psnr": v.item(), "time": 0.0}
-    for sigma, v in zip(noise_levels, psnr_x)
+    {"sigma": sig.item(), "denoiser": "Noisy", "psnr": v.item(), "time": 0.0}
+    for sig, v in zip(noise_levels, psnr_x)
 ]
 
 # %%
