@@ -383,7 +383,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["probe", "shifts"]
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     if not get_physics_param:
         return p, img_size, norm, dtype
     else:
@@ -398,6 +398,7 @@ def find_nonlinear_operator(name, device):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
+
     if name == "haze":
         x = dinv.utils.TensorList(
             [
@@ -412,7 +413,7 @@ def find_nonlinear_operator(name, device):
         x = torch.rand(1, 3, 16, 16, device=device)
         p = dinv.physics.SinglePhotonLidar(device=device)
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     return p, x
 
 
@@ -441,7 +442,7 @@ def find_phase_retrieval_operator(name, device):
             input_shape=img_size, output_shape=img_size, n_layers=2, device=device
         )
     else:
-        raise Exception("The inverse problem chosen doesn't exist")
+        raise ValueError("The inverse problem chosen doesn't exist")
     return p, img_size
 
 
@@ -1269,7 +1270,9 @@ def test_operators_differentiability(name, device):
                             assert torch.all(~torch.isnan(v.grad))
 
 
-@pytest.mark.parametrize("name", OPERATORS)
+@pytest.mark.parametrize(
+    "name", OPERATORS
+)  # + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS)
 def test_device_consistency(name):
     r"""
     Tests if a physics can be moved properly between devices.
@@ -1277,14 +1280,45 @@ def test_device_consistency(name):
     :param name: operator name (see find_operator)
     :return: asserts
     """
-    physics, imsize, _, dtype = find_operator(name, "cpu")
+
+    def try_find_operator(name):
+        physics, imsize, _, dtype = find_operator(name, "cpu")
+        return physics, imsize, dtype
+
+    def try_find_nonlinear_operator(name):
+        physics, x = find_nonlinear_operator(name, "cpu")
+        return physics, x, torch.float32
+
+    def try_find_phase_retrieval_operator(name):
+        (
+            physics,
+            imsize,
+        ) = find_phase_retrieval_operator(name, "cpu")
+        return physics, imsize, torch.complex64
+
+    for finder in (
+        try_find_operator,
+        try_find_nonlinear_operator,
+        try_find_phase_retrieval_operator,
+    ):
+        try:
+            physics, imsize, dtype = finder(name)
+            break
+        except ValueError:
+            continue
+    else:
+        raise ValueError(f"Could not find an operator for {name}")
 
     if name == "radio":
         dtype = torch.cfloat
 
     # Test CPU
     torch.manual_seed(11)
-    x = torch.randn(imsize, device="cpu", dtype=dtype).unsqueeze(0)
+    # For non linear operators
+    if not isinstance(imsize, (torch.Tensor, TensorList)):
+        x = torch.randn(imsize, device="cpu", dtype=dtype).unsqueeze(0)
+    else:
+        x = imsize
     y1 = physics.A(x)
     assert y1.device == torch.device("cpu")
     # Move to GPU if cuda is available
