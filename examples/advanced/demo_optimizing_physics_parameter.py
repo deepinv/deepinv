@@ -22,13 +22,14 @@ This can be reformulated as the following optimization problem:
     \min_{\theta} \frac{1}{2} \|A(x, \theta) - y \|^2
 
 This problem can be addressed by first-order optimization if we can compute the gradient of the above function with respect to :math:`\theta`.
-The dependence between the operator :math:`A` and the parameter :math:`theta` can be complicated.
+The dependence between the operator :math:`A` and the parameter :math:`\theta` can be complicated.
 Physics classes in DeepInverse are implemented in a differentiable (from a programming viewpoint) manner.
 We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient of the above loss function w.r.t to the physics parameters :math:`\theta`.
 """
 
 # %%
 # Import required packages
+#
 import deepinv as dinv
 import torch
 from tqdm import tqdm
@@ -37,8 +38,9 @@ import matplotlib.pyplot as plt
 device = "cuda" if torch.cuda.is_available() else "cpu"
 dtype = torch.float32
 
-# %% Define the physics
-# ---------------------------------------------------
+# %%
+# Define the physics
+# ------------------
 #
 # In this first example, we use the convolution operator, defined in the :class:`deepinv.physics.Blur` class.
 # We also generate a random convolution kernel of motion blur
@@ -60,8 +62,9 @@ y = physics(x, filter=true_kernel)
 
 dinv.utils.plot([x, y, true_kernel], titles=["Sharp", "Blurry", "True kernel"])
 
-# %% Define an optimization algorithm
-# -------------------------------------
+# %%
+# Define an optimization algorithm
+# --------------------------------
 #
 # The convolution kernel lives in the simplex: positive entries summing to 1.
 # We can use one of the most basic optimization algorithm -- Projected Gradient Descent.
@@ -116,7 +119,10 @@ def projected_gradient_descent(physics, x, y, kernel_init, n_iter=100, stepsize=
     return kernel_hat, losses
 
 
-# %% Run the algorithm
+# %%
+#
+# Run the algorithm
+#
 kernel_init = torch.zeros_like(true_kernel)
 kernel_init[..., 5:-5, 5:-5] = 1.0
 kernel_init = projection_simplex_sort(kernel_init)
@@ -132,14 +138,21 @@ dinv.utils.plot(
     suptitle="Result with Projected Gradient Descent",
 )
 
-plt.figure(figsize=(4, 2.5))
+# %%
+#
+# We can plot the loss to make sure that it decreases
+#
+plt.figure()
 plt.plot(range(n_iter), losses)
 plt.title("Loss evolution")
 plt.yscale("log")
+plt.xlabel("Iteration")
+plt.tight_layout()
 plt.show()
 
-# %% Combine with arbitrary optimizer
-# ------------------------------------
+# %%
+# Combine with arbitrary optimizer
+# --------------------------------
 #
 # Pytorch provides a wide range of optimizer for training neural networks.
 # We can also pick one of those to optimizer our parameter
@@ -173,9 +186,14 @@ dinv.utils.plot(
     suptitle="Result with ADAM",
 )
 
-
-plt.figure(figsize=(4, 2.5))
+# %%
+#
+# We can plot the loss to make sure that it decreases
+#
+plt.figure()
 plt.plot(range(n_iter), losses)
 plt.title("Loss evolution")
 plt.yscale("log")
+plt.xlabel("Iteration")
+plt.tight_layout()
 plt.show()

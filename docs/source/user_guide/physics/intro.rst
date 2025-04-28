@@ -93,7 +93,8 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> dict_params = {'filter': theta, 'dummy': None}
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
-One can also optimize the parameter :math:`theta`, as show in this example: :ref:`<_sphx_glr_auto_examples_basics_demo_blur_tour.py>`
+One can also optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_advanced_demo_optimizing_physics_parameter.py` 
+
 .. _physics_generators:
 
 Physics Generators
