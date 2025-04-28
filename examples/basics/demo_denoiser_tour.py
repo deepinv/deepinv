@@ -271,8 +271,8 @@ cmap = plt.get_cmap("viridis")
 norm = plt.cm.colors.LogNorm(
     vmin=df_wavelet["sigma"].min(), vmax=df_wavelet["sigma"].max()
 )
-for sigma, group in groups:
-    group.plot(x="th", y="psnr", ax=axes[0], color=cmap(norm(sigma)), label=None)
+for sig, group in groups:
+    group.plot(x="th", y="psnr", ax=axes[0], color=cmap(norm(sig)), label=None)
 axes[0].set_xscale("log")
 axes[0].set_ylabel("Threshold")
 axes[0].set_ylabel("PSNR")
@@ -351,9 +351,6 @@ adapted_dncnn = AdaptedDenoiser(dncnn, sigma_train_dncnn)
 # sigma_train_swinir = 15.0 / 255.0
 # adapted_swinir = AdaptedDenoiser(swinir, sigma_train_swinir)
 
-sigma = 0.2
-noisy_image = image + sigma * torch.randn_like(image)
-
 # sphinx_gallery_multi_image = "single"
 denoiser_results = {
     f"Original": image,
@@ -364,6 +361,7 @@ denoiser_results = {
 show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.2f}$")
 
 denoiser_results = {
+    # Skipping SwinIR on CI due to high memory usage
     # f"SwinIR": swinir(noisy_image, sigma),
     # f"SwinIR (adapted)": adapted_swinir(noisy_image, sigma),
     f"DRUNet": drunet(noisy_image, sigma),
@@ -389,8 +387,8 @@ for name, d in adapted_denoisers.items():
     runtime = time.perf_counter() - t_start
     res.extend(
         [
-            {"sigma": sigma.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sigma, v in zip(noise_levels, psnr_x)
+            {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
+            for sig, v in zip(noise_levels, psnr_x)
         ]
     )
     print(f" done ({runtime:.2f}s)")
@@ -416,13 +414,13 @@ plt.show()
 # Finally, we can also compare the tradeoff between computation time and performances of the different denoisers.
 fig = plt.figure(figsize=(12, 6))
 grid = plt.GridSpec(2, 2, height_ratios=[0.25, 0.75])
-for i, sigma in enumerate(noise_levels[[0, 4]]):
+for i, sig in enumerate(noise_levels[[0, 4]]):
     ax = fig.add_subplot(grid[1, i])
-    to_plot = merge_df.query(f"sigma == {sigma}")
+    to_plot = merge_df.query("sigma == @sig")
     handles = []
     for name, g in to_plot.groupby("denoiser"):
         handles.append(ax.scatter(g["time"], g["psnr"], label=name))
-    ax.set_title(rf"$\sigma={sigma:.2f}$")
+    ax.set_title(rf"$\sigma={sig:.2f}$")
     ax.set_xscale("log")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("PSNR")
