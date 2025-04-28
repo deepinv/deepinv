@@ -3,6 +3,7 @@ from deepinv.physics.generator import (
     EquispacedMaskGenerator,
     RandomMaskGenerator,
 )
+from deepinv.physics.generator.base import seed_from_string
 import pytest
 import numpy as np
 import torch
@@ -84,9 +85,17 @@ def find_generator(name, size, num_channels, device, dtype):
             dtype=dtype,
         )
         keys = ["filters", "multipliers", "padding"]
+    elif name == "DownsamplingGenerator":
+        g = dinv.physics.generator.DownsamplingGenerator(
+            filters=["bilinear", "bicubic", "gaussian"], factors=[2, 4]
+        )
+        keys = ["filters", "factors"]
     elif name == "SigmaGenerator":
         g = dinv.physics.generator.SigmaGenerator(device=device, dtype=dtype)
         keys = ["sigma"]
+    elif name == "GainGenerator":
+        g = dinv.physics.generator.GainGenerator(device=device, dtype=dtype)
+        keys = ["gain"]
     else:
         raise Exception("The generator chosen doesn't exist")
     return g, size, keys
@@ -193,6 +202,140 @@ def test_generation(name, device, dtype):
         .to(dtype)
     )
     assert torch.allclose(w, wref, atol=1e-8)
+
+
+#################################
+### SPECIFIC GENERATORS TESTS ###
+#################################
+
+
+@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_downsampling_generator(num_channels, device, dtype):
+    r"""
+    Test downsampling generator.
+    This test is different from the above ones because we do not generate a random kernel at each iteration, but
+    we sample from a list.
+    """
+    size = (
+        32,
+        32,
+    )  # we need sufficiently large sizes to ensure well definedness of the operation
+    physics = dinv.physics.Downsampling(
+        img_size=(num_channels, size[0], size[1]),
+        device=device,
+        filter="bicubic",
+        factor=4,
+    )
+    list_filters = ["bilinear", "bicubic"]
+    list_factors = [2, 4]
+    generator, _, _ = find_generator(
+        "DownsamplingGenerator", size, num_channels, device, dtype
+    )
+
+    batch_size = 2
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+
+    assert y.shape[-1] == x.shape[-1] // params["factor"]
+
+
+@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_inpainting_generator(num_channels, device, dtype):
+    r"""
+    Test downsampling generator.
+    This test is different from the above ones because we do not generate a random kernel at each iteration, but
+    we sample from a list.
+    """
+    size = (
+        32,
+        32,
+    )  # we need sufficiently large sizes to ensure well definedness of the operation
+    physics = dinv.physics.Downsampling(
+        img_size=(num_channels, size[0], size[1]),
+        device=device,
+        filter="bicubic",
+        factor=4,
+    )
+    list_filters = ["bilinear", "bicubic"]
+    list_factors = [2, 4]
+    generator, _, _ = find_generator(
+        "DownsamplingGenerator", size, num_channels, device, dtype
+    )
+
+    batch_size = 2
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+
+    assert y.shape[-1] == x.shape[-1] // params["factor"]
+
+
+@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_inpainting_generator(num_channels, device, dtype):
+    size = (100, 100)  # we take it large to have significant statistical numbers after
+    physics = dinv.physics.Inpainting((num_channels, size[0], size[1]), 0.9)
+
+    split_ratio = 0.6
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        (num_channels, size[0], size[1]), split_ratio=split_ratio
+    )
+    batch_size = 2
+    params = generator.step(batch_size=batch_size)
+
+    mask = params["mask"]
+    assert mask.shape == (batch_size, num_channels, size[0], size[1])
+
+    experimental_split_ratio = (mask[0] == 1).sum() / mask[0].numel()
+    assert abs(experimental_split_ratio.item() - split_ratio) < 1e-2
+
+    # check forward
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+    experimental_split_ratio_obs = 1 - (y[0] == 0).sum() / y[0].numel()
+    assert experimental_split_ratio == experimental_split_ratio_obs
+
+    # now we do the same with each element in the batch for random_split_ratio
+    min_split_ratio = 0.001
+    max_split_ratio = 0.5
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        (num_channels, size[0], size[1]),
+        split_ratio=split_ratio,
+        random_split_ratio=True,
+        min_split_ratio=min_split_ratio,
+        max_split_ratio=max_split_ratio,
+    )
+    batch_size = 2
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    mask = params["mask"]
+    assert mask.shape == (batch_size, num_channels, size[0], size[1])
+
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+
+    list_exp_split_ratio = []
+    for b in range(batch_size):
+        experimental_split_ratio = (mask[b] == 1).sum() / mask[b].numel()
+        assert experimental_split_ratio.item() < max_split_ratio + 1e-2
+        assert experimental_split_ratio.item() > min_split_ratio - 1e-2
+
+        # check forward
+        experimental_split_ratio_obs = 1 - (y[b] == 0).sum() / y[b].numel()
+        assert torch.allclose(experimental_split_ratio, experimental_split_ratio_obs)
+
+        list_exp_split_ratio.append(experimental_split_ratio)
+
+    # check that split ratios are different between batches
+    assert abs(list_exp_split_ratio[0] - list_exp_split_ratio[1]) > 1e-2
 
 
 ######################
@@ -354,9 +497,6 @@ def test_inpainting_generators(
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
     correct_ratio(mask3.sum() / input_mask.sum())
     correct_pixelwise(mask3)
-
-
-from deepinv.physics.generator.base import seed_from_string
 
 
 def test_string_seed():

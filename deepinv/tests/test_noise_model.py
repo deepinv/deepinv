@@ -1,7 +1,6 @@
 import pytest
 import torch
-import numpy as np
-from deepinv.physics.forward import adjoint_function
+import math
 import deepinv as dinv
 
 # Noise model which has a `rng` attribute
@@ -69,3 +68,95 @@ def test_rng(name, device, rng, dtype):
     y_3 = noise_model(x, seed=0)
     assert torch.allclose(y_1, y_3)
     assert not torch.allclose(y_1, y_2)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_gaussian_noise_arithmetics(device, rng, dtype):
+
+    sigma_0 = 0.01
+    sigma_1 = 0.05
+    sigma_2 = 0.2
+
+    multiplication_value = 0.5
+
+    noise_model_0 = dinv.physics.GaussianNoise(sigma_0, rng=rng)
+    noise_model_1 = dinv.physics.GaussianNoise(sigma_1, rng=rng)
+    noise_model_2 = dinv.physics.GaussianNoise(sigma_2, rng=rng)
+
+    # addition
+    noise_model = noise_model_0 + noise_model_1 + noise_model_2
+    assert math.isclose(
+        noise_model.sigma.item(),
+        (sigma_0**2 + sigma_1**2 + sigma_2**2) ** (0.5),
+        abs_tol=1e-5,
+    )
+
+    # multiplication
+
+    # right
+    noise_model = noise_model_0 * multiplication_value
+    assert math.isclose(
+        noise_model.sigma.item(), (sigma_0 * multiplication_value), abs_tol=1e-5
+    )
+
+    # left
+    noise_model = multiplication_value * noise_model_0
+    assert math.isclose(
+        noise_model.sigma.item(), (sigma_0 * multiplication_value), abs_tol=1e-5
+    )
+
+    # factorisation
+    noise_model = (noise_model_0 + noise_model_1) * multiplication_value
+    assert math.isclose(
+        noise_model.sigma.item(),
+        ((sigma_0**2 + sigma_1**2) ** (0.5)) * multiplication_value,
+        abs_tol=1e-5,
+    )
+
+
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_poisson_noise_params(device, rng, dtype):
+
+    gain = 0.1
+
+    def get_poisson_model(name, normalize=False, clip_positive=False):
+        if name == "Poisson":
+            return dinv.physics.PoissonNoise(
+                gain, normalize=normalize, clip_positive=clip_positive, rng=rng
+            )
+        elif name == "PoissonGaussian":
+            return dinv.physics.PoissonGaussianNoise(
+                gain, sigma=0.0, rng=rng, clip_positive=clip_positive
+            )  # we check that poissongaussian noise behaves like poisson noise when sigma=0.0
+
+    for name in ["Poisson", "PoissonGaussian"]:
+
+        noise_model_1 = get_poisson_model(name, normalize=False)
+        noise_model_2 = get_poisson_model(name, normalize=True)
+        noise_model_3 = get_poisson_model(name, normalize=True, clip_positive=True)
+
+        imsize = (1, 3, 7, 16)
+
+        # Positive entries
+        x = torch.rand(imsize, device=device, dtype=dtype)
+        y_1 = noise_model_1(x, seed=0)
+        y_2 = noise_model_2(x, seed=0)
+
+        assert y_1.shape == torch.Size(imsize)
+
+        # Check that the Poisson noise model is normalized in the case of Poisson noise
+        if name == "Poisson":
+            assert torch.allclose(gain * y_1, y_2, atol=1e-6)
+
+        # handling negative values
+        # check that an entry with negative value raises an error
+        x = torch.randn(imsize, device=device, dtype=dtype)
+        with pytest.raises(Exception) as e_info:
+            y2_bis = noise_model_2(x, seed=0)  # will fail because of negative values
+
+        y_3 = noise_model_3(x, seed=0)
+
+        # check that no negative values are present in y_3
+        assert torch.all(y_3 >= 0)

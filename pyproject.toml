@@ -19,13 +19,13 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.2.2"
+version = "0.3.0"
 dependencies = [
     "numpy",
     "matplotlib",
     "hdf5storage",
     "tqdm",
-    "torch",
+    "torch<2.7",
     "torchvision",
     "torchmetrics",
     "einops",

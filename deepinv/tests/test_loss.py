@@ -11,6 +11,8 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
+from conftest import no_plot
+
 LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
 
 LIST_SURE = [
@@ -30,23 +32,63 @@ LIST_R2R = [
 
 def test_jacobian_spectral_values(toymatrix):
     # Define the Jacobian regularisers we want to check
-    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-3, eval_mode=False, verbose=True)
+    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
     reg_FNE_l2 = FNEJacobianSpectralNorm(
-        max_iter=100, tol=1e-3, eval_mode=False, verbose=True
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True
     )
 
     # Setup our toy example; here y = A@x
-    x_detached = torch.randn_like(toymatrix).requires_grad_()
-    out = toymatrix @ x_detached
+    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
+    out = x_detached @ toymatrix
 
     def model(x):
-        return toymatrix @ x
+        return x @ toymatrix
 
     regl2 = reg_l2(out, x_detached)
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
 
     assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
     assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
+
+
+@pytest.mark.parametrize("reduction", ["none", "mean", "sum", "max"])
+def test_jacobian_spectral_values(toymatrix, reduction):
+    ### Test reduction types on batches of images
+    B, C, H, W = 5, 3, 8, 8
+    toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
+
+    x_detached = torch.randn(B, C, H, W).requires_grad_()
+    out = toy_operators * x_detached
+
+    def model(x):
+        return toy_operators * x
+
+    # Nonec -> return all spectral norms
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    if reduction == "none":
+        reg_l2_target = toy_operators.squeeze()
+        reg_fne_target = 2 * toy_operators.squeeze() - 1
+    elif reduction == "mean":
+        reg_l2_target = toy_operators.mean()
+        reg_fne_target = 2 * toy_operators.sum() / toy_operators.shape[0] - 1
+    elif reduction == "sum":
+        reg_l2_target = toy_operators.sum()
+        reg_fne_target = 2 * toy_operators.sum() - toy_operators.shape[0]
+    elif reduction == "max":
+        reg_l2_target = toy_operators.max()
+        reg_fne_target = 2 * toy_operators.max() - 1
+
+    assert torch.allclose(regl2, reg_l2_target, rtol=1e-3)
+    assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
 def choose_loss(loss_name, rng=None):
@@ -123,6 +165,8 @@ def test_sure(noise_type, device):
     batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
+
+    print("sizes = ", x.size(), y.size())
 
     x_net = f(y, physics)
     mse = deepinv.metric.MSE()(x, x_net)
@@ -237,14 +281,14 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
     backbone = dinv.models.AutoEncoder(
-        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=128, dim_hid=32
+        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=64, dim_hid=16
     ).to(device)
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone)
 
     # choose optimizer and scheduler
-    epochs = 50
+    epochs = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
@@ -263,17 +307,18 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=False,
+        plot_images=True,
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    with no_plot():
+        # test the untrained model
+        initial_test = trainer.test(test_dataloader=test_dataloader)
 
-    # train the network
-    trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+        # train the network
+        trainer.train()
+        final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
