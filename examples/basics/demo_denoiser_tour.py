@@ -416,7 +416,7 @@ fig = plt.figure(figsize=(12, 6))
 grid = plt.GridSpec(2, 2, height_ratios=[0.25, 0.75])
 for i, sig in enumerate(noise_levels[[0, 4]]):
     ax = fig.add_subplot(grid[1, i])
-    to_plot = merge_df.query("sigma == @sig")
+    to_plot = merge_df.query(f"sigma == {sig}")
     handles = []
     for name, g in to_plot.groupby("denoiser"):
         handles.append(ax.scatter(g["time"], g["psnr"], label=name))
