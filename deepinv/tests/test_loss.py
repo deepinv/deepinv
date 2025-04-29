@@ -275,10 +275,6 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 @pytest.mark.parametrize("loss_name", LOSSES)
 def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
-    # Set device for rng
-    if rng is not None:
-        if rng.device.type != device.type:
-            rng = torch.Generator(device)
     # choose training losses
     loss = choose_loss(loss_name, rng)
 
