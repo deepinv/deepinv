@@ -259,6 +259,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         mask = self.split_generator.step(batch_size=1)["mask"].squeeze(0)
         if isinstance(input_mask, torch.Tensor) and input_mask.numel() > 1:
             if input_mask.shape[-2:] == mask.shape[-2:]:
+                print("mask", mask.shape, "input_mask", input_mask.shape)
                 return mask * input_mask.to(self.device)
             else:
                 raise ValueError(
