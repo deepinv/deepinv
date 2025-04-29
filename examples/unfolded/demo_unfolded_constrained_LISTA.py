@@ -30,7 +30,7 @@ import deepinv as dinv
 from deepinv.utils.demo import load_dataset
 from deepinv.optim.data_fidelity import IndicatorL2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import PrimalDualCP
 
 # %%
 # Setup paths for data loading and results.
@@ -186,8 +186,8 @@ def custom_init_CP(y, physics):
 
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="CP",
+model = PrimalDualCP(
+    unfold=True,
     trainable_params=trainable_params,
     params_algo=params_algo.copy(),
     data_fidelity=data_fidelity,
@@ -297,8 +297,8 @@ params_algo_new = {
     "K_adjoint": physics.A_adjoint,
 }
 
-model_new = unfolded_builder(
-    "CP",
+model_new = PrimalDualCP(
+    unfold=True,
     trainable_params=trainable_params,
     params_algo=params_algo_new,
     data_fidelity=data_fidelity,

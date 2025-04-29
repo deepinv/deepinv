@@ -7,6 +7,9 @@ from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
+from deepinv.optim.bregman import BregmanL2
+import torch.nn as nn
+from contextlib import nullcontext
 
 
 class BaseOptim(Reconstructor):
@@ -43,8 +46,6 @@ class BaseOptim(Reconstructor):
 
     where :math:`x_k` is a variable converging to the solution of the minimization problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
-
-    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
 
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
@@ -164,7 +165,11 @@ class BaseOptim(Reconstructor):
         history_size=5,
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
+        unfold=False,
+        trainable_params=["lambda", "stepsize"],
         verbose=False,
+        device=torch.device("cpu"),
+        **kwargs,
     ):
         super(BaseOptim, self).__init__()
 
@@ -181,6 +186,28 @@ class BaseOptim(Reconstructor):
         self.custom_init = custom_init
         self.get_output = get_output
         self.has_cost = has_cost
+        self.unfold = unfold
+
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
+            self.prior = [prior]
+        else:
+            self.prior = prior
+
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
+        if not isinstance(data_fidelity, Iterable):
+            self.data_fidelity = [data_fidelity]
+        else:
+            self.data_fidelity = data_fidelity
+
+        self.has_cost = (
+            self.prior[0].explicit_prior
+            if isinstance(self.prior, list)
+            else self.prior.explicit_prior
+        )
+        iterator.has_cost = self.has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
@@ -225,19 +252,28 @@ class BaseOptim(Reconstructor):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, ``self.prior`` should be a list of elements of the class :class:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
-        if prior is None:
-            self.prior = [Zero()]
-        elif not isinstance(prior, Iterable):
-            self.prior = [prior]
-        else:
-            self.prior = prior
-
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :class:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
-        if not isinstance(data_fidelity, Iterable):
-            self.data_fidelity = [data_fidelity]
-        else:
-            self.data_fidelity = data_fidelity
+        # set trainable parameters
+        if self.unfold:
+            for param_key in trainable_params:
+                if param_key in self.init_params_algo.keys():
+                    param_value = self.init_params_algo[param_key]
+                    self.init_params_algo[param_key] = nn.ParameterList(
+                        [
+                            (
+                                nn.Parameter(torch.tensor(el).float().to(device))
+                                if not isinstance(el, torch.Tensor)
+                                else nn.Parameter(el.float().to(device))
+                            )
+                            for el in param_value
+                        ]
+                    )
+            self.init_params_algo = nn.ParameterDict(self.init_params_algo)
+            self.params_algo = self.init_params_algo.copy()
+            # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
+            self.prior = nn.ModuleList(self.prior) if self.prior else None
+            self.data_fidelity = (
+                nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+            )
 
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
@@ -483,7 +519,8 @@ class BaseOptim(Reconstructor):
         :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        with torch.no_grad():
+        train_context = torch.no_grad() if not self.unfold else nullcontext()
+        with train_context:
             X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
@@ -568,6 +605,8 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
+    # add a note 
+
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
@@ -612,3 +651,323 @@ def optim_builder(
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
+
+class ADMM(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+        # add an unfolded mode for DEQ
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
+        super(ADMM, self).__init__(
+            ADMMIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class DRS(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
+        # add assert for the necessary arguments 
+        super(DRS, self).__init__(
+            DRSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class GradientDescent(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(GradientDescent, self).__init__(
+            GDIteration(F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class HQS(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class ProximalGradientDescent(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class FISTA(BaseOptim):
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(FISTA, self).__init__(
+            FISTAIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class MirrorDescent(BaseOptim):
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(MirrorDescent, self).__init__(
+            MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class ProximalMirrorDescent(BaseOptim):
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
+        super(ProximalMirrorDescent, self).__init__(
+            PMDIteration(
+                bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
+            ),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )
+
+
+class PrimalDualCP(BaseOptim):
+    def __init__(
+        self,
+        K=lambda x: x,
+        K_adjoint=lambda x: x,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        device=torch.device("cpu"),
+        g_first=False,
+        F_fn=None,
+        params_algo=None,
+        **kwargs,
+    ):
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+                "K": K,
+                "K_adjoint": K_adjoint,
+            }
+        super(PrimalDualCP, self).__init__(
+            CPIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            device=device,
+            **kwargs,
+        )

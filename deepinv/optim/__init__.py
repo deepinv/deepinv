@@ -9,7 +9,19 @@ from .data_fidelity import (
     LogPoissonLikelihood,
     ZeroFidelity,
 )
-from .optimizers import BaseOptim, optim_builder
+from .optimizers import (
+    optim_builder,
+    BaseOptim,
+    ADMM,
+    DRS,
+    GradientDescent,
+    MirrorDescent,
+    HQS,
+    ProximalGradientDescent,
+    FISTA,
+    ProximalMirrorDescent,
+    PrimalDualCP,
+)
 from .fixed_point import FixedPoint
 from .prior import (
     Prior,
@@ -39,4 +51,11 @@ from .distance import (
     AmplitudeLossDistance,
     LogPoissonLikelihoodDistance,
     ZeroDistance,
+)
+from .deep_equilibrium import (
+    DEQ_builder,
+    BaseDEQ,
+    DEQ_GradientDescent,
+    DEQ_HQS,
+    DEQ_ProximalGradientDescent,
 )

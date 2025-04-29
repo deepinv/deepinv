@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import RED
-from deepinv.optim.optimizers import optim_builder
+from deepinv.optim import ProximalGradientDescent
 from deepinv.training import test
 from torchvision import transforms
 from deepinv.utils.parameters import get_GSPnP_params
@@ -103,13 +103,9 @@ use_bicubic_init = False  # Use bicubic interpolation to initialize the algorith
 batch_size = 1  # batch size for evaluation is necessarily 1 for early stopping and backtracking to work.
 
 # load specific parameters for GSPnP
-lamb, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(operation, noise_level_img)
-
-params_algo = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "lambda": lamb,
-}
+lambda_reg, sigma_denoiser, stepsize, max_iter = get_GSPnP_params(
+    operation, noise_level_img
+)
 
 # Select the data fidelity term
 data_fidelity = L2()
@@ -148,12 +144,13 @@ def custom_output(X):
 
 
 # instantiate the algorithm class to solve the IP problem.
-model = optim_builder(
-    iteration="PGD",
+model = ProximalGradientDescent(
     prior=prior,
     g_first=True,
     data_fidelity=data_fidelity,
-    params_algo=params_algo,
+    g_param=sigma_denoiser,
+    lambda_reg=lambda_reg,
+    stepsize=stepsize,
     early_stop=early_stop,
     max_iter=max_iter,
     crit_conv=crit_conv,
