@@ -88,6 +88,7 @@ def gradient(physics, x, y, filter):
     return filter.grad
 
 
+@torch.no_grad
 def projection_simplex_sort(v):
     shape = v.shape
     B = shape[0]
@@ -166,14 +167,15 @@ optimizer = torch.optim.Adam([kernel_hat], lr=0.1)
 
 # We will alternate a gradient step and a projection step
 losses = []
-n_iter = 500
+n_iter = 200
 for i in tqdm(range(n_iter)):
     # update the gradient
     optimizer.zero_grad()
     kernel_hat.grad = gradient(physics, x, y, kernel_hat)
     # a gradient step
     optimizer.step()
-    # projection step
+    # projection step, when doing additional steps, it's important to change only
+    # the tensor data to avoid breaking the gradient computation
     kernel_hat.data = projection_simplex_sort(kernel_hat.data)
 
     # loss
@@ -184,6 +186,73 @@ dinv.utils.plot(
     [true_kernel, kernel_init, kernel_hat],
     titles=["True kernel", "Init. kernel", "Estimated kernel"],
     suptitle="Result with ADAM",
+)
+
+# %%
+#
+# We can plot the loss to make sure that it decreases
+#
+plt.figure()
+plt.plot(range(n_iter), losses)
+plt.title("Loss evolution")
+plt.yscale("log")
+plt.xlabel("Iteration")
+plt.tight_layout()
+plt.show()
+
+
+# %%
+#
+# Optimizing the physics as a usual neural network
+# ------------------------------------------------
+#
+# Below we show another way to optimize the parameter of the physics, as we usually do for neural networks
+
+kernel_init = torch.zeros_like(true_kernel)
+kernel_init[..., 5:-5, 5:-5] = 1.0
+kernel_init = projection_simplex_sort(kernel_init)
+
+# The gradient is off by default, we need to enable the gradient of the parameter
+to_optimize_physics = dinv.physics.Blur(
+    filter=kernel_init.clone().requires_grad_(True), device=device
+)
+
+# Set up the optimizer by giving the parameter to an optimizer
+# Try to change your favorite optimizer
+optimizer = torch.optim.AdamW([to_optimize_physics.filter], lr=0.1)
+
+
+# Try to change another loss function
+# loss_fn = torch.nn.MSELoss()
+loss_fn = torch.nn.L1Loss()
+
+# We will alternate a gradient step and a projection step
+losses = []
+n_iter = 100
+for i in tqdm(range(n_iter)):
+    # update the gradient
+    optimizer.zero_grad()
+    y_hat = to_optimize_physics.A(x)
+    loss = loss_fn(y_hat, y)
+    loss.backward()
+
+    # a gradient step
+    optimizer.step()
+
+    # projection step, when doing additional steps, it's important to change only
+    # the tensor data to avoid breaking the gradient computation
+    to_optimize_physics.filter.data = projection_simplex_sort(
+        to_optimize_physics.filter.data
+    )
+
+    # loss
+    losses.append(loss.item())
+
+kernel_hat = to_optimize_physics.filter.data
+dinv.utils.plot(
+    [true_kernel, kernel_init, kernel_hat],
+    titles=["True kernel", "Init. kernel", "Estimated kernel"],
+    suptitle="Result with AdamW and L1 Loss",
 )
 
 # %%
