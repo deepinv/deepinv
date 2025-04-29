@@ -121,11 +121,14 @@ class SplittingLoss(Loss):
     def split(mask: torch.Tensor, y: torch.Tensor, physics: Optional[Physics] = None):
         r"""Perform splitting given mask
 
-        :param torch.Tensor mask: splitting mask
-        :param torch.Tensor y: input data
+        :param torch.Tensor mask: splitting mask of shape (B,C,H,W)
+        :param torch.Tensor y: input data of shape (B,C,...,H,W)
         :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.
         """
-        inp = Inpainting(y.size()[1:], mask=mask, device=y.device)
+        if y.shape[-2:] != mask.shape[-2:]:
+            raise ValueError(f"y and mask must have same shape in last 2 dimensions, but y has {y.shape} and mask has {mask.shape}")
+
+        inp = Inpainting(y.size()[1:], mask=mask.view(*mask.shape[:2], *([1] * y.ndim - mask.ndim), *mask.shape[-2:]), device=y.device)
 
         # divide measurements y_i = M_i * y
         y_split = inp.A(y)
