@@ -199,8 +199,8 @@ for name, d in denoisers.items():
     runtime = time.perf_counter() - t_start
     res.extend(
         [
-            {"sigma": sigma.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
-            for sigma, v in zip(noise_levels, psnr_x)
+            {"sigma": sig.item(), "denoiser": name, "psnr": v.item(), "time": runtime}
+            for sig, v in zip(noise_levels, psnr_x)
         ]
     )
     print(f" done ({runtime:.2f}s)")
