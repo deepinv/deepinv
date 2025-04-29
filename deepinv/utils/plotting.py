@@ -234,8 +234,8 @@ def plot(
         If this is undesired simply use ``fig = plot(..., show=False, return_fig=True)``
         and plot at your desired location using ``fig.show()``.
 
-    :param list[torch.Tensor], dict[str,torch.Tensor], torch.Tensor img_list: list of images, single image,
-        or dict of titles: images to plot.
+    :param list[torch.Tensor], dict[str, torch.Tensor], torch.Tensor img_list: list of images, dict of titles: images or,
+        single image to plot.
     :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
     :param None, str, pathlib.Path save_fn: path to save the plot as a single image (i.e. side-by-side).
     :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
@@ -268,6 +268,10 @@ def plot(
     elif isinstance(img_list, dict):
         assert titles is None, "titles should be None when img_list is a dictionary"
         titles, img_list = list(img_list.keys()), list(img_list.values())
+
+    assert isinstance(
+        img_list, list
+    ), "img_list must be a list of torch.Tensor, a dictionary of str->torch.Tensor, or a single torch.Tensor."
 
     for i, img in enumerate(img_list):
         if len(img.shape) == 3:
@@ -331,8 +335,6 @@ def plot(
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
-    else:
-        plt.close(fig)
 
     if return_fig and return_axs:
         return fig, axs
@@ -340,6 +342,8 @@ def plot(
         return fig
     elif return_axs:
         return axs
+    elif show:
+        plt.close(fig)
 
 
 def scatter_plot(
