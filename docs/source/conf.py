@@ -43,7 +43,11 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinxcontrib.bibtex",
 ]
+
+bibtex_bibfiles = ["refs.bib"]
+bibtex_default_style = "plain"
 copybutton_exclude = ".linenos, .gp"
 
 intersphinx_mapping = {

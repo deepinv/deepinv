@@ -11,8 +11,7 @@ class ICNN(nn.Module):
     The network is built to be convex in its input.
     The model is fully convolutional and thus can be applied to images of any size.
 
-    Based on the implementation from the paper
-    `"Data-Driven Mirror Descent with Input-Convex Neural Networks <https://arxiv.org/abs/2206.06733>`_.
+    Based on the implementation from :cite:`tan2023data`.
 
     :param int in_channels: Number of input channels.
     :param int num_filters: Number of hidden units.
