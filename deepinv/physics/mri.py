@@ -122,7 +122,7 @@ class MRIMixin:
         if not rescale:
             cropped = CenterCrop(crop_size)(x)
         else:
-            # TODO careful here resizing will change aspect ratio
+            # NOTE careful here resizing will change aspect ratio
             cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(*x.shape[:-2], *crop_size)
 
         if odd_h:
@@ -542,12 +542,13 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         return torch.tensor(coil_maps).type(torch.complex64)
 
     @staticmethod
-    def estimate_coil_maps(y: Tensor, calib_size: int) -> Tensor:
+    def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
+        :param int calib_size: optional square auto-calibration size in pixels, used by `sigpy`.
         :return: torch.Tensor of coil maps of complex dtype and shape [B,N,...,H,W]
         """
         try:

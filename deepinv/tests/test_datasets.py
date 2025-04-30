@@ -17,6 +17,7 @@ from deepinv.datasets import (
     Kohler,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
+    FastMRITransform,
     CMRxReconSliceDataset,
     NBUDataset,
 )
@@ -391,6 +392,29 @@ def test_FastMRISliceDataset(download_fastmri):
         num_slices(0), num_slices([0, 1]),
         num_slices("random")
     ) == (n_slices, 1, 3, 1, 2, 1)
+
+    # Test raw data transform for estimating maps and generating masks
+    dataset = FastMRISliceDataset(
+        root=data_dir,
+        transform=FastMRITransform(
+            mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
+            estimate_coil_maps=True,
+        ),
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )
+    x, y, params = dataset[0]
+    assert torch.all(y * params["mask"] == y)
+    assert 0.24 < params["mask"].mean() < 0.26
+    assert params["coil_maps"].shape == (n_coils, *kspace_shape)
+
+    # Test filter_id in FastMRI init
+    assert len(FastMRISliceDataset(
+        root=data_dir,
+        filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )) == 3
 
 @pytest.fixture
 def download_CMRxRecon():
