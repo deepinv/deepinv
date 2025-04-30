@@ -22,7 +22,7 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
-
+import math
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
@@ -36,7 +36,8 @@ CKPT_DIR = BASE_DIR / "ckpts"
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
 
-device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+# device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # %%
 # Load degradation operator.
@@ -51,13 +52,33 @@ operation = "CT"
 noise_level_img = 0.05
 
 # Generate the CT operator.
-physics = dinv.physics.Tomography(
-    img_width=img_size,
-    angles=30,
-    circle=False,
-    device=device,
+source_radius = 2000
+detector_radius = 1000
+
+# physics = dinv.physics.Tomography(
+#     img_width=img_size,
+#     angles=30,
+#     circle=False,
+#     parallel_computation=True,
+#     device=device,
+#     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+#     fan_beam=True,
+#     fan_parameters={
+#         "pixel_spacing": 1.,
+#         "n_detector_pixels": math.ceil(math.sqrt(2) * img_size),
+#         "detector_spacing": 1.1,
+#         "source_radius": source_radius,
+#         "detector_radius": detector_radius,
+#     },
+    
+# )
+physics = dinv.physics.TomographyWithAstra(
+    img_shape=(img_size, img_size),
+    num_angles=30,
+    num_detectors=math.ceil(math.sqrt(2)*img_size),
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-)
+).to(device)
+# physics = torch.compile(_physics)
 
 
 # %%
@@ -271,7 +292,7 @@ trainer = dinv.Trainer(
     online_measurements=True,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
