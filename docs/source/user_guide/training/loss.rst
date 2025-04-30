@@ -99,6 +99,8 @@ In order to learn from incomplete data, you can either:
        | (i.e. measurement splitting or data undersampling)
    * - :class:`deepinv.loss.WeightedSplittingLoss`
      - Splitting loss with K-weighting
+   * - :class:`deepinv.loss.RobustSplittingLoss`
+     - Splitting loss with additional Noisier2Noise
    * - :class:`deepinv.loss.Phase2PhaseLoss`
      - Splitting loss but across time dimension
    * - :class:`deepinv.loss.Artifact2ArtifactLoss`

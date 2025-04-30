@@ -13,6 +13,7 @@ from .measplit import (
     Phase2PhaseLoss,
     Artifact2ArtifactLoss,
     WeightedSplittingLoss,
+    RobustSplittingLoss,
 )
 from .loss import Loss, StackedPhysicsLoss
 from .scheduler import (

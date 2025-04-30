@@ -4,6 +4,7 @@ from copy import deepcopy
 from warnings import warn
 import torch
 from deepinv.physics import Inpainting, Physics
+from deepinv.physics.noise import GaussianNoise
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.generator import (
@@ -248,6 +249,12 @@ class SplittingLoss(Loss):
 
         @staticmethod
         def split(mask, y, physics=None):
+            r"""Perform splitting given mask
+
+            :param torch.Tensor mask: splitting mask
+            :param torch.Tensor y: input data
+            :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.
+            """
             return SplittingLoss.split(mask, y, physics)
 
         def forward(
@@ -359,6 +366,7 @@ class WeightedSplittingLoss(SplittingLoss):
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
     and :math:`\mathbf{P}=\mathbb{E}[\mathbf{M}_i],\tilde{\mathbf{P}}=\mathbb{E}[\mathbf{M}_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
+    At inference, the original whole measurement :math:`y` is used as input.
 
     .. note::
 
@@ -455,6 +463,66 @@ class WeightedSplittingLoss(SplittingLoss):
 
         # Compute L2 loss
         return (weighted_residual**2).mean()
+
+class RobustSplittingLoss(WeightedSplittingLoss):
+    r"""
+    Robust Weighted Splitting Loss
+
+    Implements the Robust-SSDU loss from `Millard and Chiew 2024 <https://arxiv.org/abs/2210.01696>`_.
+    The loss is related to the :class:`deepinv.loss.WeightedSplittingLoss` as follows:
+
+    .. math::
+
+        \mathcal{L}_\text{Robust-SSDU}=\mathcal{L}_\text{Weighted-SSDU}(\tilde{y};y) + \lVert(1+\frac{1}{\alpha^2}) M_1 M (\forw{\inverse{\tilde{y},A} - y}\rVert_2^2
+
+    where :math:`\tilde{y}\sim\mathcal{N}(y,\alpha^2\sigma^2\mathbf{I})` is further noised (i.e. "noisier") measurement, and :math:`\alpha` is a hyperparameter.
+    This is derived from Eqs. 34 & 35 of the `paper <https://arxiv.org/abs/2210.01696>`_.
+    At inference, the original measurement :math:`y` is used as input.
+
+    .. note::
+
+        See :class:`deepinv.loss.WeightedSplittingLoss` on what is expected of the input measurements, and the `mask_generator`.
+
+    :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
+    :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
+    :param deepinv.physics.NoiseModel noise_model: noise model for adding further noise, must be of same type as original measurement noise.
+        Note this loss only supports :class:`deepinv.physics.GaussianNoise`.
+    :param float alpha: hyperparameter controlling further noise std.
+    :param float eps: small value to avoid division by zero.
+
+    """
+    def __init__(
+        self,
+        mask_generator: BernoulliSplittingMaskGenerator,
+        physics_generator: BaseMaskGenerator,
+        noise_model: GaussianNoise = GaussianNoise(sigma=0.1),
+        alpha: float = 0.75,
+        eps: float = 1e-9,
+    ):
+        super().__init__(mask_generator, physics_generator, eps=eps)
+        self.alpha = alpha
+        self.noise_model = noise_model
+        self.noise_model.update_parameters(sigma=noise_model.sigma * alpha)
+        
+    def forward(self, x_net, y, physics, model, **kwargs):
+        recon_loss = super().forward(x_net, y, physics, model, **kwargs)
+        
+        mask = model.get_mask() * getattr(physics, "mask", 1.0) # M_\lambda\cap\omega 
+        residual = mask * (physics.A(x_net) - y) * (1 + 1 / (self.alpha ** 2))
+
+        return recon_loss + (residual**2).mean()
+
+    def adapt_model(self, model: torch.nn.Module) -> RobustSplittingModel:
+        return model if isinstance(model, self.RobustSplittingModel) else self.RobustSplittingModel(model, mask_generator=self.mask_generator, noise_model=self.noise_model)
+
+    class RobustSplittingModel(SplittingLoss.SplittingModel):
+        def __init__(self, model, mask_generator, noise_model):
+            super().__init__(model, split_ratio=None, mask_generator=mask_generator, eval_n_samples=1, eval_split_input=False, eval_split_output=False, pixelwise=True)
+            self.noise_model = noise_model
+
+        def split(self, mask, y, physics=None):
+            y1, physics1 = SplittingLoss.split(mask, y, physics)
+            return (mask * self.noise_model(y1) if self.training else y1), physics1
 
 
 class Phase2PhaseLoss(SplittingLoss):

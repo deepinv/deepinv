@@ -360,6 +360,7 @@ def test_sure_losses(device):
     [
         "splitting",
         "weighted-splitting",
+        "robust-splitting",
         "n2n",
         "splitting_eval_split_input",
         "splitting_eval_split_input_output",
@@ -375,6 +376,8 @@ def test_measplit(device, loss_name, rng):
         backbone = dinv.models.MedianFilter()
     elif "splitting" in loss_name:
         physics = dinv.physics.Inpainting(imsize, mask=0.6, device=device, rng=rng)
+        if loss_name == "robust-splitting":
+            physics.noise_model = dinv.physics.GaussianNoise(0.1)
         backbone = DummyModel()
 
     f = dinv.models.ArtifactRemoval(backbone)
@@ -419,6 +422,18 @@ def test_measplit(device, loss_name, rng):
         loss = dinv.loss.WeightedSplittingLoss(
             mask_generator=gen, physics_generator=physics.gen
         )
+    elif loss_name == "robust-splitting":
+        gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            imsize,
+            dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                imsize, 0.5, device=device, rng=rng
+            ),
+        )
+        loss = dinv.loss.RobustSplittingLoss(
+            mask_generator=gen, physics_generator=physics.gen, noise_model=physics.noise_model
+        )
+    else:
+        raise ValueError("Loss name invalid.")
 
     f = loss.adapt_model(f)
 
@@ -426,7 +441,7 @@ def test_measplit(device, loss_name, rng):
     l = loss(x_net=x_net, y=y, physics=physics, model=f)
 
     # Training recon + loss
-    if loss_name in ("n2n", "weighted-splitting"):
+    if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
         assert l > 0
     elif "splitting" in loss_name:
         y1 = x_net
@@ -459,13 +474,13 @@ def test_measplit(device, loss_name, rng):
     elif loss_name == "splitting_eval_split_input_output":
         # Splits output with complement mask
         assert torch.all(y1_eval == 0)
-    elif loss_name in ("weighted-splitting", "n2n"):
+    elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
         pass
     else:
         raise ValueError("Incorrect loss name.")
 
     if loss_name == "weighted-splitting":
-        assert loss.weight.shape == imsize[-2:]
+        assert loss.weight.shape == (1, imsize[-1]) # 1D in W dim
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
