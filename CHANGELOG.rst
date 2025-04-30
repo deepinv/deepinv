@@ -20,6 +20,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
 
 - Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
@@ -323,3 +324,4 @@ Authors
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Romain Vo: https://github.com/romainvo

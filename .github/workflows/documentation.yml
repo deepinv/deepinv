@@ -9,6 +9,11 @@ on:
     branches:
     - main
 
+# Cancel in-progress runs when pushing a new commit on the PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -17,26 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.9
+          python-version: 3.12
+          cache: 'pip' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
         run: |
           pip install -e .[dataset,denoisers,doc]
-      - name: Run doctests
-        run: |
-          find . \( -name '*.py' -o -name '*.rst' \) | xargs grep -l '>>>' | while read file; do
-              if [[ "$file" != *.datasets.rst && "$file" != *.multigpu.rst ]]; then
-                  echo "Running doctests in $file"
-                  python -m doctest -v "$file"
-              else
-                  echo "Skipping file: $file"
-              fi
-          done
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build
+      - name: Run doctests
+        run: |
+          # Get all the RST files, excluding multigpu.rst
+          # and *datasets.rst files
+          _doctest_files=$(find . -name '*.rst' ! -name '*multigpu.rst' ! -name '*datasets*.rst')
+          # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
+          # using plot_gallery=0 to avoid building examples
+          sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
