@@ -1,0 +1,14 @@
+name: Expose doc
+on: [status]
+jobs:
+  circleci_artifacts_redirector_job:
+    runs-on: ubuntu-latest
+    name: Run CircleCI artifacts redirector
+    steps:
+      - name: GitHub Action step
+        uses: larsoner/circleci-artifacts-redirector-action@master
+        with:
+          api-token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifact-path: 0/dev/index.html
+          circleci-jobs: build_docs
