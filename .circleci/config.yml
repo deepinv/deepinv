@@ -50,41 +50,22 @@ jobs:
               python -m pip install --user -e .
               python -m pip install --user .[doc]
 
-        - save_cache:
-            key: pip-cache
-            paths:
-              - ~/.cache/pip
-
         # Build docs
         - run:
             name: make html
             no_output_timeout: 120m
             command: |
-              cd doc;
+              cd docs;
               make clean;
               make SPHINXOPTS=-v html-fast;
               cd ..;
 
-
-#        # upload to gh-pages
-#        - run:
-#            name: deploy
-#            uses: peaceiris/actions-gh-pages@v3
-#            if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-#            with:
-#              publish_branch: gh-pages
-#              github_token: ${{ secrets.GITHUB_TOKEN }}
-#              publish_dir: _build/
-#              force_orphan: true
-#              enable_jekyll: false
-
-
         # Save the outputs
         - store_artifacts:
-            path: doc/_build/html/
+            path: docs/build/html/
             destination: dev
         - persist_to_workspace:
-            root: doc/_build
+            root: docs/build
             paths:
               - html
 
