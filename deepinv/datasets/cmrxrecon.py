@@ -208,6 +208,10 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         kspace = torch.from_numpy(np.stack((kspace.real, kspace.imag), axis=0))
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
+        target = None
+
+        # The following is akin to :class:`deepinv.datasets.fastmri.FastMRITransform` and will be moved
+        # to a separate CMRxReconTransform in future.
 
         # Load mask
         if self.apply_mask:

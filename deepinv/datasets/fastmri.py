@@ -25,18 +25,16 @@ import pickle
 import math
 import warnings
 import os
-from natsort import natsorted
 import h5py
 from tqdm import tqdm
 import numpy as np
 import torch
 from torchvision.transforms import Compose, CenterCrop
 
-from deepinv.datasets.utils import ToComplex, Rescale, download_archive, loadmat
+from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.utils.demo import get_image_url
-from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
+from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.mri import MultiCoilMRI, MRIMixin
-from deepinv.physics.noise import NoiseModel
 
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
@@ -157,9 +155,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
     To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.
 
-    The dataset is loaded as pairs ``(x, y)`` where `y` are the kspace measurements of shape ``(2, (N,) H, W)``
+    The dataset is loaded as tuples ``(x, y)`` where `y` are the kspace measurements of shape ``(2, (N,) H, W)``
     where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
     and `x` ("target") are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
+
+    If `transform` is used or `mask` exists in file, then also returns `params` dict containing e.g. `mask` and/or `coil_maps`.
 
     .. tip::
 
@@ -197,6 +197,13 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         if ``tuple`` or `int`s, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
         middle slice, if `"random"`, select random slice. Defaults to `"all"`.
     :param Callable transform: optional transform function taking in (multicoil) kspace of shape (2, (N,) H, W) and targets of shape (1, H, W).
+
+    .. seealso::
+
+        :class:`deepinv.datasets.fastmri.FastMRITransform
+            Transform for working with raw data: simulate masks and estimate coil maps.
+
+    :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.
     :param torch.Generator, None rng: optional torch random generator for shuffle slice indices
 
     |sep|
@@ -225,7 +232,21 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
         Use MRI transform to mask, estimate sensitivity maps, normalise and/or crop:
 
-        >>> #TODO
+        >>> from deepinv.datasets import FastMRITransform
+        >>> from deepinv.physics.generator import GaussianMaskGenerator
+        >>> mask_generator = GaussianMaskGenerator((512, 213))
+        >>> dataset = FastMRISliceDataset(root, transform=FastMRITransform(mask_generator=mask_generator, estimate_coil_maps=True))
+        >>> target, kspace, params = dataset[0]
+        >>> params["mask"].shape
+        torch.Size([1, 512, 213])
+        >>> params["coil_maps"].shape
+        torch.Size([4, 512, 213])
+
+        Filter by volume ID:
+
+        >>> dataset = FastMRISliceDataset(root, filter_id=lambda s: "brain" in str(s.fname))
+        >>> len(dataset)
+        16
 
         Convert to a simple normalised padded in-memory slice dataset from the middle slices only:
 
@@ -393,9 +414,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         return len(self.samples)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        r"""Returns idx-th target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
-        if target exists else just space (i.e. in challenge test set).
-        Outputs may be modifed by transform if specified."""
+        r"""
+        Returns idx-th samples.
+
+        This includes target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
+        if target exists else just kspace (i.e. in challenge test set).
+        
+        If mask exists (i.e. challenge test set), this is also returned in params dict.
+
+        Outputs may be modifed by transform if specified, in which case may also return params dict,
+        containing optionally mask and coil maps.
+        """
         fname, slice_ind, metadata = self.samples[idx]
 
         with h5py.File(fname, "r") as hf:
@@ -412,12 +441,15 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             else:
                 target = None
 
-        #TODO load mask if exists (i.e. challenge test set)
+        params = {"mask": np.asarray(hf["mask"])} if "mask" in hf else {}
 
         if self.transform is not None:
-            return self.transform(target, kspace, seed=str(fname) + str(slice_ind))
-        else:
-            return (target, kspace) if target is not None else kspace
+            target, kspace, params = self.transform(target, kspace, seed=str(fname) + str(slice_ind), **params)
+        
+        out = (
+            (() if target is None else (target,)) + (kspace,) + ((params,) if params else ())
+        )
+        return out if len(out) > 1 else out[0]
 
     def save_simple_dataset(
         self,
@@ -467,65 +499,35 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             download=False,
         )
 
-    def save_local_dataset(self, data_dir: str) -> torch.utils.data.Dataset:
-        #TODO generalise local dataset for all datasets
-        os.makedirs(data_dir, exist_ok=True)
-        for i in tqdm(range(self.__len__())):
-            x, y, params = self.__getitem__(i)
-            np.savez_compressed(
-                f"{str(data_dir)}/{i}.npz",
-                x=x.numpy(),
-                y=y.numpy(),
-                **{k: v.numpy() for (k, v) in params.items()},
-            )
-        return LocalDataset(data_dir)
-
-
-class LocalDataset(torch.utils.data.Dataset):
-    def __init__(self, root: Union[str, Path], pattern: str = "*.npz", cache: float = False):
-        self.files = natsorted(Path(root).glob(pattern))
-        self.use_cache = cache
-        self.cache = {}
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-        f = self.files[idx]
-        
-        if f in self.cache:
-            data = self.cache[f]
-        else:
-            with np.load(f) as d:
-                data = dict(d)
-            if self.use_cache:
-                self.cache[f] = data
-
-        x = torch.tensor(data["x"]) if "x" in data else None
-        y = torch.tensor(data["y"])
-        
-        params = {k: torch.tensor(data[k]) for k in ["mask", "coil_maps"] if k in data}
-
-        if x is None and not params:
-            return y
-        
-        return (() if x is None else (x,)) + (y,) + ((params,) if params else ())
-
-
 class FastMRITransform:
+    """
+    FastMRI raw data transform.
+
+    Transforms raw kspace data by estimating coil maps and/or generating masks. To be used with :class:`deepinv.datasets.FastMRISliceDataset`.
+    See below for input and output shapes.
+
+    :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
+    :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
+        If `int`, pass this as auto-calibration size to ESPIRiT. If `True`, use ACS size from `mask_generator`.
+    """
     def __init__(
         self,
         mask_generator: Optional[BaseMaskGenerator] = None,
         estimate_coil_maps: Union[bool, int] = False,
     ):
-        if 1:
-            # TODO mask_generator is None and estimate_coil_maps is True but not int. Either pass in mask_generator, or specify acs size with estimate_coil_maps
-            pass
+        if mask_generator is None and estimate_coil_maps and not (isinstance(estimate_coil_maps, int) and not isinstance(estimate_coil_maps, bool)):
+            raise ValueError("ACS size not specified. Either pass in mask_generator with fixed ACS size, or specify ACS size by passing int to estimate_coil_maps.")
 
         self.mask_generator = mask_generator
         self.estimate_coil_maps = estimate_coil_maps
 
     def generate_mask(self, kspace: torch.Tensor, seed: Union[str, int]) -> torch.Tensor:
+        """Simulate mask from mask generator.
+
+        :param torch.Tensor kspace: input fully-sampled kspace of shape (2, (N,) H, W) where (N,) is optional multicoil
+        :param str, int seed: mask generator seed. Useful for specifying same mask per data sample.
+        :return: mask of shape (C, H, W)
+        """
         return self.mask_generator.step(
             seed=seed,
             img_size=kspace.shape[-2:],
@@ -533,129 +535,36 @@ class FastMRITransform:
         )["mask"]
 
     def generate_maps(self, kspace: torch.Tensor) -> torch.Tensor:
+        """Estimate coil maps using :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
+
+        :param torch.Tensor kspace: input kspace of shape (2, N, H, W)
+        :return: estimated coil maps of shape (N, H, W) and complex dtype
+        """
         calib_size = (
             self.mask_generator.n_center
             if self.estimate_coil_maps == True
             else self.estimate_coil_maps
         )
-        coil_maps = MultiCoilMRI.estimate_coil_maps(
+        return MultiCoilMRI.estimate_coil_maps(
             kspace.unsqueeze(0), calib_size=calib_size
         ).squeeze(0)
-        #TODO this should be optional
-        coil_maps[coil_maps == 0] = 1 / math.sqrt(coil_maps.shape[0])
-        return coil_maps
 
-    def __call__(self, target: torch.Tensor, kspace: torch.Tensor, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        # target of shape (1, H, W) and kspace of shape (2, (N,) H, W)
+    def __call__(self, target: torch.Tensor, kspace: torch.Tensor, mask: torch.Tensor = None, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+        """Call transform.
+
+        :param torch.Tensor target: target of shape (1, H, W)
+        :param torch.Tensor kspace: kspace of shape (2, (N,) H, W) where (N,) is optional multicoil
+        :param torch.Tensor mask: optional mask to load, defaults to None.
+        :param Union[str, int] seed: optional random seed for generating mask, defaults to None
+        :return: target, kspace, params, where params is dict containing `mask` (of shape (C, H, W)) and/or `coil_maps` (of shape (N, H, W) and complex dtype).
+        """
         params = {}
+        if mask is not None:
+            params["mask"] = mask
         if self.mask_generator is not None:
             params["mask"] = self.generate_mask(kspace, seed)
             kspace *= params["mask"]
         if self.estimate_coil_maps:
             params["coil_maps"] = self.generate_maps(kspace)
 
-        #TODO if just (y,) then return just y
-        return (
-            (() if target is None else (target,)) + (kspace,) + ((params,) if params else ())
-        )
-
-class FullMultiCoilFastMRITransform(FastMRITransform, MRIMixin):
-    def __init__(
-        self,
-        mask_generator: Optional[BaseMaskGenerator] = None,
-        estimate_coil_maps: Union[bool, int] = True,
-        crop_size: Tuple[int, int] = (384, 320),
-        rescale: bool = False,
-        prewhiten: Tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
-        noise_model: NoiseModel = None,
-        norm_percentile: float = .99,
-        target_method: str = "A_dagger",
-    ):
-        super().__init__(mask_generator, estimate_coil_maps)
-        self.crop_size = crop_size
-        self.prewhiten = prewhiten
-        self.norm_percentile = norm_percentile
-        self.noise_model = noise_model
-        self.rescale = rescale
-        self.target_method = target_method
-    
-    def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
-        # kspace of shape (2, (N,) H, W)
-        ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0) # N, H, W complex
-
-        n = ksp[:, self.prewhiten[0], self.prewhiten[1]].flatten(-2)
-        n -= n.mean(axis=-1, keepdim=True)
-        cov = n @ n.H # (N, N) complex
-
-        try:
-            ksp = ksp.flatten(-2) # N, H*W
-            ksp = torch.linalg.solve(torch.linalg.cholesky(cov), ksp)
-            return self.from_torch_complex(ksp.unflatten(-1, kspace.shape[-2:]).unsqueeze(0)).squeeze(0) # 2,N,H,W
-        except torch.linalg.LinAlgError:
-            # Non-PSD due to ksp all zeros
-            return kspace
-
-    def normalise(self, kspace: torch.Tensor) -> torch.Tensor:
-        # Extract ACS
-        acs = (
-            self.mask_generator.n_center
-            if self.estimate_coil_maps == True
-            else self.estimate_coil_maps
-        )
-        H, W = kspace.shape[-2:]
-        mask = torch.zeros_like(kspace)
-        mask[..., H // 2 - acs // 2 : H // 2 + ceildiv(acs, 2), W // 2 - acs // 2 : W // 2 + ceildiv(acs, 2)] = 1
-
-        # Normalise by percentile of RSS of ACS
-        return kspace / self.rss(self.kspace_to_im((kspace * mask).unsqueeze(0))).quantile(0.99)
-
-
-    def __call__(self, _: Any, kspace: torch.Tensor, seed: Union[str, int] = None, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
-        # kspace of shape (2, (N,) H, W)
-
-        # Pre-whiten
-        if self.prewhiten:
-            kspace = self.prewhiten_kspace(kspace)
-
-        # Add noise
-        if self.noise_model is not None:
-            kspace = self.noise_model(kspace) #TODO string seed here
-
-        # Crop in image space
-        kspace = self.im_to_kspace(self.crop(
-            self.kspace_to_im(kspace.unsqueeze(0)),
-            shape=self.crop_size,
-            rescale=self.rescale,
-        )).squeeze(0)
-
-        # Normalise kspace
-        kspace = self.normalise(kspace)
-
-        # Estimate sens maps
-        params = {"coil_maps": self.generate_maps(kspace)}
-
-        # PI-CS (least squares with CG and no regularisation)
-        physics = MultiCoilMRI(img_size=self.crop_size, **params)
-        match self.target_method:
-            case "A_dagger":
-                target = physics.A_dagger(kspace.unsqueeze(0)).squeeze(0)
-            case "A_adjoint":
-                target = physics.A_adjoint(kspace.unsqueeze(0)).squeeze(0)
-            case "rss":
-                target = physics.A_adjoint(kspace.unsqueeze(0), rss=True).squeeze(0) # 1,H,W
-                target = torch.cat([target, torch.zeros_like(target)], dim=0)
-            case _:
-                raise ValueError("target_method invalid.")
-
-
-        # Generate masks
-        if self.mask_generator is not None:
-            params["mask"] = self.generate_mask(kspace, seed)
-            kspace *= params["mask"]
-
-        # Shapes:
-        # target 2, H, W float32
-        # kspace 2, N, H, W float32
-        # mask 1, H, W float32
-        # maps N, H, W complex64
         return target, kspace, params
