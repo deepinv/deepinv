@@ -11,8 +11,9 @@ Current
 New Features
 ^^^^^^^^^^^^
 
-- Estimate sens maps with sigpy, FastMRI load and save maps (:gh:`401` by `Andrew Wang`_)
-- Add HaarPSI metric + metric standardization (:gh:`401` by `Andrew Wang`_)
+- Weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, FastMRITransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -20,7 +21,7 @@ Changed
 Fixed
 ^^^^^
 
-- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`401` by `Andrew Wang`_)
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
 v0.3
 ----------------
@@ -46,7 +47,6 @@ New Features
 - Trainer now can log train progress per batch or per epoch (:gh:`388` by `Andrew Wang`_)
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
-- Weighted-SSDU loss function + more mask generators (:gh:`401` by `Keying Guo`_ and `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
 
