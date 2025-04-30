@@ -228,7 +228,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
                     )
             else:
-                mask = FastMRITransform(mask_generator=self.mask_generator).generate_mask(kspace, str(fname) + str(slice_ind))
+                mask = FastMRITransform(
+                    mask_generator=self.mask_generator
+                ).generate_mask(kspace, str(fname) + str(slice_ind))
         else:
             mask = torch.ones_like(kspace)
 

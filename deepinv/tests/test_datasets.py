@@ -379,18 +379,22 @@ def test_FastMRISliceDataset(download_fastmri):
 
     # Test slicing returns correct num of slices
     def num_slices(slice_index):
-        return len(FastMRISliceDataset(
-            root=data_dir,
-            slice_index=slice_index,
-            load_metadata_from_cache=True,
-            metadata_cache_file="fastmrislicedataset_cache.pkl",
-        ).samples)
-    
+        return len(
+            FastMRISliceDataset(
+                root=data_dir,
+                slice_index=slice_index,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            ).samples
+        )
+
     assert (
         num_slices("all"),
-        num_slices("middle"), num_slices("middle+1"),
-        num_slices(0), num_slices([0, 1]),
-        num_slices("random")
+        num_slices("middle"),
+        num_slices("middle+1"),
+        num_slices(0),
+        num_slices([0, 1]),
+        num_slices("random"),
     ) == (n_slices, 1, 3, 1, 2, 1)
 
     # Test raw data transform for estimating maps and generating masks
@@ -409,12 +413,18 @@ def test_FastMRISliceDataset(download_fastmri):
     assert params["coil_maps"].shape == (n_coils, *kspace_shape)
 
     # Test filter_id in FastMRI init
-    assert len(FastMRISliceDataset(
-        root=data_dir,
-        filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
-        load_metadata_from_cache=True,
-        metadata_cache_file="fastmrislicedataset_cache.pkl",
-    )) == 3
+    assert (
+        len(
+            FastMRISliceDataset(
+                root=data_dir,
+                filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            )
+        )
+        == 3
+    )
+
 
 @pytest.fixture
 def download_CMRxRecon():

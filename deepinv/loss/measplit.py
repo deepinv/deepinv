@@ -127,9 +127,17 @@ class SplittingLoss(Loss):
         :param deepinv.physics.Physics physics: physics to split, retaining its original noise model. If ``None``, only :math:`y` is split.
         """
         if y.shape[-2:] != mask.shape[-2:]:
-            raise ValueError(f"y and mask must have same shape in last 2 dimensions, but y has {y.shape} and mask has {mask.shape}")
+            raise ValueError(
+                f"y and mask must have same shape in last 2 dimensions, but y has {y.shape} and mask has {mask.shape}"
+            )
 
-        inp = Inpainting(y.size()[1:], mask=mask.view(*mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[-2:]), device=y.device)
+        inp = Inpainting(
+            y.size()[1:],
+            mask=mask.view(
+                *mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[-2:]
+            ),
+            device=y.device,
+        )
 
         # divide measurements y_i = M_i * y
         y_split = inp.A(y)
@@ -464,6 +472,7 @@ class WeightedSplittingLoss(SplittingLoss):
         # Compute L2 loss
         return (weighted_residual**2).mean()
 
+
 class RobustSplittingLoss(WeightedSplittingLoss):
     r"""
     Robust Weighted Splitting Loss
@@ -491,6 +500,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
     :param float eps: small value to avoid division by zero.
 
     """
+
     def __init__(
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
@@ -503,21 +513,35 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         self.alpha = alpha
         self.noise_model = noise_model
         self.noise_model.update_parameters(sigma=noise_model.sigma * alpha)
-        
+
     def forward(self, x_net, y, physics, model, **kwargs):
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
-        
-        mask = model.get_mask() * getattr(physics, "mask", 1.0) # M_\lambda\cap\omega 
-        residual = mask * (physics.A(x_net) - y) * (1 + 1 / (self.alpha ** 2))
+
+        mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
+        residual = mask * (physics.A(x_net) - y) * (1 + 1 / (self.alpha**2))
 
         return recon_loss + (residual**2).mean()
 
     def adapt_model(self, model: torch.nn.Module) -> RobustSplittingModel:
-        return model if isinstance(model, self.RobustSplittingModel) else self.RobustSplittingModel(model, mask_generator=self.mask_generator, noise_model=self.noise_model)
+        return (
+            model
+            if isinstance(model, self.RobustSplittingModel)
+            else self.RobustSplittingModel(
+                model, mask_generator=self.mask_generator, noise_model=self.noise_model
+            )
+        )
 
     class RobustSplittingModel(SplittingLoss.SplittingModel):
         def __init__(self, model, mask_generator, noise_model):
-            super().__init__(model, split_ratio=None, mask_generator=mask_generator, eval_n_samples=1, eval_split_input=False, eval_split_output=False, pixelwise=True)
+            super().__init__(
+                model,
+                split_ratio=None,
+                mask_generator=mask_generator,
+                eval_n_samples=1,
+                eval_split_input=False,
+                eval_split_output=False,
+                pixelwise=True,
+            )
             self.noise_model = noise_model
 
         def split(self, mask, y, physics=None):

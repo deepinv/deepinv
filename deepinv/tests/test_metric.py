@@ -19,7 +19,7 @@ METRICS = [
     "NIQE",
     "ERGAS",
     "SAM",
-    "HaarPSI"
+    "HaarPSI",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 

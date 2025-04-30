@@ -102,7 +102,13 @@ class MRIMixin:
             )
         )
 
-    def crop(self, x: Tensor, crop: bool = True, shape: Tuple[int, int] = None, rescale: bool = False) -> Tensor:
+    def crop(
+        self,
+        x: Tensor,
+        crop: bool = True,
+        shape: Tuple[int, int] = None,
+        rescale: bool = False,
+    ) -> Tensor:
         """Center crop 2D image according to ``img_size``.
 
         This matches the RSS reconstructions of the original raw data in :class:`deepinv.datasets.FastMRISliceDataset`.
@@ -123,7 +129,9 @@ class MRIMixin:
             cropped = CenterCrop(crop_size)(x)
         else:
             # NOTE careful here resizing will change aspect ratio
-            cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(*x.shape[:-2], *crop_size)
+            cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(
+                *x.shape[:-2], *crop_size
+            )
 
         if odd_h:
             cropped = cropped[..., :-1, :]
@@ -400,7 +408,9 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
 
-    def A(self, x: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs) -> Tensor:
+    def A(
+        self, x: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
+    ) -> Tensor:
         r"""
         Applies linear operator.
 
@@ -469,7 +479,9 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         return self.crop(x, crop=crop)
 
-    def A_dagger(self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs) -> Tensor:
+    def A_dagger(
+        self, y: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
+    ) -> Tensor:
         r"""
         Computes least squares solution to the MRI inverse problem, as proposed in `SENSE: Sensitivity encoding for fast MRI <https://doi.org/10.1002/(SICI)1522-2594(199911)42:5%3C952::AID-MRM16%3E3.0.CO;2-S>`_.
 

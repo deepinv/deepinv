@@ -235,6 +235,7 @@ def load_url_image(
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
 
+
 def load_example(name, img_size=512, grayscale=True, **kwargs):
     r"""
     Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.demo.load_url_image`.
@@ -246,6 +247,7 @@ def load_example(name, img_size=512, grayscale=True, **kwargs):
     """
     url = f"https://huggingface.co/datasets/deepinv/images/resolve/main/{name}?download=true"
     return load_url_image(url=url, img_size=img_size, grayscale=grayscale, **kwargs)
+
 
 def load_torch_url(url):
     r"""

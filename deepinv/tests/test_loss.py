@@ -430,7 +430,9 @@ def test_measplit(device, loss_name, rng):
             ),
         )
         loss = dinv.loss.RobustSplittingLoss(
-            mask_generator=gen, physics_generator=physics.gen, noise_model=physics.noise_model
+            mask_generator=gen,
+            physics_generator=physics.gen,
+            noise_model=physics.noise_model,
         )
     else:
         raise ValueError("Loss name invalid.")
@@ -480,7 +482,7 @@ def test_measplit(device, loss_name, rng):
         raise ValueError("Incorrect loss name.")
 
     if loss_name == "weighted-splitting":
-        assert loss.weight.shape == (1, imsize[-1]) # 1D in W dim
+        assert loss.weight.shape == (1, imsize[-1])  # 1D in W dim
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
