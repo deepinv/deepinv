@@ -60,8 +60,8 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
     elif combo_name == "UAIR":
         generator = unet
         discrimin = dinv.models.ESRGANDiscriminator(input_shape=imsize).to(device)
-        gen_loss = adversarial.UAIRGeneratorLoss(device=device)
-        dis_loss = adversarial.UAIRDiscriminatorLoss(device=device)
+        gen_loss = adversarial.UAIRGeneratorLoss(device=device, metric_adv=metric)
+        dis_loss = adversarial.UAIRDiscriminatorLoss(device=device, metric_adv=metric)
     elif combo_name == "CSGM":
         generator = csgm_generator
         discrimin = dinv.models.DCGANDiscriminator(ndf=8, nc=imsize[0]).to(device)

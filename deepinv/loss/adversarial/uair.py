@@ -43,6 +43,7 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
     :param float weight_adv: weight for adversarial loss, defaults to 0.5 (from original paper)
     :param float weight_mc: weight for measurement consistency, defaults to 1.0 (from original paper)
     :param torch.nn.Module metric: metric for measurement consistency, defaults to :class:`torch.nn.MSELoss`
+    :param str metric_adv: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
     """
@@ -52,6 +53,7 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         weight_adv: float = 0.5,
         weight_mc: float = 1,
         metric: nn.Module = nn.MSELoss(),
+        metric_adv: str = None,
         D: nn.Module = None,
         device="cpu",
         **kwargs,
@@ -59,8 +61,12 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
         super().__init__(weight_adv=weight_adv, device=device, **kwargs)
         self.name = "UAIRGenerator"
         self.metric = metric
+        self.metric_adv = metric_adv
         self.weight_mc = weight_mc
         self.D = D
+
+        if metric_adv is not None and metric_adv not in ("A_adjoint", "A_dagger"):
+            raise ValueError("metric_adv must be either None, A_adjoint or A_dagger.")
 
     def forward(
         self,
@@ -83,11 +89,15 @@ class UAIRGeneratorLoss(MultiOperatorMixin, GeneratorLoss):
 
         physics_new = self.next_physics(physics, batch_size=len(y))
         y_hat = physics_new.A(x_net)
-
-        adv_loss = self.adversarial_loss(y, y_hat, D)
-
         x_tilde = model(y_hat, physics_new)
         y_tilde = physics_new.A(x_tilde)  # use same operator as y_hat
+
+        if self.metric_adv is not None:
+            y = getattr(physics, self.metric_adv)(y)
+            y_hat = getattr(physics_new, self.metric_adv)(y_hat)
+            y_tilde = getattr(physics_new, self.metric_adv)(y_tilde)
+
+        adv_loss = self.adversarial_loss(y, y_hat, D)
         mc_loss = self.metric(y_tilde, y_hat)
 
         return adv_loss + mc_loss * self.weight_mc
@@ -100,10 +110,19 @@ class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
     """
 
     def __init__(
-        self, weight_adv: float = 1.0, D: nn.Module = None, device="cpu", **kwargs
+        self,
+        weight_adv: float = 1.0,
+        metric_adv: str = None,
+        D: nn.Module = None,
+        device="cpu",
+        **kwargs,
     ):
         super().__init__(weight_adv=weight_adv, D=D, device=device, **kwargs)
         self.name = "UAIRDiscriminator"
+        self.metric_adv = metric_adv
+
+        if metric_adv is not None and metric_adv not in ("A_adjoint", "A_dagger"):
+            raise ValueError("metric_adv must be either None, A_adjoint or A_dagger.")
 
     def forward(
         self,
@@ -114,5 +133,11 @@ class UAIRDiscriminatorLoss(MultiOperatorMixin, DiscriminatorLoss):
         D: nn.Module = None,
         **kwargs,
     ):
-        y_hat = self.next_physics(physics, batch_size=len(y)).A(x_net)
+        physics_new = self.next_physics(physics, batch_size=len(y))
+        y_hat = physics_new.A(x_net)
+
+        if self.metric_adv is not None:
+            y = getattr(physics, self.metric_adv)(y)
+            y_hat = getattr(physics_new, self.metric_adv)(y_hat)
+
         return self.adversarial_loss(y, y_hat, D)
