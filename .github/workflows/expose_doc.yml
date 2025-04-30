@@ -1,4 +1,5 @@
 name: Expose doc
+
 on: [status]
 jobs:
   circleci_artifacts_redirector_job:
