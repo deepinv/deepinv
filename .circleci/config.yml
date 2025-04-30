@@ -26,11 +26,6 @@ jobs:
                 git fetch upstream main;
               fi
 
-        # If both keys are in the same command only one is restored
-        - restore_cache:
-            keys:
-              - pip-cache
-
         # Install Xvfb and related dependencies
         - run:
             name: Install Xvfb and dependencies
@@ -56,7 +51,6 @@ jobs:
             no_output_timeout: 120m
             command: |
               cd docs;
-              make clean;
               make SPHINXOPTS=-v html-fast;
               cd ..;
 
