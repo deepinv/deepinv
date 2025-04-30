@@ -1,11 +1,21 @@
 name: Expose doc
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+on: [status]
 
 jobs:
   circleci_artifacts_redirector_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: sanity-check secrets
+        env:
+          CIRCLE_TOKEN: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
+        run: |
+          if [ -z "$CIRCLE_TOKEN" ]; then
+            echo "::error title=Secret missing::CIRCLE_CI_STATUS_TOKEN is not set"
+            exit 1
+          fi
+          echo "CIRCLE_CI_STATUS_TOKEN is present (length ${#CIRCLE_TOKEN} chars)"
+  circleci_artifacts_redirector_job2:
     runs-on: ubuntu-latest
     name: Run CircleCI artifacts redirector
     steps:
