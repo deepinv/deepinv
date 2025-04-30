@@ -1,0 +1,97 @@
+version: 2
+jobs:
+    build_docs:
+      docker:
+        - image: cimg/python:3.10
+      steps:
+        - checkout
+        - run:
+            name: Set BASH_ENV
+            command: |
+              echo "set -e" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+
+        - run:
+            name: Merge with upstream
+            command: |
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git remote add upstream https://github.com/deepinv/deepinv.git;
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+                git fetch upstream main;
+              fi
+
+        # If both keys are in the same command only one is restored
+        - restore_cache:
+            keys:
+              - pip-cache
+
+        # Install Xvfb and related dependencies
+        - run:
+            name: Install Xvfb and dependencies
+            command: |
+              sudo apt-get update
+              sudo apt-get install -y xvfb
+
+        - run:
+            name: Spin up Xvfb
+            command: |
+              /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+
+        - run:
+            name: Get Python running
+            command: |
+              python -m pip install --user --upgrade --progress-bar off pip
+              python -m pip install --user -e .
+              python -m pip install --user .[doc]
+
+        - save_cache:
+            key: pip-cache
+            paths:
+              - ~/.cache/pip
+
+        # Build docs
+        - run:
+            name: make html
+            no_output_timeout: 120m
+            command: |
+              cd doc;
+              make clean;
+              make SPHINXOPTS=-v html-fast;
+              cd ..;
+
+
+#        # upload to gh-pages
+#        - run:
+#            name: deploy
+#            uses: peaceiris/actions-gh-pages@v3
+#            if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+#            with:
+#              publish_branch: gh-pages
+#              github_token: ${{ secrets.GITHUB_TOKEN }}
+#              publish_dir: _build/
+#              force_orphan: true
+#              enable_jekyll: false
+
+
+        # Save the outputs
+        - store_artifacts:
+            path: doc/_build/html/
+            destination: dev
+        - persist_to_workspace:
+            root: doc/_build
+            paths:
+              - html
+
+
+workflows:
+  version: 2
+
+  default:
+    jobs:
+      - build_docs
