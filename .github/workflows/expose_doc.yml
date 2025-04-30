@@ -1,6 +1,9 @@
 name: Expose doc
 
-on: [status]
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest
