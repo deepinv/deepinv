@@ -1,6 +1,9 @@
 name: Test
 
 on:
+  schedule:
+    # run test every day at 3:30 AM
+    - cron: "30 3 */1 * *"
   push:
     branches:
     - main
