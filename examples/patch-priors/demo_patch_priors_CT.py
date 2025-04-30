@@ -44,7 +44,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.datasets import PatchDataset
 from deepinv import Trainer
-from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
+from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise, TomographyWithAstra
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
@@ -209,6 +209,11 @@ angles = torch.linspace(20, 160, steps=num_angles)
 physics = Tomography(
     img_width=img_size, angles=angles, device=device, noise_model=noise_model
 )
+# physics = TomographyWithAstra(
+#     img_shape=(img_size, img_size),
+#     num_angles=num_angles,
+#     num_detectors=img_size,
+#     noise_model=noise_model).to(device)
 observation = physics(test_imgs)
 fbp = physics.A_dagger(observation)
 
