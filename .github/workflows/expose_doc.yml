@@ -1,7 +1,8 @@
 name: Expose docs
 
 on:
-  push:
+  status:
+    types: [completed]
 
 jobs:
   circleci_artifacts_redirector_job:
