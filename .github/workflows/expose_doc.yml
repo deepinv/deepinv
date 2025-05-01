@@ -7,14 +7,23 @@ jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest
 
+    if: "${{ github.event.context == 'ci/circleci: build_docs' }}"
+
     permissions:
       contents: read
       statuses: write
 
     steps:
-      - uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
+      - name: GitHub Action step
+        id: step1
+        uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
         with:
           api-token:  ${{ secrets.CIRCLECI_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifact-path: 0/dev/index.html
           circleci-jobs: build_docs
+          job-title: Check the rendered docs here!
+      - name: Check the URL
+        if: github.event.status != 'pending'
+        run: |
+          curl --fail ${{ steps.step1.outputs.url }} | grep $GITHUB_SHA
