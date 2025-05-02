@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, Mapping, Any, Tuple, Union
+from typing import Any
 
 import torch
 from torch import nn
@@ -11,8 +11,38 @@ except:
     astra = ImportError("The astra-toolbox package is not installed.")
     
 class XrayTransform:
-    def __init__(self, projection_geometry: Mapping[str, Any], 
-                       object_geometry: Mapping[str, Any],
+    r"""Forward X-ray Transform operator.
+    
+    Uses the ``astra-toolbox`` package to compute a ray-driven forward projection
+    and a pixel-driven backprojection via the :func:`XrayTransform.T` property. 
+    This class leverages the GPULink functionality of ``astra`` to share the underlying 
+    CUDA memory between torch Tensors and CUDA-based arrays use in ``astra``. The 
+    functionality is only implemented for 3D arrays, thus the underlying transforms
+    are all 3D operators.
+    
+    For 2D transforms, the object is set to a flat volume with only 1 voxel depth.
+    Used  in conjunction with :func:`create_projection_geometry` and :func:`create_object_geometry` 
+    to translate 2d/3d geometries into their ``astra`` equivalents.
+    
+    .. note::
+
+        This transform does not handle batched and multi-channel inputs. It is 
+        handled by the :class:`AutogradTransform` that wraps the XrayTransform
+        in a custom torch.autograd.Function. :class:`XrayTransform` is instanciated 
+        inside a :class:`deepinv.physics.TomographyWithAstra` operator 
+        to handle standard PyTorch pipelines.
+    
+    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters 
+    of the projection geometry. It is passed to the :func:`astra.create_projector` 
+    function to instanciate the projector.
+    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters 
+    of the object geometry. It is passed to the :func:`astra.create_projector` 
+    function to instanciate the projector.
+    :param bool is_2d: Specify if the geometry is flat (2d) or describe a real
+    3d reconstruction setup.
+    """
+    def __init__(self, projection_geometry: dict[str, Any], 
+                       object_geometry: dict[str, Any],
                        is_2d: bool=False):
         
         self.projection_geometry = projection_geometry
@@ -91,8 +121,15 @@ class XrayTransform:
         else:
             return 1.0
     
-    def __call__(self, x: torch.Tensor, out: Optional[torch.Tensor]=None) -> torch.Tensor:
-        
+    def __call__(self, x: torch.Tensor, out: torch.Tensor | None = None) -> torch.Tensor:
+        r"""Forward projection.
+
+        :param torch.Tensor x: Tensor of shape [1,H,W] in 2d, or [D,H,W] in 3d.
+        :param torch.Tensor | None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
+        to store output results
+        :return: Sinogram of shape [1,A,N] in 2d or set of sinograms [V,A,N] in 3d.
+        """        
+
         assert x.shape == self.domain_shape, f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
         
         if out is None:
@@ -109,15 +146,25 @@ class XrayTransform:
         class _Adjoint():
             def __init__(self):
                 self.is_2d = parent.is_2d
+                
             @property
             def domain_shape(self) -> tuple:
-                """The domain :math:`\\text{dom}(A^*)=\\text{ran}(A)`."""
+                """The shape of the input projection."""
                 return parent.range_shape
+            
             @property
             def range_shape(self) -> tuple:
-                """The range :math:`\\text{ran}(A^*)=\\text{dom}(A)`."""
+                """The shape of the output volume.""" 
                 return parent.domain_shape
-            def __call__(self, x: torch.Tensor, out: Optional[torch.Tensor]=None) -> torch.Tensor:
+            
+            def __call__(self, x: torch.Tensor, out: torch.Tensor | None = None) -> torch.Tensor:
+                r"""Backprojection.
+
+                :param torch.Tensor x: Tensor of shape [1,A,N] in 2d, or [V,A,N] in 3d.
+                :param torch.Tensor | None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
+                to store output results
+                :return: Image of shape [1,H,W] in 2d or volume [D,H,W] in 3d.
+                """    
                 assert x.shape == self.domain_shape, f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
                 
                 if out is None:
@@ -185,13 +232,24 @@ def _create_astra_link(data: torch.Tensor) -> int:
     return astra_link
 
 class AutogradTransform(torch.autograd.Function):
-    """Custom torch.autograd.Function for XrayTransform"""
-
-    # generate_vmap_rule = True
-
+    r"""Custom torch.autograd.Function for XrayTransform
+    
+    See https://pytorch.org/docs/stable/notes/extending.html#extending-torch-autograd
+    for more information.
+    """
+    
     @staticmethod
     def forward(input: torch.Tensor, op: XrayTransform) -> torch.Tensor:
-        # H, W = input.shape[-2:]
+        """Forward autograd.
+        
+        The ``astra-toolbox`` does not handle batched computation, the transform
+        is applied sequantially by iterating over the batch and channel dimension
+        (e.g. Learned Primal-Dual).
+
+        :param torch.Tensor input: Batched with channel input Tensor of shape [B,C,...].
+        :param XrayTransform op: XrayTransform operator which performs underlying computations.
+        :return: 
+        """        
         if op.is_2d:
             B,C,H,W = input.shape
             assert (1,H,W) == op.domain_shape, f"{(1,H,W)} != {op.domain_shape}"
@@ -215,27 +273,8 @@ class AutogradTransform(torch.autograd.Function):
             for i in range(B):
                 for j in range(C):
                     op(input[i,j], out=output[i,j])         
-                    
-        # output = torch.empty(op.range_shape[1:], dtype=input.dtype, device=input.device)
-        # op(input[None], output[None], input_ptr, output_ptr)
         
         return output
-    
-    # @staticmethod
-    # def vmap(info, in_dims, op, input, output, input_ptr, output_ptr):
-        
-    #     batch_size = info.batch_size
-    #     input_batched_dim, _ = in_dims
-        
-    #     print(input.shape, output.shape)
-    #     batch_outputs = []
-        
-    #     for i in range(batch_size):
-    #         batch_outputs.append(AutogradOperator.apply(input[i], op))
-            
-    #     output = torch.stack(batch_outputs, dim=0)
-        
-    #     return output, input_batched_dim
     
     @staticmethod
     def setup_context(ctx, inputs, output):
@@ -245,23 +284,27 @@ class AutogradTransform(torch.autograd.Function):
         
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor) -> torch.Tensor:
+        r"""Backward autograd.
+        
+        It is simply the forward autograd applied with the adjoint kernel.
+        """
         op = ctx.operator
 
         return AutogradTransform.apply(grad_output, op.T), None
   
 def create_projection_geometry(geometry_type: str, 
-                               detector_spacing: Union[int, Tuple], 
-                               n_detector_pixels: Union[int, Tuple], 
-                               angles: Iterable[float],
+                               detector_spacing: int | tuple[int,int], 
+                               n_detector_pixels: int | tuple[int,int], 
+                               angles: torch.Tensor,
                                is_2d: bool=False,
-                               geometry_parameters: Optional[Mapping[str, Any]]=None):
-    
-    assert geometry_type in ['parallel','fanbeam', 'conebeam'], f'geometry_type must be either parallel, fanbeam, conebeam, got {geometry_type}'
-    
+                               geometry_parameters: dict[str, Any] | None = None):
+       
     if geometry_parameters is not None:
         source_radius = geometry_parameters.get('source_radius', 57.5)
         detector_radius = geometry_parameters.get('detector_radius', 57.5)
         vectors = geometry_parameters.get('vectors', None)
+    
+    angles = angles.tolist()
     
     # The astra-toolbox does not support GPU linking for 2D data. Thus, when creating a projection geometry in 2D, we actually create a flat 3D geometry, i.e. a 2D detector with only one row of cells.
     # GPULink python API for 2D data:  https://github.com/astra-toolbox/astra-toolbox/discussions/391
@@ -289,6 +332,8 @@ def create_projection_geometry(geometry_type: str,
                 source_radius,
                 detector_radius
             )
+        else:
+            raise ValueError(f'got geometry_type="{geometry_type}", in 2d should be one of ["parallel","fanbeam"]')
     else:
         detector_row_count, detector_col_count = n_detector_pixels
         
@@ -330,16 +375,40 @@ def create_projection_geometry(geometry_type: str,
                     angles,
                     source_radius,
                     detector_radius
-                )  
-    
+                ) 
+        else:
+            raise ValueError(f'got geometry_type="{geometry_type}", in 3d should be one of ["parallel","conebeam"]') 
+            
     return projection_geometry    
     
 def create_object_geometry(n_rows: int,
                            n_cols: int,
                            n_slices: int=1,
                            is_2d: bool=True,
-                           spacing: Tuple=(1.0,1.0),
-                           aabb: Optional[Iterable[float]]=None):
+                           spacing: tuple[int,...]=(1.0,1.0),
+                           aabb: tuple[float, ...] | None=None):
+    if is_2d:
+        if aabb is not None:
+            if len(aabb) != 4:
+                raise ValueError(
+                    f"For 2d geometry, argument `aabb` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(aabb)={len(aabb)}"
+                )
+        else:
+            if len(spacing) != 2:
+                raise ValueError(
+                    f"For 2d geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)={len(spacing)}"
+                )
+    else:
+        if aabb is not None:
+            if len(aabb) != 6:
+                raise ValueError(
+                    f"For 3d geometry, argument `aabb` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(aabb)={len(aabb)}"
+                )
+        else:
+            if len(spacing) != 3:
+                raise ValueError(
+                     f"For 23 geometry, `spacing` should be a tuple of size 3 with dimensions (length_x,length_y, length_z) of a voxel, got len(spacing)={len(spacing)}"
+                )         
     
     if is_2d:
         n_slices = 1
