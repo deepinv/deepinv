@@ -134,7 +134,7 @@ class SplittingLoss(Loss):
         inp = Inpainting(
             y.size()[1:],
             mask=mask.view(
-                *mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[-2:]
+                *mask.shape[:2], *([1] * (y.ndim - mask.ndim)), *mask.shape[2:]
             ),
             device=y.device,
         )
