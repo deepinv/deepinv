@@ -73,7 +73,7 @@ class AbstractFilter(nn.Module):
         self.device = device
         self.dtype = dtype
 
-    def forward(self, x: torch.Tensor, dim: int=-2) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, dim: int = -2) -> torch.Tensor:
         r"""Apply a high-pass filter to input sinogram ``x``.
 
         :param torch.Tensor x: CT measurements of shape [B,C,N,A] (or [B,C,..,A,N]
@@ -82,35 +82,41 @@ class AbstractFilter(nn.Module):
         along which dimension to apply the filter. By default, it assumes the
         [B,C,N,A] convention. (default: -2)
         :return: Filtered input x.
-        """        
+        """
         is_3d = len(x.shape) == 5
-        
+
         # useful in 3D to store intermediate filtering steps
         out = torch.empty_like(x)
-        
+
         input_size = x.shape[dim]
         projection_size_padded = max(
             64, int(2 ** (2 * torch.tensor(input_size)).float().log2().ceil())
         )
         pad_width = projection_size_padded - input_size
-        
+
         f = self._get_fourier_filter(projection_size_padded).to(x.device)
         fourier_filter = self.create_filter(f)
         if dim == 2 or dim == -2:
             fourier_filter = fourier_filter.unsqueeze(-1)
-            
+
         if is_3d:
             # in 3D the measurements always follow `astra` convention
-            B,C,H,A,N = x.shape
+            B, C, H, A, N = x.shape
             for i in range(H):
-                out[:,:,i] = self.filter(x[:,:,i], fourier_filter, pad_width, dim)
+                out[:, :, i] = self.filter(x[:, :, i], fourier_filter, pad_width, dim)
         else:
             out[:] = self.filter(x, fourier_filter, pad_width, dim)
-        
+
         return out.contiguous()
-    
-    def filter(self, x: torch.Tensor, fourier_filter: torch.Tensor, pad_width: int, dim: int=3) -> torch.Tensor:
-        r"""Filter input ``x`` with ``fourier_filter``. 
+
+    def filter(
+        self,
+        x: torch.Tensor,
+        fourier_filter: torch.Tensor,
+        pad_width: int,
+        dim: int = 3,
+    ) -> torch.Tensor:
+        r"""Filter input ``x`` with ``fourier_filter``.
 
         :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,N,A] with ``astra``
         convention) with N the detector dimension to filter, and A the angular dimension.
@@ -119,10 +125,10 @@ class AbstractFilter(nn.Module):
         and limit artifacts
         :param int dim: Dimension along which to filter.
         :return: Filtered input x.
-        """                
-        
+        """
+
         input_size = x.shape[dim]
-        
+
         if dim == 3 or dim == -1:
             # horizontal padding --> assume that the input is of shape (B,C,A,N)
             padded_tensor = F.pad(x, (0, pad_width, 0, 0))
@@ -131,9 +137,9 @@ class AbstractFilter(nn.Module):
             padded_tensor = F.pad(x, (0, 0, 0, pad_width))
 
         projection = torch.fft.rfft(padded_tensor, dim=dim) * fourier_filter
-        
+
         result = torch.fft.irfft(projection, dim=dim)
-        
+
         if dim == 2 or dim == -2:
             return result[:, :, :input_size, :]
         elif dim == 3 or dim == -1:
