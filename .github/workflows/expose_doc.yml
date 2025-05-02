@@ -16,7 +16,7 @@ jobs:
         id: step1
         uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
         with:
-          api-token:  ${{ secrets.CIRCLECI_TOKEN }}
+          api-token:  ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifact-path: 0/dev/index.html
           circleci-jobs: build_docs
