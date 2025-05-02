@@ -13,7 +13,8 @@ jobs:
       statuses: write
 
     steps:
-      -
+
+
       - name: Debug
         run: |
           curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
