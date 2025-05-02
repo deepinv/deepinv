@@ -552,7 +552,7 @@ class LogPoissonNoise(NoiseModel):
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper
     `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
 
-        |sep|
+    |sep|
 
     :Examples:
 
@@ -609,15 +609,15 @@ class LogPoissonNoise(NoiseModel):
 
 class SaltPepperNoise(NoiseModel):
     r"""
-    SaltPepper noise :math:`y = \begin{case} x & \text{if } z \in [p, 1-s]\\ 0 & \text{if } z < p\\ 1 & \text{if } z > 1 + s\\` with :math:`z\sim\mathcal{U}(0,1)`.
+    SaltPepper noise :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
 
     This noise model is also known as impulse noise, is a form of noise sometimes seen on digital images.
     For black-and-white or grayscale images, it presents as sparsely occurring white and black pixels,
     giving the appearance of an image sprinkled with salt and pepper.
 
-    The parameters a and b control the amount of pepper (pixel to 0) and salt (pixel to 1) noise.
+    The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.
 
-        |sep|
+    |sep|
 
     :Examples:
 
