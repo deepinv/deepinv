@@ -22,7 +22,6 @@ from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
 from deepinv.optim import Prior, DataFidelity
-import math
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
@@ -55,30 +54,14 @@ noise_level_img = 0.05
 source_radius = 2000
 detector_radius = 1000
 
-# physics = dinv.physics.Tomography(
-#     img_width=img_size,
-#     angles=30,
-#     circle=False,
-#     parallel_computation=True,
-#     device=device,
-#     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-#     fan_beam=True,
-#     fan_parameters={
-#         "pixel_spacing": 1.,
-#         "n_detector_pixels": math.ceil(math.sqrt(2) * img_size),
-#         "detector_spacing": 1.1,
-#         "source_radius": source_radius,
-#         "detector_radius": detector_radius,
-#     },
-    
-# )
-physics = dinv.physics.TomographyWithAstra(
-    img_shape=(img_size, img_size),
-    num_angles=30,
-    num_detectors=math.ceil(math.sqrt(2)*img_size),
+physics = dinv.physics.Tomography(
+    img_width=img_size,
+    angles=30,
+    circle=False,
+    parallel_computation=True,
+    device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-).to(device)
-# physics = torch.compile(_physics)
+)
 
 
 # %%
