@@ -74,11 +74,11 @@ class AbstractFilter(nn.Module):
         self.dtype = dtype
 
     def forward(self, x: torch.Tensor, dim: int=-2) -> torch.Tensor:
-        r"""Apply a high-pass filter to input sinogram `x`.
+        r"""Apply a high-pass filter to input sinogram ``x``.
 
         :param torch.Tensor x: CT measurements of shape [B,C,N,A] (or [B,C,..,A,N]
-        with `astra` convention).
-        :param int dim: Following the shape convention of the input, `dim` specifies
+        with ``astra`` convention).
+        :param int dim: Following the shape convention of the input, ``dim`` specifies
         along which dimension to apply the filter. By default, it assumes the
         [B,C,N,A] convention. (default: -2)
         :return: Filtered input x.
@@ -110,9 +110,9 @@ class AbstractFilter(nn.Module):
         return out.contiguous()
     
     def filter(self, x: torch.Tensor, fourier_filter: torch.Tensor, pad_width: int, dim: int=3) -> torch.Tensor:
-        r"""Filter input `x` with `fourier_filter`. 
+        r"""Filter input ``x`` with ``fourier_filter``. 
 
-        :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,N,A] with `astra`
+        :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,N,A] with ``astra``
         convention) with N the detector dimension to filter, and A the angular dimension.
         :param torch.Tensor fourier_filter: 1D Fourier filter
         :param int pad_width: Extra padding of the input to speed up computation
