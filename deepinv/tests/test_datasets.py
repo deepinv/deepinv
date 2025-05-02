@@ -478,7 +478,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     assert not torch.all(kspace1 == kspace2)
     assert not torch.all(params1["mask"] == params2["mask"])
     assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
-    assert 0.24 < params1["mask"].mean() < 0.26  # masked has correct acc
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test reproducibility
     _, _, params1_again = dataset[0]
@@ -500,7 +502,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     )
     target1, kspace1, params1 = dataset[0]
     assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
-    assert 0.24 < params1["mask"].mean() < 0.26  # masked has correct acc
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test no apply mask
     dataset = CMRxReconSliceDataset(
