@@ -10,14 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 #    if: "${{ github.event.context == 'ci/circleci: build_docs' }}"
 
-    run: |
-      curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
 
 
     permissions:
       statuses: write
 
     steps:
+      - name: Debug
+        run: |
+          curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
+
       - name: GitHub Action step
         id: step1
         uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
