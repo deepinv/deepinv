@@ -662,7 +662,8 @@ class SaltPepperNoise(NoiseModel):
             torch.rand(x.shape, device=x.device, generator=self.rng) < proba_flip
         ).float()
         mask_salt = (
-            torch.rand(x.shape, device=x.device,  generator=self.rng) < proba_salt_vs_pepper
+            torch.rand(x.shape, device=x.device, generator=self.rng)
+            < proba_salt_vs_pepper
         ).float()
         y = x * (1 - mask_flipped) + mask_flipped * mask_salt
         return y
