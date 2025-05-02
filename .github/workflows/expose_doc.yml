@@ -1,6 +1,7 @@
 name: Expose docs
 
-on: [status]
+on:
+  push:
 
 permissions: read-all
 
