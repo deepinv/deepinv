@@ -1,24 +1,18 @@
 name: Expose docs
 
-on:
-  push:
+on: [status]
 
 permissions: read-all
 
 jobs:
   circleci_artifacts_redirector_job:
     runs-on: ubuntu-latest
-#    if: "${{ github.event.context == 'ci/circleci: build_docs' }}"
-
-
+    if: "${{ github.event.context == 'ci/circleci: build_docs' }}"
 
     permissions:
       statuses: write
 
     steps:
-      - name: Debug
-        run: |
-          curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
 
       - name: GitHub Action step
         id: step1
