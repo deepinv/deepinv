@@ -2,6 +2,7 @@ name: Expose docs
 
 on: [status]
 
+
 permissions: read-all
 
 jobs:
