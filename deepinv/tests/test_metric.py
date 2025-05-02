@@ -101,7 +101,6 @@ def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
     if metric_name in ("SAM", "ERGAS") and channels < 3:
         pytest.skip("ERGAS or SAM must have multichannels.")
 
-    print("SHAPE", x.shape)
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
     # Test metric worse when image worse
@@ -120,7 +119,8 @@ def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
     assert m2(x_hat, x) == m(x_hat, x) + 1
 
     # Test no reduce works
-    x_hat = torch.cat([x_hat] * 3)
+    B = 5
+    x_hat = torch.cat([x_hat] * B)
     m = choose_metric(
         metric_name,
         device,
@@ -129,7 +129,7 @@ def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
         norm_inputs=norm_inputs,
         reduction="none",
     )
-    assert len(m(x_hat, x_hat)) == 3
+    assert len(m(x_hat, x_hat)) == B
 
 
 @pytest.mark.parametrize("functional_name", FUNCTIONALS)

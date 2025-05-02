@@ -607,12 +607,12 @@ class HaarPSI(Metric):
                 - 0.523 * x_net[:, 1, :, :]
                 + 0.312 * x_net[:, 2, :, :]
             )
-            ref_y = ref_y.unsqueeze(0)
-            deg_y = deg_y.unsqueeze(0)
-            ref_i = ref_i.unsqueeze(0)
-            deg_i = deg_i.unsqueeze(0)
-            ref_q = ref_q.unsqueeze(0)
-            deg_q = deg_q.unsqueeze(0)
+            ref_y = ref_y.unsqueeze(1)
+            deg_y = deg_y.unsqueeze(1)
+            ref_i = ref_i.unsqueeze(1)
+            deg_i = deg_i.unsqueeze(1)
+            ref_q = ref_q.unsqueeze(1)
+            deg_q = deg_q.unsqueeze(1)
         else:
             ref_y = x
             deg_y = x_net
@@ -679,7 +679,6 @@ class HaarPSI(Metric):
 
         logit = lambda value, alpha: torch.log(value / (1 - value)) / alpha
         similarity = logit(pre_logit, self.alpha) ** 2
-
         return similarity[:, 0]
 
     def _get_local_similarity_for_orientation(
