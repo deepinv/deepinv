@@ -2,6 +2,7 @@ name: Expose docs
 
 on: [status]
 
+
 permissions: read-all
 
 jobs:
@@ -22,6 +23,7 @@ jobs:
           artifact-path: 0/dev/index.html
           circleci-jobs: build_docs
           job-title: Check the rendered docs here!
+
       - name: Check the URL
         if: github.event.status != 'pending'
         run: |
