@@ -21,7 +21,7 @@ jobs:
               echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
               if [[ $(cat merge.txt) != "" ]]; then
                 echo "Merging $(cat merge.txt)";
-                git remote add upstream https://github.com/deepinv/deepinv.git;
+                git remote add upstream https://github.com/matthieutrs/deepinv.git;
                 git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
                 git fetch upstream main;
               fi
