@@ -235,7 +235,12 @@ def find_operator(name, device):
         )
     elif name == "fast_singlepixel_old_sequency":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="old_sequency"
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="old_sequency",
         )
     elif name == "singlepixel":
         m = 20
