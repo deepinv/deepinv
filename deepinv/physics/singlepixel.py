@@ -1,7 +1,7 @@
 from deepinv.physics.forward import DecomposablePhysics
 import torch
 import numpy as np
-
+import warnings
 
 def hadamard_1d(u, normalize=True):
     """
@@ -27,10 +27,237 @@ def hadamard_1d(u, normalize=True):
 
 def hadamard_2d(x):
     """
-    Computes 2 dimensional Hadamard transform using 1 dimensional transform.
+    Applies the 2-dimensional Hadamard transform to the input tensor.
+
+    This function computes the 2D Hadamard transform by applying the 1D Hadamard transform
+    along one axis, transposing the result, applying the 1D Hadamard transform again, and
+    then transposing back to the original axes order.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (..., n, m), where n, m are a power of 2.
+
+    Returns:
+        torch.Tensor: The Hadamard-transformed tensor of the same shape as the input.
     """
     out = hadamard_1d(hadamard_1d(x).transpose(-1, -2)).transpose(-1, -2)
     return out
+
+
+def hadamard_shift(x, dim):
+    """
+    Rearranges the Hadamard transform to sequency order along a specified dimension.
+
+    This function reorders the elements of the Hadamard transform along the given dimension
+    to follow the sequency order, which is a specific ordering of Walsh functions.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
+        dim (int): The dimension along which to rearrange the Hadamard transform.
+
+    Returns:
+        torch.Tensor: The tensor with the Hadamard transform rearranged in sequency order along the specified dimension.
+    """
+    n = x.shape[dim]
+    indexs = sequency_order(n)
+    x = x.index_select(dim, torch.tensor(indexs, device=x.device))
+    return x
+
+
+def hadamard_ishift(x, dim):
+    """
+    Reverses the arrangement of the Hadamard transform from sequency order along a specified dimension.
+
+    This function undoes the sequency ordering of the Hadamard transform along the given dimension,
+    restoring the original order.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
+        dim (int): The dimension along which to reverse the sequency order.
+
+    Returns:
+        torch.Tensor: The tensor with the Hadamard transform restored to its original order along the specified dimension.
+    """
+    n = x.shape[dim]
+    indexs = sequency_order(n)
+    indexs = np.argsort(indexs)
+    x = x.index_select(dim, torch.tensor(indexs, device=x.device))
+    return x
+
+
+def hadamard_2d_shift(x):
+    """
+    Rearranges the 2D Hadamard transform to sequency order.
+
+    This function applies the `hadamard_shift` function along both the last two dimensions
+    of the input tensor to reorder the 2D Hadamard transform in sequency order.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
+
+    Returns:
+        torch.Tensor: The tensor with the 2D Hadamard transform rearranged in sequency order.
+    """
+    x = hadamard_shift(x, -2)
+    x = hadamard_shift(x, -1)
+    return x
+
+
+def hadamard_2d_ishift(x):
+    """
+    Reverses the arrangement of the 2D Hadamard transform from sequency order.
+
+    This function applies the `hadamard_ishift` function along both the last two dimensions
+    of the input tensor to restore the original order of the 2D Hadamard transform.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
+
+    Returns:
+        torch.Tensor: The tensor with the 2D Hadamard transform restored to its original order.
+    """
+    x = hadamard_ishift(x, -1)
+    x = hadamard_ishift(x, -2)
+    return x
+
+
+# def sequency_mask(img_shape, m):
+
+#     _, H, W = img_shape
+
+#     indx = torch.arange(0, H * W)
+#     mask = indx < m
+#     mask = mask.reshape(H, W).repeat(img_shape[0], 1, 1).unsqueeze(0)
+#     mask = hadamard_2d_ishift(mask)
+
+#     return mask
+
+def sequency_mask(img_shape, m):
+
+    _, H, W = img_shape
+    n = H * W
+    
+    indexes = sequency_order(n)[:m]
+    i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
+    i = i.flatten(order="F")
+    j = j.flatten(order="F")
+
+    mask = torch.zeros((1, *img_shape))
+    mask[:, :, i[indexes], j[indexes]] = 1.0
+
+    return mask
+
+
+def old_sequency_mask(img_shape, m):
+
+    _, H, W = img_shape
+    n = H * W
+    
+    indexes = get_permutation_list(n)[:m]
+    i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
+    i = i.flatten(order="F")
+    j = j.flatten(order="F")
+
+    mask = torch.zeros((1, *img_shape))
+    mask[:, :, i[indexes], j[indexes]] = 1.0
+
+    return mask
+
+
+def cake_cutting_seq(i, p):
+    """Sequence of i-th"""
+    step = -i * (-1) ** (np.mod(i, 2))
+
+    seq = None
+    # if i is odd
+    if np.mod(i, 2) == 1:
+        seq = list(range(i, i * p + 1, step))
+    else:
+        seq = list(range(i * p, i - 1, step))
+
+    return seq
+
+
+def cake_cutting_order(n):
+    """Cake cutting order"""
+    p = int(np.sqrt(n))
+    seq = [cake_cutting_seq(i, p) for i in range(1, p + 1)]
+    seq = [item for sublist in seq for item in sublist]
+    return np.argsort(seq)
+
+
+def cake_cutting_mask(img_shape, m):
+
+    _, H, W = img_shape
+
+    if H != W:
+        warnings.warn(
+            "Image height and width must be equal for cake cutting mask."
+        )
+        
+    n = H * W
+
+    indexes     = sequency_order(n)
+    cake_order  = cake_cutting_order(n)
+    indexes     = indexes[cake_order][:m]
+    i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
+    i = i.flatten(order="F")
+    j = j.flatten(order="F")
+
+    mask = torch.zeros((1, *img_shape))
+    mask[:, :, i[indexes], j[indexes]] = 1.0
+
+    return mask
+
+
+def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
+    # Grid of row (I) and column (J) indices
+    I, J = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
+    S = I + J
+    flat_I = I.flatten()
+    flat_S = S.flatten()
+    total = H * W
+
+    # Sort keys: primary S ascending, secondary I descending
+    order = torch.argsort(flat_S * total - flat_I, stable=True)
+
+    # Place 0..total-1 according to that order
+    flat_A = torch.empty(total, dtype=torch.long, device=order.device)
+    flat_A[order] = torch.arange(total, dtype=torch.long, device=order.device)
+
+    return flat_A.view(H, W)
+
+
+def zig_zag_mask(img_shape, m):
+
+    _, H, W = img_shape
+    mask = diagonal_index_matrix(H, W)
+    mask = mask < m
+    mask = mask.float()
+    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = hadamard_2d_ishift(mask)
+
+    return mask
+
+
+def xy_mask(img_shape, m):
+
+    _, H, W = img_shape
+
+    X, Y = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
+    index_matrix = X * Y + (X**2 + Y**2) / 4
+    index_matrix /= index_matrix.max()
+
+    indx = torch.argsort(index_matrix.view(-1))
+    
+    mask = torch.arange(1, H * W + 1)
+    mask[indx] = mask.clone()
+    mask = mask.view(H, W) <= m
+    mask = mask.float()
+
+    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = hadamard_2d_ishift(mask)
+
+    return mask
 
 
 class SinglePixelCamera(DecomposablePhysics):
@@ -39,8 +266,8 @@ class SinglePixelCamera(DecomposablePhysics):
 
     Linear imaging operator with binary entries.
 
-    If ``fast=False``, the operator uses a 2D subsampled hadamard transform, which keeps the first :math:`m` modes
-    according to the `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
+    If ``fast=True``, the operator uses a 2D subsampled hadamard transform, which keeps the first :math:`m` modes
+    according to the ``ordering```parameter, default set as sequency <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
@@ -58,7 +285,7 @@ class SinglePixelCamera(DecomposablePhysics):
     :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
-    :param str device: Device to store the forward matrix.
+    :param str ordering: The ordering of selecting the first m measurements, available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
@@ -86,6 +313,7 @@ class SinglePixelCamera(DecomposablePhysics):
         m,
         img_shape,
         fast=True,
+        ordering="sequency",
         device="cpu",
         dtype=torch.float32,
         rng: torch.Generator = None,
@@ -107,20 +335,30 @@ class SinglePixelCamera(DecomposablePhysics):
         self.initial_random_state = self.rng.get_state()
 
         if self.fast:
-            C, H, W = img_shape
-            mi = min(int(np.sqrt(m)), H)
-            mj = min(m - mi, W)
 
-            revi = get_permutation_list(H)[:mi]
-            revj = get_permutation_list(W)[:mj]
+            _, H, W = img_shape
 
             assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
 
-            mask = torch.zeros(img_shape).unsqueeze(0)
-            for i in range(len(revi)):
-                for j in range(len(revj)):
-                    mask[0, :, revi[i], revj[j]] = 1
+            if ordering == "sequency":
+                mask = sequency_mask(img_shape, m)
+            elif ordering == "cake_cutting":
+                mask = cake_cutting_mask(img_shape, m)
+            elif ordering == "zig_zag":
+                mask = zig_zag_mask(img_shape, m)
+            elif ordering == "xy":
+                mask = xy_mask(img_shape, m)
+            elif ordering == "old_sequency":
+                # Raise warning if the old sequency mask is used
+                print(
+                    "Warning: The old sequency mask is deprecated. Plase, use sequency mask instead."
+                )
+                mask = old_sequency_mask(img_shape, m)
+            else:
+                raise ValueError(
+                    f"Unknown ordering {ordering}. Available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`."
+                )
 
             mask = mask.to(device)
 
@@ -178,7 +416,40 @@ class SinglePixelCamera(DecomposablePhysics):
         return out
 
 
+def gray_code(n):
+    """
+    Generate a Gray code sequence for n elements.
+
+    Gray code is a binary numeral system where two successive values differ in only one bit.
+
+    Args:
+        n (int): Number of elements in the Gray code sequence.
+
+    Returns:
+        np.ndarray: A 2D array where each row represents a Gray code in binary form.
+    """
+    g0 = np.array([[0], [1]])
+    g = g0
+
+    while g.shape[0] < n:
+        g = np.hstack(
+            [np.kron(g0, np.ones((g.shape[0], 1))), np.vstack([g, g[::-1, :]])]
+        )
+    return g
+
+
 def gray_decode(n):
+    """
+    Decode a Gray code into its binary equivalent.
+
+    This function converts a given Gray code integer into its corresponding binary number.
+
+    Args:
+        n (int): The Gray code to decode.
+
+    Returns:
+        int: The decoded binary number.
+    """
     m = n >> 1
     while m:
         n ^= m
@@ -200,6 +471,13 @@ def get_permutation_list(n):
         rev2[l] = rev[gray_decode(l)]
 
     return rev2
+
+
+def sequency_order(n):
+    G = gray_code(n)
+    G = G[:, ::-1]
+    G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
+    return G
 
 
 # test code
