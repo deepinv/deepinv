@@ -252,7 +252,7 @@ class TomographyWithAstra(LinearPhysics):
         implemented in ``astra`` are not matched. The projector is typically ray-driven,
         while the backprojector is pixel-driven. The adjoint of the forward Ray Transform
         is approximated by rescaling the backprojector.
-        
+
     .. warning::
 
         The :class:`deepinv.physics.functional.XrayTransform` used in :class:`TomographyWithAstra` sequentially processes batch elements, which can make the 2d parallel beam operator significantly slower than the its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
@@ -356,7 +356,8 @@ class TomographyWithAstra(LinearPhysics):
         aabb: tuple[float, ...] | None = None,
         angles: Iterable[float] | None = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] | None = {'source_radius': 80., 'detector_radius': 20.},
+        geometry_parameters: dict[str, Any]
+        | None = {"source_radius": 80.0, "detector_radius": 20.0},
         normalize: bool = False,
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
@@ -512,7 +513,7 @@ class TomographyWithAstra(LinearPhysics):
         filtered_y = self.filter(y, dim=-1)
         out = self.A_adjoint(self.fbp_weighting(filtered_y))
         if self.normalize:
-            out *= self.operator_norm **2
+            out *= self.operator_norm**2
 
         return out
 

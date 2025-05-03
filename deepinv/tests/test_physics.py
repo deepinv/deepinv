@@ -171,7 +171,7 @@ def find_operator(name, device):
         )
         p = dinv.physics.TomographyWithAstra(
             img_width=img_size[-1], num_angles=img_size[-1], device=device
-        )     
+        )
     elif name == "composition":
         img_size = (3, 16, 16)
         p1 = dinv.physics.Downsampling(
@@ -1018,6 +1018,7 @@ def test_tomography(device):
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
                     assert error < 0.2
 
+
 def test_tomography_with_astra(device):
     r"""
     Tests tomography operator with astra backend which does not have a numerically precise adjoint.
@@ -1032,9 +1033,9 @@ def test_tomography_with_astra(device):
     )
 
     ## Test 2d transforms
-    for geometry_type in ['parallel', 'fanbeam']:
+    for geometry_type in ["parallel", "fanbeam"]:
         for normalize in [True, False]:
-            img_shape = (16,16)
+            img_shape = (16, 16)
             physics = dinv.physics.TomographyWithAstra(
                 img_shape=img_shape,
                 num_angles=img_shape[0],
@@ -1042,63 +1043,61 @@ def test_tomography_with_astra(device):
                 normalize=normalize,
                 device=device,
             )
-            
-            x = torch.rand(1,1,*img_shape, device=device) 
-            
+
+            x = torch.rand(1, 1, *img_shape, device=device)
+
             ## --- Test adjointness ---
-            Ax = physics.A(x) 
+            Ax = physics.A(x)
             y = torch.rand_like(Ax)
             At_y = physics.A_adjoint(y)
 
             Ax_y = torch.sum(Ax * y).item()
             At_y_x = torch.sum(At_y * x).item()
-            
+
             relative_error = abs(Ax_y - At_y_x) / At_y_x
-            assert relative_error < 0.01 # at least 99% adjoint
-            
+            assert relative_error < 0.01  # at least 99% adjoint
+
             ## --- Test pseudoinverse ---
-            r = (
-                physics.A_adjoint(physics.A(x))
-            )
+            r = physics.A_adjoint(physics.A(x))
             y = physics.A(r)
             error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)
             assert error < 0.2
 
     ## Test 3d transforms adjointness
-    for geometry_type in ['parallel', 'conebeam']:
+    for geometry_type in ["parallel", "conebeam"]:
         for normalize in [True, False]:
-            img_shape = (16,16,16)
+            img_shape = (16, 16, 16)
             physics = dinv.physics.TomographyWithAstra(
                 img_shape=img_shape,
                 num_angles=img_shape[0],
-                num_detectors=(16,16),
+                num_detectors=(16, 16),
                 geometry_type=geometry_type,
-                detector_spacing=(1.,1.),
-                object_spacing=(1.,1.,1.),
+                detector_spacing=(1.0, 1.0),
+                object_spacing=(1.0, 1.0, 1.0),
                 normalize=normalize,
                 device=device,
             )
-            
-            x = torch.rand(1,1,*img_shape, device=device) 
-            Ax = physics.A(x) 
+
+            x = torch.rand(1, 1, *img_shape, device=device)
+            Ax = physics.A(x)
             y = torch.rand_like(Ax)
             At_y = physics.A_adjoint(y)
 
             Ax_y = torch.sum(Ax * y).item()
             At_y_x = torch.sum(At_y * x).item()
-            
+
             relative_error = abs(Ax_y - At_y_x) / At_y_x
-            assert relative_error < 0.01 # at least 99% adjoint
-            
+            assert relative_error < 0.01  # at least 99% adjoint
+
             ## --- Test pseudoinverse ---
-            if geometry_type == 'parallel':
-                r = (
-                    physics.A_adjoint(physics.A(x))
-                )
+            if geometry_type == "parallel":
+                r = physics.A_adjoint(physics.A(x))
                 y = physics.A(r)
-                error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)
+                error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(
+                    r
+                )
                 assert error < 0.25
-    
+
 
 def test_downsampling_adjointness(device):
     r"""
@@ -1147,7 +1146,6 @@ def test_downsampling_adjointness(device):
 
 
 def test_prox_l2_downsampling(device):
-
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
@@ -1159,7 +1157,6 @@ def test_prox_l2_downsampling(device):
         for pad in paddings:
             for sim in size_im:
                 for h in filters:
-
                     x = torch.rand(sim)[None].to(device)
 
                     physics = dinv.physics.Downsampling(
@@ -1264,7 +1261,6 @@ def multispectral_channels():
 
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
 def test_decolorize(srf, device, imsize, multispectral_channels):
-
     channels = multispectral_channels
     if srf == "list":
         srf = list(range(channels))

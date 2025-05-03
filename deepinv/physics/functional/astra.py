@@ -374,7 +374,7 @@ def create_projection_geometry(
         if type(n_detector_pixels) is not int:
             raise ValueError(
                 f"For 2d geometry, argument `n_detector_pixels` should be a int specifying the number of a cells in the detector line, got {type(n_detector_pixels)}"
-            )    
+            )
     else:
         if len(detector_spacing) != 2:
             raise ValueError(
@@ -383,11 +383,11 @@ def create_projection_geometry(
         if len(n_detector_pixels) != 2:
             raise ValueError(
                 f"For 3d geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
-            )          
+            )
 
     if geometry_parameters is not None:
-        source_radius = geometry_parameters.get("source_radius", 80.)
-        detector_radius = geometry_parameters.get("detector_radius", 20.)
+        source_radius = geometry_parameters.get("source_radius", 80.0)
+        detector_radius = geometry_parameters.get("detector_radius", 20.0)
         vectors = geometry_parameters.get("vectors", None)
 
     angles = angles.tolist()
