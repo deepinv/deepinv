@@ -2,7 +2,7 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Optional, Callable
 
-from torch import Tensor, ones
+from torch import Tensor
 from torch.nn import Module
 
 from deepinv.loss.metric.functional import complex_abs, norm
@@ -51,7 +51,7 @@ class Metric(Module):
         >>> from torchmetrics.functional.image import structural_similarity_index_measure
         >>> from deepinv.loss.metric import Metric
         >>> m = Metric(metric=partial(structural_similarity_index_measure, reduction='none'))
-        >>> x = x_net = ones(2, 3, 64, 64) # B,C,H,W
+        >>> x = x_net = torch.ones(2, 3, 64, 64) # B,C,H,W
         >>> m(x_net - 0.1, x)
         tensor([0., 0.])
 
