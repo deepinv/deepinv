@@ -118,7 +118,7 @@ class AbstractFilter(nn.Module):
     ) -> torch.Tensor:
         r"""Filter input ``x`` with ``fourier_filter``.
 
-        :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,N,A] with ``astra``
+        :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,A,N] with ``astra``
         convention) with N the detector dimension to filter, and A the angular dimension.
         :param torch.Tensor fourier_filter: 1D Fourier filter
         :param int pad_width: Extra padding of the input to speed up computation
