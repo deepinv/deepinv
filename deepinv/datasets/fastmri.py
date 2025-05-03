@@ -201,7 +201,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
     .. seealso::
 
-        :class:`deepinv.datasets.fastmri.FastMRITransform
+        :class:`deepinv.datasets.FastMRITransform`
             Transform for working with raw data: simulate masks and estimate coil maps.
 
     :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.

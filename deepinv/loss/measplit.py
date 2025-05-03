@@ -46,7 +46,8 @@ class SplittingLoss(Loss):
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
 
     This loss was used in SSDU for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
-    networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_
+    networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_. Note we use implement the
+    `multi-mask strategy <https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/10.1002/nbm.4798>`_.
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 

@@ -492,7 +492,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param torch.Tensor mask: optionally set the mask on-the-fly.
         :param torch.Tensor coil_maps: optionally set the mask on-the-fly.
-        :param dict **kwargs: kwargs to pass to base :meth:`deepinv.physics.LinearPhysics.A_dagger`.
+        :param dict kwargs: kwargs to pass to base :meth:`deepinv.physics.LinearPhysics.A_dagger`.
         :returns: (:class:`torch.Tensor`) image with shape `(B,2,...,H,W)`
         """
         self.update_parameters(mask=mask, coil_maps=coil_maps)
