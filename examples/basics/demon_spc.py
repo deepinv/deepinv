@@ -60,7 +60,12 @@ img_size_W = 128
 noise_level_img = 0.0  # Noise level in the image
 n = img_size_H * img_size_W  # Total number of pixels in the image
 m = 5000  # Number of measurements
-orderings = ["sequency", "cake_cutting", "zig_zag", "xy"]  # Ordering algorithms to compare
+orderings = [
+    "sequency",
+    "cake_cutting",
+    "zig_zag",
+    "xy",
+]  # Ordering algorithms to compare
 
 # %%
 # Load Image
@@ -68,7 +73,11 @@ orderings = ["sequency", "cake_cutting", "zig_zag", "xy"]  # Ordering algorithms
 # Load a grayscale image from the internet and resize it to the desired size.
 url = get_image_url("barbara.jpeg")
 x = load_url_image(
-    url=url, img_size=(img_size_H, img_size_W), grayscale=True, resize_mode="resize", device=device
+    url=url,
+    img_size=(img_size_H, img_size_W),
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 
 # %%
@@ -109,7 +118,7 @@ titles = ["Ground Truth"] + [
 ]
 
 # Print information about the SPC setup
-undersampling_rate = physics_list[0].mask.sum().float() / n 
+undersampling_rate = physics_list[0].mask.sum().float() / n
 print(f"Image Size: {x.shape}")
 print(f"SPC Measurements: {physics_list[0].mask.sum()}")
 print(f"SPC Undersampling Rate: {undersampling_rate:.2f}")

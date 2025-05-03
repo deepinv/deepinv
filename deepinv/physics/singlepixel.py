@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import warnings
 
+
 def hadamard_1d(u, normalize=True):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
@@ -131,11 +132,12 @@ def hadamard_2d_ishift(x):
 
 #     return mask
 
+
 def sequency_mask(img_shape, m):
 
     _, H, W = img_shape
     n = H * W
-    
+
     indexes = sequency_order(n)[:m]
     i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
     i = i.flatten(order="F")
@@ -151,7 +153,7 @@ def old_sequency_mask(img_shape, m):
 
     _, H, W = img_shape
     n = H * W
-    
+
     indexes = get_permutation_list(n)[:m]
     i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
     i = i.flatten(order="F")
@@ -190,15 +192,13 @@ def cake_cutting_mask(img_shape, m):
     _, H, W = img_shape
 
     if H != W:
-        warnings.warn(
-            "Image height and width must be equal for cake cutting mask."
-        )
-        
+        warnings.warn("Image height and width must be equal for cake cutting mask.")
+
     n = H * W
 
-    indexes     = sequency_order(n)
-    cake_order  = cake_cutting_order(n)
-    indexes     = indexes[cake_order][:m]
+    indexes = sequency_order(n)
+    cake_order = cake_cutting_order(n)
+    indexes = indexes[cake_order][:m]
     i, j = np.meshgrid(np.arange(H), np.arange(W), indexing="ij")
     i = i.flatten(order="F")
     j = j.flatten(order="F")
@@ -248,7 +248,7 @@ def xy_mask(img_shape, m):
     index_matrix /= index_matrix.max()
 
     indx = torch.argsort(index_matrix.view(-1))
-    
+
     mask = torch.arange(1, H * W + 1)
     mask[indx] = mask.clone()
     mask = mask.view(H, W) <= m

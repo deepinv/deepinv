@@ -211,11 +211,21 @@ def find_operator(name, device):
         )
     elif name == "fast_singlepixel_cake_cutting":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="cake_cutting"
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="cake_cutting",
         )
     elif name == "fast_singlepixel_zig_zag":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="zig_zag"
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="zig_zag",
         )
     elif name == "fast_singlepixel_xy":
         p = dinv.physics.SinglePixelCamera(
