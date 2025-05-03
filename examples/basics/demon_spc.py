@@ -3,7 +3,7 @@ Tour of Ordering Algorithms in Single Pixel Camera (SPC)
 ========================================================
 
 This script demonstrates the use of different ordering algorithms in the Single Pixel Camera (SPC),
-a computational imaging system that uses a single photodetector to capture images by projecting the 
+a computational imaging system that uses a single photodetector to capture images by projecting the
 scene onto a series of patterns. The SPC is implemented in the DeepInverse library.
 
 In this example, we explore the following ordering algorithms for the Hadamard transform:
