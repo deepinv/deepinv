@@ -11,6 +11,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+
 Changed
 ^^^^^^^
 
