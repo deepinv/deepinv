@@ -17,6 +17,7 @@ Changed
 Fixed
 ^^^^^
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 
 
 v0.3
