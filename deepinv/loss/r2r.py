@@ -21,7 +21,7 @@ class R2RLoss(Loss):
 
     which includes the popular Gaussian, Poisson and Gamma noise distributions
     (see https://en.wikipedia.org/wiki/Exponential_family for more details on the exponential family).
-    For this family of noisy measurements, we genealize the corruption strategy as:
+    For this family of noisy measurements, we generalize the corruption strategy as:
 
     .. math::
 
