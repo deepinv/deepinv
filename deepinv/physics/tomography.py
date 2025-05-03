@@ -206,7 +206,7 @@ class Tomography(LinearPhysics):
 
 class TomographyWithAstra(LinearPhysics):
     r"""Computed Tomography operator with `astra-toolbox <https://astra-toolbox.com/>`_ backend.
-    It is more memory efficient than the ``Tomography`` operator and support 3d geometries.
+    It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3d geometries.
     See documentation of :class:`deepinv.physics.functional.XrayTransform` for more
     information on the ``astra`` wrapper.
 
@@ -234,10 +234,6 @@ class TomographyWithAstra(LinearPhysics):
 
     .. note::
 
-        The :class:`deepinv.physics.functional.XrayTransform` sequentially processes batch elements, which can make the 2d parallel beam operator with :class:`TomographyWithAstra` significantly slower than the its native-torch counterpart with :class:`deepinv.physics.Tomography`.
-
-    .. note::
-
         The pseudo-inverse is computed using the filtered back-projection
         algorithm with a Ramp filter, and its equivalent for conebeam 3d, the
         Feldkamp-Davis-Kress algorithm. This is not the exact linear pseudo-inverse
@@ -246,7 +242,7 @@ class TomographyWithAstra(LinearPhysics):
     .. note::
 
         In the default configuration, reconstruction cells and detector cells are
-        set to have isotropic unit lengths. It correspond to a 2d parallel beam
+        set to have isotropic unit lengths. The geometry is set to 2d parallel
         and matches the default configuration of the :class:`deepinv.physics.Tomography` operator with
         ``circle=False``.
 
@@ -256,6 +252,10 @@ class TomographyWithAstra(LinearPhysics):
         implemented in ``astra`` are not matched. The projector is typically ray-driven,
         while the backprojector is pixel-driven. The adjoint of the forward Ray Transform
         is approximated by rescaling the backprojector.
+        
+    .. warning::
+
+        The :class:`deepinv.physics.functional.XrayTransform` used in :class:`TomographyWithAstra` sequentially processes batch elements, which can make the 2d parallel beam operator significantly slower than the its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
 
     :param tuple[int, ...] img_shape: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2d or 3d.
     :param int num_angles: Number of angular positions sampled uniformly in ``angular_range``. (default: 180)
@@ -268,9 +268,9 @@ class TomographyWithAstra(LinearPhysics):
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d. (default: ``'parallel'``)
     :param dict[str, str] | None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
-        - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 57.5)
+        - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
-        - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 57.5)
+        - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 20.)
     :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``False``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
 
@@ -292,8 +292,8 @@ class TomographyWithAstra(LinearPhysics):
                 detector_spacing=2.0,
                 geometry_type='fanbeam',
                 geometry_parameters={
-                    'source_radius': 20,
-                    'detector_radius': 20
+                    'source_radius': 20.,
+                    'detector_radius': 20.
                 }
             )
         >>> physics(x)
@@ -322,8 +322,8 @@ class TomographyWithAstra(LinearPhysics):
                 detector_spacing=(2.0,2.0),
                 geometry_type='conebeam',
                 geometry_parameters={
-                    'source_radius': 20,
-                    'detector_radius': 20
+                    'source_radius': 20.,
+                    'detector_radius': 20.
                 }
             )
         >>> sinogram = physics(x)
@@ -356,7 +356,7 @@ class TomographyWithAstra(LinearPhysics):
         aabb: tuple[float, ...] | None = None,
         angles: Iterable[float] | None = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] | None = None,
+        geometry_parameters: dict[str, Any] | None = {'source_radius': 80., 'detector_radius': 20.},
         normalize: bool = False,
         device: torch.device | str = torch.device("cuda"),
         **kwargs,
@@ -493,8 +493,8 @@ class TomographyWithAstra(LinearPhysics):
     def A(self, x: torch.Tensor, **kwargs) -> torch.Tensor:
         """Forward projection.
 
-        :param torch.Tensor x: input of shape ``(B,C,...,H,W)``
-        :return: projection of shape ``(B,C,...,A,N)``
+        :param torch.Tensor x: input of shape [B,C,...,H,W]
+        :return: projection of shape [B,C,...,A,N]
         """
         out = AutogradTransform.apply(x, self.xray_transform)
         if self.normalize:
@@ -505,8 +505,8 @@ class TomographyWithAstra(LinearPhysics):
     def A_dagger(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         r"""Pseudo-inverse estimated using filtered back-projection.
 
-        :param torch.Tensor y: input of shape ``(B,C,...,A,N)``
-        :return: torch.Tensor filtered back-projection of shape ``(B,C,...,H,W)``
+        :param torch.Tensor y: input of shape [B,C,...,A,N]
+        :return: torch.Tensor filtered back-projection of shape [B,C,...,H,W]
         """
 
         filtered_y = self.filter(y, dim=-1)
@@ -519,8 +519,8 @@ class TomographyWithAstra(LinearPhysics):
     def A_adjoint(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
         """Approximation of the adjoint.
 
-        :param torch.Tensor y: input of shape ``(B,C,...,A,N)``
-        :return: torch.Tensor filtered back-projection of shape ``(B,C,...,H,W)``
+        :param torch.Tensor y: input of shape [B,C,...,A,N]
+        :return: torch.Tensor filtered back-projection of shape [B,C,...,H,W]
         """
         out = AutogradTransform.apply(y, self.xray_transform.T)
         if self.normalize:
