@@ -1,7 +1,5 @@
-from collections.abc import Mapping, Iterable
 from typing import Any
 import math
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -354,7 +352,7 @@ class TomographyWithAstra(LinearPhysics):
         detector_spacing: float | tuple[float, float] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
         aabb: tuple[float, ...] | None = None,
-        angles: Iterable[float] | None = None,
+        angles: torch.Tensor | None = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, Any]
         | None = {"source_radius": 80.0, "detector_radius": 20.0},
