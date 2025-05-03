@@ -266,8 +266,8 @@ class SinglePixelCamera(DecomposablePhysics):
 
     Linear imaging operator with binary entries.
 
-    If ``fast=True``, the operator uses a 2D subsampled hadamard transform, which keeps the first :math:`m` modes
-    according to the ``ordering```parameter, default set as sequency <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
+    If ``fast=True``, the operator uses a 2D subsampled Hadamard transform, which keeps the first :math:`m` modes
+    according to the ``ordering`` parameter, default set as `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
@@ -300,7 +300,7 @@ class SinglePixelCamera(DecomposablePhysics):
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
         >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
-        48.0
+        16.0
         >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
         tensor([[[[1., 0., 0.],
                   [0., 0., 0.],
