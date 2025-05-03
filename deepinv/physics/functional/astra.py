@@ -12,23 +12,20 @@ except:
 
 
 class XrayTransform:
-    r"""X-ray Transform operator.
+    r"""X-ray Transform operator with ``astra-toolbox`` backend.
 
     Uses the `astra-toolbox <https://astra-toolbox.com/>`_ to implement a ray-driven forward projector
     and a pixel-driven backprojector (:attr:`XrayTransform.T`).
     This class leverages the GPULink functionality of ``astra`` to share the underlying
     CUDA memory between torch Tensors and CUDA-based arrays use in ``astra``. The
     functionality is only implemented for 3D arrays, thus the underlying transforms
-    are all 3D operators.
-
-    For 2D transforms, the object is set to a flat volume with only 1 voxel depth.
+    are all 3D operators. For 2D transforms, the object is set to a flat volume with only 1 voxel depth.
 
     .. note::
 
         This transform does not handle batched and multi-channel inputs. It is
         handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.
-        :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator
-        to handle standard PyTorch pipelines.
+        To handle standard PyTorch pipelines, :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
 
     :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the :func:`astra.create_projector` function to instanciate the projector.
     :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the :func:`astra.create_projector` function to instanciate the projector.
@@ -173,7 +170,7 @@ class XrayTransform:
 
     @property
     def T(self):
-        """Implements and return the adjoint of the transform operator."""
+        """Implements and returns the adjoint of the transform operator."""
         parent = self
 
         class _Adjoint:
@@ -364,14 +361,33 @@ def create_projection_geometry(
     :param bool is_2d: Boolean specifying if the parameters define a 2d slice or a 3d volume.
     :param dict[str, str] | None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
-        - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 57.5)
+        - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
-        - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 57.5)
+        - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 20.)
     """
 
+    if is_2d:
+        if type(detector_spacing) is not float:
+            raise ValueError(
+                f"For 2d geometry, argument `detector_spacing` should be a float specifying the width of a detector cell, got {type(detector_spacing)}"
+            )
+        if type(n_detector_pixels) is not int:
+            raise ValueError(
+                f"For 2d geometry, argument `n_detector_pixels` should be a int specifying the number of a cells in the detector line, got {type(n_detector_pixels)}"
+            )    
+    else:
+        if len(detector_spacing) != 2:
+            raise ValueError(
+                f"For 3d geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
+            )
+        if len(n_detector_pixels) != 2:
+            raise ValueError(
+                f"For 3d geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
+            )          
+
     if geometry_parameters is not None:
-        source_radius = geometry_parameters.get("source_radius", 57.5)
-        detector_radius = geometry_parameters.get("detector_radius", 57.5)
+        source_radius = geometry_parameters.get("source_radius", 80.)
+        detector_radius = geometry_parameters.get("detector_radius", 20.)
         vectors = geometry_parameters.get("vectors", None)
 
     angles = angles.tolist()
