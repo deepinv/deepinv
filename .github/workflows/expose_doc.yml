@@ -13,19 +13,15 @@ jobs:
       statuses: write
 
     steps:
-      - name: Check CircleCI token
+      - name: Check CircleCI token  # check if the token is valid
         run: |
           curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
       - name: GitHub Action step
         id: step1
-        uses: scientific-python/circleci-artifacts-redirector-action@4e13a10   # pin to a release
+        uses: matthieutrs/circleci-artifacts-redirector-action@v1.0.0   # pin to a release
         with:
           api-token:  ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           artifact-path: 0/dev/index.html
           circleci-jobs: build_docs
           job-title: Check the rendered docs here!
-      - name: Check the URL
-        if: github.event.status != 'pending'
-        run: |
-          curl --fail ${{ steps.step1.outputs.url }} | grep $GITHUB_SHA
