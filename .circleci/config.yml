@@ -3,6 +3,7 @@ jobs:
     build_docs:
       docker:
         - image: cimg/python:3.10
+      resource_class: xlarge
       steps:
         - checkout
         - run:
@@ -44,13 +45,13 @@ jobs:
               python -m pip install --user --upgrade --progress-bar off pip
               python -m pip install --user .[dataset,denoisers,doc]
 
-        # Build docs
+        # Build docs (fast for now, too slow for circleci in non-fast mode)
         - run:
             name: make html
             no_output_timeout: 120m
             command: |
               cd docs;
-              make html;
+              make html-fast;
               cd ..;
 
         # Save the outputs

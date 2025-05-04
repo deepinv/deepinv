@@ -342,8 +342,6 @@ def plot(
         return fig
     elif return_axs:
         return axs
-    elif show:
-        plt.close(fig)
 
 
 def scatter_plot(
