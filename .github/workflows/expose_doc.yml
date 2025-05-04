@@ -18,7 +18,7 @@ jobs:
           curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
       - name: GitHub Action step
         id: step1
-        uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
+        uses: scientific-python/circleci-artifacts-redirector-action@4e13a10   # pin to a release
         with:
           api-token:  ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
