@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional, Union
 
 import torch
 import numpy as np
@@ -26,8 +26,8 @@ class XrayTransform:
         handled by a custom :class:`torch.autograd.Function` that wraps the :class:`XrayTransform`.
         To handle standard PyTorch pipelines, :class:`XrayTransform` is instanciated inside a :class:`deepinv.physics.TomographyWithAstra` operator.
 
-    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the :func:`astra.create_projector` function to instanciate the projector.
-    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the :func:`astra.create_projector` function to instanciate the projector.
+    :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
+    :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
     :param bool is_2d: Specifies if the geometry is flat (2d) or describe a real 3d reconstruction setup.
     """
 
@@ -146,7 +146,7 @@ class XrayTransform:
             return 1.0
 
     def __call__(
-        self, x: torch.Tensor, out: torch.Tensor | None = None
+        self, x: torch.Tensor, out: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         r"""Forward projection.
 
@@ -187,7 +187,7 @@ class XrayTransform:
                 return parent.domain_shape
 
             def __call__(
-                self, x: torch.Tensor, out: torch.Tensor | None = None
+                self, x: torch.Tensor, out: Optional[torch.Tensor] = None
             ) -> torch.Tensor:
                 r"""Backprojection.
 
@@ -345,11 +345,11 @@ class AutogradTransform(torch.autograd.Function):
 
 def create_projection_geometry(
     geometry_type: str,
-    detector_spacing: int | tuple[int, int],
-    n_detector_pixels: int | tuple[int, int],
+    detector_spacing: Union[int, tuple[int, int]],
+    n_detector_pixels: Union[int, tuple[int, int]],
     angles: torch.Tensor,
     is_2d: bool = False,
-    geometry_parameters: dict[str, Any] | None = None,
+    geometry_parameters: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "projection geometry", a dict of parameters
     used by ``astra`` to parametrize the geometry of the detector and the x-ray source.
@@ -477,7 +477,7 @@ def create_object_geometry(
     n_slices: int = 1,
     is_2d: bool = True,
     spacing: tuple[float, ...] = (1.0, 1.0),
-    aabb: tuple[float, ...] | None = None,
+    aabb: Optional[tuple[float, ...]] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
     used by ``astra`` to parametrize the reconstruction grid.

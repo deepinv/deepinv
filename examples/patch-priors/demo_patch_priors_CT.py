@@ -45,15 +45,20 @@ from torch.utils.data import DataLoader
 from deepinv.datasets import PatchDataset
 from deepinv import Trainer
 from deepinv.physics import LogPoissonNoise, Tomography, Denoising, UniformNoise
+
 try:
     import astra
+
     USE_ASTRA = True
     from deepinv.physics import TomographyWithAstra
-    print('Detected `astra-toolbox` package, the example will use the TomographyWithAstra operator')
+
+    print(
+        "Detected `astra-toolbox` package, the example will use the TomographyWithAstra operator"
+    )
 except:
     USE_ASTRA = False
-    astra = ImportError("The astra-toolbox package is not installed.") 
-       
+    astra = ImportError("The astra-toolbox package is not installed.")
+
 from deepinv.optim import LogPoissonLikelihood, PatchPrior, PatchNR, EPLL
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
@@ -217,7 +222,11 @@ data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 angles = torch.linspace(20, 160, steps=num_angles)
 if USE_ASTRA:
     physics = TomographyWithAstra(
-        img_shape=(img_size, img_size), angles=angles, device=device, noise_model=noise_model)
+        img_shape=(img_size, img_size),
+        angles=angles,
+        device=device,
+        noise_model=noise_model,
+    )
 else:
     physics = Tomography(
         img_width=img_size, angles=angles, device=device, noise_model=noise_model

@@ -70,7 +70,7 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
      - Computes the inverse Radon transform, reconstructing an image from projection data as in CT scan reconstruction.
   
    * - :func:`deepinv.physics.functional.XrayTransform`
-   - Computes the inverse Radon transform, reconstructing an image from projection data as in CT scan reconstruction.
+     - X-ray Transform operator with ``astra-toolbox`` backend. Computes forward projection and backprojection used in CT reconstruction.
 
    * - :func:`deepinv.physics.functional.histogramdd`
      - Computes the histogram of a multi-dimensional dataset, useful in statistical analysis and data visualization.
