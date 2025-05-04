@@ -18,11 +18,14 @@ from deepinv.utils.plotting import plot, plot_curves
 
 try:
     import astra
+
     USE_ASTRA = True
-    print('Detected `astra-toolbox` package, the example will use the TomographyWithAstra operator')
+    print(
+        "Detected `astra-toolbox` package, the example will use the TomographyWithAstra operator"
+    )
 except:
     USE_ASTRA = False
-    astra = ImportError("The astra-toolbox package is not installed.") 
+    astra = ImportError("The astra-toolbox package is not installed.")
 
 # %%
 # Setup paths for data loading and results.
@@ -58,10 +61,9 @@ operation = "tomography"
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 angles = 100
 n_channels = 1  # 3 for color images, 1 for gray-scale images
-USE_ASTRA=False
 if USE_ASTRA:
     physics = dinv.physics.TomographyWithAstra(
-        img_shape=(img_size,img_size),
+        img_shape=(img_size, img_size),
         num_=angles,
         device=device,
         noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),

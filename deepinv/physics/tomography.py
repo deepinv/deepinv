@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Union, Optional
 import math
 import torch
 from torch import nn
@@ -264,7 +264,7 @@ class TomographyWithAstra(LinearPhysics):
     :param tuple[float, ...] | None aabb: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
     :param torch.Tensor | None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d. (default: ``'parallel'``)
-    :param dict[str, str] | None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
@@ -347,17 +347,19 @@ class TomographyWithAstra(LinearPhysics):
         self,
         img_shape: tuple[int, ...],
         num_angles: int = 180,
-        num_detectors: int | tuple[int, ...] = None,
+        num_detectors: Optional[Union[int, tuple[int, ...]]] = None,
         angular_range: tuple[float, float] = (0, math.pi),
-        detector_spacing: float | tuple[float, float] = 1.0,
+        detector_spacing: Union[float, tuple[float, float]] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
-        aabb: tuple[float, ...] | None = None,
-        angles: torch.Tensor | None = None,
+        aabb: Optional[tuple[float, ...]] = None,
+        angles: Optional[torch.Tensor] = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any]
-        | None = {"source_radius": 80.0, "detector_radius": 20.0},
+        geometry_parameters: dict[str, Any] = {
+            "source_radius": 80.0,
+            "detector_radius": 20.0,
+        },
         normalize: bool = False,
-        device: torch.device | str = torch.device("cuda"),
+        device: Union[torch.device, str] = torch.device("cuda"),
         **kwargs,
     ):
         super().__init__(**kwargs)
