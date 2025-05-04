@@ -42,7 +42,7 @@ jobs:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip
-              python -m pip install --user .[doc]
+              python -m pip install --user .[dataset,denoisers,doc]
 
         # Build docs
         - run:
