@@ -13,6 +13,9 @@ jobs:
       statuses: write
 
     steps:
+      - name: Check CircleCI token
+        run: |
+          curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
       - name: GitHub Action step
         id: step1
         uses: scientific-python/circleci-artifacts-redirector-action@v1   # pin to a release
