@@ -50,7 +50,7 @@ jobs:
             no_output_timeout: 120m
             command: |
               cd docs;
-              make SPHINXOPTS=-v html-fast;
+              make html;
               cd ..;
 
         # Save the outputs
