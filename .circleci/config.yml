@@ -3,7 +3,6 @@ jobs:
     build_docs:
       docker:
         - image: cimg/python:3.10
-      resource_class: xlarge
       steps:
         - checkout
         - run:
@@ -51,7 +50,9 @@ jobs:
             no_output_timeout: 120m
             command: |
               cd docs;
-              make html-fast;
+              make SPHINXOPTS=-v html-fast;
+              PATTERN=../examples/basics/demo_blur_tour.py make html-pattern
+              PATTERN=../examples/advanced/demo_ri_basic.py make html-pattern
               cd ..;
 
         # Save the outputs
