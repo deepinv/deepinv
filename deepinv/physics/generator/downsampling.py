@@ -9,11 +9,13 @@ class DownsamplingGenerator(PhysicsGenerator):
     Random downsampling generator.
 
     Generates random downsampling factors and filters.
+    This can be used for generating parameters to be passed to the
+    :class:`Downsampling <deepinv.physics.Downsampling>` class.
 
     >>> from deepinv.physics.generator import DownsamplingGenerator
     >>> list_filters = ["bilinear", "bicubic", "gaussian"]
     >>> list_factors = [2, 4]
-    >>> generator = DownSamplingGenerator(filters=list_filters, factors=list_factors)
+    >>> generator = DownsamplingGenerator(filters=list_filters, factors=list_factors)
     >>> ds = generator.step(batch_size=1)  # dict_keys(['filter', 'factor'])
     >>> filter = ds['filter']
     >>> factor = ds['factor']

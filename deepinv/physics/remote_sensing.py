@@ -33,7 +33,7 @@ class Pansharpen(StackedLinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
-    :param bool normalize: if ``True``, normalize the downsampling operator.
+    :param bool normalize: if ``True``, normalize the downsampling operator to have unit norm.
     :param float eps: small value to avoid division by zero in the Brovey method.
 
     |sep|

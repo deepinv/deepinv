@@ -31,8 +31,9 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils.demo import demo_mri_model, get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
+from deepinv.models import MoDL
 from deepinv.physics.generator import (
     GaussianMaskGenerator,
     BernoulliSplittingMaskGenerator,
@@ -171,12 +172,11 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture as an example of a model-based deep learning architecture
-# from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-# See :func:`deepinv.utils.demo.demo_mri_model` for details.
+# DnCNN architecture which was proposed in `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+# See :class:`deepinv.models.MoDL` for details.
 #
 
-model = demo_mri_model(device=device)
+model = MoDL()
 
 
 # %%

@@ -115,7 +115,8 @@ class GaussianNoise(NoiseModel):
         >>> gaussian_noise_2 = GaussianNoise(sigma=4.0)
         >>> gaussian_noise = gaussian_noise_1 + gaussian_noise_2
         >>> y = gaussian_noise(x)
-        >>> assert gaussian_noise.sigma == 5.0, "Wrong standard deviation value for the sum."
+        >>> gaussian_noise.sigma.item()
+        5.0
 
         We can also multiply a GaussianNoise by a float:
 
@@ -123,7 +124,8 @@ class GaussianNoise(NoiseModel):
 
         >>> scaled_gaussian_noise = 3.0 * gaussian_noise
         >>> y = scaled_gaussian_noise(x)
-        >>> assert scaled_gaussian_noise.sigma == 15.0, "Wrong standard deviation value for the multiplication."
+        >>> scaled_gaussian_noise.sigma.item()
+        15.0
 
         We can also create a batch of GaussianNoise with different standard deviations:
 
@@ -161,9 +163,9 @@ class GaussianNoise(NoiseModel):
 
     def __mul__(self, other):
         r"""
-        Element-wise multiplication of a GaussianNoise via * operator.
+        Element-wise multiplication of a GaussianNoise via `*` operator.
 
-        0) If `other` is a :class:`NoiseModel`, then applies the NoiseModel multiplication.
+        0) If `other` is a :class:`NoiseModel`, then applies the multiplication from `NoiseModel`.
 
         1) If `other` is a :class:`float`, then the standard deviation of the GaussianNoise is multiplied by `other`.
 
@@ -175,7 +177,7 @@ class GaussianNoise(NoiseModel):
 
             | :math:`x=[x_1, ..., x_b]` a batch of images.
             | :math:`other=[[[[\lambda_1]]], ..., [[[\lambda_b]]]]` a batch of scaling factors.
-           | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
+            | :math:`\sigma = [\lambda \times \sigma_1, ..., \lambda \times \sigma_b]`
 
         :param float or torch.Tensor other: Scaling factor for the GaussianNoise's standard deviation.
         :return: (:class:`deepinv.physics.GaussianNoise`) -- A new GaussianNoise with the new standard deviation.

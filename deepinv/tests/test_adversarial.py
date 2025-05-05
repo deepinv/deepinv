@@ -89,6 +89,7 @@ def test_adversarial_training(combo_name, imsize, device, physics, dataset):
         show_progress_bar=False,
         save_path=None,
         device=device,
+        optimizer_step_multi_dataset=False,
     )
 
     # initial_psnr = trainer.test(test_dataloader)[0]

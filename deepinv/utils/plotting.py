@@ -69,7 +69,7 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
+def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
@@ -82,10 +82,15 @@ def prepare_images(x, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
-        imgs = [x]
-        titles = ["Ground truth"]
-        caption = "From left to right: Ground truth, "
-        if y is not None and y.shape == x.shape:
+        imgs = []
+        titles = []
+        caption = "From left to right: "
+        if x is not None:
+            imgs.append(x)
+            titles.append("Ground truth")
+            caption += "Ground truth, "
+
+        if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
@@ -105,7 +110,7 @@ def prepare_images(x, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
             out = preprocess_img(img, rescale_mode=rescale_mode)
             vis_array.append(out)
         vis_array = torch.cat(vis_array)
-        grid_image = make_grid(vis_array, nrow=x.shape[0])
+        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
@@ -315,9 +320,9 @@ def plot(
 
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
-        save_dir_i = Path(save_dir) / Path(titles[i])
-        save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
+            save_dir_i = Path(save_dir) / Path(titles[i])
+            save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:

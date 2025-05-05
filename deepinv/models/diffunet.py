@@ -14,12 +14,12 @@ class DiffUNet(Denoiser):
     r"""
     Diffusion UNet model.
 
-    This is the model with attention and timestep embeddings :cite:p:`choi2021ilvr`;
+    This is the model with attention and timestep embeddings from `Ho et al. <https://arxiv.org/abs/2108.02938>`_;
     code is adapted from https://github.com/jychoi118/ilvr_adm.
 
-    It is possible to choose the standard model :cite:p:`ho2020denoising`
+    It is possible to choose the `standard model <https://arxiv.org/abs/2108.02938>`_
     with 128 hidden channels per layer (trained on FFHQ)
-    and a larger model :cite:p:`choi2021ilvr` with 256 hidden channels per layer (trained on ImageNet128)
+    and a `larger model <https://arxiv.org/abs/2105.05233>`_ with 256 hidden channels per layer (trained on ImageNet128)
 
     A pretrained network for (in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
@@ -307,11 +307,12 @@ class DiffUNet(Denoiser):
 
     def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
         """
-        Splits an image tensor into patches, applies the model to each patch, and reconstructs the full image.
+        Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
         :param x: Input low-quality image tensor of shape (B, C, H, W).
         :param patch_size: Size of the patches to split into.
-        :param *args, **kwargs: Additional arguments for the model.
+        :param \*args: Additional positional arguments for the model.
+        :param \*\*kwargs: Additional keyword arguments for the model.
 
         :return: Reconstructed image tensor.
         """

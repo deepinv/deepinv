@@ -420,10 +420,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param torch.Tensor x:  clean measurements
         :param None, float noise_level: optional noise level parameter
         :return: noisy measurements
-
         """
-
-        return self.mask[..., None] * self.noise_model(x, **kwargs)
+        return self.mask[:, :, None] * self.noise_model(x, **kwargs)
 
     def A_adjoint(
         self,

@@ -598,7 +598,7 @@ def test_time_agnostic_net():
     assert x_net.shape == y.shape
 
 
-@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet"))
+@pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
 
     def dummy_dataset(imsize, device):
@@ -620,11 +620,15 @@ def test_varnet(varnet_type, device):
         def __len__(self):
             return 1
 
-    model = dinv.models.VarNet(
-        num_cascades=3,
-        mode=varnet_type,
-        denoiser=dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device),
-    ).to(device)
+    denoiser = dinv.models.DnCNN(2, 2, 7, pretrained=None, device=device)
+    if varnet_type == "modl":
+        model = dinv.models.MoDL(denoiser=denoiser, num_iter=3).to(device)
+    else:
+        model = dinv.models.VarNet(
+            num_cascades=3,
+            mode=varnet_type,
+            denoiser=denoiser,
+        ).to(device)
 
     model = dinv.Trainer(
         model=model,
@@ -636,7 +640,7 @@ def test_varnet(varnet_type, device):
         plot_images=False,
         compare_no_learning=True,
         device=device,
-        global_optimizer_step=True,
+        optimizer_step_multi_dataset=True,
     ).train()
 
     x_hat = model(y, physics)

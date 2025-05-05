@@ -405,9 +405,6 @@ class QNR(Metric):
         .. note::
 
             Note this does not require knowledge of ``x``, but it is included here as a placeholder.
-            QNR requires knowledge of ``y`` and ``physics``, which is not standard. In order to use QNR with
-            :class:`deepinv.Trainer`, you will have to override the ``compute_metrics`` method to
-            pass ``y,physics`` into the metric.
 
         :param torch.Tensor x_net: Reconstructed high-res multispectral image :math:`\inverse{y}` of shape ``(B,C,H,W)``.
         :param torch.Tensor x: Placeholder, does nothing.

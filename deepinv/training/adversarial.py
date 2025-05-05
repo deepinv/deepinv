@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from torch.optim import Optimizer
     from torch.optim.lr_scheduler import LRScheduler
 
+import warnings
+
 import torch
 from torch.nn import Module
 
@@ -138,6 +140,11 @@ class AdversarialTrainer(Trainer):
 
     See :class:`deepinv.Trainer` for additional parameters.
 
+    .. warning::
+
+        The multi-dataset option is not available yet when using an adversarial trainer. The `optimizer_step_multi_dataset` parameter is therefore automatically set to `False` if not set to `False` by the user.
+
+
     :param deepinv.training.AdversarialOptimizer optimizer: optimizer encapsulating both generator and discriminator optimizers
     :param Loss, list losses_d: losses to train the discriminator, e.g. adversarial losses
     :param torch.nn.Module D: discriminator/critic/classification model, which must take in an image and return a scalar
@@ -148,13 +155,18 @@ class AdversarialTrainer(Trainer):
     losses_d: Union[Loss, List[Loss]] = None
     D: Module = None
     step_ratio_D: int = 1
-    global_optimizer_step: bool = False
 
     def setup_train(self, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
         super().setup_train(**kwargs)
+
+        if self.optimizer_step_multi_dataset:
+            warnings.warn(
+                "optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`."
+            )
+            self.optimizer_step_multi_dataset = False
 
         if not isinstance(self.losses_d, (list, tuple)):
             self.losses_d = [self.losses_d]
@@ -179,7 +191,7 @@ class AdversarialTrainer(Trainer):
             )
 
     def compute_loss(
-        self, physics, x, y, train=True, epoch: int = None, backward: int = True
+        self, physics, x, y, train=True, epoch: int = None, step: int = True
     ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
@@ -189,13 +201,13 @@ class AdversarialTrainer(Trainer):
         :param torch.Tensor y: Measurement.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         :param int epoch: current epoch.
-        :param bool global_optimizer_step: If ``True``, perform backward pass on all datasets before optimizer step.
+        :param bool step: If ``True``, perform an optimization step on all datasets before optimizer step.
         :returns: (tuple) The network reconstruction x_net (for plotting and computing metrics) and
             the logs (for printing the training progress).
         """
         logs = {}
 
-        if train and backward:  # remove gradient
+        if train and step:  # remove gradient
             self.optimizer.G.zero_grad()
 
         # Evaluate reconstruction network
@@ -243,7 +255,7 @@ class AdversarialTrainer(Trainer):
             if norm is not None:
                 logs["gradient_norm"] = self.check_grad_val.avg
 
-            if backward:
+            if step:
                 self.optimizer.G.step()
 
         ### Train Discriminator

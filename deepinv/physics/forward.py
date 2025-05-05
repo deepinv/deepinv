@@ -218,18 +218,26 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the operator.
+
+        """
+        for key, value in kwargs.items():
+            if (
+                value is not None
+                and hasattr(self, key)
+                and isinstance(value, torch.Tensor)
+            ):
+                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
+
     def update(self, **kwargs):
         r"""
         Update the parameters of the forward operator.
 
         :param dict kwargs: dictionary of parameters to update.
         """
-        if hasattr(self, "update_parameters"):
-            self.update_parameters(**kwargs)
-        else:
-            raise NotImplementedError(
-                "update_parameters method not implemented for this physics operator"
-            )
+        self.update_parameters(**kwargs)
 
         # if self.noise_model is not None:
         # check if noise model has a method named update_parameters
@@ -352,7 +360,7 @@ class LinearPhysics(Physics):
         .. note::
 
             If the problem is non-linear, there is not a well-defined transpose operation,
-            but defining one can be useful for some reconstruction networks, such as ``deepinv.models.ArtifactRemoval``.
+            but defining one can be useful for some reconstruction networks, such as :class:`deepinv.models.ArtifactRemoval`.
 
         :param torch.Tensor y: measurements.
         :param None, torch.Tensor params: optional additional parameters for the adjoint operator.
@@ -833,19 +841,6 @@ class DecomposablePhysics(LinearPhysics):
 
         return self.V(self.U_adjoint(y) * mask)
 
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the singular values of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
-
 
 class Denoising(DecomposablePhysics):
     r"""
@@ -854,7 +849,7 @@ class Denoising(DecomposablePhysics):
 
     The linear operator is just the identity mapping :math:`A(x)=x`
 
-    :param torch.nn.Module noise: noise distribution, e.g., ``deepinv.physics.GaussianNoise``, or a user-defined torch.nn.Module.
+    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module.
 
     |sep|
 

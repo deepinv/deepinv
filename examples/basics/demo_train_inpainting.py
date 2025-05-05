@@ -165,7 +165,9 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )
-model = trainer.train()
+trainer.train()
+# load model with best validation PSNR
+model = trainer.load_best_model()
 
 # %%
 # Test the network
