@@ -240,8 +240,8 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
-    :param bool show: show the image plot.
-    :param bool close: close the image plot.
+    :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
+    :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
