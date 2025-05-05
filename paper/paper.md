@@ -25,7 +25,7 @@ authors:
   - name: Dongdong Chen
     affiliation: 5
   - name: Minh-Hai Nguyen
-    affiliation: 9
+    affiliation: 8
   - name: Maxime Song
     affiliation: 14
   - name: Leo Davy  
@@ -35,7 +35,7 @@ authors:
   - name: Paul Escande  
     affiliation: 8
   - name: Johannes Hertrich  
-    affiliation: 2
+    affiliation: 15
   - name: Zhiyuan Hu  
     affiliation: 7
   - name: Tobias Liaudat  
@@ -55,13 +55,13 @@ authors:
   - name: Jérémy Scanvic  
     affiliation: 1
   - name: Florian Sarron  
-    affiliation: 9
+    affiliation: 8
   - name: Victor Sechaud  
     affiliation: 1
   - name: Georg Schramm  
     affiliation: 4
   - name: Chao Tang  
-    affiliation: "5, 4"
+    affiliation: "4, 5"
   - name: Pierre Weiss  
     affiliation: 8  
 
@@ -80,9 +80,9 @@ affiliations:
     index: 6
   - name: EPFL, Lausanne, Switzerland
     index: 7
-  - name: CNRS, Université de Toulouse, Toulouse, France
+  - name: IRIT, CBI, CNRS, Université de Toulouse, Toulouse, France. 
     index: 8
-  - name: Université de Toulouse, Toulouse, France
+  - name: IMT, CNRS, Université de Toulouse, Toulouse, France
     index: 9
   - name: Inria, ENS de Lyon, Univ Lyon, Lyon, France
     index: 10
@@ -94,6 +94,8 @@ affiliations:
     index: 13
   - name: CNRS UAR 851, Université Paris-Saclay Orsay, France
     index: 14
+  - Université Paris Dauphine - PSL, Paris, France
+    index: 15
 
 date: 15 March 2025
 bibliography: paper.bib
@@ -102,9 +104,9 @@ bibliography: paper.bib
 
 # Summary
 
-`deepinv` is an open-source PyTorch-based library for solving imaging inverse problems with deep learning.
-The library covers all crucial steps in modern imaging pipelines, from the definition of the forward sensing operator
-to the training of reconstruction networks.
+`deepinv` is an open-source PyTorch-based library for imaging inverse problems.
+The library covers all crucial steps in image reconstruction from the efficient implementation of forward operators (optics, MRI, tomography,...), 
+to the definition and resolution of variational problems and the design and training of advanced neural network architectures. 
 
 # Statement of Need
 
@@ -118,8 +120,9 @@ of new ideas across imaging domains
 methods, datasets and metrics for inverse problems.
 
 While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
-Moreover, `deepinv` provides a larger set of realistic imaging operators.
-Another Python library for computational imaging is ODL [@adler2018odl], which mostly focuses on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
+Moreover, `deepinv` provides a larger set of realistic imaging operators. CUQIpy [@riis2024cuqipy] is a library focusing on Bayesian uncertainty quantification methods for inverse problems.
+Advanced libraries for inverse problems also exist in other programming languages such as MATLAB, including GlobalBioIm \cite{soubies2019pocket} or IR Tools \cite{gazzola2019ir}, but they are restricted to handcrafted reconstruction methods without automatic differentiation. 
+Other Python libraries for computational imaging are ODL [@adler2018odl] and CIL [@jorgensen2021core], which mostly focus on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
 There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provides magnetic resonance imaging (MRI) operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
 These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch. 
 
@@ -147,24 +150,35 @@ at the time of writing, which are constantly being expanded and improved upon by
 | **Family**                     | **Operators** $A$                                                   | **Generators**   $\xi$                                     |
 |--------------------------------|---------------------------------------------------------------------|------------------------------------------------------------|
 | Pixelwise                      | Denoising, inpainting, demosaicing, decolorize                      | Mask generators, noise level generators                                        |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Blur & Super-Resolution        | Blur, space-varying blur, downsampling                              | Motion, Gaussian, diffraction, product-convolution, and confocal blurs. Sinc, bilinear and bicubic antialias filters. |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Magnetic Resonance Imaging (MRI) | Single and multi-coil, dynamic and sequential (All support 3D MRI)  | Gaussian, random and equispaced masks |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Tomography                     | 2D Parallel beam                                                    |                                                                                |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Remote Sensing & Multispectral | Pansharpening, hyperspectral unmixing, compressive spectral imaging |                                                                                |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Compressive                    | Compressed sensing and single-pixel camera                          |                                                                                |
-|                       |                    |                          |
-| Radio Interferometric Imaging  | Non-uniform Fourier transform                                       |                                                                                |
-|                       |                    |                          |
+|                       |                                                                     |                          |
+| Radio Interferometric Imaging  | Monochromatic intensity imaging with narrow field-of-view           |                                                                                |
+|                       |                                                                     |                          |
 | Single-photon Lidar            | TCSPC lidar                                                         |                                                                                |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Dehazing                       | Parametric haze model                                               |                                                                                |
-|                       |                    |                          |
+|                       |                                                                     |                          |
 | Phase Retrieval                | Random operators and ptychography                                   | Probe generation |
+
+
+### Operator Parameterization
+
+Most physics operators are parameterized by a vector $\xi$, which has a different meaning depending on the context.
+For instance, it can represent the projection angles in tomography, the blur kernel in image deblurring, the acceleration masks in MRI, etc.
+Integrating this parameter allows for advanced computational imaging problems, including calibration of the system (measuring $\xi$ from $y$),
+blind inverse problems (recovering $\xi$ and $x$ from $y$) \cite{debarnot2024deep,chung2023parallel}, co-design (optimizing $\xi$ and possibly 
+the reconstruction algorithm jointly) \cite{lazarus2019sparkling, nehme2020deepstorm3d}, robust neural network training \cite{gossard2024training,
+terris2023meta, terris2025reconstruct}. To the best of our knowledge, this feature is distinctive and becoming essential in recent advances
+in image reconstruction.
 
 
 # Reconstruction Methods
@@ -210,7 +224,7 @@ These methods can compute uncertainty estimates by computing statistics across m
 
 **Diffusion Models**: In a similar fashion to PnP methods, diffusion models [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] incorporate prior information via a pretrained denoiser, however, they are linked to a stochastic differential equation (SDE) or an ordinary differential equation (ODE), instead of the optimization of \eqref{eq:var}.
 
-**Markov Chain Monte Carlo**: The library provides popular high-dimensional Markov Chain Monte Carlo (MCMC) methods such as Unadjusted Langevin Algorithm and some of its variants [@laumont2022bayesian] [@pereyra2023split], which
+**Langevin-Type Algorithms**: The library provides popular high-dimensional Markov Chain Monte Carlo (MCMC) methods such as Unadjusted Langevin Algorithm and some of its variants [@laumont2022bayesian] [@pereyra2023split], which
 define a Markov chain with stationary distribution close to the posterior distribution $p(x|y)$.
 
 ### Non-Iterative Methods
@@ -312,11 +326,11 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 
 # Philosophy
 
+## Coding Practices
+
 `deepinv` is coded in modern Python following a test-driven development philosophy.
 The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
-and is compliant with PEP8 using `black`. The library is thoroughly documented, and provides a comprehensive
-**user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation
-for classes including type annotations. To encourage reproducibility, the library passes random number generators
+and is compliant with PEP8 using `black`.  To encourage reproducibility, the library passes random number generators
 for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
 where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`),
 sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited
@@ -324,13 +338,27 @@ from base classes (such as the operator pseudo-inverse), and mixins provide spec
 reduces code duplication and makes it easy for researchers, engineers and practitioners to implement new or specialized
 functionality while inheriting existing methods.
 
+### Documentation
+
+The library is thoroughly documented, and provides a comprehensive
+**user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation
+for classes. The documentation is built using Sphinx. We use Sphinx-Gallery [@najera2023sphinxgallery] for generating jupyter notebook demos, which 
+are automatically tested and included in the documentation. The user-guide provides a comprehensive overview of the library and is intended to be a starting point for new users, whereas the API lists all classes and functions, being
+intended for advanced users. The user-guide also serves as a computational imaging tutorial, providing an overview of
+most common imaging operators and reconstruction methods.
+The documentation of most classes includes a usage example which is automatically tested using `doctest`, and 
+a detailed mathematical description using latex with shared math symbols and notation across the whole documentation.
+
 # Perspectives
 
 DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress. The community is continuously contributing more methods, such as more realistic physics operators and more advanced training techniques, to reflect the state-of-the-art in imaging with deep learning, addressing the needs and interests of researchers and practitioners alike.
 
 # Acknowledgements
 
-Julián Tachella acknowledges support by the ANR grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
-The authors would acknowledge the Jean-Zay high-performance computing center for providing computational resources.
+J. Tachella acknowledges support by the ANR grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
+The authors would acknowledge the Jean-Zay high-performance computing center, using HPC resources from GENCI-IDRIS (Grants 2021-AD011012210, 2024-AD011015191)
+F. Sarron, P. Weiss, M.H. Nguyen were supported by the ANR Micro-Blind ANR-21-CE48-0008.
+J. Hertrich is supported by the German Research Foundation (DFG) with project number 530824055.
+Z. Hu acknowledges funding from the Swiss National Science Foundation (Grant PZ00P2_216211).
 
 # References
