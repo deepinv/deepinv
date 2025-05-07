@@ -53,7 +53,6 @@ Self-Supervised Learning
     deepinv.loss.TVLoss
     deepinv.loss.R2RLoss
     deepinv.loss.ScoreLoss
-    deepinv.loss.ENSURELoss
 
 Adversarial Learning
 --------------------
@@ -101,3 +100,14 @@ Loss schedulers
     deepinv.loss.InterleavedEpochLossScheduler
     deepinv.loss.StepLossScheduler
 
+
+Specialized losses for MRI
+--------------------------
+.. userguide:: mri-losses
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.mri.ENSURELoss

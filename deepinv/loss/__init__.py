@@ -5,7 +5,7 @@ from .sup import SupLoss
 from .score import ScoreLoss
 from .tv import TVLoss
 from .r2r import R2RLoss
-from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss, ENSURELoss
+from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from .measplit import (
     SplittingLoss,
@@ -24,6 +24,7 @@ from .scheduler import (
 
 from . import metric
 from . import adversarial
+from . import mri
 
 from .metric import (
     Metric,

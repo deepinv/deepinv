@@ -127,7 +127,7 @@ def choose_loss(loss_name, rng=None, imsize=None):
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
     elif loss_name == "ensure":
         loss.append(
-            dinv.loss.ENSURELoss(
+            dinv.loss.mri.ENSURELoss(
                 0.01,
                 dinv.physics.generator.BernoulliSplittingMaskGenerator(imsize, 0.5),
                 rng=rng,
@@ -307,7 +307,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
             imsize, acceleration=2, rng=rng, device=device
         )
         physics = dinv.physics.MRI(**gen.step(), device=device)
-        loss = dinv.loss.ENSURELoss(0.01, gen, rng=rng)
+        loss = dinv.loss.mri.ENSURELoss(0.01, gen, rng=rng)
         dataset = _dataset(physics, tmp_path, imsize, device)
 
     save_dir = tmp_path / "dataset"
