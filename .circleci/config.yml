@@ -42,16 +42,17 @@ jobs:
             name: Get Python running
             command: |
               python -m pip install --user --upgrade --progress-bar off pip
-              python -m pip install --user -e .
-              python -m pip install --user .[doc]
+              python -m pip install --user .[dataset,denoisers,doc]
 
-        # Build docs
+        # Build docs (fast for now, too slow for circleci in non-fast mode)
         - run:
             name: make html
             no_output_timeout: 120m
             command: |
               cd docs;
               make SPHINXOPTS=-v html-fast;
+              PATTERN=../examples/basics/demo_blur_tour.py make html-pattern
+              PATTERN=../examples/advanced/demo_ri_basic.py make html-pattern
               cd ..;
 
         # Save the outputs
@@ -62,7 +63,6 @@ jobs:
             root: docs/build
             paths:
               - html
-
 
 workflows:
   version: 2

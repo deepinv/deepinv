@@ -11,6 +11,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
 - MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
 - Multi-coil MRI estimates sens maps with sigpy ESPIRiT, FastMRITransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
 - Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
@@ -20,7 +21,10 @@ Changed
 
 Fixed
 ^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 
 - Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 

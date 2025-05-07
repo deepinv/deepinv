@@ -23,6 +23,7 @@ from .noise import (
     UniformGaussianNoise,
     LogPoissonNoise,
     GammaNoise,
+    SaltPepperNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI, MRIMixin
 from .tomography import Tomography
