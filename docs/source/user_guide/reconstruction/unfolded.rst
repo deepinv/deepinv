@@ -43,7 +43,7 @@ evaluated with any forward model (e.g., denoising, deconvolution, inpainting, et
     >>> import deepinv as dinv
     >>>
     >>> # Create a trainable unfolded architecture
-    >>> model = dinv.unfolded.unfolded_builder(
+    >>> model = dinv.unfolded.unfolded_builder(  # doctest: +IGNORE_RESULT
     ...     iteration="PGD",
     ...     data_fidelity=dinv.optim.L2(),
     ...     prior=dinv.optim.PnP(dinv.models.DnCNN()),
