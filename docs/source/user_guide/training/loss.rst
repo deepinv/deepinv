@@ -97,39 +97,14 @@ In order to learn from incomplete data, you can either:
    * - :class:`deepinv.loss.SplittingLoss`
      - | Assumes masks observe whole distribution.
        | (i.e. measurement splitting or data undersampling)
-   * - :class:`deepinv.loss.WeightedSplittingLoss`
-     - Splitting loss with K-weighting
-   * - :class:`deepinv.loss.RobustSplittingLoss`
-     - Splitting loss with additional Noisier2Noise
-   * - :class:`deepinv.loss.Phase2PhaseLoss`
-     - Splitting loss but across time dimension
-   * - :class:`deepinv.loss.Artifact2ArtifactLoss`
-     - Splitting loss but across time dimension
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
 
-
 .. tip::
 
-       Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`, :class:`Phase2PhaseLoss <deepinv.loss.Phase2PhaseLoss>`,
-       and :class:`Artifact2ArtifactLoss <deepinv.loss.Artifact2ArtifactLoss>`
+       Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
-.. _regularization-losses:
-
-Network Regularization
-----------------------
-These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
-
-.. list-table:: Network Regularization Losses Overview
-   :header-rows: 1
-
-   * - Loss
-     - Description
-   * - :class:`deepinv.loss.JacobianSpectralNorm`
-     - Controls spectral norm of the Jacobian matrix
-   * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
-     - Promotes a firmly non-expansive network.
 
 .. _adversarial-losses:
 
@@ -159,6 +134,22 @@ and for discriminators is :class:`deepinv.loss.adversarial.DiscriminatorLoss`.
      - Unsupervised reconstruction & adversarial loss.
 
 
+.. _regularization-losses:
+
+Network Regularization
+----------------------
+These losses can be used to regularize the learned function, e.g., controlling its Lipschitz constant.
+
+.. list-table:: Network Regularization Losses Overview
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.JacobianSpectralNorm`
+     - Controls spectral norm of the Jacobian matrix
+   * - :class:`deepinv.loss.FNEJacobianSpectralNorm`
+     - Promotes a firmly non-expansive network.
+
 .. _loss-schedulers:
 
 Loss schedulers
@@ -180,3 +171,25 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
+
+
+.. _mri-losses:
+
+Specialized losses for MRI
+--------------------------
+
+Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
+
+.. list-table:: MRI specialized losses
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.mri.WeightedSplittingLoss`
+     - Splitting loss for MRI with K-weighting
+   * - :class:`deepinv.loss.mri.RobustSplittingLoss`
+     - Splitting loss for noisy MRI with additional Noisier2Noise
+   * - :class:`deepinv.loss.mri.Phase2PhaseLoss`
+     - Splitting loss across time dimension for dynamic MRI
+   * - :class:`deepinv.loss.mri.Artifact2ArtifactLoss`
+     - Splitting loss across time dimension for sequential MRI

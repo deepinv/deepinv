@@ -11,7 +11,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 
-- Weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
 - Multi-coil MRI estimates sens maps with sigpy ESPIRiT, FastMRITransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
 - Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
 

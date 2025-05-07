@@ -419,7 +419,7 @@ def test_measplit(device, loss_name, rng):
                 imsize, 0.5, device=device, rng=rng
             ),
         )
-        loss = dinv.loss.WeightedSplittingLoss(
+        loss = dinv.loss.mri.WeightedSplittingLoss(
             mask_generator=gen, physics_generator=physics.gen
         )
     elif loss_name == "robust-splitting":
@@ -429,7 +429,7 @@ def test_measplit(device, loss_name, rng):
                 imsize, 0.5, device=device, rng=rng
             ),
         )
-        loss = dinv.loss.RobustSplittingLoss(
+        loss = dinv.loss.mri.RobustSplittingLoss(
             mask_generator=gen,
             physics_generator=physics.gen,
             noise_model=physics.noise_model,

@@ -216,7 +216,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     .. seealso::
 
-        :class:`deepinv.loss.WeightedSplittingLoss`
+        :class:`deepinv.loss.mri.WeightedSplittingLoss`
             K-weighted splitting loss proposed in `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_,
             where this splitting mask generator is used for self-supervised learning.
 
@@ -439,7 +439,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     """Phase2Phase splitting mask generator for dynamic data.
 
-    To be exclusively used with :class:`deepinv.loss.Phase2PhaseLoss`.
+    To be exclusively used with :class:`deepinv.loss.mri.Phase2PhaseLoss`.
     Splits dynamic data (i.e. data of shape (B, C, T, H, W)) into even and odd phases in the T dimension.
 
     Used in `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
@@ -484,7 +484,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator):
     """Artifact2Artifact splitting mask generator for dynamic data.
 
-    To be exclusively used with :class:`deepinv.loss.Artifact2ArtifactLoss`.
+    To be exclusively used with :class:`deepinv.loss.mri.Artifact2ArtifactLoss`.
     Randomly selects a chunk from dynamic data (i.e. data of shape (B, C, T, H, W)) in the T dimension and puts zeros in the rest of the mask.
 
     When ``step`` called with ``persist_prev``, the selected chunk will be different from the previous time it was called.

@@ -7,14 +7,7 @@ from .tv import TVLoss
 from .r2r import R2RLoss
 from .sure import SureGaussianLoss, SurePoissonLoss, SurePGLoss
 from .regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
-from .measplit import (
-    SplittingLoss,
-    Neighbor2Neighbor,
-    Phase2PhaseLoss,
-    Artifact2ArtifactLoss,
-    WeightedSplittingLoss,
-    RobustSplittingLoss,
-)
+from .measplit import SplittingLoss, Neighbor2Neighbor
 from .loss import Loss, StackedPhysicsLoss
 from .scheduler import (
     BaseLossScheduler,
@@ -26,6 +19,7 @@ from .scheduler import (
 
 from . import metric
 from . import adversarial
+from . import mri
 
 from .metric import (
     Metric,
