@@ -326,7 +326,7 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 
 # Philosophy
 
-## Coding Practices
+### Coding Practices
 
 `deepinv` is coded in modern Python following a test-driven development philosophy.
 The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
