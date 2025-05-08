@@ -132,7 +132,7 @@ These losses can be used to regularize the learned function, e.g., controlling i
 Adversarial Learning
 --------------------
 Adversarial losses train a generator network by jointly training with an additional discriminator network in a minimax game.
-These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN.
+These can be adapted to various flavours of GAN, e.g. WGAN, LSGAN, by passing in a custom :class:`discriminator metric <DiscriminatorMetric>`.
 We implement various popular (supervised and unsupervised) adversarial training frameworks below.
 See :ref:`adversarial` for more details, and see :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples.
 The base class for generators is :class:`deepinv.loss.adversarial.GeneratorLoss`
