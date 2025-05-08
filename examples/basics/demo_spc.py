@@ -1,5 +1,5 @@
 r"""
-Tour of Ordering Algorithms in Single Pixel Camera (SPC)
+Tour of Ordering Algorithms in Single Pixel Camera
 ========================================================
 
 This script demonstrates the use of different ordering algorithms in the Single Pixel Camera (SPC),
