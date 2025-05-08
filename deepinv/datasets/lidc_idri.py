@@ -99,7 +99,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         self.root = root
         self.transform = transform
-        self.hu = hu
+        self.hu = hounsfield_units
 
         ### LOAD CSV to find CT scan folder paths --------------------------------------
 
