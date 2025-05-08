@@ -94,7 +94,7 @@ affiliations:
     index: 13
   - name: CNRS UAR 851, Université Paris-Saclay Orsay, France
     index: 14
-  - Université Paris Dauphine - PSL, Paris, France
+  - name: Université Paris Dauphine - PSL, Paris, France
     index: 15
 
 date: 15 May 2025
