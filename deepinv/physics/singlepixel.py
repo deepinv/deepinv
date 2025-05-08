@@ -267,7 +267,7 @@ class SinglePixelCamera(DecomposablePhysics):
     Linear imaging operator with binary entries.
 
     If ``fast=True``, the operator uses a 2D subsampled Hadamard transform, which keeps the first :math:`m` modes
-    according to the ``ordering`` parameter, default set as `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
+    according to the ``ordering`` parameter, set by default to `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
