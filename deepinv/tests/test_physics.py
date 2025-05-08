@@ -76,6 +76,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "SaltPepper",
 ]
 
 
@@ -837,6 +838,7 @@ def choose_noise(noise_type, device="cpu"):
     mu = 0.2
     N0 = 1024.0
     l = torch.ones((1), device=device)
+    p, s = 0.025, 0.025
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -853,6 +855,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
+    elif noise_type == "SaltPepper":
+        noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     else:
         raise Exception("Noise model not found")
 

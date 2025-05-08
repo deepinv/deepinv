@@ -11,11 +11,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
+- Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 
 
 v0.3
@@ -317,3 +323,4 @@ Authors
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Romain Vo: https://github.com/romainvo

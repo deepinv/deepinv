@@ -1,0 +1,27 @@
+name: Expose docs
+
+on: [status]
+
+permissions: read-all
+
+jobs:
+  circleci_artifacts_redirector_job:
+    runs-on: ubuntu-latest
+    if: "${{ github.event.context == 'ci/circleci: build_docs' }}"
+
+    permissions:
+      statuses: write
+
+    steps:
+      - name: Check CircleCI token  # check if the token is valid
+        run: |
+          curl -I -H "Circle-Token: ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}" https://circleci.com/api/v2/me
+      - name: GitHub Action step
+        id: step1
+        uses: matthieutrs/circleci-artifacts-redirector-action@v1.0.0   # pin to a release
+        with:
+          api-token:  ${{ secrets.CIRCLE_CI_STATUS_TOKEN }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          artifact-path: 0/dev/index.html
+          circleci-jobs: build_docs
+          job-title: Check the rendered docs here!
