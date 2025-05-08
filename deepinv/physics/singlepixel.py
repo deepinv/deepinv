@@ -243,7 +243,7 @@ class SinglePixelCamera(DecomposablePhysics):
     Linear imaging operator with binary entries.
 
     If ``fast=True``, the operator uses a 2D subsampled Hadamard transform, which keeps the first :math:`m` modes
-    according to the ``ordering`` parameter, default set as `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
+    according to the ``ordering`` parameter, set by default to `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
@@ -265,7 +265,7 @@ class SinglePixelCamera(DecomposablePhysics):
     :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
-    :param str ordering: The ordering of selecting the first m measurements, available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`.
+    :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
