@@ -121,7 +121,7 @@ methods, datasets and metrics for inverse problems.
 
 While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
 Moreover, `deepinv` provides a larger set of realistic imaging operators. CUQIpy [@riis2024cuqipy] is a library focusing on Bayesian uncertainty quantification methods for inverse problems.
-Advanced libraries for inverse problems also exist in other programming languages such as MATLAB, including GlobalBioIm \cite{soubies2019pocket} or IR Tools \cite{gazzola2019ir}, but they are restricted to handcrafted reconstruction methods without automatic differentiation. 
+Advanced libraries for inverse problems also exist in other programming languages such as MATLAB, including GlobalBioIm [@soubies2019pocket] or IR Tools [@gazzola2019ir], but they are restricted to handcrafted reconstruction methods without automatic differentiation. 
 Other Python libraries for computational imaging are ODL [@adler2018odl] and CIL [@jorgensen2021core], which mostly focus on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
 There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provides magnetic resonance imaging (MRI) operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
 These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch. 
@@ -177,7 +177,7 @@ For instance, it can represent the projection angles in tomography, the blur ker
 Integrating this parameter allows for advanced computational imaging problems, including calibration of the system (measuring $\xi$ from $y$),
 blind inverse problems (recovering $\xi$ and $x$ from $y$) [@debarnot2024deep] [@chung2023parallel], co-design (optimizing $\xi$ and possibly 
 the reconstruction algorithm jointly) [@lazarus2019sparkling] [@nehme2020deepstorm3d], robust neural network training [@gossard2024training]
-[@terris2023meta] [@terris2025reconstruct]. To the best of our knowledge, this feature is distinctive and becoming essential in recent advances
+[@terris2023meta] [@terris2025ram]. To the best of our knowledge, this feature is distinctive and becoming essential in recent advances
 in image reconstruction.
 
 
