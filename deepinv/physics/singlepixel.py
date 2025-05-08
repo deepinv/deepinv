@@ -285,7 +285,7 @@ class SinglePixelCamera(DecomposablePhysics):
     :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
-    :param str ordering: The ordering of selecting the first m measurements, available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`.
+    :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
