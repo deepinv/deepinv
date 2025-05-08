@@ -99,7 +99,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         self.root = root
         self.transform = transform
-        self.hu = hounsfield_units
+        self.hounsfield_units = hounsfield_units
 
         ### LOAD CSV to find CT scan folder paths --------------------------------------
 
@@ -157,7 +157,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
         slice_data = dcmread(slice_path)
 
-        if self.hu:
+        if self.hounsfield_units:
             # Raw CT values -> Hounsfield Units (HUs)
             # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
             slice_array = pydicom.pixels.apply_rescale(
