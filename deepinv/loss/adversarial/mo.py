@@ -14,27 +14,23 @@ if TYPE_CHECKING:
 class MultiOperatorMixin:
     """Mixin for multi-operator loss functions.
 
-    Pass in factory args for a physics generator or a dataloader to return new physics params or new data samples.
+    Pass in physics generator or a dataloader to return new physics params or new data samples.
 
-    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
+    :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
+    :param torch.utils.data.DataLoader dataloader: dataloader that returns new samples
     """
 
     def __init__(
         self,
-        physics_generator_factory: Callable[..., PhysicsGenerator] = None,
-        dataloader_factory: Callable[..., DataLoader] = None,
+        physics_generator: PhysicsGenerator = None,
+        dataloader: DataLoader = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.physics_generator = None
-        self.dataloader = None
+        self.physics_generator = physics_generator
+        self.dataloader = dataloader
 
-        if physics_generator_factory is not None:
-            self.physics_generator = physics_generator_factory()
-
-        if dataloader_factory is not None:
-            self.dataloader = dataloader_factory()
+        if self.dataloader is not None:
             self.prev_epoch = -1
             self.reset_iter(epoch=0)
 

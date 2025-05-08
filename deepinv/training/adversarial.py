@@ -197,7 +197,7 @@ class AdversarialTrainer(Trainer):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
 
-        Also include y_hat in loss calculations.
+        Also calculate `y_hat` and pass as optional argument to losses.
 
         :param deepinv.physics.Physics physics: Current physics operator.
         :param torch.Tensor x: Ground truth.

@@ -86,14 +86,14 @@ def choose_adversarial_combo(combo_name, imsize, device, dataset, metric):
             imsize, 0.5, device=device, rng=torch.Generator(device).manual_seed(42)
         )
         gen_loss = adversarial.MultiOperatorUnsupAdversarialGeneratorLoss(
-            dataloader_factory=dataloader_factory,
-            physics_generator_factory=physics_generator_factory,
+            dataloader=dataloader_factory(),
+            physics_generator=physics_generator_factory(),
             device=device,
             metric=metric,
         )
         dis_loss = adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss(
-            dataloader_factory=dataloader_factory,
-            physics_generator_factory=physics_generator_factory,
+            dataloader=dataloader_factory(),
+            physics_generator=physics_generator_factory(),
             device=device,
             metric=metric,
         )

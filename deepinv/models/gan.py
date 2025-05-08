@@ -402,6 +402,7 @@ class SkipConvDiscriminator(nn.Module):
     Architecture taken from `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
 
     Consists of convolutional blocks with skip connections with a final dense layer followed by sigmoid.
+    It receives an image as input and outputs a scalar value (between 0 and 1 if sigmoid is used).
 
     :param tuple img_size: tuple of ints of input image size
     :param int d_dim: hidden dimension

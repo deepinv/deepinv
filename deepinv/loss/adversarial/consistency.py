@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import torch
 import torch.nn as nn
@@ -7,7 +7,6 @@ from torch import Tensor
 
 from deepinv.loss.adversarial.base import GeneratorLoss, DiscriminatorLoss
 from deepinv.loss.adversarial.mo import MultiOperatorMixin
-from deepinv.physics.mri import MRI
 
 if TYPE_CHECKING:
     from deepinv.physics.forward import Physics
@@ -20,24 +19,27 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
     Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
     Models".
 
-    Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator.
+    Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator
+    (and maximised by discriminator, to be used in conjunction with :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`):
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
-    Simple example (assuming a pretrained discriminator):
+    |sep|
 
-    ::
+    :Examples:
 
-        from deepinv.models import DCGANDiscriminator
-        D = DCGANDiscriminator() # assume pretrained discriminator
+        Simple example (assuming a pretrained discriminator):
 
-        loss = SupAdversarialGeneratorLoss(D=D)
-
-        l = loss(x, x_net)
-
-        l.backward()
+        >>> x, x_net = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
+        >>>
+        >>> from deepinv.models import DCGANDiscriminator
+        >>> D = DCGANDiscriminator() # assume pretrained discriminator
+        >>>
+        >>> loss = SupAdversarialGeneratorLoss(D=D)
+        >>> l = loss(x, x_net)
+        >>> l.backward()
 
     :param float weight_adv: weight for adversarial loss, defaults to 0.01 (from original paper)
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
@@ -63,15 +65,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Supervised adversarial consistency loss for discriminator.
 
-     This loss was as used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-     Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-     Models".
-
-    Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
-
-    :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
-
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
+    For details, see :class:`deepinv.loss.adversarial.SupAdversarialGeneratorLoss`.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
@@ -100,32 +94,35 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     This loss was used in unsupervised generative models such as Bora et al.,
     "AmbientGAN: Generative models from lossy measurements".
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator.
+    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator,
+    (and maximised by discriminator, to be used in conjunction with :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`):
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
 
     We also provide the option to perform the loss calculation in the image domain using
-    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`. Note this requires your physics to be linear, e.g. MRI.
+    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`.
 
-    Simple example (assuming a pretrained discriminator):
+    |sep|
 
-    ::
+    :Examples:
 
-        from deepinv.models import DCGANDiscriminator
-        D = DCGANDiscriminator() # assume pretrained discriminator
+        Simple example (assuming a pretrained discriminator):
 
-        loss = UnsupAdversarialGeneratorLoss(D=D)
-
-        l = loss(y, y_hat)
-
-        l.backward()
+        >>> y, y_hat = torch.randn(2, 1, 3, 64, 64) # B,C,H,W
+        >>>
+        >>> from deepinv.models import DCGANDiscriminator
+        >>> D = DCGANDiscriminator() # assume pretrained discriminator
+        >>>
+        >>> loss = UnsupAdversarialGeneratorLoss(D=D)
+        >>> l = loss(y, y_hat)
+        >>> l.backward()
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
-    :param str metric: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
+    :param str metric: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
     """
 
     def __init__(
@@ -169,23 +166,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
 class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Unsupervised adversarial consistency loss for discriminator.
 
-    This loss was used in unsupervised generative models such as
-    Bora et al., "AmbientGAN: Generative models from lossy measurements".
-
-    Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximised
-    by discriminator.
-
-    :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
-
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for examples of training generator and discriminator models.
-
-    We also provide the option to perform the loss calculation in the image domain using
-    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`. Note this requires your physics to be linear, e.g. MRI.
-
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
-    :param str device: torch device, defaults to "cpu"
-    :param str metric: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
+    For details and parameters, see :class:`deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss`
     """
 
     def __init__(
@@ -234,7 +215,7 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
     Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
 
     Proposed in `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
-    The loss is constructed as follows, to be minimised by generator:
+    The loss is constructed as follows, to be minimised by generator (and maximised by discriminator, to be used in conjunction with :class:`deepinv.loss.adversarial.MultiOperatorUnsupAdversarialDiscriminatorLoss`):
 
     :math:`\mathcal{L}_\text{adv}(\tilde{y},\hat y;D)=\mathbb{E}_{\tilde{y}\sim p_{\tilde{y}}}\left[q(D(\tilde{y}))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
@@ -242,50 +223,78 @@ class MultiOperatorUnsupAdversarialGeneratorLoss(
     and :math:`\tilde y` is a random measurement drawn from a dataset of measurements.
 
     We also provide the option to perform the loss calculation in the image domain using
-    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`. Note this requires your physics to be linear, e.g. MRI.
+    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`.
 
-    Simple example (assuming a pretrained discriminator):
+    .. warning::
 
-    ::
+        When using generator loss in parallel with discriminator loss, the physics generators cannot share the same random number generator,
+        and likewise with the dataloaders, otherwise both losses will step the same random number generators, meaning that the
+        data seen by each loss will be different. A simple solution uses factories:
 
-        from deepinv.models import SkipConvDiscriminator
-        from deepinv.physics.generator import GaussianMaskGenerator
-        from torch.utils.data import DataLoader
+        ::
 
-        D = SkipConvDiscriminator() # assume pretrained discriminator
+            rng_factory = lambda: torch.Generator(seed)
+            physics_generator_factory = lambda: PhysicsGenerator(..., rng=rng_factory())
+            dataloader_factory = lambda: DataLoader(..., rng=rng_factory)
+            gen_loss = MultiOperatorUnsupAdversarialGeneratorLoss(
+                physics_generator = physics_generator_factory(),
+                dataloader = dataloader_factory()
+            )
+            dis_loss = MultiOperatorUnsupAdversarialDiscriminatorLoss(
+                physics_generator = physics_generator_factory(),
+                dataloader = dataloader_factory()
+            )
 
-        # Assume physics is random masking
-        physics_generator_factory = lambda: GaussianMaskGenerator((64, 64))
+    |sep|
 
-        # Dataloader takes exact same form as input data
-        dataloader_factory = lambda: DataLoader(...)
+    :Examples:
 
-        # Generator loss
-        loss = MultiOperatorUnsupAdversarialGeneratorLoss(
-            D=D,
-            physics_generator_factory=physics_generator_factory
-            dataloader_factory=dataloader_factory
-        )
+        Simple example (assuming a pretrained discriminator):
 
-        # Discriminator loss constructed in exactly same way
-        loss_d = MultiOperatorUnsupAdversarialDiscriminatorLoss(
-            D=D,
-            physics_generator_factory=physics_generator_factory
-            dataloader_factory=dataloader_factory
-        )
-
-        l = loss(y, y_hat, physics)
-        l.backward(retain_graph=True)
-
-        l_d = loss_d(y, y_hat, physics)
-        l_d.backward()
+        >>> y, x_net = torch.randn(2, 1, 2, 64, 64) # B,C,H,W
+        >>>
+        >>> from deepinv.models import SkipConvDiscriminator
+        >>> from deepinv.physics import MRI
+        >>> from deepinv.physics.generator import GaussianMaskGenerator
+        >>> from torch.utils.data import DataLoader
+        >>>
+        >>> D = SkipConvDiscriminator(img_size=(64, 64), in_channels=2) # assume pretrained discriminator
+        >>>
+        >>> # Use factories to ensure gen and dis losses evolve randomly in sync
+        >>> # Assume physics is random masking
+        >>> physics_generator_factory = lambda: GaussianMaskGenerator((64, 64))
+        >>>
+        >>> physics = MRI(img_size=(2, 64, 64))
+        >>>
+        >>> # Dataloader takes exact same form as input data
+        >>> dataloader_factory = lambda: DataLoader([(torch.randn(2, 64, 64), torch.randn(2, 64, 64)) for _ in range(2)]) # x, y
+        >>>
+        >>> # Generator loss
+        >>> loss = MultiOperatorUnsupAdversarialGeneratorLoss(
+        ...     D=D,
+        ...     physics_generator=physics_generator_factory(),
+        ...     dataloader=dataloader_factory()
+        ... )
+        >>>
+        >>> # Discriminator loss constructed in exactly same way
+        >>> loss_d = MultiOperatorUnsupAdversarialDiscriminatorLoss(
+        ...     D=D,
+        ...     physics_generator=physics_generator_factory(),
+        ...     dataloader=dataloader_factory()
+        ... )
+        >>>
+        >>> l = loss(y, x_net, physics)
+        >>> l.backward(retain_graph=True)
+        >>>
+        >>> l_d = loss_d(y, x_net, physics)
+        >>> l_d.backward()
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.0
     :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
     :param str device: torch device, defaults to "cpu"
-    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
-    :param str metric: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
+    :param deepinv.physics.generator.PhysicsGenerator physics_generator: physics generator that returns new physics parameters
+    :param torch.utils.data.DataLoader dataloader: dataloader that returns new samples
+    :param str metric: if `None`, compute loss in measurement domain, if :func:`A_adjoint <deepinv.physics.LinearPhysics.A_adjoint>` or :func:`A_dagger <deepinv.physics.Physics.A_dagger>`, map to image domain before computing loss.
     """
 
     def forward(
@@ -325,25 +334,7 @@ class MultiOperatorUnsupAdversarialDiscriminatorLoss(
 ):
     r"""Multi-operator unsupervised adversarial loss for discriminator.
 
-    Extends unsupervised adversarial loss by sampling new physics ("multi-operator") and new data every iteration.
-
-    Proposed in `Fast Unsupervised MRI Reconstruction Without Fully-Sampled Ground Truth Data Using Generative Adversarial Networks <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
-    The loss is constructed as follows, to be maximised by discriminator:
-
-    :math:`\mathcal{L}_\text{adv}(\tilde{y},\hat y;D)=\mathbb{E}_{\tilde{y}\sim p_{\tilde{y}}}\left[q(D(\tilde{y}))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
-
-    where :math:`\hat y=A_2\hat x` is the re-measured reconstruction via a random operator :math:`A_2\sim\mathcal{A}`,
-    and :math:`\tilde y` is a random measurement drawn from a dataset of measurements.
-
-    We also provide the option to perform the loss calculation in the image domain using
-    :math:`q(\cdot):=q(A^\top(\cdot))` or :math:`q(A^\dagger(\cdot))`. Note this requires your physics to be linear, e.g. MRI.
-
-    :param float weight_adv: weight for adversarial loss, defaults to 1.0
-    :param torch.nn.Module D: discriminator network. If not specified, D must be provided in forward(), defaults to None.
-    :param str device: torch device, defaults to "cpu"
-    :param Callable physics_generator_factory: callable that returns a physics generator that returns new physics parameters
-    :param Callable dataloader_factory: callable that returns a dataloader that returns new samples
-    :param str metric: if `None`, compute loss in measurement domain, if `A_adjoint` or `A_dagger`, map to image domain before computing loss.
+    For details and parameters, see :class:`deepinv.loss.adversarial.MultiOperatorUnsupAdversarialGeneratorLoss`
     """
 
     def forward(

@@ -29,9 +29,10 @@ loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 .. math:: \mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]
 
 where :math:`D(\cdot)` is the discriminator model, :math:`x` is the
-reference image, :math:`\hat x` is the estimated reconstruction,
+reference image, the reconstruction :math:`\hat x=\inverse{z}` for unconditional models (where :math:`z` are random latents) and
+:math:`\hat x=\inverse{y,z}` for conditional models,
 :math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN).
-Training alternates between generator :math:`G` and discriminator
+Training alternates between generator :math:`\inverse{\cdot}` and discriminator
 :math:`D` in a minimax game. When there are no ground truths (i.e.
 unsupervised), this may be defined on the measurements :math:`y`
 instead.
@@ -147,7 +148,7 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 #
 # **Conditional GAN** forward pass:
 #
-# .. math:: \hat x = G(y)
+# .. math:: \hat x = \inverse{y}
 #
 # **Conditional GAN** loss:
 #
@@ -229,13 +230,13 @@ trainer.test(test_dataloader)
 #
 # **UAIR** forward pass:
 #
-# .. math:: \hat x = G(y),
+# .. math:: \hat x = \inverse{y},
 #
 # **UAIR** loss:
 #
-# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lambda\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
 #
-# We next load the models and construct losses as defined above.
+# where :math:`\lambda` is a hyperparameter. We next load the models and construct losses as defined above.
 
 G, D, optimizer, scheduler = get_models(
     lr_g=1e-4, lr_d=4e-4
