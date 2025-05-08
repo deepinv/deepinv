@@ -11,12 +11,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 
 
 v0.3
@@ -45,6 +50,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
 - Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_)
 - Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
 - Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)

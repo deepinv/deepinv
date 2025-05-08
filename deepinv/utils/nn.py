@@ -1,4 +1,5 @@
 import os
+import subprocess
 from warnings import warn
 import numpy as np
 import torch
@@ -15,12 +16,16 @@ def get_freer_gpu(verbose=True):
     :return torch.device device: selected torch cuda device.
     """
     try:
-        os.system(
-            "nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp"
-            if os.name == "posix"
-            else 'bash -c "nvidia-smi -q -d Memory |grep -A5 GPU|grep Free >tmp"'
-        )
-        memory_available = [int(x.split()[2]) for x in open("tmp", "r").readlines()]
+        pipeline = "nvidia-smi -q -d Memory | grep -A5 GPU | grep Free"
+        if os.name == "posix":
+            shell = True
+        else:
+            pipeline = ["bash", "-c", pipeline]
+            shell = False
+        proc = subprocess.run(pipeline, shell=shell, capture_output=True, text=True)
+        stdout = proc.stdout
+        lines = stdout.splitlines()
+        memory_available = [int(line.split()[2]) for line in lines]
         idx, mem = np.argmax(memory_available), np.max(memory_available)
         device = torch.device(f"cuda:{idx}")
 

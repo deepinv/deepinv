@@ -78,6 +78,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "SaltPepper",
 ]
 
 
@@ -707,6 +708,7 @@ def test_MRI(mri, mri_img_size, device, rng):
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
+
 @pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
 def test_MRI_noise_domain(mri, mri_img_size, device, rng):
     r"""
@@ -867,6 +869,7 @@ def choose_noise(noise_type, device="cpu"):
     mu = 0.2
     N0 = 1024.0
     l = torch.ones((1), device=device)
+    p, s = 0.025, 0.025
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -883,6 +886,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
+    elif noise_type == "SaltPepper":
+        noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     else:
         raise Exception("Noise model not found")
 
@@ -1079,6 +1084,7 @@ def test_downsampling_adjointness(device):
 
                     assert torch.abs(Axy - Atyx) < 1e-3
 
+
 def test_prox_l2_downsampling(device):
 
     nchannels = ((1, 1), (3, 1), (3, 3))
@@ -1109,6 +1115,7 @@ def test_prox_l2_downsampling(device):
                     )
 
                     assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
+
 
 def test_mri_fft():
     """

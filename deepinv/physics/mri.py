@@ -127,7 +127,7 @@ class MRIMixin:
 
     @staticmethod
     def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
-        """Perform root-sum-square reconstruction on multicoil data, defined as
+        r"""Perform root-sum-square reconstruction on multicoil data, defined as
 
         .. math::
 

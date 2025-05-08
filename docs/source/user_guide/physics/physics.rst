@@ -136,4 +136,5 @@ to **any** operator in the list above, by setting the
    * - :class:`deepinv.physics.UniformNoise`
      - :math:`y\sim \mathcal{U}(z-a, z+b)`
 
-
+   * - :class:`deepinv.physics.SaltPepperNoise`
+     - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`

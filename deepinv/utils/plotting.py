@@ -28,11 +28,7 @@ def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
-    if shutil.which("latex"):
-        plt.rcParams["text.usetex"] = True
-        plt.rcParams["text.latex.preamble"] = r"\usepackage{amsmath}"
-    else:
-        plt.rcParams["text.usetex"] = False
+    plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -192,6 +188,7 @@ def plot(
     max_imgs=4,
     rescale_mode="min_max",
     show=True,
+    close=False,
     figsize=None,
     suptitle=None,
     cmap="gray",
@@ -243,7 +240,8 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
-    :param bool show: show the image plot.
+    :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
+    :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
@@ -331,7 +329,7 @@ def plot(
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
-    else:
+    if close:
         plt.close(fig)
 
     if return_fig and return_axs:
@@ -621,7 +619,13 @@ def plot_inset(
     """
 
     fig = plot(
-        img_list, titles, show=False, return_fig=True, cmap=cmap, figsize=figsize
+        img_list,
+        titles,
+        show=False,
+        close=False,
+        return_fig=True,
+        cmap=cmap,
+        figsize=figsize,
     )
     axs = fig.axes
     batch_size = img_list[0].shape[0]
@@ -781,6 +785,7 @@ def plot_videos(
             ],
             titles=titles,
             show=False,
+            close=True,
             rescale_mode=rescale_mode,
             return_fig=True,
             return_axs=True,
@@ -872,6 +877,7 @@ def save_videos(
                 [vid.select(time_dim, t)],
                 titles=titles,
                 show=False,
+                close=True,
                 rescale_mode=rescale_mode,
                 figsize=figsize,
                 save_fn="frame_" + str(t) + ".png",
