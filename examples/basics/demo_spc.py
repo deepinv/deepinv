@@ -41,9 +41,6 @@ from deepinv.physics.singlepixel import hadamard_2d_shift
 # %%
 # General Setup
 # -------------
-# Print the PyTorch version and set up paths for saving results.
-print(f"PyTorch version: {torch.__version__}")
-
 BASE_DIR = Path(".")
 RESULTS_DIR = BASE_DIR / "results"
 
