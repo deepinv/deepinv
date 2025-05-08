@@ -55,7 +55,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
-    :param bool hu: If True, convert pixel values to Hounsfield Units (HU). Default is False.
+    :param bool hounsfield_units: If `True`, convert pixel values to `Hounsfield Units (HU) <https://en.wikipedia.org/wiki/Hounsfield_scale>`_. Default is `False`.
 
     |sep|
 
