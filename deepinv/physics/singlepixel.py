@@ -402,11 +402,9 @@ def gray_code(n):
 
     Gray code is a binary numeral system where two successive values differ in only one bit.
 
-    Args:
-        n (int): Number of elements in the Gray code sequence.
-
-    Returns:
-        np.ndarray: A 2D array where each row represents a Gray code in binary form.
+    :param int n: Number of elements in the Gray code sequence.
+    :return: A 2D array where each row represents a Gray code in binary form.
+    :rtype: np.ndarray
     """
     g0 = np.array([[0], [1]])
     g = g0
@@ -424,11 +422,9 @@ def gray_decode(n):
 
     This function converts a given Gray code integer into its corresponding binary number.
 
-    Args:
-        n (int): The Gray code to decode.
-
-    Returns:
-        int: The decoded binary number.
+    :param int n: The Gray code to decode.
+    :return: The decoded binary number.
+    :rtype: int
     """
     m = n >> 1
     while m:
