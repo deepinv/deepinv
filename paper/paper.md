@@ -175,9 +175,9 @@ at the time of writing, which are constantly being expanded and improved upon by
 Most physics operators are parameterized by a vector $\xi$, which has a different meaning depending on the context.
 For instance, it can represent the projection angles in tomography, the blur kernel in image deblurring, the acceleration masks in MRI, etc.
 Integrating this parameter allows for advanced computational imaging problems, including calibration of the system (measuring $\xi$ from $y$),
-blind inverse problems (recovering $\xi$ and $x$ from $y$) \cite{debarnot2024deep,chung2023parallel}, co-design (optimizing $\xi$ and possibly 
-the reconstruction algorithm jointly) \cite{lazarus2019sparkling, nehme2020deepstorm3d}, robust neural network training \cite{gossard2024training,
-terris2023meta, terris2025reconstruct}. To the best of our knowledge, this feature is distinctive and becoming essential in recent advances
+blind inverse problems (recovering $\xi$ and $x$ from $y$) [@debarnot2024deep] [@chung2023parallel], co-design (optimizing $\xi$ and possibly 
+the reconstruction algorithm jointly) [@lazarus2019sparkling] [@nehme2020deepstorm3d], robust neural network training [@gossard2024training]
+[@terris2023meta] [@terris2025reconstruct]. To the best of our knowledge, this feature is distinctive and becoming essential in recent advances
 in image reconstruction.
 
 
