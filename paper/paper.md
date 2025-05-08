@@ -33,7 +33,7 @@ authors:
   - name: Jonathan Dong  
     affiliation: 7
   - name: Paul Escande  
-    affiliation: 8
+    affiliation: 9
   - name: Johannes Hertrich  
     affiliation: 15
   - name: Zhiyuan Hu  
@@ -97,7 +97,7 @@ affiliations:
   - Université Paris Dauphine - PSL, Paris, France
     index: 15
 
-date: 15 March 2025
+date: 15 May 2025
 bibliography: paper.bib
 
 ---
