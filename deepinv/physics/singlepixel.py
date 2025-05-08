@@ -7,13 +7,11 @@ import warnings
 def hadamard_1d(u, normalize=True):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
-    n must be a power of 2.
 
-    Parameters:
-        u: Tensor of shape (..., n)
-        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-    Returns:
-        product: Tensor of shape (..., n)
+    :param torch.Tensor u: Input tensor of shape (..., n), where n must be a power of 2.
+    :param bool normalize: If True, divide the result by 2^{m/2} where m = log_2(n).
+    :return: The product tensor of shape (..., n).
+    :rtype: torch.Tensor
     """
     n = u.shape[-1]
     m = int(np.log2(n))
@@ -34,11 +32,9 @@ def hadamard_2d(x):
     along one axis, transposing the result, applying the 1D Hadamard transform again, and
     then transposing back to the original axes order.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (..., n, m), where n, m are a power of 2.
-
-    Returns:
-        torch.Tensor: The Hadamard-transformed tensor of the same shape as the input.
+    :param torch.Tensor x: Input tensor of shape (..., n, m), where n and m are powers of 2.
+    :return: The Hadamard-transformed tensor of the same shape as the input.
+    :rtype: torch.Tensor
     """
     out = hadamard_1d(hadamard_1d(x).transpose(-1, -2)).transpose(-1, -2)
     return out
@@ -51,12 +47,10 @@ def hadamard_shift(x, dim):
     This function reorders the elements of the Hadamard transform along the given dimension
     to follow the sequency order, which is a specific ordering of Walsh functions.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
-        dim (int): The dimension along which to rearrange the Hadamard transform.
-
-    Returns:
-        torch.Tensor: The tensor with the Hadamard transform rearranged in sequency order along the specified dimension.
+    :param torch.Tensor x: Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
+    :param int dim: The dimension along which to rearrange the Hadamard transform.
+    :return: The tensor with the Hadamard transform rearranged in sequency order along the specified dimension.
+    :rtype: torch.Tensor
     """
     n = x.shape[dim]
     indexs = sequency_order(n)
@@ -71,12 +65,10 @@ def hadamard_ishift(x, dim):
     This function undoes the sequency ordering of the Hadamard transform along the given dimension,
     restoring the original order.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
-        dim (int): The dimension along which to reverse the sequency order.
-
-    Returns:
-        torch.Tensor: The tensor with the Hadamard transform restored to its original order along the specified dimension.
+    :param torch.Tensor x: Input tensor of shape (..., n, ...), where `n` is the size along the specified dimension.
+    :param int dim: The dimension along which to reverse the sequency order.
+    :return: The tensor with the Hadamard transform restored to its original order along the specified dimension.
+    :rtype: torch.Tensor
     """
     n = x.shape[dim]
     indexs = sequency_order(n)
@@ -92,11 +84,9 @@ def hadamard_2d_shift(x):
     This function applies the `hadamard_shift` function along both the last two dimensions
     of the input tensor to reorder the 2D Hadamard transform in sequency order.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
-
-    Returns:
-        torch.Tensor: The tensor with the 2D Hadamard transform rearranged in sequency order.
+    :param torch.Tensor x: Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
+    :return: The tensor with the 2D Hadamard transform rearranged in sequency order.
+    :rtype: torch.Tensor
     """
     x = hadamard_shift(x, -2)
     x = hadamard_shift(x, -1)
@@ -110,27 +100,13 @@ def hadamard_2d_ishift(x):
     This function applies the `hadamard_ishift` function along both the last two dimensions
     of the input tensor to restore the original order of the 2D Hadamard transform.
 
-    Args:
-        x (torch.Tensor): Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
-
-    Returns:
-        torch.Tensor: The tensor with the 2D Hadamard transform restored to its original order.
+    :param torch.Tensor x: Input tensor of shape (..., n, m), where `n` and `m` are the sizes of the last two dimensions.
+    :return: The tensor with the 2D Hadamard transform restored to its original order.
+    :rtype: torch.Tensor
     """
     x = hadamard_ishift(x, -1)
     x = hadamard_ishift(x, -2)
     return x
-
-
-# def sequency_mask(img_shape, m):
-
-#     _, H, W = img_shape
-
-#     indx = torch.arange(0, H * W)
-#     mask = indx < m
-#     mask = mask.reshape(H, W).repeat(img_shape[0], 1, 1).unsqueeze(0)
-#     mask = hadamard_2d_ishift(mask)
-
-#     return mask
 
 
 def sequency_mask(img_shape, m):
@@ -267,7 +243,7 @@ class SinglePixelCamera(DecomposablePhysics):
     Linear imaging operator with binary entries.
 
     If ``fast=True``, the operator uses a 2D subsampled Hadamard transform, which keeps the first :math:`m` modes
-    according to the ``ordering`` parameter, set by default to `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
+    according to the ``ordering`` parameter, default set as `sequency ordering <https://en.wikipedia.org/wiki/Walsh_matrix#Sequency_ordering>`_.
     In this case, the images should have a size which is a power of 2.
 
     If ``fast=False``, the operator is a random iid binary matrix with equal probability of :math:`1/\sqrt{m}` or
@@ -282,10 +258,14 @@ class SinglePixelCamera(DecomposablePhysics):
     An existing operator can be loaded from a saved ``.pth`` file via ``self.load_state_dict(save_path)``,
     in a similar fashion to :class:`torch.nn.Module`.
 
+    .. warning::
+
+        Since version 0.3.1, a small bug in the sequency ordering has been fixed. However, it is possible to use the old sequency ordering by setting `ordering='old_sequency'`.
+
     :param int m: number of single pixel measurements per acquisition (m).
     :param tuple img_shape: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
-    :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
+    :param str ordering: The ordering of selecting the first m measurements, available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
         If ``None``, the default Generator of PyTorch will be used.
 
