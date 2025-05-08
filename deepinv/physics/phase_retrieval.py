@@ -130,6 +130,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         Random phase retrieval operator with 10 measurements for a 3x3 image:
 
+        >>> from deepinv.physics import RandomPhaseRetrieval
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
         >>> physics = RandomPhaseRetrieval(m=6, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))

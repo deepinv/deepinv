@@ -18,8 +18,7 @@ class LPIPS(Metric):
 
     >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import LPIPS
-    >>> ();m = LPIPS();() # doctest: +ELLIPSIS
-    (...)
+    >>> m = LPIPS() # doctest: +IGNORE_RESULT
     >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
     >>> x_net = x - 0.01
     >>> m(x_net, x) # doctest: +ELLIPSIS
@@ -61,7 +60,7 @@ class NIQE(Metric):
 
     >>> from deepinv.utils.demo import get_image_url, load_url_image
     >>> from deepinv.loss.metric import NIQE
-    >>> ();m = NIQE();() # doctest: +ELLIPSIS
+    >>> m = NIQE() # doctest: +IGNORE_RESULT
     (...)
     >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
     >>> m(x_net) # doctest: +ELLIPSIS
