@@ -31,7 +31,7 @@ loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 where :math:`D(\cdot)` is the discriminator model, :math:`x` is the
 reference image, the reconstruction :math:`\hat x=\inverse{z}` for unconditional models (where :math:`z` are random latents) and
 :math:`\hat x=\inverse{y,z}` for conditional models,
-:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN).
+:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN) which can be set via :class:`deepinv.loss.adversarial.DiscriminatorMetric`.
 Training alternates between generator :math:`\inverse{\cdot}` and discriminator
 :math:`D` in a minimax game. When there are no ground truths (i.e.
 unsupervised), this may be defined on the measurements :math:`y`
