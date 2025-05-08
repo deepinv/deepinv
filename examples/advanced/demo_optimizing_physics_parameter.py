@@ -3,7 +3,7 @@ Optimizing your operator with Deepinv Physics
 ========================================================
 
 This demo shows you how to use
-:class:`deepinv.physics.Physics` together with automatic differentiation from Pytorch to optimize your operator.
+:class:`deepinv.physics.Physics` together with automatic differentiation to optimize your operator.
 
 Consider the forward model
 
@@ -66,29 +66,14 @@ dinv.utils.plot([x, y, true_kernel], titles=["Sharp", "Blurry", "True kernel"])
 # Define an optimization algorithm
 # --------------------------------
 #
-# The convolution kernel lives in the simplex: positive entries summing to 1.
-# We can use one of the most basic optimization algorithm -- Projected Gradient Descent.
-# The following function allows one to compute the gradient of the loss function with respect to the convolution kernel and the orthogonal projection onto the simplex, by a sorting algorithm (Reference: Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex
+# The convolution kernel lives in the simplex, ie the kernel must have positive entries summing to 1.
+# We can use a simple optimization algorithm - Projected Gradient Descent - to enforce this constraint.
+# The following function allows one to compute the orthogonal projection onto the simplex, by a sorting algorithm (Reference: Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex
 # Mathieu Blondel, Akinori Fujino, and Naonori Ueda)
 #
 
 
-def loss_fn(physics, x, y, filter):
-    y_hat = physics.A(x, filter=filter)
-    loss = (y_hat - y).pow(2).mean()
-    return 0.5 * loss
-
-
-def gradient(physics, x, y, filter):
-    filter = filter.clone().requires_grad_(True)
-    with torch.enable_grad():
-        y_hat = physics.A(x, filter=filter)
-        loss = torch.nn.functional.mse_loss(y_hat, y)
-        loss.backward()
-    return filter.grad
-
-
-@torch.no_grad
+@torch.no_grad()
 def projection_simplex_sort(v):
     shape = v.shape
     B = shape[0]
@@ -104,34 +89,36 @@ def projection_simplex_sort(v):
     return w.reshape(shape)
 
 
-# Now we can define the projected gradient descent steps
-def projected_gradient_descent(physics, x, y, kernel_init, n_iter=100, stepsize=0.01):
-    kernel_hat = kernel_init.clone()
-    losses = []
-    for i in tqdm(range(n_iter)):
-        # gradient step
-        grad = gradient(physics, x, y, kernel_hat)
-        kernel_hat = kernel_hat - stepsize * grad
-        # projection step
-        kernel_hat = projection_simplex_sort(kernel_hat)
-        # loss
-        with torch.no_grad():
-            losses.append((physics.A(x, filter=kernel_hat) - y).pow(2).sum().item())
-    return kernel_hat, losses
-
-
+# We also define a data fidelity term
+data_fidelity = dinv.optim.L2()
 # %%
 #
 # Run the algorithm
 #
+# Initialize a constant kernel
 kernel_init = torch.zeros_like(true_kernel)
 kernel_init[..., 5:-5, 5:-5] = 1.0
 kernel_init = projection_simplex_sort(kernel_init)
 n_iter = 1000
 stepsize = 0.7
-kernel_hat, losses = projected_gradient_descent(
-    physics, x, y, kernel_init, n_iter, stepsize
-)
+
+kernel_hat = kernel_init
+losses = []
+for i in tqdm(range(n_iter)):
+    # compute the gradient
+    with torch.enable_grad():
+        kernel_hat.requires_grad_(True)
+        physics.update_parameters(filter=kernel_hat)
+        loss = data_fidelity(y=y, x=x, physics=physics) / y.numel()
+        loss.backward()
+    grad = kernel_hat.grad
+
+    # gradient step and projection step
+    with torch.no_grad():
+        kernel_hat = kernel_hat - stepsize * grad
+        kernel_hat = projection_simplex_sort(kernel_hat)
+
+    losses.append(loss.item())
 
 dinv.utils.plot(
     [true_kernel, kernel_init, kernel_hat],
@@ -169,18 +156,21 @@ optimizer = torch.optim.Adam([kernel_hat], lr=0.1)
 losses = []
 n_iter = 200
 for i in tqdm(range(n_iter)):
-    # update the gradient
     optimizer.zero_grad()
-    kernel_hat.grad = gradient(physics, x, y, kernel_hat)
+    # compute the gradient, this will directly change the gradient of `kernel_hat`
+    with torch.enable_grad():
+        kernel_hat.requires_grad_(True)
+        physics.update_parameters(filter=kernel_hat)
+        loss = data_fidelity(y=y, x=x, physics=physics) / y.numel()
+        loss.backward()
+
     # a gradient step
     optimizer.step()
     # projection step, when doing additional steps, it's important to change only
     # the tensor data to avoid breaking the gradient computation
     kernel_hat.data = projection_simplex_sort(kernel_hat.data)
-
     # loss
-    with torch.no_grad():
-        losses.append((physics.A(x, filter=kernel_hat) - y).pow(2).sum().item())
+    losses.append(loss.item())
 
 dinv.utils.plot(
     [true_kernel, kernel_init, kernel_hat],
@@ -213,13 +203,13 @@ kernel_init[..., 5:-5, 5:-5] = 1.0
 kernel_init = projection_simplex_sort(kernel_init)
 
 # The gradient is off by default, we need to enable the gradient of the parameter
-to_optimize_physics = dinv.physics.Blur(
+physics = dinv.physics.Blur(
     filter=kernel_init.clone().requires_grad_(True), device=device
 )
 
 # Set up the optimizer by giving the parameter to an optimizer
 # Try to change your favorite optimizer
-optimizer = torch.optim.AdamW([to_optimize_physics.filter], lr=0.1)
+optimizer = torch.optim.AdamW([physics.filter], lr=0.1)
 
 
 # Try to change another loss function
@@ -232,7 +222,7 @@ n_iter = 100
 for i in tqdm(range(n_iter)):
     # update the gradient
     optimizer.zero_grad()
-    y_hat = to_optimize_physics.A(x)
+    y_hat = physics.A(x)
     loss = loss_fn(y_hat, y)
     loss.backward()
 
@@ -241,14 +231,12 @@ for i in tqdm(range(n_iter)):
 
     # projection step, when doing additional steps, it's important to change only
     # the tensor data to avoid breaking the gradient computation
-    to_optimize_physics.filter.data = projection_simplex_sort(
-        to_optimize_physics.filter.data
-    )
+    physics.filter.data = projection_simplex_sort(physics.filter.data)
 
     # loss
     losses.append(loss.item())
 
-kernel_hat = to_optimize_physics.filter.data
+kernel_hat = physics.filter.data
 dinv.utils.plot(
     [true_kernel, kernel_init, kernel_hat],
     titles=["True kernel", "Init. kernel", "Estimated kernel"],
@@ -266,3 +254,5 @@ plt.yscale("log")
 plt.xlabel("Iteration")
 plt.tight_layout()
 plt.show()
+
+# %%

@@ -707,6 +707,56 @@ def test_MRI(mri, mri_img_size, device, rng):
             xrss = physics.A_adjoint(y, rss=True)
             assert xrss.shape == (x.shape[0], 1, *x.shape[2:])  # B,1,H,W
 
+@pytest.mark.parametrize("mri", [MRI, DynamicMRI, MultiCoilMRI])
+def test_MRI_noise_domain(mri, mri_img_size, device, rng):
+    r"""
+    Test that MRI noise addition is 0 where mask is 0
+
+    :param mri_img_size: (tuple) image size tuple (B, C, T, H, W)
+    :param device: (torch.device) cpu or cuda:x
+    :param rng: (torch.Generator)
+    """
+
+    B, C, T, H, W = mri_img_size
+    if rng.device != device:
+        rng = torch.Generator(device=device).manual_seed(0)
+    x, y = (
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+        torch.rand(mri_img_size, generator=rng, device=device) + 1,
+    )
+
+    coil_maps_kwarg = {}
+
+    if mri is MRI:
+        x = x[:, :, 0, :, :]
+        y = y[:, :, 0, :, :]
+    elif mri is MultiCoilMRI:
+        # y treat T as coil dim for tests
+        x = x[:, :, 0, :, :]
+        coil_maps_kwarg = {"coil_maps": T}
+
+    for mask_size in [(H, W), (T, H, W), (C, T, H, W), (B, C, T, H, W)]:
+        # Remove time dim for static MRI
+        _mask_size = mask_size if mri is DynamicMRI else mask_size[:-3] + mask_size[-2:]
+
+        mask = torch.ones(_mask_size, device=device) - torch.eye(
+            *_mask_size[-2:], device=device
+        )
+
+        # Set mask in constructor
+        physics = mri(
+            mask=mask,
+            img_size=mri_img_size,
+            device=device,
+            noise_model=dinv.physics.noise.GaussianNoise(sigma=0.1).to(device),
+            **coil_maps_kwarg,
+        )
+        y1 = physics(x)
+        if isinstance(physics, MultiCoilMRI):
+            y1 = y1[:, :, 0]  # check 0th coil
+
+        assert torch.all((y1 == 0) == (physics.mask == 0))
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_concatenation(name, device):
@@ -1029,6 +1079,36 @@ def test_downsampling_adjointness(device):
 
                     assert torch.abs(Axy - Atyx) < 1e-3
 
+def test_prox_l2_downsampling(device):
+
+    nchannels = ((1, 1), (3, 1), (3, 3))
+
+    for nchan_im, nchan_filt in nchannels:
+        size_im = ([nchan_im, 16, 16],)
+        filters = ["bicubic", "bilinear", "sinc"]
+
+        paddings = ("circular",)
+
+        for pad in paddings:
+            for sim in size_im:
+                for h in filters:
+
+                    x = torch.rand(sim)[None].to(device)
+
+                    physics = dinv.physics.Downsampling(
+                        sim, filter=h, padding=pad, device=device
+                    )
+
+                    y = physics(x)
+                    # next we test the speedup formula of prox with fft
+                    x_prox1 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=True
+                    )
+                    x_prox2 = physics.prox_l2(
+                        physics.A_adjoint(y) * 0.0, y, gamma=1e5, use_fft=False
+                    )
+
+                    assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
 
 def test_mri_fft():
     """
@@ -1333,7 +1413,7 @@ def test_device_consistency(name):
             y2 = physics(x)
             assert y2.device == cuda
 
-            # Denoising add random noise in each forward call
+            # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
                     for y11, y22 in zip(y1, y2):

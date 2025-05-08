@@ -228,9 +228,6 @@ def test_downsampling_generator(num_channels, device, dtype):
         filter="bicubic",
         factor=4,
     )
-    # unused?
-    # list_filters = ["bilinear", "bicubic"]
-    # list_factors = [2, 4]
     generator, _, _ = find_generator(
         "DownsamplingGenerator", size, num_channels, device, dtype
     )

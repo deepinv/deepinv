@@ -45,7 +45,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
-- Add ComposedLinearPhysics (used my __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_)
+- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_)
 - Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
 - Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
 - Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)

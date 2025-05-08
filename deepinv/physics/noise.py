@@ -135,7 +135,7 @@ class NoiseModel(nn.Module):
                 self.rng.set_state(state)
             except RuntimeError:
                 warnings.warn(
-                    "Moving the random number generator between CPU/GPU is not possible. Re-initializing the generator."
+                    "Moving the random number generator between CPU/GPU is not possible. Reinitialize the generator on the correct device."
                 )
 
         return self
