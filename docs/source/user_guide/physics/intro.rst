@@ -93,7 +93,25 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> dict_params = {'filter': theta, 'dummy': None}
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
-One can also optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_advanced_demo_optimizing_physics_parameter.py` 
+
+One can also differentiate the parameter as:
+
+.. doctest::
+    
+	>>> import torch
+	>>> from deepinv.physics import Blur
+	>>> x = torch.rand((1, 1, 16, 16))
+	>>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+	>>> physics = Blur(filter=theta, padding='circular') # we instantiate a blur operator with its convolution filter
+	>>> y = physics(x)
+	>>> theta_2 = torch.ones((1, 1, 3, 3)) / 9
+	>>> with torch.enable_grad():
+	... 	loss = torch.sum(y - physics(x, filter=theta_2.requires_grad_(True))) / y.numel()
+	... 	loss.backward()
+	>>> print(theta_2.grad.shape)
+	torch.Size([1, 1, 3, 3])
+
+and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_advanced_demo_optimizing_physics_parameter.py` 
 
 .. _physics_generators:
 

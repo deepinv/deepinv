@@ -225,8 +225,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
-        # if hasattr(self.noise_model, "update_parameters"):
-        #     self.noise_model.update_parameters(**kwargs)
 
     def update_parameters(self, **kwargs):
         r"""
