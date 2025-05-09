@@ -81,6 +81,9 @@ We provide the following simple geometric transforms.
      - No
      - Yes
 
+   * - :class:`deepinv.transform.Identity`
+     - No
+     - Yes
 
 Advanced transforms
 -------------------
@@ -130,3 +133,20 @@ These can be easily compounded with geometric transformations using the ``*`` op
 
    * - :class:`deepinv.transform.ShiftTime`
      - A temporal shift in the time dimension.
+
+Non-geometric transforms
+------------------------
+
+Non-geometric transforms are often used for data augmentation.
+Note that not all of these are necessarily invertible or form groups.
+
+.. list-table:: Non-geometric Transforms
+   :header-rows: 1
+
+   * - **Transform**
+     - **Description**
+
+   * - :class:`deepinv.transform.RandomNoise`
+     - Add random noise to data (non-invertible).
+   * - :class:`deepinv.transform.RandomPhaseError`
+     - Add random phase error to frequency data.

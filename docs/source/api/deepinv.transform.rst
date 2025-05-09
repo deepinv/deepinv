@@ -27,6 +27,7 @@ Simple transforms
     deepinv.transform.Shift
     deepinv.transform.Scale
     deepinv.transform.Reflect
+    deepinv.transform.Identity
 
 Advanced transforms
 -------------------
@@ -55,3 +56,17 @@ These can be easily compounded with geometric transformations using the ``*`` op
    :nosignatures:
 
     deepinv.transform.ShiftTime
+
+Non-geometric transforms
+------------------------
+
+Non-geometric transforms are often used for data augmentation.
+Note that not all of these are necessarily invertible or form groups.
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.transform.RandomNoise
+    deepinv.transform.RandomPhaseError
