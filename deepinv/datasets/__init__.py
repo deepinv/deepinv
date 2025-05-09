@@ -7,7 +7,7 @@ from .cbsd68 import CBSD68
 from .fastmri import (
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
-    FastMRITransform,
+    MRISliceTransform,
 )
 from .cmrxrecon import CMRxReconSliceDataset
 from .lidc_idri import LidcIdriSliceDataset

@@ -72,4 +72,4 @@ Data Transforms
 
     deepinv.datasets.utils.Rescale
     deepinv.datasets.utils.ToComplex
-    deepinv.datasets.FastMRITransform
+    deepinv.datasets.MRISliceTransform

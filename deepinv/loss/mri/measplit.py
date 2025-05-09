@@ -22,19 +22,21 @@ class WeightedSplittingLoss(SplittingLoss):
     K-Weighted Splitting Loss
 
     Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
-    The loss is related to the original splitting loss as follows:
+    The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx`,
+    where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform.
+    The loss is defined as follows, using notation from :class:`deepinv.loss.SplittingLoss`:
 
     .. math::
 
-        \mathcal{L}_\text{Weighted-Splitting}=(1-\mathbf{K})^{-1/2}\mathcal{L}_\text{Splitting}
+        \frac{m}{m_2}\| (1-\mathbf{K})^{-1/2} (y_2 - A_2 \inversef{y_1}{A_1})\|^2
 
-    where :math:`K` is derived from the pdf of the (original) acceleration mask and (further) splitting mask:
+    where :math:`\mathbf{K}` is derived from the probability density function (pdf) of the (original) acceleration mask and (further) splitting mask:
 
     .. math::
 
         \mathbf{K}=(\mathbb{I}_n-\tilde{\mathbf{P}}\mathbf{P})^{-1}(\mathbb{I}_n-\mathbf{P})
 
-    and :math:`\mathbf{P}=\mathbb{E}[\mathbf{M}_i],\tilde{\mathbf{P}}=\mathbb{E}[\mathbf{M}_1]` i.e. the PDFs of the imaging mask and the splitting mask, respectively.
+    and :math:`\mathbf{P}=\mathbb{E}[\mathbf{M}_i],\tilde{\mathbf{P}}=\mathbb{E}[\mathbf{M}_1]` i.e. the average imaging mask and splitting mask, respectively.
     At inference, the original whole measurement :math:`y` is used as input.
 
     .. note::
@@ -44,7 +46,7 @@ class WeightedSplittingLoss(SplittingLoss):
 
         Note the method was originally proposed for accelerated MRI problems (where the measurements are generated via a mask generator).
 
-        Note also that we assume that all masks are 1D mask in the W dimension repeated in all other dimensions.
+        Note also that we assume that all masks are 1D mask in the image width dimension repeated in all other dimensions.
 
     :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
     :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
@@ -138,8 +140,11 @@ class RobustSplittingLoss(WeightedSplittingLoss):
     r"""
     Robust Weighted Splitting Loss
 
-    Implements the Robust-SSDU loss from `Millard and Chiew 2024 <https://arxiv.org/abs/2210.01696>`_.
-    The loss can be applied to accelerated MRI and is related to the :class:`deepinv.loss.mri.WeightedSplittingLoss` as follows:
+    Implements the Robust-SSDU loss from `"Clean self-supervised MRI reconstruction from noisy, sub-sampled training data with Robust SSDU" <https://arxiv.org/abs/2210.01696>`_.
+    The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx+\epsilon`,
+    where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform,
+    and :math:`\epsilon` is Gaussian noise.
+    The loss is related to the :class:`deepinv.loss.mri.WeightedSplittingLoss` as follows:
 
     .. math::
 

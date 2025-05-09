@@ -557,6 +557,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
     def estimate_coil_maps(y: Tensor, calib_size: int = 24) -> Tensor:
         """Estimate coil sensitivity maps using ESPIRiT.
 
+        This was proposed in `ESPIRiT — An Eigenvalue Approach to Autocalibrating Parallel MRI: Where SENSE meets GRAPPA <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_.
+
         Note this uses a suboptimal undifferentiable unbatched implementation provided by `sigpy`.
 
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.

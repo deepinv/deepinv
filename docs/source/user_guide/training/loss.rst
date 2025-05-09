@@ -106,6 +106,32 @@ In order to learn from incomplete data, you can either:
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
 
+.. _mri-losses:
+
+Specialized self-supervised losses for MRI
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
+
+.. note::
+
+  These losses are specialized versions of :class:`SplittingLoss <deepinv.loss.SplittingLoss>` and :class:`Recorrupted2Recorrupted <deepinv.loss.Recorrupted2Recorrupted>` to accelerated MRI problems.
+
+.. list-table:: MRI specialized losses
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.mri.WeightedSplittingLoss`
+     - Splitting loss for MRI with K-weighting
+   * - :class:`deepinv.loss.mri.RobustSplittingLoss`
+     - Splitting loss for noisy MRI with additional Noisier2Noise
+   * - :class:`deepinv.loss.mri.Phase2PhaseLoss`
+     - Splitting loss across time dimension for dynamic MRI
+   * - :class:`deepinv.loss.mri.Artifact2ArtifactLoss`
+     - Splitting loss across time dimension for sequential MRI
+
+
 .. _adversarial-losses:
 
 Adversarial Learning
@@ -171,25 +197,3 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
-
-
-.. _mri-losses:
-
-Specialized losses for MRI
---------------------------
-
-Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
-
-.. list-table:: MRI specialized losses
-   :header-rows: 1
-
-   * - Loss
-     - Description
-   * - :class:`deepinv.loss.mri.WeightedSplittingLoss`
-     - Splitting loss for MRI with K-weighting
-   * - :class:`deepinv.loss.mri.RobustSplittingLoss`
-     - Splitting loss for noisy MRI with additional Noisier2Noise
-   * - :class:`deepinv.loss.mri.Phase2PhaseLoss`
-     - Splitting loss across time dimension for dynamic MRI
-   * - :class:`deepinv.loss.mri.Artifact2ArtifactLoss`
-     - Splitting loss across time dimension for sequential MRI

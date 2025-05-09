@@ -13,7 +13,7 @@ class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
 
-    Implements measurement splitting loss. Splits the measurement and forward operator :math:`\forw{}` (of size :math:`m`)
+    Implements measurement splitting loss. Splits the measurement and forward operator :math:`A` (of size :math:`m`)
     into two smaller pairs  :math:`(y_1,A_1)` (of size :math:`m_1`) and  :math:`(y_2,A_2)` (of size :math:`m_2`) ,
     to compute the self-supervised loss:
 
@@ -21,16 +21,16 @@ class SplittingLoss(Loss):
 
         \frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2
 
-    where :math:`R` is the trainable network, :math:`A_1 = M_1 \forw{}, A_2 = M_2 \forw{}`, and :math:`M_i` are randomly
+    where :math:`R` is the trainable network, :math:`A_1 = M_1 A, A_2 = M_2 A`, and :math:`M_i` are randomly
     generated masks (i.e. diagonal matrices) such that :math:`M_1+M_2=\mathbb{I}_m`.
 
     See :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` for usage example.
 
     .. note::
 
-        If the forward operator has its own subsampling mask :math:`M_{\forw{}}`, e.g. :class:`deepinv.physics.Inpainting`
+        If the forward operator has its own subsampling mask :math:`M_{A}`, e.g. :class:`deepinv.physics.Inpainting`
         or :class:`deepinv.physics.MRI`,
-        the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{\forw{}}`
+        the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{A}`
 
     This loss was used for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
     networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
@@ -154,7 +154,7 @@ class SplittingLoss(Loss):
         :param torch.Tensor y: Measurements.
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module model: Reconstruction function.
-        :param bool normalize_loss: whether normalize output by output mask mean
+        :param bool normalize_loss: whether to normalize loss by the target size
         :return: (:class:`torch.Tensor`) loss.
         """
         # Get splitting mask and make sure it is subsampled from physics mask, if it exists

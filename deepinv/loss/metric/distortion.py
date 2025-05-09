@@ -510,6 +510,7 @@ class HaarPSI(Metric):
 
     The metric was proposed by `Reisenhofer et al. <https://arxiv.org/abs/1607.06140>`_ and the parameters are taken from `Karner et al. <https://arxiv.org/abs/2410.24098>`_.
     The metric computes similarities in the Haar wavelet domain and it is shown to closely match human evaluation. See original papers for more details.
+    The metric range is :math:`[0,1]`. The higher the metric, the better.
 
     Code is adapted from `this implementation <https://github.com/ideal-iqa/haarpsi-pytorch>`_ by Sören Dittmer, Clemens Karner and Anna Breger, adapted from David Neumann, adapted from Rafael Reisenhofer.
 

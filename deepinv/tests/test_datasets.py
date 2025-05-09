@@ -17,7 +17,7 @@ from deepinv.datasets import (
     Kohler,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
-    FastMRITransform,
+    MRISliceTransform,
     CMRxReconSliceDataset,
     NBUDataset,
 )
@@ -400,7 +400,7 @@ def test_FastMRISliceDataset(download_fastmri):
     # Test raw data transform for estimating maps and generating masks
     dataset = FastMRISliceDataset(
         root=data_dir,
-        transform=FastMRITransform(
+        transform=MRISliceTransform(
             mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
             estimate_coil_maps=True,
         ),

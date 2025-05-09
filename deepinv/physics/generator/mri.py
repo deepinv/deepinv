@@ -197,13 +197,16 @@ class RandomMaskGenerator(BaseMaskGenerator):
 
 
 class PolyOrderMaskGenerator(BaseMaskGenerator):
-    """
+    r"""
     Generator for MRI Cartesian acceleration masks using polynomial variable density.
 
     Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
-    Polynomial sampling varies in 1D as :math:`(1 - r)^{p}` where :math:`r` is the distance from the centre and :math:`p` is the polynomial order.
 
-    This is achieved by creating a 1D polynomial variable density function then using this to sample from a Bernoulli.
+    This is achieved by the following:
+
+    1. Create 1D polynomial function :math:`(1 - r)^{p}` where :math:`r` is the distance from the centre and :math:`p` is the polynomial order.
+    2. Scale so that its mean matches desired acceleration factor
+    3. Use the function as a probability density function (pdf) to sample from a Bernoulli.
 
     The mask is repeated across channels and randomly varies across batch dimension.
 

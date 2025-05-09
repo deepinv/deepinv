@@ -180,5 +180,5 @@ We provide some torchvision-style transforms for use when loading data:
      - Min-max or clip value rescaling.
    * - :class:`deepinv.datasets.utils.ToComplex`
      - Add empty imaginary dimension to image.
-   * - :class:`deepinv.datasets.FastMRITransform`
+   * - :class:`deepinv.datasets.MRISliceTransform`
      - Transform raw FastMRI data by simulating masks and estimating coil maps.

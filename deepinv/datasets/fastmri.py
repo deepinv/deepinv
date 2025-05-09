@@ -201,7 +201,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
     .. seealso::
 
-        :class:`deepinv.datasets.FastMRITransform`
+        :class:`deepinv.datasets.MRISliceTransform`
             Transform for working with raw data: simulate masks and estimate coil maps.
 
     :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.
@@ -233,10 +233,10 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
         Use MRI transform to mask, estimate sensitivity maps, normalise and/or crop:
 
-        >>> from deepinv.datasets import FastMRITransform
+        >>> from deepinv.datasets import MRISliceTransform
         >>> from deepinv.physics.generator import GaussianMaskGenerator
         >>> mask_generator = GaussianMaskGenerator((512, 213))
-        >>> dataset = FastMRISliceDataset(root, transform=FastMRITransform(mask_generator=mask_generator, estimate_coil_maps=True))
+        >>> dataset = FastMRISliceDataset(root, transform=MRISliceTransform(mask_generator=mask_generator, estimate_coil_maps=True))
         >>> target, kspace, params = dataset[0]
         >>> params["mask"].shape
         torch.Size([1, 512, 213])
@@ -515,16 +515,17 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         )
 
 
-class FastMRITransform:
+class MRISliceTransform:
     """
     FastMRI raw data transform.
 
-    Transforms raw kspace data by estimating coil maps and/or generating masks. To be used with :class:`deepinv.datasets.FastMRISliceDataset`.
+    Transforms raw kspace data by generating masks and/or estimating coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
+    To be used with :class:`deepinv.datasets.FastMRISliceDataset`.
     See below for input and output shapes.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
     :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
-        If `int`, pass this as auto-calibration size to ESPIRiT. If `True`, use ACS size from `mask_generator`.
+        If `int`, pass this as auto-calibration size to `ESPIRiT <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_. If `True`, use ACS size from `mask_generator`.
     """
 
     def __init__(

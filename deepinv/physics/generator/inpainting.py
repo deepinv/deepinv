@@ -212,7 +212,10 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     """Multiplicative splitting mask generator.
 
-    Randomly generates binary masks using the given `physics_generator`, and multplies the `input_mask` (i.e. mask that is used to create accelerated measurements).
+    Randomly generates binary masks using the given `physics_generator`, and multiplies the `input_mask` (i.e. mask that is used to create accelerated measurements).
+
+    Given an acceleration mask :math:`M` sampled from a known distribution, this generator provides masks :math:`M'=M_1 \circ M` with :math:`M_1` sampled from `split_generator`,
+    which is typically the same distribution as :math:`M`.
 
     .. seealso::
 
