@@ -24,6 +24,7 @@ from .scheduler import (
 
 from . import metric
 from . import adversarial
+from . import mri
 
 from .metric import (
     Metric,

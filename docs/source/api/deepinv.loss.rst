@@ -100,3 +100,14 @@ Loss schedulers
     deepinv.loss.InterleavedEpochLossScheduler
     deepinv.loss.StepLossScheduler
 
+
+Specialized losses for MRI
+--------------------------
+.. userguide:: mri-losses
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.mri.ENSURELoss

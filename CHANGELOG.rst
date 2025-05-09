@@ -12,6 +12,7 @@ New Features
 ^^^^^^^^^^^^
 
 - Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Add ENSURE loss (:gh:`454` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
