@@ -177,7 +177,7 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 1.  # guidance strength
+weight = 1.0  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(
@@ -391,7 +391,7 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=.3),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=0.3),
     denoiser=denoiser,
     sde=sde,
     solver=solver,

@@ -154,9 +154,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         with torch.enable_grad():
             x.requires_grad_(True)
             l2_loss = self.forward(x, y, physics, sigma, *args, **kwargs)
-        norm_grad = torch.autograd.grad(
-            outputs=l2_loss, inputs=x
-        )[0]
+        norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=x)[0]
         return norm_grad
 
     def forward(
