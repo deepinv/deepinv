@@ -1,5 +1,5 @@
 r"""
-Tour of Ordering Algorithms in Single Pixel Camera
+Pattern Ordering in a Compressive Single Pixel Camera
 ========================================================
 
 This demo illustrates the impact of different ordering algorithms in the Single Pixel Camera (SPC),
