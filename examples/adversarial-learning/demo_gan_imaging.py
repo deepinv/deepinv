@@ -10,7 +10,7 @@ your own GAN by using :class:`deepinv.training.AdversarialTrainer`. These
 examples can also be easily extended to train more complicated GANs such
 as CycleGAN.
 
-This example is based on the following papers:
+This example is based on, and we provide implementations for, the following papers:
 
 -  Kupyn et al., `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
 -  Bora et al., `Compressed Sensing using Generative
@@ -19,6 +19,9 @@ This example is based on the following papers:
    measurements <https://openreview.net/forum?id=Hy7fDog0b>`_
 -  Pajot et al., `Unsupervised Adversarial Image
    Reconstruction <https://openreview.net/forum?id=BJg4Z3RqF7>`_
+-  Cole et al., `Fast Unsupervised MRI Reconstruction Without
+   Fully-Sampled Ground Truth Data Using Generative Adversarial Networks
+   <https://openaccess.thecvf.com/content/ICCV2021W/LCI/html/Cole_Fast_Unsupervised_MRI_Reconstruction_Without_Fully-Sampled_Ground_Truth_Data_Using_ICCVW_2021_paper.html>`_.
 
 Adversarial networks are characterised by the addition of an adversarial
 loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
@@ -26,9 +29,10 @@ loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 .. math:: \mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]
 
 where :math:`D(\cdot)` is the discriminator model, :math:`x` is the
-reference image, :math:`\hat x` is the estimated reconstruction,
-:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN).
-Training alternates between generator :math:`G` and discriminator
+reference image, the reconstruction :math:`\hat x=\inverse{z}` for unconditional models (where :math:`z` are random latents) and
+:math:`\hat x=\inverse{y,z}` for conditional models,
+:math:`q(\cdot)` is a quality function (e.g :math:`q(x)=x` for WGAN) which can be set via :class:`deepinv.loss.adversarial.DiscriminatorMetric`.
+Training alternates between generator :math:`\inverse{\cdot}` and discriminator
 :math:`D` in a minimax game. When there are no ground truths (i.e.
 unsupervised), this may be defined on the measurements :math:`y`
 instead.
@@ -144,7 +148,7 @@ def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
 #
 # **Conditional GAN** forward pass:
 #
-# .. math:: \hat x = G(y)
+# .. math:: \hat x = \inverse{y}
 #
 # **Conditional GAN** loss:
 #
@@ -226,13 +230,13 @@ trainer.test(test_dataloader)
 #
 # **UAIR** forward pass:
 #
-# .. math:: \hat x = G(y),
+# .. math:: \hat x = \inverse{y},
 #
 # **UAIR** loss:
 #
-# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
+# .. math:: \mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lambda\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}.
 #
-# We next load the models and construct losses as defined above.
+# where :math:`\lambda` is a hyperparameter. We next load the models and construct losses as defined above.
 
 G, D, optimizer, scheduler = get_models(
     lr_g=1e-4, lr_d=4e-4
