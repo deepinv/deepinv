@@ -101,9 +101,7 @@ class DPSDataFidelity(NoisyDataFidelity):
     r"""
     The DPS data-fidelity term.
 
-    This corresponds to the :math:`p(y|x)` prior as proposed in `Diffusion Probabilistic Models <https://arxiv.org/abs/2209.14687>`_.
-
-    :param deepinv.models.Denoiser denoiser: Denoiser network.
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
 
     .. math::
             \begin{aligned}
