@@ -114,6 +114,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         The preconditioning term is computed with automatic differentiation.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
+    :param float weight: Weighting factor for the data fidelity term. Default to 100.
     :param bool clip: Whether to clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     """
 
