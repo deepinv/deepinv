@@ -104,7 +104,7 @@ class SinglePixelCamera(DecomposablePhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if self.fast:
             C, H, W = img_shape

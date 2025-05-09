@@ -9,6 +9,8 @@ from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
 import copy
 from deepinv.utils import TensorList
+import os
+import shutil
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -385,7 +387,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["probe", "shifts"]
     else:
-        raise ValueError("The inverse problem chosen doesn't exist")
+        raise Exception("The inverse problem chosen doesn't exist")
     if not get_physics_param:
         return p, img_size, norm, dtype
     else:
@@ -1328,7 +1330,6 @@ def test_operators_differentiability(name, device):
         ):  # If the buffers are not empty (i.e. there is a parameter)
             x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
             buffers = copy.deepcopy(dict(physics.named_buffers()))
-            # buffers = dict(physics.named_buffers()).copy()
             parameters = {k: v for k, v in buffers.items() if k in params}
             # Set requires grad
             for k, v in parameters.items():
@@ -1417,13 +1418,83 @@ def test_device_consistency(name):
             cuda = torch.device("cuda:0")
             physics = physics.to(cuda)
             x = x.to(cuda)
-            y2 = physics(x)
+            y2 = physics.A(x)
             assert y2.device == cuda
 
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
                     for y11, y22 in zip(y1, y2):
-                        torch.allclose(y11.to(cuda), y22, rtol=1e-3)
+                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-3
                 else:
-                    assert torch.allclose(y1.to(cuda), y2, rtol=1e-3)
+                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-3
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_physics_state_dict(name, device):
+    r"""
+    Tests if the physics state dict is well behaved.
+
+    :param name: operator name (see find_operator)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts state dict is saved.
+    """
+
+    def get_all_tensor_attrs(module, prefix=""):
+        tensor_attrs = {}
+
+        # Check direct attributes
+        for name in dir(module):
+            try:
+                attr = getattr(module, name)
+            except Exception:
+                continue  # skip attributes that raise exceptions on access
+
+            full_name = f"{prefix}.{name}" if prefix else name
+            if isinstance(attr, torch.Tensor):
+                tensor_attrs[full_name] = attr
+            elif isinstance(attr, torch.nn.Module):
+                # Recurse into submodules
+                tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
+
+        return tensor_attrs
+
+    physics, imsize, _, dtype = find_operator(name, device)
+    if name == "radio":
+        dtype = torch.cfloat
+
+    # A cache dir for saving state dict
+    cache_dir = "./cache_test_physics"
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # If the buffers are not empty (i.e. there is a parameter)
+    if not physics._buffers == dict():
+        state_dict = physics.state_dict()
+        # Check that all tensor attributes are in the state dict
+        params = get_all_tensor_attrs(physics)
+
+        assert set(state_dict.keys()) == set(params.keys())
+        for k, v in params.items():
+            assert torch.allclose(state_dict[k], v)
+
+        # Save the state_dict
+        torch.save(state_dict, os.path.join(cache_dir, f"{name}.pt"))
+
+        # Reinitialize the physics
+        new_physics, _, _, _ = find_operator(name, device)
+        # Change to random parameters
+
+        loaded_state_dict = torch.load(os.path.join(cache_dir, f"{name}.pt"))
+        new_physics.load_state_dict(loaded_state_dict)
+        new_state_dict = new_physics.state_dict()
+        # Check that the state dict are identical
+        assert set(state_dict.keys()) == set(new_state_dict.keys())
+        for k, v in state_dict.items():
+            assert torch.equal(v, new_state_dict[k])
+
+        # Check two physics have the same output
+        x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+        assert torch.allclose(physics(x), new_physics(x))
+
+        # Remove the cache dir
+        shutil.rmtree(cache_dir)

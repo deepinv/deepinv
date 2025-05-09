@@ -123,7 +123,7 @@ class CompressedSensing(LinearPhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if channelwise:
             n = int(np.prod(img_shape[1:]))
