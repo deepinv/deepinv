@@ -523,7 +523,7 @@ class FastMRITransform:
     See below for input and output shapes.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
-    :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
+    :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
         If `int`, pass this as auto-calibration size to ESPIRiT. If `True`, use ACS size from `mask_generator`.
     """
 
