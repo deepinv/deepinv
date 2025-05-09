@@ -303,173 +303,162 @@ dinv.utils.plot(
 )
 
 
-if True:
-    # We can also save the trajectory of the posterior sample
-    dinv.utils.save_videos(
-        trajectory[::gif_frequency],
-        time_dim=0,
-        titles=["Posterior sample with VP"],
-        save_fn="posterior_trajectory_vp.gif",
-        figsize=(figsize, figsize),
+# We can also save the trajectory of the posterior sample
+dinv.utils.save_videos(
+    trajectory[::gif_frequency],
+    time_dim=0,
+    titles=["Posterior sample with VP"],
+    save_fn="posterior_trajectory_vp.gif",
+    figsize=(figsize, figsize),
+)
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
+    )
+    shutil.move("posterior_sample_ve_vp.png", final_dir / "posterior_sample_ve_vp.png")
+    shutil.move(
+        "posterior_trajectory_vp.gif", final_dir / "posterior_trajectory_vp.gif"
     )
 
-    # sphinx_gallery_start_ignore
-    # cleanup
-    import os
-    import shutil
-    from pathlib import Path
+except FileNotFoundError:
+    pass
 
-    try:
-        final_dir = (
-            Path(os.getcwd()).parent.parent
-            / "docs"
-            / "source"
-            / "auto_examples"
-            / "images"
-        )
-        shutil.move(
-            "posterior_sample_ve_vp.png", final_dir / "posterior_sample_ve_vp.png"
-        )
-        shutil.move(
-            "posterior_trajectory_vp.gif", final_dir / "posterior_trajectory_vp.gif"
-        )
+# sphinx_gallery_end_ignore
 
-    except FileNotFoundError:
-        pass
+# %%
+# We can comparing the sampling trajectory depending on the underlying SDE
+#
+# .. container:: image-col
+#
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_ve_vp.png
+#       :alt: posterior sample with VP
+#       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
+#       :ignore_missing: true
+#    .. container:: image-row
+#
+#       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
+#           :alt: posterior trajectory with VE
+#           :srcset: /auto_examples/images/posterior_trajectory.gif
+#           :ignore_missing: true
+#           :class: custom-gif
+#
+#       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory_vp.gif
+#           :alt: posterior trajectory with VP
+#           :srcset: /auto_examples/images/posterior_trajectory_vp.gif
+#           :ignore_missing: true
+#           :class: custom-gif
 
-    # sphinx_gallery_end_ignore
+# %%
+# Plug-and-play Posterior Sampling with arbitrary denoisers
+# ---------------------------------------------------------
+#
+# The :class:`deepinv.sampling.PosteriorDiffusion` class can be used together with any (well-trained) denoisers for posterior sampling.
+# For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
+# We can also change the underlying SDE, for example change the `sigma_max` value.
 
-    # %%
-    # We can comparing the sampling trajectory depending on the underlying SDE
-    #
-    # .. container:: image-col
-    #
-    #    .. image-sg-ignore:: /auto_examples/images/posterior_sample_ve_vp.png
-    #       :alt: posterior sample with VP
-    #       :srcset: /auto_examples/images/posterior_sample_ve_vp.png
-    #       :ignore_missing: true
-    #    .. container:: image-row
-    #
-    #       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory.gif
-    #           :alt: posterior trajectory with VE
-    #           :srcset: /auto_examples/images/posterior_trajectory.gif
-    #           :ignore_missing: true
-    #           :class: custom-gif
-    #
-    #       .. image-sg-ignore:: /auto_examples/images/posterior_trajectory_vp.gif
-    #           :alt: posterior trajectory with VP
-    #           :srcset: /auto_examples/images/posterior_trajectory_vp.gif
-    #           :ignore_missing: true
-    #           :class: custom-gif
+del trajectory  # clean memory
+sigma_min = 0.001
+sigma_max = 10.0
+rng = torch.Generator(device)
+dtype = torch.float32
+timesteps = torch.linspace(1, 0.001, 250)
+solver = EulerSolver(timesteps=timesteps, rng=rng)
+denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 
-    # %%
-    # Plug-and-play Posterior Sampling with arbitrary denoisers
-    # ---------------------------------------------------------
-    #
-    # The :class:`deepinv.sampling.PosteriorDiffusion` class can be used together with any (well-trained) denoisers for posterior sampling.
-    # For example, we can use the :class:`deepinv.models.DRUNet` for posterior sampling.
-    # We can also change the underlying SDE, for example change the `sigma_max` value.
+sde = VarianceExplodingDiffusion(
+    sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
+)
+x = dinv.utils.load_url_image(
+    dinv.utils.demo.get_image_url("butterfly.png"),
+    img_size=256,
+    resize_mode="resize",
+).to(device)
 
-    del trajectory  # clean memory
-    sigma_min = 0.001
-    sigma_max = 10.0
-    rng = torch.Generator(device)
-    dtype = torch.float32
-    timesteps = torch.linspace(1, 0.001, 250)
-    solver = EulerSolver(timesteps=timesteps, rng=rng)
-    denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+mask = torch.ones_like(x)
+mask[..., 100:150, 125:175] = 0.0
+physics = dinv.physics.Inpainting(
+    mask=mask,
+    tensor_size=x.shape[1:],
+    device=device,
+)
 
-    sde = VarianceExplodingDiffusion(
-        sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
+y = physics(x)
+model = PosteriorDiffusion(
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=weight),
+    denoiser=denoiser,
+    sde=sde,
+    solver=solver,
+    dtype=dtype,
+    device=device,
+    verbose=True,
+)
+
+# To perform posterior sampling, we need to provide the measurements, the physics and the solver.
+x_hat, trajectory = model(
+    y=y,
+    physics=physics,
+    seed=12,
+    get_trajectory=True,
+)
+
+# Here, we plot the original image, the measurement and the posterior sample
+dinv.utils.plot(
+    [x, y, x_hat.clip(0, 1)],
+    titles=["Original", "Measurement", "Posterior sample DRUNet"],
+    figsize=(figsize * 3, figsize),
+    save_fn="posterior_sample_DRUNet.png",
+)
+
+# We can also save the trajectory of the posterior sample
+dinv.utils.save_videos(
+    trajectory[::gif_frequency].clip(0, 1),
+    time_dim=0,
+    titles=["Posterior trajectory DRUNet"],
+    save_fn="posterior_sample_DRUNet.gif",
+    figsize=(figsize, figsize),
+)
+
+# sphinx_gallery_start_ignore
+# cleanup
+import os
+import shutil
+from pathlib import Path
+
+try:
+    final_dir = (
+        Path(os.getcwd()).parent.parent / "docs" / "source" / "auto_examples" / "images"
     )
-    x = dinv.utils.load_url_image(
-        dinv.utils.demo.get_image_url("butterfly.png"),
-        img_size=256,
-        resize_mode="resize",
-    ).to(device)
-
-    mask = torch.ones_like(x)
-    mask[..., 100:150, 125:175] = 0.0
-    physics = dinv.physics.Inpainting(
-        mask=mask,
-        tensor_size=x.shape[1:],
-        device=device,
+    shutil.move(
+        "posterior_sample_DRUNet.png", final_dir / "posterior_sample_DRUNet.png"
     )
-
-    y = physics(x)
-    model = PosteriorDiffusion(
-        data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=weight),
-        denoiser=denoiser,
-        sde=sde,
-        solver=solver,
-        dtype=dtype,
-        device=device,
-        verbose=True,
-    )
-
-    # To perform posterior sampling, we need to provide the measurements, the physics and the solver.
-    x_hat, trajectory = model(
-        y=y,
-        physics=physics,
-        seed=12,
-        get_trajectory=True,
-    )
-
-    # Here, we plot the original image, the measurement and the posterior sample
-    dinv.utils.plot(
-        [x, y, x_hat.clip(0, 1)],
-        titles=["Original", "Measurement", "Posterior sample DRUNet"],
-        figsize=(figsize * 3, figsize),
-        save_fn="posterior_sample_DRUNet.png",
-    )
-
-    # We can also save the trajectory of the posterior sample
-    dinv.utils.save_videos(
-        trajectory[::gif_frequency].clip(0, 1),
-        time_dim=0,
-        titles=["Posterior trajectory DRUNet"],
-        save_fn="posterior_sample_DRUNet.gif",
-        figsize=(figsize, figsize),
+    shutil.move(
+        "posterior_sample_DRUNet.gif", final_dir / "posterior_sample_DRUNet.gif"
     )
 
-    # sphinx_gallery_start_ignore
-    # cleanup
-    import os
-    import shutil
-    from pathlib import Path
+except FileNotFoundError:
+    pass
 
-    try:
-        final_dir = (
-            Path(os.getcwd()).parent.parent
-            / "docs"
-            / "source"
-            / "auto_examples"
-            / "images"
-        )
-        shutil.move(
-            "posterior_sample_DRUNet.png", final_dir / "posterior_sample_DRUNet.png"
-        )
-        shutil.move(
-            "posterior_sample_DRUNet.gif", final_dir / "posterior_sample_DRUNet.gif"
-        )
+# sphinx_gallery_end_ignore
 
-    except FileNotFoundError:
-        pass
-
-    # sphinx_gallery_end_ignore
-
-    # %%
-    # We obtain the following posterior trajectory
-    #
-    # .. container:: image-col
-    #
-    #    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.png
-    #       :alt: posterior sample DRUNet
-    #       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
-    #       :ignore_missing: true
-    #
-    #    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.gif
-    #       :alt: posterior trajectory DRUNet
-    #       :srcset: /auto_examples/images/posterior_sample_DRUNet.gif
-    #       :ignore_missing: true
-    #       :class: custom-gif
+# %%
+# We obtain the following posterior trajectory
+#
+# .. container:: image-col
+#
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.png
+#       :alt: posterior sample DRUNet
+#       :srcset: /auto_examples/images/posterior_sample_DRUNet.png
+#       :ignore_missing: true
+#
+#    .. image-sg-ignore:: /auto_examples/images/posterior_sample_DRUNet.gif
+#       :alt: posterior trajectory DRUNet
+#       :srcset: /auto_examples/images/posterior_sample_DRUNet.gif
+#       :ignore_missing: true
+#       :class: custom-gif
