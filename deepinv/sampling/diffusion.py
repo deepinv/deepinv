@@ -615,8 +615,8 @@ class DPS(Reconstructor):
         xt = x.to(self.device)
 
         for i, j in tqdm(time_pairs, disable=(not self.verbose)):
-            t = (torch.ones(batch_size) * i).to(self.device)
-            next_t = (torch.ones(batch_size) * j).to(self.device)
+            t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * i
+            next_t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * j
 
             at = self.get_alpha(self.alpha_cumprod, t.long())
             at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
