@@ -177,7 +177,7 @@ mask[..., 24:40, 24:40] = 0.0
 physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
-weight = 100  # guidance strength
+weight = 1.  # guidance strength
 dps_fidelity = DPSDataFidelity(denoiser=denoiser, weight=weight)
 
 model = PosteriorDiffusion(
@@ -377,12 +377,12 @@ sde = VarianceExplodingDiffusion(
 )
 x = dinv.utils.load_url_image(
     dinv.utils.demo.get_image_url("butterfly.png"),
-    img_size=256,
-    resize_mode="resize",
+    img_size=128,
+    resize_mode="crop",
 ).to(device)
 
 mask = torch.ones_like(x)
-mask[..., 100:150, 125:175] = 0.0
+mask[..., 50:75, 62:92] = 0
 physics = dinv.physics.Inpainting(
     mask=mask,
     tensor_size=x.shape[1:],
@@ -391,7 +391,7 @@ physics = dinv.physics.Inpainting(
 
 y = physics(x)
 model = PosteriorDiffusion(
-    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=weight),
+    data_fidelity=DPSDataFidelity(denoiser=denoiser, weight=.3),
     denoiser=denoiser,
     sde=sde,
     solver=solver,
