@@ -669,6 +669,7 @@ def minres(
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
+    flag = True
     for i in range(int(max_iter)):
         # Perform matmul
         prod = A(qvec_prev1)
