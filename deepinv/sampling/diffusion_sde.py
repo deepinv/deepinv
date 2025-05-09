@@ -601,10 +601,10 @@ class PosteriorDiffusion(Reconstructor):
             score = (
                 self.sde.score(x, t, *args, **kwargs)
                 - self.data_fidelity.grad(
-                    (x / scale).to(torch.float32),
-                    y.to(torch.float32),
+                    (x / scale).to(self.dtype),
+                    y.to(self.dtype),
                     physics=physics,
-                    sigma=sigma.to(torch.float32),
+                    sigma=sigma.to(self.dtype),
                 )
                 / scale
             )
