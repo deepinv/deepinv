@@ -2,7 +2,7 @@ from typing import Union
 
 import torch
 from torch import Tensor
-from deepinv.physics.noise import GaussianNoise
+from deepinv.physics.noise import GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
 
@@ -38,7 +38,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
     def __init__(
         self,
         A=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
+        noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         solver="gradient_descent",
         max_iter=50,
@@ -218,31 +218,31 @@ class Physics(torch.nn.Module):  # parent class for forward models
         _, vjpfunc = torch.func.vjp(self.A, x)
         return vjpfunc(v)[0]
 
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the parameters of the operator.
-
-        """
-        for key, value in kwargs.items():
-            if (
-                value is not None
-                and hasattr(self, key)
-                and isinstance(value, torch.Tensor)
-            ):
-                setattr(self, key, torch.nn.Parameter(value, requires_grad=False))
-
     def update(self, **kwargs):
         r"""
-        Update the parameters of the forward operator.
+        Update the parameters of the physics: forward operator and noise model.
 
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
 
-        # if self.noise_model is not None:
-        # check if noise model has a method named update_parameters
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
+    def update_parameters(self, **kwargs):
+        r"""
+
+        Update the parameters of the forward operator and the noise model.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        if kwargs:
+            for key, value in kwargs.items():
+                if (
+                    value is not None
+                    and hasattr(self, key)
+                    and isinstance(value, torch.Tensor)
+                ):
+                    self.register_buffer(key, value)
+            if hasattr(self.noise_model, "update_parameters"):
+                self.noise_model.update_parameters(**kwargs)
 
 
 class LinearPhysics(Physics):
@@ -409,7 +409,7 @@ class LinearPhysics(Physics):
 
     def __mul__(self, other):
         r"""
-        Concatenates two linear forward operators :math:`A = A_1\circ A_2` via the * operation
+        Concatenates two linear forward operators :math:`A = A_1 \circ A_2` via the * operation
 
         The resulting linear operator keeps the noise and sensor models of :math:`A_1`.
 
@@ -417,15 +417,11 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        A = lambda x, **kwargs: self.A(other.A(x, **kwargs), **kwargs)  # (A' = A_1 A_2)
-        A_adjoint = lambda x, **kwargs: other.A_adjoint(
-            self.A_adjoint(x, **kwargs), **kwargs
-        )
         noise = self.noise_model
         sensor = self.sensor_model
-        return LinearPhysics(
-            A=A,
-            A_adjoint=A_adjoint,
+        return ComposedLinearPhysics(
+            self,
+            other=other,
             noise_model=noise,
             sensor_model=sensor,
             max_iter=self.max_iter,
@@ -616,6 +612,41 @@ class LinearPhysics(Physics):
         )
 
 
+class ComposedLinearPhysics(LinearPhysics):
+    r"""
+    Composing two linear physics
+    """
+
+    def __init__(
+        self, physics: LinearPhysics, other: LinearPhysics, device=None, *args, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        self.physics = physics
+        self.other = other
+        self.to(device)
+
+    def A(self, x: Tensor, *args, **kwargs) -> Tensor:
+        self.update_parameters(**kwargs)
+        x = self.other.A(x, *args, **kwargs)
+        x = self.physics.A(x, *args, **kwargs)
+        return x
+
+    def A_adjoint(self, x: Tensor, *args, **kwargs) -> Tensor:
+        self.update_parameters(**kwargs)
+        x = self.physics.A_adjoint(x, *args, **kwargs)
+        x = self.other.A_adjoint(x, *args, **kwargs)
+        return x
+
+    def to(self, *args, **kwargs):
+        self.physics.to(*args, **kwargs)
+        self.other.to(*args, **kwargs)
+        return self
+
+    def update_parameters(self, **kwargs):
+        self.physics.update_parameters(**kwargs)
+        self.other.update_parameters(**kwargs)
+
+
 class DecomposablePhysics(LinearPhysics):
     r"""
     Parent class for linear operators with SVD decomposition.
@@ -678,7 +709,7 @@ class DecomposablePhysics(LinearPhysics):
         self._U_adjoint = U_adjoint
         self._V_adjoint = V_adjoint
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
-        self.mask = mask
+        self.register_buffer("mask", mask)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
         r"""
