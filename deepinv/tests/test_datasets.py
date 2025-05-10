@@ -458,6 +458,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         root=data_dir,
         save_metadata_to_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        mask_dir=None,
         apply_mask=False,
     )
 

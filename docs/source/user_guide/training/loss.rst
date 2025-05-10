@@ -115,7 +115,7 @@ Several specialized losses are available for MRI reconstruction, particularly se
 
 .. note::
 
-  These losses are specialized versions of :class:`SplittingLoss <deepinv.loss.SplittingLoss>` and :class:`Recorrupted2Recorrupted <deepinv.loss.Recorrupted2Recorrupted>` to accelerated MRI problems.
+  These losses are specialized versions of :class:`SplittingLoss <deepinv.loss.SplittingLoss>` and :class:`Recorrupted2Recorrupted <deepinv.loss.R2RLoss>` to accelerated MRI problems.
 
 .. list-table:: MRI specialized losses
    :header-rows: 1

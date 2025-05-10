@@ -35,7 +35,7 @@ class SplittingLoss(Loss):
     This loss was used for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
     networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
     `Hendriksen et al. <https://arxiv.org/abs/2001.11801>`_ (Noise2Inverse) for CT, as well as numerous other papers. Note we use implement the
-    `multi-mask strategy proposed by Yaman et al.<https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/10.1002/nbm.4798>`_.
+    `multi-mask strategy proposed by Yaman et al. <https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/10.1002/nbm.4798>`_.
 
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.

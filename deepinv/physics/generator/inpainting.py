@@ -210,7 +210,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
 
 class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
-    """Multiplicative splitting mask generator.
+    r"""Multiplicative splitting mask generator.
 
     Randomly generates binary masks using the given `physics_generator`, and multiplies the `input_mask` (i.e. mask that is used to create accelerated measurements).
 
