@@ -192,7 +192,7 @@ def reverse(n, numbits):
 def get_permutation_list(n):
     rev = torch.zeros((n), dtype=int)
     for l in range(n):
-        rev[l] = reverse(l, torch.log2(n).astype(int))
+        rev[l] = reverse(l, int(math.log2(n)))
 
     rev2 = torch.zeros_like(rev)
     for l in range(n):
