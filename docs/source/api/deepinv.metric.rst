@@ -35,6 +35,7 @@ Full Reference Metrics
     deepinv.loss.metric.LPIPS
     deepinv.loss.metric.SpectralAngleMapper
     deepinv.loss.metric.ERGAS
+    deepinv.loss.metric.HaarPSI
 
 
 No Reference Metrics

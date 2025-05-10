@@ -101,6 +101,8 @@ Full reference metrics are used to measure the difference between the original `
    * - :class:`deepinv.loss.metric.ERGAS`
      - "Error relative global dimensionless synthesis" multispectral image metric for pan-sharpening problems.
 
+   * - :class:`deepinv.loss.metric.HaarPSI`
+     - HaarPSI meric tuned for natural and medical images.
 
 
 .. _no-reference-metrics:

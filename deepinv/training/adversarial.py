@@ -62,8 +62,13 @@ class AdversarialOptimizer:
         if not self.zero_grad_g_only:
             self.D.zero_grad(set_to_none=set_to_none)
 
+    def step(*args, **kwargs):
+        raise ValueError(
+            "AdversarialOptimizer should step G and D optimizers separately."
+        )
 
-class AdversarialScheduler:
+
+class AdversarialScheduler(AdversarialOptimizer):
     r"""Scheduler for adversarial training that encapsulates both generator and discriminator's schedulers.
 
     :param LRScheduler scheduler_g: generator's torch scheduler
@@ -71,17 +76,17 @@ class AdversarialScheduler:
     """
 
     def __init__(self, scheduler_g: LRScheduler, scheduler_d: LRScheduler):
-        self.scheduler_g = scheduler_g
-        self.scheduler_d = scheduler_d
+        self.G = scheduler_g
+        self.D = scheduler_d
 
     def get_last_lr(self):
         r"""Get last learning rates from the generator scheduler."""
-        return self.scheduler_g.get_last_lr()
+        return self.G.get_last_lr()
 
     def step(self):
         r"""Performs a step on both generator and discriminator schedulers."""
-        self.scheduler_g.step()
-        self.scheduler_d.step()
+        self.G.step()
+        self.D.step()
 
 
 @dataclass

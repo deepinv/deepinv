@@ -3,7 +3,7 @@ import pytest
 import torch
 
 import deepinv as dinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles
 
 import matplotlib
 import importlib

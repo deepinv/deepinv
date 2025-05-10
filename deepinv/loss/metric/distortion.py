@@ -503,3 +503,289 @@ class ERGAS(Metric):
                 x_hat, x, ratio=factor, reduction="none"
             )
         )
+
+
+class HaarPSI(Metric):
+    r"""HaarPSI metric with tuned parameters.
+
+    The metric was proposed by `Reisenhofer et al. <https://arxiv.org/abs/1607.06140>`_ and the parameters are taken from `Karner et al. <https://arxiv.org/abs/2410.24098>`_.
+    The metric computes similarities in the Haar wavelet domain and it is shown to closely match human evaluation. See original papers for more details.
+    The metric range is :math:`[0,1]`. The higher the metric, the better.
+
+    Code is adapted from `this implementation <https://github.com/ideal-iqa/haarpsi-pytorch>`_ by Sören Dittmer, Clemens Karner and Anna Breger, adapted from David Neumann, adapted from Rafael Reisenhofer.
+
+    .. note::
+
+        Images must be scaled to :math:`[0,1]`. You can use `norm_inputs = clip` or `min_max` to achieve this.
+
+    The parameters should be set as follows depending on the image domain:
+
+    - **Natural images**: :math:`C=30,\alpha=4.2`.
+    - **Medical images**: :math:`C=5,\alpha=4.9`.
+
+    .. note::
+
+        By default, no reduction is performed in the batch dimension.
+
+    :Example:
+
+    >>> import torch
+    >>> from deepinv.loss.metric import HaarPSI
+    >>> m = HaarPSI(norm_inputs="clip")
+    >>> x_net = x = torch.ones(3, 1, 8, 8) # B,C,H,W
+    >>> m(x_net, x)
+    tensor([1.0000, 1.0000, 1.0000])
+
+    :param float C: metric parameter :math:`C\in[5, 100]`.
+    :param float alpha: metric paramter :math:`\alpha\in[2, 8]`.
+    :param bool preprocess_with_subsampling: Determines if subsampling is performed.
+    :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
+        the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
+    :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    """
+
+    def __init__(
+        self,
+        C: float = 5.0,
+        alpha: float = 4.9,
+        preprocess_with_subsampling: bool = True,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.C = C
+        self.alpha = alpha
+        self.lower_better = False
+        self.preprocess_with_subsampling = preprocess_with_subsampling
+
+    def metric(self, x_net: Tensor = None, x: Tensor = None, *args, **kwargs) -> Tensor:
+
+        if (
+            x.shape != x_net.shape
+            or x.dtype != torch.float32
+            or x.dtype != x_net.dtype
+            or x.shape[1] not in {1, 3}
+        ):
+            raise ValueError(
+                "x and x_net must be of same shape, of torch.float32 dtype, and with either 1 or 3 channels."
+            )
+
+        if (
+            not torch.all(x_net <= 1)
+            or not torch.all(0 <= x_net)
+            or not torch.all(x <= 1)
+            or not torch.all(0 <= x)
+        ):
+            raise ValueError("x and x_net must be in the range [0, 1]")
+
+        x = 255 * x
+        x_net = 255 * x_net
+
+        is_color_image = x_net.shape[1] == 3
+
+        if is_color_image:
+            ref_y = (
+                0.299 * x[:, 0, :, :] + 0.587 * x[:, 1, :, :] + 0.114 * x[:, 2, :, :]
+            )
+            deg_y = (
+                0.299 * x_net[:, 0, :, :]
+                + 0.587 * x_net[:, 1, :, :]
+                + 0.114 * x_net[:, 2, :, :]
+            )
+            ref_i = (
+                0.596 * x[:, 0, :, :] - 0.274 * x[:, 1, :, :] - 0.322 * x[:, 2, :, :]
+            )
+            deg_i = (
+                0.596 * x_net[:, 0, :, :]
+                - 0.274 * x_net[:, 1, :, :]
+                - 0.322 * x_net[:, 2, :, :]
+            )
+            ref_q = (
+                0.211 * x[:, 0, :, :] - 0.523 * x[:, 1, :, :] + 0.312 * x[:, 2, :, :]
+            )
+            deg_q = (
+                0.211 * x_net[:, 0, :, :]
+                - 0.523 * x_net[:, 1, :, :]
+                + 0.312 * x_net[:, 2, :, :]
+            )
+            ref_y = ref_y.unsqueeze(1)
+            deg_y = deg_y.unsqueeze(1)
+            ref_i = ref_i.unsqueeze(1)
+            deg_i = deg_i.unsqueeze(1)
+            ref_q = ref_q.unsqueeze(1)
+            deg_q = deg_q.unsqueeze(1)
+        else:
+            ref_y = x
+            deg_y = x_net
+
+        if self.preprocess_with_subsampling:
+            ref_y = self._subsample(ref_y)
+            deg_y = self._subsample(deg_y)
+            if is_color_image:
+                ref_i = self._subsample(ref_i)
+                deg_i = self._subsample(deg_i)
+                ref_q = self._subsample(ref_q)
+                deg_q = self._subsample(deg_q)
+
+        n_scales = 3
+        coeffs_ref_y = self._haar_wavelet_decompose(
+            ref_y, n_scales
+        )  # n_scales x B x 1 x H x W
+        coeffs_deg_y = self._haar_wavelet_decompose(deg_y, n_scales)
+        if is_color_image:
+            coefficients_ref_i = torch.abs(
+                self._convolve2d(ref_i, torch.ones((2, 2)) / 4.0)
+            )
+            coefficients_deg_i = torch.abs(
+                self._convolve2d(deg_i, torch.ones((2, 2)) / 4.0)
+            )
+            coefficients_ref_q = torch.abs(
+                self._convolve2d(ref_q, torch.ones((2, 2)) / 4.0)
+            )
+            coefficients_deg_q = torch.abs(
+                self._convolve2d(deg_q, torch.ones((2, 2)) / 4.0)
+            )
+
+        B, _, H, W = ref_y.shape
+        n_channels = 3 if is_color_image else 2
+
+        local_similarities = torch.zeros(n_channels, B, 1, H, W, device=ref_y.device)
+        weights = torch.zeros(n_channels, B, 1, H, W, device=ref_y.device)
+
+        for orientation in [0, 1]:
+            weights[orientation] = self._get_weights_for_orientation(
+                coeffs_deg_y, coeffs_ref_y, n_scales, orientation
+            )
+            local_similarities[orientation] = (
+                self._get_local_similarity_for_orientation(
+                    self.C, coeffs_deg_y, coeffs_ref_y, n_scales, orientation
+                )
+            )
+
+        if is_color_image:
+            similarity_i = (2 * coefficients_ref_i * coefficients_deg_i + self.C) / (
+                coefficients_ref_i**2 + coefficients_deg_i**2 + self.C
+            )
+            similarity_q = (2 * coefficients_ref_q * coefficients_deg_q + self.C) / (
+                coefficients_ref_q**2 + coefficients_deg_q**2 + self.C
+            )
+            local_similarities[2, :, :, :, :] = (similarity_i + similarity_q) / 2
+            weights[2, :, :, :, :] = (
+                weights[0, :, :, :, :] + weights[1, :, :, :, :]
+            ) / 2
+
+        pre_logit = torch.sum(
+            torch.sigmoid(self.alpha * local_similarities) * weights, dim=(0, 3, 4)
+        ) / torch.sum(weights, dim=(0, 3, 4))
+
+        logit = lambda value, alpha: torch.log(value / (1 - value)) / alpha
+        similarity = logit(pre_logit, self.alpha) ** 2
+        return similarity[:, 0]
+
+    def _get_local_similarity_for_orientation(
+        self,
+        C: float,
+        coeffs_deg_y: Tensor,
+        coeffs_ref_y: Tensor,
+        n_scales: int,
+        orientation: int,
+    ) -> Tensor:
+        """Helper function to get local similarity.
+
+        :param float C: C parameter
+        :param Tensor coeffs_deg_y: x_net wavelet coefficients.
+        :param Tensor coeffs_ref_y: x wavelet coefficients.
+        :param int n_scales: number of scales
+        :param int orientation: orientation, 0 or 1
+        :return: torch Tensor local similarity of shape B,1,H,W
+        """
+        coeffs_ref_y_magnitude = coeffs_ref_y.abs()[
+            (orientation * n_scales, 1 + orientation * n_scales), :, :
+        ]
+        coeffs_deg_y_magnitude = coeffs_deg_y.abs()[
+            (orientation * n_scales, 1 + orientation * n_scales), :, :
+        ]
+
+        frac = (2 * coeffs_ref_y_magnitude * coeffs_deg_y_magnitude + C) / (
+            coeffs_ref_y_magnitude**2 + coeffs_deg_y_magnitude**2 + C
+        )  # 2,B,1,H,W
+        return (frac[0] + frac[1]) / 2
+
+    def _get_weights_for_orientation(
+        self,
+        coeffs_deg_y: Tensor,
+        coeffs_ref_y: Tensor,
+        n_scales: int,
+        orientation: int,
+    ) -> Tensor:
+        """Helper function to get weights.
+
+        :param Tensor coeffs_deg_y: x_net wavelet coefficients.
+        :param Tensor coeffs_ref_y: x wavelet coefficients.
+        :param int n_scales: number of scales
+        :param int orientation: orientation, 0 or 1
+        :return: torch Tensor weights of shape B,1,H,W
+        """
+        return torch.maximum(
+            coeffs_ref_y[2 + orientation * n_scales].abs(),
+            coeffs_deg_y[2 + orientation * n_scales].abs(),
+        )
+
+    def _subsample(self, image: Tensor, factor: int = 2) -> Tensor:
+        """Helper function to subsample image.
+
+        :param Tensor image: input image
+        :param int factor: downsampling factor, defaults to 2
+        :return Tensor: subsampled image
+        """
+        kernel = torch.ones(factor, factor, device=image.device) / (factor**2)
+        return self._convolve2d(image, kernel)[:, :, ::factor, ::factor]
+
+    def _convolve2d(self, data: Tensor, kernel: Tensor) -> Tensor:
+        """Helper function to perform 2D convolution
+
+        :param Tensor data: input data
+        :param Tensor kernel: convolution kernel
+        :return Tensor: output image
+        """
+        res = torch.nn.functional.conv2d(
+            torch.rot90(data, 2, [2, 3]),
+            kernel.unsqueeze(0).unsqueeze(0),
+            padding=(kernel.shape[0] // 2, kernel.shape[1] // 2),
+        )
+        res = torch.nn.functional.interpolate(
+            res, data.shape[-2:], mode="nearest", align_corners=None
+        )
+        res = torch.rot90(res, 2, [2, 3])
+        return res
+
+    def _get_haar_filter(self, scale: int, device: torch.device) -> Tensor:
+        """Helper function to get Haar filter.
+
+        :param int scale: filter scale
+        :param torch.device device: torch device
+        :return Tensor: Haar filter
+        """
+        haar_filter = 2**-scale * torch.ones(2**scale, 2**scale, device=device)
+        haar_filter[: haar_filter.shape[0] // 2, :] = -haar_filter[
+            : haar_filter.shape[0] // 2, :
+        ]
+        return haar_filter
+
+    def _haar_wavelet_decompose(self, image: Tensor, number_of_scales: int) -> Tensor:
+        """Decompose image in wavelet domain
+
+        :param Tensor image: input image
+        :param int number_of_scales: number of scales.
+        :return Tensor: wavelet coefficients.
+        """
+        coefficients = torch.zeros(
+            2 * number_of_scales, *image.shape, device=image.device
+        )
+        for scale in range(1, number_of_scales + 1):
+            haar_filter = self._get_haar_filter(scale, image.device)
+            coefficients[scale - 1] = self._convolve2d(image, haar_filter)
+            coefficients[scale + number_of_scales - 1] = self._convolve2d(
+                image, haar_filter.t()
+            )
+        return coefficients

@@ -17,6 +17,7 @@ from deepinv.datasets import (
     Kohler,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
+    MRISliceTransform,
     CMRxReconSliceDataset,
     NBUDataset,
 )
@@ -324,6 +325,7 @@ def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
+    n_slices = 16
     img_shape = (213, 213)
 
     # Clean data shape
@@ -372,8 +374,56 @@ def test_FastMRISliceDataset(download_fastmri):
     # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
-    assert len(subset) == 16  # 16 slices
+    assert len(subset) == n_slices
     assert x.shape == (2, *rss_shape)
+
+    # Test slicing returns correct num of slices
+    def num_slices(slice_index):
+        return len(
+            FastMRISliceDataset(
+                root=data_dir,
+                slice_index=slice_index,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            ).samples
+        )
+
+    assert (
+        num_slices("all"),
+        num_slices("middle"),
+        num_slices("middle+1"),
+        num_slices(0),
+        num_slices([0, 1]),
+        num_slices("random"),
+    ) == (n_slices, 1, 3, 1, 2, 1)
+
+    # Test raw data transform for estimating maps and generating masks
+    dataset = FastMRISliceDataset(
+        root=data_dir,
+        transform=MRISliceTransform(
+            mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
+            estimate_coil_maps=True,
+        ),
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )
+    x, y, params = dataset[0]
+    assert torch.all(y * params["mask"] == y)
+    assert 0.24 < params["mask"].mean() < 0.26
+    assert params["coil_maps"].shape == (n_coils, *kspace_shape)
+
+    # Test filter_id in FastMRI init
+    assert (
+        len(
+            FastMRISliceDataset(
+                root=data_dir,
+                filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            )
+        )
+        == 3
+    )
 
 
 @pytest.fixture
@@ -408,6 +458,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         root=data_dir,
         save_metadata_to_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        mask_dir=None,
         apply_mask=False,
     )
 
@@ -427,7 +478,10 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
     assert not torch.all(params1["mask"] == params2["mask"])
-    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+    assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test reproducibility
     _, _, params1_again = dataset[0]
@@ -448,7 +502,10 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         apply_mask=True,
     )
     target1, kspace1, params1 = dataset[0]
-    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+    assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test no apply mask
     dataset = CMRxReconSliceDataset(
