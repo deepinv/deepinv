@@ -195,7 +195,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset information for faster load times.
     :param float subsample_volumes: (optional) proportion of volumes to be randomly subsampled (float between 0 and 1).
     :param str, int, tuple slice_index: if `"all"`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,
-        if ``tuple`` or `int`s, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
+        if ``int`` or `tuple[int]`, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
         middle slice, if `"random"`, select random slice. Defaults to `"all"`.
     :param Callable transform: optional transform function taking in (multicoil) kspace of shape (2, (N,) H, W) and targets of shape (1, H, W).
 
@@ -517,9 +517,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
 class MRISliceTransform:
     """
-    FastMRI raw data transform.
+    FastMRI raw data preprocessing.
 
-    Transforms raw kspace data by generating masks and/or estimating coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
+    Preprocess raw kspace data by generating masks and/or estimating coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
     To be used with :class:`deepinv.datasets.FastMRISliceDataset`.
     See below for input and output shapes.
 
