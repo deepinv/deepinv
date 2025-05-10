@@ -110,6 +110,16 @@ def hadamard_2d_ishift(x):
 
 
 def sequency_mask(img_shape, m):
+    """
+    Generates a sequency-ordered binary mask for single-pixel imaging.
+    :param tuple img_shape: The shape of the input image as a tuple (C, H, W),
+                            where C is the number of channels, H is the height,
+                            and W is the width.
+    :param int m: The number of pixels to select based on sequency order.
+    :return: A binary mask of shape (1, C, H, W) with `m` pixels set to 1.0
+             and the rest set to 0.0.
+    :rtype: torch.Tensor
+    """
 
     _, H, W = img_shape
     n = H * W
@@ -126,6 +136,14 @@ def sequency_mask(img_shape, m):
 
 
 def old_sequency_mask(img_shape, m):
+    """
+    Generates a binary mask for a single-pixel camera based on a sequency ordering.
+    :param tuple img_shape: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
+                            H is the height, and W is the width.
+    :param int m: The number of pixels to include in the mask, selected based on the sequency ordering.
+    :return: A binary mask of shape (1, C, H, W) with `m` pixels set to 1 and the rest set to 0.
+    :rtype: torch.Tensor
+    """
 
     _, H, W = img_shape
     n = H * W
@@ -142,6 +160,15 @@ def old_sequency_mask(img_shape, m):
 
 
 def cake_cutting_seq(i, p):
+    """
+    Generates a sequence based on the given index `i` and parameter `p`. The sequence alternates
+    its direction depending on whether `i` is odd or even.
+    :param int i: The index used to determine the sequence and its direction.
+    :param int p: A parameter that influences the range of the sequence.
+    :return: A list representing the generated sequence.
+    :rtype: list
+    """
+
     """Sequence of i-th"""
     step = -i * (-1) ** (np.mod(i, 2))
 
@@ -156,6 +183,14 @@ def cake_cutting_seq(i, p):
 
 
 def cake_cutting_order(n):
+    """
+    Determines the order of cutting a cake ordering algorithm.
+
+    :param int n: The total number of pieces the cake is to be divided into.
+                  It is assumed to be a perfect square.
+    :return: A NumPy array of indices representing the order of cutting.
+    :rtype: numpy.ndarray
+    """
     """Cake cutting order"""
     p = int(np.sqrt(n))
     seq = [cake_cutting_seq(i, p) for i in range(1, p + 1)]
@@ -164,6 +199,17 @@ def cake_cutting_order(n):
 
 
 def cake_cutting_mask(img_shape, m):
+    """
+    Generates a "cake cutting" mask for single-pixel imaging.
+    :param tuple img_shape: A tuple representing the shape of the input image
+                            in the format (channels, height, width). The height
+                            and width must be equal.
+    :param int m: The number of pixels to include in the mask.
+    :return: A binary mask of shape (1, channels, height, width) where selected
+             pixels are set to 1.0 and others are 0.0.
+    :rtype: torch.Tensor
+    :raises Warning: If the height and width of the image are not equal.
+    """
 
     _, H, W = img_shape
 
@@ -186,6 +232,14 @@ def cake_cutting_mask(img_shape, m):
 
 
 def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
+    """
+    Generates a matrix where each element's value corresponds to its position in a diagonal traversal
+    of an H x W grid.
+    :param int H: The height (number of rows) of the grid.
+    :param int W: The width (number of columns) of the grid.
+    :return: A tensor of shape (H, W) where each element contains its diagonal traversal index.
+    :rtype: torch.Tensor
+    """
     # Grid of row (I) and column (J) indices
     I, J = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
     S = I + J
@@ -204,6 +258,16 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
 
 
 def zig_zag_mask(img_shape, m):
+    """
+    Generates a zig-zag mask for an image of a given shape.
+    :param tuple img_shape: A tuple representing the shape of the input image
+                            in the format (C, H, W), where C is the number of
+                            channels, H is the height, and W is the width.
+    :param int m: The number of elements to include in the zig-zag mask.
+    :return: A tensor representing the zig-zag mask with the same spatial
+             dimensions as the input image.
+    :rtype: torch.Tensor
+    """
 
     _, H, W = img_shape
     mask = diagonal_index_matrix(H, W)
@@ -216,6 +280,16 @@ def zig_zag_mask(img_shape, m):
 
 
 def xy_mask(img_shape, m):
+    """
+    Generates a 2D mask based on the spatial coordinates of an image and a given threshold.
+    :param tuple img_shape: A tuple representing the shape of the input image in the format
+                            (channels, height, width).
+    :param int m: The threshold value used to determine the mask size. Pixels with indices
+                  less than or equal to `m` will be included in the mask.
+    :return: A 3D tensor representing the generated mask with the same spatial dimensions
+             as the input image.
+    :rtype: torch.Tensor
+    """
 
     _, H, W = img_shape
 
@@ -434,10 +508,31 @@ def gray_decode(n):
 
 
 def reverse(n, numbits):
+    """
+    Reverse the bit order of an integer `n` given a fixed number of bits `numbits`.
+
+    This function takes an integer `n` and reverses its bit representation
+    over a specified number of bits `numbits`. For example, if `n` is 5 (binary: 101)
+    and `numbits` is 3, the result will be 5 (binary: 101 reversed is still 101).
+
+    :param int n: The integer whose bits are to be reversed.
+    :param int numbits: The number of bits to consider for the reversal.
+    :return: The integer resulting from reversing the bits of `n`.
+    :rtype: int
+    """
     return sum(1 << (numbits - 1 - i) for i in range(numbits) if n >> i & 1)
 
 
 def get_permutation_list(n):
+    """
+    Generates a permutation list based on bit-reversal and Gray code decoding.
+    This function creates a permutation list of integers from 0 to n-1. It first computes
+    the bit-reversal of each integer and then applies a Gray code decoding to further
+    permute the indices.
+    :param int n: The size of the permutation list. Must be a power of 2.
+    :return: A NumPy array containing the permuted indices.
+    :rtype: numpy.ndarray
+    """
     rev = np.zeros((n), dtype=int)
     for l in range(n):
         rev[l] = reverse(l, np.log2(n).astype(int))
@@ -450,6 +545,14 @@ def get_permutation_list(n):
 
 
 def sequency_order(n):
+    """
+    Generate the sequency order for a given number of bits.
+
+    :param int n: The number of bits for the Gray code. Determines the size of the
+                  sequency order array (2^n elements).
+    :return: A 1D array of integers representing the sequency order.
+    :rtype: numpy.ndarray
+    """
     G = gray_code(n)
     G = G[:, ::-1]
     G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
