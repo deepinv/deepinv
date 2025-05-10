@@ -111,8 +111,8 @@ class SinglePixelCamera(DecomposablePhysics):
             mi = min(int(math.sqrt(m)), H)
             mj = min(m - mi, W)
 
-            revi = get_permutation_list(H)[:mi]
-            revj = get_permutation_list(W)[:mj]
+            revi = get_permutation_list(H, device=device)[:mi]
+            revj = get_permutation_list(W, device=device)[:mj]
 
             assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
@@ -190,8 +190,8 @@ def reverse(n, numbits):
     return sum(1 << (numbits - 1 - i) for i in range(numbits) if n >> i & 1)
 
 
-def get_permutation_list(n):
-    rev = torch.zeros((n), dtype=int)
+def get_permutation_list(n, device="cpu"):
+    rev = torch.zeros((n), dtype=int, device=device)
     for l in range(n):
         rev[l] = reverse(l, int(math.log2(n)))
 
