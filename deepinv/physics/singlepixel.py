@@ -2,6 +2,7 @@ from deepinv.physics.forward import DecomposablePhysics
 import torch
 import math
 
+
 def hadamard_1d(u, normalize=True):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
