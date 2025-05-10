@@ -1,7 +1,6 @@
 from deepinv.physics.forward import DecomposablePhysics
 import torch
-import numpy as np
-
+import math
 
 def hadamard_1d(u, normalize=True):
     """
@@ -15,9 +14,9 @@ def hadamard_1d(u, normalize=True):
         product: Tensor of shape (..., n)
     """
     n = u.shape[-1]
-    m = int(np.log2(n))
+    m = int(math.log2(n))
     assert n == 1 << m, "n must be a power of 2"
-    x = u[..., np.newaxis]
+    x = u.unsqueeze(-1)
     for d in range(m)[::-1]:
         x = torch.cat(
             (x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1
@@ -108,14 +107,14 @@ class SinglePixelCamera(DecomposablePhysics):
 
         if self.fast:
             C, H, W = img_shape
-            mi = min(int(np.sqrt(m)), H)
+            mi = min(int(math.sqrt(m)), H)
             mj = min(m - mi, W)
 
             revi = get_permutation_list(H)[:mi]
             revj = get_permutation_list(W)[:mj]
 
-            assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
-            assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
+            assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
+            assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
 
             mask = torch.zeros(img_shape).unsqueeze(0)
             for i in range(len(revi)):
@@ -125,14 +124,14 @@ class SinglePixelCamera(DecomposablePhysics):
             mask = mask.to(device)
 
         else:
-            n = int(np.prod(img_shape[1:]))
+            n = int(math.prod(img_shape[1:]))
             A = torch.where(
                 torch.randn((m, n), device=device, dtype=dtype, generator=self.rng)
                 > 0.5,
                 -1.0,
                 1.0,
             )
-            A /= np.sqrt(m)  # normalize
+            A /= math.sqrt(m)  # normalize
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
             mask = mask.to(device).unsqueeze(0).type(dtype)
@@ -191,11 +190,11 @@ def reverse(n, numbits):
 
 
 def get_permutation_list(n):
-    rev = np.zeros((n), dtype=int)
+    rev = torch.zeros((n), dtype=int)
     for l in range(n):
-        rev[l] = reverse(l, np.log2(n).astype(int))
+        rev[l] = reverse(l, torch.log2(n).astype(int))
 
-    rev2 = np.zeros_like(rev)
+    rev2 = torch.zeros_like(rev)
     for l in range(n):
         rev2[l] = rev[gray_decode(l)]
 
@@ -224,7 +223,7 @@ def get_permutation_list(n):
 #
 #     print(physics.adjointness_test(x))
 #     print(physics.compute_norm(x))
-#     # mi = min(int(np.sqrt(m)), x.shape[-2])
+#     # mi = min(int(math.sqrt(m)), x.shape[-2])
 #     # mj = min(m - mi, x.shape[-2])
 #     #
 #     # revi = get_permutation_list(x.shape[-2])[:mi]
