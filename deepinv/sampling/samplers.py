@@ -155,7 +155,7 @@ class BaseSample(Reconstructor):
         Example:
             >>> # Basic usage with default settings
             >>> sampler = BaseSample(iterator, data_fidelity, prior)
-            >>> mean, var = sampler(measurements, forward_operator)
+            >>> mean, var = sampler.sample(measurements, forward_operator)
 
             >>> # Using multiple statistics
             >>> sampler = BaseSample(
