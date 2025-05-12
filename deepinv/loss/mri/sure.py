@@ -22,8 +22,9 @@ class ENSURELoss(SureGaussianLoss):
 
     .. math::
 
-        y \sim\mathcal{N}(u,\sigma^2 I) \quad \text{with}\quad u= A(x).
+        y \sim\mathcal{N}(u,\sigma^2 I) \quad \text{with}\quad u= A_i(x).
 
+    where :math:`A_i\sim\mathcal{A}` is assumed to be drawn from a set of measurement operators.
     The loss is computed as
 
     .. math::
@@ -41,6 +42,7 @@ class ENSURELoss(SureGaussianLoss):
 
     .. warning::
 
+        This loss only applies to models which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
         We currently only provide an implementation for :class:`single-coil MRI <deepinv.physics.MRI>` and :class:`inpainting <deepinv.physics.Inpainting>`,
         where `A^\top=A^\dagger` such that :math:`P=A^{\top}A,W^2=\mathbb{E}\left[P\right]`.
 
