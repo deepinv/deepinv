@@ -311,7 +311,9 @@ class NCSNpp(Denoiser):
         """
         dtype = x.dtype
         x = x.to(torch.float32)
-        sigma = sigma.to(torch.float32)
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma.to(torch.float32)
+
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
         sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
