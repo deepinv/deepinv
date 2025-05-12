@@ -200,4 +200,3 @@ def get_permutation_list(n, device="cpu"):
         rev2[l] = rev[gray_decode(l)]
 
     return rev2
-
