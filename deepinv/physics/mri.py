@@ -487,7 +487,7 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
 
         By default uses conjugate gradient solver. Overwrite default solver arguments by passing `kwargs`. See :func:`deepinv.optim.utils.least_squares` for details.
 
-        Optionally update MRI mask or coil sensitivity maps on the fly.
+        The MRI mask or coil sensitivity maps are updated if passed as inputs to the function.
 
         :param torch.Tensor y: multi-coil kspace measurements with shape [B,2,N,...,H,W] where N is coil dimension.
         :param torch.Tensor mask: optionally set the mask on-the-fly.
