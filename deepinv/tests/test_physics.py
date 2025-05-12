@@ -1110,6 +1110,7 @@ def test_tomography_with_astra(is_2d, geometry_type, normalize):
         error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)
         assert error < r_tol
 
+
 def test_downsampling_adjointness(device):
     r"""
     Tests downsampling+blur operator adjointness for various image and filter sizes
