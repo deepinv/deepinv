@@ -209,7 +209,7 @@ def test_generation(name, device, dtype):
 @pytest.mark.parametrize("dtype", [torch.float64])
 def test_average(name, device, dtype):
     r"""
-    Tests generators shape.
+    Tests generators average.
     """
     size = (5, 5)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
