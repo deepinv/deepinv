@@ -599,7 +599,7 @@ class MRISliceTransform:
             params["mask"] = mask
         if self.mask_generator is not None:
             params["mask"] = self.generate_mask(kspace, seed)
-            kspace *= params["mask"]
+            kspace = kspace * params["mask"]
         if self.estimate_coil_maps:
             params["coil_maps"] = self.generate_maps(kspace)
 
