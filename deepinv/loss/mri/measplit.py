@@ -118,8 +118,8 @@ class WeightedSplittingLoss(SplittingLoss):
         :param float eps: small value to avoid division by zero.
         """
 
-        P = self.physics_generator.step(batch_size=2000)["mask"].mean(0)
-        P_tilde = self.mask_generator.step(batch_size=2000)["mask"].mean(0)
+        P = self.physics_generator.average()["mask"]
+        P_tilde = self.mask_generator.average()["mask"]
 
         if P.shape != P_tilde.shape:
             raise ValueError(
