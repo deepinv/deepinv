@@ -8,11 +8,10 @@ def hadamard_1d(u, normalize=True):
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
     n must be a power of 2.
 
-    Parameters:
-        u: Tensor of shape (..., n)
-        normalize: if True, divide the result by 2^{m/2} where m = log_2(n).
-    Returns:
-        product: Tensor of shape (..., n)
+    :param torch.Tensor u: Input tensor of shape ``(..., n)``.
+    :param bool normalize: If ``True``, divide the result by :math:`2^{m/2}`
+        with :math:`m = \log_2(n)`.  Defaults to ``True``.
+    :returns torch.Tensor: Tensor of shape ``(..., n)``.
     """
     n = u.shape[-1]
     m = int(math.log2(n))
