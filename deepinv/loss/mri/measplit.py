@@ -51,6 +51,7 @@ class WeightedSplittingLoss(SplittingLoss):
     :param deepinv.physics.generator.BernoulliSplittingMaskGenerator mask_generator: splitting mask generator for further subsampling.
     :param deepinv.physics.generator.BaseMaskGenerator physics_generator: original mask generator used to generate the measurements.
     :param float eps: small value to avoid division by zero.
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
 
     |sep|
 
@@ -66,28 +67,47 @@ class WeightedSplittingLoss(SplittingLoss):
 
     """
 
-    class DifferenceMetric(torch.nn.Module):
-        """Helper metric to just compute the difference between y1 and y2"""
+    class WeightedMetric(torch.nn.Module):
+        """Wraps metric to apply weight on inputs
+
+        :param torch.Tensor: loss weight.
+        :param Metric, torch.nn.Module metric: loss metric.
+        :param bool expand: whether expand weight to input dims
+        """
+
+        def __init__(
+            self,
+            weight: torch.Tensor,
+            metric: Union[Metric, torch.nn.Module],
+            expand: bool = True,
+        ):
+            super().__init__()
+            self.weight = weight
+            self.metric = metric
+            self.expand = lambda w, y: w.expand_as(y) if expand else w
 
         def forward(self, y1, y2):
-            """Metric forward pass."""
-            return y1 - y2
+            """Weighted metric forward pass."""
+            return self.metric(
+                self.expand(self.weight, y1) * y1, self.expand(self.weight, y2) * y2
+            )
 
     def __init__(
         self,
         mask_generator: BernoulliSplittingMaskGenerator,
         physics_generator: BaseMaskGenerator,
         eps: float = 1e-9,
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
     ):
 
-        super().__init__(
-            eval_split_input=False, pixelwise=True, metric=self.DifferenceMetric()
-        )
+        super().__init__(eval_split_input=False, pixelwise=True)
         self.mask_generator = mask_generator
         self.physics_generator = physics_generator
         self.name = "WeightedSplitting"
         self.k = self.compute_k(eps=eps)
         self.weight = (1 - self.k).clamp(min=eps) ** (-0.5)
+        self.metric = self.WeightedMetric(self.weight, metric)
+        self.normalize_loss = False
 
     def compute_k(self, eps: float = 1e-9) -> torch.Tensor:
         """
@@ -122,19 +142,6 @@ class WeightedSplittingLoss(SplittingLoss):
         k_weight = inv_diag_1_minus_PtP * diag_1_minus_P
         return k_weight.unsqueeze(0)
 
-    def forward(self, x_net, y, physics, model, **kwargs):
-
-        # Compute the residual
-        residual = super().forward(
-            x_net, y, physics, model, normalize_loss=False, **kwargs
-        )
-
-        # Apply weight
-        weighted_residual = self.weight.expand_as(residual) * residual
-
-        # Compute L2 loss
-        return (weighted_residual**2).mean()
-
 
 class RobustSplittingLoss(WeightedSplittingLoss):
     r"""
@@ -164,7 +171,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         Note this loss only supports :class:`deepinv.physics.GaussianNoise`.
     :param float alpha: hyperparameter controlling further noise std.
     :param float eps: small value to avoid division by zero.
-
+    :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     """
 
     def __init__(
@@ -174,8 +181,9 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         noise_model: GaussianNoise = GaussianNoise(sigma=0.1),
         alpha: float = 0.75,
         eps: float = 1e-9,
+        metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
     ):
-        super().__init__(mask_generator, physics_generator, eps=eps)
+        super().__init__(mask_generator, physics_generator, eps=eps, metric=metric)
         self.alpha = alpha
         self.noise_model = noise_model
         self.noise_model.update_parameters(sigma=noise_model.sigma * alpha)
@@ -184,9 +192,11 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         recon_loss = super().forward(x_net, y, physics, model, **kwargs)
 
         mask = model.get_mask() * getattr(physics, "mask", 1.0)  # M_\lambda\cap\omega
-        residual = mask * (physics.A(x_net) - y) * (1 + 1 / (self.alpha**2))
+        n2n_metric = self.WeightedMetric(
+            (1 + 1 / (self.alpha**2)) * mask, self.metric.metric, expand=False
+        )
 
-        return recon_loss + (residual**2).mean()
+        return recon_loss + n2n_metric(physics.A(x_net), y)
 
     def adapt_model(self, model: torch.nn.Module) -> RobustSplittingModel:
         return (
