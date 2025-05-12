@@ -18,7 +18,7 @@ class ENSURELoss(SureGaussianLoss):
     r"""
     ENSURE loss for image reconstruction in Gaussian noise.
 
-    The loss function extends :class:`deepinv.loss.SureGaussianLoss` and is designed for the following noise model:
+    The loss function is a special case of :class:`deepinv.loss.SureGaussianLoss` for MRI/inpainting with varying masks, and is designed for the following noise model:
 
     .. math::
 
@@ -28,15 +28,16 @@ class ENSURELoss(SureGaussianLoss):
 
     .. math::
 
-        \frac{1}{m}\|W^{-1}P(A^{\dagger}y - \inverse{y})\|_2^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(\inverse{A^{\top}y+\tau b_i} -
+        \frac{1}{m}\|\Beta(A^{\dagger}y - \inverse{y})\|_2^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(\inverse{A^{\top}y+\tau b_i} -
         \inverse{A^{\top}y}\right)
 
     where :math:`R` is the trainable network, :math:`A` is the forward operator,
-    :math:`y` is the noisy measurement vector of size :math:`m`, :math:`W^{-1}P` is a weighted projection operator determined by the set of measurement operators,
-    :math:`b\sim\mathcal{N}(0,I)` and :math:`\tau\geq 0` is a hyperparameter controlling the
-    Monte Carlo approximation of the divergence.
+    :math:`y` is the noisy measurement vector of size :math:`m`,
+    :math:`b\sim\mathcal{N}(0,I)`, :math:`\tau\geq 0` is a hyperparameter controlling the
+    Monte Carlo approximation of the divergence, and :math:`\Beta=W^{-1}P`
+    where :math:`W` is a weighting determined by the set of measurement operators and :math:`P` is the projection operator onto the range space of :math:`\A^\top`.
 
-    The ENSURE loss was proposed in `Aggarwal et al <https://arxiv.org/abs/2010.10631>`_.
+    The ENSURE loss was proposed in `Aggarwal et al <https://arxiv.org/abs/2010.10631>`_ for MRI.
 
     .. warning::
 
@@ -45,7 +46,7 @@ class ENSURELoss(SureGaussianLoss):
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: random physics generator used to compute the weighting :math:`W`.
-    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence.
+    :param float tau: Approximation constant for the Monte Carlo approximation of the divergence. Defaults to :math:`0.1\sigma`.
     :param torch.Generator rng: Optional random number generator. Default is None.
     """
 
@@ -53,11 +54,11 @@ class ENSURELoss(SureGaussianLoss):
         self,
         sigma: float,
         physics_generator: PhysicsGenerator,
-        tau: float = 0.01,
+        tau: float = None,
         rng: torch.Generator = None,
     ):
-        super().__init__(sigma=sigma, tau=tau, rng=rng)
-        d = physics_generator.step(batch_size=2000)["mask"].mean(0, keepdim=True)
+        super().__init__(sigma=sigma, tau=tau if tau is not None else sigma * 0.1, rng=rng)
+        d = physics_generator.average()["mask"]
         self.dsqrti = 1 / d.sqrt()
 
     def div(

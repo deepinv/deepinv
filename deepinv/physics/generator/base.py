@@ -1,3 +1,4 @@
+from typing import Dict
 import torch
 import torch.nn as nn
 from typing import List, Union
@@ -80,7 +81,7 @@ class PhysicsGenerator(nn.Module):
         for k, v in kwargs.items():
             setattr(self, k, v)
 
-    def step(self, batch_size: int = 1, seed: int = None, **kwargs):
+    def step(self, batch_size: int = 1, seed: int = None, **kwargs) -> Dict:
         r"""
         Generates a batch of parameters for the forward operator.
 
@@ -93,6 +94,14 @@ class PhysicsGenerator(nn.Module):
             self.kwargs = kwargs
 
         return self.step_func(batch_size, seed, **kwargs)
+
+    def average(self, n: int = 2000) -> Dict:
+        """Calculate average of physics generator.
+
+        :param int n: number of samples to average over, defaults to 2000
+        """
+        params = self.step(batch_size=n)
+        return {k: v.mean(0, keepdim=True) for (k, v) in params.items()}
 
     def rng_manual_seed(self, seed: Union[int, str] = None):
         r"""
