@@ -62,8 +62,13 @@ class AdversarialOptimizer:
         if not self.zero_grad_g_only:
             self.D.zero_grad(set_to_none=set_to_none)
 
+    def step(*args, **kwargs):
+        raise ValueError(
+            "AdversarialOptimizer should step G and D optimizers separately."
+        )
 
-class AdversarialScheduler:
+
+class AdversarialScheduler(AdversarialOptimizer):
     r"""Scheduler for adversarial training that encapsulates both generator and discriminator's schedulers.
 
     :param LRScheduler scheduler_g: generator's torch scheduler
@@ -71,17 +76,17 @@ class AdversarialScheduler:
     """
 
     def __init__(self, scheduler_g: LRScheduler, scheduler_d: LRScheduler):
-        self.scheduler_g = scheduler_g
-        self.scheduler_d = scheduler_d
+        self.G = scheduler_g
+        self.D = scheduler_d
 
     def get_last_lr(self):
         r"""Get last learning rates from the generator scheduler."""
-        return self.scheduler_g.get_last_lr()
+        return self.G.get_last_lr()
 
     def step(self):
         r"""Performs a step on both generator and discriminator schedulers."""
-        self.scheduler_g.step()
-        self.scheduler_d.step()
+        self.G.step()
+        self.D.step()
 
 
 @dataclass
@@ -156,7 +161,7 @@ class AdversarialTrainer(Trainer):
     D: Module = None
     step_ratio_D: int = 1
 
-    def setup_train(self, **kwargs):
+    def setup_train(self, train=True, **kwargs):
         r"""
         After usual Trainer setup, setup losses for discriminator too.
         """
@@ -181,20 +186,23 @@ class AdversarialTrainer(Trainer):
             for l in self.losses_d
         ]
 
-        if self.ckpt_pretrained is not None:
-            checkpoint = torch.load(self.ckpt_pretrained)
-            self.D.load_state_dict(checkpoint["state_dict_D"])
-
-        if self.check_grad:
+        if train and self.check_grad:
             self.check_grad_val_D = AverageMeter(
                 "Gradient norm for discriminator", ":.2e"
             )
+
+    def load_model(self, ckpt_pretrained=None):
+        checkpoint = super().load_model(ckpt_pretrained)
+        if checkpoint is not None:
+            self.D.load_state_dict(checkpoint["state_dict_D"])
 
     def compute_loss(
         self, physics, x, y, train=True, epoch: int = None, step: int = True
     ):
         r"""
         Compute losses and perform backward passes for both generator and discriminator networks.
+
+        Also calculate `y_hat` and pass as optional argument to losses.
 
         :param deepinv.physics.Physics physics: Current physics operator.
         :param torch.Tensor x: Ground truth.
@@ -232,11 +240,11 @@ class AdversarialTrainer(Trainer):
                 )
                 loss_total = loss_total + loss.mean()
                 if len(self.losses) > 1 and self.verbose_individual_losses:
-                    current_log = (
+                    meters = (
                         self.logs_losses_train[k] if train else self.logs_losses_eval[k]
                     )
-                    current_log.update(loss.detach().cpu().numpy())
-                    cur_loss = current_log.avg
+                    meters.update(loss.detach().cpu().numpy())
+                    cur_loss = meters.avg
                     logs[l.__class__.__name__] = cur_loss
 
             current_log = (
@@ -278,13 +286,13 @@ class AdversarialTrainer(Trainer):
                     )
                     loss_total_d += loss.mean()
                     if len(self.losses_d) > 1 and self.verbose_individual_losses:
-                        current_log = (
+                        meters = (
                             self.logs_losses_train[k + len(self.losses)]
                             if train
                             else self.logs_losses_eval[k + len(self.losses)]
                         )
-                        current_log.update(loss.detach().cpu().numpy())
-                        cur_loss = current_log.avg
+                        meters.update(loss.detach().cpu().numpy())
+                        cur_loss = meters.avg
                         logs[l.__class__.__name__] = cur_loss
 
             if train:
@@ -316,6 +324,6 @@ class AdversarialTrainer(Trainer):
             self.check_grad_val_D.update(norm_grads.item())
             return norm_grads.item()
 
-    def save_model(self, epoch, eval_psnr=None):
+    def save_model(self, epoch, eval_metrics=None):
         r"""Save discriminator model parameters alongside other models."""
-        super().save_model(epoch, eval_psnr, {"state_dict_D": self.D.state_dict()})
+        super().save_model(epoch, eval_metrics, {"state_dict_D": self.D.state_dict()})
