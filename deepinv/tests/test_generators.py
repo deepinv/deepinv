@@ -215,6 +215,9 @@ def test_average(name, device, dtype):
     """
     size = (5, 5)
     generator, size, _ = find_generator(name, size, 1, device, dtype)
+    # Set generator seed for reproducibility
+    generator.rng_manual_seed(0)
+
     n_avg = 4
 
     # Store the keys of a single step call for future comparison
