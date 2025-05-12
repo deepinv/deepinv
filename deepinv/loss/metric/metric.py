@@ -20,33 +20,7 @@ def import_pyiqa() -> ModuleType:
         )
 
 
-class ReductionMixin:
-    """
-    Mixin for metric reduction functionality.
-    """
-
-    def set_reducer(self, reduction: str = None):
-        """Set reduction method.
-
-        :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-        """
-        self.reducer = lambda x: x
-        if reduction is not None:
-            if callable(reduction):
-                self.reducer = reduction
-            elif not isinstance(reduction, str):
-                raise ValueError("reduction must either be str, callable, or None.")
-            elif reduction.lower() == "mean":
-                self.reducer = lambda x: x.mean()
-            elif reduction.lower() == "sum":
-                self.reducer = lambda x: x.sum()
-            elif reduction.lower() == "none":
-                pass
-            else:
-                raise ValueError("reduction must either be mean, sum, none or None.")
-
-
-class Metric(Module, ReductionMixin):
+class Metric(Module):
     r"""
     Base class for metrics.
 
@@ -115,7 +89,21 @@ class Metric(Module, ReductionMixin):
                 )
         self.normalizer = lambda x: x if x is None else normalizer(x)
         self.norm_inputs = norm_inputs
-        self.set_reducer(reduction)
+
+        self.reducer = lambda x: x
+        if reduction is not None:
+            if callable(reduction):
+                self.reducer = reduction
+            elif not isinstance(reduction, str):
+                raise ValueError("reduction must either be str, callable, or None.")
+            elif reduction.lower() == "mean":
+                self.reducer = lambda x: x.mean()
+            elif reduction.lower() == "sum":
+                self.reducer = lambda x: x.sum()
+            elif reduction.lower() == "none":
+                pass
+            else:
+                raise ValueError("reduction must either be mean, sum, none or None.")
 
         # Subclasses override this if higher is better (e.g. in SSIM)
         self.lower_better = True
