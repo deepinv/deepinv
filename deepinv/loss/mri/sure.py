@@ -57,7 +57,9 @@ class ENSURELoss(SureGaussianLoss):
         tau: float = None,
         rng: torch.Generator = None,
     ):
-        super().__init__(sigma=sigma, tau=tau if tau is not None else sigma * 0.1, rng=rng)
+        super().__init__(
+            sigma=sigma, tau=tau if tau is not None else sigma * 0.1, rng=rng
+        )
         d = physics_generator.average()["mask"]
         self.dsqrti = 1 / d.sqrt()
 
