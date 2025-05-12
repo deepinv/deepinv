@@ -21,6 +21,16 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
 * |:books:| A large number of well-explained :ref:`examples <examples>`, from basics to state-of-the-art methods.
 
 
+**Citation**
+
+If you use DeepInverse in your research, please cite the following paper:
+
+```
+TODO
+
+```
+
+
 .. image:: figures/deepinv_schematic.png
    :width: 1000
    :align: center

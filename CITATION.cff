@@ -1,4 +1,4 @@
-cff-version: 0.0.1
+cff-version: 0.3.0
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Tachella"
@@ -16,7 +16,7 @@ authors:
 - family-names: "Wang"
   given-names: "Andrew"
   orcid: "https://orcid.org/0000-0003-0838-7986"
-title: "DeepInverse: A deep learning framework for inverse problems in imaging"
+title: "DeepInverse: A Python package for solving imaging inverse problems with deep learning"
 version: latest
 doi: 10.5281/zenodo.7982256
 date-released: 2023-06-30

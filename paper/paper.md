@@ -28,6 +28,8 @@ authors:
     affiliation: 8
   - name: Maxime Song
     affiliation: 14
+  - name: Thomas Davies
+    affiliation: 5
   - name: Leo Davy  
     affiliation: 1
   - name: Jonathan Dong  
@@ -52,6 +54,8 @@ authors:
     affiliation: 11
   - name: Brayan Monroy  
     affiliation: 6
+  - name: Sebastian Neumayer
+    affiliation: 16
   - name: Jérémy Scanvic  
     affiliation: 1
   - name: Florian Sarron  
@@ -62,6 +66,8 @@ authors:
     affiliation: 4
   - name: Chao Tang  
     affiliation: "4, 5"
+  - name: Romain Vo
+    affiliation: 1
   - name: Pierre Weiss  
     affiliation: 8  
 
@@ -96,6 +102,8 @@ affiliations:
     index: 14
   - name: Université Paris Dauphine - PSL, Paris, France
     index: 15
+  - name: University of Chemnitz
+    index: 16
 
 date: 15 May 2025
 bibliography: paper.bib
@@ -104,7 +112,7 @@ bibliography: paper.bib
 
 # Summary
 
-`deepinv` is an open-source PyTorch-based library for imaging inverse problems.
+DeepInverse is an open-source PyTorch-based library for imaging inverse problems.
 The library covers all crucial steps in image reconstruction from the efficient implementation of forward operators (optics, MRI, tomography,...), 
 to the definition and resolution of variational problems and the design and training of advanced neural network architectures. 
 
