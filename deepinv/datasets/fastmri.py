@@ -449,7 +449,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             else:
                 target = None
 
-        params = {"mask": np.asarray(hf["mask"])} if "mask" in hf else {}
+        # TODO validate FastMRI provided mask shapes
+        params = {"mask": torch.as_tensor(hf["mask"])} if "mask" in hf else {}
 
         if self.transform is not None:
             target, kspace, params = self.transform(

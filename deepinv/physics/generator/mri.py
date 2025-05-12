@@ -90,7 +90,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
     @abstractmethod
     def get_pdf(self) -> torch.Tensor:
-        """Get mask PDF.
+        """Get mask probability density function (PDF).
 
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """

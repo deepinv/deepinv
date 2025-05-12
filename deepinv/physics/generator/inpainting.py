@@ -36,7 +36,8 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
         >>> gen.step(batch_size=2, input_mask=physics.mask)["mask"].shape
         torch.Size([2, 1, 100, 100])
 
-        Generate splitting mask from given input_mask with random split ratio for each sample in the batch
+        Generate splitting mask from given `input_mask` with random split ratio for each sample in the batch
+
         >>> gen = BernoulliSplittingMaskGenerator((1, 100, 100), split_ratio=0.6, random_split_ratio=True, min_split_ratio=0.1, max_split_ratio=0.9)
         >>> mask = gen.step(batch_size=2, input_mask=physics.mask, seed=10)["mask"]
         >>> (mask[0] == 0).sum()/mask[0].numel()  # 0.1 < split_ratio < 0.9
@@ -47,9 +48,9 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
     :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, M) or (M,)
     :param float split_ratio: ratio of values to be kept.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
-    :param bool random_split_ratio: if True, split_ratio is randomly sampled from [min_split_ratio, max_split_ratio] at each step.
-    :param float min_split_ratio: minimum split ratio. Only used if random_split_ratio is True.
-    :param float max_split_ratio: maximum split ratio. Only used if random_split_ratio is True.
+    :param bool random_split_ratio: if True, `split_ratio` is randomly sampled from `[min_split_ratio, max_split_ratio]` at each step.
+    :param float min_split_ratio: minimum split ratio. Only used if `random_split_ratio` is True.
+    :param float max_split_ratio: maximum split ratio. Only used if `random_split_ratio` is True.
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.dtype dtype: the data type of the generated parameters
     :param torch.Generator rng: torch random number generator.

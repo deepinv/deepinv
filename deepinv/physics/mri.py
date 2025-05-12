@@ -116,8 +116,10 @@ class MRIMixin:
         If ``img_size`` has odd height, then adjust by one pixel to match FastMRI data.
 
         :param torch.Tensor x: input tensor of shape (...,H,W)
-        :param bool crop: whether to perform crop, defaults to `True`
+        :param bool crop: whether to perform crop, defaults to `True`. If `True`, `rescale` must be `False`.
         :param tuple[int, int] shape: optional shape (..., H,W) to crop to. If `None`, crops to `img_size` attribute.
+        :param bool rescale: whether to rescale instead of cropping. If `True`, `crop` must be `False`.
+            Note to be careful here as resizing will change aspect ratio.
         """
         crop_size = shape[-2:] if shape is not None else self.img_size[-2:]
         odd_h = crop_size[0] % 2 == 1
@@ -125,18 +127,21 @@ class MRIMixin:
         if odd_h:
             crop_size = (crop_size[0] + 1, crop_size[1])
 
-        if not rescale:
-            cropped = CenterCrop(crop_size)(x)
-        else:
-            # NOTE careful here resizing will change aspect ratio
+        if rescale and crop:
+            raise ValueError("Only one of rescale or crop can be used.")
+        elif rescale:
             cropped = Resize(crop_size)(x.reshape(-1, *x.shape[-2:])).reshape(
                 *x.shape[:-2], *crop_size
             )
+        elif crop:
+            cropped = CenterCrop(crop_size)(x)
+        else:
+            return x
 
         if odd_h:
             cropped = cropped[..., :-1, :]
 
-        return cropped if crop else x
+        return cropped
 
     @staticmethod
     def rss(x: Tensor, multicoil: bool = True, three_d: bool = False) -> Tensor:
