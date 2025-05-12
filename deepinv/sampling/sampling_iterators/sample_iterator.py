@@ -25,9 +25,33 @@ class SamplingIterator(nn.Module):
         super(SamplingIterator, self).__init__()
         self.algo_params = algo_params
 
+    def initialize_latent_variables(
+        cls,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        physics: Physics,
+        cur_data_fidelity: DataFidelity,
+        cur_prior: Prior,
+    ) -> Dict[str, Any]:
+        r"""
+        Initializes latent variables for the sampling iterator.
+
+        This method is intended to be overridden by subclasses to initialize any latent variables
+        required by the specific sampling algorithm. The default implementation simply returns the
+        initial state `x` in a dictionary.
+
+        :param torch.Tensor x: Initial state tensor.
+        :param torch.Tensor y: Observed measurements/data tensor.
+        :param Physics physics: Forward operator.
+        :param DataFidelity cur_data_fidelity: Negative log-likelihood.
+        :param Prior cur_prior: Negative log-prior term.
+        :return: Dictionary containing the initial state `x` and any latent variables.
+        """
+        return {"x": x}
+
     def forward(
         self,
-        x: torch.Tensor,
+        X: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -37,12 +61,12 @@ class SamplingIterator(nn.Module):
         **kwargs,
     ) -> torch.Tensor:
         r"""
-        Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}`
+        Performs a single sampling step: :math:`x_t \rightarrow x_{t+1}`
 
         This method implements one step of the Markov chain Monte Carlo sampling process,
-        generating the next state :math:`X_{t+1}` given the current state :math:`X_t`.
+        generating the next state :math:`x_{t+1}` given the current state :math:`x_t`.
 
-        :param torch.Tensor x: Current state :math:`X_t` of the Markov chain
+        :param Dict x: Dictionary containing the current state :math:`x_t` of the Markov chain along with any latent variables.
         :param torch.Tensor y: Observed measurements/data tensor
         :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood
@@ -50,8 +74,7 @@ class SamplingIterator(nn.Module):
         :param int iteration: Current iteration number in the sampling process (zero-indexed)
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
-        :return: Next state :math:`X_{t+1}` in the Markov chain
-        :rtype: torch.Tensor
+        :return: Dictionary `{"est": x, ...}` containing the next state along with any latent variables.
         """
         raise NotImplementedError(
             "Subclasses of SamplingIterator must implement the forward method"

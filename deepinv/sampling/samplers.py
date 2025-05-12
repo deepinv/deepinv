@@ -2,7 +2,7 @@ import sys
 from collections import deque
 import torch
 from tqdm import tqdm
-from deepinv.physics import Physics
+from deepinv.physics import Physics, LinearPhysics
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Prior
 from deepinv.models import Reconstructor
@@ -36,7 +36,7 @@ class BaseSample(Reconstructor):
         sampler = BaseSampler(MyIterator(), prior, data_fidelity, iterator_params)
 
         # compute posterior mean and variance of reconstruction of x
-        mean, var = sampler(y, physics)
+        mean, var = sampler.sample(y, physics)
 
     This class computes the mean and variance of the chain using Welford's algorithm, which avoids storing the whole
     Monte Carlo samples. It can also maintain a history of the `history_size` most recent samples.
@@ -58,7 +58,7 @@ class BaseSample(Reconstructor):
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
-    :param Callable callback: A funciton that is called on every (thinned) sample for diagnostics.
+    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics.
     :param int history_size: Number of most recent samples to store in memory. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
@@ -129,7 +129,7 @@ class BaseSample(Reconstructor):
         physics: Physics,
         X_init: Union[torch.Tensor, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, List[Callable]] = [lambda x: x],
+        g_statistics: Union[Callable, List[Callable]] = [lambda d: d["x"]],
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -144,9 +144,10 @@ class BaseSample(Reconstructor):
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
-        :param list g_statistics: List of functions for which to compute posterior statistics. Default: ``[lambda x: x]``
+        :param list g_statistics: List of functions for which to compute posterior statistics.
             The sampler will compute the posterior mean and variance of each function in the list.
-            Default: ``lambda x: x`` (identity function)
+            The input to these functions is a dictionary `d` which contains the current state of the sampler alongside any latent variables. `d["x"]` will always be the current image. See specific iterators for details on what (if any) latent variables they provide.
+            Default: ``lambda d: d["x"]`` (identity function on the iterate).
         :param Union[List[Callable], Callable] g_statistics: List of functions for which to compute posterior statistics, or a single function.
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
@@ -160,25 +161,29 @@ class BaseSample(Reconstructor):
             >>> # Using multiple statistics
             >>> sampler = BaseSample(
             ...     iterator, data_fidelity, prior,
-            ...     g_statistics=[lambda x: x, lambda x: x**2]
+            ...     g_statistics=[lambda d: d["x"], lambda d: d["x"]**2]
             ... )
-            >>> means, vars = sampler(measurements, forward_operator)
+            >>> means, vars = sampler.sample(measurements, forward_operator)
         """
         # Set random seed if provided
         if seed is not None:
             torch.manual_seed(seed)
 
-        # Initialization
+        # Initialization of both our image chain and any latent variables
         if X_init is None:
-            X_t = physics.A_adjoint(y)
+            # TODO: A_dagger vs A_adjoint?
+            if isinstance(physics, LinearPhysics):
+                X = self.iterator.initialize_latent_variables(physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior)
+            else:
+                X = self.iterator.initialize_latent_variables(physics.A_dagger(y), y, physics, self.data_fidelity, self.prior)
         else:
-            X_t = X_init
+            X = self.iterator.initialize_latent_variables(X_init, y, physics, self.data_fidelity, self.prior)
 
         if self.history:
             if isinstance(self.history, deque):
-                self.history = deque([X_t], maxlen=self.history_size)
+                self.history = deque([X], maxlen=self.history_size)
             else:
-                self.history = [X_t]
+                self.history = [X]
 
         self.mean_convergence = False
         self.var_convergence = False
@@ -189,7 +194,7 @@ class BaseSample(Reconstructor):
         # Initialize Welford trackers for each g_statistic
         statistics = []
         for g in g_statistics:
-            statistics.append(Welford(g(X_t)))
+            statistics.append(Welford(g(X)))
 
         # Initialize for convergence checking
         mean_prevs = [stat.mean().clone() for stat in statistics]
@@ -197,8 +202,8 @@ class BaseSample(Reconstructor):
 
         # Run the chain
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            X_t = self.iterator(
-                X_t,
+            X = self.iterator(
+                X,
                 y,
                 physics,
                 self.data_fidelity,
@@ -208,17 +213,17 @@ class BaseSample(Reconstructor):
             )
 
             if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
-                self.callback(X_t)
+                self.callback(X)
                 # Store previous means and variances for convergence check
                 if it >= (self.max_iter - self.thinning):
                     mean_prevs = [stat.mean().clone() for stat in statistics]
                     var_prevs = [stat.var().clone() for stat in statistics]
 
                 if self.history:
-                    self.history.append(X_t)
+                    self.history.append(X)
 
                 for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
-                    stat.update(g(X_t))
+                    stat.update(g(X))
 
         # Check convergence for all statistics
         self.mean_convergence = True
@@ -260,19 +265,20 @@ class BaseSample(Reconstructor):
         r"""
         Retrieve the stored history of samples.
 
-        Returns a list of samples.
+        Returns a list of dictionaries, where each dictionary contains the state of the sampler.
 
-        Only includes samples after the burn-in period and, thinning.
+        Only includes samples after the burn-in period and thinning.
 
-        :return: List of stored samples from oldest to newest
-        :rtype: list[torch.Tensor]
+        :return: List of stored sample states (dictionaries) from oldest to newest. Each dictionary contains the sample `"x": x` along with any latent variables.
+        :rtype: list[dict]
         :raises RuntimeError: If history storage was disabled (history_size=False)
 
         Example:
             >>> sampler = BaseSample(iterator, data_fidelity, prior, history_size=5)
             >>> _ = sampler(measurements, forward_operator)
-            >>> samples = sampler.get_history()
-            >>> latest_sample = samples[-1]  # Get most recent sample
+            >>> history = sampler.get_chain()
+            >>> latest_state = history[-1]  # Get most recent state dictionary
+            >>> latest_sample = latest_state["x"] # Get sample from state
         """
         if self.history is False:
             raise RuntimeError(
@@ -280,12 +286,14 @@ class BaseSample(Reconstructor):
             )
         return list(self.history)
 
+    @property
     def mean_has_converged(self) -> bool:
         r"""
         Returns a boolean indicating if the posterior mean verifies the convergence criteria.
         """
         return self.mean_convergence
 
+    @property
     def var_has_converged(self) -> bool:
         r"""
         Returns a boolean indicating if the posterior variance verifies the convergence criteria.
@@ -304,7 +312,7 @@ def create_iterator(
     """
     if isinstance(iterator, str):
         # If a string is provided, create an instance of the named class
-        iterator_fn = str_to_class(iterator + "Iterator")
+        iterator_fn = getattr(sys.modules[__name__], iterator + "Iterator")
         return iterator_fn(cur_params, **kwargs)
     else:
         # If already a SamplingIterator instance, return as is
@@ -353,6 +361,3 @@ def sample_builder(
         verbose=verbose,
     ).eval()
 
-
-def str_to_class(classname):
-    return getattr(sys.modules[__name__], classname)

@@ -83,7 +83,7 @@ class ULAIterator(SamplingIterator):
 
     def forward(
         self,
-        x: Tensor,
+        X: Tensor,
         y: Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -103,17 +103,17 @@ class ULAIterator(SamplingIterator):
 
         where :math:`z_{t+1} \sim \mathcal{N}(0,I)` is a standard Gaussian noise vector.
 
-        :param torch.Tensor x: Current state :math:`x_t` of the Markov chain
+        :param Dict X: Dictionary containing the current state :math:`x_t`.
         :param torch.Tensor y: Observed measurements/data tensor
         :param Physics physics: Forward operator :math:`A` that models the measurement process
         :param DataFidelity cur_data_fidelity: Negative log-likelihood function
         :param ScorePrior cur_prior: Score-based prior model for :math:`\nabla \log p(x)`
         :param int iteration: Current iteration number in the sampling process (zero-indexed)
 
-        :return: Next state :math:`x_{t+1}` in the Markov chain
-        :rtype: torch.Tensor
+        :return: Dictionary `{"est": x}` containing the next state :math:`x_{t+1}` in the Markov chain. 
+        :rtype: Dict
         """
-
+        x = X["x"]
         noise = torch.randn_like(x) * np.sqrt(2 * self.algo_params["step_size"])
         lhood = -cur_data_fidelity.grad(x, y, physics)
         lprior = (
@@ -122,4 +122,4 @@ class ULAIterator(SamplingIterator):
         x_t = x + self.algo_params["step_size"] * (lhood + lprior) + noise
         if self.clip:
             x_t = projbox(x_t, self.clip[0], self.clip[1])
-        return x_t
+        return {"x": x_t}

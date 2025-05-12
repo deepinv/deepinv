@@ -81,7 +81,7 @@ class SKRockIterator(SamplingIterator):
 
     def forward(
         self,
-        x: torch.Tensor,
+        X: Dict,
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -93,16 +93,16 @@ class SKRockIterator(SamplingIterator):
         r"""
         Performs a single SK-ROCK sampling step.
 
-        :param torch.Tensor x: Current state :math:`X_t` of the Markov chain
+        :param Dict X: Dictionary containing the current state :math:`x_t`.
         :param torch.Tensor y: Observed measurements/data tensor
         :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood function
         :param ScorePrior cur_prior: Prior
 
-        :return: Next state :math:`X_{t+1}` in the Markov chain
-        :rtype: torch.Tensor
+        :return: Dictionary `{"est": x}` containing the next state :math:`x_{t+1}` in the Markov chain. 
+        :rtype: Dict
         """
-
+        x = X["x"]
         # Define posterior gradient
         posterior = lambda u: cur_data_fidelity.grad(u, y, physics) + self.algo_params[
             "alpha"
@@ -146,7 +146,7 @@ class SKRockIterator(SamplingIterator):
         if self.clip:
             xts = projbox(xts, self.clip[0], self.clip[1])
 
-        return xts
+        return {"x": xts}
 
 
 # Alias for SKRockIterator

@@ -3,6 +3,8 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor
 
+from typing import Dict, Any
+
 import deepinv.physics
 from deepinv.utils.plotting import plot
 from deepinv.sampling.samplers import BaseSample
@@ -18,18 +20,19 @@ class DiffusionIterator(SamplingIterator):
 
     def forward(
         self,
-        x: torch.Tensor,
+        X: Dict[str, Any],
         y: torch.Tensor,
         physics,
         cur_data_fidelity,
         prior,
         iteration,
-    ) -> torch.Tensor:
+    ) -> Dict[str, Any]:
+        x = X["x"]
         # run one sampling kernel iteration
         x = prior(y, physics)
         if self.clip:
             x = projbox(x, self.clip[0], self.clip[1])
-        return x
+        return {"x": x}  # return the updated x
 
 
 class DiffusionSampler(BaseSample):
@@ -48,7 +51,6 @@ class DiffusionSampler(BaseSample):
     :param bool save_chain: whether to save the chain
     :param int thinning: the thinning factor
     :param float burnin_ratio: the burnin ratio
-
     """
 
     def __init__(
@@ -80,7 +82,7 @@ class DiffusionSampler(BaseSample):
             verbose=verbose,
             # thresh_conv=thres_conv,
         )
-        self.g_statistics = [g_statistic]
+        self.g_statistics = [lambda d:g_statistic(d["x"])]
 
     def forward(self, y, physics, seed=None, x_init=None):
         r"""

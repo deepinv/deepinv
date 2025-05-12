@@ -31,6 +31,7 @@ class ULA(BaseSample):
     - Projected PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
+    This is a legacy class provided for convenience. See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` for more details on sampling implementation, and how to adapt it to your specific problem.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
@@ -49,8 +50,8 @@ class ULA(BaseSample):
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
     :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list.
-        Default: ``lambda x: x`` (identity function)
+        The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
+        Default: ``lambda d: d["x"]`` (identity function)
     :param bool verbose: prints progress of the algorithm.
 
     """
@@ -68,7 +69,7 @@ class ULA(BaseSample):
         clip: tuple = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: Union[List[Callable], Callable] = lambda x: x,
+        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
         verbose: bool = False,
     ):
         algo_params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
@@ -119,6 +120,8 @@ class SKRock(BaseSample):
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
+    This a legacy class provided for convenience. See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` for more details on sampling implementation, and how to adapt it to your specific problem.
+
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
         noise distribution in the acquisition physics.
@@ -137,8 +140,8 @@ class SKRock(BaseSample):
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
     :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list.
-        Default: ``lambda x: x`` (identity function)
+        The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
+        Default: ``lambda d: d["x"]`` (identity function)
 
     """
 
@@ -156,7 +159,7 @@ class SKRock(BaseSample):
         clip: Tuple[float, float] = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: Union[List[Callable], Callable] = lambda x: x,
+        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
         verbose: bool = False,
         sigma: float = 0.05,
     ) -> None:
