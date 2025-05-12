@@ -3,7 +3,7 @@ from typing import Callable, Tuple, Union, List
 from torch import Tensor
 import deepinv.optim
 
-from deepinv.sampling.samplers import BaseSampling
+from deepinv.sampling import BaseSampling
 from deepinv.optim import ScorePrior
 from deepinv.physics import Physics
 from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator

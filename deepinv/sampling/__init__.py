@@ -1,4 +1,4 @@
-from .samplers import BaseSampling, sampling_builder
+from .sampling import BaseSampling, sampling_builder
 from .langevin import ULA, SKRock
 from .diffusion import DDRM, DiffusionSampler, DiffPIR, DPS
 from .sampling_iterators import (

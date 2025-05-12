@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 import deepinv.physics
 from deepinv.utils.plotting import plot
-from deepinv.sampling.samplers import BaseSampling
+from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import SamplingIterator
 
 from deepinv.sampling.utils import projbox
