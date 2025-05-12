@@ -104,11 +104,17 @@ class Scale(Transform):
 
         b, _, h, w = x.shape
 
-        if len(factor) < b:
-            factor = factor.expand(b, *factor.shape[1:])
+        if isinstance(factor, list):
+            factor = torch.tensor(factor, device=x.device, dtype=x.dtype)
+        if isinstance(center, list):
+            center = torch.tensor(center, device=x.device, dtype=x.dtype)
 
-        if len(center) < b:
-            center = center.expand(b, *center.shape[1:])
+        if factor.size(0) < b:
+            # repeat only first dim
+            factor = factor.repeat_interleave(b // factor.size(0), dim=0)
+
+        if center.size(0) < b:
+            center = center.repeat_interleave(b // center.size(0), dim=0)
 
         factor = factor.view(b, 1, 1, 1).repeat(1, 1, 1, 2)
         center = center.view(b, 1, 1, 2)

@@ -196,20 +196,25 @@ class Transform(torch.nn.Module, TimeMixin):
         if batchwise:
             return transform(x, **params)
 
+        # get first elem of params dict
         assert (
             len(x) % self.n_trans == 0
-        ), "The number of batches is not divisible by the number of transforms. Set batchwise to True"
+        ), f"The number of batches {len(x)} is not divisible by the number of transforms {self.n_trans}. Set batchwise to True"
         B = len(x) // self.n_trans
 
-        return torch.cat(
+        n_trans = self.n_trans
+        self.n_trans = 1  # temporarily set to 1 to avoid increasing tensor size
+        out = torch.cat(
             [
                 transform(
-                    x[B * i : B * (i + 1)],
-                    **{k: p[[i]] for k, p in params.items() if len(p) == self.n_trans},
+                    x[B * i: B * (i + 1)],
+                    **{k: p[[i]] for k, p in params.items() if len(p) == n_trans},
                 )
-                for i in range(self.n_trans)
+                for i in range(n_trans)
             ]
         )
+        self.n_trans = n_trans # go back to n_trans
+        return out
 
     def forward(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
         """Perform random transformation on image.
@@ -337,11 +342,13 @@ class Transform(torch.nn.Module, TimeMixin):
                 # Step through n_trans (or combinations) one-by-one
                 out = []
                 for _params in self.iterate_params(params):
+                    print(_params)
                     out.append(
                         self.inverse(
                             f(self.transform(x, **_params), *args, **kwargs), **_params
                         )
                     )
+
                 return (
                     torch.stack(out, dim=1).mean(dim=1) if average else torch.cat(out)
                 )

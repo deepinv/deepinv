@@ -172,6 +172,10 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
     transform = choose_transform(transform_name, device=device, rng=rng)
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
+
     image_t = transform(image)
 
     assert image.device == image_t.device == device
@@ -194,6 +198,9 @@ def test_transform_identity(
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
 
     if device.type != "cpu" and transform_name in (
         "homography",
@@ -219,6 +226,9 @@ def test_batchwise_transform(
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
 
     if device.type != "cpu" and transform_name in (
         "homography",
@@ -252,7 +262,8 @@ def test_batch_size(batch_size):
     transform = dinv.transform.Rotate(multiples=90, n_trans=3) * dinv.transform.Reflect(
         dim=[-1], n_trans=2
     )
-    x = torch.randn(batch_size, 2, 16, 16)
+    x = torch.ones(batch_size, 1, 16, 16)
+    x[..., :2:, :] = 0
     xt = transform.identity(x, average=True)
     assert torch.allclose(x, xt)
 
