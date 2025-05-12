@@ -1,17 +1,18 @@
 import sys
 from collections import deque
+from typing import Union, Dict, Callable, List, Tuple
+
 import torch
 from tqdm import tqdm
-from deepinv.physics import Physics, LinearPhysics
-from deepinv.optim.optim_iterators import *
-from deepinv.optim.prior import Prior
+
 from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
-from deepinv.sampling.utils import Welford
-from deepinv.sampling.sampling_iterators import *
+from deepinv.optim.optim_iterators import *
+from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
-from typing import Union, Dict, Callable, List, Tuple
+from deepinv.physics import Physics, LinearPhysics
+from deepinv.sampling.sampling_iterators import *
+from deepinv.sampling.utils import Welford
 
 
 class BaseSample(Reconstructor):
@@ -92,7 +93,7 @@ class BaseSample(Reconstructor):
         self.verbose = verbose
         self.history_size = history_size
 
-        # initialize history to zero
+        # Initialize history to zero
         if history_size is True:
             self.history = []
         elif history_size:
@@ -127,7 +128,7 @@ class BaseSample(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: Union[torch.Tensor, None] = None,
+        x_init: Union[torch.Tensor, None] = None,
         seed: Union[int, None] = None,
         g_statistics: Union[Callable, List[Callable]] = [lambda d: d["x"]],
         **kwargs,
@@ -140,7 +141,7 @@ class BaseSample(Reconstructor):
 
         :param torch.Tensor y: The observed measurements/data tensor
         :param Physics physics: Forward operator of your inverse problem.
-        :param torch.Tensor X_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+        :param torch.Tensor x_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
@@ -170,14 +171,14 @@ class BaseSample(Reconstructor):
             torch.manual_seed(seed)
 
         # Initialization of both our image chain and any latent variables
-        if X_init is None:
+        if x_init is None:
             # TODO: A_dagger vs A_adjoint?
             if isinstance(physics, LinearPhysics):
                 X = self.iterator.initialize_latent_variables(physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior)
             else:
                 X = self.iterator.initialize_latent_variables(physics.A_dagger(y), y, physics, self.data_fidelity, self.prior)
         else:
-            X = self.iterator.initialize_latent_variables(X_init, y, physics, self.data_fidelity, self.prior)
+            X = self.iterator.initialize_latent_variables(x_init, y, physics, self.data_fidelity, self.prior)
 
         if self.history:
             if isinstance(self.history, deque):

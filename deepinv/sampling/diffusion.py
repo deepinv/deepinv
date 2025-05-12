@@ -42,6 +42,8 @@ class DiffusionSampler(BaseSample):
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
 
+    See the docs for :class:`deepinv.sampling.samplers.BaseSample` for more information.
+
     :param torch.nn.Module diffusion: a diffusion model
     :param int max_iter: the number of samples to generate
     :param tuple clip: the clip range

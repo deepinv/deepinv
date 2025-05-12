@@ -236,7 +236,7 @@ Some predefined samplers are provided:
      - ``"step_size"``, ``"alpha"``, ``"inner_iter"``, ``"eta"``, ``"sigma"``
 
 
-Some predefined classes are also provided:
+Some legacy predefined classes are also provided:
 
 
 .. list-table:: MCMC methods

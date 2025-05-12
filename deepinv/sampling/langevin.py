@@ -103,7 +103,7 @@ class ULA(BaseSample):
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         return self.sample(
-            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+            y, physics, x_init=x_init, seed=seed, g_statistics=self.g_statistics
         )
 
 
@@ -200,5 +200,5 @@ class SKRock(BaseSample):
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         return self.sample(
-            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+            y, physics, x_init=x_init, seed=seed, g_statistics=self.g_statistics
         )
