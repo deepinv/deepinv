@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sample_builder, DDRM
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sampling_builder, DDRM
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -104,7 +104,7 @@ def test_sampling_algo(algo, imsize, device):
         torch.sum((xvar - post_var).abs() / post_var < tol) > np.prod(xvar.shape) / 2
     )
 
-    assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
+    assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
@@ -213,7 +213,7 @@ def choose_algo_build(algo, likelihood, thresh_conv, sigma, sigma_prior):
     else:
         raise Exception("The sampling algorithm doesn't exist")
 
-    out = sample_builder(
+    out = sampling_builder(
         iterator=algo,
         data_fidelity=likelihood,
         prior=prior,
@@ -269,7 +269,7 @@ def test_build_algo(algo, imsize, device):
         torch.sum((xvar - post_var).abs() / post_var < tol) > np.prod(xvar.shape) / 2
     )
 
-    assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
+    assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
 @torch.no_grad()

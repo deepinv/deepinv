@@ -9,12 +9,13 @@ to accelerate the sampling.
 
 """
 
+import torch
+from typing import Dict, Any
+import numpy as np
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-import torch
-from deepinv.sampling import ULA
-import numpy as np
 from deepinv.utils.demo import load_url_image
+from deepinv.sampling import ULA
 
 # %%
 # Load image from the internet
@@ -90,7 +91,8 @@ class PULAIterator(dinv.sampling.SamplingIterator):
     def __init__(self, algo_params):
         super().__init__(algo_params)
 
-    def forward(self, x, y, physics, data_fidelity, prior, iteration) -> torch.Tensor:
+    def forward(self, X, y, physics, data_fidelity, prior, iteration) -> Dict[str, Any]:
+        x = X["x"]
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
 
@@ -106,9 +108,9 @@ class PULAIterator(dinv.sampling.SamplingIterator):
             * self.algo_params["alpha"]
         )
 
-        return x + physics.V(
+        return {"x": x + physics.V(
             step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
-        )
+        )}
 
 
 # %%
@@ -131,8 +133,8 @@ prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 # Build our sampler
 # -------------------
 #
-# Using our custom iterator, we can build a sampler class by calling `deepinv.sampling.sample_builder`
-# This function returns an instance of :class:`deepinv.sampling.BaseSample` which takes care of the sampling procedure
+# Using our custom iterator, we can build a sampler class by calling :func:`deepinv.sampling.sampling_builder`
+# This function returns an instance of :class:`deepinv.sampling.BaseSampling` which takes care of the sampling procedure
 # (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
 # providing a convenient interface to the user.
 
@@ -154,7 +156,7 @@ params_pula = {
 }
 
 # build our PULA sampler
-pula = dinv.sampling.sample_builder(
+pula = dinv.sampling.sampling_builder(
     PULAIterator(params_pula),
     likelihood,
     prior,
@@ -172,7 +174,7 @@ params_ula = {
 }
 
 # build our ULA sampler
-ula = dinv.sampling.sample_builder(
+ula = dinv.sampling.sampling_builder(
     "ULA",
     likelihood,
     prior,

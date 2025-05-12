@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 import deepinv.physics
 from deepinv.utils.plotting import plot
-from deepinv.sampling.samplers import BaseSample
+from deepinv.sampling.samplers import BaseSampling
 from deepinv.sampling.sampling_iterators import SamplingIterator
 
 from deepinv.sampling.utils import projbox
@@ -35,14 +35,14 @@ class DiffusionIterator(SamplingIterator):
         return {"x": x}  # return the updated x
 
 
-class DiffusionSampler(BaseSample):
+class DiffusionSampler(BaseSampling):
     r"""
     Turns a diffusion method into a Monte Carlo sampler
 
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
 
-    See the docs for :class:`deepinv.sampling.samplers.BaseSample` for more information.
+    See the docs for :class:`deepinv.sampling.samplers.BaseSampling` for more information.
 
     :param torch.nn.Module diffusion: a diffusion model
     :param int max_iter: the number of samples to generate
@@ -86,7 +86,7 @@ class DiffusionSampler(BaseSample):
         )
         self.g_statistics = [lambda d:g_statistic(d["x"])]
 
-    def forward(self, y, physics, seed=None, x_init=None):
+    def forward(self, y, physics, seed=None):
         r"""
         Runs the diffusion model to obtain the posterior mean and variance of the reconstruction of the measurements y.
 
@@ -96,7 +96,7 @@ class DiffusionSampler(BaseSample):
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         return self.sample(
-            y, physics, X_init=x_init, seed=seed, g_statistics=self.g_statistics
+            y, physics, seed=seed, g_statistics=self.g_statistics
         )
 
 

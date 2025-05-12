@@ -209,14 +209,14 @@ Unlike diffusion sampling methods, MCMC methods generally use a fixed noise leve
         p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-All MCMC methods inherit from :class:`deepinv.sampling.BaseSample`.
-The function :func:`deepinv.sampling.sample_builder` returns an instance of :class:`deepinv.sampling.BaseSample` with the
+All MCMC methods inherit from :class:`deepinv.sampling.BaseSampling`.
+The function :func:`deepinv.sampling.sampling_builder` returns an instance of :class:`deepinv.sampling.BaseSampling` with the
 optimization algorithm of choice, either a predefined one (``"SKRock"``, ``"ULA"``),
 or with a user-defined one. For example, we can use ULA with a score prior:
 
 .. doctest::
 
-    >>> model = dinv.optim.optim_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
+    >>> model = dinv.optim.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
                                     params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
     >>> x_hat = model(y, physics)
 

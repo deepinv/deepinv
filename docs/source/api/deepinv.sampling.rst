@@ -50,14 +50,14 @@ Base Class
    :template: myfunc_template.rst
    :nosignatures:
 
-   deepinv.sampling.sample_builder
+   deepinv.sampling.sampling_builder
 
 .. autosummary::
    :toctree: stubs
    :template: myclass_template.rst
    :nosignatures:
 
-   deepinv.sampling.BaseSample
+   deepinv.sampling.BaseSampling
 
 
 Markov Chain Monte Carlo Langevin

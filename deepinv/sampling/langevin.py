@@ -3,13 +3,13 @@ from typing import Callable, Tuple, Union, List
 from torch import Tensor
 import deepinv.optim
 
-from deepinv.sampling.samplers import BaseSample
+from deepinv.sampling.samplers import BaseSampling
 from deepinv.optim import ScorePrior
 from deepinv.physics import Physics
 from deepinv.sampling.sampling_iterators import ULAIterator, SKRockIterator
 
 
-class ULA(BaseSample):
+class ULA(BaseSampling):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
@@ -107,7 +107,7 @@ class ULA(BaseSample):
         )
 
 
-class SKRock(BaseSample):
+class SKRock(BaseSampling):
     r"""
     Plug-and-Play SKROCK algorithm.
 

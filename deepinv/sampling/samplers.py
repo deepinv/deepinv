@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from deepinv.models import Reconstructor
 from deepinv.optim.data_fidelity import DataFidelity
-from deepinv.optim.optim_iterators import *
 from deepinv.optim.prior import Prior
 from deepinv.optim.utils import check_conv
 from deepinv.physics import Physics, LinearPhysics
@@ -15,7 +14,7 @@ from deepinv.sampling.sampling_iterators import *
 from deepinv.sampling.utils import Welford
 
 
-class BaseSample(Reconstructor):
+class BaseSampling(Reconstructor):
     r"""
     Base class for Monte Carlo sampling.
 
@@ -60,7 +59,7 @@ class BaseSample(Reconstructor):
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
     :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics.
-    :param int history_size: Number of most recent samples to store in memory. Default: 5
+    :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
 
@@ -78,7 +77,7 @@ class BaseSample(Reconstructor):
         history_size: Union[int, bool] = 5,
         verbose: bool = False,
     ):
-        super(BaseSample, self).__init__()
+        super(BaseSampling, self).__init__()
         self.iterator = iterator
         self.data_fidelity = data_fidelity
         self.prior = prior
@@ -156,110 +155,113 @@ class BaseSample(Reconstructor):
 
         Example:
             >>> # Basic usage with default settings
-            >>> sampler = BaseSample(iterator, data_fidelity, prior)
+            >>> sampler = BaseSampling(iterator, data_fidelity, prior)
             >>> mean, var = sampler.sample(measurements, forward_operator)
 
             >>> # Using multiple statistics
-            >>> sampler = BaseSample(
+            >>> sampler = BaseSampling(
             ...     iterator, data_fidelity, prior,
             ...     g_statistics=[lambda d: d["x"], lambda d: d["x"]**2]
             ... )
             >>> means, vars = sampler.sample(measurements, forward_operator)
         """
-        # Set random seed if provided
-        if seed is not None:
-            torch.manual_seed(seed)
+        
+        # Don't store computational graphs
+        with torch.no_grad():
+            # Set random seed if provided
+            if seed is not None:
+                torch.manual_seed(seed)
 
-        # Initialization of both our image chain and any latent variables
-        if x_init is None:
-            # TODO: A_dagger vs A_adjoint?
-            if isinstance(physics, LinearPhysics):
-                X = self.iterator.initialize_latent_variables(physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior)
+            # Initialization of both our image chain and any latent variables
+            if x_init is None:
+                # if linear take adjoint (pseudo-inverse can be a bit unstable) else fall back to pseudoinverse
+                if isinstance(physics, LinearPhysics):
+                    X = self.iterator.initialize_latent_variables(physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior)
+                else:
+                    X = self.iterator.initialize_latent_variables(physics.A_dagger(y), y, physics, self.data_fidelity, self.prior)
             else:
-                X = self.iterator.initialize_latent_variables(physics.A_dagger(y), y, physics, self.data_fidelity, self.prior)
-        else:
-            X = self.iterator.initialize_latent_variables(x_init, y, physics, self.data_fidelity, self.prior)
+                X = self.iterator.initialize_latent_variables(x_init, y, physics, self.data_fidelity, self.prior)
 
-        if self.history:
-            if isinstance(self.history, deque):
-                self.history = deque([X], maxlen=self.history_size)
-            else:
-                self.history = [X]
+            if self.history:
+                if isinstance(self.history, deque):
+                    self.history = deque([X], maxlen=self.history_size)
+                else:
+                    self.history = [X]
 
-        self.mean_convergence = False
-        self.var_convergence = False
+            self.mean_convergence = False
+            self.var_convergence = False
 
-        if not isinstance(g_statistics, List):
-            g_statistics = [g_statistics]
+            if not isinstance(g_statistics, List):
+                g_statistics = [g_statistics]
 
-        # Initialize Welford trackers for each g_statistic
-        statistics = []
-        for g in g_statistics:
-            statistics.append(Welford(g(X)))
+            # Initialize Welford trackers for each g_statistic
+            statistics = []
+            for g in g_statistics:
+                statistics.append(Welford(g(X)))
 
-        # Initialize for convergence checking
-        mean_prevs = [stat.mean().clone() for stat in statistics]
-        var_prevs = [stat.var().clone() for stat in statistics]
+            # Initialize for convergence checking
+            mean_prevs = [stat.mean().clone() for stat in statistics]
+            var_prevs = [stat.var().clone() for stat in statistics]
 
-        # Run the chain
-        for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
-            X = self.iterator(
-                X,
-                y,
-                physics,
-                self.data_fidelity,
-                self.prior,
-                it,
-                **kwargs,
-            )
-
-            if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
-                self.callback(X)
-                # Store previous means and variances for convergence check
-                if it >= (self.max_iter - self.thinning):
-                    mean_prevs = [stat.mean().clone() for stat in statistics]
-                    var_prevs = [stat.var().clone() for stat in statistics]
-
-                if self.history:
-                    self.history.append(X)
-
-                for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
-                    stat.update(g(X))
-
-        # Check convergence for all statistics
-        self.mean_convergence = True
-        self.var_convergence = True
-
-        if it > 1:
-            # Check convergence for each statistic
-            for j, stat in enumerate(statistics):
-                if not check_conv(
-                    {"est": (mean_prevs[j],)},
-                    {"est": (stat.mean(),)},
+            # Run the chain
+            for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
+                X = self.iterator(
+                    X,
+                    y,
+                    physics,
+                    self.data_fidelity,
+                    self.prior,
                     it,
-                    self.crit_conv,
-                    self.thresh_conv,
-                    self.verbose,
-                ):
-                    self.mean_convergence = False
+                    **kwargs,
+                )
 
-                if not check_conv(
-                    {"est": (var_prevs[j],)},
-                    {"est": (stat.var(),)},
-                    it,
-                    self.crit_conv,
-                    self.thresh_conv,
-                    self.verbose,
-                ):
-                    self.var_convergence = False
+                if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
+                    self.callback(X)
+                    # Store previous means and variances for convergence check
+                    if it >= (self.max_iter - self.thinning):
+                        mean_prevs = [stat.mean().clone() for stat in statistics]
+                        var_prevs = [stat.var().clone() for stat in statistics]
 
-        # Return means and variances for all g_statistics
-        means = [stat.mean() for stat in statistics]
-        vars = [stat.var() for stat in statistics]
+                    if self.history:
+                        self.history.append(X)
 
-        # Unwrap single statistics
-        if len(g_statistics) == 1:
-            return means[0], vars[0]
+                    for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
+                        stat.update(g(X))
+
+            # Check convergence for all statistics
+            self.mean_convergence = True
+            self.var_convergence = True
+
+            if it > 1:
+                # Check convergence for each statistic
+                for j, stat in enumerate(statistics):
+                    if not check_conv(
+                        {"est": (mean_prevs[j],)},
+                        {"est": (stat.mean(),)},
+                        it,
+                        self.crit_conv,
+                        self.thresh_conv,
+                        self.verbose,
+                    ):
+                        self.mean_convergence = False
+
+                    if not check_conv(
+                        {"est": (var_prevs[j],)},
+                        {"est": (stat.var(),)},
+                        it,
+                        self.crit_conv,
+                        self.thresh_conv,
+                        self.verbose,
+                    ):
+                        self.var_convergence = False
+
+            # Return means and variances for all g_statistics
+            means = [stat.mean() for stat in statistics]
+            vars = [stat.var() for stat in statistics]
+
+            # Unwrap single statistics
+            if len(g_statistics) == 1:
+                return means[0], vars[0]
         return means, vars
 
     def get_chain(self) -> List[torch.Tensor]:
@@ -275,7 +277,7 @@ class BaseSample(Reconstructor):
         :raises RuntimeError: If history storage was disabled (history_size=False)
 
         Example:
-            >>> sampler = BaseSample(iterator, data_fidelity, prior, history_size=5)
+            >>> sampler = BaseSampling(iterator, data_fidelity, prior, history_size=5)
             >>> _ = sampler(measurements, forward_operator)
             >>> history = sampler.get_chain()
             >>> latest_state = history[-1]  # Get most recent state dictionary
@@ -320,7 +322,7 @@ def create_iterator(
         return iterator
 
 
-def sample_builder(
+def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
@@ -329,12 +331,12 @@ def sample_builder(
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,
     thinning: int = 10,
-    history_size: int = 5,
+    history_size: Union[int, bool] = 5,
     verbose: bool = False,
     **kwargs,
-) -> BaseSample:
+) -> BaseSampling:
     r"""
-    Helper function for building an instance of the :class:`deepinv.sampling.BaseSample` class.
+    Helper function for building an instance of the :class:`deepinv.sampling.BaseSampling` class.
 
     :param iterator: Either a SamplingIterator instance or a string naming the iterator class
     :param data_fidelity: Negative log-likelihood function
@@ -343,14 +345,14 @@ def sample_builder(
     :param max_iter: Number of Monte Carlo iterations
     :param burnin_ratio: Percentage of iterations for burn-in
     :param thinning: Integer to thin the Monte Carlo samples
-    :param history_size: Number of recent samples to store
+    :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5
     :param verbose: Whether to print progress
     :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter
-    :return: Configured BaseSample instance in eval mode
+    :return: Configured BaseSampling instance in eval mode
     """
     iterator = create_iterator(iterator, params_algo, **kwargs)
     # Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)
-    return BaseSample(
+    return BaseSampling(
         iterator,
         data_fidelity=data_fidelity,
         prior=prior,
