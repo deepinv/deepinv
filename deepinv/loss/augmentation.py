@@ -10,12 +10,10 @@ from torch import Tensor
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
 from deepinv.physics.mri import MRI
-from deepinv.physics.forward import LinearPhysics
-from deepinv.physics.inpainting import Inpainting
-from deepinv.transform.base import Transform
+from deepinv.transform.base import Transform, Identity
 from deepinv.transform.rotate import Rotate
 from deepinv.transform.shift import Shift
-from deepinv.transform.augmentation import RandomNoise
+from deepinv.physics.forward import LinearPhysics
 
 
 class AugmentConsistencyLoss(Loss):
@@ -63,7 +61,7 @@ class AugmentConsistencyLoss(Loss):
     ):
         super().__init__(*args, **kwargs)
         self.metric = metric
-        self.T_i = T_i if T_i is not None else RandomNoise(rng=rng)
+        self.T_i = T_i if T_i is not None else Identity()
         self.T_e = (
             T_e
             if T_e is not None
@@ -92,16 +90,9 @@ class AugmentConsistencyLoss(Loss):
         x_aug = self.T_e(physics.A_adjoint(self.T_i(y)), **e_params)
 
         # Transform physics
-        physics2 = deepcopy(physics)
-        A, A_adjoint, A_dagger = physics2.A, physics2.A_adjoint, physics2.A_dagger
-        physics2.A = lambda x, *args, **kwargs: A(
-            self.T_e.inverse(x, **e_params), *args, **kwargs
-        )
-        physics2.A_adjoint = lambda y, *args, **kwargs: self.T_e(
-            A_adjoint(y, *args, **kwargs), **e_params
-        )
-        physics2.A_dagger = lambda y, *args, **kwargs: self.T_e(
-            A_dagger(y, *args, **kwargs), **e_params
+        physics2 = physics * LinearPhysics(
+            A=lambda x: self.T_e.inverse(x, **e_params),
+            A_adjoint=lambda x: self.T_e(x, **e_params),
         )
 
         # Pass through network

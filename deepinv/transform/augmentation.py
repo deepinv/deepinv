@@ -65,7 +65,7 @@ class RandomNoise(Transform):
 class RandomPhaseError(Transform):
     """Random phase error transform.
 
-    This transform adds a phase error to k-space using:
+    This transform is specific to MRI problems, and adds a phase error to k-space using:
 
     :math:`Ty=\exp(-i\phi_k)y` where :math:`\phi_k=\pi\alpha s_e` if :math:`k` is an even index,
     or :math:`\phi_k=\pi\alpha s_o` if odd, and where :math:`\alpha` is a scale parameter,
@@ -73,7 +73,7 @@ class RandomPhaseError(Transform):
 
     This transform is reproducible: for given param dict `se, so`, the transform is deterministic.
 
-    :param int, tuple[int, int] scale: scale parameter or range to pick randomly.
+    :param int, tuple[int, int] scale: scale parameters :math:`s_e` and :math:`s_o` or range to pick randomly.
     """
 
     def __init__(self, *args, scale: Union[int, Tuple[int, int]] = 0.2, **kwargs):
