@@ -100,26 +100,3 @@ class SinglePhotonLidar(Physics):
         x = x.reshape(B, H, W, 3).permute(0, 3, 1, 2)
 
         return x
-
-
-# if __name__ == "__main__":
-#     import matplotlib.pyplot as plt
-#     import deepinv as dinv
-#
-#     bins = 40
-#     device = "cuda:0"
-#     physics = SinglePhotonLidar(bins=bins, device=device)
-#
-#     x = torch.ones((1, 3, 2, 4), device=device)
-#     x[:, 0, :, :] *= bins / 2
-#     x[:, 1, :, :] *= 300
-#     x[:, 2, :, :] *= 1
-#
-#     y = physics(x)
-#     xhat = physics.A_dagger(y)
-#
-#     y0 = y[0, :, 0, 0].detach().cpu().numpy()
-#     plt.plot(y0)
-#     plt.show()
-#
-#     print(f"MSE {dinv.metric.MSE()(x, xhat)}")
