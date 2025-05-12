@@ -204,8 +204,9 @@ def test_generation(name, device, dtype):
     assert torch.allclose(w, wref, atol=1e-8)
 
 
-@pytest.mark.parametrize("name",
-                         set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"])))
+@pytest.mark.parametrize(
+    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+)
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", [torch.float64])
 def test_average(name, device, dtype):
