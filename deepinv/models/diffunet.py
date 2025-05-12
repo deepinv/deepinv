@@ -306,7 +306,7 @@ class DiffUNet(Denoiser):
             return self.patch_forward(x, t, y=y, type_t=type_t, patch_size=512)
 
     def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
-        """
+        r"""
         Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
 
         :param x: Input low-quality image tensor of shape (B, C, H, W).
