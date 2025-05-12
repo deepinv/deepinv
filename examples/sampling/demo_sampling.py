@@ -101,7 +101,7 @@ prior = dinv.optim.ScorePrior(
 
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
-iterations = int(5e3) if torch.cuda.is_available() else 1000
+iterations = int(5e3) if torch.cuda.is_available() else 10
 params = {
     "step_size": step_size,
     "alpha": regularization,
