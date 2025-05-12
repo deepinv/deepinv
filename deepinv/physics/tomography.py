@@ -257,12 +257,12 @@ class TomographyWithAstra(LinearPhysics):
 
     :param tuple[int, ...] img_shape: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2d or 3d.
     :param int num_angles: Number of angular positions sampled uniformly in ``angular_range``. (default: 180)
-    :param int | tuple[int, ...] | None num_detectors: In 2d, specify an integer for a single line of detector cells. In 3d, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
+    :param int | tuple[int, ...], None num_detectors: In 2d, specify an integer for a single line of detector cells. In 3d, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
     :param tuple[float, float] angular_range: Angular range, defaults to (0,``math.pi``).
     :param float | tuple[float, float] detector_spacing: In 2d the width of a detector cell. In 3d a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
     :param tuple[float, ...] object_spacing: In 2d, the (x,y) dimensions of a pixel in the reconstructed image. In 3d, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
-    :param tuple[float, ...] | None aabb: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
-    :param torch.Tensor | None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
+    :param tuple[float, ...], None aabb: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
+    :param torch.Tensor, None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d. (default: ``'parallel'``)
     :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
@@ -281,7 +281,6 @@ class TomographyWithAstra(LinearPhysics):
         >>> from deepinv.physics import TomographyWithAstra
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
-        >>> angles = torch.linspace(0, 45, steps=3)
         >>> physics = TomographyWithAstra(
                 img_shape=(5,5,5),
                 num_angles=10,
@@ -294,7 +293,8 @@ class TomographyWithAstra(LinearPhysics):
                     'detector_radius': 20.
                 }
             )
-        >>> physics(x)
+        >>> sinogram = physics(x)
+        >>> print(sinogram)
         tensor([[[[-2.4262, -0.3840, -2.1681, -1.1024,  1.8009],
                   [-2.4597, -0.0198, -1.6027,  0.1117,  1.0543],
                   [-3.8424, -2.5034,  1.8132,  2.4666, -1.0440],

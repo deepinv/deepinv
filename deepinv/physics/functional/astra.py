@@ -151,7 +151,7 @@ class XrayTransform:
         r"""Forward projection.
 
         :param torch.Tensor x: Tensor of shape [1,H,W] in 2d, or [D,H,W] in 3d.
-        :param torch.Tensor | None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
+        :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
         to store output results
         :return: Sinogram of shape [1,A,N] in 2d or set of sinograms [V,A,N] in 3d.
         """
@@ -192,7 +192,7 @@ class XrayTransform:
                 r"""Backprojection.
 
                 :param torch.Tensor x: Tensor of shape [1,A,N] in 2d, or [V,A,N] in 3d.
-                :param torch.Tensor | None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
+                :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
                 to store output results
                 :return: Image of shape [1,H,W] in 2d or volume [D,H,W] in 3d.
                 """
@@ -358,7 +358,7 @@ def create_projection_geometry(
     :param int | tuple[int, int]: In 2d the width of a detector cell. In 3d a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
     :param torch.Tensor angles: Tensor containing angular positions in radii.
     :param bool is_2d: Boolean specifying if the parameters define a 2d slice or a 3d volume.
-    :param dict[str, str] | None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
+    :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 

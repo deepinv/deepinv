@@ -16,17 +16,6 @@ from deepinv.optim.optimizers import optim_builder
 from deepinv.utils.demo import load_url_image, get_image_url
 from deepinv.utils.plotting import plot, plot_curves
 
-try:
-    import astra
-
-    USE_ASTRA = True
-    print(
-        "Detected `astra-toolbox` package, the example will use the TomographyWithAstra operator"
-    )
-except:
-    USE_ASTRA = False
-    astra = ImportError("The astra-toolbox package is not installed.")
-
 # %%
 # Setup paths for data loading and results.
 # ----------------------------------------------------------------------------------------
@@ -61,21 +50,13 @@ operation = "tomography"
 noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 angles = 100
 n_channels = 1  # 3 for color images, 1 for gray-scale images
-if USE_ASTRA:
-    physics = dinv.physics.TomographyWithAstra(
-        img_shape=(img_size, img_size),
-        num_=angles,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-    )
-else:
-    physics = dinv.physics.Tomography(
-        img_width=img_size,
-        angles=angles,
-        circle=False,
-        device=device,
-        noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
-    )
+physics = dinv.physics.Tomography(
+    img_width=img_size,
+    angles=angles,
+    circle=False,
+    device=device,
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
+)
 
 PI = 4 * torch.ones(1).atan()
 SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
