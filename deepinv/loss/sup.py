@@ -13,9 +13,9 @@ class SupLoss(Loss):
 
     .. math::
 
-        \|x-\inverse{y}\|^2
+        \frac{1}{n}\|x-\inverse{y}\|^2
 
-    where :math:`\inverse{y}` is the reconstructed signal and :math:`x` is the ground truth target.
+    where :math:`\inverse{y}` is the reconstructed signal and :math:`x` is the ground truth target of :math:`n` elements.
 
     By default, the error is computed using the MSE metric, however any other metric (e.g., :math:`\ell_1`)
     can be used as well.

@@ -1,0 +1,72 @@
+version: 2
+jobs:
+    build_docs:
+      docker:
+        - image: cimg/python:3.10
+      steps:
+        - checkout
+        - run:
+            name: Set BASH_ENV
+            command: |
+              echo "set -e" >> $BASH_ENV
+              echo "export DISPLAY=:99" >> $BASH_ENV
+              echo "export OPENBLAS_NUM_THREADS=4" >> $BASH_ENV
+              echo "BASH_ENV:"
+              cat $BASH_ENV
+
+        - run:
+            name: Merge with upstream
+            command: |
+              echo $(git log -1 --pretty=%B) | tee gitlog.txt
+              echo ${CI_PULL_REQUEST//*pull\//} | tee merge.txt
+              if [[ $(cat merge.txt) != "" ]]; then
+                echo "Merging $(cat merge.txt)";
+                git remote add upstream https://github.com/deepinv/deepinv.git;
+                git pull --ff-only upstream "refs/pull/$(cat merge.txt)/merge";
+                git fetch upstream main;
+              fi
+
+        # Install Xvfb and related dependencies
+        - run:
+            name: Install Xvfb and dependencies
+            command: |
+              sudo apt-get update
+              sudo apt-get install -y xvfb
+
+        - run:
+            name: Spin up Xvfb
+            command: |
+              /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset;
+
+        - run:
+            name: Get Python running
+            command: |
+              python -m pip install --user --upgrade --progress-bar off pip
+              python -m pip install --user .[dataset,denoisers,doc]
+
+        # Build docs (fast for now, too slow for circleci in non-fast mode)
+        - run:
+            name: make html
+            no_output_timeout: 120m
+            command: |
+              cd docs;
+              make SPHINXOPTS=-v html-fast;
+              PATTERN=../examples/basics/demo_blur_tour.py make html-pattern
+              PATTERN=../examples/advanced/demo_ri_basic.py make html-pattern
+              cd ..;
+
+        # Save the outputs
+        - store_artifacts:
+            path: docs/build/html/
+            destination: dev
+        - persist_to_workspace:
+            root: docs/build
+            paths:
+              - html
+
+workflows:
+  version: 2
+
+  default:
+    jobs:
+      - build_docs
