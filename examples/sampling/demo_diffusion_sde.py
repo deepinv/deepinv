@@ -377,12 +377,12 @@ sde = VarianceExplodingDiffusion(
 )
 x = dinv.utils.load_url_image(
     dinv.utils.demo.get_image_url("butterfly.png"),
-    img_size=128,
-    resize_mode="crop",
+    img_size=256,
+    resize_mode="resize",
 ).to(device)
 
 mask = torch.ones_like(x)
-mask[..., 50:75, 62:92] = 0
+mask[..., 70:150, 120:180] = 0
 physics = dinv.physics.Inpainting(
     mask=mask,
     tensor_size=x.shape[1:],

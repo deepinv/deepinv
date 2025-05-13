@@ -99,7 +99,7 @@ class NoisyDataFidelity(DataFidelity):
 
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
-    The DPS data-fidelity term.
+    Diffusion posterior sampling data-fidelity term.
 
     This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
 
@@ -111,8 +111,9 @@ class DPSDataFidelity(NoisyDataFidelity):
     where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
     and :math:`\lambda` controls the strength of the approximation.
 
-    .. note::
-        The preconditioning term is computed with automatic differentiation.
+    .. seealso::
+        This class can be used for building custom DPS-based diffusion models.
+        A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
     :param float weight: Weighting factor for the data fidelity term. Default to 100.
@@ -122,7 +123,7 @@ class DPSDataFidelity(NoisyDataFidelity):
     def __init__(
         self,
         denoiser: Denoiser = None,
-        weight=100.0,
+        weight=1.0,
         clip: tuple = None,
         *args,
         **kwargs,
