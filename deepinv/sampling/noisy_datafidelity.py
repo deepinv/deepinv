@@ -27,27 +27,35 @@ class NoisyDataFidelity(DataFidelity):
     where :math:`P` is a preconditioner and :math:`x_t'` is an estimation of the image :math:`x`.
     By default, :math:`P` is defined as :math:`A^\top`, :math:`x_t' = x_t` and this class matches the
     :class:`deepinv.optim.DataFidelity` class.
+
+    :param deepinv.optim.Distance d: Distance metric to use for the data fidelity term. Default to :class:`deepinv.optim.L2Distance`.
+    :param float weight: Weighting factor for the data fidelity term. Default to 1.
     """
 
-    def __init__(self, d: Distance = None, *args, **kwargs):
+    def __init__(self, d: Distance = None, weight=1.0, *args, **kwargs):
         super().__init__()
         if d is not None:
             self.d = Distance(d)
         else:
             self.d = dinv.optim.L2Distance()
+        self.weight = weight
 
     def precond(
         self, u: torch.Tensor, physics: Physics, *args, **kwargs
     ) -> torch.Tensor:
         r"""
-        The preconditioner :math:`P` for the data fidelity term. Default to :math:`Id`
+        The preconditioner :math:`P` for the data fidelity term. Default to :math:`A^{\top}`.
 
         :param torch.Tensor u: input tensor.
         :param deepinv.physics.Physics physics: physics model.
 
         :return: (torch.Tensor) preconditionned tensor :math:`P(u)`.
         """
-        return physics.A_dagger(u)
+        return (
+            physics.A_adjoint(u)
+            if isinstance(physics, dinv.physics.LinearPhysics)
+            else physics.A_dagger(u)
+        )
 
     def diff(
         self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs
@@ -86,33 +94,40 @@ class NoisyDataFidelity(DataFidelity):
         :param deepinv.physics.Physics physics: forward operator
         :return: (torch.Tensor) loss term.
         """
-        return self.d(physics.A(x), y)
+        return self.d(physics.A(x), y) * self.weight
 
 
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
-    The DPS data-fidelity term.
+    Diffusion posterior sampling data-fidelity term.
 
-    This corresponds to the :math:`p(y|x)` prior as proposed in `Diffusion Probabilistic Models <https://arxiv.org/abs/2209.14687>`_.
-
-    :param deepinv.models.Denoiser denoiser: Denoiser network.
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Diffusion Posterior Sampling for General Noisy Inverse Problems <https://arxiv.org/abs/2209.14687>`_.
 
     .. math::
             \begin{aligned}
-            \nabla_x \log p_t(y|x) &= \nabla_x \frac{1}{2} \| \forw{\denoisername{x}} - y \|^2 \\
-                                 &= \left(\nabla_x \denoisername{x} \right)^\top A^\top \left(\forw{\denoisername{x}} - y\right)
+            \nabla_x \log p_t(y|x) &= \nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|
             \end{aligned}
 
-    where :math:`\sigma = \sigma(t)` is the noise level. 
+    where :math:`\sigma = \sigma(t)` is the noise level, :math:`m` is the number of measurements (size of :math:`y`),
+    and :math:`\lambda` controls the strength of the approximation.
 
-    .. note::
-        The preconditioning term is computed with automatic differentiation.
+    .. seealso::
+        This class can be used for building custom DPS-based diffusion models.
+        A self-contained implementation of the original DPS algorithm can be find in :class:`deepinv.sampling.DPS`.
 
     :param deepinv.models.Denoiser denoiser: Denoiser network
-    :param bool clip: Whether to clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`. 
+    :param float weight: Weighting factor for the data fidelity term. Default to 100.
+    :param tuple[float] clip: If not `None`, clip the denoised output into `[clip[0], clip[1]]` interval. Default to `None`.
     """
 
-    def __init__(self, denoiser: Denoiser = None, clip: tuple = None, *args, **kwargs):
+    def __init__(
+        self,
+        denoiser: Denoiser = None,
+        weight=1.0,
+        clip: tuple = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__()
         self.d = dinv.optim.L2Distance()
         self.denoiser = denoiser
@@ -120,6 +135,7 @@ class DPSDataFidelity(NoisyDataFidelity):
             assert len(clip) == 2
             clip = sorted(clip)
         self.clip = clip
+        self.weight = weight
 
     def precond(
         self, x: torch.Tensor, physics: Physics, *args, **kwargs
@@ -139,7 +155,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         with torch.enable_grad():
             x.requires_grad_(True)
             l2_loss = self.forward(x, y, physics, sigma, *args, **kwargs)
-        grad_outputs = torch.ones_like(l2_loss)
+            grad_outputs = torch.ones_like(l2_loss)
         norm_grad = torch.autograd.grad(
             outputs=l2_loss, inputs=x, grad_outputs=grad_outputs
         )[0]
@@ -149,7 +165,7 @@ class DPSDataFidelity(NoisyDataFidelity):
         self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs
     ) -> torch.Tensor:
         r"""
-        Returns the loss term :math:`\distance{\forw{\denoiser{\sigma}{x}}}{y}`.
+        Returns the loss term :math:`\frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`.
 
         :param torch.Tensor x: input image
         :param torch.Tensor y: measurements
@@ -158,9 +174,11 @@ class DPSDataFidelity(NoisyDataFidelity):
         :return: (torch.Tensor) loss term.
         """
 
-        x0_t = self.denoiser(x, sigma, *args, **kwargs)
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma.to(torch.float32)
+
+        x0_t = self.denoiser(x.to(torch.float32), sigma, *args, **kwargs)
 
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
-        l2_loss = self.d(physics.A(x0_t), y)
-        return l2_loss
+        return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight

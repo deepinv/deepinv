@@ -12,6 +12,7 @@ New Features
 ^^^^^^^^^^^^
 
 - Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
 - MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
 - Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
 - Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
@@ -25,6 +26,8 @@ Fixed
 - Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
 - Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
+- Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
+- Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
 
 - Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
@@ -54,6 +57,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
