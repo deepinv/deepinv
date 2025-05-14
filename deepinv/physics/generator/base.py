@@ -146,7 +146,7 @@ class PhysicsGenerator(nn.Module):
         params_sum = None
         keys = None
         n_processed = 0
-        while n_processed != n:
+        while n_processed < n:
             n_batch = min(n - n_processed, batch_size)
             params = self.step(batch_size=n_batch)
             n_processed += n_batch
