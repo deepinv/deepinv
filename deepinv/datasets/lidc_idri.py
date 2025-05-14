@@ -158,11 +158,22 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         slice_data = dcmread(slice_path)
 
         if self.hounsfield_units:
+            # NOTE: In version 3.0.0, `pydicom.pixel_data_handlers.apply_rescale`
+            # was moved to `pydicom.pixels.apply_rescale`.
+            # https://pydicom.github.io/pydicom/3.0/release_notes/v3.0.0.html
             # Raw CT values -> Hounsfield Units (HUs)
-            # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
-            slice_array = pydicom.pixels.apply_rescale(
-                slice_data.pixel_array, slice_data
-            )
+            # Source: https://pydicom.github.io/pydicom/3.0/tutorials/pixel_data/introduction.html
+            if hasattr(pydicom, "pixels"):
+                slice_array = pydicom.pixels.apply_rescale(
+                    slice_data.pixel_array, slice_data
+                )
+            else:
+                # NOTE: This is kept for backward compatibility with Python 3.9,
+                # as versions of pydicom before 3.0.0 only support versions of
+                # Python more recent than Python 3.10.
+                slice_array = pydicom.pixel_data_handlers.apply_rescale(
+                    slice_data.pixel_array, slice_data
+                )
 
             # NOTE: pydicom.pixels.apply_rescale returns float64 arrays. Most
             # applications do not need double precision so we cast it back to
