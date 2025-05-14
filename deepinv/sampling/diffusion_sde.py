@@ -33,7 +33,7 @@ class BaseSDE(nn.Module):
         drift: Callable,
         diffusion: Callable,
         solver: BaseSDESolver = None,
-        dtype=torch.float32,
+        dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
@@ -599,13 +599,13 @@ class PosteriorDiffusion(Reconstructor):
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
             score = (
-                self.sde.score(x, t, *args, **kwargs)
+                self.sde.score(x, t, *args, **kwargs).to(self.dtype)
                 - self.data_fidelity.grad(
-                    (x / scale).to(self.dtype),
-                    y.to(self.dtype),
+                    (x / scale),
+                    y,
                     physics=physics,
-                    sigma=sigma.to(self.dtype),
-                )
+                    sigma=sigma,
+                ).to(self.dtype)
                 / scale
             )
-            return score.to(self.dtype)
+            return score
