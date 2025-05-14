@@ -158,7 +158,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         slice_data = dcmread(slice_path)
 
         if self.hounsfield_units:
-            # NOTE: In version 3.0.0, `pydicom.pixel_data_handlers.apply_rescale`
+            # NOTE: In version 3.0.0, `pydicom.pixel_data_handlers.apply_rescale`
             # was moved to `pydicom.pixels.apply_rescale`.
             # https://pydicom.github.io/pydicom/3.0/release_notes/v3.0.0.html
             # Raw CT values -> Hounsfield Units (HUs)
