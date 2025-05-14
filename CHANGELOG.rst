@@ -23,6 +23,7 @@ Fixed
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
 - Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
+- Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
 
 
 v0.3
