@@ -79,7 +79,7 @@ denoisers = [
     "torchkbnufft",
     "libcpab",
     "sigpy",
-    "astra-toolbox>=2.3.1.post0",
+    "astra-toolbox>=2.2.0,!=2.3.0",
 ]
 
 # optional dependencies for specific datasets
