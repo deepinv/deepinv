@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pydicom
 import numpy as np
 import os
+import pytest
 
 def test_lidc():
     # 1. Empty csv
@@ -16,11 +17,8 @@ def test_lidc():
 
         dataset = LidcIdriSliceDataset(root="/dummy")
         assert len(dataset) == 0
-        try:
+        with pytest.raises(Exception):
             _ = dataset[0]
-            assert False
-        except:
-            pass
 
     # 2. Non-empty csv
     data = [
