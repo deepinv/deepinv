@@ -25,6 +25,8 @@ from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
 
+from unittest.mock import patch
+
 
 @pytest.fixture
 def download_div2k():
@@ -94,8 +96,6 @@ def download_set14():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        from unittest.mock import patch
-
         # A dummy PngImageFile
         import io
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
@@ -161,17 +161,29 @@ def test_load_cbsd68_dataset(download_cbsd68):
 @pytest.fixture
 def download_Kohler():
     """Download the Köhler dataset before a test and remove it after completion."""
-    root = "Kohler"
-    Kohler.download(root)
+    mock = True
+    if not mock:
+        root = "Kohler"
+        Kohler.download(root)
 
-    # Return the control flow to the test function
-    yield root
+        # Return the control flow to the test function
+        yield root
 
-    # Clean up the created directory
-    shutil.rmtree(root)
+        # Clean up the created directory
+        shutil.rmtree(root)
+    else:
+        # A dummy PngImageFile
+        import io
+        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+        buffer = io.BytesIO()
+        dummy_image.save(buffer, format="PNG")
+        buffer.seek(0)
+        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
+
+        with patch("PIL.Image.open", return_value=dummy_image):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Downloading Kohler dataset is unreliable for testing.")
 def test_load_Kohler_dataset(download_Kohler):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
