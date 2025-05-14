@@ -5,6 +5,8 @@ from typing import (
     Optional,
 )
 import os
+
+import numpy
 import torch
 import numpy as np
 
@@ -16,10 +18,11 @@ except:
         "pandas is not available. Please install the pandas package with `pip install pandas`."
     )
 try:
+    import pydicom
     from pydicom import dcmread
 except:
     error_import = ImportError(
-        "dicom is not available. Please install the dicom package with `pip install dicom`."
+        "pydicom is not available. Please install the pydicom package with `pip install pydicom`."
     )
 
 
@@ -52,6 +55,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param Callable transform:: (optional)  A function/transform that takes in a data sample and returns a transformed version.
+    :param bool hounsfield_units: If `True`, convert pixel values to `Hounsfield Units (HU) <https://en.wikipedia.org/wiki/Hounsfield_scale>`_. Default is `False`.
 
     |sep|
 
@@ -88,12 +92,14 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         self,
         root: str,
         transform: Optional[Callable] = None,
+        hounsfield_units: bool = False,
     ) -> None:
         if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 
         self.root = root
         self.transform = transform
+        self.hounsfield_units = hounsfield_units
 
         ### LOAD CSV to find CT scan folder paths --------------------------------------
 
@@ -149,11 +155,36 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         slice_fname, scan_folder_path, _ = self.sample_identifiers[idx]
         slice_path = os.path.join(scan_folder_path, slice_fname)
 
-        # type: numpy.ndarray
-        # dtype: int16
-        # shape: (512, 512)
-        # TODO : check impact of the conversion to np.int16
-        slice_array = dcmread(slice_path).pixel_array.astype(np.int16)
+        slice_data = dcmread(slice_path)
+
+        if self.hounsfield_units:
+            # Raw CT values -> Hounsfield Units (HUs)
+            # Source: https://pydicom.github.io/pydicom/dev/tutorials/pixel_data/introduction.html
+            slice_array = pydicom.pixels.apply_rescale(
+                slice_data.pixel_array, slice_data
+            )
+
+            # NOTE: pydicom.pixels.apply_rescale returns float64 arrays. Most
+            # applications do not need double precision so we cast it back to
+            # float32 for improved memory efficiency.
+
+            # float64 -> float32
+
+            # type: numpy.ndarray
+            # dtype: float32
+            # shape: (512, 512)
+            slice_array = slice_array.astype(np.float32)
+        else:
+            # NOTE: The dtype of slice_data.pixel_array varies from slice to slice.
+            # It is obtained from the associated DICOM (.dcm) file, and it is often
+            # int16 but sometimes uint16 (e.g., for idx = 11095).
+            # For homogeneity purposes, we cast them all to int16.
+
+            # type: numpy.ndarray
+            # dtype: int16
+            # shape: (512, 512)
+            slice_array = slice_data.pixel_array
+            slice_array = slice_array.astype(np.int16)
 
         if self.transform is not None:
             slice_array = self.transform(slice_array)
