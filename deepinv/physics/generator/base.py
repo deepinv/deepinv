@@ -95,14 +95,6 @@ class PhysicsGenerator(nn.Module):
 
         return self.step_func(batch_size, seed, **kwargs)
 
-    def average(self, n: int = 2000) -> Dict:
-        """Calculate average of physics generator.
-
-        :param int n: number of samples to average over, defaults to 2000
-        """
-        params = self.step(batch_size=n)
-        return {k: v.mean(0, keepdim=True) for (k, v) in params.items()}
-
     def rng_manual_seed(self, seed: Union[int, str] = None):
         r"""
         Sets the seed for the random number generator.
