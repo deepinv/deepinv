@@ -12,6 +12,7 @@ New Features
 ^^^^^^^^^^^^
 
 - Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
