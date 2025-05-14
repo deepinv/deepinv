@@ -543,7 +543,7 @@ def get_permutation_list(n):
 
     return rev2
 
-
+  
 def sequency_order(n):
     """
     Generate the sequency order for a given number of bits.
@@ -557,58 +557,3 @@ def sequency_order(n):
     G = G[:, ::-1]
     G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
     return G
-
-
-# test code
-# if __name__ == "__main__":
-#     import matplotlib.pyplot as plt
-#     import deepinv as dinv
-#     import torchvision
-#
-#     device = "cuda:0"
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#     x = torchvision.transforms.Resize((16, 8))(x)
-#
-#     m = 20
-#     physics = SinglePixelCamera(m, (3, 16, 8), fast=False, device=device)
-#
-#     y = physics(x)
-#
-#     xhat = physics.A_adjoint(y)
-#
-#     dinv.utils.plot([x, xhat])
-#
-#     print(physics.adjointness_test(x))
-#     print(physics.compute_norm(x))
-#     # mi = min(int(np.sqrt(m)), x.shape[-2])
-#     # mj = min(m - mi, x.shape[-2])
-#     #
-#     # revi = get_permutation_list(x.shape[-2])[:mi]
-#     # revj = get_permutation_list(x.shape[-1])[:mj]
-#     #
-#     # mask = torch.zeros_like(x)
-#     # for i in range(len(revi)):
-#     #     for j in range(len(revj)):
-#     #         mask[0, :, revi[i], revj[j]] = 1
-#     #
-#     # # generate low pass hadamard mask
-#     # f = hadamard_2d(x)
-#     # f = f * mask
-#     # out = hadamard_2d(f)
-#     #
-#     # dinv.utils.plot_batch([x, out, f])
-#     #
-#     # rev = get_permutation_list(8)
-#     # imgs = []
-#     # for i in range(8):
-#     #     y = torch.zeros((8, 1, 8, 8), device=dinv.device)
-#     #     for j in range(8):
-#     #         x = torch.zeros((8, 8), device=dinv.device)
-#     #         x[rev[i], rev[j]] = 1
-#     #         x = hadamard_2d(x)
-#     #         y[j, 0, :, :] = x
-#     #
-#     #     imgs.append(y)
-#     #
-#     # dinv.utils.plot_batch(imgs)
