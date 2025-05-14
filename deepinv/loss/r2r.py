@@ -27,14 +27,14 @@ class R2RLoss(Loss):
 
        * - Noise Model
          - :math:`p(y_1 \vert y,\alpha)`
-       * - :math:`y \sim \mathcal{N}(\mathbf{x}, I\sigma^2)`
+       * - :math:`y \sim \mathcal{N}(x, I\sigma^2)`
          - :math:`y_1 = y + \sqrt{\frac{\alpha}{1-\alpha}} \boldsymbol{\omega}, \quad \boldsymbol{\omega} \sim \mathcal{N}(0, I\sigma^2)`
-       * - :math:`\mathbf{z} \sim \mathcal{P}(\mathbf{x}/\gamma), \quad y = \gamma \mathbf{z}`
-         - :math:`y_1 = \frac{y - \gamma \boldsymbol{\omega}}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{Bin}(\mathbf{z}, \alpha)`
-       * - :math:`y \sim \mathcal{G}(\ell, \ell / \mathbf{x})`
+       * - :math:`z \sim \mathcal{P}(x/\gamma), \quad y = \gamma z`
+         - :math:`y_1 = \frac{y - \gamma \boldsymbol{\omega}}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{Bin}(z, \alpha)`
+       * - :math:`y \sim \mathcal{G}(\ell, \ell / x)`
          - :math:`y_1 = y \circ (\mathbf{1} - \boldsymbol{\omega}) / (1 - \alpha), \quad \boldsymbol{\omega} \sim \mathrm{Beta}(\ell\alpha, \ell(1 - \alpha))`
-       * - :math:`\mathbf{z} \sim \mathrm{Bin}(\ell, \mathbf{x}), \quad y = \mathbf{z} / \ell`
-         - :math:`y_1 = \frac{y - \boldsymbol{\omega} / \ell}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{HypGeo}(\ell, \ell\alpha, \mathbf{z})`
+       * - :math:`z \sim \mathrm{Bin}(\ell, x), \quad y = z / \ell`
+         - :math:`y_1 = \frac{y - \boldsymbol{\omega} / \ell}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{HypGeo}(\ell, \ell\alpha, z)`
 
     and
 
