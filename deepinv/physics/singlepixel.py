@@ -2,21 +2,22 @@ from deepinv.physics.forward import DecomposablePhysics
 import torch
 import numpy as np
 import warnings
+import math
 
 
 def hadamard_1d(u, normalize=True):
     """
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
 
-    :param torch.Tensor u: Input tensor of shape (..., n), where n must be a power of 2.
-    :param bool normalize: If True, divide the result by 2^{m/2} where m = log_2(n).
-    :return: The product tensor of shape (..., n).
-    :rtype: torch.Tensor
+    :param torch.Tensor u: Input tensor of shape ``(..., n)``.
+    :param bool normalize: If ``True``, divide the result by :math:`2^{m/2}`
+        with :math:`m = \log_2(n)`.  Defaults to ``True``.
+    :returns torch.Tensor: Tensor of shape ``(..., n)``.
     """
     n = u.shape[-1]
-    m = int(np.log2(n))
+    m = int(math.log2(n))
     assert n == 1 << m, "n must be a power of 2"
-    x = u[..., np.newaxis]
+    x = u.unsqueeze(-1)
     for d in range(m)[::-1]:
         x = torch.cat(
             (x[..., ::2, :] + x[..., 1::2, :], x[..., ::2, :] - x[..., 1::2, :]), dim=-1
@@ -392,8 +393,8 @@ class SinglePixelCamera(DecomposablePhysics):
 
             _, H, W = img_shape
 
-            assert H == 1 << int(np.log2(H)), "image height must be a power of 2"
-            assert W == 1 << int(np.log2(W)), "image width must be a power of 2"
+            assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
+            assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
 
             if ordering == "sequency":
                 mask = sequency_mask(img_shape, m)
@@ -417,14 +418,14 @@ class SinglePixelCamera(DecomposablePhysics):
             mask = mask.to(device)
 
         else:
-            n = int(np.prod(img_shape[1:]))
+            n = int(math.prod(img_shape[1:]))
             A = torch.where(
                 torch.randn((m, n), device=device, dtype=dtype, generator=self.rng)
                 > 0.5,
                 -1.0,
                 1.0,
             )
-            A /= np.sqrt(m)  # normalize
+            A /= math.sqrt(m)  # normalize
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
             mask = mask.to(device).unsqueeze(0).type(dtype)
@@ -523,21 +524,22 @@ def reverse(n, numbits):
     return sum(1 << (numbits - 1 - i) for i in range(numbits) if n >> i & 1)
 
 
-def get_permutation_list(n):
+
+def get_permutation_list(n, device="cpu"):
     """
     Generates a permutation list based on bit-reversal and Gray code decoding.
     This function creates a permutation list of integers from 0 to n-1. It first computes
     the bit-reversal of each integer and then applies a Gray code decoding to further
     permute the indices.
     :param int n: The size of the permutation list. Must be a power of 2.
-    :return: A NumPy array containing the permuted indices.
-    :rtype: numpy.ndarray
+    :return: A torch tensor containing the permuted indices.
+    :rtype: torch.Tensor
     """
-    rev = np.zeros((n), dtype=int)
+    rev = torch.zeros((n), dtype=int, device=device)
     for l in range(n):
-        rev[l] = reverse(l, np.log2(n).astype(int))
+        rev[l] = reverse(l, int(math.log2(n)))
 
-    rev2 = np.zeros_like(rev)
+    rev2 = torch.zeros_like(rev)
     for l in range(n):
         rev2[l] = rev[gray_decode(l)]
 
