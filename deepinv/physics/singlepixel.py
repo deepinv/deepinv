@@ -524,7 +524,6 @@ def reverse(n, numbits):
     return sum(1 << (numbits - 1 - i) for i in range(numbits) if n >> i & 1)
 
 
-
 def get_permutation_list(n, device="cpu"):
     """
     Generates a permutation list based on bit-reversal and Gray code decoding.

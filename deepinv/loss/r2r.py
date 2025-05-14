@@ -18,7 +18,7 @@ class R2RLoss(Loss):
     .. math::
 
         y_1 \sim p(y_1 \vert y, \alpha),
-        
+
     where
 
     .. list-table::
