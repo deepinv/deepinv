@@ -557,3 +557,4 @@ def sequency_order(n):
     G = G[:, ::-1]
     G = np.dot(G, 2 ** np.arange(G.shape[1] - 1, -1, -1)).astype(np.int32)
     return G
+    
