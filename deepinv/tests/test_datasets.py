@@ -98,15 +98,20 @@ def download_set14():
     else:
         # A dummy PngImageFile
         import io
+
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
         buffer = io.BytesIO()
         dummy_image.save(buffer, format="PNG")
         buffer.seek(0)
         dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
 
-        with patch("deepinv.datasets.set14.Set14HR.check_dataset_exists", return_value=True), \
-                patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]), \
-                patch("PIL.Image.open", return_value=dummy_image):
+        with (
+            patch(
+                "deepinv.datasets.set14.Set14HR.check_dataset_exists", return_value=True
+            ),
+            patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]),
+            patch("PIL.Image.open", return_value=dummy_image),
+        ):
             yield "/dummy"
 
 
@@ -174,6 +179,7 @@ def download_Kohler():
     else:
         # A dummy PngImageFile
         import io
+
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
         buffer = io.BytesIO()
         dummy_image.save(buffer, format="PNG")

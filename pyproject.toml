@@ -85,7 +85,7 @@ denoisers = [
 dataset = [
     "datasets",
     "pandas",
-    "pydicom",
+    "pydicom>=3.0.1",
     "mat73",
 ]
 
