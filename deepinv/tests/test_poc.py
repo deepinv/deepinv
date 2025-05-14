@@ -44,10 +44,27 @@ def test_lidc():
     with patch("os.path.isdir", return_value=True), \
          patch("os.path.exists", return_value=True), \
          patch("pandas.read_csv", return_value=dummy_df), \
-         patch("os.listdir", return_value=["Slice1.dcm"]), \
+         patch("os.listdir", return_value=["Slice1.dcm", "Slice2.dcm"]), \
          patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom):
         dataset = LidcIdriSliceDataset(root="/dummy")
-        assert len(dataset) == 3
+        assert len(dataset) == 6
         im = dataset[0]
         assert isinstance(im, np.ndarray)
         assert im.ndim == 2
+
+        # Test Hounsfield units
+        dataset = LidcIdriSliceDataset(root="/dummy", hounsfield_units=True)
+        assert len(dataset) == 6
+        im = dataset[0]
+        assert isinstance(im, np.ndarray)
+        assert im.ndim == 2
+
+        # Test transform
+        called = False
+        def transform(x):
+            nonlocal called
+            called = True
+            return x
+        dataset = LidcIdriSliceDataset(root="/dummy", transform=transform)
+        im = dataset[0]
+        assert called
