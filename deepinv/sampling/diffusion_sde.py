@@ -33,7 +33,7 @@ class BaseSDE(nn.Module):
         drift: Callable,
         diffusion: Callable,
         solver: BaseSDESolver = None,
-        dtype=torch.float32,
+        dtype=torch.float64,
         device=torch.device("cpu"),
         *args,
         **kwargs,
@@ -238,7 +238,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     def __init__(
         self,
         denoiser: nn.Module = None,
-        sigma_min: float = 0.02,
+        sigma_min: float = 0.005,
         sigma_max: float = 100,
         alpha: float = 1.0,
         solver: BaseSDESolver = None,
@@ -347,8 +347,8 @@ class VariancePreservingDiffusion(DiffusionSDE):
     def __init__(
         self,
         denoiser: Denoiser = None,
-        beta_min: float = 0.1,
-        beta_max: float = 20.0,
+        beta_min: float = 0.0001,
+        beta_max: float = 5.0,
         alpha: float = 1.0,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
@@ -598,10 +598,14 @@ class PosteriorDiffusion(Reconstructor):
         else:
             sigma = self.sde.sigma_t(t)
             scale = self.sde.scale_t(t)
-            score = self.sde.score(x, t, *args, **kwargs) - self.data_fidelity.grad(
-                (x / scale).to(torch.float32),
-                y.to(torch.float32),
-                physics=physics,
-                sigma=sigma.to(torch.float32),
+            score = (
+                self.sde.score(x, t, *args, **kwargs).to(self.dtype)
+                - self.data_fidelity.grad(
+                    (x / scale),
+                    y,
+                    physics=physics,
+                    sigma=sigma,
+                ).to(self.dtype)
+                / scale
             )
-            return score.to(self.dtype)
+            return score
