@@ -30,6 +30,16 @@ from deepinv.physics.generator import GaussianMaskGenerator
 
 from unittest.mock import patch
 import unittest.mock as mock
+import io
+
+
+def get_dummy_pil_png_image():
+    """Generates a dummy PIL image for testing."""
+    im = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+    buffer = io.BytesIO()
+    im.save(buffer, format="PNG")
+    buffer.seek(0)
+    return PIL.PngImagePlugin.PngImageFile(buffer)
 
 
 @pytest.fixture
@@ -100,21 +110,12 @@ def download_set14():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        # A dummy PngImageFile
-        import io
-
-        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-        buffer = io.BytesIO()
-        dummy_image.save(buffer, format="PNG")
-        buffer.seek(0)
-        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
-
         with (
             patch(
                 "deepinv.datasets.set14.Set14HR.check_dataset_exists", return_value=True
             ),
             patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]),
-            patch("PIL.Image.open", return_value=dummy_image),
+            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -147,22 +148,13 @@ def download_flickr2khr():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        # A dummy PngImageFile
-        import io
-
-        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-        buffer = io.BytesIO()
-        dummy_image.save(buffer, format="PNG")
-        buffer.seek(0)
-        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
-
         with (
             patch(
                 "deepinv.datasets.flickr2k.Flickr2kHR.check_dataset_exists",
                 return_value=True,
             ),
             patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]),
-            patch("PIL.Image.open", return_value=dummy_image),
+            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -228,16 +220,7 @@ def download_Kohler():
         # Clean up the created directory
         shutil.rmtree(root)
     else:
-        # A dummy PngImageFile
-        import io
-
-        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-        buffer = io.BytesIO()
-        dummy_image.save(buffer, format="PNG")
-        buffer.seek(0)
-        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
-
-        with patch("PIL.Image.open", return_value=dummy_image):
+        with patch("PIL.Image.open", return_value=get_dummy_pil_png_image()):
             yield "/dummy"
 
 
@@ -289,18 +272,9 @@ def download_lsdir():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        # A dummy PngImageFile
-        import io
-
-        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-        buffer = io.BytesIO()
-        dummy_image.save(buffer, format="PNG")
-        buffer.seek(0)
-        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
-
         with (
             patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 251)]),
-            patch("PIL.Image.open", return_value=dummy_image),
+            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -338,17 +312,9 @@ def download_fmd():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
-        import io
-
-        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
-        buffer = io.BytesIO()
-        dummy_image.save(buffer, format="PNG")
-        buffer.seek(0)
-        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
-
         with (
             patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 51)]),
-            patch("PIL.Image.open", return_value=dummy_image),
+            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
