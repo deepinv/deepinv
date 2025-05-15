@@ -21,6 +21,7 @@ from deepinv.datasets import (
     CMRxReconSliceDataset,
     NBUDataset,
     LidcIdriSliceDataset,
+    Flickr2kHR,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
@@ -125,6 +126,52 @@ def test_load_set14_dataset(download_set14, transform):
     assert (
         len(dataset) == 14
     ), f"Dataset should have been of len 14, instead got {len(dataset)}."
+    assert (
+        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
+    ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_flickr2khr():
+    """Download or mock Flickr2kHR before testing"""
+    mocked = True
+    if not mocked:
+        tmp_data_dir = "Flickr2kHR"
+
+        # Download Set14 raw dataset
+        Flickr2kHR(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        # A dummy PngImageFile
+        import io
+
+        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+        buffer = io.BytesIO()
+        dummy_image.save(buffer, format="PNG")
+        buffer.seek(0)
+        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
+
+        with (
+            patch(
+                "deepinv.datasets.flickr2k.Flickr2kHR.check_dataset_exists",
+                return_value=True,
+            ),
+            patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]),
+            patch("PIL.Image.open", return_value=dummy_image),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_Flickr2kHR_dataset(download_flickr2khr, transform):
+    """Test the dataset"""
+    dataset = Flickr2kHR(download_flickr2khr, transform=transform, download=False)
+    assert len(dataset) == 100, f"The dataset should have 100 images"
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
