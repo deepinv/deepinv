@@ -6,6 +6,7 @@ import torch
 
 import torch
 from torch import Tensor
+import numpy as np
 
 from deepinv.datasets import (
     DIV2K,
@@ -19,6 +20,7 @@ from deepinv.datasets import (
     SimpleFastMRISliceDataset,
     CMRxReconSliceDataset,
     NBUDataset,
+    LidcIdriSliceDataset,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
@@ -322,6 +324,51 @@ def test_load_fmd_dataset(download_fmd, transform, target_transform):
     assert (
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def mock_lidc_idri():
+    """Mock the LIDC-IDRI dataset"""
+    import pandas as pd
+    import pydicom
+
+    data = [["CT", f"Dummy_ID_{i}", f"/dummy/Scan{i}"] for i in range(1, 1019)]
+    dummy_df = pd.DataFrame(data, columns=["Modality", "Subject ID", "File Location"])
+    # Generated using pydicomgenerator
+    # https://github.com/sjoerdk/dicomgenerator
+    dummy_dicom = pydicom.dcmread(
+        os.path.join(os.path.dirname(__file__), "dicomgenerator_dummy.dcm")
+    )
+
+    # NOTE: dicomgenerator_dummy.dcm lacks a TransferSyntaxUID attribute.
+    # We monkey patch it to make the test work.
+    dummy_dicom.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+
+    # NOTE: In lidc_idri, dcmread is imported from pydicom and stored to a variable.
+    # This means that it cannot be mocked by patching pydicom.dcmread. Instead,
+    # we patch the variable from the lidc_module directly.
+    with (
+        patch("os.path.isdir", return_value=True),
+        patch("os.path.exists", return_value=True),
+        patch("pandas.read_csv", return_value=dummy_df),
+        patch("os.listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
+        patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
+    ):
+        yield "/dummy"
+
+
+# NOTE: The LIDC-IDRI needs to be downloaded manually.
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+@pytest.mark.parametrize("hounsfield_units", [False, True])
+def test_load_lidc_idri_dataset(mock_lidc_idri, transform, hounsfield_units):
+    """Test the LIDC-IDRI dataset."""
+    dataset = LidcIdriSliceDataset(
+        root=mock_lidc_idri, transform=transform, hounsfield_units=hounsfield_units
+    )
+    assert len(dataset) >= 1018, f"Dataset should have at least 1018 elements."
+    assert (
+        type(dataset[0]) == np.ndarray
+    ), "Dataset image should have been a numpy array."
 
 
 @pytest.fixture
