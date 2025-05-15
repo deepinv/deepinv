@@ -25,6 +25,7 @@ Fixed
 - Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Improved code coverage by mocking datasets (:gh:`490` by `Jérémy Scanvic`_)
 
 
 v0.3
