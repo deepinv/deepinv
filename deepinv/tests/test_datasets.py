@@ -253,26 +253,49 @@ def test_load_lsdir_dataset(download_lsdir):
 @pytest.fixture
 def download_fmd():
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "FMD"
+    mocked = True
+    if not mocked:
+        tmp_data_dir = "FMD"
 
-    # indicates which subsets we want to download
-    types = ["TwoPhoton_BPAE_R"]
+        # indicates which subsets we want to download
+        types = ["TwoPhoton_BPAE_R"]
 
-    # Download FMD raw dataset
-    FMD(tmp_data_dir, img_types=types, download=True)
+        # Download FMD raw dataset
+        FMD(tmp_data_dir, img_types=types, download=True)
 
-    # This will return control to the test function
-    yield tmp_data_dir
+        # This will return control to the test function
+        yield tmp_data_dir
 
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        import io
+
+        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+        buffer = io.BytesIO()
+        dummy_image.save(buffer, format="PNG")
+        buffer.seek(0)
+        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
+
+        with (
+            patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 51)]),
+            patch("PIL.Image.open", return_value=dummy_image),
+        ):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Downloading FMD dataset is unreliable for testing.")
-def test_load_fmd_dataset(download_fmd):
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+@pytest.mark.parametrize("target_transform", [None, lambda x: x])
+def test_load_fmd_dataset(download_fmd, transform, target_transform):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
     types = ["TwoPhoton_BPAE_R"]
-    dataset = FMD(download_fmd, img_types=types, download=True)
+    dataset = FMD(
+        download_fmd,
+        img_types=types,
+        transform=transform,
+        target_transform=target_transform,
+        download=False,
+    )
     assert (
         len(dataset) == 5000
     ), f"Dataset should have been of len 5000, instead got {len(dataset)}."
