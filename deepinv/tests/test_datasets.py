@@ -181,7 +181,6 @@ def download_Kohler():
     else:
         # A dummy PngImageFile
         import io
-
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
         buffer = io.BytesIO()
         dummy_image.save(buffer, format="PNG")
@@ -224,27 +223,43 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, transform):
         ), "The blurry frame is unexpectedly not a PIL image."
 
 
+@pytest.fixture
 def download_lsdir():
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "LSDIR"
+    mocked = True
+    if not mocked:
+        tmp_data_dir = "LSDIR"
 
-    # Download LSDIR raw dataset
-    LsdirHR(tmp_data_dir, mode="val", download=True)
+        # Download LSDIR raw dataset
+        LsdirHR(tmp_data_dir, mode="val", download=True)
 
-    # This will return control to the test function
-    yield tmp_data_dir
+        # This will return control to the test function
+        yield tmp_data_dir
 
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        # A dummy PngImageFile
+        import io
+        dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+        buffer = io.BytesIO()
+        dummy_image.save(buffer, format="PNG")
+        buffer.seek(0)
+        dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
 
+        with patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 251)]), \
+            patch("PIL.Image.open", return_value=dummy_image):
+            yield "/dummy"
 
-@pytest.mark.skip(reason="Skipping this test for now, url links are not working")
-def test_load_lsdir_dataset(download_lsdir):
+@pytest.mark.parametrize("mode", ["train", "val"])
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_lsdir_dataset(download_lsdir, mode, transform):
     """Check that dataset contains 250 PIL images."""
-    dataset = LsdirHR(download_lsdir, mode="val", download=False)
-    assert (
-        len(dataset) == 250
-    ), f"Dataset should have been of len 250, instead got {len(dataset)}."
+    dataset = LsdirHR(download_lsdir, mode=mode, transform=transform, download=False)
+    if mode == "val":
+        assert (
+            len(dataset) == 250
+        ), f"Dataset should have been of len 250, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
