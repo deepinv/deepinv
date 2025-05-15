@@ -181,6 +181,7 @@ def download_Kohler():
     else:
         # A dummy PngImageFile
         import io
+
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
         buffer = io.BytesIO()
         dummy_image.save(buffer, format="PNG")
@@ -241,15 +242,19 @@ def download_lsdir():
     else:
         # A dummy PngImageFile
         import io
+
         dummy_image = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
         buffer = io.BytesIO()
         dummy_image.save(buffer, format="PNG")
         buffer.seek(0)
         dummy_image = PIL.PngImagePlugin.PngImageFile(buffer)
 
-        with patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 251)]), \
-            patch("PIL.Image.open", return_value=dummy_image):
+        with (
+            patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 251)]),
+            patch("PIL.Image.open", return_value=dummy_image),
+        ):
             yield "/dummy"
+
 
 @pytest.mark.parametrize("mode", ["train", "val"])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
