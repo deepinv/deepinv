@@ -26,6 +26,7 @@ from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
 
 from unittest.mock import patch
+import unittest.mock as mock
 
 
 @pytest.fixture
@@ -192,11 +193,14 @@ def download_Kohler():
 
 @pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
 @pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
-def test_load_Kohler_dataset(download_Kohler, frames, ordering):
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_Kohler_dataset(download_Kohler, frames, ordering, transform):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
-    dataset = Kohler(root=root, frames=frames, ordering=ordering, download=False)
+    dataset = Kohler(
+        root=root, frames=frames, ordering=ordering, transform=transform, download=False
+    )
 
     assert (
         len(dataset) == 48
