@@ -116,9 +116,10 @@ def download_set14():
             yield "/dummy"
 
 
-def test_load_set14_dataset(download_set14):
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_set14_dataset(download_set14, transform):
     """Check that dataset contains 14 PIL images."""
-    dataset = Set14HR(download_set14, download=False)
+    dataset = Set14HR(download_set14, transform=transform, download=False)
     assert (
         len(dataset) == 14
     ), f"Dataset should have been of len 14, instead got {len(dataset)}."
