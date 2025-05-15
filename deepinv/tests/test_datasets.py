@@ -190,35 +190,33 @@ def download_Kohler():
             yield "/dummy"
 
 
-def test_load_Kohler_dataset(download_Kohler):
+@pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
+@pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
+def test_load_Kohler_dataset(download_Kohler, frames, ordering):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
-    dataset = Kohler(
-        root=root, frames="middle", ordering="printout_first", download=False
-    )
-    x1, y1 = dataset.get_item(1, 1, "middle")
-    x2, y2 = dataset[0]
+    dataset = Kohler(root=root, frames=frames, ordering=ordering, download=False)
 
     assert (
         len(dataset) == 48
     ), f"The dataset should have been of len 48, instead got {len(dataset)}."
 
-    assert (
-        type(x1) == PIL.PngImagePlugin.PngImageFile
-    ), "The sharp frame is unexpectedly not a PIL image."
+    data_points = [dataset[0], dataset.get_item(1, 1, frames)]
 
-    assert (
-        type(y1) == PIL.PngImagePlugin.PngImageFile
-    ), "The blurry frame is unexpectedly not a PIL image."
+    for sharp_frame, blurry_shot in data_points:
+        if frames != "all":
+            assert (
+                type(sharp_frame) == PIL.PngImagePlugin.PngImageFile
+            ), "The sharp frame is unexpectedly not a PIL image."
+        else:
+            assert isinstance(
+                sharp_frame, list
+            ), "The sharp frames are unexpectedly not a list."
 
-    assert (
-        type(x2) == PIL.PngImagePlugin.PngImageFile
-    ), "The sharp frame is unexpectedly not a PIL image."
-
-    assert (
-        type(y2) == PIL.PngImagePlugin.PngImageFile
-    ), "The blurry frame is unexpectedly not a PIL image."
+        assert (
+            type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
+        ), "The blurry frame is unexpectedly not a PIL image."
 
 
 def download_lsdir():
