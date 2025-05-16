@@ -16,6 +16,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_). 
 
 Fixed
 ^^^^^
@@ -23,6 +24,7 @@ Fixed
 - Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
 - Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
 - Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
+- Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
 
