@@ -464,14 +464,14 @@ def download_fastmri():
 
 @pytest.mark.parametrize("test", [True, False])
 @pytest.mark.parametrize("slice_index", ["all", "random", "middle", 0, -1])
-@pytest.mark.parametrize("subsampled_volumes", [0.5, 1.0])
+@pytest.mark.parametrize("subsample_volumes", [0.5, 1.0])
 @pytest.mark.parametrize("transform_kspace", [None, lambda x: x])
 @pytest.mark.parametrize("transform_target", [None, lambda x: x])
 def test_FastMRISliceDataset(
     download_fastmri,
     test,
     slice_index,
-    subsampled_volumes,
+    subsample_volumes,
     transform_kspace,
     transform_target,
 ):
@@ -490,7 +490,7 @@ def test_FastMRISliceDataset(
         root=data_dir,
         test=test,
         slice_index=slice_index,
-        subsampled_volumes=subsampled_volumes,
+        subsample_volumes=subsample_volumes,
         transform_kspace=transform_kspace,
         transform_target=transform_target,
         save_metadata_to_cache=True,
@@ -502,7 +502,7 @@ def test_FastMRISliceDataset(
         root=data_dir,
         test=test,
         slice_index=slice_index,
-        subsampled_volumes=subsampled_volumes,
+        subsample_volumes=subsample_volumes,
         transform_kspace=transform_kspace,
         transform_target=transform_target,
         save_metadata_to_cache=True,
