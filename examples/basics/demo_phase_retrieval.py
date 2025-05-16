@@ -22,7 +22,7 @@ from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP, Zero
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
@@ -46,10 +46,13 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # Image size
 img_size = 32
-url = get_image_url("SheppLogan.png")
 # The pixel values of the image are in the range [0, 1].
-x = load_url_image(
-    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+x = load_example(
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 print(x.min(), x.max())
 

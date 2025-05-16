@@ -60,10 +60,9 @@ and the prior is implicitly defined by a median filter denoiser, can be implemen
 
 
     >>> import deepinv as dinv
-    >>> from deepinv.utils import load_url_image
+    >>> from deepinv.utils import load_example
     >>>
-    >>> url = ("https://huggingface.co/datasets/deepinv/images/resolve/main/cameraman.png?download=true")
-    >>> x = load_url_image(url=url, img_size=512, grayscale=True, device='cpu')
+    >>> x = load_example("cameraman.png", img_size=512, grayscale=True, device='cpu')
     >>>
     >>> physics = dinv.physics.Inpainting((1, 512, 512), mask = 0.5,
     ...                                    noise_model=dinv.physics.GaussianNoise(sigma=0.01))

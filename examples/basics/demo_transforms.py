@@ -38,7 +38,7 @@ First, load a sample image.
 import deepinv as dinv
 from torchvision.transforms import Compose, ColorJitter, RandomErasing, Resize
 
-x = dinv.utils.load_url_image(dinv.utils.demo.get_image_url("celeba_example.jpg"))
+x = dinv.utils.load_example("celeba_example.jpg")
 
 # Random roto-scale with random masking
 transform = Compose(

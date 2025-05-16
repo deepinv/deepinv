@@ -2,7 +2,7 @@ import pytest
 import torch
 import deepinv as dinv
 import deepinv.loss.metric as metric
-from deepinv.utils.demo import get_image_url, load_url_image
+from deepinv.utils.demo import load_example
 
 METRICS = [
     "MAE",
@@ -19,6 +19,7 @@ METRICS = [
     "NIQE",
     "ERGAS",
     "SAM",
+    "HaarPSI",
 ]
 FUNCTIONALS = ["cal_mse", "cal_mae", "cal_psnr"]
 
@@ -58,26 +59,31 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
     elif metric_name == "QNR":
         return metric.QNR()
     elif metric_name == "ERGAS":
-        return metric.ERGAS(factor=4)
+        return metric.ERGAS(factor=4, **kwargs)
     elif metric_name == "SAM":
-        return metric.SpectralAngleMapper()
+        return metric.SpectralAngleMapper(**kwargs)
+    elif metric_name == "HaarPSI":
+        kwargs.pop("norm_inputs")
+        return metric.HaarPSI(norm_inputs="clip", **kwargs)
+    else:
+        raise ValueError("Incorrect metric name.")
 
 
 @pytest.mark.parametrize("metric_name", METRICS)
-@pytest.mark.parametrize("complex_abs", [True])
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
-def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device):
+@pytest.mark.parametrize("channels", [1, 2, 3])
+def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
     m = choose_metric(
         metric_name,
         device,
-        complex_abs=complex_abs,
+        complex_abs=channels == 2,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
         reduction="mean",
     )
-    x = load_url_image(
-        get_image_url("celeba_example.jpg"),
+    x = load_example(
+        "celeba_example.jpg",
         img_size=128,
         resize_mode="resize",
         device=device,
@@ -90,8 +96,10 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device)
         assert 0 < m(x_net=x_hat, y=y, physics=physics).item() < 1
         return
 
-    if complex_abs:
-        x = x[:, :2, ...]
+    x = x[:, :channels]
+
+    if metric_name in ("SAM", "ERGAS") and channels < 3:
+        pytest.skip("ERGAS or SAM must have multichannels.")
 
     x_hat = dinv.physics.GaussianNoise(sigma=0.1, rng=rng)(x)
 
@@ -111,16 +119,17 @@ def test_metrics(metric_name, complex_abs, train_loss, norm_inputs, rng, device)
     assert m2(x_hat, x) == m(x_hat, x) + 1
 
     # Test no reduce works
-    x_hat = torch.cat([x_hat] * 3)
+    B = 5
+    x_hat = torch.cat([x_hat] * B)
     m = choose_metric(
         metric_name,
         device,
-        complex_abs=complex_abs,
+        complex_abs=channels == 2,
         train_loss=train_loss,
         norm_inputs=norm_inputs,
         reduction="none",
     )
-    assert len(m(x_hat, x_hat)) == 3
+    assert len(m(x_hat, x_hat)) == B
 
 
 @pytest.mark.parametrize("functional_name", FUNCTIONALS)

@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot_inset
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 
 # %%
 # Load test images
@@ -36,9 +36,8 @@ dtype = torch.float32
 device = "cpu"
 img_size = (173, 125)
 
-url = get_image_url("CBSD_0010.png")
-image = load_url_image(
-    url, grayscale=False, device=device, dtype=dtype, img_size=img_size
+image = load_example(
+    "CBSD_0010.png", grayscale=False, device=device, dtype=dtype, img_size=img_size
 )
 
 # Next, set the global random seed from pytorch to ensure reproducibility of the example.

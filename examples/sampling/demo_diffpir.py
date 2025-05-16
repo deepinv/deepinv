@@ -14,7 +14,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 
 # Use matplotlib config from deepinv to get nice plots
 from deepinv.utils.plotting import config_matplotlib
@@ -37,9 +37,7 @@ config_matplotlib()
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(1)
 
-url = get_image_url("69037.png")
-
-x_true = load_url_image(url=url, img_size=256, device=device)
+x_true = load_example("69037.png", img_size=256, device=device)
 
 x = x_true.clone()
 mask = torch.ones_like(x)

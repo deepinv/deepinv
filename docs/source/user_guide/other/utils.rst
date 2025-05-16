@@ -77,6 +77,8 @@ We provide some useful utility and demo functions:
      - Get URL for degradation from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_url_image`
      - Loads an image directly from a URL for experiments or demos.
+   * - :func:`deepinv.utils.load_example`
+     - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
    * - :func:`deepinv.utils.load_image`
      - Loads a local image file for experiments or demos.
    * - :func:`deepinv.utils.load_dataset`

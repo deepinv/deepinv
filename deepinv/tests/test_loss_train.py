@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles, DummyModel
 from deepinv.unfolded import unfolded_builder
 from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
 from deepinv.physics.generator import (
