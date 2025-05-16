@@ -430,3 +430,15 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+
+class Identity(Transform):
+    """
+    Identity transform i.e. trivial group.
+    """
+
+    def _get_params(self, *args):
+        return {}
+
+    def _transform(self, x, **params):
+        return x
