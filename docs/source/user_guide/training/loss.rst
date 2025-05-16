@@ -74,6 +74,9 @@ of the forward operator (e.g., incomplete operators with less measurements than 
    * - :class:`deepinv.loss.ScoreLoss`
      - Poisson, Gaussian or Gamma noise
      - No
+   * - :class:`deepinv.loss.SureGaussianLoss`
+     - Gaussian noise and multiple forward operators
+     - No
 
 In order to learn from incomplete data, you can either:
 
@@ -111,6 +114,21 @@ In order to learn from incomplete data, you can either:
        Splitting losses such as :class:`SplittingLoss <deepinv.loss.SplittingLoss>`, :class:`Phase2PhaseLoss <deepinv.loss.Phase2PhaseLoss>`,
        and :class:`Artifact2ArtifactLoss <deepinv.loss.Artifact2ArtifactLoss>`
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
+
+.. _mri-losses:
+
+Specialized losses for MRI
+--------------------------
+
+Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
+
+.. list-table:: MRI specialized losses
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.mri.ENSURELoss`
+     - Gaussian SURE but for rank-deficient multiple operators.
 
 .. _regularization-losses:
 
@@ -177,3 +195,5 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
+
+
