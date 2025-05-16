@@ -422,12 +422,19 @@ def download_simplefastmri():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_SimpleFastMRISliceDataset(download_simplefastmri):
+@pytest.mark.parametrize("anatomy", ["knee", "brain"])
+@pytest.mark.parametrize("train", [True, False])
+@pytest.mark.parametrize("sample_index", [None, 0, -1])
+@pytest.mark.parametrize("train_percent", [0.5, 1.0])
+def test_SimpleFastMRISliceDataset(
+    download_simplefastmri, anatomy, train, sample_index, train_percent
+):
     dataset = SimpleFastMRISliceDataset(
         root_dir=download_simplefastmri,
-        anatomy="knee",
-        train=True,
-        train_percent=1.0,
+        anatomy=anatomy,
+        train=train,
+        sample_index=sample_index,
+        train_percent=train_percent,
         download=False,
     )
     x = dataset[0]
