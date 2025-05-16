@@ -97,8 +97,7 @@ def test_load_urban100_dataset(download_urban100):
 @pytest.fixture
 def download_set14():
     """Downloads dataset for tests and removes it after test executions."""
-    mocked = True
-    if not mocked:
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         tmp_data_dir = "Set14"
 
         # Download Set14 raw dataset
@@ -135,8 +134,7 @@ def test_load_set14_dataset(download_set14, transform):
 @pytest.fixture
 def download_flickr2khr():
     """Download or mock Flickr2kHR before testing"""
-    mocked = True
-    if not mocked:
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         tmp_data_dir = "Flickr2kHR"
 
         # Download Set14 raw dataset
@@ -209,8 +207,7 @@ def test_load_cbsd68_dataset(download_cbsd68):
 @pytest.fixture
 def download_Kohler():
     """Download the Köhler dataset before a test and remove it after completion."""
-    mock = True
-    if not mock:
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         root = "Kohler"
         Kohler.download(root)
 
@@ -259,8 +256,7 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering, transform):
 @pytest.fixture
 def download_lsdir():
     """Downloads dataset for tests and removes it after test executions."""
-    mocked = True
-    if not mocked:
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         tmp_data_dir = "LSDIR"
 
         # Download LSDIR raw dataset
@@ -296,8 +292,7 @@ def test_load_lsdir_dataset(download_lsdir, mode, transform):
 @pytest.fixture
 def download_fmd():
     """Downloads dataset for tests and removes it after test executions."""
-    mocked = True
-    if not mocked:
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         tmp_data_dir = "FMD"
 
         # indicates which subsets we want to download
