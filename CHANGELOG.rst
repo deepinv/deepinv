@@ -29,6 +29,7 @@ Fixed
 - Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 
 
 v0.3
