@@ -106,7 +106,8 @@ In order to learn from incomplete data, you can either:
      - Splitting loss but across time dimension
    * - :class:`deepinv.loss.TVLoss`
      - Assumes images have piecewise smooth regions; based on Total Variation regularization
-
+   * - :class:`deepinv.loss.AugmentConsistencyLoss`
+     - Assumes consistency to data augmentations.
 
 .. tip::
 

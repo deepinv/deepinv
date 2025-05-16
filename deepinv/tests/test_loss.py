@@ -20,6 +20,7 @@ LOSSES = [
     "mcei-scale",
     "mcei-homography",
     "r2r",
+    "vortex",  
     "ensure",
     "ensure_mri",
 ]
@@ -135,6 +136,12 @@ def choose_loss(loss_name, rng=None, imsize=None):
         )
     elif loss_name == "ensure_mri":
         loss = []  # defer
+    elif loss_name == "vortex":
+        loss.append(
+            dinv.loss.AugmentConsistencyLoss(
+                T_i=dinv.transform.RandomNoise(), T_e=dinv.transform.Shift()
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
