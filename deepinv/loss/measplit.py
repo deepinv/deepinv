@@ -202,7 +202,7 @@ class SplittingLoss(Loss):
             )
 
     class SplittingModel(Reconstructor):
-        """
+        r"""
         Model wrapper when using SplittingLoss.
 
         Performs input splitting during forward pass. At evaluation,
