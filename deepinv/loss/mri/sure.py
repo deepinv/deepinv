@@ -7,6 +7,7 @@ import torch
 from deepinv.physics.mri import MRI, MRIMixin
 from deepinv.physics.inpainting import Inpainting
 from deepinv.loss.sure import SureGaussianLoss
+from deepinv.models.artifactremoval import ArtifactRemoval
 
 if TYPE_CHECKING:
     from deepinv.physics.generator.base import PhysicsGenerator
@@ -32,7 +33,8 @@ class ENSURELoss(SureGaussianLoss):
         \frac{1}{m}\|\Beta(A^{\dagger}y - \inverse{y})\|_2^2 +\frac{2\sigma^2}{m\tau}b^{\top} \left(\inverse{A^{\top}y+\tau b_i} -
         \inverse{A^{\top}y}\right)
 
-    where :math:`R` is the trainable network, :math:`A` is the forward operator,
+    where :math:`R` is the trainable network (which takes :math:`A^\top y` as input),
+    :math:`A` is the forward operator,
     :math:`y` is the noisy measurement vector of size :math:`m`,
     :math:`b\sim\mathcal{N}(0,I)`, :math:`\tau\geq 0` is a hyperparameter controlling the
     Monte Carlo approximation of the divergence, and :math:`\Beta=W^{-1}P`
@@ -42,7 +44,9 @@ class ENSURELoss(SureGaussianLoss):
 
     .. warning::
 
-        This loss only applies to models which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
+        This loss was originally proposed only to be used with :class:`artifact removal models <deepinv.model.ArtifactRemoval>` which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
+        If an artifact removal model is not used, then we input to network instead :math:`A A^\top\cdot` (assuming that :math:`A A^\top=I`).
+
         We currently only provide an implementation for :class:`single-coil MRI <deepinv.physics.MRI>` and :class:`inpainting <deepinv.physics.Inpainting>`,
         where `A^\top=A^\dagger` such that :math:`P=A^{\top}A,W^2=\mathbb{E}\left[P\right]`.
 
@@ -77,7 +81,13 @@ class ENSURELoss(SureGaussianLoss):
         :param torch.nn.Module f: Reconstruction network.
         """
         b = torch.empty_like(y).normal_(generator=self.rng)
-        x2 = f(physics.A(physics.A_adjoint(y) + b * self.tau), physics)
+        u = physics.A_adjoint(y) + b * self.tau
+
+        if isinstance(f, ArtifactRemoval):
+            x2 = f.backbone_inference(u, physics, None)
+        else:
+            x2 = f(physics.A(u), physics)
+
         return (b * (x2 - x_net) / self.tau).reshape(y.size(0), -1).mean(1)
 
     def forward(

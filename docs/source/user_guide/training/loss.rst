@@ -115,6 +115,21 @@ In order to learn from incomplete data, you can either:
        and :class:`Artifact2ArtifactLoss <deepinv.loss.Artifact2ArtifactLoss>`
        can also be used to train the network from incomplete measurements of **multiple** forward operators.
 
+.. _mri-losses:
+
+Specialized losses for MRI
+--------------------------
+
+Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
+
+.. list-table:: MRI specialized losses
+   :header-rows: 1
+
+   * - Loss
+     - Description
+   * - :class:`deepinv.loss.mri.ENSURELoss`
+     - Gaussian SURE but for rank-deficient multiple operators.
+
 .. _regularization-losses:
 
 Network Regularization
@@ -180,20 +195,5 @@ The base class is :class:`deepinv.loss.BaseLossScheduler`.
      - Activate losses at specified epoch.
    * - :class:`deepinv.loss.InterleavedEpochLossScheduler`
      - Schedule losses sequentially epoch-by-epoch.
-
-.. _mri-losses:
-
-Specialized losses for MRI
---------------------------
-
-Several specialized losses are available for MRI reconstruction, particularly self-supervised losses:
-
-.. list-table:: MRI specialized losses
-   :header-rows: 1
-
-   * - Loss
-     - Description
-   * - :class:`deepinv.loss.mri.ENSURELoss`
-     - Gaussian SURE but for rank-deficient multiple operators.
 
 

@@ -55,6 +55,17 @@ Self-Supervised Learning
     deepinv.loss.ScoreLoss
     deepinv.loss.AugmentConsistencyLoss
 
+Specialized losses for MRI
+--------------------------
+.. userguide:: mri-losses
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.loss.mri.ENSURELoss
+
 Adversarial Learning
 --------------------
 .. userguide:: adversarial-losses
@@ -100,15 +111,3 @@ Loss schedulers
     deepinv.loss.InterleavedLossScheduler
     deepinv.loss.InterleavedEpochLossScheduler
     deepinv.loss.StepLossScheduler
-
-
-Specialized losses for MRI
---------------------------
-.. userguide:: mri-losses
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.loss.mri.ENSURELoss

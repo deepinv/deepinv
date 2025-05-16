@@ -20,7 +20,7 @@ LOSSES = [
     "mcei-scale",
     "mcei-homography",
     "r2r",
-    "vortex",  
+    "vortex",
     "ensure",
     "ensure_mri",
 ]
