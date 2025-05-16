@@ -462,7 +462,19 @@ def download_fastmri():
     shutil.rmtree(tmp_data_dir)
 
 
-def test_FastMRISliceDataset(download_fastmri):
+@pytest.mark.parametrize("test", [True, False])
+@pytest.mark.parametrize("slice_index", ["all", "random", "middle", 0, -1])
+@pytest.mark.parametrize("subsampled_volumes", [0.5, 1.0])
+@pytest.mark.parametrize("transform_kspace", [None, lambda x: x])
+@pytest.mark.parametrize("transform_target", [None, lambda x: x])
+def test_FastMRISliceDataset(
+    download_fastmri,
+    test,
+    slice_index,
+    subsampled_volumes,
+    transform_kspace,
+    transform_target,
+):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
@@ -476,7 +488,11 @@ def test_FastMRISliceDataset(download_fastmri):
     # Test metadata caching
     _ = FastMRISliceDataset(
         root=data_dir,
-        slice_index="all",
+        test=test,
+        slice_index=slice_index,
+        subsampled_volumes=subsampled_volumes,
+        transform_kspace=transform_kspace,
+        transform_target=transform_target,
         save_metadata_to_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
@@ -484,8 +500,12 @@ def test_FastMRISliceDataset(download_fastmri):
     # Test data shapes
     dataset = FastMRISliceDataset(
         root=data_dir,
-        slice_index="all",
-        load_metadata_from_cache=True,
+        test=test,
+        slice_index=slice_index,
+        subsampled_volumes=subsampled_volumes,
+        transform_kspace=transform_kspace,
+        transform_target=transform_target,
+        save_metadata_to_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
 
