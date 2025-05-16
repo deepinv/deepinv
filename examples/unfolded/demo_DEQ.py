@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder
+from deepinv.optim import DEQ_ProximalGradientDescent
 from deepinv.training import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
@@ -140,8 +140,7 @@ trainable_params = [
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = DEQ_builder(
-    iteration="PGD",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
+model = DEQ_ProximalGradientDescent(
     params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
