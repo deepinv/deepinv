@@ -266,9 +266,21 @@ class TomographyWithAstra(LinearPhysics):
     :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d. (default: ``'parallel'``)
     :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
-        - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
+        - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80.),
 
-        - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 20.)
+        - ``"detector_radius"``: the distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}`. (default: 20.)
+
+    :param torch.Tensor, None geometry_vectors: Alternative way to describe a 3D geometry. It is a torch.Tensor of shape [num_angles, 12], where for each angular position of index ``i`` the row consists of a vector of size (12,) with
+
+        - ``(sx, sy, sz)``: the position of the source,
+
+        - ``(dx, dy, dz)``: the center of the detector,
+
+        - ``(ux, uy, uz)``: the horizontal unit vector of the detector,
+
+        - ``(vx, vy, vz)``: the vertical unit vector of the detector.
+
+        When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``num_angles``/``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     :param bool normalize: If ``True`` :func:`A` and :func:`A_adjoint` are normalized so that the operator has unit norm. (default: ``False``)
     :param torch.device | str device: The operator only supports CUDA computation. (default: ``torch.device('cuda')``)
 
@@ -278,73 +290,78 @@ class TomographyWithAstra(LinearPhysics):
 
         Tomography operator with a 2d ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*math.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
-        >>> from deepinv.physics import TomographyWithAstra
-        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
-        >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
-        >>> physics = TomographyWithAstra(
-        ...        img_shape=(5,5),
-        ...        num_angles=10,
-        ...        angular_range=(0, 2*math.pi),
-        ...        num_detectors=5,
-        ...        detector_spacing=2.0,
-        ...        geometry_type='fanbeam',
-        ...        geometry_parameters={
-        ...            'source_radius': 20.,
-        ...            'detector_radius': 20.
-        ...        }
-        ...    )
-        >>> sinogram = physics(x)
-        >>> print(sinogram)
-        tensor([[[[-2.4262, -0.3840, -2.1681, -1.1024,  1.8009],
-                  [-2.4597, -0.0198, -1.6027,  0.1117,  1.0543],
-                  [-3.8424, -2.5034,  1.8132,  2.4666, -1.0440],
-                  [-3.0843, -2.0380,  2.2693,  2.4964, -2.7098],
-                  [ 0.6441, -2.2355, -0.2281,  0.2533, -1.3641],
-                  [ 1.7683, -0.9205, -2.1681, -0.2436, -2.5756],
-                  [ 0.4655,  0.3250, -1.6027, -0.6839, -2.4529],
-                  [-2.4195,  3.1875,  1.8132, -2.3952, -3.5968],
-                  [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
-                  [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
+        .. doctest::
+           :skipif: astra is None or not cuda_available
+
+            >>> from deepinv.physics import TomographyWithAstra
+            >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+            >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
+            >>> physics = TomographyWithAstra(
+            ...        img_shape=(5,5),
+            ...        num_angles=10,
+            ...        angular_range=(0, 2*torch.pi),
+            ...        num_detectors=5,
+            ...        detector_spacing=2.0,
+            ...        geometry_type='fanbeam',
+            ...        geometry_parameters={
+            ...            'source_radius': 20.,
+            ...            'detector_radius': 20.
+            ...        }
+            ...    )
+            >>> sinogram = physics(x)
+            >>> print(sinogram)
+            tensor([[[[-2.4262, -0.3840, -2.1681, -1.1024,  1.8009],
+                    [-2.4597, -0.0198, -1.6027,  0.1117,  1.0543],
+                    [-3.8424, -2.5034,  1.8132,  2.4666, -1.0440],
+                    [-3.0843, -2.0380,  2.2693,  2.4964, -2.7098],
+                    [ 0.6441, -2.2355, -0.2281,  0.2533, -1.3641],
+                    [ 1.7683, -0.9205, -2.1681, -0.2436, -2.5756],
+                    [ 0.4655,  0.3250, -1.6027, -0.6839, -2.4529],
+                    [-2.4195,  3.1875,  1.8132, -2.3952, -3.5968],
+                    [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
+                    [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
 
         Tomography operator with a 3d ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*math.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
-        >>> from deepinv.physics import TomographyWithAstra
-        >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
-        >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
-        >>> angles = torch.linspace(0, 2*math.pi, steps=4)[:-1]
-        >>> physics = TomographyWithAstra(
-        ...        img_shape=(5,5,5),
-        ...        angles = angles,
-        ...        num_detectors=(5,5),
-        ...        object_spacing=(1.0,1.0,1.0),
-        ...        detector_spacing=(2.0,2.0),
-        ...        geometry_type='conebeam',
-        ...        geometry_parameters={
-        ...            'source_radius': 20.,
-        ...            'detector_radius': 20.
-        ...       }
-        ...    )
-        >>> sinogram = physics(x)
-        >>> print(sinogram)
-        tensor([[[[[-2.0464,  0.4064, -1.5184, -0.9225,  1.5369],
-                   [-2.3398, -0.9323,  2.0437,  0.5806, -1.5659],
-                   [-1.0852,  2.0659,  1.1105, -1.7271, -2.6104]],
-        <BLANKLINE>
-                  [[ 1.4757, -0.2731,  0.9386,  0.5791,  0.2995],
-                   [-0.8362,  2.5918,  1.0941,  1.0576, -1.4501],
-                   [-1.1313,  3.8354, -0.9572, -2.3721,  3.5149]],
-        <BLANKLINE>
-                  [[ 0.6392,  0.1564, -0.8063, -3.8958,  1.2547],
-                   [ 0.5294, -1.0241, -0.1792, -0.5054, -1.4253],
-                   [-1.1961, -1.6911,  0.4279, -1.3608,  0.9488]],
-        <BLANKLINE>
-                  [[ 0.5134,  2.1534, -3.8697,  0.3571,  0.1060],
-                   [ 0.4687, -3.0669,  1.5911,  1.5235, -0.8031],
-                   [-1.1990,  0.2637,  2.0889, -0.8894,  0.2550]],
-        <BLANKLINE>
-                  [[-1.4643, -0.2128,  1.3425,  2.8803, -0.6605],
-                   [ 0.9605,  1.1056,  4.2324, -3.5795, -0.1718],
-                   [ 0.9207,  1.6948,  1.6556, -1.6624,  0.9960]]]]], device='cuda:0')
+        .. doctest::
+           :skipif: astra is None or not cuda_available
+
+            >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
+            >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
+            >>> angles = torch.linspace(0, 2*torch.pi, steps=4)[:-1]
+            >>> physics = TomographyWithAstra(
+            ...        img_shape=(5,5,5),
+            ...        angles = angles,
+            ...        num_detectors=(5,5),
+            ...        object_spacing=(1.0,1.0,1.0),
+            ...        detector_spacing=(2.0,2.0),
+            ...        geometry_type='conebeam',
+            ...        geometry_parameters={
+            ...            'source_radius': 20.,
+            ...            'detector_radius': 20.
+            ...       }
+            ...    )
+            >>> sinogram = physics(x)
+            >>> print(sinogram)
+            tensor([[[[[-2.0464,  0.4064, -1.5184, -0.9225,  1.5369],
+                    [-2.3398, -0.9323,  2.0437,  0.5806, -1.5659],
+                    [-1.0852,  2.0659,  1.1105, -1.7271, -2.6104]],
+            <BLANKLINE>
+                    [[ 1.4757, -0.2731,  0.9386,  0.5791,  0.2995],
+                    [-0.8362,  2.5918,  1.0941,  1.0576, -1.4501],
+                    [-1.1313,  3.8354, -0.9572, -2.3721,  3.5149]],
+            <BLANKLINE>
+                    [[ 0.6392,  0.1564, -0.8063, -3.8958,  1.2547],
+                    [ 0.5294, -1.0241, -0.1792, -0.5054, -1.4253],
+                    [-1.1961, -1.6911,  0.4279, -1.3608,  0.9488]],
+            <BLANKLINE>
+                    [[ 0.5134,  2.1534, -3.8697,  0.3571,  0.1060],
+                    [ 0.4687, -3.0669,  1.5911,  1.5235, -0.8031],
+                    [-1.1990,  0.2637,  2.0889, -0.8894,  0.2550]],
+            <BLANKLINE>
+                    [[-1.4643, -0.2128,  1.3425,  2.8803, -0.6605],
+                    [ 0.9605,  1.1056,  4.2324, -3.5795, -0.1718],
+                    [ 0.9207,  1.6948,  1.6556, -1.6624,  0.9960]]]]], device='cuda:0')
     """
 
     def __init__(
@@ -362,6 +379,7 @@ class TomographyWithAstra(LinearPhysics):
             "source_radius": 80.0,
             "detector_radius": 20.0,
         },
+        geometry_vectors: Optional[torch.Tensor] = None,
         normalize: bool = False,
         device: Union[torch.device, str] = torch.device("cuda"),
         **kwargs,
@@ -403,6 +421,7 @@ class TomographyWithAstra(LinearPhysics):
             angles=angles,
             is_2d=self.is_2d,
             geometry_parameters=geometry_parameters,
+            geometry_vectors=geometry_vectors,
         )
 
         self.xray_transform = XrayTransform(
@@ -435,7 +454,7 @@ class TomographyWithAstra(LinearPhysics):
         object-to-dector cell ratio.
 
         In conebeam 3d, compute FDK weights to correct inflated distances due to
-        tilted rays. Given coordinate (x,y)  of a detector cell, the corresponding
+        tilted rays. Given coordinate :math:`(x,y)`  of a detector cell, the corresponding
         weight is :math:`\omega(x,y) = \frac{D_{s0}}{\sqrt{D_{sd}^2 + x^2 + y^2}}`.
 
         :param torch.Tensor sinogram: Sinogram of shape [B,C,...,A,N].
@@ -453,8 +472,8 @@ class TomographyWithAstra(LinearPhysics):
             # (sx, sy, sz, dx, dy, dz, ux, uy, uz, vx, vy, vz) coordinates
             # - (sx, sy, sz) is the position of the source
             # - (dx, dy, dz) is the center of the detector
-            # - (ux, uy, uz) is the horizontal basis vector of the detector
-            # - (vx, vy, vz) is the vertical basis vector of the detector
+            # - (ux, uy, uz) is the horizontal unit vector of the detector
+            # - (vx, vy, vz) is the vertical unit vector of the detector
             vecs = torch.from_numpy(
                 astra.geom_2vec(self.projection_geometry)["Vectors"]
             )

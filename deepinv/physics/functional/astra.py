@@ -350,6 +350,7 @@ def create_projection_geometry(
     angles: torch.Tensor,
     is_2d: bool = False,
     geometry_parameters: Optional[dict[str, Any]] = None,
+    geometry_vectors: Optional[torch.Tensor] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "projection geometry", a dict of parameters
     used by ``astra`` to parametrize the geometry of the detector and the x-ray source.
@@ -363,22 +364,35 @@ def create_projection_geometry(
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
 
         - "detector_radius" distance between the x-ray detector and the rotation axis, denoted :math:`D_{0d}` (default: 20.)
+    :param torch.Tensor, None geometry_vectors: Alternative way to describe a 3D geometry. It is a torch.Tensor of shape [num_angles, 12], where for each angular position of index ``i`` the row consists of a vector of size (12,) with
+
+        - ``(sx, sy, sz)``: the position of the source,
+
+        - ``(dx, dy, dz)``: the center of the detector,
+
+        - ``(ux, uy, uz)``: the horizontal unit vector of the detector,
+
+        - ``(vx, vy, vz)``: the vertical unit vector of the detector.
+
+        When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     """
 
     if is_2d:
-        if type(detector_spacing) is not float:
-            raise ValueError(
-                f"For 2d geometry, argument `detector_spacing` should be a float specifying the width of a detector cell, got {type(detector_spacing)}"
-            )
+        if geometry_vectors is None:
+            if type(detector_spacing) is not float:
+                raise ValueError(
+                    f"For 2d geometry, argument `detector_spacing` should be a float specifying the width of a detector cell, got {type(detector_spacing)}"
+                )
         if type(n_detector_pixels) is not int:
             raise ValueError(
                 f"For 2d geometry, argument `n_detector_pixels` should be a int specifying the number of a cells in the detector line, got {type(n_detector_pixels)}"
             )
     else:
-        if len(detector_spacing) != 2:
-            raise ValueError(
-                f"For 3d geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
-            )
+        if geometry_vectors is None:
+            if len(detector_spacing) != 2:
+                raise ValueError(
+                    f"For 3d geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
+                )
         if len(n_detector_pixels) != 2:
             raise ValueError(
                 f"For 3d geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
@@ -387,7 +401,6 @@ def create_projection_geometry(
     if geometry_parameters is not None:
         source_radius = geometry_parameters.get("source_radius", 80.0)
         detector_radius = geometry_parameters.get("detector_radius", 20.0)
-        vectors = geometry_parameters.get("vectors", None)
 
     angles = angles.tolist()
 
@@ -425,12 +438,12 @@ def create_projection_geometry(
         detector_row_count, detector_col_count = n_detector_pixels
 
         if geometry_type == "parallel":
-            if vectors is not None:
+            if geometry_vectors is not None:
                 projection_geometry = astra.create_proj_geom(
                     "parallel3d_vec",
                     detector_row_count,
                     detector_col_count,
-                    vectors.numpy(force=True),
+                    geometry_vectors.numpy(force=True),
                 )
             else:
                 projection_geometry = astra.create_proj_geom(
@@ -445,12 +458,12 @@ def create_projection_geometry(
             raise NotImplementedError("fanbeam geometry is not implemented in 3d")
 
         elif geometry_type == "conebeam":
-            if vectors is not None:
+            if geometry_vectors is not None:
                 projection_geometry = astra.create_proj_geom(
                     "cone_vec",
                     detector_row_count,
                     detector_col_count,
-                    vectors.numpy(force=True),
+                    geometry_vectors.numpy(force=True),
                 )
             else:
                 projection_geometry = astra.create_proj_geom(
