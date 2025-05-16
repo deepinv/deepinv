@@ -34,7 +34,11 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 method = "PnP"
 img_size = 32
 x = load_example(
-    "SheppLogan.png", img_size=img_size, grayscale=True, resize_mode="resize", device=device
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 operation = "tomography"
 

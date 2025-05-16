@@ -48,7 +48,11 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 img_size = 32
 # The pixel values of the image are in the range [0, 1].
 x = load_example(
-    "SheppLogan.png", img_size=img_size, grayscale=True, resize_mode="resize", device=device
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 print(x.min(), x.max())
 

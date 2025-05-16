@@ -166,7 +166,11 @@ dataset_name = "set3c"
 img_size = 64
 
 x = load_example(
-    "barbara.jpeg", img_size=img_size, grayscale=True, resize_mode="resize", device=device
+    "barbara.jpeg",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 operation = "single_pixel"
 
