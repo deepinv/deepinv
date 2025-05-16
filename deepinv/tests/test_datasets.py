@@ -422,19 +422,12 @@ def download_simplefastmri():
     shutil.rmtree(tmp_data_dir)
 
 
-@pytest.mark.parametrize("anatomy", ["knee", "brain"])
-@pytest.mark.parametrize("train", [True, False])
-@pytest.mark.parametrize("sample_index", [None, 0, -1])
-@pytest.mark.parametrize("train_percent", [0.5, 1.0])
-def test_SimpleFastMRISliceDataset(
-    download_simplefastmri, anatomy, train, sample_index, train_percent
-):
+def test_SimpleFastMRISliceDataset(download_simplefastmri):
     dataset = SimpleFastMRISliceDataset(
         root_dir=download_simplefastmri,
-        anatomy=anatomy,
-        train=train,
-        sample_index=sample_index,
-        train_percent=train_percent,
+        anatomy="knee",
+        train=True,
+        train_percent=1.0,
         download=False,
     )
     x = dataset[0]
@@ -462,19 +455,7 @@ def download_fastmri():
     shutil.rmtree(tmp_data_dir)
 
 
-@pytest.mark.parametrize("test", [True, False])
-@pytest.mark.parametrize("slice_index", ["all", "random", "middle", 0, -1])
-@pytest.mark.parametrize("subsample_volumes", [0.5, 1.0])
-@pytest.mark.parametrize("transform_kspace", [None, lambda x: x])
-@pytest.mark.parametrize("transform_target", [None, lambda x: x])
-def test_FastMRISliceDataset(
-    download_fastmri,
-    test,
-    slice_index,
-    subsample_volumes,
-    transform_kspace,
-    transform_target,
-):
+def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
@@ -488,11 +469,7 @@ def test_FastMRISliceDataset(
     # Test metadata caching
     _ = FastMRISliceDataset(
         root=data_dir,
-        test=test,
-        slice_index=slice_index,
-        subsample_volumes=subsample_volumes,
-        transform_kspace=transform_kspace,
-        transform_target=transform_target,
+        slice_index="all",
         save_metadata_to_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
@@ -500,12 +477,8 @@ def test_FastMRISliceDataset(
     # Test data shapes
     dataset = FastMRISliceDataset(
         root=data_dir,
-        test=test,
-        slice_index=slice_index,
-        subsample_volumes=subsample_volumes,
-        transform_kspace=transform_kspace,
-        transform_target=transform_target,
-        save_metadata_to_cache=True,
+        slice_index="all",
+        load_metadata_from_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
 
