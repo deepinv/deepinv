@@ -56,4 +56,11 @@ If you are not familiar with the GitHub contribution workflow, you can also open
 You can also send an email to any of the main developers with your questions or ideas.
 
 
+Contributing new datasets
+----------------
 
+Contributing a new dataset can be a little trickier than other contributions, here are a few guidelines to help you with that. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets. This makes testing the implementation of the datasets a bit cumbersome as only the logic can be tested and not the consistency with the actual data.
+
+This does not mean that you should not contribute datasets, they are really valuable and make the library more complete! It does not mean that you can simply skip testing the implementation either. Our current guidelines is to first write the tests and the implementation and to make sure that the tests pass locally, on the real data. As it is not possible to do so on the CI servers, the next step is to write mocking code, code that intercepts calls to input/output (IO) related functions, e.g. `os.listdir`, and make them return a hard coded value, thereby making execution go as if the data was there.
+
+Once the implementation, the tests and the mocking code are written, that they pass locally and on the CI servers, the maintainers will be able to review the code and merge it into the main branch if everything goes well. You should bear in mind though that the maintainers won't have the time to make sure the tests pass on the real data, so they will have to trust that you did things correctly.
