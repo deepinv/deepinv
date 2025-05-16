@@ -236,18 +236,15 @@ def load_url_image(
     return x
 
 
-def load_example(name, img_size=512, grayscale=True, **kwargs):
+def load_example(name, **kwargs):
     r"""
     Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.demo.load_url_image`.
 
     :param str name: filename of the image from the HuggingFace dataset.
-    :param int, tuple[int] img_size: Size of the image to return, defaults to 512.
-    :param bool grayscale: Whether to convert the image to grayscale, defaults to `True`.
+    :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
     :return: :class:`torch.Tensor` containing the image.
     """
-    return load_url_image(
-        get_image_url(name), img_size=img_size, grayscale=grayscale, **kwargs
-    )
+    return load_url_image(get_image_url(name), **kwargs)
 
 
 def load_torch_url(url):
