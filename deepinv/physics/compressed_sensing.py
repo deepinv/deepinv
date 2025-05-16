@@ -209,35 +209,3 @@ class CompressedSensing(LinearPhysics):
             x = torch.einsum("im, nm->in", y, self._A_dagger)
             x = x.reshape(N, C, H, W)
         return x
-
-
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#
-#     # for comparing fast=True and fast=False forward matrices.
-#     for i in range(1):
-#         n = 2 ** (i + 4)
-#         im_size = (1, n, n)
-#         m = int(np.prod(im_size))
-#         x = torch.randn((1,) + im_size, device=device)
-#
-#         print((dst1(dst1(x)) - x).flatten().abs().sum())
-#
-#         physics = CompressedSensing(img_shape=im_size, m=m, fast=True, device=device)
-#
-#         print((physics.A_adjoint(physics.A(x)) - x).flatten().abs().sum())
-#         print(f"adjointness: {physics.adjointness_test(x)}")
-#         print(f"norm: {physics.power_method(x, verbose=False)}")
-#         start = torch.cuda.Event(enable_timing=True)
-#         end = torch.cuda.Event(enable_timing=True)
-#         start.record()
-#         for j in range(100):
-#             y = physics.A(x)
-#             xhat = physics.A_dagger(y)
-#         end.record()
-#
-#         # print((xhat-x).pow(2).flatten().mean())
-#
-#         # Waits for everything to finish running
-#         torch.cuda.synchronize()
-#         print(start.elapsed_time(end))

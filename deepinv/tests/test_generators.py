@@ -204,6 +204,33 @@ def test_generation(name, device, dtype):
     assert torch.allclose(w, wref, atol=1e-8)
 
 
+@pytest.mark.parametrize(
+    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", [torch.float64])
+def test_average(name, device, dtype):
+    r"""
+    Tests generators average.
+    """
+    size = (5, 5)
+    generator, size, _ = find_generator(name, size, 1, device, dtype)
+    # Set generator seed for reproducibility
+    generator.rng_manual_seed(0)
+
+    n_avg = 4
+
+    # Store the keys of a single step call for future comparison
+    params = generator.step(batch_size=1, seed=0)
+    keys = set(params.keys())
+
+    for batch_size in [1, 2, n_avg]:
+        batch_size = 1
+        params = generator.average(5, batch_size=batch_size)
+        assert isinstance(params, dict)
+        assert set(params.keys()) == keys
+
+
 #################################
 ### SPECIFIC GENERATORS TESTS ###
 #################################
