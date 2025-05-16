@@ -44,7 +44,7 @@ class ENSURELoss(SureGaussianLoss):
 
     .. warning::
 
-        This loss was originally proposed only to be used with :class:`artifact removal models <deepinv.model.ArtifactRemoval>` which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
+        This loss was originally proposed only to be used with :class:`artifact removal models <deepinv.models.ArtifactRemoval>` which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
         If an artifact removal model is not used, then we input to network instead :math:`A A^\top\cdot` (assuming that :math:`A A^\top=I`).
 
         We currently only provide an implementation for :class:`single-coil MRI <deepinv.physics.MRI>` and :class:`inpainting <deepinv.physics.Inpainting>`,
