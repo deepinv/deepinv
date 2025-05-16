@@ -2,7 +2,7 @@ import pytest
 import torch
 import deepinv as dinv
 import deepinv.loss.metric as metric
-from deepinv.utils.demo import get_image_url, load_url_image
+from deepinv.utils.demo import load_example
 
 METRICS = [
     "MAE",
@@ -82,8 +82,8 @@ def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
         norm_inputs=norm_inputs,
         reduction="mean",
     )
-    x = load_url_image(
-        get_image_url("celeba_example.jpg"),
+    x = load_example(
+        "celeba_example.jpg",
         img_size=128,
         resize_mode="resize",
         device=device,

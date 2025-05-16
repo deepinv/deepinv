@@ -245,8 +245,7 @@ def load_example(name, img_size=512, grayscale=True, **kwargs):
     :param bool grayscale: Whether to convert the image to grayscale, defaults to `True`.
     :return: :class:`torch.Tensor` containing the image.
     """
-    url = f"https://huggingface.co/datasets/deepinv/images/resolve/main/{name}?download=true"
-    return load_url_image(url=url, img_size=img_size, grayscale=grayscale, **kwargs)
+    return load_url_image(get_image_url(name), img_size=img_size, grayscale=grayscale, **kwargs)
 
 
 def load_torch_url(url):
