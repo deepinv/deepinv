@@ -78,14 +78,14 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
 # Define physics information
 oversampling_ratio = 5.0
-img_shape = x.shape[1:]
-m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
+img_size = x.shape[1:]
+m = int(oversampling_ratio * torch.prod(torch.tensor(img_size)))
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
 # Create the physics
 physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
-    img_shape=img_shape,
+    img_size=img_size,
     device=device,
 )
 

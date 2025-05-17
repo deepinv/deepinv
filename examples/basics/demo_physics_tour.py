@@ -93,7 +93,7 @@ physics = dinv.physics.CompressedSensing(
     m=2048,
     fast=False,
     channelwise=True,
-    img_shape=img_size,
+    img_size=img_size,
     compute_inverse=True,
     device=device,
 )
@@ -217,7 +217,7 @@ plot([x, y[0], y[1]], titles=["signal", "low res rgb", "high res gray"])
 # When ``fast=True``, the patterns are generated using a fast Hadamard transform.
 
 physics = dinv.physics.SinglePixelCamera(
-    m=256, fast=True, img_shape=img_size, device=device
+    m=256, fast=True, img_size=img_size, device=device
 )
 
 y = physics(x)
