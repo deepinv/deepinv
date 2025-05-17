@@ -70,6 +70,7 @@ Other
     deepinv.utils.get_image_url
     deepinv.utils.get_degradation_url
     deepinv.utils.load_url_image
+    deepinv.utils.load_example
     deepinv.utils.load_image
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
