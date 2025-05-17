@@ -45,6 +45,10 @@ OPERATORS = [
     "super_resolution_constant",
     "aliased_super_resolution",
     "fast_singlepixel",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_xy",
+    "fast_singlepixel_old_sequency",
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
@@ -227,6 +231,41 @@ def find_operator(name, device, get_physics_param=False):
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_shape=img_size, device=device, rng=rng
+        )
+        params = []
+    elif name == "fast_singlepixel_cake_cutting":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="cake_cutting",
+        )
+        params = []
+    elif name == "fast_singlepixel_zig_zag":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="zig_zag",
+        )
+        params = []
+    elif name == "fast_singlepixel_xy":
+        p = dinv.physics.SinglePixelCamera(
+            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="xy"
+        )
+        params = []
+    elif name == "fast_singlepixel_old_sequency":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="old_sequency",
         )
         params = []
     elif name == "singlepixel":

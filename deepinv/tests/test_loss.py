@@ -13,7 +13,15 @@ from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
 from conftest import no_plot
 
-LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+LOSSES = [
+    "sup",
+    "sup_log_train_batch",
+    "mcei",
+    "mcei-scale",
+    "mcei-homography",
+    "r2r",
+    "vortex",
+]
 
 LIST_SURE = [
     "Gaussian",
@@ -116,6 +124,12 @@ def choose_loss(loss_name, rng=None):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
         loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
+    elif loss_name == "vortex":
+        loss.append(
+            dinv.loss.AugmentConsistencyLoss(
+                T_i=dinv.transform.RandomNoise(), T_e=dinv.transform.Shift()
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
