@@ -70,6 +70,8 @@ Fixed
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
+- Fix Ptychography can not handle multi-channels input (:gh:`TODO` by `Minh Hai Nguyen`_)
+- Fix argument name inconsistency (:gh:`TODO` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^

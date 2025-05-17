@@ -93,7 +93,7 @@ class DDRM(Reconstructor):
         >>> seed = torch.cuda.manual_seed(0) # Random seed for reproducibility on GPU
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   mask=0.5, img_size=(3, 32, 32),
         ...   noise_model=dinv.physics.GaussianNoise(0.1),
         ...   device=device,
         ... )
@@ -256,7 +256,7 @@ class DiffPIR(Reconstructor):
         >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
-        ...   mask=0.5, tensor_size=(3, 32, 32),
+        ...   mask=0.5, img_size=(3, 32, 32),
         ...   noise_model=dinv.physics.GaussianNoise(0.1),
         ...   device=device
         ... )

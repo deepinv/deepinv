@@ -60,7 +60,7 @@ probe = dinv.physics.phase_retrieval.build_probe(
 shifts = dinv.physics.phase_retrieval.generate_shifts(img_size, n_img=n_img, fov=170)
 
 physics = Ptychography(
-    in_shape=img_size,
+    img_size=img_size,
     probe=probe,
     shifts=shifts,
     device=device,

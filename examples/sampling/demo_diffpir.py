@@ -49,7 +49,7 @@ mask[:, :, 80:130, 50:100] = 0
 sigma_noise = 12.75 / 255.0  # noise level
 physics = dinv.physics.Inpainting(
     mask=mask,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )

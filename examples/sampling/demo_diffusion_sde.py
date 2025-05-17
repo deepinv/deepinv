@@ -174,7 +174,7 @@ except FileNotFoundError:
 del trajectory  # clean memory
 mask = torch.ones_like(x)
 mask[..., 24:40, 24:40] = 0.0
-physics = dinv.physics.Inpainting(tensor_size=x.shape[1:], mask=mask, device=device)
+physics = dinv.physics.Inpainting(img_size=x.shape[1:], mask=mask, device=device)
 y = physics(x)
 
 weight = 1.0  # guidance strength
@@ -385,7 +385,7 @@ mask = torch.ones_like(x)
 mask[..., 70:150, 120:180] = 0
 physics = dinv.physics.Inpainting(
     mask=mask,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     device=device,
 )
 

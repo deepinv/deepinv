@@ -48,7 +48,7 @@ torch.manual_seed(0)
 # We use image inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
+physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # %%

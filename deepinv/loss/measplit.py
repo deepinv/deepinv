@@ -83,7 +83,7 @@ class SplittingLoss(Loss):
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> physics = dinv.physics.Inpainting(tensor_size=(1, 8, 8), mask=0.5)
+    >>> physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5)
     >>> model = dinv.models.MedianFilter()
     >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9, eval_n_samples=2)
     >>> model = loss.adapt_model(model) # important step!
