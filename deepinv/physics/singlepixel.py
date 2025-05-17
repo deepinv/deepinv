@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import warnings
 import math
+from deepinv.utils.decorators import deprecated_alias
 
 
 def hadamard_1d(u, normalize=True):
@@ -338,7 +339,7 @@ class SinglePixelCamera(DecomposablePhysics):
         Since version 0.3.1, a small bug in the sequency ordering has been fixed. However, it is possible to use the old sequency ordering by setting `ordering='old_sequency'`.
 
     :param int m: number of single pixel measurements per acquisition (m).
-    :param tuple img_shape: shape (C, H, W) of images.
+    :param tuple img_size: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
@@ -353,7 +354,7 @@ class SinglePixelCamera(DecomposablePhysics):
         >>> from deepinv.physics import SinglePixelCamera
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
-        >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
+        >>> physics = SinglePixelCamera(m=16, img_size=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
         16.0
         >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
@@ -363,10 +364,11 @@ class SinglePixelCamera(DecomposablePhysics):
 
     """
 
+    @deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
-        img_shape,
+        img_size,
         fast=True,
         ordering="sequency",
         device="cpu",
@@ -376,7 +378,7 @@ class SinglePixelCamera(DecomposablePhysics):
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
-        self.img_shape = img_shape
+        self.img_size = img_size
         self.fast = fast
         self.device = device
         if rng is None:
@@ -391,25 +393,25 @@ class SinglePixelCamera(DecomposablePhysics):
 
         if self.fast:
 
-            _, H, W = img_shape
+            _, H, W = img_size
 
             assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
 
             if ordering == "sequency":
-                mask = sequency_mask(img_shape, m)
+                mask = sequency_mask(img_size, m)
             elif ordering == "cake_cutting":
-                mask = cake_cutting_mask(img_shape, m)
+                mask = cake_cutting_mask(img_size, m)
             elif ordering == "zig_zag":
-                mask = zig_zag_mask(img_shape, m)
+                mask = zig_zag_mask(img_size, m)
             elif ordering == "xy":
-                mask = xy_mask(img_shape, m)
+                mask = xy_mask(img_size, m)
             elif ordering == "old_sequency":
                 # Raise warning if the old sequency mask is used
                 print(
                     "Warning: The old sequency mask is deprecated. Plase, use sequency mask instead."
                 )
-                mask = old_sequency_mask(img_shape, m)
+                mask = old_sequency_mask(img_size, m)
             else:
                 raise ValueError(
                     f"Unknown ordering {ordering}. Available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`."
@@ -418,7 +420,7 @@ class SinglePixelCamera(DecomposablePhysics):
             mask = mask.to(device)
 
         else:
-            n = int(math.prod(img_shape[1:]))
+            n = int(math.prod(img_size[1:]))
             A = torch.where(
                 torch.randn((m, n), device=device, dtype=dtype, generator=self.rng)
                 > 0.5,
@@ -441,7 +443,7 @@ class SinglePixelCamera(DecomposablePhysics):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N, C = x.shape[0], self.img_shape[0]
+            N, C = x.shape[0], self.img_size[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y
@@ -451,7 +453,7 @@ class SinglePixelCamera(DecomposablePhysics):
             x = hadamard_2d(y)
         else:
             N = y.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
             x = torch.einsum("ijk, km->ijm", y, self.vh)
             x = x.reshape(N, C, H, W)
         return x

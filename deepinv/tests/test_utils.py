@@ -1,6 +1,7 @@
 import deepinv
 import torch
 import pytest
+from deepinv.utils.decorators import deprecated_alias
 
 
 @pytest.fixture
@@ -123,3 +124,24 @@ def test_plot_ortho3D():
         deepinv.utils.plot_ortho3D(imgs, titles=["a", "b"], show=False)
         deepinv.utils.plot_ortho3D(x, titles="a", show=False)
         deepinv.utils.plot_ortho3D(imgs, show=False)
+
+
+# -------------- Test deprecated_alias --------------
+class DummyModule(torch.nn.Module):
+    @deprecated_alias(old_lr="lr")
+    def __init__(self, lr=0.1):
+        super().__init__()
+        self.lr = lr
+
+
+def test_deprecated_alias():
+    # --- Class (torch.nn.Module) tests ---
+    with pytest.warns(DeprecationWarning, match="old_lr.*deprecated"):
+        m1 = DummyModule(old_lr=0.01)
+        assert m1.lr == 0.01
+
+    m2 = DummyModule(lr=0.02)
+    assert m2.lr == 0.02
+
+    with pytest.raises(TypeError, match="Cannot specify both 'old_lr' and 'lr'"):
+        DummyModule(old_lr=0.01, lr=0.02)

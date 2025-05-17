@@ -2,6 +2,7 @@ from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
 from deepinv.physics.functional import random_choice
+from deepinv.utils.decorators import deprecated_alias
 
 
 def dst1(x):
@@ -30,7 +31,7 @@ def dst1(x):
 class CompressedSensing(LinearPhysics):
     r"""
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
-    number of elements of the signal, i.e., ``np.prod(img_shape)`` and ``m`` is the number of measurements.
+    number of elements of the signal, i.e., ``np.prod(img_size)`` and ``m`` is the number of measurements.
 
     This class generates a random iid Gaussian matrix if ``fast=False``
 
@@ -71,7 +72,7 @@ class CompressedSensing(LinearPhysics):
         A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m} \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
 
     :param int m: number of measurements.
-    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param tuple img_size: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
@@ -88,17 +89,18 @@ class CompressedSensing(LinearPhysics):
         >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
+        >>> physics = CompressedSensing(m=10, img_size=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
         tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
                   0.6752, -1.5684]])
 
     """
 
+    @deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
-        img_shape,
+        img_size,
         fast=False,
         channelwise=False,
         dtype=torch.float,
@@ -108,7 +110,7 @@ class CompressedSensing(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.name = f"CS_m{m}"
-        self.img_shape = img_shape
+        self.img_size = img_size
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
@@ -125,9 +127,9 @@ class CompressedSensing(LinearPhysics):
         self.initial_random_state = self.rng.get_state()
 
         if channelwise:
-            n = int(np.prod(img_shape[1:]))
+            n = int(np.prod(img_size[1:]))
         else:
-            n = int(np.prod(img_shape))
+            n = int(np.prod(img_size))
 
         if self.fast:
             self.n = n
@@ -177,7 +179,7 @@ class CompressedSensing(LinearPhysics):
     def A_adjoint(self, y, **kwargs):
         y = y.type(self.dtype)
         N = y.shape[0]
-        C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+        C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
         if self.channelwise:
             N2 = N * C
@@ -201,7 +203,7 @@ class CompressedSensing(LinearPhysics):
             return self.A_adjoint(y)
         else:
             N = y.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
             if self.channelwise:
                 y = y.reshape(N * C, -1)
