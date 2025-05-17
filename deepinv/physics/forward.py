@@ -221,11 +221,13 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :param dict kwargs: dictionary of parameters to update.
         """
         self.update_parameters(**kwargs)
+        if hasattr(self.noise_model, "update_parameters"):
+            self.noise_model.update_parameters(**kwargs)
 
     def update_parameters(self, **kwargs):
         r"""
 
-        Update the parameters of the forward operator and the noise model.
+        Update the parameters of the forward operator.
 
         :param dict kwargs: dictionary of parameters to update.
         """
@@ -237,8 +239,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
                     self.register_buffer(key, value)
-            if hasattr(self.noise_model, "update_parameters"):
-                self.noise_model.update_parameters(**kwargs)
 
 
 class LinearPhysics(Physics):
@@ -1154,12 +1154,3 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
                 for i, physics in enumerate(self.physics_list)
             ]
         )
-
-    def update_parameters(self, **kwargs):
-        r"""
-        Updates the parameters of the stacked operator.
-
-        :param dict kwargs: dictionary of parameters to update.
-        """
-        for physics in self.physics_list:
-            physics.update_parameters(**kwargs)
