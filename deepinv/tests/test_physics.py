@@ -374,7 +374,7 @@ def find_operator(name, device):
     elif name == "structured_random":
         img_size = (1, 8, 8)
         p = dinv.physics.StructuredRandom(
-            input_shape=img_size, output_shape=img_size, device=device
+            img_size=img_size, output_shape=img_size, device=device
         )
     elif name == "ptychography_linear":
         img_size = (1, 32, 32)
@@ -439,7 +439,7 @@ def find_phase_retrieval_operator(name, device):
     elif name == "structured_random_phase_retrieval":
         img_size = (1, 10, 10)
         p = dinv.physics.StructuredRandomPhaseRetrieval(
-            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+            img_size=img_size, output_shape=img_size, n_layers=2, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")

@@ -200,7 +200,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
-    :param tuple input_shape: shape (C, H, W) of inputs.
+    :param tuple img_size: shape (C, H, W) of inputs.
     :param tuple output_shape: shape (C, H, W) of outputs.
     :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math:`F` transform is included, i.e., :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`.
     :param str transform: structured transform to use. Default is 'fft'.
@@ -210,9 +210,10 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
+    @_deprecated_alias(input_shape="img_size")
     def __init__(
         self,
-        input_shape: tuple,
+        img_size: tuple,
         output_shape: tuple,
         n_layers: int,
         transform="fft",
@@ -223,11 +224,11 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         **kwargs,
     ):
         if output_shape is None:
-            output_shape = input_shape
+            output_shape = img_size
 
-        self.input_shape = input_shape
+        self.img_size = img_size
         self.output_shape = output_shape
-        self.n = torch.prod(torch.tensor(self.input_shape))
+        self.n = torch.prod(torch.tensor(self.img_size))
         self.m = torch.prod(torch.tensor(self.output_shape))
         self.oversampling_ratio = self.m / self.n
         assert (
@@ -240,7 +241,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.dtype = dtype
         self.device = device
 
-        self.mode = compare(input_shape, output_shape)
+        self.mode = compare(img_size, output_shape)
 
         # generate diagonal matrices
         self.diagonals = []
@@ -256,7 +257,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                     )
                 else:
                     diagonal = generate_diagonal(
-                        shape=self.input_shape,
+                        shape=self.img_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
                         device=self.device,
@@ -272,7 +273,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
                 )
             else:
                 diagonal = generate_diagonal(
-                    shape=self.input_shape,
+                    shape=self.img_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
                     device=self.device,
@@ -287,7 +288,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             raise ValueError(f"Unimplemented transform: {transform}")
 
         B = StructuredRandom(
-            input_shape=self.input_shape,
+            img_size=self.img_size,
             output_shape=self.output_shape,
             mode=self.mode,
             n_layers=self.n_layers,

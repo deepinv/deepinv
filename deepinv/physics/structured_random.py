@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from deepinv.physics.forward import LinearPhysics
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def compare(input_shape: tuple, output_shape: tuple) -> str:
@@ -109,7 +110,7 @@ class StructuredRandom(LinearPhysics):
 
     where :math:`F` is a matrix representing a structured transform, :math:`D_i` are diagonal matrices, and :math:`N` refers to the number of layers. It is also possible to replace :math:`x` with :math:`Fx` as an additional 0.5 layer.
 
-    :param tuple input_shape: input shape. If (C, H, W), i.e., the input is a 2D signal with C channels, then zero-padding will be used for oversampling and cropping will be used for undersampling.
+    :param tuple img_shape: input shape. If (C, H, W), i.e., the input is a 2D signal with C channels, then zero-padding will be used for oversampling and cropping will be used for undersampling.
     :param tuple output_shape: shape of outputs.
     :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math`F` transform is included, ie :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`. Default is 1.
     :param Callable transform_func: structured transform function. Default is :func:`deepinv.physics.functional.dst1`.
@@ -119,9 +120,10 @@ class StructuredRandom(LinearPhysics):
     :param torch.Generator rng: Random number generator. Default is None.
     """
 
+    @_deprecated_alias(input_shape="img_size")
     def __init__(
         self,
-        input_shape,
+        img_size,
         output_shape,
         n_layers=1,
         transform_func=dst1,
@@ -131,25 +133,26 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
-        if len(input_shape) == 3:
-            mode = compare(input_shape, output_shape)
+        if len(img_size) == 3:
+            mode = compare(img_size, output_shape)
         else:
             mode = None
 
         if diagonals is None:
             diagonals = [
                 generate_diagonal(
-                    shape=input_shape,
+                    shape=img_size,
                     mode="rademacher",
                     dtype=torch.float,
                     generator=rng,
                     device=device,
                 )
             ]
+        self.img_size = img_size
 
         def A(x):
             if mode == "oversampling":
-                x = padding(x, input_shape, output_shape)
+                x = padding(x, img_size, output_shape)
 
             if n_layers - math.floor(n_layers) == 0.5:
                 x = transform_func(x)
@@ -159,13 +162,13 @@ class StructuredRandom(LinearPhysics):
                 x = transform_func(x)
 
             if mode == "undersampling":
-                x = trimming(x, input_shape, output_shape)
+                x = trimming(x, img_size, output_shape)
 
             return x
 
         def A_adjoint(y):
             if mode == "undersampling":
-                y = padding(y, input_shape, output_shape)
+                y = padding(y, img_size, output_shape)
 
             for i in range(math.floor(n_layers)):
                 diagonal = diagonals[-i - 1]
@@ -175,7 +178,7 @@ class StructuredRandom(LinearPhysics):
                 y = transform_func_inv(y)
 
             if mode == "oversampling":
-                y = trimming(y, input_shape, output_shape)
+                y = trimming(y, img_size, output_shape)
 
             return y
 

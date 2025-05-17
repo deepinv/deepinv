@@ -9,17 +9,17 @@ def test_deprecated_physics_image_size():
     rng = torch.Generator("cpu").manual_seed(0)
     device = "cpu"
 
-    # CS: img_shape is changed to img_size
-    with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
-        p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device="cpu", compute_inverse=True, rng=rng
-        )
-        assert p.img_size == img_size
-
     # Inpainting: tensor_size is changed to img_size
     with pytest.warns(DeprecationWarning, match="tensor_size.*deprecated"):
         p = dinv.physics.Inpainting(
             tensor_size=img_size, mask=0.5, device=device, rng=rng
+        )
+        assert p.img_size == img_size
+
+    # CS: img_shape is changed to img_size
+    with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
+        p = dinv.physics.CompressedSensing(
+            m=m, img_shape=img_size, device="cpu", compute_inverse=True, rng=rng
         )
         assert p.img_size == img_size
 
@@ -35,9 +35,27 @@ def test_deprecated_physics_image_size():
         p = dinv.physics.RandomPhaseRetrieval(m=m, img_shape=img_size, device=device)
         assert p.img_size == img_size
 
-    # RandomPhaseRetrieval: img_shape is changed to img_size
+    # Ptychography: in_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="in_shape.*deprecated"):
         p = dinv.physics.Ptychography(
             in_shape=img_size, probe=None, shifts=None, device=device
+        )
+        assert p.img_size == img_size
+
+    # Ptychography: input_shape is changed to img_size
+    with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
+        p = dinv.physics.StructuredRandomPhaseRetrieval(
+            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+        )
+        assert p.img_size == img_size
+
+    # Ptychography: img_shape is changed to img_size
+    with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
+        assert p.img_size == img_size
+
+    with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
+        p = dinv.physics.StructuredRandom(
+            input_shape=img_size, output_shape=img_size, device=device
         )
         assert p.img_size == img_size
