@@ -108,7 +108,7 @@ for i in tqdm(range(n_iter)):
     # compute the gradient
     with torch.enable_grad():
         kernel_hat.requires_grad_(True)
-        physics.update_parameters(filter=kernel_hat)
+        physics.update(filter=kernel_hat)
         loss = data_fidelity(y=y, x=x, physics=physics) / y.numel()
         loss.backward()
     grad = kernel_hat.grad
@@ -160,7 +160,7 @@ for i in tqdm(range(n_iter)):
     # compute the gradient, this will directly change the gradient of `kernel_hat`
     with torch.enable_grad():
         kernel_hat.requires_grad_(True)
-        physics.update_parameters(filter=kernel_hat)
+        physics.update(filter=kernel_hat)
         loss = data_fidelity(y=y, x=x, physics=physics) / y.numel()
         loss.backward()
 

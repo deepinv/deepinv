@@ -65,7 +65,6 @@ class Downsampling(LinearPhysics):
     ):
         super().__init__(**kwargs)
         assert isinstance(factor, int), "downsampling factor should be an integer"
-        # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
 
         self.imsize = img_size
         self.padding = padding

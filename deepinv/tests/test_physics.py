@@ -232,7 +232,7 @@ def find_operator(name, device, get_physics_param=False):
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_shape=img_size, device=device, rng=rng
         )
-        params = []
+        params = ["mask"]
     elif name == "fast_singlepixel_cake_cutting":
         p = dinv.physics.SinglePixelCamera(
             m=20,
@@ -242,7 +242,7 @@ def find_operator(name, device, get_physics_param=False):
             rng=rng,
             ordering="cake_cutting",
         )
-        params = []
+        params = ["mask"]
     elif name == "fast_singlepixel_zig_zag":
         p = dinv.physics.SinglePixelCamera(
             m=20,
@@ -252,7 +252,7 @@ def find_operator(name, device, get_physics_param=False):
             rng=rng,
             ordering="zig_zag",
         )
-        params = []
+        params = ["mask"]
     elif name == "fast_singlepixel_xy":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="xy"
@@ -267,7 +267,7 @@ def find_operator(name, device, get_physics_param=False):
             rng=rng,
             ordering="old_sequency",
         )
-        params = []
+        params = ["mask"]
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
@@ -276,7 +276,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
-        params = []
+        params = ["mask"]
     elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
@@ -367,7 +367,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
-        params = []
+        params = ["mask"]
     elif "radio" in name:
         dtype = torch.cfloat
         img_size = (1, 64, 64)
