@@ -57,7 +57,7 @@ plot([x, y], titles=["signal", "measurement"])
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
     mask=0.5,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma),
     device=device,
 )

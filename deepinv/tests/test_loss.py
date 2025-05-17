@@ -249,7 +249,7 @@ def imsize():
 @pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device)
+    return dinv.physics.Inpainting(img_size=imsize, mask=0.5, device=device)
 
 
 @pytest.fixture

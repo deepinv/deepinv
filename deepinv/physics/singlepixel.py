@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import warnings
 import math
-from deepinv.utils.decorators import deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def hadamard_1d(u, normalize=True):
@@ -364,7 +364,7 @@ class SinglePixelCamera(DecomposablePhysics):
 
     """
 
-    @deprecated_alias(img_shape="img_size")
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,

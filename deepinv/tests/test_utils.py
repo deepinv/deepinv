@@ -1,7 +1,7 @@
 import deepinv
 import torch
 import pytest
-from deepinv.utils.decorators import deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias
 
 
 @pytest.fixture
@@ -128,7 +128,7 @@ def test_plot_ortho3D():
 
 # -------------- Test deprecated_alias --------------
 class DummyModule(torch.nn.Module):
-    @deprecated_alias(old_lr="lr")
+    @_deprecated_alias(old_lr="lr")
     def __init__(self, lr=0.1):
         super().__init__()
         self.lr = lr

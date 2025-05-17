@@ -10,7 +10,7 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
-from deepinv.utils.decorators import deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -140,7 +140,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
     """
 
-    @deprecated_alias(img_shape="img_size")
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
@@ -459,7 +459,7 @@ class Ptychography(PhaseRetrieval):
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
-    @deprecated_alias(in_shape="img_size")
+    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
         img_size=None,

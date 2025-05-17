@@ -136,7 +136,7 @@ def test_get_samples(
         )
         param_name = "filter"
     elif physics_type == "inpainting":
-        physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, rng=rng)
+        physics = dinv.physics.Inpainting(img_size=imsize, device=device, rng=rng)
         param_name = "mask"
 
     # Define physics generator
@@ -575,7 +575,7 @@ def test_dataloader_formats(
     model = dummy_model
     dataset = DummyDataset()
     dataloader = DataLoader(dataset, batch_size=1)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, mask=1.0, device=device)
+    physics = dinv.physics.Inpainting(img_size=imsize, mask=1.0, device=device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
     losses = dinv.loss.MCLoss() if not ground_truth else dinv.loss.SupLoss()
 
@@ -656,7 +656,7 @@ def test_early_stop(
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
     optimizer = torch.optim.Adam(model.parameters(), lr=1)
     losses = dinv.loss.MCLoss()
     trainer = dinv.Trainer(

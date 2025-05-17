@@ -2,7 +2,7 @@ from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
 from deepinv.physics.functional import random_choice
-from deepinv.utils.decorators import deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def dst1(x):
@@ -96,7 +96,7 @@ class CompressedSensing(LinearPhysics):
 
     """
 
-    @deprecated_alias(img_shape="img_size")
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,

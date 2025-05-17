@@ -1,7 +1,7 @@
 from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.mri import MRI
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
-from deepinv.utils.decorators import deprecated_alias
+from deepinv.utils.decorators import _deprecated_alias
 import torch
 
 
@@ -85,7 +85,7 @@ class Inpainting(DecomposablePhysics):
 
     """
 
-    @deprecated_alias(tensor_size="img_size")
+    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
         img_size,
@@ -101,7 +101,7 @@ class Inpainting(DecomposablePhysics):
             mask = mask.to(device)
         elif isinstance(mask, float):
             gen = BernoulliSplittingMaskGenerator(
-                img_size=img_size,
+                tensor_size=img_size,
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
