@@ -57,7 +57,7 @@ You can also send an email to any of the main developers with your questions or 
 
 
 Contributing new datasets
-----------------
+--------------------------
 
 Contributing a new dataset can be a little trickier than other contributions, here are a few guidelines to help you with that. The DeepInverse code base is regularly tested on automatic continuous integration (CI) servers in order to ensure that the code works the way it is supposed to. Unfortunately, the CI servers have limited resources and they can generally not host the datasets. This makes testing the implementation of the datasets a bit cumbersome as only the logic can be tested and not the consistency with the actual data.
 
