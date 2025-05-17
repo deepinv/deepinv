@@ -1,9 +1,6 @@
 from math import sqrt
-
 import torch
-
-from deepinv.physics.forward import LinearPhysics, adjoint_function
-from deepinv.physics.functional import random_choice
+from deepinv.physics.forward import LinearPhysics
 
 
 class HyperSpectralUnmixing(LinearPhysics):
@@ -66,8 +63,8 @@ class HyperSpectralUnmixing(LinearPhysics):
 
         self.E, self.C = M.shape
 
-        self.update_parameters(M=M, **kwargs)
-        self.M_pinv = torch.linalg.pinv(self.M)
+        self.register_buffer("M", M.to(device))
+        self.register_buffer("M_pinv", torch.linalg.pinv(self.M.to(device)))
 
     def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
         r"""
@@ -122,7 +119,7 @@ class HyperSpectralUnmixing(LinearPhysics):
                 raise ValueError(
                     "Number of endmembers and bands should be same as before."
                 )
-            self.M = torch.nn.Parameter(M.to(self.device), requires_grad=False)
+            self.register_buffer("M", M)
 
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
+        if kwargs:
+            super().update_parameters(**kwargs)
