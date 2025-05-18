@@ -238,7 +238,7 @@ def load_url_image(
 
 def load_example(name, **kwargs):
     r"""
-    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.demo.load_url_image`.
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.load_url_image`.
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
