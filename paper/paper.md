@@ -224,7 +224,7 @@ The `optim` module also includes solvers for the minimization problem in \eqref{
 ### Sampling-Based Methods
 Reconstruction methods can also be defined via ordinary or stochastic differential equations, generally as a Markov chain defined by
 \begin{equation}
-x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } $t=1,\dots,T$
+x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=1,\dots,T
 \end{equation} 
 such that $x_{T}$ is approximately sampled from the posterior distribution $p(x|y)$.
 Sampling methods are included in the `sampling` module and can be used to sample multiple plausible reconstructions.
