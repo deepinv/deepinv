@@ -50,7 +50,7 @@ authors:
     affiliation: 10
   - name: Thomas Moreau  
     affiliation: 2
-  - name: Thibaut Mordzyk  
+  - name: Thibaut Modrzyk  
     affiliation: 11
   - name: Brayan Monroy  
     affiliation: 6
@@ -366,9 +366,10 @@ DeepInverse is a dynamic and evolving project and this paper is merely a snapsho
 
 # Acknowledgements
 
-J. Tachella acknowledges support by the ANR grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
+J. Tachella acknowledges support by the French National Research Agency (Agence Nationale de la Recherche) grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
 M. Terris acknowledges support by the BrAIN grant (ANR-20-CHIA-0016).
 F. Sarron, P. Weiss, M.H. Nguyen were supported by the ANR Micro-Blind ANR-21-CE48-0008.
+Thomas Moreau was supported from a national grant attributed to the ExaDoST project of the NumPEx PEPR program, under the reference ANR-22-EXNU-0004.
 J. Hertrich is supported by the German Research Foundation (DFG) with project number 530824055.
 Z. Hu acknowledges funding from the Swiss National Science Foundation (Grant PZ00P2_216211).
 S. Neumayer acknowledges funding from the German Research Foundation (DFG) with project number 543939932.
