@@ -337,32 +337,39 @@ def test_load_fmd_dataset(download_fmd, transform, target_transform):
 @pytest.fixture
 def mock_lidc_idri():
     """Mock the LIDC-IDRI dataset"""
-    import pandas as pd
-    import pydicom
+    if os.environ.get("DEEPINV_MOCK_TESTS", False):
+        import pandas as pd
+        import pydicom
 
-    data = [["CT", f"Dummy_ID_{i}", f"/dummy/Scan{i}"] for i in range(1, 1019)]
-    dummy_df = pd.DataFrame(data, columns=["Modality", "Subject ID", "File Location"])
-    # Generated using pydicomgenerator
-    # https://github.com/sjoerdk/dicomgenerator
-    dummy_dicom = pydicom.dcmread(
-        os.path.join(os.path.dirname(__file__), "dicomgenerator_dummy.dcm")
-    )
+        data = [["CT", f"Dummy_ID_{i}", f"/dummy/Scan{i}"] for i in range(1, 1019)]
+        dummy_df = pd.DataFrame(
+            data, columns=["Modality", "Subject ID", "File Location"]
+        )
+        # Generated using pydicomgenerator
+        # https://github.com/sjoerdk/dicomgenerator
+        dummy_dicom = pydicom.dcmread(
+            os.path.join(os.path.dirname(__file__), "dicomgenerator_dummy.dcm")
+        )
 
-    # NOTE: dicomgenerator_dummy.dcm lacks a TransferSyntaxUID attribute.
-    # We monkey patch it to make the test work.
-    dummy_dicom.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+        # NOTE: dicomgenerator_dummy.dcm lacks a TransferSyntaxUID attribute.
+        # We monkey patch it to make the test work.
+        dummy_dicom.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
 
-    # NOTE: In lidc_idri, dcmread is imported from pydicom and stored to a variable.
-    # This means that it cannot be mocked by patching pydicom.dcmread. Instead,
-    # we patch the variable from the lidc_module directly.
-    with (
-        patch("os.path.isdir", return_value=True),
-        patch("os.path.exists", return_value=True),
-        patch("pandas.read_csv", return_value=dummy_df),
-        patch("os.listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
-        patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
-    ):
-        yield "/dummy"
+        # NOTE: In lidc_idri, dcmread is imported from pydicom and stored to a variable.
+        # This means that it cannot be mocked by patching pydicom.dcmread. Instead,
+        # we patch the variable from the lidc_module directly.
+        with (
+            patch("os.path.isdir", return_value=True),
+            patch("os.path.exists", return_value=True),
+            patch("pandas.read_csv", return_value=dummy_df),
+            patch("os.listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
+            patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
+        ):
+            yield "/dummy"
+    else:
+        pytest.skip(
+            "LIDC-IDRI dataset cannot be downloaded automatically and is not available for testing."
+        )
 
 
 # NOTE: The LIDC-IDRI needs to be downloaded manually.
