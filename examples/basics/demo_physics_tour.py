@@ -12,7 +12,7 @@ import torch
 
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 
 
 # %%
@@ -23,8 +23,7 @@ from deepinv.utils.demo import load_url_image, get_image_url
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = get_image_url("CBSD_0010.png")
-x = load_url_image(url, grayscale=False).to(device)
+x = load_example("CBSD_0010.png", grayscale=False).to(device)
 
 x = torch.tensor(x, device=device, dtype=torch.float)
 x = torch.nn.functional.interpolate(x, size=(64, 64))

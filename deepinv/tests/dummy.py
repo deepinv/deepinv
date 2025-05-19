@@ -58,3 +58,11 @@ if __name__ == "__main__":
 
     plt.imshow(x.permute(1, 2, 0).cpu().numpy())
     plt.show()
+
+
+class DummyModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, *args, **kwargs):
+        return x
