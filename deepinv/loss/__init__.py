@@ -41,3 +41,5 @@ from .metric import (
     cal_psnr,
     cal_mae,
 )
+
+from .augmentation import AugmentConsistencyLoss
