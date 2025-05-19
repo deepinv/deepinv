@@ -97,7 +97,7 @@ affiliations:
     index: 11
   - name: University of Texas at Austin, Austin, USA
     index: 12
-  - name: CEA, Paris, France
+  - name: IRFU, CEA, Université Paris-Saclay, Gif-sur-Yvette, France
     index: 13
   - name: CNRS UAR 851, Université Paris-Saclay Orsay, France
     index: 14
@@ -235,7 +235,7 @@ These methods enable uncertainty estimates by computing statistics across multip
 
 **Diffusion Models**: In a similar fashion to PnP methods, diffusion models [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] incorporate prior information via a pretrained denoiser, however, they are linked to a stochastic differential equation (SDE) or an ordinary differential equation (ODE), instead of the optimization of \eqref{eq:var}.
 
-**Langevin-Type Algorithms**: The library provides popular high-dimensional Markov Chain Monte Carlo (MCMC) methods such as Unadjusted Langevin Algorithm and some of its variants [@laumont2022bayesian] [@pereyra2023split], which
+**Langevin-Type Algorithms**: The library provides popular high-dimensional Markov Chain Monte Carlo (MCMC) methods such as Unadjusted Langevin Algorithm and some of its variants [@laumont2022bayesian] [@pereyra2020skrock], which
 define a Markov chain with stationary distribution close to the posterior distribution $p(x|y)$.
 
 ### Non-Iterative Methods
