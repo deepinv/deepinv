@@ -1,3 +1,6 @@
+import os
+import shutil
+import copy
 from math import sqrt
 from typing import Optional, List
 import pytest
@@ -7,10 +10,8 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
-import copy
 from deepinv.utils import TensorList
-import os
-import shutil
+
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -1537,3 +1538,24 @@ def test_physics_state_dict(name, device):
 
         # Remove the cache dir
         shutil.rmtree(cache_dir)
+
+
+def test_composed_linear_physics(device):
+    img_size = (3, 32, 32)
+    # First physics
+    mask_1 = torch.ones(img_size, device=device).unsqueeze(0)
+    mask_1[..., 10:15, 13:17] = 0.0
+    physics_1 = dinv.physics.Inpainting(
+        tensor_size=img_size, mask=mask_1, device=device
+    )
+    # Second physics
+    mask_2 = torch.ones(img_size, device=device).unsqueeze(0)
+    mask_2[..., 5:7, 9:13] = 0.0
+    physics_2 = dinv.physics.Inpainting(
+        tensor_size=img_size, mask=mask_2, device=device
+    )
+
+    composed_physics = physics_1 * physics_2  # physics_1(physics_2(.))
+    x = torch.randn(img_size, device=device).unsqueeze(0)
+    assert torch.equal(composed_physics.A(x), physics_1.A(physics_2.A(x)))
+    assert torch.equal(composed_physics.mask, mask_1 * mask_2)

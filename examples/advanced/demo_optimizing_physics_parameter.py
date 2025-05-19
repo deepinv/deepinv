@@ -183,9 +183,8 @@ dinv.utils.plot(
 # We can plot the loss to make sure that it decreases
 #
 plt.figure()
-plt.plot(range(n_iter), losses)
+plt.semilogy(range(n_iter), losses)
 plt.title("Loss evolution")
-plt.yscale("log")
 plt.xlabel("Iteration")
 plt.tight_layout()
 plt.show()
@@ -229,7 +228,8 @@ for i in tqdm(range(n_iter)):
     # a gradient step
     optimizer.step()
 
-    # projection step, when doing additional steps, it's important to change only
+    # projection step.
+    # Note: when doing additional steps, it's important to change only
     # the tensor data to avoid breaking the gradient computation
     physics.filter.data = projection_simplex_sort(physics.filter.data)
 
@@ -248,11 +248,8 @@ dinv.utils.plot(
 # We can plot the loss to make sure that it decreases
 #
 plt.figure()
-plt.plot(range(n_iter), losses)
+plt.semilogy(range(n_iter), losses)
 plt.title("Loss evolution")
-plt.yscale("log")
 plt.xlabel("Iteration")
 plt.tight_layout()
 plt.show()
-
-# %%

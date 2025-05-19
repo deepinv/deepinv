@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 from typing import Callable
 import warnings
-import warnings
 
 
 class NoiseModel(nn.Module):
@@ -75,7 +74,7 @@ class NoiseModel(nn.Module):
             self.rng.set_state(self.initial_random_state)
         else:
             warnings.warn(
-                "Cannot reset state for random number generator because it is not initialized. This is ignore."
+                "Cannot reset state for random number generator because it was not initialized. This is ignored."
             )
 
     def rand_like(self, input: torch.Tensor, seed: int = None):
@@ -98,7 +97,6 @@ class NoiseModel(nn.Module):
 
     def update_parameters(self, **kwargs):
         r"""
-
         Update the parameters of the noise model.
 
         :param dict kwargs: dictionary of parameters to update.
@@ -157,7 +155,7 @@ class NoiseModel(nn.Module):
 
 class ZeroNoise(NoiseModel):
     r"""
-    Zero noise model :math:`y=z`, serve as a place holder.
+    Zero noise model :math:`y=x`, serve as a placeholder.
     """
 
     def __init__(self, *args, **kwargs):
