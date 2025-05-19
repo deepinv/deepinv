@@ -1558,4 +1558,15 @@ def test_composed_linear_physics(device):
     composed_physics = physics_1 * physics_2  # physics_1(physics_2(.))
     x = torch.randn(img_size, device=device).unsqueeze(0)
     assert torch.equal(composed_physics.A(x), physics_1.A(physics_2.A(x)))
-    assert torch.equal(composed_physics.mask, mask_1 * mask_2)
+    assert torch.equal(composed_physics.A(torch.ones_like(x)), mask_1 * mask_2)
+
+    # A blur physics
+    physics_3 = dinv.physics.BlurFFT(
+        img_size=img_size, filter=dinv.physics.blur.bilinear_filter(2.0), device=device
+    )
+
+    composed_physics = physics_1 * physics_3
+    assert torch.equal(composed_physics.A(x), physics_1.A(physics_3.A(x)))
+    assert torch.equal(
+        composed_physics.A_adjoint(x), physics_3.A_adjoint(physics_1.A_adjoint(x))
+    )
