@@ -63,7 +63,8 @@ authors:
   - name: Victor Sechaud  
     affiliation: 1
   - name: Georg Schramm  
-    affiliation: 4
+    affiliation: 17
+    orcid: 0000-0002-2251-3195
   - name: Chao Tang  
     affiliation: "4, 5"
   - name: Romain Vo
@@ -104,6 +105,8 @@ affiliations:
     index: 15
   - name: Chemnitz University of Technology, Chemnitz, Germany
     index: 16
+  - name: Department of Imaging and Pathology, KU Leuven, Leuven, Belgium
+    index: 17
 
 date: 15 May 2025
 bibliography: paper.bib
