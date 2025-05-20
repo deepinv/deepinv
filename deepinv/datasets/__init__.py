@@ -4,7 +4,11 @@ from .div2k import DIV2K
 from .urban100 import Urban100HR
 from .set14 import Set14HR
 from .cbsd68 import CBSD68
-from .fastmri import FastMRISliceDataset, SimpleFastMRISliceDataset
+from .fastmri import (
+    FastMRISliceDataset,
+    SimpleFastMRISliceDataset,
+    MRISliceTransform,
+)
 from .cmrxrecon import CMRxReconSliceDataset
 from .lidc_idri import LidcIdriSliceDataset
 from .flickr2k import Flickr2kHR

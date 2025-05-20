@@ -29,6 +29,7 @@ Using automatic differentiation, we can compute derivatives w.r.t to both the in
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
+       | :class:`MultiplicativeSplittingMaskGenerator <deepinv.physics.generator.MultiplicativeSplittingMaskGenerator>`
        | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
        | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
 
@@ -59,6 +60,7 @@ Using automatic differentiation, we can compute derivatives w.r.t to both the in
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
+       | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
        | The above all also support k+t dynamic sampling.
 
    * - Tomography

@@ -98,14 +98,14 @@ class Inpainting(DecomposablePhysics):
         if isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif isinstance(mask, float):
-            gen = BernoulliSplittingMaskGenerator(
+            self.gen = BernoulliSplittingMaskGenerator(
                 tensor_size=tensor_size,
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
                 rng=rng,
             )
-            mask = gen.step(batch_size=None)["mask"]
+            mask = self.gen.step(batch_size=None)["mask"]
         elif mask is None:
             pass
         else:

@@ -39,7 +39,7 @@ class Metric(Module):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
-    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+    :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input, ``clip`` clips to :math:`[0,1]`, ``standardize`` standardizes to same mean and std as ground truth, ``none`` or None no reduction will be applied (default).
 
     |sep|
 
@@ -72,13 +72,15 @@ class Metric(Module):
         normalizer = lambda x: x
         if norm_inputs is not None:
             if not isinstance(norm_inputs, str):
-                raise ValueError(
-                    "norm_inputs must either be l2, min_max, none or None."
-                )
+                raise ValueError("norm_inputs must be str or None.")
             elif norm_inputs.lower() == "min_max":
                 normalizer = lambda x: rescale_img(x, rescale_mode="min_max")
+            elif norm_inputs.lower() == "clip":
+                normalizer = lambda x: rescale_img(x, rescale_mode="clip")
             elif norm_inputs.lower() == "l2":
                 normalizer = lambda x: x / norm(x)
+            elif norm_inputs.lower() == "standardize":
+                pass
             elif norm_inputs.lower() == "none":
                 pass
             else:
@@ -86,10 +88,14 @@ class Metric(Module):
                     "norm_inputs must either be l2, min_max, none or None."
                 )
         self.normalizer = lambda x: x if x is None else normalizer(x)
+        self.norm_inputs = norm_inputs
+
         self.reducer = lambda x: x
         if reduction is not None:
-            if not isinstance(reduction, str):
-                raise ValueError("reduction must either be mean, sum, none or None.")
+            if callable(reduction):
+                self.reducer = reduction
+            elif not isinstance(reduction, str):
+                raise ValueError("reduction must either be str, callable, or None.")
             elif reduction.lower() == "mean":
                 self.reducer = lambda x: x.mean()
             elif reduction.lower() == "sum":
@@ -112,11 +118,12 @@ class Metric(Module):
         r"""Calculate metric on data.
 
         Override this function to implement your own metric. Always include ``args`` and ``kwargs`` arguments.
+        Do not perform reduction.
 
         :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
         :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
-        :return torch.Tensor: calculated metric, the tensor size might be ``(1,)`` or ``(B,)``.
+        :return torch.Tensor: calculated unreduced metric of shape ``(B,)``.
         """
         return self._metric(x_net, x, *args, **kwargs)
 
@@ -156,6 +163,13 @@ class Metric(Module):
 
         if self.complex_abs:
             x_net, x = complex_abs(x_net), complex_abs(x)
+
+        if self.norm_inputs == "standardize":
+            if x_net is None or x is None:
+                raise ValueError(
+                    "Both x and x_net must not be None in order to use standardize."
+                )
+            x_net = (x_net - x_net.mean()) / x_net.std() * x.std() + x.mean()
 
         m = self.metric(
             self.normalizer(x_net),

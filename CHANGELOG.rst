@@ -15,6 +15,9 @@ New Features
 - Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
 - Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
 - Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -29,7 +32,9 @@ Fixed
 - Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
 v0.3
 ----------------
@@ -338,5 +343,6 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
