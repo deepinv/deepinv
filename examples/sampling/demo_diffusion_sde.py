@@ -375,8 +375,8 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 sde = VarianceExplodingDiffusion(
     sigma_max=sigma_max, sigma_min=sigma_min, alpha=0.75, device=device, dtype=dtype
 )
-x = dinv.utils.load_url_image(
-    dinv.utils.demo.get_image_url("butterfly.png"),
+x = dinv.utils.load_example(
+    "butterfly.png",
     img_size=256,
     resize_mode="resize",
 ).to(device)

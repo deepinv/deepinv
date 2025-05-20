@@ -265,8 +265,8 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = dinv.utils.load_url_image(
-                    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+                x = dinv.utils.load_example(
+                    "celeba_example.jpg",
                     img_size=64,
                     resize_mode="resize",
                 ).to(device)

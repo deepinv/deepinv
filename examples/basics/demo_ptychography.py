@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np
 import deepinv as dinv
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 from deepinv.physics import Ptychography
 from deepinv.optim.data_fidelity import L1
@@ -29,8 +29,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Loads a sample image from a URL, resizes it to 128x128 pixels, and extracts only one color channel.
 
 size = 128
-url = get_image_url("CBSD_0010.png")
-image = load_url_image(url, grayscale=False, img_size=(size, size))
+image = load_example("CBSD_0010.png", grayscale=False, img_size=(size, size))
 
 x = image[:, 0, ...].unsqueeze(1)  # Take only one channel
 print(x.shape)
