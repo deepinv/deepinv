@@ -82,3 +82,8 @@ def test_deprecated_physics_image_size():
             tensor_size=img_size, device=device
         )
         assert p.img_size == img_size
+
+    # GAN Discriminator
+    with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
+        model = dinv.models.gan.ESRGANDiscriminator(input_shape=img_size)
+        assert model.img_size == img_size
