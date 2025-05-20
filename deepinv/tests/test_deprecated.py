@@ -42,20 +42,43 @@ def test_deprecated_physics_image_size():
         )
         assert p.img_size == img_size
 
-    # Ptychography: input_shape is changed to img_size
+    # StructuredRandomPhaseRetrieval: input_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
         p = dinv.physics.StructuredRandomPhaseRetrieval(
             input_shape=img_size, output_shape=img_size, n_layers=2, device=device
         )
         assert p.img_size == img_size
 
-    # Ptychography: img_shape is changed to img_size
+    # RandomPhaseRetrieval: img_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
         p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
         assert p.img_size == img_size
 
+    # StructuredRandom: input_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
         p = dinv.physics.StructuredRandom(
             input_shape=img_size, output_shape=img_size, device=device
+        )
+        assert p.img_size == img_size
+
+    # Inpainting mask generators: tensor_size is changed to img_size
+    with pytest.warns(DeprecationWarning, match="tensor_size.*deprecated"):
+        p = dinv.physics.generator.inpainting.Artifact2ArtifactSplittingMaskGenerator(
+            tensor_size=img_size, device=device
+        )
+        assert p.img_size == img_size
+
+        p = dinv.physics.generator.inpainting.BernoulliSplittingMaskGenerator(
+            tensor_size=img_size, split_ratio=0.5, device=device
+        )
+        assert p.img_size == img_size
+
+        p = dinv.physics.generator.inpainting.GaussianSplittingMaskGenerator(
+            tensor_size=img_size, split_ratio=0.5, device=device
+        )
+        assert p.img_size == img_size
+
+        p = dinv.physics.generator.inpainting.Phase2PhaseSplittingMaskGenerator(
+            tensor_size=img_size, device=device
         )
         assert p.img_size == img_size

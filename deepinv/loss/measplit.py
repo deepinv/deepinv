@@ -255,10 +255,10 @@ class SplittingLoss(Loss):
 
             if (
                 self.mask_generator is None
-                or self.mask_generator.tensor_size != y.size()[1:]
+                or self.mask_generator.img_size != y.size()[1:]
             ):
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    tensor_size=y.size()[1:],
+                    img_size=y.size()[1:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
@@ -431,7 +431,7 @@ class Phase2PhaseLoss(SplittingLoss):
         self.metric = metric
         self.device = device
         self.mask_generator = Phase2PhaseSplittingMaskGenerator(
-            tensor_size=self.tensor_size, device=self.device
+            img_size=self.tensor_size, device=self.device
         )
         if not self.dynamic_model:
             # Metric wrapper to flatten dynamic inputs
@@ -617,7 +617,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
         )
         self.name = "artifact2artifact"
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
-            tensor_size=self.tensor_size, split_size=split_size, device=self.device
+            img_size=self.tensor_size, split_size=split_size, device=self.device
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):

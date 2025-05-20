@@ -440,7 +440,7 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
     if name == "bernoulli":
         return dinv.physics.generator.BernoulliSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
@@ -448,7 +448,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,

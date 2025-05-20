@@ -540,7 +540,7 @@ def test_dataloader_formats(
 
     # Offline generator at low split ratio
     generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
-        tensor_size=imsize, split_ratio=0.1, rng=rng, device=device
+        img_size=imsize, split_ratio=0.1, rng=rng, device=device
     )
 
     class DummyDataset(Dataset):
@@ -581,7 +581,7 @@ def test_dataloader_formats(
 
     # Online generator at higher split ratio
     generator2 = dinv.physics.generator.BernoulliSplittingMaskGenerator(
-        tensor_size=imsize, split_ratio=0.9, rng=rng, device=device
+        img_size=imsize, split_ratio=0.9, rng=rng, device=device
     )
 
     trainer = dinv.Trainer(
