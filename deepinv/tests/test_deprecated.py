@@ -89,10 +89,18 @@ def test_deprecated_physics_image_size():
         assert model.img_size == img_size
 
     # Loss
-    with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
+    with pytest.warns(DeprecationWarning, match="tensor_size.*deprecated"):
         loss = dinv.loss.Phase2PhaseLoss(tensor_size=(2, 4, 4, 4), dynamic_model=False)
         assert loss.img_size == (2, 4, 4, 4)
         loss = dinv.loss.Artifact2ArtifactLoss(
             tensor_size=(2, 4, 4, 4), dynamic_model=False
         )
         assert loss.img_size == (2, 4, 4, 4)
+
+    # DIP
+    with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
+        generator = dinv.models.ConvDecoder(img_shape=(3, 4, 4))
+        with pytest.warns(DeprecationWarning, match="input_size.*deprecated"):
+            model = dinv.models.DeepImagePrior(
+                generator=generator, input_size=(3, 4, 4)
+            )

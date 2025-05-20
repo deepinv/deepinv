@@ -324,7 +324,7 @@ def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
-    img_shape = (213, 213)
+    img_size = (213, 213)
 
     # Clean data shape
     rss_shape = (320, 320)
@@ -350,7 +350,7 @@ def test_FastMRISliceDataset(download_fastmri):
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
 
-    assert target1.shape == (1, *img_shape)
+    assert target1.shape == (1, *img_size)
     assert kspace1.shape == (2, n_coils, *kspace_shape)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
@@ -359,13 +359,13 @@ def test_FastMRISliceDataset(download_fastmri):
     physics = MultiCoilMRI(
         mask=torch.ones(kspace_shape),
         coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
-        img_size=img_shape,
+        img_size=img_size,
     )
     rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
     assert torch.allclose(target1.unsqueeze(0), rss1)
 
     # Test singlecoil MRI mag works
-    physics = MRI(mask=torch.ones(kspace_shape), img_size=img_shape)
+    physics = MRI(mask=torch.ones(kspace_shape), img_size=img_size)
     mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True, crop=True)
     assert target1.unsqueeze(0).shape == mag1.shape
 
@@ -397,9 +397,9 @@ def download_CMRxRecon():
 def test_CMRxReconSliceDataset(download_CMRxRecon):
     from math import prod
 
-    img_shape = (12, 512, 256)
+    img_size = (12, 512, 256)
 
-    physics_generator = GaussianMaskGenerator(img_shape)
+    physics_generator = GaussianMaskGenerator(img_size)
 
     data_dir = download_CMRxRecon
 
@@ -423,7 +423,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     target1, kspace1, params1 = dataset[0]
     target2, kspace2, params2 = dataset[1]
 
-    assert target1.shape == kspace1.shape == (2, *img_shape)
+    assert target1.shape == kspace1.shape == (2, *img_size)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
     assert not torch.all(params1["mask"] == params2["mask"])
@@ -434,7 +434,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     assert torch.all(params1_again["mask"] == params1["mask"])
 
     # Loaded kspace is directly compatible with deepinv physics
-    physics = DynamicMRI(img_size=img_shape)
+    physics = DynamicMRI(img_size=img_size)
     kspace1_dinv = physics(
         target1.unsqueeze(0), mask=params1["mask"].unsqueeze(0)
     ).squeeze(0)

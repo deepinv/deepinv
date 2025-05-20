@@ -80,7 +80,7 @@ lr = 1e-2  # learning rate for the optimizer.
 channels = 64  # number of channels per layer in the decoder.
 in_size = [2, 2]  # size of the input to the decoder.
 backbone = dinv.models.ConvDecoder(
-    img_shape=x.shape[1:], in_size=in_size, channels=channels
+    img_size=x.shape[1:], in_size=in_size, channels=channels
 ).to(device)
 
 f = dinv.models.DeepImagePrior(
