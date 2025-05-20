@@ -8,6 +8,7 @@ from deepinv.loss.metric.metric import Metric
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
 from deepinv.models.base import Reconstructor
 
+
 class SplittingLoss(Loss):
     r"""
     Measurement splitting loss.
@@ -277,9 +278,9 @@ class SplittingLoss(Loss):
                     device=y.device,
                 )
 
-            if self.mask_generator.tensor_size[-2:] != y.shape[-2:]:
+            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
                 raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.tensor_size[-2:]} and y has {y.shape[-2:]}"
+                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -350,6 +351,7 @@ class SplittingLoss(Loss):
                     "Mask not generated during forward pass - use model(y, physics, update_parameters=True)"
                 )
             return self.mask
+
 
 class Neighbor2Neighbor(Loss):
     r"""

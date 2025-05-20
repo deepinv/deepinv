@@ -238,22 +238,23 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         >>> mask_generator.step(batch_size=2, input_mask=orig_mask)["mask"].shape
         torch.Size([2, 1, 128, 128])
 
-    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
+    :param tuple[int] img_size: size of the tensor to be masked without batch dimension e.g. of shape (C, H, W) or (C, T, H, W)
     :param deepinv.physics.generator.BaseMaskGenerator split_generator: mask generator used for multiplicative splitting
     :param str, torch.device device: device where the tensor is stored (default: 'cpu').
     :param torch.Generator rng: torch random number generator.
     :param torch.dtype dtype: the data type of the generated parameters
     """
 
+    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        img_size: Tuple[int],
         split_generator: BaseMaskGenerator,
         *args,
         **kwargs,
     ):
         super().__init__(
-            tensor_size=tensor_size,
+            img_size=img_size,
             split_ratio=0.0,
             pixelwise=True,
             *args,

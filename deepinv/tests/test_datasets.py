@@ -325,12 +325,7 @@ def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
-<<<<<<< HEAD
-    img_size = (213, 213)
-=======
     n_slices = 16
-    img_shape = (213, 213)
->>>>>>> main
 
     # Clean data shape
     rss_shape = (320, 320)

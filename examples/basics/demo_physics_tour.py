@@ -216,11 +216,7 @@ plot([x, y[0], y[1]], titles=["signal", "low res rgb", "high res gray"])
 # When ``fast=True``, the patterns are generated using a fast Hadamard transform.
 
 physics = dinv.physics.SinglePixelCamera(
-<<<<<<< HEAD
-    m=256, fast=True, img_size=img_size, device=device
-=======
-    m=1024, fast=True, ordering="cake_cutting", img_shape=img_size, device=device
->>>>>>> main
+    m=1024, fast=True, ordering="cake_cutting", img_size=img_size, device=device
 )
 
 y = physics(x)

@@ -372,7 +372,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
             rng=rng,
         )
         return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_generator=mri_gen,
         )
     else:

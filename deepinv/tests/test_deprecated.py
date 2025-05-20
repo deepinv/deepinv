@@ -83,6 +83,14 @@ def test_deprecated_physics_image_size():
         )
         assert p.img_size == img_size
 
+        p = dinv.physics.generator.inpainting.MultiplicativeSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_generator=dinv.physics.generator.GaussianMaskGenerator(
+                img_size=img_size, acceleration=2
+            ),
+        )
+        assert p.img_size == img_size
+
     # GAN Discriminator
     with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
         model = dinv.models.gan.ESRGANDiscriminator(input_shape=img_size)
@@ -90,9 +98,11 @@ def test_deprecated_physics_image_size():
 
     # Loss
     with pytest.warns(DeprecationWarning, match="tensor_size.*deprecated"):
-        loss = dinv.loss.Phase2PhaseLoss(tensor_size=(2, 4, 4, 4), dynamic_model=False)
+        loss = dinv.loss.mri.Phase2PhaseLoss(
+            tensor_size=(2, 4, 4, 4), dynamic_model=False
+        )
         assert loss.img_size == (2, 4, 4, 4)
-        loss = dinv.loss.Artifact2ArtifactLoss(
+        loss = dinv.loss.mri.Artifact2ArtifactLoss(
             tensor_size=(2, 4, 4, 4), dynamic_model=False
         )
         assert loss.img_size == (2, 4, 4, 4)
