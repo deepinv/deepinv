@@ -63,7 +63,7 @@ New Features
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
 - Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
-- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_)
+- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_ and `Julian Tachella`_ )
 - Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
 - Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
 - Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)

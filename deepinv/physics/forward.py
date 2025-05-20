@@ -64,11 +64,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
-        return ComposedPhysics(
-            [other, self],
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
         r"""
@@ -413,11 +409,7 @@ class LinearPhysics(Physics):
         :return: (:class:`deepinv.physics.LinearPhysics`) concatenated operator
 
         """
-        return ComposedLinearPhysics(
-            [other, self],
-            max_iter=self.max_iter,
-            tol=self.tol,
-        )
+        return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
         r"""
@@ -683,7 +675,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     .. math::
 
-        Ax = N_k(A_k\dotsA_1(x))
+        Ax = N_k(A_k \dots A_2(A_1(x)))
 
     where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
 
@@ -699,7 +691,7 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
         .. math::
 
-            x = A_1^{\top}(A_2^{\top}(\dots(N_k^{\top}(y))))
+            x = A_1^{\top} A_2^{\top} \dots A_k^{\top} y
 
         :param torch.Tensor y: measurements
         :return: signal/image
@@ -707,6 +699,21 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
         for physics in reversed(self.physics_list):
             y = physics.A_adjoint(y, **kwargs)
         return y
+
+
+def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
+    r"""
+    Composes multiple forward operators :math:`A = A_1\circ A_2\circ \dots \circ A_n`.
+
+    The measurements produced by the resulting model are :class:`deepinv.utils.TensorList` objects, where
+    each entry corresponds to the measurements of the corresponding operator.
+
+    :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
+    """
+    if all(isinstance(phys, LinearPhysics) for phys in physics):
+        return ComposedLinearPhysics(physics, **kwargs)
+    else:
+        return ComposedPhysics(physics, **kwargs)
 
 
 class DecomposablePhysics(LinearPhysics):
