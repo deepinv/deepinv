@@ -69,7 +69,7 @@ class BaseSampling(Reconstructor):
     :param float burnin_ratio: Percentage of iterations used for burn-in period (between 0 and 1). Default: 0.2
     :param int thinning: Integer to thin the Monte Carlo samples (keeping one out of `thinning` samples). Default: 10
     :param float thresh_conv: The convergence threshold for the mean and variance. Default: ``1e-3``
-    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics.
+    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics. It is called with the current sample `X`, the current `statistics` (a list of Welford objects), and the current iteration number `iter` as keyword arguments.
     :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5
     :param bool verbose: Whether to print progress of the algorithm. Default: ``False``
     """
@@ -80,7 +80,7 @@ class BaseSampling(Reconstructor):
         data_fidelity: DataFidelity,
         prior: Prior,
         max_iter: int = 100,
-        callback: Callable = lambda x: x,
+        callback: Callable = lambda X, **kwargs: None,
         burnin_ratio: float = 0.2,
         thresh_conv: float = 1e-3,
         crit_conv: str = "residual",
@@ -173,7 +173,7 @@ class BaseSampling(Reconstructor):
             >>> # Using multiple statistics
             >>> sampler = BaseSampling(
             ...     iterator, data_fidelity, prior,
-            ...     g_statistics=[lambda d: d["x"], lambda d: d["x"]**2]
+            ...     g_statistics=[lambda X: X["x"], lambda X: X["x"]**2]
             ... )
             >>> means, vars = sampler.sample(measurements, forward_operator)
         """
@@ -228,7 +228,7 @@ class BaseSampling(Reconstructor):
                 )
 
                 if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
-                    self.callback(X)
+                    self.callback(X, statistics= statistics, iter=it)
                     # Store previous means and variances for convergence check
                     if it >= (self.max_iter - self.thinning):
                         mean_prevs = [stat.mean().clone() for stat in statistics]
@@ -345,6 +345,7 @@ def sampling_builder(
     thinning: int = 10,
     history_size: Union[int, bool] = 5,
     verbose: bool = False,
+    callback: Callable = lambda X, **kwargs: None,
     **kwargs,
 ) -> BaseSampling:
     r"""
@@ -360,6 +361,7 @@ def sampling_builder(
     :param thinning: Integer to thin the Monte Carlo samples
     :param history_size: Number of most recent samples to store in memory. If `True`, all samples are stored. If `False`, no samples are stored. If an integer, it specifies the number of most recent samples to store. Default: 5
     :param verbose: Whether to print progress
+    :param Callable callback: A function that is called on every (thinned) sample state dictionary for diagnostics. It is called with the current sample `X`, the current `statistics` (a list of Welford objects), and the current iteration number `iter` as keyword arguments.
     :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter
     :return: Configured BaseSampling instance in eval mode
     """
@@ -375,5 +377,6 @@ def sampling_builder(
         thinning=thinning,
         history_size=history_size,
         verbose=verbose,
+        callback=callback,
     ).eval()
 
