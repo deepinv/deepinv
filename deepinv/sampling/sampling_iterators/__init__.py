@@ -1,3 +1,4 @@
 from .ula import ULAIterator
 from .SKRock import SKRockIterator, SKROCKIterator
-from .sample_iterator import SamplingIterator
+from .sampling_iterator import SamplingIterator
+from .diffusion import DiffusionIterator

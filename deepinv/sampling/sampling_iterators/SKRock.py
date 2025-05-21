@@ -6,7 +6,7 @@ import time as time
 from typing import Dict, Optional, Tuple, Any
 
 from deepinv.optim import ScorePrior
-from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
+from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
 from deepinv.optim.data_fidelity import DataFidelity
 from deepinv.physics import Physics
 

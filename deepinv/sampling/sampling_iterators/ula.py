@@ -8,7 +8,7 @@ from deepinv.physics import LinearPhysics
 from deepinv.optim import PnP
 from deepinv.physics import Physics
 from deepinv.optim.prior import ScorePrior
-from deepinv.sampling.sampling_iterators.sample_iterator import SamplingIterator
+from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
 from deepinv.optim.data_fidelity import DataFidelity
 
 from typing import Dict, Optional, Tuple, Any

@@ -82,3 +82,4 @@ Iterators
     deepinv.sampling.SamplingIterator
     deepinv.sampling.SKRockIterator
     deepinv.sampling.ULAIterator
+    deepinv.sampling.DiffusionIterator

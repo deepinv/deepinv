@@ -8,31 +8,7 @@ from typing import Dict, Any
 import deepinv.physics
 from deepinv.utils.plotting import plot
 from deepinv.sampling import BaseSampling
-from deepinv.sampling.sampling_iterators import SamplingIterator
-
-from deepinv.sampling.utils import projbox
-
-
-class DiffusionIterator(SamplingIterator):
-    def __init__(self, cur_params=None, clip=None):
-        super(SamplingIterator, self).__init__()
-        self.clip = clip
-
-    def forward(
-        self,
-        X: Dict[str, Any],
-        y: torch.Tensor,
-        physics,
-        cur_data_fidelity,
-        prior,
-        iteration,
-    ) -> Dict[str, Any]:
-        x = X["x"]
-        # run one sampling kernel iteration
-        x = prior(y, physics)
-        if self.clip:
-            x = projbox(x, self.clip[0], self.clip[1])
-        return {"x": x}  # return the updated x
+from deepinv.sampling.sampling_iterators import DiffusionIterator
 
 
 class DiffusionSampler(BaseSampling):
@@ -42,7 +18,7 @@ class DiffusionSampler(BaseSampling):
     Unlike diffusion methods, the resulting sampler computes the mean and variance of the distribution
     by running the diffusion multiple times.
 
-    See the docs for :class:`deepinv.sampling.samplers.BaseSampling` for more information.
+    See the docs for :class:`deepinv.sampling.BaseSampling` for more information. It uses the helper class :class:`deepinv.sampling.DiffusionIterator`.
 
     :param torch.nn.Module diffusion: a diffusion model
     :param int max_iter: the number of samples to generate

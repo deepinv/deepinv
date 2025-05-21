@@ -176,7 +176,8 @@ Uncertainty quantification
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
-obtains multiple samples to compute posterior statistics such as the mean or variance.
+obtains multiple samples to compute posterior statistics such as the mean or variance. 
+It uses the helper class :class:`deepinv.sampling.DiffusionIterator` to interface diffusion samplers with :class:`deepinv.sampling.BaseSampling`.
 
 .. _mcmc:
 
@@ -234,6 +235,9 @@ Some predefined samplers are provided:
 
    * - :class:`SKROCK <deepinv.sampling.SKRockIterator>`
      - ``"step_size"``, ``"alpha"``, ``"inner_iter"``, ``"eta"``, ``"sigma"``
+
+   * - :class:`Diffusion <deepinv.sampling.DiffusionIterator>`
+     - No parameters, see the uncertainty quantification section above.
 
 
 Some legacy predefined classes are also provided:
