@@ -11,8 +11,10 @@ class SamplingIterator(nn.Module):
     r"""
     Base class for sampling iterators.
 
-    All samplers should implement the forward method which performs a single sampling step
-    in the Markov chain :math:`X_t \rightarrow X_{t+1}`.
+    All samplers should implement the forward method which performs one step of the Markov chain Monte Carlo sampling process,
+    generating the next state :math:`X_{t+1}` given the current state :math:`X_t`.
+    Where :math:`X_t` is a dict containing the image :math:`x_t` as well as any latent variables.
+    See the docs for :class:`deepinv.sampling.BaseSampling` for more information.
 
     :param dict algo_params: Dictionary containing the parameters for the sampling algorithm
     """
@@ -26,7 +28,7 @@ class SamplingIterator(nn.Module):
         self.algo_params = algo_params
 
     def initialize_latent_variables(
-        cls,
+        self,
         x: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
@@ -61,12 +63,9 @@ class SamplingIterator(nn.Module):
         **kwargs,
     ) -> Dict[str, Any]:
         r"""
-        Performs a single sampling step: :math:`x_t \rightarrow x_{t+1}`
+        Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}`
 
-        This method implements one step of the Markov chain Monte Carlo sampling process,
-        generating the next state :math:`x_{t+1}` given the current state :math:`x_t`.
-
-        :param Dict x: Dictionary containing the current state :math:`x_t` of the Markov chain along with any latent variables.
+        :param Dict X: Dictionary containing the current image :math:`X_t` of the Markov chain along with any latent variables.
         :param torch.Tensor y: Observed measurements/data tensor
         :param Physics physics: Forward operator
         :param DataFidelity cur_data_fidelity: Negative log-likelihood
@@ -74,7 +73,7 @@ class SamplingIterator(nn.Module):
         :param int iteration: Current iteration number in the sampling process (zero-indexed)
         :param args: Additional positional arguments
         :param kwargs: Additional keyword arguments
-        :return: Dictionary `{"est": x, ...}` containing the next state along with any latent variables.
+        :return: Dictionary `{"x": x, ...}` containing the next state along with any latent variables.
         """
         raise NotImplementedError(
             "Subclasses of SamplingIterator must implement the forward method"

@@ -21,7 +21,7 @@ class BaseSampling(Reconstructor):
     This class aims to sample from the posterior distribution :math:`p(x|y)`, where :math:`y` represents the observed
     measurements and :math:`x` is the (unknown) image to be reconstructed. The sampling process generates a
     sequence of states (samples) :math:`X_0, X_1, \ldots, X_N` from a Markov chain. Each state :math:`X_k` contains the
-    current estimate of the unknown signal, denoted :math:`x_k`, and may include other latent variables.
+    current estimate of the unknown image, denoted :math:`x_k`, and may include other latent variables.
     The class then computes statistics (e.g., image posterior mean, image posterior variance) from the samples :math:`X_k`.
 
     This class can be used to create new Monte Carlo samplers by implementing the sampling kernel through :class:`deepinv.sampling.SamplingIterator`:
@@ -33,10 +33,10 @@ class BaseSampling(Reconstructor):
             def __init__(self):
                 super().__init__()
 
-            def forward(self, x, y, physics, data_fidelity, prior, params_algo):
+            def forward(self, X, y, physics, data_fidelity, prior, params_algo):
                 # run one sampling kernel iteration
-                new_x = f(x, y, physics, data_fidelity, prior, params_algo)
-                return new_x
+                new_X = f(X, y, physics, data_fidelity, prior, params_algo)
+                return new_X
 
         # create the sampler
         sampler = BaseSampler(MyIterator(), prior, data_fidelity, iterator_params)
@@ -154,7 +154,7 @@ class BaseSampling(Reconstructor):
         :param list g_statistics: List of functions for which to compute posterior statistics.
             The sampler will compute the posterior mean and variance of each function in the list.
             The input to these functions is a dictionary `d` which contains the current state of the sampler alongside any latent variables. `d["x"]` will always be the current image. See specific iterators for details on what (if any) latent variables they provide.
-            Default: ``lambda d: d["x"]`` (identity function on the iterate).
+            Default: ``lambda d: d["x"]`` (identity function on the image).
         :param Union[List[Callable], Callable] g_statistics: List of functions for which to compute posterior statistics, or a single function.
         :param kwargs: Additional arguments passed to the sampling iterator (e.g., proposal distributions)
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
@@ -344,6 +344,7 @@ def sampling_builder(
 ) -> BaseSampling:
     r"""
     Helper function for building an instance of the :class:`deepinv.sampling.BaseSampling` class.
+    See the docs for :class:`deepinv.sampling.BaseSampling` for examples and more information.
 
     :param iterator: Either a SamplingIterator instance or a string naming the iterator class
     :param data_fidelity: Negative log-likelihood function
