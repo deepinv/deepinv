@@ -40,7 +40,7 @@ authors:
     affiliation: 15
   - name: Zhiyuan Hu  
     affiliation: 7
-  - name: Tobias Liaudat  
+  - name: Tobías I. Liaudat  
     affiliation: 13
   - name: Nils Laurent  
     affiliation: 6
@@ -130,12 +130,13 @@ of new ideas across imaging domains;
 3. Enhance **research reproducibility** via a common framework for imaging operators, reconstruction
 methods, datasets, and metrics for inverse problems.
 
-While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods. SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
-Moreover, `deepinv` provides a larger set of realistic imaging operators. CUQIpy [@riis2024cuqipy] is a library focusing on Bayesian uncertainty quantification methods for inverse problems.
-Advanced libraries for inverse problems also exist in other programming languages such as MATLAB, including GlobalBioIm [@soubies2019pocket] or IR Tools [@gazzola2019ir], but they are restricted to handcrafted reconstruction methods without automatic differentiation. 
-Other Python libraries for computational imaging are TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core], which mostly focus on computed tomography, and also does not cover deep learning pipelines for inverse solvers. 
+While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods which provides a larger set of realistic imaging operators.
+SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
+CUQIpy [@riis2024cuqipy] is a library focusing on Bayesian uncertainty quantification methods for inverse problems.
+TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] mostly focus on computed tomography and do not cover deep learning pipelines for inverse solvers. 
 There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provides magnetic resonance imaging (MRI) operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
-These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch (for example, we provide a wrapper for ASTRA).
+These operator-specific libraries can be used together with `deepinv` as long as they are compatible with PyTorch (for example, we provide a wrapper for ASTRA). Advanced libraries for inverse problems also exist in other programming languages such as MATLAB, including GlobalBioIm [@soubies2019pocket] or IR Tools [@gazzola2019ir], but they are restricted to handcrafted reconstruction methods without automatic differentiation. 
+
 
 ![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
@@ -194,22 +195,22 @@ in image reconstruction.
 
 # Reconstruction Methods
 
-The library provides multiple solvers which depend on the forward operator and noise distribution. Our framework unifies the wide variety of solvers that are commonly used in the current literature:
+The library provides multiple solvers which depend on the forward operator $A_{\xi}$ and the noise distribution via $\sigma$. Our framework unifies the wide variety of solvers that are commonly used in the current literature:
 \begin{equation} \label{eq:solver}
 \hat{x} = \operatorname{R}_{\theta}(y, A_{\xi}, \sigma)
 \end{equation}
-where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with (optional) trainable parameters $\theta$.
+where $\operatorname{R}_{\theta}$ is a reconstruction network/algorithm with (optional) trainable parameters $\theta$ (see *"Training"*).
 In `deepinv` code, a reconstructor is simply evaluated as `x_hat = model(y, physics)`.
 The library covers a wide variety of approaches for building $\operatorname{R}_{\theta}$, which can be roughly divided into
-optimization-based methods, sampling-based methods, and non-iterative methods.
+optimization-based methods, sampling-based methods, and non-iterative methods. 
 
 ### Optimization-Based Methods
 
 These methods consist of solving an optimization problem [@chambolle2016introduction]
 \begin{equation} \label{eq:var}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{argmin}_{x} f(y,A_{\xi}(x)) + g(x)
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x)
 \end{equation}
-where $f:\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term, which can incorporate knowledge about the noise parameters $\sigma$, and $g\colon\mathcal{X}\mapsto\mathbb{R}_+$ is a regularizer that promotes plausible reconstructions.
+where $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term, which can incorporate knowledge about the noise parameters $\sigma$, and $g\colon\mathcal{X}\mapsto\mathbb{R}_+$ is a regularizer that promotes plausible reconstructions.
 The `optim` module includes classical fidelity terms (e.g., $\ell_1$, $\ell_2$, Poisson log-likelihood) and offers a wide range of regularization priors:
 
 **Hand-Crafted Priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations.
@@ -229,9 +230,9 @@ Reconstruction methods can also be defined via ordinary or stochastic differenti
 \begin{equation}
 x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=1,\dots,T
 \end{equation} 
-such that $x_{T}$ is approximately sampled from the posterior distribution $p(x|y)$.
-Sampling methods are included in the `sampling` module and can be used to sample multiple plausible reconstructions.
-These methods enable uncertainty estimates by computing statistics across multiple samples.
+such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$, and $\operatorname{R}_{\theta}$ is a (potentially learned) denoiser.
+Sampling multiple plausible reconstructions enables uncertainty estimates by computing statistics across the samples.
+The sampling module provides implementations of the following methods:
 
 **Diffusion Models**: In a similar fashion to PnP methods, diffusion models [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] incorporate prior information via a pretrained denoiser, however, they are linked to a stochastic differential equation (SDE) or an ordinary differential equation (ODE), instead of the optimization of \eqref{eq:var}.
 
@@ -240,28 +241,28 @@ define a Markov chain with stationary distribution close to the posterior distri
 
 ### Non-Iterative Methods
 Non-iterative methods are part of the `models` module, and include artifact removal, unconditional and conditional generative networks, and foundation models.
-These models can be trained using a loss function (see *"Training"*).
 
 **Artifact Removal**: The simplest way of incorporating the forward operator into a network architecture is to backproject the measurements to the image domain and apply a denoiser (image-to-image) architecture $\operatorname{D}_{\sigma}$ such as a UNet [@jin2017deep].
 These architectures can be thus written as
 
 \begin{equation}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y),
 \end{equation}
 where the backprojection can be replaced by any pseudoinverse of $A_{\xi}$. 
 
-**Unconditional Generative Networks**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage a pretrained generator $\operatorname{G}_{\theta}(z):\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code to solve an inverse problem via
+**Unconditional Generative Networks**: Generative models exist in unconditional or conditional forms. Unconditional methods [@bora2017compressed] [@bora2018ambientgan] leverage
+a pretrained generator $\operatorname{G}_{\theta}(z)\colon\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code to solve an inverse problem via
 \begin{equation} \label{eq:cond}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{G}_{\theta}\Big(\operatorname{argmin}_{z} f(y,A_{\xi}(\operatorname{G}_{\theta}(z)))\Big)
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{G}_{\theta}(\hat{z}) \text{ with } \hat{z} \in \operatorname{argmin}_{z} f_{\sigma}(y,A_{\xi}(\operatorname{G}_{\theta}(z)))
 \end{equation}
-The deep image prior [@ulyanov2018deep] is a specific case of unconditional models which uses an untrained generator $\operatorname{G}_{\theta}$, leveraging the strong inductive bias of a specific autoencoder architecture. 
+The deep image prior [@ulyanov2018deep] is a specific case of unconditional models which uses an untrained generator $\operatorname{G}_{\theta}$, leveraging the inductive bias of a specific autoencoder architecture. 
 
 **Conditional Generative Networks**: Conditional generative adversarial networks [@isola2017image] [@bendel2023gan] use adversarial training to learn a network $\operatorname{R}_{\theta}(y, z, A_{\xi}, \sigma)$ which provides a set of reconstructions by sampling different latent codes $z\in\mathcal{Z}$. 
 
 **Foundation Models**: Foundation models are end-to-end architectures that incorporate knowledge of $A_{\xi}$ and $\sigma$ and are trained to reconstruct images across a wide variety of forward operators $A_{\xi}$ and noise distributions $N_{\sigma}$ [@terris2025ram].
 These models often obtain good performance in new tasks without retraining, and can also be finetuned to specific inverse problems or datasets using measurement data alone.
 
-The table below summarizes all the categories of reconstruction methods considered in the library:
+The table below summarizes the reconstruction methods considered in the library:
 
 | **Family of Methods** | **Description**                                                 | **Training** | **Iterative** | **Sampling** |
 |-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
@@ -290,7 +291,7 @@ The library also provides the `loss` module with losses for training $\operatorn
 l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right)
 \end{equation}
 
-with $\hat{x}=R_{\theta}(y,A_{\xi})$ being the network prediction, 
+with $\hat{x}=R_{\theta}(y,A_{\xi},\sigma)$ being the network prediction, 
 and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`, where
 some inputs might be optional (e.g., $x$ is not needed for self-supervised losses).
 
@@ -314,18 +315,12 @@ Due to the additional complexity of training adversarial networks, the library p
 ## Datasets
 The library provides a common framework for defining and simulating datasets for image reconstruction. Datasets return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and may also return physics parameters $\xi_i$. Given a dataset of reference images $\{x_i\}_{i=1}^{N}$, the library can be used to generate and save a simulated paired dataset to encourage reproducibility. The library also provides interfaces to some popular datasets to facilitate research in specific application domains: 
 
-- Div2K [@agustsson2017ntire]: Natural images
-- Urban100 [@lim2017enhanced]: Building images
-- Set14 [@zeyde2012single]: Natural images
-- CBSD68 [@martin2001database]: Natural images 
-- Flickr2K [@lim2017enhanced]: Natural images
-- LSDIR [@li2023lsdir]: Natural images
-- FastMRI [@zbontar2018fastmri]: Knee and brain MRI scans
-- CMRxRecon [@wang2024cmrxrecon]: Dynamic cardiac MRI scans
-- LIDC-IDRI [@armato2011lung]: Lung CT scans 
-- FMD [@zhang2019poisson]: Fluorescence microscopy images
-- Kohler [@kohler2012recording]: Motion blurred images
-- NBU [@meng2021pansharpening]: Multispectral satellite images
+- Natural images: Div2K [@agustsson2017ntire], Urban100 [@lim2017enhanced], Set14 [@zeyde2012single], CBSD68 [@martin2001database], Flickr2K [@lim2017enhanced], LSDIR [@li2023lsdir]: Natural images
+- MRI Scans: FastMRI (Knee and brain) [@zbontar2018fastmri], CMRxRecon (dynamic cardiac) [@wang2024cmrxrecon];
+- Computed tomography scans: LIDC-IDRI [@armato2011lung];
+- Fluorescence microscopy images: FMD [@zhang2019poisson]; 
+- Real motion blur images: Kohler [@kohler2012recording];
+- Multispectral satellite images: NBU [@meng2021pansharpening].
 
 # Evaluation
 Reconstruction methods can be evaluated on datasets with the method `Trainer.test` using metrics defined in our framework.
@@ -340,7 +335,7 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 ### Coding Practices
 
 `deepinv` is coded in modern Python following a test-driven development philosophy.
-The code is thoroughly unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
+The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
 and is compliant with PEP8 using `black`.  To encourage reproducibility, the library passes random number generators
 for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
 where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`),
@@ -351,12 +346,11 @@ functionality while inheriting existing methods.
 
 ### Documentation
 
-The library is thoroughly documented, and provides a comprehensive
-**user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation
+The library provides a **user-guide**, quickstart and in-depth **examples** for all levels of user, and individual API documentation
 for classes. The documentation is built using Sphinx. We use Sphinx-Gallery [@najera2023sphinxgallery] for generating jupyter notebook demos, which 
-are automatically tested and included in the documentation. The user-guide provides a comprehensive overview of the library and is intended to be a starting point for new users, whereas the API lists all classes and functions, being
+are automatically tested and included in the documentation. The user-guide provides an overview of the library and is intended as a starting point for new users, whereas the API lists all classes and functions, being
 intended for advanced users. The user-guide also serves as a computational imaging tutorial, providing an overview of
-most common imaging operators and reconstruction methods.
+common imaging operators and reconstruction methods.
 The documentation of most classes includes a usage example which is automatically tested using `doctest`, and 
 a detailed mathematical description using latex with shared math symbols and notation across the whole documentation.
 
