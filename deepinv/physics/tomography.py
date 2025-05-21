@@ -14,6 +14,7 @@ from deepinv.physics.functional.astra import (
     create_projection_geometry,
     create_object_geometry,
 )
+from warnings import warn
 
 try:
     import astra
@@ -392,8 +393,9 @@ class TomographyWithAstra(LinearPhysics):
         ), f"len(img_shape) is {len(img_shape)}, must be either 2 or 3 (for 2d and 3d respectively)"
 
         if torch.device(device).type != "cuda":
-            raise RuntimeError(
-                "TomographyWithAstra only supports CUDA Tensors and CUDA operations"
+            warn(
+                f"TomographyWithAstra only supports CUDA Tensors and CUDA operations, got device={device}",
+                RuntimeWarning,
             )
 
         self.img_shape = img_shape
