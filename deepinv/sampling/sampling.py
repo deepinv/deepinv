@@ -33,6 +33,11 @@ class BaseSampling(Reconstructor):
             def __init__(self):
                 super().__init__()
 
+            def initialize_latent_variables(x, y, physics, data_fidelity, prior):
+                # initialize a latent variable
+                latent_z = g(x, y, physics, data_fidelity, prior)
+                return {"x": x, "z": latent_z}
+
             def forward(self, X, y, physics, data_fidelity, prior, params_algo):
                 # run one sampling kernel iteration
                 new_X = f(X, y, physics, data_fidelity, prior, params_algo)

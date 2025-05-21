@@ -14,7 +14,7 @@ class SamplingIterator(nn.Module):
     All samplers should implement the forward method which performs one step of the Markov chain Monte Carlo sampling process,
     generating the next state :math:`X_{t+1}` given the current state :math:`X_t`.
     Where :math:`X_t` is a dict containing the image :math:`x_t` as well as any latent variables.
-    See the docs for :class:`deepinv.sampling.BaseSampling` for more information.
+    See the docs for :class:`deepinv.sampling.BaseSampling` for an example along with more information.
 
     :param dict algo_params: Dictionary containing the parameters for the sampling algorithm
     """
@@ -29,7 +29,7 @@ class SamplingIterator(nn.Module):
 
     def initialize_latent_variables(
         self,
-        x: torch.Tensor,
+        x_init: torch.Tensor,
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -42,14 +42,14 @@ class SamplingIterator(nn.Module):
         required by the specific sampling algorithm. The default implementation simply returns the
         initial state `x` in a dictionary.
 
-        :param torch.Tensor x: Initial state tensor.
+        :param torch.Tensor x_init: Initial state tensor.
         :param torch.Tensor y: Observed measurements/data tensor.
         :param Physics physics: Forward operator.
         :param DataFidelity cur_data_fidelity: Negative log-likelihood.
         :param Prior cur_prior: Negative log-prior term.
         :return: Dictionary containing the initial state `x` and any latent variables.
         """
-        return {"x": x}
+        return {"x": x_init}
 
     def forward(
         self,
