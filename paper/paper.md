@@ -213,7 +213,8 @@ These methods consist of solving an optimization problem [@chambolle2016introduc
 where $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term, which can incorporate knowledge about the noise parameters $\sigma$, and $g\colon\mathcal{X}\mapsto\mathbb{R}_+$ is a regularizer that promotes plausible reconstructions.
 The `optim` module includes classical fidelity terms (e.g., $\ell_1$, $\ell_2$, Poisson log-likelihood) and offers a wide range of regularization priors:
 
-**Hand-Crafted Priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations.
+**Explicit Priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations [@kowalski2009sparse].
+We also provide learned regularizers such as EPLL [@zoran2011epll] and PatchNR [@altekruger2023patchnr].
 
 **Denoising Plug-and-Play Priors**: Plug-and-Play (PnP) methods replace the proximal operator [@venkatakrishnan2013plug] or the gradient [@romano2017little] of the regularizer $g$ with a pretrained denoiser, often based on deep learning. The library provides access to widely used pretrained denoisers $\operatorname{D}_{\sigma}$, many of them trained on multiple noise levels $\sigma$, including DnCNN [@zhang2017beyond], DRUNet [@zhang2021plug], and recent diffusion-based denoisers such as DDPM [@ho2020denoising] and NCSN [@song2020score].
 
