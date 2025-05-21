@@ -85,9 +85,10 @@ y = physics(x)
 # We exploit the methods of :class:`deepinv.physics.DecomposablePhysics` to compute the matrix-vector products
 # with :math:`V` and :math:`V^{\top}` efficiently. Note that computing the matrix-vector product with :math:`R` and
 # :math:`S` is trivial since they are diagonal matrices.
+# See :class:`deepinv.sampling.BaseSampling` for more details on how to create new iterators.
 
 
-class PULAIterator(dinv.sampling.SamplingIterator):
+class PreconULAIterator(dinv.sampling.SamplingIterator):
     def __init__(self, algo_params):
         super().__init__(algo_params)
 
@@ -143,21 +144,21 @@ likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
 iterations = int(1e2) if torch.cuda.is_available() else 10
 
-# shared ULA/ PULA params
+# shared ULA/ PreconULA params
 step_size = 0.5 * (sigma**2)
 denoiser_sigma = 0.1
 
-# parameters for PULA
-params_pula = {
+# parameters for PreconULA
+params_preconula = {
     "step_size": step_size,
     "sigma": denoiser_sigma,
     "alpha": 1.0,
     "epsilon": 0.01,
 }
 
-# build our PULA sampler
-pula = dinv.sampling.sampling_builder(
-    PULAIterator(params_pula),
+# build our PreconULA sampler
+preconula = dinv.sampling.sampling_builder(
+    PreconULAIterator(params_preconula),
     likelihood,
     prior,
     max_iter=iterations,
@@ -201,7 +202,7 @@ ula = dinv.sampling.sampling_builder(
 
 ula_mean, ula_var = ula.sample(y, physics)
 
-pula_mean, pula_var = pula.sample(y, physics)
+preconula_mean, preconula_var = preconula.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)
@@ -210,9 +211,9 @@ x_lin = physics.A_adjoint(y)
 print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
 print(f"ULA posterior mean PSNR: {dinv.metric.PSNR()(x, ula_mean).item():.2f} dB")
 print(
-    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, pula_mean).item():.2f} dB"
+    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, preconula_mean).item():.2f} dB"
 )
 
 # plot results
-imgs = [x_lin, x, ula_mean, pula_mean]
+imgs = [x_lin, x, ula_mean, preconula_mean]
 plot(imgs, titles=["measurement", "ground truth", "ULA", "PreconULA"])
