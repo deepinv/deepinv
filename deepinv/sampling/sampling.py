@@ -18,6 +18,12 @@ class BaseSampling(Reconstructor):
     r"""
     Base class for Monte Carlo sampling.
 
+    This class aims to sample from the posterior distribution :math:`p(x|y)`, where :math:`y` represents the observed
+    measurements and :math:`x` is the (unknown) image to be reconstructed. The sampling process generates a
+    sequence of states (samples) :math:`X_0, X_1, \ldots, X_N` from a Markov chain. Each state :math:`X_k` contains the
+    current estimate of the unknown signal, denoted :math:`x_k`, and may include other latent variables.
+    The class then computes statistics (e.g., image posterior mean, image posterior variance) from the samples :math:`X_k`.
+
     This class can be used to create new Monte Carlo samplers by implementing the sampling kernel through :class:`deepinv.sampling.SamplingIterator`:
 
     ::
@@ -104,15 +110,16 @@ class BaseSampling(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        X_init: Union[torch.Tensor, None] = None,
+        x_init: Union[torch.Tensor, None] = None,
         seed: Union[int, None] = None,
+        **kwargs,
     ) -> torch.Tensor:
         r"""
         Run the MCMC sampling chain and return the posterior sample mean.
 
         :param torch.Tensor y: The observed measurements
         :param Physics physics: Forward operator of your inverse problem
-        :param torch.Tensor X_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+        :param torch.Tensor x_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
@@ -121,7 +128,7 @@ class BaseSampling(Reconstructor):
         """
 
         # pass back out sample mean
-        return self.sample(y, physics, X_init=X_init, seed=seed)[0]
+        return self.sample(y, physics, x_init=x_init, seed=seed, **kwargs)[0]
 
     def sample(
         self,
