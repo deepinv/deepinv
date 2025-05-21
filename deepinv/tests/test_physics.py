@@ -1069,7 +1069,7 @@ def test_tomography_with_astra(is_2d, geometry_type, normalize):
     :param bool normalize: Initializes the operator with ``normalize=normalize``.
     """
 
-    device = dinv.utils.get_freer_gpu()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     pytest.importorskip(
         "astra",
@@ -1117,6 +1117,7 @@ def test_tomography_with_astra(is_2d, geometry_type, normalize):
         physics = dinv.physics.TomographyWithAstra(
             img_shape=img_shape,
             num_angles=2 * img_shape[0],
+            angular_range=(0, PI) if geometry_type == "parallel" else (0, 2 * PI),
             num_detectors=num_detectors,
             geometry_type=geometry_type,
             detector_spacing=(1.0, 1.0),
@@ -1139,7 +1140,7 @@ def test_tomography_with_astra(is_2d, geometry_type, normalize):
         assert relative_error < 0.01  # at least 99% adjoint
 
         ## --- Test pseudoinverse ---
-        r_tol = 0.05 if geometry_type == "parallel" else 0.15
+        r_tol = 0.05 if geometry_type == "parallel" else 0.1
         r = physics.A_adjoint(physics.A(x))
         y = physics.A(r)
         error = torch.linalg.norm(physics.A_dagger(y) - r) / torch.linalg.norm(r)

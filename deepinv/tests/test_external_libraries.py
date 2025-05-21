@@ -55,9 +55,9 @@ def test_tomography_with_astra_logic(is_2d, geometry_type, normalize):
             img_shape=img_shape,
             num_detectors=num_detectors,
             num_angles=num_angles,
-            angular_range=(0, torch.pi)
-            if geometry_type == "parallel"
-            else (0, 2 * torch.pi),
+            angular_range=(
+                (0, torch.pi) if geometry_type == "parallel" else (0, 2 * torch.pi)
+            ),
             geometry_type=geometry_type,
             normalize=normalize,
             device=device,
@@ -72,6 +72,9 @@ def test_tomography_with_astra_logic(is_2d, geometry_type, normalize):
         physics = dinv.physics.TomographyWithAstra(
             img_shape=img_shape,
             num_angles=num_angles,
+            angular_range=(
+                (0, torch.pi) if geometry_type == "parallel" else (0, 2 * torch.pi)
+            ),
             num_detectors=num_detectors,
             geometry_type=geometry_type,
             detector_spacing=(1.0, 1.0),
