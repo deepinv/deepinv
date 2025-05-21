@@ -51,7 +51,7 @@ class SamplingIterator(nn.Module):
 
     def forward(
         self,
-        X: torch.Tensor,
+        X: Dict[str, Any],
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -59,7 +59,7 @@ class SamplingIterator(nn.Module):
         iteration: int,
         *args,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> Dict[str, Any]:
         r"""
         Performs a single sampling step: :math:`x_t \rightarrow x_{t+1}`
 

@@ -83,7 +83,7 @@ class ULAIterator(SamplingIterator):
 
     def forward(
         self,
-        X: Tensor,
+        X: Dict[str, Tensor],
         y: Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -91,7 +91,7 @@ class ULAIterator(SamplingIterator):
         iteration: int,
         *args,
         **kwargs,
-    ) -> Tensor:
+    ) -> Dict[str, Tensor]:
         r"""
         Performs a single ULA sampling step using the Unadjusted Langevin Algorithm.
 

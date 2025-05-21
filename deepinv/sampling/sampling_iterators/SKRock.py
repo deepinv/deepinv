@@ -81,7 +81,7 @@ class SKRockIterator(SamplingIterator):
 
     def forward(
         self,
-        X: Dict,
+        X: Dict[str, torch.Tensor],
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -89,7 +89,7 @@ class SKRockIterator(SamplingIterator):
         iteration: int,
         *args,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> Dict[str, torch.Tensor]:
         r"""
         Performs a single SK-ROCK sampling step.
 
