@@ -317,7 +317,7 @@ Due to the additional complexity of training adversarial networks, the library p
 The library provides a common framework for defining and simulating datasets for image reconstruction. Datasets return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and may also return physics parameters $\xi_i$. Given a dataset of reference images $\{x_i\}_{i=1}^{N}$, the library can be used to generate and save a simulated paired dataset to encourage reproducibility. The library also provides interfaces to some popular datasets to facilitate research in specific application domains: 
 
 - Natural images: Div2K [@agustsson2017ntire], Urban100 [@lim2017enhanced], Set14 [@zeyde2012single], CBSD68 [@martin2001database], Flickr2K [@lim2017enhanced], LSDIR [@li2023lsdir];
-- MRI scans: FastMRI (Knee and brain) [@zbontar2018fastmri], CMRxRecon (dynamic cardiac) [@wang2024cmrxrecon];
+- MRI scans: FastMRI [@zbontar2018fastmri], CMRxRecon [@wang2024cmrxrecon];
 - Computed tomography scans: LIDC-IDRI [@armato2011lung];
 - Fluorescence microscopy images: FMD [@zhang2019poisson]; 
 - Real motion blur images: Kohler [@kohler2012recording];
