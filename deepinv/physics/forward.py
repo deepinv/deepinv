@@ -603,7 +603,7 @@ class ComposedPhysics(Physics):
 
     .. math::
 
-        A(x) = N_k(A_k(\dots(A_1(x))))
+        A(x) = N_k(A_k(\dots A_2(A_1(x))))
 
     where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
 
