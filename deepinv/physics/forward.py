@@ -630,7 +630,7 @@ class ComposedPhysics(Physics):
 
         .. math::
 
-            y = N_k(A_k(\dots(A_1(x))))
+            y = A_k(\dots(A_1(x)))
 
         :param torch.Tensor x: signal/image
         :return: measurements
