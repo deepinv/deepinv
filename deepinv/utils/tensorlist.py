@@ -235,6 +235,10 @@ class TensorList:
     def unsqueeze(self, dim=None):
         return TensorList([xi.unsqueeze(dim=dim) for xi in self.x])
 
+    @property
+    def device(self):
+        return self.x[0].device
+
 
 def randn_like(x):
     r"""

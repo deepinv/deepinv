@@ -2,7 +2,6 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.utils.tensorlist import TensorList
 
 
