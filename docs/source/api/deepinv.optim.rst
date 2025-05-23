@@ -52,6 +52,7 @@ Data Fidelity
    deepinv.optim.PoissonLikelihood
    deepinv.optim.LogPoissonLikelihood
    deepinv.optim.AmplitudeLoss
+   deepinv.optim.ZeroFidelity
 
 
 Priors
@@ -119,6 +120,7 @@ Distance
    deepinv.optim.L1Distance
    deepinv.optim.AmplitudeLossDistance
    deepinv.optim.LogPoissonLikelihoodDistance
+   deepinv.optim.ZeroDistance
 
 Iterators
 ---------
@@ -156,6 +158,7 @@ Utils
     deepinv.optim.utils.least_squares
     deepinv.optim.utils.lsqr
     deepinv.optim.utils.bicgstab
+    deepinv.optim.utils.minres
     deepinv.optim.utils.conjugate_gradient
     deepinv.optim.utils.gradient_descent
     deepinv.optim.phase_retrieval.correct_global_phase

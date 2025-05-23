@@ -68,15 +68,14 @@ class FMD(torch.utils.data.Dataset):
 
     :Examples:
 
-        Instantiate dataset and download raw data from the Internet
+        Instantiate dataset and download raw data from the Internet ::
 
-    ::
-        import shutil
-        from deepinv.datasets import FMD
-        img_types = ["TwoPhoton_BPAE_R"]
-        dataset = FMD(root="fmd", img_types=img_types, download=True)  # download raw data at root and load dataset
-        print(len(dataset))                                            # check that we have 5000 images
-        shutil.rmtree("fmd")                                           # remove raw data from disk
+            import shutil
+            from deepinv.datasets import FMD
+            img_types = ["TwoPhoton_BPAE_R"]
+            dataset = FMD(root="fmd", img_types=img_types, download=True)  # download raw data at root and load dataset
+            print(len(dataset))                                            # check that we have 5000 images
+            shutil.rmtree("fmd")                                           # remove raw data from disk
 
     """
 
@@ -240,4 +239,4 @@ class FMD(torch.utils.data.Dataset):
             noisy_img = self.transform(noisy_img)
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
-        return noisy_img, clean_img
+        return clean_img, noisy_img

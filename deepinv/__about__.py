@@ -9,7 +9,7 @@ __all__ = [
 
 __title__ = "deepinv"
 __summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
-__version__ = "0.2.1"
+__version__ = "0.3"
 __author__ = (
     "Julian Tachella, Samuel Hurault, Matthieu Terris, Dongdong Chen, Andrew Wang"
 )

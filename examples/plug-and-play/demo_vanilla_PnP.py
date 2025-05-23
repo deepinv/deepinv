@@ -13,7 +13,7 @@ from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -33,9 +33,12 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # Set up the variable to fetch dataset and operators.
 method = "PnP"
 img_size = 32
-url = get_image_url("SheppLogan.png")
-x = load_url_image(
-    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+x = load_example(
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 operation = "tomography"
 
@@ -129,9 +132,10 @@ x_lin = (
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
-x_model, metrics = model(
-    y, physics, x_gt=x, compute_metrics=True
-)  # reconstruction with PnP algorithm
+with torch.no_grad():
+    x_model, metrics = model(
+        y, physics, x_gt=x, compute_metrics=True
+    )  # reconstruction with PnP algorithm
 
 # compute PSNR
 print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")

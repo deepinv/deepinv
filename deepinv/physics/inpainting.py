@@ -98,14 +98,14 @@ class Inpainting(DecomposablePhysics):
         if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif isinstance(mask, float):
-            gen = BernoulliSplittingMaskGenerator(
+            self.gen = BernoulliSplittingMaskGenerator(
                 tensor_size=tensor_size,
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
                 rng=rng,
             )
-            mask = gen.step(batch_size=None)["mask"]
+            mask = self.gen.step(batch_size=None)["mask"]
         elif mask is None:
             pass
         else:
@@ -141,7 +141,7 @@ class Inpainting(DecomposablePhysics):
         otherwise the default implementation of LinearPhysics is used (see :func:`deepinv.physics.LinearPhysics.__mul__`).
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
-        :return: (:class:`deepinv.physics.Physics`) concantenated operator
+        :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
 

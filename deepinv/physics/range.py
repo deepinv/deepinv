@@ -79,17 +79,3 @@ class Decolorize(DecomposablePhysics):
         return (
             y.expand(y.shape[0], self.srf.shape[1], *y.shape[2:]) * self.srf / self.mask
         )
-
-
-# # test code
-# if __name__ == "__main__":
-#    device = "cuda:0"
-#    import deepinv as dinv
-#    device = "cpu"
-#    x = torch.randn((1, 3, 32, 32), device=device)
-#    physics = Decolorize(device=device)
-#    y = physics(x)
-#    print(physics.adjointness_test(x))
-#    print(physics.compute_norm(x))
-#    xhat = physics.A_adjoint(y)
-#    dinv.utils.plot([x, xhat, y])

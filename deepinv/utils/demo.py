@@ -236,6 +236,17 @@ def load_url_image(
     return x
 
 
+def load_example(name, **kwargs):
+    r"""
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.load_url_image`.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
+    :return: :class:`torch.Tensor` containing the image.
+    """
+    return load_url_image(get_image_url(name), **kwargs)
+
+
 def load_torch_url(url):
     r"""
     Load an array from url and read it by torch.load.
@@ -260,71 +271,3 @@ def load_np_url(url=None):
     response.raise_for_status()
     array = np.load(BytesIO(response.content))
     return array
-
-
-def demo_mri_model(
-    denoiser: Union[Denoiser, Module] = None,
-    num_iter: int = 3,
-    device: torch.device = "cpu",
-) -> Reconstructor:
-    """Demo MRI reconstruction model for use in relevant examples.
-
-    As a reconstruction network, we use an unrolled network (half-quadratic splitting)
-    with a trainable denoising prior based on the DnCNN architecture, as an example of a
-    model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-
-    :param Denoiser, torch.nn.Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
-    :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
-    :param str, torch.device device: device
-
-    :return torch.nn.Module: model
-    """
-    from deepinv.optim.prior import PnP
-    from deepinv.optim import L2
-    from deepinv.models import DnCNN
-    from deepinv.unfolded import unfolded_builder
-
-    # Select the data fidelity term
-    data_fidelity = L2()
-
-    # If the prior dict value is initialized with a table of length max_iter, then a distinct model is trained for each
-    # iteration. For fixed trained model prior across iterations, initialize with a single model.
-    denoiser = (
-        denoiser
-        if denoiser is not None
-        else DnCNN(
-            in_channels=2,  # real + imaginary parts
-            out_channels=2,
-            pretrained=None,
-            depth=7,
-        )
-    )
-    prior = PnP(denoiser=denoiser.to(device))
-
-    # Unrolled optimization algorithm parameters
-    max_iter = num_iter  # number of unfolded layers
-    lamb = [1.0] * max_iter  # initialization of the regularization parameter
-    stepsize = [1.0] * max_iter  # initialization of the step sizes.
-    sigma_denoiser = [0.01] * max_iter  # initialization of the denoiser parameters
-    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-    }
-
-    trainable_params = [
-        "lambda",
-        "stepsize",
-        "g_param",
-    ]  # define which parameters from 'params_algo' are trainable
-
-    # Define the unfolded trainable model.
-    model = unfolded_builder(
-        "HQS",
-        params_algo=params_algo,
-        trainable_params=trainable_params,
-        data_fidelity=data_fidelity,
-        max_iter=max_iter,
-        prior=prior,
-    )
-    return model

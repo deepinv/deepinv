@@ -5,13 +5,23 @@ import numpy as np
 import torch
 
 import deepinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles, DummyModel
 from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-LOSSES = ["sup", "sup_log_train_batch", "mcei", "mcei-scale", "mcei-homography", "r2r"]
+from conftest import no_plot
+
+LOSSES = [
+    "sup",
+    "sup_log_train_batch",
+    "mcei",
+    "mcei-scale",
+    "mcei-homography",
+    "r2r",
+    "vortex",
+]
 
 LIST_SURE = [
     "Gaussian",
@@ -30,23 +40,63 @@ LIST_R2R = [
 
 def test_jacobian_spectral_values(toymatrix):
     # Define the Jacobian regularisers we want to check
-    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-3, eval_mode=False, verbose=True)
+    reg_l2 = JacobianSpectralNorm(max_iter=100, tol=1e-4, eval_mode=False, verbose=True)
     reg_FNE_l2 = FNEJacobianSpectralNorm(
-        max_iter=100, tol=1e-3, eval_mode=False, verbose=True
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True
     )
 
     # Setup our toy example; here y = A@x
-    x_detached = torch.randn_like(toymatrix).requires_grad_()
-    out = toymatrix @ x_detached
+    x_detached = torch.randn((1, toymatrix.shape[0])).requires_grad_()
+    out = x_detached @ toymatrix
 
     def model(x):
-        return toymatrix @ x
+        return x @ toymatrix
 
     regl2 = reg_l2(out, x_detached)
     regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
 
     assert math.isclose(regl2.item(), toymatrix.size(0), rel_tol=1e-3)
     assert math.isclose(regfnel2.item(), 2 * toymatrix.size(0) - 1, rel_tol=1e-3)
+
+
+@pytest.mark.parametrize("reduction", ["none", "mean", "sum", "max"])
+def test_jacobian_spectral_values(toymatrix, reduction):
+    ### Test reduction types on batches of images
+    B, C, H, W = 5, 3, 8, 8
+    toy_operators = torch.Tensor([1, 2, 3, 4, 5])[:, None, None, None]
+
+    x_detached = torch.randn(B, C, H, W).requires_grad_()
+    out = toy_operators * x_detached
+
+    def model(x):
+        return toy_operators * x
+
+    # Nonec -> return all spectral norms
+    reg_l2 = JacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+    reg_FNE_l2 = FNEJacobianSpectralNorm(
+        max_iter=100, tol=1e-4, eval_mode=False, verbose=True, reduction=reduction
+    )
+
+    regl2 = reg_l2(out, x_detached)
+    regfnel2 = reg_FNE_l2(out, x_detached, model, interpolation=False)
+
+    if reduction == "none":
+        reg_l2_target = toy_operators.squeeze()
+        reg_fne_target = 2 * toy_operators.squeeze() - 1
+    elif reduction == "mean":
+        reg_l2_target = toy_operators.mean()
+        reg_fne_target = 2 * toy_operators.sum() / toy_operators.shape[0] - 1
+    elif reduction == "sum":
+        reg_l2_target = toy_operators.sum()
+        reg_fne_target = 2 * toy_operators.sum() - toy_operators.shape[0]
+    elif reduction == "max":
+        reg_l2_target = toy_operators.max()
+        reg_fne_target = 2 * toy_operators.max() - 1
+
+    assert torch.allclose(regl2, reg_l2_target, rtol=1e-3)
+    assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
 def choose_loss(loss_name, rng=None):
@@ -73,7 +123,13 @@ def choose_loss(loss_name, rng=None):
     elif loss_name in ("sup", "sup_log_train_batch"):
         loss.append(dinv.loss.SupLoss())
     elif loss_name == "r2r":
-        loss.append(dinv.loss.R2RLoss())
+        loss.append(dinv.loss.R2RLoss(noise_model=dinv.physics.GaussianNoise(0.1)))
+    elif loss_name == "vortex":
+        loss.append(
+            dinv.loss.AugmentConsistencyLoss(
+                T_i=dinv.transform.RandomNoise(), T_e=dinv.transform.Shift()
+            )
+        )
     else:
         raise Exception("The loss doesnt exist")
 
@@ -124,6 +180,8 @@ def test_sure(noise_type, device):
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
+    print("sizes = ", x.size(), y.size())
+
     x_net = f(y, physics)
     mse = deepinv.metric.MSE()(x, x_net)
     sure = loss(y=y, x_net=x_net, physics=physics, model=f)
@@ -139,13 +197,13 @@ def choose_r2r(noise_type):
 
     if noise_type == "Poisson":
         noise_model = dinv.physics.PoissonNoise(gain)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.9999)
+        loss = dinv.loss.R2RLoss(alpha=0.9999)
     elif noise_type == "Gaussian":
         noise_model = dinv.physics.GaussianNoise(sigma)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
-        loss = dinv.loss.R2RLoss(noise_model=noise_model, alpha=0.999)
+        loss = dinv.loss.R2RLoss(alpha=0.999)
     else:
         raise Exception("The R2R loss doesnt exist")
 
@@ -237,14 +295,14 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
     backbone = dinv.models.AutoEncoder(
-        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=128, dim_hid=32
+        dim_input=imsize[0] * imsize[1] * imsize[2], dim_mid=64, dim_hid=16
     ).to(device)
 
     # choose a reconstruction architecture
     model = dinv.models.ArtifactRemoval(backbone)
 
     # choose optimizer and scheduler
-    epochs = 50
+    epochs = 10
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=1e-8)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8))
 
@@ -263,17 +321,18 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         device=device,
         ckp_interval=int(epochs / 2),
         save_path=save_dir / "dinv_test",
-        plot_images=False,
+        plot_images=True,
         verbose=False,
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    # test the untrained model
-    initial_test = trainer.test(test_dataloader=test_dataloader)
+    with no_plot():
+        # test the untrained model
+        initial_test = trainer.test(test_dataloader=test_dataloader)
 
-    # train the network
-    trainer.train()
-    final_test = trainer.test(test_dataloader=test_dataloader)
+        # train the network
+        trainer.train()
+        final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
@@ -310,33 +369,134 @@ def test_sure_losses(device):
     assert error_mc < 5e-2
 
 
-def test_measplit(device):
-    sigma = 0.1
-    physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+@pytest.mark.parametrize(
+    "loss_name",
+    [
+        "splitting",
+        "weighted-splitting",
+        "robust-splitting",
+        "n2n",
+        "splitting_eval_split_input",
+        "splitting_eval_split_input_output",
+    ],
+)
+def test_measplit(device, loss_name, rng):
+    # Larger, even imsize to reduce effect of randomness
+    imsize = (2, 64, 64)
 
-    # choose a reconstruction architecture
-    backbone = dinv.models.MedianFilter()
+    if loss_name == "n2n":
+        physics = dinv.physics.Denoising()
+        physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
+        backbone = dinv.models.MedianFilter()
+    elif "splitting" in loss_name:
+        physics = dinv.physics.Inpainting(imsize, mask=0.6, device=device, rng=rng)
+        if loss_name == "robust-splitting":
+            physics.noise_model = dinv.physics.GaussianNoise(0.1)
+        backbone = DummyModel()
+
     f = dinv.models.ArtifactRemoval(backbone)
-    batch_size = 1
-    imsize = (3, 32, 32)
 
-    # for split_ratio in np.linspace(0.7, 0.99, 10):
+    batch_size = 1
     x = torch.ones((batch_size,) + imsize, device=device)
     y = physics(x)
 
-    # choose training losses
-    loss = dinv.loss.Neighbor2Neighbor()
-    n2n_loss = loss(y=y, physics=physics, model=f)
+    # Dummy metric to get both outputs before metric
+    test_metric = lambda x, y: torch.stack([x, y])
 
-    loss = dinv.loss.SplittingLoss(split_ratio=0.5)
+    if loss_name == "n2n":
+        loss = dinv.loss.Neighbor2Neighbor()
+    elif loss_name == "splitting":
+        loss = dinv.loss.SplittingLoss(
+            split_ratio=0.7, metric=test_metric, eval_split_input=False
+        )
+    elif loss_name == "splitting_eval_split_input":
+        eval_n_samples = 3
+        loss = dinv.loss.SplittingLoss(
+            split_ratio=0.7,
+            metric=test_metric,
+            eval_split_input=True,
+            eval_n_samples=eval_n_samples,
+        )
+    elif loss_name == "splitting_eval_split_input_output":
+        eval_n_samples = 1
+        loss = dinv.loss.SplittingLoss(
+            split_ratio=0.7,
+            metric=test_metric,
+            eval_split_input=True,
+            eval_split_output=True,
+            eval_n_samples=eval_n_samples,
+        )
+    elif loss_name == "weighted-splitting":
+        gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            imsize,
+            dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                imsize, 0.5, device=device, rng=rng
+            ),
+        )
+        loss = dinv.loss.mri.WeightedSplittingLoss(
+            mask_generator=gen, physics_generator=physics.gen
+        )
+    elif loss_name == "robust-splitting":
+        gen = dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            imsize,
+            dinv.physics.generator.BernoulliSplittingMaskGenerator(
+                imsize, 0.5, device=device, rng=rng
+            ),
+        )
+        loss = dinv.loss.mri.RobustSplittingLoss(
+            mask_generator=gen,
+            physics_generator=physics.gen,
+            noise_model=physics.noise_model,
+        )
+    else:
+        raise ValueError("Loss name invalid.")
+
     f = loss.adapt_model(f)
-    x_net = f(y, physics, update_parameters=True)
-    split_loss = loss(x_net=x_net, y=y, physics=physics, model=f)
-    f.eval()
-    x_net2 = f(y, physics)
 
-    assert split_loss > 0 and n2n_loss > 0
+    x_net = f(y, physics, update_parameters=True)
+    l = loss(x_net=x_net, y=y, physics=physics, model=f)
+
+    # Training recon + loss
+    if loss_name in ("n2n", "weighted-splitting", "robust-splitting"):
+        assert l > 0
+    elif "splitting" in loss_name:
+        y1 = x_net
+        y2_hat, y2 = l.clamp(0, 1)  # remove normalisation
+        # Splitting mask 1 has more samples than mask 2
+        assert y2.mean() < y1.mean() < y.mean()
+        # Union of splitting masks is original mask
+        assert torch.all(y1 + y2 == y)
+        # Splitting mask 1 and 2 are disjoint
+        assert torch.all(y2_hat == 0)
+    else:
+        raise ValueError("Incorrect loss name.")
+
+    f.eval()
+    x_net = f(y, physics, update_parameters=True)
+    y1_eval = x_net
+
+    # Eval recon
+    if loss_name == "splitting":
+        # No splitting performed during eval
+        assert torch.all(y == y1_eval)
+        print(y.mean(), y1_eval.mean())
+    elif loss_name == "splitting_eval_split_input":
+        # Splits during eval
+        assert y1_eval.mean() < y.mean()
+        # Split data averaged across n samples so contains multiple values
+        assert len(y1_eval.unique()) == eval_n_samples + 1
+        # Split amount averages to amount during training
+        assert y1_eval.mean() == y1.mean()
+    elif loss_name == "splitting_eval_split_input_output":
+        # Splits output with complement mask
+        assert torch.all(y1_eval == 0)
+    elif loss_name in ("weighted-splitting", "n2n", "robust-splitting"):
+        pass
+    else:
+        raise ValueError("Incorrect loss name.")
+
+    if loss_name == "weighted-splitting":
+        assert loss.weight.shape == (1, imsize[-1])  # 1D in W dim
 
 
 @pytest.mark.parametrize("mode", ["test_split_y", "test_split_physics"])
