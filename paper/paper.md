@@ -29,7 +29,7 @@ authors:
   - name: Maxime Song
     affiliation: 14
   - name: Thomas Davies
-    affiliation: 5
+    affiliation: "4, 5"
   - name: Leo Davy  
     affiliation: 1
   - name: Jonathan Dong  
@@ -238,7 +238,7 @@ The sampling module provides implementations of the following methods:
 **Diffusion Models**: In a similar fashion to PnP methods, diffusion models [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] incorporate prior information via a pretrained denoiser, however, they are linked to a stochastic differential equation (SDE) or an ordinary differential equation (ODE), instead of the optimization of \eqref{eq:var}.
 
 **Langevin-Type Algorithms**: The library provides popular high-dimensional Markov Chain Monte Carlo (MCMC) methods such as Unadjusted Langevin Algorithm and some of its variants [@laumont2022bayesian] [@pereyra2020skrock], which
-define a Markov chain with stationary distribution close to the posterior distribution $p(x|y)$.
+define a Markov chain with stationary distribution close to the posterior distribution $p(x|y) \propto \exp(f_{\sigma}(y,A_{\xi}(x)) + g(x))$.
 
 ### Non-Iterative Methods
 Non-iterative methods are part of the `models` module, and include artifact removal, unconditional and conditional generative networks, and foundation models.
@@ -265,21 +265,21 @@ These models often obtain good performance in new tasks without retraining, and 
 
 The table below summarizes the reconstruction methods considered in the library:
 
-| **Family of Methods** | **Description**                                                 | **Training** | **Iterative** | **Sampling** |
-|-----------------------|-----------------------------------------------------------------|--------------|---------------|--------------|
-| Artifact Removal | Applies network to a pseudoinverse                              | Yes          | No | No |   
-|   |                                                                 |              |  |  |   
-| Variational Optimization | Solves optimization problem with hand-crafted/learned priors    | Hyperparams  | Yes | No |    
-|   |                                                                 |              |  |  |   
-| Plug-and-Play (PnP) | Leverages pretrained denoisers as priors within an optimization | Hyperparams           | Yes | No |
-|   |                                                                 |              |  |  |   
-| Unfolded Networks | Trainable architecture by unrolling an optimization             | Yes          | Only DEQ | No |  
-|   |                                                                 |              |  |  |   
-| Diffusion & Langevin | Leverages pretrained denoisers within an ODE/SDE                | Hyperparams           | Yes | Yes |   
-|   |                                                                 |              |  |  |   
-| Generative Adversarial Networks | Model plausible images via generator                            | Yes          | Yes | Depends |
-|   |                                                                 |              |  |  |   
-| Foundation Models | Models trained for many imaging problems                        | Finetune     | No   | No |
+| **Family of Methods** | **Description**                                                     | **Training** | **Iterative** | **Sampling** |
+|-----------------------|---------------------------------------------------------------------|--------------|---------------|--------------|
+| Artifact Removal | Applies network to a pseudoinverse                                  | Yes          | No | No |   
+|   |                                                                     |              |  |  |   
+| Variational Optimization | Solves optimization problem with explicit/explicit priors           | Hyperparams  | Yes | No |    
+|   |                                                                     |              |  |  |   
+| Plug-and-Play (PnP) | Leverages pretrained denoisers as priors within an optimization     | Hyperparams           | Yes | No |
+|   |                                                                     |              |  |  |   
+| Unfolded Networks | Trainable architecture by unrolling an optimization                 | Yes          | Only DEQ | No |  
+|   |                                                                     |              |  |  |   
+| Diffusion & Langevin | Leverages pretrained denoisers or explicit priors within an ODE/SDE | Hyperparams           | Yes | Yes |   
+|   |                                                                     |              |  |  |   
+| Generative Adversarial Networks | Model plausible images via generator                                | Yes          | Yes | Depends |
+|   |                                                                     |              |  |  |   
+| Foundation Models | Models trained for many imaging problems                            | Finetune     | No   | No |
 
 # Training
 
