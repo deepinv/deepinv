@@ -86,60 +86,55 @@ class BaseDEQ(BaseUnfold):
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
+        
+        if not self.jacobian_free:
+            # Another iteration for jacobian computation via automatic differentiation.
+            x0 = x.clone().detach().requires_grad_()
+            f0 = self.fixed_point.iterator(
+                {"est": (x0,)},
+                cur_data_fidelity,
+                cur_prior,
+                cur_params,
+                y,
+                physics,
+                **kwargs,
+            )["est"][0]
 
-        # If performing Jacobian Free Backpropagation, return x only with gradients from last pass
-        if self.jacobian_free is True:
-            if compute_metrics:
-                return x, metrics
-            else:
-                return x
-        # Another iteration for jacobian computation via automatic differentiation.
-        x0 = x.clone().detach().requires_grad_()
-        f0 = self.fixed_point.iterator(
-            {"est": (x0,)},
-            cur_data_fidelity,
-            cur_prior,
-            cur_params,
-            y,
-            physics,
-            **kwargs,
-        )["est"][0]
+            # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
+            def backward_hook(grad):
+                class backward_iterator(OptimIterator):
+                    def __init__(self, **kwargs):
+                        super().__init__(**kwargs)
 
-        # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
-        def backward_hook(grad):
-            class backward_iterator(OptimIterator):
-                def __init__(self, **kwargs):
-                    super().__init__(**kwargs)
+                    def forward(self, X, *args, **kwargs):
+                        return {
+                            "est": (
+                                torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
+                                    0
+                                ]
+                                + grad,
+                            )
+                        }
 
-                def forward(self, X, *args, **kwargs):
-                    return {
-                        "est": (
-                            torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
-                                0
-                            ]
-                            + grad,
-                        )
-                    }
+                # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
+                def init_iterate_fn(y, physics, F_fn=None):
+                    return {"est": (grad,)}  # initialize the fixed point algorithm.
 
-            # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-            def init_iterate_fn(y, physics, F_fn=None):
-                return {"est": (grad,)}  # initialize the fixed point algorithm.
+                backward_FP = FixedPoint(
+                    backward_iterator(),
+                    init_iterate_fn=init_iterate_fn,
+                    max_iter=self.max_iter_backward,
+                    check_conv_fn=self.check_conv_fn,
+                    anderson_acceleration=self.anderson_acceleration,
+                    history_size=self.history_size,
+                    beta_anderson_acc=self.beta_anderson_acc,
+                    eps_anderson_acc=self.eps_anderson_acc,
+                )
+                g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
+                return g
 
-            backward_FP = FixedPoint(
-                backward_iterator(),
-                init_iterate_fn=init_iterate_fn,
-                max_iter=self.max_iter_backward,
-                check_conv_fn=self.check_conv_fn,
-                anderson_acceleration=self.anderson_acceleration,
-                history_size=self.history_size,
-                beta_anderson_acc=self.beta_anderson_acc,
-                eps_anderson_acc=self.eps_anderson_acc,
-            )
-            g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
-            return g
-
-        if x.requires_grad:
-            x.register_hook(backward_hook)
+            if x.requires_grad:
+                x.register_hook(backward_hook)
 
         if compute_metrics:
             return x, metrics
