@@ -824,6 +824,9 @@ class SwinIR(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

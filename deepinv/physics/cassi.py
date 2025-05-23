@@ -57,6 +57,9 @@ class CompressiveSpectralImaging(LinearPhysics):
     :param str shear_dir: "h" for shear in H-C plane or "w" for shear in W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

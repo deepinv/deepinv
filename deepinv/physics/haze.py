@@ -22,6 +22,9 @@ class Haze(Physics):
     :param float beta: constant :math:`\beta>0`
     :param float offset: constant :math:`o`
 
+    :References:
+        .. footbibliography::
+
     """
 
     def __init__(self, beta=0.1, offset=0, **kwargs):

@@ -74,6 +74,9 @@ class PanNet(nn.Module):
     :param int scale_factor: pansharpening downsampling ratio HR/LR, defaults to 4
     :param int highpass_kernel_size: square kernel size for extracting high-frequency features, defaults to 5
     :param str device: torch device, defaults to "cpu"
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

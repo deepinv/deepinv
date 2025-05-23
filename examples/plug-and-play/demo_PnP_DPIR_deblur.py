@@ -158,3 +158,7 @@ test(
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )
+
+# %%
+# :References:
+#    .. footbibliography::

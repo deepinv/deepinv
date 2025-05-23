@@ -100,3 +100,7 @@ plot(
     [test_img, observation.clip(0, 1), x_out.clip(0, 1)],
     ["Ground truth", "Observation", "EPLL"],
 )
+
+# %%
+# :References:
+#    .. footbibliography::

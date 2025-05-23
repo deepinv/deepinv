@@ -28,6 +28,9 @@ class SinglePhotonLidar(Physics):
     :param str device: Device to use (gpu or cpu).
     :param torch.Generator rng: (optional) a pseudorandom random number generator for
         the Poisson noise model :class:`deepinv.physics.PoissonNoise`
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(self, sigma=1.0, bins=50, device="cpu", rng: torch.Generator = None):

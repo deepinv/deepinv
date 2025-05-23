@@ -32,6 +32,9 @@ class CPABDiffeomorphism(Transform):
     :param bool volume_perservation: see ``libcpab.Cpab`` docs.
     :param bool override: see ``libcpab.Cpab`` docs.
     :param str, torch.device device: torch device.
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

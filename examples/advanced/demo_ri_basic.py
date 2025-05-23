@@ -5,7 +5,6 @@ Radio interferometric imaging with deepinverse
 In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.
 The following example and data are taken from :footcite:t:`aghabiglou2024r2d2`.
 If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check `BASPLib <https://basp-group.github.io/BASPLib/>`_.
-
 """
 
 # %%
@@ -370,3 +369,7 @@ if plot_convergence_metrics:
 # `AIRI <https://basp-group.github.io/BASPLib/AIRI.html>`_,
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
+
+# %%
+# :References:
+#    .. footbibliography::

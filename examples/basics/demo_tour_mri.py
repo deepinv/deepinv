@@ -487,3 +487,7 @@ dinv.utils.plot(
         for i in range(5)
     }
 )
+
+# %%
+# :References:
+#    .. footbibliography::

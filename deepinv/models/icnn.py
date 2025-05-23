@@ -20,6 +20,9 @@ class ICNN(nn.Module):
     :param float strong_convexity: Strongly convex parameter.
     :param bool pos_weights: Whether to force positive weights in the forward pass.
     :param str device: Device to use for the model.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

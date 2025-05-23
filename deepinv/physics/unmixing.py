@@ -51,6 +51,8 @@ class HyperSpectralUnmixing(LinearPhysics):
         >>> print(x.shape, y.shape, physics.M.shape)
         torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
 
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

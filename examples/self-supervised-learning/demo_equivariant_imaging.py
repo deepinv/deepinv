@@ -197,3 +197,7 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#    .. footbibliography::

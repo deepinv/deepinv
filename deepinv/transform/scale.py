@@ -48,6 +48,9 @@ class Scale(Transform):
     :param str mode: interpolation mode for grid sampling
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

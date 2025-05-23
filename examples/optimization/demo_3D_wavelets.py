@@ -249,3 +249,8 @@ dinv.utils.plot(
 #       model = dinv.models.WaveletDictDenoiser(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
 #       xhat = model(y, ths)
 #
+
+
+# %%
+# :References:
+#    .. footbibliography::

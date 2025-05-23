@@ -41,6 +41,9 @@ class EquivariantDenoiser(Denoiser):
         each time i.e. a Monte-Carlo approximation of an equivariant denoiser.
         If False, the denoiser is applied to the average of all the transformed images, turning the denoiser into an
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

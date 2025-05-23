@@ -26,6 +26,9 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(
@@ -106,6 +109,9 @@ class ESRGANDiscriminator(nn.Module):
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple input_shape: shape of input image
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(self, input_shape: tuple):
@@ -161,6 +167,9 @@ class DCGANDiscriminator(nn.Module):
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(self, ndf: int = 64, nc: int = 3):
@@ -208,6 +217,9 @@ class DCGANGenerator(nn.Module):
     :param int nz: latent dimension, defaults to 100
     :param int ngf: hidden layer size, defaults to 64
     :param int nc: number of image output channels, defaults to 3
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(
@@ -284,6 +296,9 @@ class CSGMGenerator(Reconstructor):
     :param float inf_tol: tolerance of inference-time optimisation, defaults to 1e-2
     :param float inf_lr: learning rate of inference-time optimisation, defaults to 1e-2
     :param bool inf_progress_bar: whether to display progress bar for inference-time optimisation, defaults to False
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

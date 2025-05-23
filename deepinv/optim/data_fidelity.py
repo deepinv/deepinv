@@ -332,6 +332,9 @@ class IndicatorL2(DataFidelity):
         :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
                             operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+
+        :References:
+            .. footbibliography::
         """
         radius = self.radius if radius is None else radius
 

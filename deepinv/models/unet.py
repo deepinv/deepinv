@@ -7,6 +7,9 @@ from .base import Denoiser
 class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From :footcite:t:`mohan2019robust`.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(
@@ -71,6 +74,9 @@ class UNet(Denoiser):
         if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2019robust`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

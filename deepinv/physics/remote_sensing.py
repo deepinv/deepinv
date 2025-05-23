@@ -54,6 +54,9 @@ class Pansharpen(StackedLinearPhysics):
         >>> y[1].shape
         torch.Size([1, 1, 32, 32])
 
+    :References:
+        .. footbibliography::
+
     """
 
     def __init__(
@@ -106,6 +109,9 @@ class Pansharpen(StackedLinearPhysics):
 
         :param deepinv.utils.TensorList y: input tensorlist of (MS, PAN)
         :return: Tensor of image pan-sharpening using the Brovey method.
+
+        :References:
+        .. footbibliography::
         """
 
         if self.use_brovey:

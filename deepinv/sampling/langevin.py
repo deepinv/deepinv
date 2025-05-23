@@ -277,6 +277,9 @@ class ULA(MonteCarlo):
         and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
 
+    :References:
+        .. footbibliography::
+
     """
 
     def __init__(
@@ -395,6 +398,9 @@ class SKRock(MonteCarlo):
     :param Callable g_statistic: The sampler will compute the posterior mean and variance
         of the function g_statistic. By default, it is the identity function (lambda x: x),
         and thus the sampler computes the posterior mean and variance.
+
+    :References:
+        .. footbibliography::
 
     """
 

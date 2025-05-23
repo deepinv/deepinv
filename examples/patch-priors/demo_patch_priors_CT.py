@@ -265,3 +265,7 @@ plot(
     ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )
+
+# %%
+# :References:
+#    .. footbibliography::

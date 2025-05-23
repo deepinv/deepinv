@@ -241,6 +241,6 @@ rst_prolog = """
 """
 
 napoleon_custom_sections = [
-    ("Reference", "params_style"),   # Sphinx ≥ 3.5
+    ("Reference", "params_style"),  # Sphinx ≥ 3.5
     # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
 ]

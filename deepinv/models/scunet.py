@@ -290,6 +290,8 @@ class SCUNet(Denoiser):
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
 
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

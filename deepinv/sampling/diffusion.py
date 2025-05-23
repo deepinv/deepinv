@@ -102,6 +102,9 @@ class DDRM(Reconstructor):
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
         tensor([True])
 
+    :References:
+        .. footbibliography::
+
     """
 
     def __init__(
@@ -266,6 +269,9 @@ class DiffPIR(Reconstructor):
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
         tensor([True])
+
+    :References:
+        .. footbibliography::
         
     """
 
@@ -543,6 +549,9 @@ class DPS(Reconstructor):
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

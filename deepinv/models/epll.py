@@ -26,6 +26,9 @@ class EPLLDenoiser(Denoiser):
     :param int patch_size: patch size.
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (``cpu`` or ``cuda``)
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

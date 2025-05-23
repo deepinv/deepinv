@@ -20,6 +20,9 @@ class GSPnP(Denoiser):
 
     :param torch.nn.Module denoiser: Denoiser model.
     :param float alpha: Relaxation parameter
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(self, denoiser, alpha=1.0):
@@ -94,6 +97,8 @@ def GSDRUNet(
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
 
+    :References:
+    .. footbibliography::
     """
     from deepinv.models.drunet import DRUNet
 

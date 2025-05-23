@@ -570,6 +570,9 @@ class LogPoissonNoise(NoiseModel):
 
     :param float mu: normalization constant
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):

@@ -95,6 +95,9 @@ def apply_homography(
     :param bool verbose: if True, print homography matrix, defaults to False
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
+
+    :References:
+        .. footbibliography::
     """
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
@@ -199,6 +202,9 @@ class Homography(Transform):
     :param str device: torch device, defaults to "cpu".
     :param int n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
+    :References:
+        .. footbibliography::
     """
 
     n_trans: int = 1
@@ -430,6 +436,9 @@ class PanTiltRotate(Homography):
     :param str device: torch device, defaults to "cpu".
     :param n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
+    :References:
+        .. footbibliography::
     """
 
     def _get_params(self, x: torch.Tensor) -> dict:

@@ -141,3 +141,7 @@ plot(
         "abs. error",
     ],
 )
+
+# %%
+# :References:
+#    .. footbibliography::
