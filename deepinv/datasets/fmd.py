@@ -239,4 +239,4 @@ class FMD(torch.utils.data.Dataset):
             noisy_img = self.transform(noisy_img)
         if self.target_transform is not None:
             clean_img = self.target_transform(clean_img)
-        return noisy_img, clean_img
+        return clean_img, noisy_img

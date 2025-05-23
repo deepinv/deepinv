@@ -96,7 +96,7 @@ class DDRM(Reconstructor):
         ...   device=device,
         ... )
         >>> y = physics(x) # measurements
-        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
+        >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
         >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
@@ -245,7 +245,7 @@ class DiffPIR(Reconstructor):
         between 3.0 and 25.0 depending on the problem). Default: ``7.0``.
     :param bool verbose: if ``True``, print progress
     :param str device: the device to use for the computations
-    
+
     |sep|
 
     :Examples:
@@ -253,7 +253,7 @@ class DiffPIR(Reconstructor):
         Denoising diffusion restoration model using a pretrained DRUNet denoiser:
 
         >>> import deepinv as dinv
-        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu' 
+        >>> device = dinv.utils.get_freer_gpu(verbose=False) if torch.cuda.is_available() else 'cpu'
         >>> x = 0.5 * torch.ones(1, 3, 32, 32, device=device) # Define a plain gray 32x32 image
         >>> physics = dinv.physics.Inpainting(
         ...   mask=0.5, tensor_size=(3, 32, 32),
@@ -262,7 +262,7 @@ class DiffPIR(Reconstructor):
         ... )
         >>> y = physics(x) # Measurements
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
-        >>> model = DiffPIR(
+        >>> model = dinv.sampling.DiffPIR(
         ...   model=denoiser,
         ...   data_fidelity=dinv.optim.data_fidelity.L2()
         ... ) # Define the DiffPIR model
@@ -620,8 +620,8 @@ class DPS(Reconstructor):
         xt = x.to(self.device)
 
         for i, j in tqdm(time_pairs, disable=(not self.verbose)):
-            t = (torch.ones(batch_size) * i).to(self.device)
-            next_t = (torch.ones(batch_size) * j).to(self.device)
+            t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * i
+            next_t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * j
 
             at = self.get_alpha(self.alpha_cumprod, t.long())
             at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
@@ -666,79 +666,3 @@ class DPS(Reconstructor):
             return xs
         else:
             return xt
-
-
-# if __name__ == "__main__":
-#     import deepinv as dinv
-#     from deepinv.models.denoiser import Denoiser
-#     import torchvision
-#     from deepinv.loss.metric import PSNR
-#
-#     device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-#
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#
-#     sigma_noise = 0.01
-#     # physics = dinv.physics.Denoising()
-#
-#     # physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=dinv.physics.blur.gaussian_blur(sigma=1.),
-#     #                               device=device)
-#     physics = dinv.physics.Decolorize()
-#     # physics = dinv.physics.Inpainting(
-#     #   mask=0.5, tensor_size=(3, 218, 178), device=dinv.device
-#     # )
-#     # physics.mask *= (torch.rand_like(physics.mask))
-#     physics.noise_model = dinv.physics.GaussianNoise(sigma_noise)
-#
-#     y = physics(x)
-#     model_spec = {
-#         "name": "drunet",
-#         "args": {"device": device, "pretrained": "download"},
-#     }
-#
-#     denoiser = Denoiser(model_spec=model_spec)
-#
-#     f = DDRM(
-#         denoiser=denoiser,
-#         etab=1.0,
-#         sigma_noise=sigma_noise,
-#         sigmas=np.linspace(1, 0, 100),
-#         verbose=True,
-#     )
-#
-#     xhat = f(y, physics)
-#     dinv.utils.plot(
-#         [physics.A_adjoint(y), x, xhat], titles=["meas.", "ground-truth", "xhat"]
-#     )
-#
-#     print(f"PSNR 1 sample: {PSNR()(x, xhat):.2f} dB")
-#     # print(f'mean PSNR sample: {PSNR()(x, denoiser(y, sigma_noise)):.2f} dB')
-#
-#     # sampler = dinv.sampling.DiffusionSampler(f, max_iter=10, save_chain=True, verbose=True)
-#     # xmean, xvar = sampler(y, physics)
-#
-#     # chain = sampler.get_chain()
-#     # distance = np.zeros((len(chain)))
-#     # for k, xhat in enumerate(chain):
-#     #    dist = (xhat - xmean).pow(2).mean()
-#     #    distance[k] = dist
-#     # distance = np.sort(distance)
-#     # thres = distance[int(len(distance) * .95)]  #
-#     # err = (x - xmean).pow(2).mean()
-#     # print(f'Confidence region: {thres:.2e}, error: {err:.2e}')
-#
-#     # xstdn = xvar.sqrt()
-#     # xstdn_plot = xstdn.sum(dim=1).unsqueeze(1)
-#
-#     # error = (xmean - x).abs()  # per pixel average abs. error
-#     # error_plot = error.sum(dim=1).unsqueeze(1)
-#
-#     # print(f'Correct std: {(xstdn>error).sum()/np.prod(xstdn.shape)*100:.1f}%')
-#     # error = (xmean - x)
-#     # dinv.utils.plot_debug(
-#     #    [physics.A_adjoint(y), x, xmean, xstdn_plot, error_plot], titles=["meas.", "ground-truth", "mean", "std", "error"]
-#     # )
-#
-#     # print(f'PSNR 1 sample: {PSNR()(x, chain[0]):.2f} dB')
-#     # print(f'mean PSNR sample: {PSNR()(x, xmean):.2f} dB')

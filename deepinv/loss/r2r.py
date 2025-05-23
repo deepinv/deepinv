@@ -12,20 +12,31 @@ class R2RLoss(Loss):
     r"""
     Generalized Recorrupted-to-Recorrupted (GR2R) Loss
 
-    This loss can be used for unsupervised image denoising with unorganized noisy images, where
-    the noise model :math:`y\sim p(y\vert x)` belongs to the exponential family as:
+    This self-supervised loss can be used when the noise model is
+    Gaussian, Poisson, Gamma or Binomial. The GR2R loss is defined as:
 
     .. math::
 
-        p(y\vert x) =  h(x) \exp \left( y^\top \eta(x) - \phi(x) \right),
+        y_1 \sim p(y_1 \vert y, \alpha),
 
-    which includes the popular Gaussian, Poisson and Gamma noise distributions
-    (see https://en.wikipedia.org/wiki/Exponential_family for more details on the exponential family).
-    For this family of noisy measurements, we genealize the corruption strategy as:
+    where
 
-    .. math::
+    .. list-table::
+       :header-rows: 1
+       :widths: 40 60
 
-        y_1 \sim p(y_1 \vert y, \alpha ),
+       * - Noise Model
+         - :math:`p(y_1 \vert y,\alpha)`
+       * - :math:`y \sim \mathcal{N}(x, I\sigma^2)`
+         - :math:`y_1 = y + \sqrt{\frac{\alpha}{1-\alpha}} \boldsymbol{\omega}, \quad \boldsymbol{\omega} \sim \mathcal{N}(0, I\sigma^2)`
+       * - :math:`z \sim \mathcal{P}(x/\gamma), \quad y = \gamma z`
+         - :math:`y_1 = \frac{y - \gamma \boldsymbol{\omega}}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{Bin}(z, \alpha)`
+       * - :math:`y \sim \mathcal{G}(\ell, \ell / x)`
+         - :math:`y_1 = y \circ (\mathbf{1} - \boldsymbol{\omega}) / (1 - \alpha), \quad \boldsymbol{\omega} \sim \mathrm{Beta}(\ell\alpha, \ell(1 - \alpha))`
+       * - :math:`z \sim \mathrm{Bin}(\ell, x), \quad y = z / \ell`
+         - :math:`y_1 = \frac{y - \boldsymbol{\omega} / \ell}{1 - \alpha}, \quad \boldsymbol{\omega} \sim \mathrm{HypGeo}(\ell, \ell\alpha, z)`
+
+    and
 
     .. math::
 

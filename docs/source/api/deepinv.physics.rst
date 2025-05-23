@@ -73,6 +73,7 @@ Generators
    deepinv.physics.generator.GeneratorMixture
    deepinv.physics.generator.BernoulliSplittingMaskGenerator
    deepinv.physics.generator.GaussianSplittingMaskGenerator
+   deepinv.physics.generator.MultiplicativeSplittingMaskGenerator
    deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator
    deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator
    deepinv.physics.generator.PSFGenerator
@@ -86,6 +87,7 @@ Generators
    deepinv.physics.generator.GaussianMaskGenerator
    deepinv.physics.generator.RandomMaskGenerator
    deepinv.physics.generator.EquispacedMaskGenerator
+   deepinv.physics.generator.PolyOrderMaskGenerator
 
 
 .. autosummary::
@@ -117,6 +119,7 @@ Noise distributions
    deepinv.physics.UniformNoise
    deepinv.physics.UniformGaussianNoise
    deepinv.physics.GammaNoise
+   deepinv.physics.SaltPepperNoise
    deepinv.physics.generator.SigmaGenerator
    deepinv.physics.generator.GainGenerator
 

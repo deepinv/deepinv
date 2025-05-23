@@ -28,6 +28,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
+       | :class:`MultiplicativeSplittingMaskGenerator <deepinv.physics.generator.MultiplicativeSplittingMaskGenerator>`
        | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
        | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
 
@@ -58,6 +59,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
+       | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
        | The above all also support k+t dynamic sampling.
 
    * - Tomography
@@ -135,4 +137,5 @@ to **any** operator in the list above, by setting the
    * - :class:`deepinv.physics.UniformNoise`
      - :math:`y\sim \mathcal{U}(z-a, z+b)`
 
-
+   * - :class:`deepinv.physics.SaltPepperNoise`
+     - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`

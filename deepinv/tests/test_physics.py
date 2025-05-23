@@ -41,6 +41,10 @@ OPERATORS = [
     "super_resolution_constant",
     "aliased_super_resolution",
     "fast_singlepixel",
+    "fast_singlepixel_cake_cutting",
+    "fast_singlepixel_zig_zag",
+    "fast_singlepixel_xy",
+    "fast_singlepixel_old_sequency",
     "MRI",
     "DynamicMRI",
     "MultiCoilMRI",
@@ -76,6 +80,7 @@ NOISES = [
     "Neighbor2Neighbor",
     "LogPoisson",
     "Gamma",
+    "SaltPepper",
 ]
 
 
@@ -205,6 +210,37 @@ def find_operator(name, device):
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
             m=20, fast=True, img_shape=img_size, device=device, rng=rng
+        )
+    elif name == "fast_singlepixel_cake_cutting":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="cake_cutting",
+        )
+    elif name == "fast_singlepixel_zig_zag":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="zig_zag",
+        )
+    elif name == "fast_singlepixel_xy":
+        p = dinv.physics.SinglePixelCamera(
+            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="xy"
+        )
+    elif name == "fast_singlepixel_old_sequency":
+        p = dinv.physics.SinglePixelCamera(
+            m=20,
+            fast=True,
+            img_shape=img_size,
+            device=device,
+            rng=rng,
+            ordering="old_sequency",
         )
     elif name == "singlepixel":
         m = 20
@@ -837,6 +873,7 @@ def choose_noise(noise_type, device="cpu"):
     mu = 0.2
     N0 = 1024.0
     l = torch.ones((1), device=device)
+    p, s = 0.025, 0.025
     if noise_type == "PoissonGaussian":
         noise_model = dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain)
     elif noise_type == "Gaussian":
@@ -853,6 +890,8 @@ def choose_noise(noise_type, device="cpu"):
         noise_model = dinv.physics.LogPoissonNoise(N0, mu)
     elif noise_type == "Gamma":
         noise_model = dinv.physics.GammaNoise(l)
+    elif noise_type == "SaltPepper":
+        noise_model = dinv.physics.SaltPepperNoise(p=p, s=s)
     else:
         raise Exception("Noise model not found")
 
