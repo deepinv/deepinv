@@ -245,7 +245,7 @@ class Kohler(Dataset):
             return sharp_frame, blurry_shot
 
     def get_sharp_frame(
-        printout_index: int, trajectory_index: int, frame_index: int
+        self, printout_index: int, trajectory_index: int, frame_index: int
     ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(
             self.root,
@@ -259,7 +259,7 @@ class Kohler(Dataset):
         return sharp_frame
 
     def get_blurry_shot(
-        printout_index: int, trajectory_index: int
+        self, printout_index: int, trajectory_index: int
     ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)
