@@ -186,7 +186,7 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     The mask is repeated across channels and randomly varies across batch dimension.
 
-    Algorithm taken from :cite:`schlemper2017deep`.
+    Algorithm taken from :footcite:t:`schlemper2017deep`.
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 

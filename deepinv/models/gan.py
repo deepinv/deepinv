@@ -13,10 +13,10 @@ from .base import Reconstructor
 class PatchGANDiscriminator(nn.Module):
     r"""PatchGAN Discriminator model.
 
-     This discriminator model was originally proposed in :cite:`isola2017image` and classifies whether each patch of an image is real
+     This discriminator model was originally proposed in :footcite:t:`isola2017image` and classifies whether each patch of an image is real
      or fake.
 
-    Implementation adapted from :cite:`kupyn2018deblurgan`.
+    Implementation adapted from :footcite:t:`kupyn2018deblurgan`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
@@ -100,7 +100,7 @@ class PatchGANDiscriminator(nn.Module):
 class ESRGANDiscriminator(nn.Module):
     r"""ESRGAN Discriminator.
 
-    The ESRGAN discriminator model was originally proposed in :cite:`wang2018esrgan`. Implementation taken from
+    The ESRGAN discriminator model was originally proposed in :footcite:t:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
@@ -154,7 +154,7 @@ class ESRGANDiscriminator(nn.Module):
 class DCGANDiscriminator(nn.Module):
     r"""DCGAN Discriminator.
 
-    The DCGAN discriminator model was originally proposed in :cite:`radford2015unsupervised`. Implementation taken from
+    The DCGAN discriminator model was originally proposed in :footcite:t:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
@@ -197,7 +197,7 @@ class DCGANDiscriminator(nn.Module):
 class DCGANGenerator(nn.Module):
     r"""DCGAN Generator.
 
-    The DCGAN generator model was originally proposed in :cite:`radford2015unsupervised`
+    The DCGAN generator model was originally proposed in :footcite:t:`radford2015unsupervised`
     and takes a latent sample as input.
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
@@ -262,7 +262,7 @@ class CSGMGenerator(Reconstructor):
     r"""CSGMGenerator(backbone_generator=DCGANGenerator(), inf_max_iter=2500, inf_tol=1e-4, inf_lr=1e-2, inf_progress_bar=False)
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
-    This approach was proposed in :cite:`bora2017compressed` and :cite:`bora2018ambientgan`.
+    This approach was proposed in :footcite:t:`bora2017compressed` and :footcite:t:`bora2018ambientgan`.
 
     At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
 

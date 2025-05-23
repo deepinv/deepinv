@@ -549,7 +549,7 @@ class LogPoissonNoise(NoiseModel):
     larger value of N0 corresponds to a lower strength of the noise.
     The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
 
-    For more details on the interpretation of the parameters for CT measurements, we refer to the paper :cite:`leuschner2021lodopab`.
+    For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
     :param float N0: number of photons
 

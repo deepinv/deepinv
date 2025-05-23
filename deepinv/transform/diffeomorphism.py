@@ -11,7 +11,7 @@ class CPABDiffeomorphism(Transform):
     using ``pip install libcpab``.
 
     Wraps CPAB from a modified version of the `original implementation <https://github.com/SkafteNicki/libcpab>`_.
-    From the paper :cite:`freifeld2017transformations`.
+    From the paper :footcite:t:`freifeld2017transformations`.
 
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 

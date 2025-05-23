@@ -13,7 +13,7 @@ class JacobianSpectralNorm(Loss):
 
         \|\frac{df}{du}(x)\|_2.
 
-    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in :cite:`pesquet2021learning`.
+    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in :footcite:t:`pesquet2021learning`.
 
     .. note::
 
@@ -192,7 +192,7 @@ class FNEJacobianSpectralNorm(Loss):
 
         \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
-    as proposed in :cite:`pesquet2021learning`.
+    as proposed in :footcite:t:`pesquet2021learning`.
     This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
     .. note::

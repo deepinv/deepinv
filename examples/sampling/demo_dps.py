@@ -3,7 +3,7 @@ Implementing DPS
 ================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
-:cite:`chung2022diffusion`. The full algorithm is implemented in :class:`deepinv.sampling.DPS`.
+:footcite:t:`chung2022diffusion`. The full algorithm is implemented in :class:`deepinv.sampling.DPS`.
 """
 
 # %%
@@ -188,7 +188,7 @@ plot(
 #           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\mathbf{x}_t)
 #
 # For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
-# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of :cite:`chung2022diffusion`)
+# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of :footcite:t:`chung2022diffusion`)
 #
 # .. math::
 #
@@ -253,7 +253,7 @@ plot(
 # 3. Perform reverse diffusion sampling with DDPM(IM), corresponding to an update with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)`.
 # 4. Take a gradient step with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)`.
 #
-# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the DDIM sampler :cite:`song2020denoising`
+# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the DDIM sampler :footcite:t:`song2020denoising`
 # is a generalization of DDPM in a sense that it retrieves DDPM when
 # :math:`\eta = 1.0`, here we consider DDIM sampling.
 # One can freely choose the :math:`\eta` parameter here, but since we will consider 1000

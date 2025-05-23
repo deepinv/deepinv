@@ -134,7 +134,7 @@ dinv.utils.plot(
 # :math:`\sum_{\ell=1}^{L}\lambda_i \|\Psi_{\ell} x\|_1`. In this case however, the proximal operator is not available in closed
 # form but can be computed numerically.
 #
-# A convenient algorithm in this situation is the Dykstra-like algorithm proposed in :cite:`combettes2009iterative`, writing
+# A convenient algorithm in this situation is the Dykstra-like algorithm proposed in :footcite:t:`combettes2009iterative`, writing
 #
 # .. math::
 #     \begin{equation}

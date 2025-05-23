@@ -6,7 +6,7 @@ from .base import Denoiser
 
 class EPLLDenoiser(Denoiser):
     r"""
-    Expected Patch Log Likelihood denoising method :cite:`zoran2011learning`.
+    Expected Patch Log Likelihood denoising method :footcite:t:`zoran2011learning`.
 
     Denoising method based on the minimization problem
 

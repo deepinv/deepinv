@@ -7,7 +7,7 @@ class Haze(Physics):
     r"""
     Standard haze model
 
-    The operator is defined as in :cite:`he2010single`.
+    The operator is defined as in :footcite:t:`he2010single`.
 
      .. math::
 

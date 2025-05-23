@@ -31,7 +31,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     channel-height of channel-width plane and :math:`C` is number of channels. 
     Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
-    For more details see e.g. the paper :cite:`choi2017high`.
+    For more details see e.g. the paper :footcite:t:`choi2017high`.
 
     The implementation is a type of linear physics as it is not completely decomposable due to edge effects and different scaling.
 

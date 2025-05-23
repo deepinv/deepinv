@@ -13,7 +13,7 @@ class BM3D(Denoiser):
     r"""
     BM3D denoiser.
 
-    The BM3D denoiser was introduced in :cite:`dabov2007image`.
+    The BM3D denoiser was introduced in :footcite:t:`dabov2007image`.
 
 
     .. note::

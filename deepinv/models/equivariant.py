@@ -18,7 +18,7 @@ class EquivariantDenoiser(Denoiser):
     .. math::
         \operatorname{D}^{\text{eq}}_{\sigma}(x) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g^{-1}(\operatorname{D}_{\sigma}(T_g(x))).
 
-    Otherwise, as proposed in :cite:`terris2024equivariant`, a Monte Carlo approximation can be obtained by
+    Otherwise, as proposed in :footcite:t:`terris2024equivariant`, a Monte Carlo approximation can be obtained by
     sampling :math:`g \sim \mathcal{G}` at random and applying
 
     .. math::

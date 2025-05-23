@@ -19,7 +19,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
     """
     VarNet or E2E-VarNet model.
 
-    These models are from the papers :cite:`sriram2020end` and :cite:`hammernik2018learning`.
+    These models are from the papers :footcite:t:`sriram2020end` and :footcite:t:`hammernik2018learning`.
     This performs unrolled iterations on the image estimate x (as per the original VarNet paper)
     or the kspace y (as per E2E-VarNet).
 

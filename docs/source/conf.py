@@ -47,6 +47,7 @@ extensions = [
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
 copybutton_exclude = ".linenos, .gp"
+bibtex_tooltips = True
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -65,6 +66,7 @@ autodoc_preserve_defaults = True
 nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
+bibtex_footbibliography_backrefs = True
 
 
 ####  userguide directive ###
@@ -237,3 +239,8 @@ rst_prolog = """
 
    <hr />
 """
+
+napoleon_custom_sections = [
+    ("Reference", "params_style"),   # Sphinx ≥ 3.5
+    # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
+]

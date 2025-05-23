@@ -12,8 +12,7 @@ class DRUNet(Denoiser):
     r"""
     DRUNet denoiser network.
 
-    The network architecture is based on the paper
-    `Plug-and-Play Image Restoration with Deep Denoiser Prior :cite:`zhang2021plug`.
+    The network architecture is based on the paper :footcite:t:`zhang2021plug`.
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -38,6 +37,7 @@ class DRUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
 
+   .. footbibliography::
     """
 
     def __init__(

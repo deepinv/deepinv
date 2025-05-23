@@ -143,7 +143,7 @@ class Radon(nn.Module):
 
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
 
-        The default values are adapted from the geometry in :cite:`khalil_2023_8307932`.
+        The default values are adapted from the geometry in :footcite:t:`khalil_2023_8307932`.
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
