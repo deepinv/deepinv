@@ -186,7 +186,7 @@ noise_level_img = 0.03  # Gaussian Noise standard deviation for the degradation
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.SinglePixelCamera(
     m=600,
-    img_shape=(1, 64, 64),
+    img_size=(1, 64, 64),
     ordering="cake_cutting",
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
     device=device,

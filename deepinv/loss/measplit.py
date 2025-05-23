@@ -79,7 +79,7 @@ class SplittingLoss(Loss):
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> physics = dinv.physics.Inpainting(tensor_size=(1, 8, 8), mask=0.5)
+    >>> physics = dinv.physics.Inpainting(img_size=(1, 8, 8), mask=0.5)
     >>> model = dinv.models.MedianFilter()
     >>> loss = dinv.loss.SplittingLoss(split_ratio=0.9, eval_n_samples=2)
     >>> model = loss.adapt_model(model) # important step!
@@ -272,15 +272,15 @@ class SplittingLoss(Loss):
             if self.mask_generator is None:
                 warn("Mask generator not defined. Using new Bernoulli mask generator.")
                 self.mask_generator = BernoulliSplittingMaskGenerator(
-                    tensor_size=y.shape[1:],
+                    img_size=y.shape[1:],
                     split_ratio=self.split_ratio,
                     pixelwise=self.pixelwise,
                     device=y.device,
                 )
 
-            if self.mask_generator.tensor_size[-2:] != y.shape[-2:]:
+            if self.mask_generator.img_size[-2:] != y.shape[-2:]:
                 raise ValueError(
-                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.tensor_size[-2:]} and y has {y.shape[-2:]}"
+                    f"Mask generator should be same shape as y in last 2 dims, but mask has {self.mask_generator.img_size[-2:]} and y has {y.shape[-2:]}"
                 )
 
             with torch.set_grad_enabled(self.training):
@@ -470,37 +470,3 @@ class Neighbor2Neighbor(Loss):
         )
 
         return loss_n2n
-
-
-if __name__ == "__main__":
-    import deepinv as dinv
-    import torch
-    import numpy as np
-
-    sigma = 0.1
-    physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(sigma)
-    # choose a reconstruction architecture
-    backbone = dinv.models.MedianFilter()
-    f = dinv.models.ArtifactRemoval(backbone)
-    # choose training losses
-    split_ratio = 0.9
-    loss = SplittingLoss(split_ratio=split_ratio)
-    f = loss.adapt_model(f, eval_n_samples=2)  # important step!
-
-    batch_size = 1
-    imsize = (3, 128, 128)
-    device = "cuda"
-
-    x = torch.ones((batch_size,) + imsize, device=device)
-    y = physics(x)
-
-    x_net = f(y, physics)
-    mse = dinv.metric.MSE()(physics.A(x), physics.A(x_net))
-    split_loss = loss(y=y, x_net=x_net, physics=physics, model=f)
-
-    print(
-        f"split_ratio:{split_ratio:.2f}  mse: {mse:.2e}, split-loss: {split_loss:.2e}"
-    )
-    rel_error = (split_loss - mse).abs() / mse
-    print(f"rel_error: {rel_error:.2f}")
