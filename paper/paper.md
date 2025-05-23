@@ -131,7 +131,7 @@ of new ideas across imaging domains;
 methods, datasets, and metrics for inverse problems.
 
 While other Python computational imaging libraries exist, to the best of our knowledge, `deepinv` is the only one with a strong focus on learning-based methods which provides a larger set of realistic imaging operators.
-SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
+SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] are Python libraries whose main focus are variational optimization and/or plug-and-play reconstruction methods. These libraries do not provide specific tools for training reconstruction models such as trainers and custom loss functions, and do not cover non optimization-based solvers including diffusion methods, adversarial methods or unrolling networks.
 CUQIpy [@riis2024cuqipy] is a library focusing on Bayesian uncertainty quantification methods for inverse problems.
 TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] mostly focus on computed tomography and do not cover deep learning pipelines for inverse solvers. 
 There are also multiple libraries focusing on specific inverse problems: ASTRA [@van2016astra] and the related pytomography [@polson2025pytomography] define advanced tomography operators, sigpy [@ong2019sigpy] provides magnetic resonance imaging (MRI) operators without deep learning, and PyLops [@ravasi2019pylops] provides a linear operator class and many built-in linear operators.
@@ -154,7 +154,7 @@ optional parameters $\xi$. This framework unifies the wide variety of forward op
 The library provides high-level operator definitions which are associated with specific imaging applications 
 (MRI, computed tomography, radioastronomy, etc.), and allows users to perform operator algebra,
 like summing, concatenating or stacking operators. `deepinv` comes with multiple useful tools for handling
-linear operators, such as adjoint, pseudoinverses and proximal operators (leveraging the singular value decomposition where possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
+linear operators, such as adjoint, pseudoinverses and proximal operators (leveraging the singular value decomposition when possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi],
 and operator norm and condition number estimators [@paige1982lsqr]. Many common noise distributions are included in the library
 such as Gaussian, Poisson, mixed Poisson-Gaussian, uniform and gamma noise. The table below summarizes the available forward operators
 at the time of writing, which are constantly being expanded and improved upon by the community:
@@ -210,7 +210,7 @@ These methods consist of solving an optimization problem [@chambolle2016introduc
 \begin{equation} \label{eq:var}
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x)
 \end{equation}
-where $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}_+$ is the data fidelity term, which can incorporate knowledge about the noise parameters $\sigma$, and $g\colon\mathcal{X}\mapsto\mathbb{R}_+$ is a regularizer that promotes plausible reconstructions.
+where $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ is the data fidelity term, which can incorporate knowledge about the noise parameters $\sigma$, and $g\colon\mathcal{X}\mapsto\mathbb{R}$ is a regularizer that promotes plausible reconstructions.
 The `optim` module includes classical fidelity terms (e.g., $\ell_1$, $\ell_2$, Poisson log-likelihood) and offers a wide range of regularization priors:
 
 **Explicit Priors**: The library implements several traditional regularizers, such as sparsity [@candes2008introduction], total variation [@rudin1992nonlinear], wavelets [@stephane1999wavelet], patch-based likelihoods [@zoran2011learning], and mixed-norm regularizations [@kowalski2009sparse].
@@ -229,7 +229,7 @@ The `optim` module also includes solvers for the minimization problem in \eqref{
 ### Sampling-Based Methods
 Reconstruction methods can also be defined via ordinary or stochastic differential equations, generally as a Markov chain defined by
 \begin{equation}
-x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=1,\dots,T
+x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=0,\dots,T-1
 \end{equation} 
 such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$, and $\operatorname{R}_{\theta}$ is a (potentially learned) denoiser.
 Sampling multiple plausible reconstructions enables uncertainty estimates by computing statistics across the samples.
@@ -336,9 +336,9 @@ as well as no-reference perceptual metrics such as NIQE [@mittal2012making] and 
 ### Coding Practices
 
 `deepinv` is coded in modern Python following a test-driven development philosophy.
-The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
+The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov` (automatically via GitHub actions),
 and is compliant with PEP8 using `black`.  To encourage reproducibility, the library passes random number generators
-for all random functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
+for all random generation functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
 where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`),
 sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited
 from base classes (such as the operator pseudoinverse), and mixins provide specialized methods. This framework
@@ -357,7 +357,7 @@ a detailed mathematical description using latex with shared math symbols and not
 
 # Perspectives
 
-DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress. The community is continuously contributing more methods, such as more realistic physics operators and more advanced training techniques, which reflect the state-of-the-art in imaging with deep learning, aiming to address the needs and interests of researchers and practitioners alike.
+DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress (release v0.3.0). The community is continuously contributing more methods, such as more realistic physics operators and more advanced training techniques, which reflect the state-of-the-art in imaging with deep learning, aiming to address the needs and interests of researchers and practitioners alike.
 
 # Acknowledgements
 
