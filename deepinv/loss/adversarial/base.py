@@ -23,6 +23,9 @@ class DiscriminatorMetric:
     :param float fake_label: value for ideal fake image, defaults to 0.
     :param bool no_grad: whether to no_grad the metric computation, defaults to ``False``
     :param str device: torch device, defaults to ``"cpu"``
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(

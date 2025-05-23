@@ -52,6 +52,9 @@ class CBSD68(torch.utils.data.Dataset):
         68
         >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
 
+    :References:
+        .. footbibliography::
+
     """
 
     # for integrity of downloaded data
