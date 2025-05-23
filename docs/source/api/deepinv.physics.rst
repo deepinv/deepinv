@@ -44,6 +44,7 @@ Operators
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI
    deepinv.physics.Tomography
+   deepinv.physics.TomographyWithAstra
    deepinv.physics.Pansharpen
    deepinv.physics.CompressiveSpectralImaging
    deepinv.physics.HyperSpectralUnmixing
@@ -163,3 +164,4 @@ Functional
 
    deepinv.physics.functional.Radon
    deepinv.physics.functional.IRadon
+   deepinv.physics.functional.XrayTransform
