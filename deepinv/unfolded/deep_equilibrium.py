@@ -86,7 +86,7 @@ class BaseDEQ(BaseUnfold):
         x = self.fixed_point.iterator(
             X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
-        
+
         if not self.jacobian_free:
             # Another iteration for jacobian computation via automatic differentiation.
             x0 = x.clone().detach().requires_grad_()
@@ -109,9 +109,9 @@ class BaseDEQ(BaseUnfold):
                     def forward(self, X, *args, **kwargs):
                         return {
                             "est": (
-                                torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
-                                    0
-                                ]
+                                torch.autograd.grad(
+                                    f0, x0, X["est"][0], retain_graph=True
+                                )[0]
                                 + grad,
                             )
                         }
