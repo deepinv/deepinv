@@ -264,7 +264,7 @@ def generate_dataset(
         x0 = x0.to(device).unsqueeze(0)
 
         # get initial measurement for initial image
-        def measure(x: Tensor, b: int, g: int) -> Tuple[Tensor, Union[dict, None]]:
+        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, Union[dict, None]]:
             if physics_generator is None:
                 return physics[g](x), None
             else:

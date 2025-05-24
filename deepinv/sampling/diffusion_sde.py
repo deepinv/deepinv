@@ -65,7 +65,7 @@ class BaseSDE(nn.Module):
         :return : the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
-        if isinstance(x_init, (Tuple, List, torch.Size)):
+        if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sample_init(x_init, rng=self.solver.rng)
 
         solution = self.solver.sample(
@@ -78,7 +78,7 @@ class BaseSDE(nn.Module):
 
     def discretize(
         self, x: Tensor, t: Union[Tensor, float], *args, **kwargs
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Tensor]:
         r"""
         Discretize the SDE at the given time step.
 
@@ -92,7 +92,7 @@ class BaseSDE(nn.Module):
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 
     def sample_init(
-        self, shape: Union[List, Tuple, torch.Size], rng: torch.Generator = None
+        self, shape: Union[list, tuple, torch.Size], rng: torch.Generator = None
     ) -> Tensor:
         r"""
         Sample from the end-time distribution of the forward diffusion.
@@ -541,7 +541,7 @@ class PosteriorDiffusion(Reconstructor):
         :return: the generated sample (:class:`torch.Tensor` of shape `(B, C, H, W)`) if `get_trajectory` is `False`. Otherwise, returns a tuple (:class:`torch.Tensor`, :class:`torch.Tensor`) of shape `(B, C, H, W)` and `(N, B, C, H, W)` where `N` is the number of steps.
         """
         self.solver.rng_manual_seed(seed)
-        if isinstance(x_init, (Tuple, List, torch.Size)):
+        if isinstance(x_init, (tuple, list, torch.Size)):
             x_init = self.sde.sample_init(x_init, rng=self.solver.rng)
         elif x_init is None:
             if physics is not None:

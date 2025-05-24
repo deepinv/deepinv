@@ -58,7 +58,7 @@ class BernoulliSplittingMaskGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        tensor_size: tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
         random_split_ratio: bool = False,
@@ -245,7 +245,7 @@ class MultiplicativeSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        tensor_size: tuple[int],
         split_generator: BaseMaskGenerator,
         *args,
         **kwargs,
@@ -309,11 +309,11 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        tensor_size: tuple[int],
         split_ratio: float,
         pixelwise: bool = True,
         std_scale: float = 4.0,
-        center_block: Union[Tuple[int], int] = (8, 8),
+        center_block: Union[tuple[int], int] = (8, 8),
         device: torch.device = torch.device("cpu"),
         rng: torch.Generator = None,
         *args,
@@ -458,7 +458,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        tensor_size: tuple[int],
         device: torch.device = "cpu",
         rng: torch.Generator = None,
     ):
@@ -507,8 +507,8 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
-        split_size: Union[int, Tuple[int]] = 2,
+        tensor_size: tuple[int],
+        split_size: Union[int, tuple[int]] = 2,
         device: torch.device = "cpu",
         rng: torch.Generator = None,
     ):

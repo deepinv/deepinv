@@ -27,7 +27,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
     def __init__(
         self,
-        img_size: Tuple,
+        img_size: tuple,
         acceleration: int = 4,
         center_fraction: Optional[float] = None,
         rng: torch.Generator = None,
@@ -97,7 +97,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         pass
 
     def step(
-        self, batch_size=1, seed: int = None, img_size: Optional[Tuple] = None, **kwargs
+        self, batch_size=1, seed: int = None, img_size: Optional[tuple] = None, **kwargs
     ) -> dict:
         r"""
         Create a mask of vertical lines.

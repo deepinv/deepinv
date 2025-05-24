@@ -278,7 +278,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
         fname: Path
         slice_ind: int
-        metadata: Dict[str, Any]
+        metadata: dict[str, Any]
 
     @contextmanager
     def metadata_cache_manager(self, root: Union[str, Path], samples: Any):
@@ -389,7 +389,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             self.samples = list(filter(filter_id, self.samples))
 
     @staticmethod
-    def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> Dict[str, Any]:
+    def _retrieve_metadata(fname: Union[str, Path, os.PathLike]) -> dict[str, Any]:
         """Open file and retrieve metadata.
         Metadata includes number of slices in volume.
 
@@ -415,7 +415,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, dict]:
         r"""
         Returns idx-th samples.
 
@@ -467,7 +467,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     def save_simple_dataset(
         self,
         dataset_path: str,
-        pad_to_size: Tuple[int] = (320, 320),
+        pad_to_size: tuple[int] = (320, 320),
         to_complex: bool = False,
     ) -> SimpleFastMRISliceDataset:
         """Convert dataset to a 2D singlecoil dataset and save as pickle file.
@@ -586,7 +586,7 @@ class MRISliceTransform:
         mask: torch.Tensor = None,
         seed: Union[str, int] = None,
         **kwargs,
-    ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+    ) -> tuple[torch.Tensor, torch.Tensor, dict]:
         """Call transform.
 
         :param torch.Tensor target: target of shape (1, H, W)

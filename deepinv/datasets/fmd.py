@@ -112,9 +112,9 @@ class FMD(torch.utils.data.Dataset):
     def __init__(
         self,
         root: str,
-        img_types: List[str],
-        noise_levels: List[int] = [1, 2, 4, 8, 16],
-        fovs: List[int] = list(range(1, 20 + 1)),
+        img_types: list[str],
+        noise_levels: list[int] = [1, 2, 4, 8, 16],
+        fovs: list[int] = list(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,

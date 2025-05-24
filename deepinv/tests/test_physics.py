@@ -1153,7 +1153,7 @@ def test_mri_fft():
 
         return torch.cat((right, left), dim=dim)
 
-    def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
+    def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
         if len(shift) != len(dim):
             raise ValueError("len(shift) must match len(dim)")
 
@@ -1162,7 +1162,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1176,7 +1176,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())

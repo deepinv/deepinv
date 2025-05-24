@@ -152,7 +152,7 @@ class AdversarialTrainer(Trainer):
     """
 
     optimizer: AdversarialOptimizer
-    losses_d: Union[Loss, List[Loss]] = None
+    losses_d: Union[Loss, list[Loss]] = None
     D: Module = None
     step_ratio_D: int = 1
 
