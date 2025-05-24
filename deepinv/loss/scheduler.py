@@ -20,7 +20,7 @@ class BaseLossScheduler(Loss):
         self.losses = loss
         self.rng = generator if generator is not None else Generator()
 
-    def schedule(self, epoch: int) -> List[Loss]:
+    def schedule(self, epoch: int) -> list[Loss]:
         r"""
         Return selected losses based on defined schedule, optionally based on current epoch.
 
@@ -115,7 +115,7 @@ class RandomLossScheduler(BaseLossScheduler):
             assert len(self.losses) == len(weightings)
             self.weightings = sum([[i] * w for (i, w) in enumerate(weightings)], [])
 
-    def schedule(self, epoch) -> List[Loss]:
+    def schedule(self, epoch) -> list[Loss]:
         if self.weightings is None:
             choice = randint(len(self.losses), (1,), generator=self.rng).item()
         else:
@@ -148,7 +148,7 @@ class InterleavedLossScheduler(BaseLossScheduler):
         super().__init__(*loss)
         self.choice = 0
 
-    def schedule(self, epoch) -> List[Loss]:
+    def schedule(self, epoch) -> list[Loss]:
         out = [self.losses[self.choice]]
         self.choice = (self.choice + 1) % len(self.losses)
         return out
@@ -173,7 +173,7 @@ class InterleavedEpochLossScheduler(BaseLossScheduler):
     :param Loss \*loss: loss or multiple losses to be scheduled.
     """
 
-    def schedule(self, epoch) -> List[Loss]:
+    def schedule(self, epoch) -> list[Loss]:
         return [self.losses[epoch % len(self.losses)]]
 
 
@@ -204,5 +204,5 @@ class StepLossScheduler(BaseLossScheduler):
         super().__init__(*loss)
         self.epoch_thresh = epoch_thresh
 
-    def schedule(self, epoch) -> List[Loss]:
+    def schedule(self, epoch) -> list[Loss]:
         return self.losses if epoch > self.epoch_thresh else []

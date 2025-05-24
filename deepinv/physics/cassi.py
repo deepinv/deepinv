@@ -61,7 +61,7 @@ class CompressiveSpectralImaging(LinearPhysics):
 
     def __init__(
         self,
-        img_size: Tuple[int, int, int],  # C,H,W
+        img_size: tuple[int, int, int],  # C,H,W
         mask: Union[Tensor, float] = None,
         mode: str = "ss",
         shear_dir: str = "h",
