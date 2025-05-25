@@ -1,5 +1,5 @@
 ---
-title: 'DeepInverse: a Python package for solving imaging inverse problems with deep learning'
+title: 'DeepInverse: A Python package for solving imaging inverse problems with deep learning'
 tags:
   - Python
   - PyTorch
