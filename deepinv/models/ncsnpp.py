@@ -349,16 +349,16 @@ class NCSNpp(Denoiser):
         if isinstance(sigma, torch.Tensor):
             sigma = sigma.squeeze()
             if sigma.ndim == 0:
-                return sigma[None].to(device, dtype).expand(batch_size)
+                return sigma[None].to(device, dtype)
             elif sigma.ndim == 1:
                 assert (
                     sigma.size(0) == batch_size or sigma.size(0) == 1
                 ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
+                return sigma.to(device, dtype)
             else:
                 raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
 
         elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype).expand(batch_size)
+            return torch.tensor([sigma]).to(device, dtype)
         else:
             raise ValueError("Unsupported sigma type.")

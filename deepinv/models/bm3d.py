@@ -46,14 +46,28 @@ class BM3D(Denoiser):
 
         out = torch.zeros_like(x)
 
-        if not torch.is_tensor(sigma):
-            sigma = torch.tensor(sigma).repeat(x.shape[0])
+        sigma = self._handle_sigma(sigma, x.size(0))
 
         for i in range(x.shape[0]):
             out[i, :, :, :] = array2tensor(
-                bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma[i].item())
+                bm3d.bm3d(tensor2array(x[i, :, :, :]), sigma[i])
             )
         return out
+
+    @staticmethod
+    def _handle_sigma(sigma, batch_size):
+        r"""
+        Handle various sigma input: float, int, tensor
+        """
+        if isinstance(sigma, (float, int)):
+            return [sigma] * batch_size
+        elif isinstance(sigma, torch.Tensor):
+            sigma = sigma.squeeze()
+            if sigma.ndim == 0:
+                return [sigma.item()] * batch_size
+            else:
+                assert sigma.ndim == 1 and sigma.size(0) == batch_size
+                return sigma.tolist()
 
 
 def tensor2array(img):
