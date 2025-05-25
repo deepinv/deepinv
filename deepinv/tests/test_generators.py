@@ -2,6 +2,7 @@ from deepinv.physics.generator import (
     GaussianMaskGenerator,
     EquispacedMaskGenerator,
     RandomMaskGenerator,
+    PolyOrderMaskGenerator,
 )
 from deepinv.physics.generator.base import seed_from_string
 import pytest
@@ -35,7 +36,7 @@ NUM_CHANNELS = [1, 3]
 
 # MRI Generators
 C, T, H, W = 2, 12, 256, 512
-MRI_GENERATORS = ["gaussian", "random", "uniform"]
+MRI_GENERATORS = ["gaussian", "random", "uniform", "poly"]
 MRI_IMG_SIZES = [(H, W), (C, H, W), (C, T, H, W), (64, 64)]
 MRI_ACCELERATIONS = [4, 10, 12]
 MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
@@ -43,10 +44,10 @@ MRI_CENTER_FRACTIONS = [0, 0.04, 24 / 512]
 # Inpainting/Splitting Generators
 INPAINTING_IMG_SIZES = [
     (2, 64, 40),
-    (2, 1000),
+    (2, 1000),  # This will show warning but (C, M) is valid
     (2, 3, 64, 40),
 ]  # (C,H,W), (C,M), (C,T,H,W)
-INPAINTING_GENERATORS = ["bernoulli", "gaussian"]
+INPAINTING_GENERATORS = ["bernoulli", "gaussian", "multiplicative"]
 
 # All devices to test
 DEVICES = ["cpu"]
@@ -204,8 +205,35 @@ def test_generation(name, device, dtype):
     assert torch.allclose(w, wref, atol=1e-8)
 
 
+@pytest.mark.parametrize(
+    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", [torch.float64])
+def test_average(name, device, dtype):
+    r"""
+    Tests generators average.
+    """
+    size = (5, 5)
+    generator, size, _ = find_generator(name, size, 1, device, dtype)
+    # Set generator seed for reproducibility
+    generator.rng_manual_seed(0)
+
+    n_avg = 4
+
+    # Store the keys of a single step call for future comparison
+    params = generator.step(batch_size=1, seed=0)
+    keys = set(params.keys())
+
+    for batch_size in [1, 2, n_avg]:
+        batch_size = 1
+        params = generator.average(5, batch_size=batch_size)
+        assert isinstance(params, dict)
+        assert set(params.keys()) == keys
+
+
 #################################
-### SPECIFIC GENERATORS TESTS ###
+### DOWNSAMPLING GENERATORS #####
 #################################
 
 
@@ -243,101 +271,6 @@ def test_downsampling_generator(num_channels, device, dtype):
     assert y.shape[-1] == x.shape[-1] // params["factor"]
 
 
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
-@pytest.mark.parametrize("device", DEVICES)
-@pytest.mark.parametrize("dtype", DTYPES)
-def test_inpainting_generator(num_channels, device, dtype):
-    r"""
-    Test downsampling generator.
-    This test is different from the above ones because we do not generate a random kernel at each iteration, but
-    we sample from a list.
-    """
-    size = (
-        32,
-        32,
-    )  # we need sufficiently large sizes to ensure well definedness of the operation
-    physics = dinv.physics.Downsampling(
-        img_size=(num_channels, size[0], size[1]),
-        device=device,
-        filter="bicubic",
-        factor=4,
-    )
-    list_filters = ["bilinear", "bicubic"]
-    list_factors = [2, 4]
-    generator, _, _ = find_generator(
-        "DownsamplingGenerator", size, num_channels, device, dtype
-    )
-
-    batch_size = 2
-    params = generator.step(batch_size=batch_size, seed=0)
-
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
-    y = physics(x, **params)
-
-    assert y.shape[-1] == x.shape[-1] // params["factor"]
-
-
-@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
-@pytest.mark.parametrize("device", DEVICES)
-@pytest.mark.parametrize("dtype", DTYPES)
-def test_inpainting_generator(num_channels, device, dtype):
-    size = (100, 100)  # we take it large to have significant statistical numbers after
-    physics = dinv.physics.Inpainting((num_channels, size[0], size[1]), 0.9)
-
-    split_ratio = 0.6
-    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
-        (num_channels, size[0], size[1]), split_ratio=split_ratio
-    )
-    batch_size = 2
-    params = generator.step(batch_size=batch_size)
-
-    mask = params["mask"]
-    assert mask.shape == (batch_size, num_channels, size[0], size[1])
-
-    experimental_split_ratio = (mask[0] == 1).sum() / mask[0].numel()
-    assert abs(experimental_split_ratio.item() - split_ratio) < 1e-2
-
-    # check forward
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
-    y = physics(x, **params)
-    experimental_split_ratio_obs = 1 - (y[0] == 0).sum() / y[0].numel()
-    assert experimental_split_ratio == experimental_split_ratio_obs
-
-    # now we do the same with each element in the batch for random_split_ratio
-    min_split_ratio = 0.001
-    max_split_ratio = 0.5
-    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
-        (num_channels, size[0], size[1]),
-        split_ratio=split_ratio,
-        random_split_ratio=True,
-        min_split_ratio=min_split_ratio,
-        max_split_ratio=max_split_ratio,
-    )
-    batch_size = 2
-    params = generator.step(batch_size=batch_size, seed=0)
-
-    mask = params["mask"]
-    assert mask.shape == (batch_size, num_channels, size[0], size[1])
-
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
-    y = physics(x, **params)
-
-    list_exp_split_ratio = []
-    for b in range(batch_size):
-        experimental_split_ratio = (mask[b] == 1).sum() / mask[b].numel()
-        assert experimental_split_ratio.item() < max_split_ratio + 1e-2
-        assert experimental_split_ratio.item() > min_split_ratio - 1e-2
-
-        # check forward
-        experimental_split_ratio_obs = 1 - (y[b] == 0).sum() / y[b].numel()
-        assert torch.allclose(experimental_split_ratio, experimental_split_ratio_obs)
-
-        list_exp_split_ratio.append(experimental_split_ratio)
-
-    # check that split ratios are different between batches
-    assert abs(list_exp_split_ratio[0] - list_exp_split_ratio[1]) > 1e-2
-
-
 ######################
 ### MRI GENERATORS ###
 ######################
@@ -360,6 +293,10 @@ def choose_mri_generator(generator_name, img_size, acc, center_fraction):
     elif generator_name == "uniform":
         g = EquispacedMaskGenerator(
             img_size, acceleration=acc, center_fraction=center_fraction
+        )
+    elif generator_name == "poly":
+        g = PolyOrderMaskGenerator(
+            img_size, acceleration=acc, center_fraction=center_fraction, poly_order=2
         )
     return g
 
@@ -410,14 +347,14 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 #############################
 
 
-def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
+def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, rng):
     if name == "bernoulli":
         return dinv.physics.generator.BernoulliSplittingMaskGenerator(
             tensor_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=torch.Generator(device).manual_seed(0),
+            rng=rng,
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
@@ -425,7 +362,18 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
-            rng=torch.Generator(device).manual_seed(0),
+            rng=rng,
+        )
+    elif name == "multiplicative":
+        mri_gen = dinv.physics.generator.GaussianMaskGenerator(
+            img_size=img_size,
+            acceleration=2,
+            device=device,
+            rng=rng,
+        )
+        return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
+            tensor_size=img_size,
+            split_generator=mri_gen,
         )
     else:
         raise Exception("The generator chosen doesn't exist")
@@ -437,23 +385,26 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device):
 @pytest.mark.parametrize("split_ratio", (0.5,))
 @pytest.mark.parametrize("device", DEVICES)
 def test_inpainting_generators(
-    generator_name, batch_size, img_size, pixelwise, split_ratio, device
+    generator_name, batch_size, img_size, pixelwise, split_ratio, device, rng
 ):
-    if generator_name == "gaussian" and len(img_size) < 3:
+    if generator_name in ("gaussian", "multiplicative") and len(img_size) < 3:
         pytest.skip(
-            "Gaussian splitting mask not valid for images of shape smaller than (C, H, W)"
+            "Gaussian and multiplicative splitting mask not valid for images of shape smaller than (C, H, W)"
         )
 
+    if generator_name == "multiplicative" and not pixelwise:
+        pytest.skip("Multiplicative mask test not defined for non pixelwise masking.")
+
     gen = choose_inpainting_generator(
-        generator_name, img_size, split_ratio, pixelwise, device
+        generator_name, img_size, split_ratio, pixelwise, device, rng
     )  # Assume generator always receives "correct" img_size i.e. not one with dims missing
 
-    def correct_ratio(ratio):
+    def correct_ratio(ratio, rtol=1e-2, atol=1e-2):
         assert torch.isclose(
             ratio,
             torch.tensor([split_ratio], device=device),
-            rtol=1e-2,
-            atol=1e-2,
+            rtol=rtol,
+            atol=atol,
         )
 
     def correct_pixelwise(mask):
@@ -487,16 +438,87 @@ def test_inpainting_generators(
     correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # As above but with img_size missing channel dimension (bad practice)
-    input_mask = torch.ones(*img_size[1:], device=device)
-    mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
-    correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
+    # Note: Multiplicative mask must have correct input mask shape
+    # Note: 1D input_mask not compatible with pixelwise
+    if generator_name != "multiplicative" and not (len(img_size) <= 2 and pixelwise):
+        input_mask = torch.ones(*img_size[1:], device=device)
+        mask2 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
+        correct_ratio(mask2.sum() / input_mask.sum() / batch_size)
 
     # Generate splitting mask from already subsampled mask
+    # Multiplicative splitting will rarely be exact
     input_mask = torch.zeros(batch_size, *img_size, device=device)
     input_mask[..., 10:20] = 1
     mask3 = gen.step(batch_size=batch_size, input_mask=input_mask, seed=0)["mask"]
-    correct_ratio(mask3.sum() / input_mask.sum())
+    correct_ratio(
+        mask3.sum() / input_mask.sum(),
+        atol=1e-2 if generator_name != "multiplicative" else 2e-1,
+    )
     correct_pixelwise(mask3)
+
+
+@pytest.mark.parametrize("num_channels", NUM_CHANNELS)
+@pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_inpainting_generator_random_ratio(num_channels, device, dtype):
+    # NOTE elements of this test are now redundant given above tests
+    size = (100, 100)  # we take it large to have significant statistical numbers after
+    physics = dinv.physics.Inpainting((num_channels, size[0], size[1]), 0.9)
+
+    split_ratio = 0.6
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        (num_channels, size[0], size[1]), split_ratio=split_ratio
+    )
+    batch_size = 2
+    params = generator.step(batch_size=batch_size)
+
+    mask = params["mask"]
+    assert mask.shape == (batch_size, num_channels, size[0], size[1])
+
+    experimental_split_ratio = (mask[0] == 1).sum() / mask[0].numel()
+    assert abs(experimental_split_ratio.item() - split_ratio) < 1e-2
+
+    # check forward
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+    experimental_split_ratio_obs = 1 - (y[0] == 0).sum() / y[0].numel()
+    assert experimental_split_ratio == experimental_split_ratio_obs
+
+    # now we do the same with each element in the batch for random_split_ratio
+    min_split_ratio = 0.001
+    max_split_ratio = 0.5
+    generator = dinv.physics.generator.BernoulliSplittingMaskGenerator(
+        (num_channels, size[0], size[1]),
+        split_ratio=split_ratio,
+        random_split_ratio=True,
+        min_split_ratio=min_split_ratio,
+        max_split_ratio=max_split_ratio,
+    )
+    batch_size = 2
+    params = generator.step(batch_size=batch_size, seed=0)
+
+    mask = params["mask"]
+    assert mask.shape == (batch_size, num_channels, size[0], size[1])
+
+    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    y = physics(x, **params)
+
+    list_exp_split_ratio = []
+    for b in range(batch_size):
+        experimental_split_ratio = (mask[b] == 1).sum() / mask[b].numel()
+        assert experimental_split_ratio.item() < max_split_ratio + 1e-2
+        assert experimental_split_ratio.item() > min_split_ratio - 1e-2
+
+        # check forward
+        experimental_split_ratio_obs = 1 - (y[b] == 0).sum() / y[b].numel()
+        assert torch.allclose(
+            experimental_split_ratio, experimental_split_ratio_obs, rtol=1e-3
+        )
+
+        list_exp_split_ratio.append(experimental_split_ratio)
+
+    # check that split ratios are different between batches
+    assert abs(list_exp_split_ratio[0] - list_exp_split_ratio[1]) > 1e-2
 
 
 def test_string_seed():

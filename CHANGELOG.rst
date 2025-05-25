@@ -11,12 +11,30 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_). 
 
 Fixed
 ^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
+- Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
+- Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
+- Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
+- Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
 v0.3
 ----------------
@@ -44,6 +62,7 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -316,4 +335,6 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Romain Vo: https://github.com/romainvo

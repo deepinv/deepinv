@@ -24,7 +24,7 @@ from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
 from deepinv.optim import optim_builder
 from deepinv.optim.bregman import BurgEntropy
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -43,8 +43,7 @@ torch.manual_seed(0)
 
 img_size = 64
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-url = get_image_url("butterfly.png")
-x_true = load_url_image(url=url, img_size=img_size).to(device)
+x_true = load_example("butterfly.png", img_size=img_size).to(device)
 x = x_true.clone()
 
 
