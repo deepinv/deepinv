@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Tuple, Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 from warnings import warn
 import torch
 from deepinv.physics.generator.base import PhysicsGenerator

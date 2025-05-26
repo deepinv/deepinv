@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Iterable, Tuple
+from typing import Union, Iterable
 
 import torch
 from torch import Tensor

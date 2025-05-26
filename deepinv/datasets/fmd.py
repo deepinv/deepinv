@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, NamedTuple
+from typing import Any, Callable, NamedTuple
 import os
 import re
 
@@ -54,9 +54,9 @@ class FMD(torch.utils.data.Dataset):
     | 7) 12 type of img x 5 levels of noise x 20 "fov" x 50 img = 60 000 noisy img
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
-    :param List[str] img_types: Types of microscopy image among 12.
-    :param List[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
-    :param List[int] fovs: "Field of view", value between 1 and 20.
+    :param list[str] img_types: Types of microscopy image among 12.
+    :param list[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
+    :param list[int] fovs: "Field of view", value between 1 and 20.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional) A function/transform that takes in a noisy PIL image

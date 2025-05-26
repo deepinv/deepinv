@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
+from typing import Optional
 import warnings
 
 import torch
@@ -19,7 +19,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
     The type of undersampling is determined by the child class. The mask is repeated across channels and randomly varies across batch dimension.
 
-    :param Tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
+    :param tuple img_size: image size, either (H, W) or (C, H, W) or (C, T, H, W), where optional C is channels, and optional T is number of time-steps
     :param int acceleration: acceleration factor, defaults to 4
     :param float center_fraction: fraction of lines to sample in low frequencies (center of k-space). If 0, there is no fixed low-freq sampling. Defaults to None.
     :param torch.Generator rng: torch random generator. Defaults to None.

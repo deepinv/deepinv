@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from typing import List, Tuple
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd, conv2d

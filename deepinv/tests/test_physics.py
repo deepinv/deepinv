@@ -1,5 +1,5 @@
 from math import sqrt
-from typing import Optional, List
+from typing import Optional
 import pytest
 import torch
 import numpy as np

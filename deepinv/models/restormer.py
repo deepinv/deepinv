@@ -12,7 +12,7 @@ Code: https://github.com/swz30/Restormer
 
 import numbers
 import os
-from typing import List, Optional
+from typing import Optional
 
 import torch
 import torch.nn as nn

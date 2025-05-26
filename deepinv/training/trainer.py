@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric

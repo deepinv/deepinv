@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 from copy import deepcopy
 import torch
 from deepinv.physics.forward import Physics

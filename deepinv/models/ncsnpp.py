@@ -1,6 +1,5 @@
 import torch
 from torch.nn.functional import silu
-from typing import List
 import numpy as np
 from .utils import (
     PositionalEmbedding,

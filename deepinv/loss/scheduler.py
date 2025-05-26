@@ -1,4 +1,3 @@
-from typing import List
 from torch import Generator, randint, Tensor, tensor
 from torch.nn import Module
 from deepinv.loss.loss import Loss

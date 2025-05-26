@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Union
 import torch
 from torch import Tensor
 from torch.nn.functional import pad
@@ -22,13 +22,13 @@ class CompressiveSpectralImaging(LinearPhysics):
     .. math::
 
         y =
-        \begin{cases} 
-            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='spatial-spectral'} \\ 
+        \begin{cases}
+            \Sigma_{c=1}^{C} S^{-1} MSx & \text{if mode='spatial-spectral'} \\
             \Sigma_{c=1}^{C} SMx & \text{if mode='single-disperser'}
         \end{cases}
 
     where :math:`M` is a binary mask (the "coded aperture"), :math:`S` is a pixel shear in the 2D
-    channel-height of channel-width plane and :math:`C` is number of channels. 
+    channel-height of channel-width plane and :math:`C` is number of channels.
     Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
     For more details see e.g. the paper `High-Quality Hyperspectral Reconstruction Using a Spectral Prior <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
@@ -175,7 +175,7 @@ class CompressiveSpectralImaging(LinearPhysics):
                     ),
                 un=True)
             ))
-        
+
         elif self.mode == "sd":
             y = self.flatten(
                 self.shear(

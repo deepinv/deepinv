@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, List, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from torch.optim import Optimizer

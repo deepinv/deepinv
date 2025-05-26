@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 import torch.nn as nn
-from typing import Callable, Union, Tuple, Optional, List
+from typing import Callable, Union, Optional
 import numpy as np
 from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor, Denoiser
@@ -87,7 +87,7 @@ class BaseSDE(nn.Module):
         :param \*args: additional arguments for the drift.
         :param \*\*kwargs: additional keyword arguments for the drift.
 
-        :return Tuple[Tensor, Tensor]: discretized drift and diffusion.
+        :return tuple[Tensor, Tensor]: discretized drift and diffusion.
         """
         return self.drift(x, t, *args, **kwargs), self.diffusion(t)
 

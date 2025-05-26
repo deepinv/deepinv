@@ -1,5 +1,4 @@
 import torch
-from typing import List
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
 
@@ -23,8 +22,8 @@ class DownsamplingGenerator(PhysicsGenerator):
     .. note::
         Each batch element has the same downsampling factor and filter, but these can vary from batch to batch.
 
-    :param List[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
-    :param List[int] factors: list of factors to use for downsampling. Default is [2, 4].
+    :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
+    :param list[int] factors: list of factors to use for downsampling. Default is [2, 4].
     :param rng: random number generator. Default is None.
     :param device: device to use. Default is "cpu".
     :param dtype: data type to use. Default is torch.float32.
