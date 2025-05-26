@@ -365,7 +365,7 @@ M. Terris acknowledges support by the BrAIN grant (ANR-20-CHIA-0016).
 F. Sarron, P. Weiss, M.H. Nguyen were supported by the ANR Micro-Blind ANR-21-CE48-0008.
 Thomas Moreau was supported from a national grant attributed to the ExaDoST project of the NumPEx PEPR program, under the reference ANR-22-EXNU-0004.
 J. Hertrich is supported by the German Research Foundation (DFG) with project number 530824055.
-Z. Hu acknowledges funding from the Swiss National Science Foundation (Grant PZ00P2_216211).
+Z. Hu acknowledges funding from the Swiss National Science Foundation (grant PZ00P2_216211). Thomas Davies is supported by UKRI EPSRC (grants EP/V006134/1 and EP/V006177/1).
 S. Neumayer acknowledges funding from the German Research Foundation (DFG) with project number 543939932.
 The authors acknowledge the Jean-Zay high-performance computing center, using HPC resources from GENCI-IDRIS (Grants 2021-AD011012210, 2024-AD011015191). 
 
