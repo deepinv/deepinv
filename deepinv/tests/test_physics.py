@@ -1570,3 +1570,23 @@ def test_composed_linear_physics(device):
     assert torch.equal(
         composed_physics.A_adjoint(x), physics_3.A_adjoint(physics_1.A_adjoint(x))
     )
+
+    # Compose with Transform:
+    physics = dinv.physics.Blur(filter=dinv.physics.blur.bicubic_filter(3.0))
+    T = dinv.transform.Shift()
+    T_kwargs = {"x_shift": torch.tensor([1]), "y_shift": torch.tensor([1])}
+
+    physics_mul = physics * dinv.physics.LinearPhysics(
+        A=lambda x: T.inverse(x, **T_kwargs),
+        A_adjoint=lambda y: T(y, **T_kwargs),
+    )
+    x = torch.randn(1, 3, 64, 64)
+    assert torch.allclose(physics_mul.A(x), physics.A(T.inverse(x, **T_kwargs)))
+    y = physics_mul.A(x)
+    assert torch.allclose(physics_mul.A_adjoint(y), T(physics.A_adjoint(y), **T_kwargs))
+    assert torch.allclose(
+        physics_mul.A_dagger(y),
+        T(physics.A_dagger(y), **T_kwargs),
+        atol=1e-4,
+        rtol=1e-4,
+    )

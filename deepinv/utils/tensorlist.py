@@ -1,4 +1,5 @@
 import torch
+import warnings
 
 
 class TensorList:
@@ -237,6 +238,10 @@ class TensorList:
 
     @property
     def device(self):
+        if len(set([_x.device for _x in self.x])) > 1:
+            warnings.warn(
+                "The tensors in the TensorList are not in the same device! Returning the device of the first tensor."
+            )
         return self.x[0].device
 
 
