@@ -4,6 +4,7 @@ import time as time
 from typing import Dict
 from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
 
+
 class DiffusionIterator(SamplingIterator):
     r"""
     Helper class used by :class:`deepinv.sampling.DiffusionSampler` to interface diffusion models with the
@@ -12,6 +13,7 @@ class DiffusionIterator(SamplingIterator):
     .. note::
         Users should typically interact with :class:`deepinv.sampling.DiffusionSampler` rather than this class directly.
     """
+
     def __init__(self, cur_params=None, clip=None):
         super(SamplingIterator, self).__init__()
         self.clip = clip

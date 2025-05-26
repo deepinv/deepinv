@@ -6,7 +6,7 @@ from .sampling_iterators import (
     SKRockIterator,
     SamplingIterator,
     SKROCKIterator,
-    DiffusionIterator
+    DiffusionIterator,
 )
 from . import diffusion_sde, sde_solver
 from .noisy_datafidelity import NoisyDataFidelity, DPSDataFidelity

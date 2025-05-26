@@ -31,7 +31,7 @@ class ULA(BaseSampling):
     - Projected PnP-ULA assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
-    .. warning:: 
+    .. warning::
         This is a legacy class provided for convenience. See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` for more details on sampling implementation, and how to adapt it to your specific problem.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.

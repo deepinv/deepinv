@@ -60,7 +60,7 @@ class DiffusionSampler(BaseSampling):
             verbose=verbose,
             # thresh_conv=thres_conv,
         )
-        self.g_statistics = [lambda d:g_statistic(d["x"])]
+        self.g_statistics = [lambda d: g_statistic(d["x"])]
 
     def forward(self, y, physics, seed=None):
         r"""
@@ -71,9 +71,7 @@ class DiffusionSampler(BaseSampling):
         :param float seed: Random seed for generating the samples
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
-        return self.sample(
-            y, physics, seed=seed, g_statistics=self.g_statistics
-        )
+        return self.sample(y, physics, seed=seed, g_statistics=self.g_statistics)
 
 
 class DDRM(Reconstructor):

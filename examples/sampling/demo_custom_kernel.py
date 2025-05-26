@@ -109,9 +109,10 @@ class PreconULAIterator(dinv.sampling.SamplingIterator):
             * self.algo_params["alpha"]
         )
 
-        return {"x": x + physics.V(
-            step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
-        )}
+        return {
+            "x": x
+            + physics.V(step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise)
+        }
 
 
 # %%

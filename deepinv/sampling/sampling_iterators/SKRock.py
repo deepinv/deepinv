@@ -99,7 +99,7 @@ class SKRockIterator(SamplingIterator):
         :param DataFidelity cur_data_fidelity: Negative log-likelihood function
         :param ScorePrior cur_prior: Prior
 
-        :return: Dictionary `{"est": x}` containing the next state :math:`x_{t+1}` in the Markov chain. 
+        :return: Dictionary `{"est": x}` containing the next state :math:`x_{t+1}` in the Markov chain.
         :rtype: Dict
         """
         x = X["x"]

@@ -177,7 +177,7 @@ class BaseSampling(Reconstructor):
             ... )
             >>> means, vars = sampler.sample(measurements, forward_operator)
         """
-        
+
         # Don't store computational graphs
         with torch.no_grad():
             # Set random seed if provided
@@ -188,13 +188,19 @@ class BaseSampling(Reconstructor):
             if x_init is None:
                 # if linear take adjoint (pseudo-inverse can be a bit unstable) else fall back to pseudoinverse
                 if isinstance(physics, LinearPhysics):
-                    X = self.iterator.initialize_latent_variables(physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior)
+                    X = self.iterator.initialize_latent_variables(
+                        physics.A_adjoint(y), y, physics, self.data_fidelity, self.prior
+                    )
                 else:
-                    X = self.iterator.initialize_latent_variables(physics.A_dagger(y), y, physics, self.data_fidelity, self.prior)
+                    X = self.iterator.initialize_latent_variables(
+                        physics.A_dagger(y), y, physics, self.data_fidelity, self.prior
+                    )
             else:
-                X = self.iterator.initialize_latent_variables(x_init, y, physics, self.data_fidelity, self.prior)
+                X = self.iterator.initialize_latent_variables(
+                    x_init, y, physics, self.data_fidelity, self.prior
+                )
 
-            if self.history:
+            if self.history_size:
                 if isinstance(self.history, deque):
                     self.history = deque([X], maxlen=self.history_size)
                 else:
@@ -227,14 +233,17 @@ class BaseSampling(Reconstructor):
                     **kwargs,
                 )
 
-                if it >= (self.max_iter * self.burnin_ratio) and it % self.thinning == 0:
-                    self.callback(X, statistics= statistics, iter=it)
+                if (
+                    it >= (self.max_iter * self.burnin_ratio)
+                    and it % self.thinning == 0
+                ):
+                    self.callback(X, statistics=statistics, iter=it)
                     # Store previous means and variances for convergence check
                     if it >= (self.max_iter - self.thinning):
                         mean_prevs = [stat.mean().clone() for stat in statistics]
                         var_prevs = [stat.var().clone() for stat in statistics]
 
-                    if self.history:
+                    if self.history_size:
                         self.history.append(X)
 
                     for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
@@ -379,4 +388,3 @@ def sampling_builder(
         verbose=verbose,
         callback=callback,
     ).eval()
-
