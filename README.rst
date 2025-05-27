@@ -131,7 +131,7 @@ Citation
 If you use DeepInverse in your research, please cite the following paper (available in `arXiv <https://arxiv.org/abs/2505.20160>`_):
 
 
-.. code-block::
+.. code-block:: bash
 
     @misc{tachella2025deepinverse,
           title={DeepInverse: A Python package for solving imaging inverse problems with deep learning},
