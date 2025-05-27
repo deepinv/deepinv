@@ -72,8 +72,12 @@ class ADMUNet(Denoiser):
     ):
         super().__init__()
         # The default model is a class-conditioned model with 1000 classes
-        if pretrained.lower() == "imagenet64-cond" or pretrained.lower() == "download":
-            label_dim = 1000
+        if pretrained is not None:
+            if (
+                pretrained.lower() == "imagenet64-cond"
+                or pretrained.lower() == "download"
+            ):
+                label_dim = 1000
 
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
@@ -208,10 +212,9 @@ class ADMUNet(Denoiser):
         sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
 
         # Rescale [0,1] input to [-1,-1]
-        if hasattr(self, "_train_on_minus_one_one"):
-            if self._train_on_minus_one_one:
-                x = (x - 0.5) * 2.0
-                sigma = sigma * 2.0
+        if getattr(self, "_train_on_minus_one_one", False):
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
         c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
         c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
@@ -226,7 +229,7 @@ class ADMUNet(Denoiser):
         D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
 
         # Rescale [-1,1] output to [0,-1]
-        if self._train_on_minus_one_one:
+        if getattr(self, "_train_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x

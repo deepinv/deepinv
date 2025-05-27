@@ -17,6 +17,8 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "ncsnpp",
+    "admunet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -85,6 +87,14 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "ncsnpp":
+        out = dinv.models.NCSNpp(
+            in_channels=imsize[0], out_channels=imsize[0], img_resolution=imsize[1]
+        )
+    elif name == "admunet":
+        out = dinv.models.ADMUNet(
+            in_channels=imsize[0], out_channels=imsize[0], img_resolution=imsize[1]
+        )
     else:
         raise Exception("Unknown denoiser")
 
@@ -335,6 +345,12 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
+    if denoiser in ["ncsnpp", "admunet"]:
+        imsize_1_channel = list(imsize_1_channel)
+        if imsize_1_channel[1] % 8 > 0:
+            imsize_1_channel[1] = 32
+        if imsize_1_channel[2] % 8 > 0:
+            imsize_1_channel[2] = 32
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
@@ -346,6 +362,41 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize(
+    "denoiser",
+    list(
+        set(MODEL_LIST_1_CHANNEL)
+        - set(
+            [
+                "epll",
+                "waveletdenoiser",
+                "waveletdict",
+            ]
+        )
+    ),
+)
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_denoiser_sigma_gray(batch_size, denoiser, device):
+    img_size = (1, 64, 64)
+    model = choose_denoiser(denoiser, img_size).to(device)
+    noiser = dinv.physics.GaussianNoise()
+    x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
+    # Same sigma for all image in the batch
+    sigma = torch.tensor(0.1)
+    y = noiser(x, sigma=sigma)
+    with torch.no_grad():
+        x_hat = model(x, sigma)
+    assert x_hat.shape == x.shape
+
+    # Each sigma for each image in the batch
+    if batch_size > 1:
+        sigma = torch.linspace(0.1, 0.3, batch_size, device=device)
+        with torch.no_grad():
+            y = noiser(x, sigma=sigma)
+        x_hat = model(x, sigma)
+        assert x_hat.shape == x.shape
 
 
 def test_drunet_inputs(imsize_1_channel, device):

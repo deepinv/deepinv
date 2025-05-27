@@ -97,17 +97,17 @@ class TGVDenoiser(Denoiser):
 
         if restart:
             self.x2 = y.clone()
-            self.r2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(
-                self.x2.dtype
+            self.r2 = torch.zeros(
+                (*self.x2.shape, 2), device=self.x2.device, dtype=self.x2.dtype
             )
-            self.u2 = torch.zeros((*self.x2.shape, 4), device=self.x2.device).type(
-                self.x2.dtype
+            self.u2 = torch.zeros(
+                (*self.x2.shape, 4), device=self.x2.device, dtype=self.x2.dtype
             )
             self.restart = False
 
         if ths is not None:
-            lambda1 = self._handle_sigma(ths, y.size(0)) * 0.1
-            lambda2 = self._handle_sigma(ths, y.size(0)) * 0.15
+            lambda1 = self._handle_sigma(ths, y.size(0)).to(y.device, y.dtype) * 0.1
+            lambda2 = self._handle_sigma(ths, y.size(0)).to(y.device, y.dtype) * 0.15
 
         cy = (y**2).sum() / 2
         primalcostlowerbound = 0
@@ -127,9 +127,9 @@ class TGVDenoiser(Denoiser):
             self.r2 = self.r2 + self.rho * (r - self.r2)
             self.u2 = self.u2 + self.rho * (u - self.u2)
 
-            rel_err = torch.linalg.norm(
-                x_prev.flatten() - self.x2.flatten()
-            ) / torch.linalg.norm(self.x2.flatten() + 1e-12)
+            rel_err = torch.linalg.norm(x_prev.flatten() - self.x2.flatten()) / (
+                torch.linalg.norm(self.x2.flatten()) + 1e-12
+            )
 
             if _ > 1 and rel_err < self.crit:
                 self.has_converged = True
