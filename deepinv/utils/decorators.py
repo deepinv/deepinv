@@ -4,15 +4,10 @@ import functools
 
 def _deprecated_alias(**aliases):
     """
-    Decorator to support deprecated argument names.
+    Decorator to support deprecated argument names in a class.
 
-    Args:
-        **aliases: mapping of old_name='new_name'
+    :param **aliases: mapping of old_name='new_name'
 
-    Example:
-        @_deprecated_alias(old_arg='new_arg')
-        def __init__(self, new_arg=None):
-            ...
     """
 
     def decorator(func):
