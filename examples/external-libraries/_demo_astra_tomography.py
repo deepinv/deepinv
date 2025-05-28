@@ -2,7 +2,7 @@
 Low-dose CT with ASTRA backend and Total-Variation (TV) prior
 ==============================================================================
 
-This example shows how to use the Astra tomography toolbox with deepinv, a popular toolbox for tomography with GPU acceleration. 
+This example shows how to use the Astra tomography toolbox with deepinv, a popular toolbox for tomography with GPU acceleration.
 
 We show how to use the :class:`deepinv.physics.TomographyWithAstra` operator (which wraps the [astra-toolbox](https://astra-toolbox.com/) backend) to solve a low-dose computed tomography problem with Total-Variation regularization.
 
