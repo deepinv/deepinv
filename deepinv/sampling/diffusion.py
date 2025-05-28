@@ -661,3 +661,118 @@ class DPS(Reconstructor):
             return xs
         else:
             return xt
+
+
+class PiGDM(Reconstructor):
+    def __init__(
+        self,
+        model,
+        data_fidelity,
+        max_iter=1000,
+        eta=1.0,
+        verbose=False,
+        device="cpu",
+        save_iterates=False,
+    ):
+        super(DPS, self).__init__()
+        self.model = model
+        self.model.requires_grad_(True)
+        self.data_fidelity = data_fidelity
+        self.max_iter = max_iter
+        self.eta = eta
+        self.verbose = verbose
+        self.device = device
+        self.beta_start, self.beta_end = 0.1 / 1000, 20 / 1000
+        self.num_train_timesteps = 1000
+        self.save_iterates = save_iterates
+
+        self.betas, self.alpha_cumprod = self.compute_alpha_betas()
+
+    def compute_alpha_betas(self):
+        r"""
+
+        Get the beta and alpha sequences for the algorithm. This is necessary for mapping noise levels to timesteps.
+
+        """
+        betas = torch.linspace(
+            self.beta_start,
+            self.beta_end,
+            self.num_train_timesteps,
+            dtype=torch.float32,
+            device=self.device,
+        )
+        alpha_cumprod = (
+            1 - torch.cat([torch.zeros(1, device=self.device), betas], dim=0)
+        ).cumprod(dim=0)
+        return betas, alpha_cumprod
+
+    def get_alpha(self, alpha_cumprod, t):
+        a = alpha_cumprod.index_select(0, t + 1).view(-1, 1, 1, 1)
+        return a
+
+    def forward(self, y, physics: deepinv.physics.Physics, seed=None, x_init=None):
+        if seed:
+            torch.manual_seed(seed)
+
+        skip = self.num_train_timesteps // self.max_iter
+        batch_size = y.shape[0]
+
+        seq = range(0, self.num_train_timesteps, skip)
+        seq_next = [-1] + list(seq[:-1])
+        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+
+        # Initial sample from x_T
+        x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)
+
+        if self.save_iterates:
+            xs = [x]
+
+        xt = x.to(self.device)
+
+        for i, j in tqdm(time_pairs, disable=(not self.verbose)):
+            t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * i
+            next_t = torch.ones(batch_size, dtype=y.dtype, device=self.device) * j
+
+            at = self.get_alpha(self.alpha_cumprod, t.long())
+            at_next = self.get_alpha(self.alpha_cumprod, next_t.long())
+
+            with torch.enable_grad():
+                xt.requires_grad_(True)
+
+                # 1. Denoising step
+                aux_x = xt / (2 * at.sqrt()) + 0.5  # renormalize in [0, 1]
+                sigma_cur = (1 - at).sqrt() / at.sqrt()  # sigma_t
+
+                x0_t = 2 * self.model(aux_x, sigma_cur / 2) - 1
+                x0_t = torch.clip(x0_t, -1.0, 1.0)
+
+                # 2. Likelihood gradient approximation
+                l2_loss = self.data_fidelity(x0_t, y, physics).sqrt().sum()
+
+            norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
+            norm_grad = norm_grad.detach()
+
+            sigma_tilde = (
+                (1 - at / at_next) * (1 - at_next) / (1 - at)
+            ).sqrt() * self.eta
+            c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
+
+            # 3. Noise step
+            epsilon = torch.randn_like(xt)
+
+            # 4. DDPM(IM) step
+            xt_next = (
+                (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
+                + sigma_tilde * epsilon
+                + c2 * xt / (1 - at).sqrt()
+                - norm_grad
+            )
+
+            if self.save_iterates:
+                xs.append(xt_next.to("cpu"))
+            xt = xt_next.clone()
+
+        if self.save_iterates:
+            return xs
+        else:
+            return xt
