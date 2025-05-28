@@ -68,7 +68,7 @@ num_angles = 100
 noise_model = LogPoissonNoise(mu=mu, N0=N0)
 data_fidelity = LogPoissonLikelihood(mu=mu, N0=N0)
 physics = TomographyWithAstra(
-    img_shape=(img_size, img_size),
+    img_size=(img_size, img_size),
     num_angles=num_angles,
     device=device,
     noise_model=noise_model,
@@ -99,7 +99,6 @@ fbp = physics.A_dagger(observation)
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Specify the prior (we redefine it with a smaller number of iteration for faster computation)
 prior = dinv.optim.prior.TVPrior(n_it_max=20)
 
 # Logging parameters

@@ -46,7 +46,6 @@ def fan_beam_grid(theta, image_size, fan_parameters, dtype=torch.float, device="
 
 
 # constants
-PI = 4 * torch.ones(1).atan()
 SQRT2 = (2 * torch.ones(1)).sqrt()
 
 
@@ -150,7 +149,7 @@ class AbstractFilter(nn.Module):
 
         f = torch.zeros(size, dtype=self.dtype, device=self.device)
         f[0] = 0.25
-        f[1::2] = -1 / (PI * n) ** 2
+        f[1::2] = -1 / (torch.pi * n) ** 2
 
         fourier_filter = torch.fft.rfft(f, dim=-1)
 
@@ -434,7 +433,7 @@ class IRadon(nn.Module):
             )
             reco[~reconstruction_circle] = 0.0
 
-        reco = reco * PI.item() / (2 * len(self.theta))
+        reco = reco * torch.pi / (2 * len(self.theta))
 
         if self.out_size is not None:
             pad = (self.out_size - self.in_size) // 2

@@ -22,15 +22,12 @@ except:
     astra = ImportError("The astra-toolbox package is not installed.")
 
 
-PI = 4 * torch.ones(1).atan()
-
-
 class Tomography(LinearPhysics):
     r"""
     (Computed) Tomography operator.
 
     The Radon transform is the integral transform which takes a square image :math:`x` defined on the plane to a function
-    :math:`y=Rx` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
+    :math:`y=Ax` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
     to the line integral of the function over that line.
 
     .. note::
@@ -168,7 +165,7 @@ class Tomography(LinearPhysics):
         if self.fan_beam:
             y = self.filter(y)
             output = (
-                self.A_adjoint(y, **kwargs) * PI.item() / (2 * len(self.radon.theta))
+                self.A_adjoint(y, **kwargs) * torch.pi / (2 * len(self.radon.theta))
             )
             if self.normalize:
                 output = output * output.shape[-1] ** 2
@@ -195,7 +192,7 @@ class Tomography(LinearPhysics):
             # IRadon is not exactly the adjoint but a rescaled version of it...
             output = (
                 self.iradon(y, filtering=False)
-                / PI.item()
+                / torch.pi
                 * (2 * len(self.iradon.theta))
             )
             if self.normalize:
@@ -210,11 +207,11 @@ class TomographyWithAstra(LinearPhysics):
     information on the ``astra`` wrapper.
 
     Mathematically, it is described as a ray transform
-    :math:`R` which linearly integrates an object :math:`x` along straight
+    :math:`A` which linearly integrates an object :math:`x` along straight
     lines
 
     .. math::
-        y = Rx
+        y = Ax
 
     where :math:`y` is the set of line integrals, called sinogram in 2D, or
     radiographs in 3D. An object is typically scanned using a surrounding circular
@@ -256,10 +253,10 @@ class TomographyWithAstra(LinearPhysics):
 
         The :class:`deepinv.physics.functional.XrayTransform` used in :class:`TomographyWithAstra` sequentially processes batch elements, which can make the 2d parallel beam operator significantly slower than the its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
 
-    :param tuple[int, ...] img_shape: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2d or 3d.
+    :param tuple[int, ...] img_size: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2d or 3d.
     :param int num_angles: Number of angular positions sampled uniformly in ``angular_range``. (default: 180)
     :param int | tuple[int, ...], None num_detectors: In 2d, specify an integer for a single line of detector cells. In 3d, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
-    :param tuple[float, float] angular_range: Angular range, defaults to (0,``math.pi``).
+    :param tuple[float, float] angular_range: Angular range, defaults to (0,``torch.pi``).
     :param float | tuple[float, float] detector_spacing: In 2d the width of a detector cell. In 3d a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
     :param tuple[float, ...] object_spacing: In 2d, the (x,y) dimensions of a pixel in the reconstructed image. In 3d, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
     :param tuple[float, ...], None aabb: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
@@ -289,7 +286,7 @@ class TomographyWithAstra(LinearPhysics):
 
     :Examples:
 
-        Tomography operator with a 2d ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*math.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
+        Tomography operator with a 2d ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -298,7 +295,7 @@ class TomographyWithAstra(LinearPhysics):
             >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
             >>> x = torch.randn(1, 1, 5, 5, device='cuda') # Define random 5x5 image
             >>> physics = TomographyWithAstra(
-            ...        img_shape=(5,5),
+            ...        img_size=(5,5),
             ...        num_angles=10,
             ...        angular_range=(0, 2*torch.pi),
             ...        num_detectors=5,
@@ -322,7 +319,7 @@ class TomographyWithAstra(LinearPhysics):
                     [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
                     [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
 
-        Tomography operator with a 3d ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*math.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
+        Tomography operator with a 3d ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -331,7 +328,7 @@ class TomographyWithAstra(LinearPhysics):
             >>> x = torch.randn(1, 1, 5, 5, 5, device='cuda')  # Define random 5x5x5 volume
             >>> angles = torch.linspace(0, 2*torch.pi, steps=4)[:-1]
             >>> physics = TomographyWithAstra(
-            ...        img_shape=(5,5,5),
+            ...        img_size=(5,5,5),
             ...        angles = angles,
             ...        num_detectors=(5,5),
             ...        object_spacing=(1.0,1.0,1.0),
@@ -367,10 +364,10 @@ class TomographyWithAstra(LinearPhysics):
 
     def __init__(
         self,
-        img_shape: tuple[int, ...],
+        img_size: tuple[int, ...],
         num_angles: int = 180,
         num_detectors: Optional[Union[int, tuple[int, ...]]] = None,
-        angular_range: tuple[float, float] = (0, math.pi),
+        angular_range: tuple[float, float] = (0, torch.pi),
         detector_spacing: Union[float, tuple[float, float]] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
         aabb: Optional[tuple[float, ...]] = None,
@@ -387,10 +384,10 @@ class TomographyWithAstra(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
-        assert len(img_shape) in (
+        assert len(img_size) in (
             2,
             3,
-        ), f"len(img_shape) is {len(img_shape)}, must be either 2 or 3 (for 2d and 3d respectively)"
+        ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2d and 3d respectively)"
 
         if torch.device(device).type != "cuda":
             warn(
@@ -398,10 +395,10 @@ class TomographyWithAstra(LinearPhysics):
                 RuntimeWarning,
             )
 
-        self.img_shape = img_shape
-        self.is_2d = len(img_shape) == 2
+        self.img_size = img_size
+        self.is_2d = len(img_size) == 2
         self.num_detectors = (
-            math.ceil(math.sqrt(2) * img_shape[0])
+            math.ceil(math.sqrt(2) * img_size[0])
             if num_detectors is None
             else num_detectors
         )
@@ -413,7 +410,7 @@ class TomographyWithAstra(LinearPhysics):
             angles = torch.linspace(*angular_range, steps=num_angles + 1)[:-1]
 
         self.object_geometry = create_object_geometry(
-            *img_shape, aabb=aabb, spacing=object_spacing, is_2d=self.is_2d
+            *img_size, aabb=aabb, spacing=object_spacing, is_2d=self.is_2d
         )
 
         self.projection_geometry = create_projection_geometry(
@@ -436,7 +433,11 @@ class TomographyWithAstra(LinearPhysics):
 
         if normalize:
             self.operator_norm = self.compute_norm(
-                torch.randn(self.img_shape, device=self.device)[None, None]
+                torch.randn(
+                    self.img_size,
+                    generator=torch.Generator(self.device).manual_seed(0),
+                    device=self.device,
+                )[None, None]
             ).sqrt()
             self.normalize = normalize
 
@@ -512,7 +513,7 @@ class TomographyWithAstra(LinearPhysics):
 
         sinogram_scaled *= self.xray_transform.detector_cell_v_length
         sinogram_scaled /= self.xray_transform.object_cell_volume
-        sinogram_scaled *= math.pi / (2 * self.num_angles)
+        sinogram_scaled *= torch.pi / (2 * self.num_angles)
 
         return sinogram_scaled
 
