@@ -110,11 +110,11 @@ def download_set14():
         shutil.rmtree(tmp_data_dir)
     else:
         with (
-            patch(
-                "deepinv.datasets.set14.Set14HR.check_dataset_exists", return_value=True
+            patch.object(Set14HR, "check_dataset_exists", return_value=True),
+            patch.object(
+                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]
             ),
-            patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]),
-            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -147,12 +147,11 @@ def download_flickr2khr():
         shutil.rmtree(tmp_data_dir)
     else:
         with (
-            patch(
-                "deepinv.datasets.flickr2k.Flickr2kHR.check_dataset_exists",
-                return_value=True,
+            patch.object(Flickr2kHR, "check_dataset_exists", return_value=True),
+            patch.object(
+                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]
             ),
-            patch("os.listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]),
-            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -217,7 +216,7 @@ def download_Kohler():
         # Clean up the created directory
         shutil.rmtree(root)
     else:
-        with patch("PIL.Image.open", return_value=get_dummy_pil_png_image()):
+        with patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()):
             yield "/dummy"
 
 
@@ -269,8 +268,10 @@ def download_lsdir():
         shutil.rmtree(tmp_data_dir)
     else:
         with (
-            patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 251)]),
-            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
+            patch.object(
+                os, "listdir", return_value=[f"{i}.png" for i in range(1, 251)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -308,8 +309,10 @@ def download_fmd():
         shutil.rmtree(tmp_data_dir)
     else:
         with (
-            patch("os.listdir", return_value=[f"{i}.png" for i in range(1, 51)]),
-            patch("PIL.Image.open", return_value=get_dummy_pil_png_image()),
+            patch.object(
+                os, "listdir", return_value=[f"{i}.png" for i in range(1, 51)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
 
@@ -359,10 +362,11 @@ def mock_lidc_idri():
         # This means that it cannot be mocked by patching pydicom.dcmread. Instead,
         # we patch the variable from the lidc_module directly.
         with (
-            patch("os.path.isdir", return_value=True),
-            patch("os.path.exists", return_value=True),
-            patch("pandas.read_csv", return_value=dummy_df),
-            patch("os.listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
+            patch.object(os.path, "isdir", return_value=True),
+            patch.object(os.path, "exists", return_value=True),
+            patch.object(pd, "read_csv", return_value=dummy_df),
+            patch.object(os, "listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
+            # We use patch instead of patch.object to avoid cluttering the namespace.
             patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
         ):
             yield "/dummy"
