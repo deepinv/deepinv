@@ -6,7 +6,7 @@ This example shows how to use the Astra tomography toolbox with deepinv, a popul
 
 We show how to use the :class:`deepinv.physics.TomographyWithAstra` operator (which wraps the [astra-toolbox](https://astra-toolbox.com/) backend) to solve a low-dose computed tomography problem with Total-Variation regularization.
 
-``TomographyWithAstra`` requires the astra-toolbox to function correctly, which can be easily installed using the command: `conda install -c astra-toolbox -c nvidia astra-toolbox`.
+:class:`deepinv.physics.TomographyWithAstra` requires the astra-toolbox to function correctly, which can be easily installed using the command: `conda install -c astra-toolbox -c nvidia astra-toolbox`.
 
 Additionally, this operator exclusively supports CUDA operations, so running the example requires a device with CUDA capabilities.
 """
