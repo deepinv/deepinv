@@ -609,7 +609,7 @@ class LogPoissonNoise(NoiseModel):
 
 class SaltPepperNoise(NoiseModel):
     r"""
-    SaltPepper noise :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
+    SaltPepper noise :math:`y = \begin{cases} 0 & \text{if } z < p\\ z & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
 
     This noise model is also known as impulse noise, is a form of noise sometimes seen on digital images.
     For black-and-white or grayscale images, it presents as sparsely occurring white and black pixels,
