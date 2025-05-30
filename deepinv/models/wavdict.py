@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .base import Denoiser
+from typing import Union
 
 try:
     import ptwt
@@ -121,27 +122,39 @@ class WaveletDenoiser(Denoiser):
         :param torch.Tensor x: wavelet coefficients.
         :param float, torch.Tensor ths: threshold.
         """
-        return torch.maximum(
-            torch.tensor([0], device=x.device).type(x.dtype), x - abs(ths)
-        ) + torch.minimum(
-            torch.tensor([0], device=x.device).type(x.dtype), x + abs(ths)
+        ths = self._expand_ths_as(ths, x)
+        return torch.maximum(torch.tensor(0.0), x - abs(ths)) + torch.minimum(
+            torch.tensor(0.0), x + abs(ths)
         )
 
-    def prox_l0(self, x, ths=0.1):
+    @staticmethod
+    def _expand_ths_as(
+        ths: Union[float, torch.Tensor], x: torch.Tensor
+    ) -> torch.Tensor:
+        r"""
+        Expand the threshold to the same shape as the input tensor.
+        """
+        if isinstance(ths, (float, int)):
+            return float(ths)
+        elif isinstance(ths, torch.Tensor):
+            ths = ths.squeeze()
+            return ths.view(-1, *([1] * (x.ndim - 1)))
+        else:
+            raise ValueError(f"Invalid threshold type: {type(ths)}")
+
+    def prox_l0(
+        self, x: torch.Tensor, ths: Union[float, torch.Tensor] = 0.1
+    ) -> torch.Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.
 
-        :param torch.Tensor x: wavelet coefficients.
-        :param float, torch.Tensor ths: threshold.
+        :param torch.Tensor x: wavelet coefficients of shape (B, C, H, W) or (B, C, D, H, W).
+        :param float, torch.Tensor ths: threshold of shape (B,) or scalar. If scalar, same threshold is used for all elements in batch.
         """
-        if isinstance(ths, float):
-            ths_map = ths
-        else:
-            ths_map = ths.repeat(
-                1, 1, 1, x.shape[-2], x.shape[-1]
-            )  # Reshaping to image wavelet shape
+
         out = x.clone()
-        out[abs(out) < ths_map] = 0
+        ths = self._expand_ths_as(ths, out)
+        out[out.abs() < ths] = 0
         return out
 
     def hard_threshold_topk(self, x, ths=0.1):
@@ -166,7 +179,7 @@ class WaveletDenoiser(Denoiser):
 
         # Convert the flattened indices to the original indices of x
         batch_indices = (
-            torch.arange(x.shape[0], device=x.device).unsqueeze(1).repeat(1, k)
+            torch.arange(x.shape[0], device=x.device).unsqueeze(1).expand(-1, k)
         )
         topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
 
@@ -230,14 +243,16 @@ class WaveletDenoiser(Denoiser):
             padding_bottom = h % 2
             padding_right = w % 2
             p = (padding_bottom, padding_right)
-            x = torch.nn.ReplicationPad2d((0, p[0], 0, p[1]))(x)
+            x = torch.nn.functional.pad(x, (0, p[0], 0, p[1]), mode="replicate")
         elif self.dimension == 3:
             d, h, w = x.size()[-3:]
             padding_depth = d % 2
             padding_bottom = h % 2
             padding_right = w % 2
             p = (padding_depth, padding_bottom, padding_right)
-            x = torch.nn.ReplicationPad3d((0, p[0], 0, p[1], 0, p[2]))(x)
+            x = torch.nn.functional.pad(
+                x, (0, p[0], 0, p[1], 0, p[2]), mode="replicate"
+            )
         return x, p
 
     def crop_output(self, x, padding):
