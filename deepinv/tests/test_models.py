@@ -420,6 +420,40 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
         assert x_hat.shape == x.shape
 
 
+@pytest.mark.parametrize("level", [3, 5, 6])
+@pytest.mark.parametrize("channels", [1, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("dimension", [2, 3])
+@pytest.mark.parametrize("non_linearity", ["soft", "hard", "topk"])
+def test_wavelet_denoiser_ths(
+    level, channels, dimension, non_linearity, batch_size, device
+):
+    model = dinv.models.WaveletDenoiser(
+        level=level, wvdim=dimension, non_linearity=non_linearity
+    ).to(device)
+    img_size = (batch_size, channels, 64, 64)
+    y = torch.randn(img_size, dtype=torch.float32).to(device)
+
+    # Test with a float threshold
+    ths = 0.1
+    x_hat = model(y, ths)
+    assert x_hat.shape == y.shape
+    # Test with a tensor threshold
+    ths_tensor = torch.tensor([ths] * batch_size, device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
+    # Test with a tensor for each level
+    ths_tensor = torch.rand((batch_size, level), device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
+
+    # Test with a tensor for batch, level and wavelet dimension
+    numel = 3 if dimension == 2 else 7
+    ths_tensor = torch.rand((batch_size, level, numel), device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
+
+
 def test_drunet_inputs(imsize_1_channel, device):
     f = dinv.models.DRUNet(
         in_channels=imsize_1_channel[0], out_channels=imsize_1_channel[0], device=device
