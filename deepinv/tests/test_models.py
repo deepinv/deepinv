@@ -375,7 +375,12 @@ def test_denoiser_sigma_gray(batch_size, denoiser, device):
     sigma = torch.tensor(0.1)
     y = noiser(x, sigma=sigma)
     with torch.no_grad():
-        x_hat = model(x, sigma)
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Same sigma but a float
+    with torch.no_grad():
+        x_hat = model(y, sigma)
     assert x_hat.shape == x.shape
 
     # Each sigma for each image in the batch
@@ -383,7 +388,35 @@ def test_denoiser_sigma_gray(batch_size, denoiser, device):
         sigma = torch.linspace(0.1, 0.3, batch_size, device=device)
         with torch.no_grad():
             y = noiser(x, sigma=sigma)
-        x_hat = model(x, sigma)
+            x_hat = model(y, sigma)
+        assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("denoiser", MODEL_LIST)
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_denoiser_sigma_color(batch_size, denoiser, device):
+    img_size = (3, 64, 64)
+    model = choose_denoiser(denoiser, img_size).to(device)
+    noiser = dinv.physics.GaussianNoise()
+    x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
+    # Same sigma for all image in the batch
+    sigma = torch.tensor(0.1)
+    y = noiser(x, sigma=sigma)
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Same sigma but a float
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Each sigma for each image in the batch
+    if batch_size > 1:
+        sigma = torch.linspace(0.1, 0.3, batch_size, device=device)
+        with torch.no_grad():
+            y = noiser(x, sigma=sigma)
+            x_hat = model(y, sigma)
         assert x_hat.shape == x.shape
 
 

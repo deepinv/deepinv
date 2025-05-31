@@ -166,28 +166,38 @@ class WaveletDenoiser(Denoiser):
         :param float, int ths: top k coefficients to keep. If ``float``, it is interpreted as a proportion of the total
             number of coefficients. If ``int``, it is interpreted as the number of coefficients to keep.
         """
-        if isinstance(ths, float):
+        if isinstance(ths, (float, int)):
             k = int(ths * x.shape[-3] * x.shape[-2] * x.shape[-1])
+        elif isinstance(ths, torch.Tensor):
+            k = ths.squeeze().view(-1).expand(x.size(0)).to(x.device, torch.int32)
         else:
-            k = int(ths)
+            raise ValueError(
+                f"Invalid threshold type: {type(ths)}. Expected float, int or torch.Tensor."
+            )
 
         # Reshape arrays to 2D and initialize output to 0
         x_flat = x.reshape(x.shape[0], -1)
         out = torch.zeros_like(x_flat)
 
-        topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
-
         # Convert the flattened indices to the original indices of x
-        batch_indices = (
-            torch.arange(x.shape[0], device=x.device).unsqueeze(1).expand(-1, k)
-        )
-        topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
+        if isinstance(k, int):
+            topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
+            batch_indices = (
+                torch.arange(x.shape[0], device=x.device).unsqueeze(1).expand(-1, k)
+            )
+            topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
 
-        # Set output's top-k elements to values from original x
-        out[tuple(topk_indices.view(-1, 2).t())] = x_flat[
-            tuple(topk_indices.view(-1, 2).t())
-        ]
-        return torch.reshape(out, x.shape)
+            # Set output's top-k elements to values from original x
+            out[tuple(topk_indices.view(-1, 2).t())] = x_flat[
+                tuple(topk_indices.view(-1, 2).t())
+            ]
+            return torch.reshape(out, x.shape)
+        else:
+            # For each batch, keep the top-k coefficients
+            for i in range(x.shape[0]):
+                topk_indices = torch.topk(abs(x_flat[i]), k[i].item(), dim=-1)[1]
+                out[i, topk_indices] = x_flat[i, topk_indices]
+            return torch.reshape(out, x.shape)
 
     def thresold_func(self, x, ths):
         r""" "
