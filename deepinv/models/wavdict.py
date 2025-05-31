@@ -138,7 +138,7 @@ class WaveletDenoiser(Denoiser):
             return float(ths)
         elif isinstance(ths, torch.Tensor):
             ths = ths.squeeze()
-            return ths.view(-1, *([1] * (x.ndim - 1)))
+            return ths.view(-1, *([1] * (x.ndim - 1))).to(x.device)
         else:
             raise ValueError(f"Invalid threshold type: {type(ths)}")
 

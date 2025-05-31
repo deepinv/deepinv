@@ -4,6 +4,7 @@ from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
+from typing import Union
 
 
 class EPLL(nn.Module):
@@ -81,7 +82,15 @@ class EPLL(nn.Module):
                 )
             self.load_state_dict(ckpt)
 
-    def forward(self, y, physics, sigma=None, x_init=None, betas=None, batch_size=-1):
+    def forward(
+        self,
+        y,
+        physics,
+        sigma: Union[float, torch.Tensor] = None,
+        x_init: torch.Tensor = None,
+        betas: list[float] = None,
+        batch_size: int = -1,
+    ) -> torch.Tensor:
         r"""
         Approximated half-quadratic splitting method for image reconstruction as proposed by Zoran and Weiss.
 
@@ -104,28 +113,32 @@ class EPLL(nn.Module):
                     "Noise level sigma has to be provided if not present in the physics model."
                 )
 
+        sigma = self._handle_sigma(sigma, y.shape[0]).to(y.device)
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
-        if y.shape[0] > 1:
-            # vectorization over a batch of images not implemented....
-            return torch.cat(
-                [
-                    self.reconstruction(
-                        y[i : i + 1],
-                        x_init[i : i + 1],
-                        betas=betas,
-                        batch_size=batch_size,
-                    )
-                    for i in range(y.shape[0])
-                ],
-                0,
-            )
+
         x = x_init
         Aty = physics.A_adjoint(y)
-        for beta in betas:
-            x = self._reconstruction_step(Aty, x, sigma**2, beta, physics, batch_size)
-        return x
+        if y.shape[0] > 1:
+            # vectorization over a batch of images not implemented....
+            out = []
+            for i in range(y.shape[0]):
+                xi = x[i : i + 1]
+                for beta in betas:
+                    self._reconstruction_step(
+                        Aty[i : i + 1], xi, sigma[i] ** 2, beta[i], physics, batch_size
+                    )
+                out.append(xi)
+
+            return torch.cat(out, dim=0)
+
+        else:
+            for beta in betas:
+                x = self._reconstruction_step(
+                    Aty, x, sigma[0] ** 2, beta[0], physics, batch_size
+                )
+            return x
 
     def negative_log_likelihood(self, x):
         r"""
@@ -193,3 +206,34 @@ class EPLL(nn.Module):
         op = lambda im: physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
         hat_x = conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
         return hat_x
+
+    @staticmethod
+    def _handle_sigma(sigma, batch_size):
+        r"""
+        Handle the sigma parameter for the denoising method.
+
+        :param float, torch.Tensor sigma: noise level, can be a scalar or a list of scalars.
+        :param batch_size: size of the batch.
+        :return: sigma as a tensor of shape (batch_size, 1).
+        """
+        if isinstance(sigma, (int, float)):
+            sigma = torch.tensor([float(sigma)] * batch_size)
+        elif isinstance(sigma, list):
+            assert (
+                len(sigma) == batch_size
+            ), "Length of sigma list must match batch size."
+            sigma = (
+                torch.tensor(sigma, dtype=torch.float32)
+                .squeeze()
+                .view(-1)
+                .expand(batch_size)
+            )
+        elif isinstance(sigma, torch.Tensor):
+            sigma = sigma.squeeze().view(-1).expand(batch_size)
+        else:
+            raise TypeError(
+                "sigma must be a scalar, list, or torch.Tensor, "
+                f"but got {type(sigma)}."
+            )
+
+        return sigma

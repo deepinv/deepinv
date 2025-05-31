@@ -364,19 +364,7 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     assert x_hat.shape == x.shape
 
 
-@pytest.mark.parametrize(
-    "denoiser",
-    list(
-        set(MODEL_LIST_1_CHANNEL)
-        - set(
-            [
-                "epll",
-                "waveletdenoiser",
-                "waveletdict",
-            ]
-        )
-    ),
-)
+@pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 @pytest.mark.parametrize("batch_size", [1, 2, 3])
 def test_denoiser_sigma_gray(batch_size, denoiser, device):
     img_size = (1, 64, 64)
