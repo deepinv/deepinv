@@ -256,8 +256,6 @@ def test_downsampling_generator(num_channels, device, dtype):
         filter="bicubic",
         factor=4,
     )
-    list_filters = ["bilinear", "bicubic"]
-    list_factors = [2, 4]
     generator, _, _ = find_generator(
         "DownsamplingGenerator", size, num_channels, device, dtype
     )
@@ -265,7 +263,7 @@ def test_downsampling_generator(num_channels, device, dtype):
     batch_size = 2
     params = generator.step(batch_size=batch_size, seed=0)
 
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
     y = physics(x, **params)
 
     assert y.shape[-1] == x.shape[-1] // params["factor"]

@@ -1,4 +1,5 @@
 import torch
+import warnings
 
 
 class TensorList:
@@ -234,6 +235,14 @@ class TensorList:
 
     def unsqueeze(self, dim=None):
         return TensorList([xi.unsqueeze(dim=dim) for xi in self.x])
+
+    @property
+    def device(self):
+        if len(set([_x.device for _x in self.x])) > 1:
+            warnings.warn(
+                "The tensors in the TensorList are not in the same device! Returning the device of the first tensor."
+            )
+        return self.x[0].device
 
 
 def randn_like(x):

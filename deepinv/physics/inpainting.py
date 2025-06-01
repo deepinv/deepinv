@@ -95,7 +95,7 @@ class Inpainting(DecomposablePhysics):
     ):
         super().__init__(**kwargs)
 
-        if isinstance(mask, torch.nn.Parameter) or isinstance(mask, torch.Tensor):
+        if isinstance(mask, torch.Tensor):
             mask = mask.to(device)
         elif isinstance(mask, float):
             self.gen = BernoulliSplittingMaskGenerator(
@@ -117,7 +117,8 @@ class Inpainting(DecomposablePhysics):
             mask = mask.unsqueeze(0)
 
         self.tensor_size = tensor_size
-        self.update_parameters(mask=mask)
+        self.register_buffer("mask", mask)
+        self.to(device)
 
     def noise(self, x, **kwargs):
         r"""
@@ -137,7 +138,7 @@ class Inpainting(DecomposablePhysics):
         r"""
         Concatenates two forward operators :math:`A = A_1\circ A_2` via the mul operation
 
-        If the second operator is an Inpainting or MRI operator, the masks are multiplied elementwise,
+        If the second operator is an Inpainting or MRI operator, the masks are multiplied element-wise,
         otherwise the default implementation of LinearPhysics is used (see :func:`deepinv.physics.LinearPhysics.__mul__`).
 
         :param deepinv.physics.Physics other: Physics operator :math:`A_2`
@@ -150,14 +151,14 @@ class Inpainting(DecomposablePhysics):
                 tensor_size=self.tensor_size,
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
-                device=self.mask.device,
+                device=self.mask.device if self.mask is not None else None,
             )
         elif isinstance(other, MRI):  # handles derived classes
             return other.__class__(
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
                 img_size=other.img_size,
-                device=self.mask.device,
+                device=self.mask.device if self.mask is not None else None,
             )
         else:
             return super().__mul__(other)

@@ -101,7 +101,7 @@ class DDRM(Reconstructor):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)  # doctest: +IGNORE_RESULT
         >>> model = dinv.sampling.DDRM(denoiser=denoiser, sigmas=np.linspace(1, 0, 10), verbose=True) # define the DDRM model
         >>> xhat = model(y, physics) # sample from the posterior distribution
-        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
+        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
     """
@@ -264,10 +264,11 @@ class DiffPIR(Reconstructor):
         >>> denoiser = dinv.models.DRUNet(pretrained="download").to(device)
         >>> model = dinv.sampling.DiffPIR(
         ...   model=denoiser,
-        ...   data_fidelity=dinv.optim.data_fidelity.L2()
+        ...   data_fidelity=dinv.optim.data_fidelity.L2(),
+        ...   device=device,
         ... ) # Define the DiffPIR model
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
-        >>> dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x) # Should be closer to the original
+        >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
     """
@@ -283,7 +284,7 @@ class DiffPIR(Reconstructor):
         verbose=False,
         device="cpu",
     ):
-        super(DiffPIR, self).__init__()
+        super().__init__()
         self.model = model
         self.lambda_ = lambda_
         self.data_fidelity = data_fidelity
