@@ -90,7 +90,8 @@ class SplittingLoss(Loss):
     >>> print(l.item() > 0)
     True
 
-
+    :References:
+    .. footbibliography::
     """
 
     def __init__(
@@ -375,6 +376,9 @@ class Neighbor2Neighbor(Loss):
     :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

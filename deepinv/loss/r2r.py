@@ -99,6 +99,8 @@ class R2RLoss(Loss):
     >>> print(l.item() > 0)
     True
 
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

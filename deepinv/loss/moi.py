@@ -46,6 +46,9 @@ class MOILoss(Loss):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
+    
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

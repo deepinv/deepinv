@@ -71,6 +71,10 @@ class ScoreLoss(Loss):
         >>> l = loss(model)
         >>> print(l.item() > 0)
         True
+
+    :References:
+    .. footbibliography::
+    
     """
 
     def __init__(self, noise_model=None, total_batches=1000, delta=(0.001, 0.1)):
