@@ -197,7 +197,7 @@ scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 # We now have all the data and tools to generate our measurements!
 # The noise level :math:`\tau` in the spacial Fourier domain is set to ``0.5976 * 2e-3``.
 # This value will preserve the dynamic range of the groundtruth image in this case.
-# Please check :footcite:t:`terris2023image` and :footcite:t:`aghabiglou2024r2d2``
+# Please check :footcite:t:`terris2023image` and :footcite:t:`aghabiglou2024r2d2`.
 # for more information about the relationship between the noise level in the Fourier domain and the dynamic range of the target image.
 
 tau = 0.5976 * 2e-3
