@@ -78,7 +78,7 @@ operation = f"{operation}_{noise_name}"
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
-num_workers = 4 if torch.cuda.is_available() else 0
+num_workers = 0 if torch.cuda.is_available() else 0
 
 n_images_max = (
     100 if torch.cuda.is_available() else 5
@@ -121,8 +121,8 @@ model = dinv.models.ArtifactRemoval(
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
 #
 
-epochs = 1  # choose training epochs
-learning_rate = 1e-9
+epochs = 60  # choose training epochs
+learning_rate = 1e-3
 batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
@@ -136,7 +136,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 # # start with a pretrained model to reduce training time
 
 if noise_name == "poisson":
-    model.noise_model = noise_model
+    # model.noise_model = noise_model
     file_name = "ckp_10_demo_r2r_poisson.pth"
     url = get_weights_url(model_name="demo", file_name=file_name)
     ckpt = torch.hub.load_state_dict_from_url(
