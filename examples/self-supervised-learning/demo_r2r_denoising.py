@@ -121,7 +121,7 @@ model = dinv.models.ArtifactRemoval(
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
 #
 
-epochs = 1 # choose training epochs
+epochs = 1  # choose training epochs
 learning_rate = 1e-9
 batch_size = 32 if torch.cuda.is_available() else 1
 
