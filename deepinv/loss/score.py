@@ -73,7 +73,7 @@ class ScoreLoss(Loss):
         True
 
     :References:
-    .. footbibliography::
+        .. footbibliography::
 
     """
 

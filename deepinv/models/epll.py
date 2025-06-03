@@ -28,7 +28,7 @@ class EPLLDenoiser(Denoiser):
     :param str device: defines device (``cpu`` or ``cuda``)
 
     :References:
-    .. footbibliography::
+        .. footbibliography::
     """
 
     def __init__(

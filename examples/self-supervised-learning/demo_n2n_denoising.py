@@ -15,7 +15,8 @@ where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neigh
 :math:`R` is the trainable denoiser network, :math:`\gamma>0` is a regularization parameter
 and no gradient is propagated when computing :math:`R(y)`.
 
-
+:References:
+    .. footbibliography::
 """
 
 from pathlib import Path

@@ -77,6 +77,10 @@ class Kohler(Dataset):
             # Convenience method to directly index the printouts and trajectories
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
             print(sharp_frame.shape, blurry_shot.shape)
+
+    :References:
+        .. footbibliography::
+
     """
 
     # The Köhler dataset is split into multiple archives available online.

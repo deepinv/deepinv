@@ -38,7 +38,7 @@ class TGVDenoiser(Denoiser):
     :param torch.Tensor, None r2: Auxiliary variable. Default: None.
 
     :References:
-    .. footbibliography::
+        .. footbibliography::
     """
 
     def __init__(

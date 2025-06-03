@@ -71,6 +71,9 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             batch = next(iter(dataloader))
             print(batch.shape)
 
+    :References:
+    .. footbibliography::
+
     """
 
     class SliceSampleIdentifier(NamedTuple):
