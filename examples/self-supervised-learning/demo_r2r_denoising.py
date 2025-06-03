@@ -67,11 +67,11 @@ test_dataset = datasets.MNIST(
 # defined physics
 predefined_noise_models = dict(
     gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-    poisson=dinv.physics.PoissonNoise(gain=0.1),
+    poisson=dinv.physics.PoissonNoise(gain=0.5),
     gamma=dinv.physics.GammaNoise(l=10.0),
 )
 
-noise_name = "gamma"
+noise_name = "poisson"
 noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
 operation = f"{operation}_{noise_name}"
@@ -121,8 +121,8 @@ model = dinv.models.ArtifactRemoval(
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
 #
 
-epochs = 1  # choose training epochs
-learning_rate = 1e-3
+epochs = 1 # choose training epochs
+learning_rate = 1e-9
 batch_size = 32 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
@@ -135,14 +135,14 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 
 # # start with a pretrained model to reduce training time
 
-# if noise_name == "poisson":
-#     file_name = "ckp_10_demo_r2r_poisson.pth"
-#     url = get_weights_url(model_name="demo", file_name=file_name)
-#     ckpt = torch.hub.load_state_dict_from_url(
-#         url, map_location=lambda storage, loc: storage, file_name=file_name
-#     )
-#     # load a checkpoint to reduce training time
-#     model.load_state_dict(ckpt["state_dict"])
+if noise_name == "poisson":
+    model.noise_model = noise_model
+    file_name = "ckp_10_demo_r2r_poisson.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
 
 # %%
 # Train the network
