@@ -316,7 +316,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
@@ -362,7 +362,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class StackTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
 
@@ -395,7 +395,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class EitherTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.recent_choice = None
@@ -430,3 +430,15 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+
+class Identity(Transform):
+    """
+    Identity transform i.e. trivial group.
+    """
+
+    def _get_params(self, *args):
+        return {}
+
+    def _transform(self, x, **params):
+        return x

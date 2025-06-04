@@ -39,7 +39,7 @@ class fStepHQS(fStep):
     def __init__(self, **kwargs):
         super(fStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
+    def forward(self, x, cur_data_fidelity, cur_params, y, physics, *args, **kwargs):
         r"""
         Single proximal step on the data-fidelity term :math:`f`.
 
@@ -49,7 +49,9 @@ class fStepHQS(fStep):
         :param torch.Tensor y: Input data.
         :param deepinv.physics.Physics physics: Instance of the physics modeling the data-fidelity term.
         """
-        return cur_data_fidelity.prox(x, y, physics, gamma=cur_params["stepsize"])
+        return cur_data_fidelity.prox(
+            x, y, physics, gamma=cur_params["stepsize"], *args, **kwargs
+        )
 
 
 class gStepHQS(gStep):
@@ -60,7 +62,7 @@ class gStepHQS(gStep):
     def __init__(self, **kwargs):
         super(gStepHQS, self).__init__(**kwargs)
 
-    def forward(self, x, cur_prior, cur_params):
+    def forward(self, x, cur_prior, cur_params, *args, **kwargs):
         r"""
         Single proximal step on the prior term :math:`\lambda \regname`.
 
@@ -72,4 +74,6 @@ class gStepHQS(gStep):
             x,
             cur_params["g_param"],
             gamma=cur_params["lambda"] * cur_params["stepsize"],
+            *args,
+            **kwargs,
         )

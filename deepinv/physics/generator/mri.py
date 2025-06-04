@@ -58,8 +58,15 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         else:
             raise ValueError("img_size must be (H, W) or (C, H, W) or (C, T, H, W)")
 
-        self.n_center = int(self.center_fraction * self.W)
-        self.n_lines = int(self.W // self.acc - self.n_center)
+        self.calculate_lines(self.W)
+
+    def calculate_lines(self, W: int):
+        """Calculate number of lines and centre lines from total width.
+
+        :param int W: total number of columns (width of mask)
+        """
+        self.n_center = int(self.center_fraction * W)
+        self.n_lines = int(W // self.acc - self.n_center)
 
         if self.n_lines < 0:
             raise ValueError(
@@ -78,6 +85,14 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
 
         :param torch.Tensor mask: empty mask of shape (B, C, T, H, W)
         :return torch.Tensor: sampled mask of shape (B, C, T, H, W)
+        """
+        pass
+
+    @abstractmethod
+    def get_pdf(self) -> torch.Tensor:
+        """Get mask probability density function (PDF).
+
+        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
         pass
 
@@ -100,9 +115,14 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         _T = self.T if self.T > 0 else 1
         _H, _W = (self.H, self.W) if img_size is None else img_size
 
-        mask = self.sample_mask(
-            torch.zeros((_B, self.C, _T, _H, _W), **self.factory_kwargs)
-        )
+        self.calculate_lines(_W)
+
+        mask = torch.zeros((_B, self.C, _T, _H, _W), **self.factory_kwargs)
+
+        if self.n_lines + self.n_center >= _W:
+            mask += 1
+        else:
+            mask = self.sample_mask(mask)
 
         if self.T == 0:
             mask = mask[:, :, 0, :, :]
@@ -145,7 +165,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
         :param int W: total number of columns (width of mask)
         :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
         """
-        return torch.ones(self.W, device=self.device)
+        return torch.ones(W, device=self.device)
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         pdf = self.get_pdf(_W := mask.shape[-1])
@@ -156,12 +176,13 @@ class RandomMaskGenerator(BaseMaskGenerator):
         # normalise distribution
         pdf = pdf / torch.sum(pdf)
         # select low-frequency lines according to pdf
-        for b in range(mask.shape[0]):
-            for t in range(mask.shape[2]):
-                idx = random_choice(
-                    _W, self.n_lines, replace=False, p=pdf, rng=self.rng
-                )
-                mask[b, :, t, :, idx] = 1
+        if self.n_lines > 0:
+            for b in range(mask.shape[0]):
+                for t in range(mask.shape[2]):
+                    idx = random_choice(
+                        _W, self.n_lines, replace=False, p=pdf, rng=self.rng
+                    )
+                    mask[b, :, t, :, idx] = 1
 
         # central lines are always sampled
         mask[
@@ -172,6 +193,91 @@ class RandomMaskGenerator(BaseMaskGenerator):
             _W // 2 - self.n_center // 2 : _W // 2 + ceildiv(self.n_center, 2),
         ] = 1
 
+        return mask
+
+
+class PolyOrderMaskGenerator(BaseMaskGenerator):
+    r"""
+    Generator for MRI Cartesian acceleration masks using polynomial variable density.
+
+    Generates a mask of vertical lines for MRI acceleration with fixed sampling in low frequencies (center of k-space) and polynomial order sampling in the high frequencies.
+
+    This is achieved by the following:
+
+    1. Create 1D polynomial function :math:`(1 - r)^{p}` where :math:`r` is the distance from the centre and :math:`p` is the polynomial order.
+    2. Scale so that its mean matches desired acceleration factor
+    3. Use the function as a probability density function (pdf) to sample from a Bernoulli.
+
+    The mask is repeated across channels and randomly varies across batch dimension.
+
+    Algorithm taken from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+
+    :Examples:
+
+        >>> from deepinv.physics.generator.mri import PolyOrderMaskGenerator
+        >>> generator = PolyOrderMaskGenerator((2, 128, 128), acceleration=8, center_fraction=0.04, poly_order=8)
+        >>> params = generator.step(batch_size=1)
+        >>> mask = params["mask"]
+        >>> mask.shape
+        torch.Size([1, 2, 128, 128])
+
+    For other parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
+
+    :param int poly_order: polynomial order of the sampling pdf
+    """
+
+    def __init__(self, *args, poly_order: int = 8, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.poly_order = poly_order
+        self.pdf = self.get_pdf()
+
+    def get_pdf(self, max_iter: int = 100, tol: float = 1e-3) -> torch.Tensor:
+        # Distance from the center (normalized to [-1, 1])
+        r = torch.linspace(-1, 1, self.W, device=self.device).abs()
+
+        # Polynomial variable density function
+        pdf = (1 - r) ** self.poly_order
+
+        # Sample the central lines
+        pdf[
+            self.W // 2 - self.n_center // 2 : self.W // 2 + ceildiv(self.n_center, 2)
+        ] = 1
+
+        # Using binary search to scale the mask to the desired acceleration factor
+        a, b = -1.0, 1.0  # Binary search bounds
+        target_fraction = 1.0 / self.acc
+
+        for i in range(max_iter):
+            c = (a + b) / 2  # Midpoint of search range
+            scaled_pdf = pdf + c  # Adjust probabilities
+            scaled_pdf.clamp_(0, 1)  # Keep values in range [0, 1]
+            scaled_pdf[
+                self.W // 2
+                - self.n_center // 2 : self.W // 2
+                + ceildiv(self.n_center, 2)
+            ] = 1  # Ensure center is fully sampled
+
+            # Calculate the current sampling fraction
+            current_fraction = scaled_pdf.mean().item()
+
+            # Adjust binary search bounds
+            if current_fraction < target_fraction - tol:
+                a = c
+            elif current_fraction > target_fraction + tol:
+                b = c
+            else:
+                return scaled_pdf
+        else:
+            raise ValueError(f"get_pdf did not converge after {max_iter} iterations")
+
+    def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        for b in range(mask.shape[0]):
+            for t in range(mask.shape[2]):
+                mask[b, :, t, :, :] = (
+                    torch.bernoulli(self.pdf, generator=self.rng)
+                    .unsqueeze(0)
+                    .expand(self.H, self.W)
+                )
         return mask
 
 
@@ -245,6 +351,9 @@ class EquispacedMaskGenerator(BaseMaskGenerator):
         torch.Size([1, 2, 8, 64, 64])
 
     """
+
+    def get_pdf(self) -> torch.Tensor:
+        raise NotImplementedError("get_pdf is undefined for this mask generator.")
 
     def sample_mask(self, mask: torch.Tensor) -> torch.Tensor:
         _W = mask.shape[-1]
