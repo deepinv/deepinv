@@ -4,7 +4,7 @@ Self-supervised learning with Equivariant Imaging for MRI.
 
 This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only.
 
-The equivariant imaging loss is presented in :footcite:t:`chen2021equivariant`.
+The equivariant imaging loss is presented in :footcite:ps:`chen2021equivariant`.
 
 """
 
@@ -106,7 +106,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL :footcite:t:`aggarwal2018modl`.
+# DnCNN architecture which was proposed in `MoDL :footcite:ps:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 
@@ -119,7 +119,7 @@ model = MoDL()
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
 # The EI loss requires a group of transformations to be defined. The forward model should not be equivariant to
-# these transformations :footcite:t:`JMLR:v24:22-0315`.
+# these transformations :footcite:ps:`JMLR:v24:22-0315`.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #

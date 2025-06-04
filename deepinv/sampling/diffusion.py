@@ -65,7 +65,7 @@ class DiffusionSampler(MonteCarlo):
 
 class DDRM(Reconstructor):
     r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
-    Denoising Diffusion Restoration Models (DDRM) :footcite:t:`kawar2022denoising`.
+    Denoising Diffusion Restoration Models (DDRM) :footcite:ps:`kawar2022denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -207,7 +207,7 @@ class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:ps:`zhu2023denoising`.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
@@ -507,7 +507,7 @@ class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 
-    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:ps:`chung2022diffusion`.
 
     DPS is an approximation of a gradient-based posterior sampling algorithm,
     which has minimal assumptions on the forward model. The only restriction is that

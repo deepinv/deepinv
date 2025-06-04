@@ -1,7 +1,7 @@
 r"""
 Learned Primal-Dual algorithm for CT scan.
 ====================================================================================================
-Implementation of the Unfolded Primal-Dual algorithm from :footcite:t:`adler2018learned`.
+Implementation of the Unfolded Primal-Dual algorithm from :footcite:ps:`adler2018learned`.
 
 where both the data fidelity and the prior are learned modules, distinct for each iterations.
 

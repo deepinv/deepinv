@@ -2,7 +2,7 @@ r"""
 Implementing DiffPIR
 ====================
 
-In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from :footcite:t:`zhu2023denoising`.
+In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from :footcite:ps:`zhu2023denoising`.
 The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
@@ -101,7 +101,7 @@ plot(
 #
 # In this section, we show how to use the denoising diffusion model from DiffPIR.
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
-# of DiffPIR use a U-Net architecture from :footcite:t:`ho2020denoising`,
+# of DiffPIR use a U-Net architecture from :footcite:ps:`ho2020denoising`,
 # which can be loaded as follows:
 
 model = dinv.models.DiffUNet(large_model=False).to(device)

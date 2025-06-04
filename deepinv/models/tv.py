@@ -14,7 +14,7 @@ class TVDenoiser(Denoiser):
 
     where :math:`D` maps an image to its gradient field.
 
-    The problem is solved with an over-relaxed Chambolle-Pock algorithm, see :footcite:t:`condat2013primal`.
+    The problem is solved with an over-relaxed Chambolle-Pock algorithm, see :footcite:ps:`condat2013primal`.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.

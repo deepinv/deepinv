@@ -275,7 +275,7 @@ class SCUNet(Denoiser):
     r"""
     SCUNet denoising network.
 
-    The Swin-Conv-UNet (SCUNet) denoising was introduced in :footcite:t:`zhang2023practical`.
+    The Swin-Conv-UNet (SCUNet) denoising was introduced in :footcite:ps:`zhang2023practical`.
 
     :param int in_nc: number of input channels. Default: 3.
     :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].

@@ -790,7 +790,7 @@ class UpsampleOneStep(nn.Sequential):
 class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
-    The Swin Image Restoration (SwinIR) denoising network was introduced in :footcite:t:`liang2021swinir`. This code is adapted from the official implementation by the
+    The Swin Image Restoration (SwinIR) denoising network was introduced in :footcite:ps:`liang2021swinir`. This code is adapted from the official implementation by the
     authors.
 
     :param int, tuple img_size: Input image size. Default 128.

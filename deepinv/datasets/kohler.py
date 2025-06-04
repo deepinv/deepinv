@@ -16,7 +16,7 @@ def url_basename(url: str) -> str:
 
 
 class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_ :footcite:t:`kohler2012recording`.
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_ :footcite:ps:`kohler2012recording`.
 
     The dataset consists of blurry shots and sharp frames, each blurry shot
     being associated with about 200 sharp frames. There are 48 blurry shots in

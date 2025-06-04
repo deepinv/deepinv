@@ -12,11 +12,11 @@ class DiscriminatorMetric:
 
     Compares discriminator output with labels depending on if the image should be real or not.
 
-    The loss function is composed following LSGAN :footcite:t:`mao2017least`.
+    The loss function is composed following LSGAN :footcite:ps:`mao2017least`.
 
     This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
-    See :footcite:t:`lucic2018gans` for a comparison.
+    See :footcite:ps:`lucic2018gans` for a comparison.
 
     :param torch.nn.Module metric: loss with which to compare outputs, defaults to :class:`torch.nn.MSELoss`
     :param float real_label: value for ideal real image, defaults to 1.

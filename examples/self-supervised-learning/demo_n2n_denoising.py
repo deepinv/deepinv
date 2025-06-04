@@ -5,7 +5,7 @@ Self-supervised denoising with the Neighbor2Neighbor loss.
 This example shows you how to train a denoiser network in a fully self-supervised way,
 i.e., using noisy images only via the Neighbor2Neighbor loss, which exploits the local correlation of natural images.
 
-The Neighbor2Neighbor loss is presented in :footcite:t:`huang2021neighbor2neighbor` and is defined as:
+The Neighbor2Neighbor loss is presented in :footcite:ps:`huang2021neighbor2neighbor` and is defined as:
 
 .. math::
 

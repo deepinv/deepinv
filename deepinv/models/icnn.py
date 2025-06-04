@@ -11,7 +11,7 @@ class ICNN(nn.Module):
     The network is built to be convex in its input.
     The model is fully convolutional and thus can be applied to images of any size.
 
-    Based on the implementation from :footcite:t:`tan2023data`.
+    Based on the implementation from :footcite:ps:`tan2023data`.
 
     :param int in_channels: Number of input channels.
     :param int num_filters: Number of hidden units.

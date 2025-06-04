@@ -17,7 +17,7 @@ class ConvDecoder(nn.Module):
     r"""
     Convolutional decoder network.
 
-    The architecture was introduced in :footcite:t:`darestani2021accelerated`,
+    The architecture was introduced in :footcite:ps:`darestani2021accelerated`,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
@@ -96,7 +96,7 @@ class DeepImagePrior(Reconstructor):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper "Deep Image Prior" :footcite:t:`ulyanov2018deep`, and reconstructs
+    This method is based on the paper "Deep Image Prior" :footcite:ps:`ulyanov2018deep`, and reconstructs
     an image by minimizing the loss function
 
     .. math::

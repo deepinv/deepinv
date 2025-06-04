@@ -12,7 +12,7 @@ from deepinv.datasets.utils import (
 
 
 class DIV2K(torch.utils.data.Dataset):
-    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_ :footcite:t:`Agustsson_2017_CVPR_Workshops`.
+    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_ :footcite:ps:`agustsson2017ntire`.
 
     Images have varying sizes with up to 2040 vertical pixels, and 2040 horizontal pixels.
 

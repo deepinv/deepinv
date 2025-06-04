@@ -171,7 +171,7 @@ blurs = diffraction_generator.step(batch_size=3)
 # where :math:`h(r, z)` is the amplitude PSF and :math:`D(r)` is the detector intensity sensitivity distribution (here : one inside the confocal pinhole, 0 outside).
 # `ill` coincides with illumination, while `coll` coincides with collection. :math:`\lambda` coincides with the wavelength.
 #
-# See :footcite:t:`gu1991three`.
+# See :footcite:ps:`gu1991three`.
 #
 
 from deepinv.physics.generator import ConfocalBlurGenerator3D

@@ -8,7 +8,7 @@ inverse problem on a fully self-supervised way, i.e., using measurement data onl
 The dataset consists of pairs :math:`(y_i,A_{g_i})` where :math:`y_i` are the measurements and :math:`A_{g_i}` is a
 binary sampling operator out of :math:`G` (i.e., :math:`g_i\in \{1,\dots,G\}`).
 
-This self-supervised learning approach is presented in :footcite:t:`tachella2022unsupervised` and minimizes the loss function:
+This self-supervised learning approach is presented in :footcite:ps:`tachella2022unsupervised` and minimizes the loss function:
 
 .. math::
 
@@ -127,7 +127,7 @@ model = model.to(device)
 # --------------------------------------------
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the multi-operator imaging loss (MOI).
-# Necessary and sufficient conditions on the number of operators and measurements are described in :footcite:t:`JMLR:v24:22-0315`.
+# Necessary and sufficient conditions on the number of operators and measurements are described in :footcite:ps:`JMLR:v24:22-0315`.
 #
 # .. note::
 #

@@ -53,7 +53,7 @@ class SplittingLoss(Loss):
 
     .. note::
 
-        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:ps:`yaman2020self`.
 
     .. seealso::
 
@@ -356,10 +356,10 @@ class SplittingLoss(Loss):
 
 class Neighbor2Neighbor(Loss):
     r"""
-    Neighbor2Neighbor loss :footcite:t:`huang2021neighbor2neighbor`.
+    Neighbor2Neighbor loss :footcite:ps:`huang2021neighbor2neighbor`.
 
     Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
-    map (see details in :footcite:t:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
+    map (see details in :footcite:ps:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
 
     .. math::
 

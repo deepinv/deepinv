@@ -51,10 +51,10 @@ class R2RLoss(Loss):
     where, :math:`R` is the trainable network, :math:`A` is the forward operator,
     :math:`y` is the noisy measurement, and :math:`\alpha` is a scaling factor.
 
-    The loss was first introduced in the `Recorrupted2Recorrupted :footcite:t:`pang2021recorrupted` paper
-    for the specific case of Gaussian noise, formalizing the Noise2Noisier :footcite:t:`moran2020noisier2noise` loss
+    The loss was first introduced in the `Recorrupted2Recorrupted :footcite:ps:`pang2021recorrupted` paper
+    for the specific case of Gaussian noise, formalizing the Noise2Noisier :footcite:ps:`moran2020noisier2noise` loss
     such that it is statistically equivalent to the supervised loss function defined on noisy/clean image pairs.
-    The loss was later extended to other exponential family noise distributions in :footcite:t:`monroy2024generalized`, including Poisson,
+    The loss was later extended to other exponential family noise distributions in :footcite:ps:`monroy2024generalized`, including Poisson,
     Gamma and Binomial noise distributions.
 
     .. warning::

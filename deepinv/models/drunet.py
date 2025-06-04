@@ -12,7 +12,7 @@ class DRUNet(Denoiser):
     r"""
      DRUNet denoiser network.
 
-     The network architecture is based on the paper :footcite:t:`zhang2021plug`.
+     The network architecture is based on the paper :footcite:ps:`zhang2021plug`.
      and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
      The network takes into account the noise level of the input image, which is encoded as an additional input channel.

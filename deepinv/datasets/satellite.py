@@ -27,7 +27,7 @@ class NBUDataset(Dataset):
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
 
-    This dataset was compiled in `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_ :footcite:t:`meng2020large`.
+    This dataset was compiled in `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_ :footcite:ps:`meng2020large`.
     and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
     We perform no other processing other than to take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
 
