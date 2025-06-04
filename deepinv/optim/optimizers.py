@@ -610,8 +610,8 @@ def optim_builder(
 
     .. note::
 
-        Since 0.2.3, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g. 
-        ``model = ProximalGradientDescent(data_fidelity, prior, ...)``. 
+        Since 0.2.3, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
+        ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
@@ -660,7 +660,7 @@ def str_to_class(classname):
 
 
 class ADMM(BaseOptim):
-    """
+    r"""
     ADMM module for solving the problem
 
     .. math::
@@ -704,6 +704,7 @@ class ADMM(BaseOptim):
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     """
+
     def __init__(
         self,
         data_fidelity=None,
@@ -765,7 +766,7 @@ class DRS(BaseOptim):
                 "g_param": g_param,
                 "beta": beta,
             }
-        # add assert for the necessary arguments 
+        # add assert for the necessary arguments
         super(DRS, self).__init__(
             DRSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
