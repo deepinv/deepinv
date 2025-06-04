@@ -708,7 +708,7 @@ def test_CP_K(imsize, dummy_dataset, device):
             thres_conv=1e-11,
             verbose=True,
             stepsize=stepsize,
-            g_param= reg_param,
+            g_param=reg_param,
             lambda_reg=lambda_reg,
             stepsize_dual=stepsize_dual,
             K=K_forward,

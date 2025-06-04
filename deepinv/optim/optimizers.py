@@ -746,6 +746,7 @@ class ADMM(BaseOptim):
             **kwargs,
         )
 
+
 class DRS(BaseOptim):
     r"""
     DRS module for solving the problem
@@ -780,6 +781,7 @@ class DRS(BaseOptim):
 
 
     """
+
     def __init__(
         self,
         data_fidelity=None,
