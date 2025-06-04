@@ -140,6 +140,8 @@ class BaseOptim(Reconstructor):
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
+    :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
+    :param list trainable_params: list of the algorithmic parameters among the keys of the dictionery params_algo to be made trainable. Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :return: a torch model that solves the optimization problem.
@@ -167,7 +169,7 @@ class BaseOptim(Reconstructor):
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
         unfold=False,
-        trainable_params=["lambda", "stepsize"],
+        trainable_params=None,
         verbose=False,
         device=torch.device("cpu"),
         **kwargs,
@@ -257,6 +259,8 @@ class BaseOptim(Reconstructor):
 
         # set trainable parameters
         if self.unfold:
+            if trainable_params is None:
+                trainable_params = params_algo.keys()
             for param_key in trainable_params:
                 if param_key in self.init_params_algo.keys():
                     param_value = self.init_params_algo[param_key]
@@ -671,7 +675,7 @@ class ADMM(BaseOptim):
         \end{equation}
 
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
-    If the attribute ``g_first`` is set to False (by default), the ADMM algorithm  writes (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_)
+    If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_)
 
     .. math::
         \begin{equation*}
@@ -685,7 +689,9 @@ class ADMM(BaseOptim):
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.ADMMIteration`.
 
-    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
 
     :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
@@ -699,10 +705,10 @@ class ADMM(BaseOptim):
     :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
-    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: ``["lambda", "stepsize", "g_param", "beta"]``. 
-    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
     def __init__(
@@ -715,34 +721,65 @@ class ADMM(BaseOptim):
         g_param=None,
         max_iter=100,
         unfold=False,
-        trainable_params=["lambda", "stepsize", "g_param", "beta"],
+        trainable_params=None,
         g_first=False,
         F_fn=None,
-        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
         # add an unfolded mode for DEQ
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-                "beta": beta,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "beta": beta,
+        }
         super(ADMM, self).__init__(
             ADMMIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
+            trainable_params=trainable_params,
             max_iter=max_iter,
             unfold=unfold,
             device=device,
             **kwargs,
         )
 
-
 class DRS(BaseOptim):
+    r"""
+    DRS module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+     If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
+        z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
+        \end{aligned}
+        \end{equation*}
+
+    where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
+    The DRS iterations are defined in the iterator class :class:`deepinv.optim.DRSIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    
+
+
+    """
     def __init__(
         self,
         data_fidelity=None,
@@ -754,24 +791,23 @@ class DRS(BaseOptim):
         max_iter=100,
         g_first=False,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-                "beta": beta,
-            }
-        # add assert for the necessary arguments
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "beta": beta,
+        }
         super(DRS, self).__init__(
             DRSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
+            trainable_params=trainable_params,
             max_iter=max_iter,
             unfold=unfold,
             device=device,
@@ -789,22 +825,22 @@ class GradientDescent(BaseOptim):
         g_param=None,
         max_iter=100,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(GradientDescent, self).__init__(
             GDIteration(F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
+            trainable_params=trainable_params,
             max_iter=max_iter,
             unfold=unfold,
             device=device,
@@ -823,22 +859,22 @@ class HQS(BaseOptim):
         max_iter=100,
         g_first=False,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(HQS, self).__init__(
             HQSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
+            trainable_params=trainable_params,
             max_iter=max_iter,
             unfold=unfold,
             device=device,
@@ -857,17 +893,16 @@ class ProximalGradientDescent(BaseOptim):
         max_iter=100,
         g_first=False,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(ProximalGradientDescent, self).__init__(
             PGDIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -875,6 +910,7 @@ class ProximalGradientDescent(BaseOptim):
             params_algo=params_algo,
             max_iter=max_iter,
             unfold=unfold,
+            trainable_params=trainable_params,
             device=device,
             **kwargs,
         )
@@ -891,17 +927,16 @@ class FISTA(BaseOptim):
         max_iter=100,
         g_first=False,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(FISTA, self).__init__(
             FISTAIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -909,6 +944,7 @@ class FISTA(BaseOptim):
             params_algo=params_algo,
             max_iter=max_iter,
             unfold=unfold,
+            trainable_params=trainable_params,
             device=device,
             **kwargs,
         )
@@ -925,17 +961,16 @@ class MirrorDescent(BaseOptim):
         g_param=None,
         max_iter=100,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(MirrorDescent, self).__init__(
             MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
@@ -943,6 +978,7 @@ class MirrorDescent(BaseOptim):
             params_algo=params_algo,
             max_iter=max_iter,
             unfold=unfold,
+            trainable_params=trainable_params,
             device=device,
             **kwargs,
         )
@@ -959,18 +995,17 @@ class ProximalMirrorDescent(BaseOptim):
         g_param=None,
         max_iter=100,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         g_first=False,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
         super(ProximalMirrorDescent, self).__init__(
             PMDIteration(
                 bregman_potential=bregman_potential, g_first=g_first, F_fn=F_fn
@@ -980,6 +1015,7 @@ class ProximalMirrorDescent(BaseOptim):
             params_algo=params_algo,
             max_iter=max_iter,
             unfold=unfold,
+            trainable_params=trainable_params,
             device=device,
             **kwargs,
         )
@@ -994,25 +1030,26 @@ class PrimalDualCP(BaseOptim):
         prior=None,
         lambda_reg=1.0,
         stepsize=1.0,
+        stepsize_dual=1.0,
         beta=1.0,
         g_param=None,
         max_iter=100,
         unfold=False,
-        device=torch.device("cpu"),
+        trainable_params=None,
         g_first=False,
         F_fn=None,
-        params_algo=None,
+        device=torch.device("cpu"),
         **kwargs,
     ):
-        if params_algo is None:
-            params_algo = {
-                "lambda": lambda_reg,
-                "stepsize": stepsize,
-                "g_param": g_param,
-                "beta": beta,
-                "K": K,
-                "K_adjoint": K_adjoint,
-            }
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "stepsize_dual": stepsize_dual,
+            "g_param": g_param,
+            "beta": beta,
+            "K": K,
+            "K_adjoint": K_adjoint,
+        }
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1020,6 +1057,7 @@ class PrimalDualCP(BaseOptim):
             params_algo=params_algo,
             max_iter=max_iter,
             unfold=unfold,
+            trainable_params=trainable_params,
             device=device,
             **kwargs,
         )
