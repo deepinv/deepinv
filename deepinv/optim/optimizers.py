@@ -66,6 +66,28 @@ class BaseOptim(Reconstructor):
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
     The same holds for the variable ``prior`` which is a list of instances of :class:`deepinv.optim.Prior` (or a single instance).
 
+    Setting ``unfold`` to ``True`` enables to turn this iterative optimization algorithm into an unfolded algorithm, i.e. an algorithm
+    that can be trained end-to-end, with learnable parameters. These learnable parameters encompass the trainable parameters of the algorithm which
+    can be chosen with the ``trainable_params`` argument
+    (e.g. ``stepsize`` :math:`\gamma`, regularization parameter ``lambda_reg`` :math:`\lambda`, prior parameter (``g_param``) :math:`\sigma` ...)
+    but also the trainable priors (e.g. a deep denoiser) or forward models.
+
+    If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely leveraging the implicit function theorem.
+    The backward pass is then performed using fixed point iterations to find solutions of the fixed-point equation
+    .. math::
+
+        \begin{equation}
+        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^{\top} v + u.
+        \end{equation}
+
+    where :math:`u` is the incoming gradient from the backward pass,
+    and :math:`x^\star` is the equilibrium point of the forward pass. See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
+
+    .. note::
+
+        For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
+
+
     .. doctest::
 
         >>> import deepinv as dinv
