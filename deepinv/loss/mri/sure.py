@@ -38,17 +38,18 @@ class ENSURELoss(SureGaussianLoss):
     :math:`y` is the noisy measurement vector of size :math:`m`,
     :math:`b\sim\mathcal{N}(0,I)`, :math:`\tau\geq 0` is a hyperparameter controlling the
     Monte Carlo approximation of the divergence, and :math:`\Beta=W^{-1}P`
-    where :math:`W` is a weighting determined by the set of measurement operators and :math:`P` is the projection operator onto the range space of :math:`\A^\top`.
+    where :math:`P` is the projection operator onto the range space of :math:`\A^\top`
+    and :math:`W` is a weighting determined by the set of measurement operators where :math:`W^2=\mathbb{E}\left[P\right]`.
 
     The ENSURE loss was proposed in `Aggarwal et al <https://arxiv.org/abs/2010.10631>`_ for MRI.
 
     .. warning::
 
         This loss was originally proposed only to be used with :class:`artifact removal models <deepinv.models.ArtifactRemoval>` which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
-        If an artifact removal model is not used, then we input to network instead :math:`A A^\top\cdot` (assuming that :math:`A A^\top=I`).
+        If an artifact removal model is not used, then we evaluate the network directly instead.
 
         We currently only provide an implementation for :class:`single-coil MRI <deepinv.physics.MRI>` and :class:`inpainting <deepinv.physics.Inpainting>`,
-        where `A^\top=A^\dagger` such that :math:`P=A^{\top}A,W^2=\mathbb{E}\left[P\right]`.
+        where `A^\top=A^\dagger` such that :math:`P=A^{\top}A` and then :math:`W` is a weighted average over sampling masks.
 
     :param float sigma: Standard deviation of the Gaussian noise.
     :param deepinv.physics.generator.PhysicsGenerator physics_generator: random physics generator used to compute the weighting :math:`W`.
