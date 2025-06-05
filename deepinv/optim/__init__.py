@@ -37,7 +37,19 @@ from .prior import (
     Zero,
     L12Prior,
 )
-from .optim_iterators.optim_iterator import OptimIterator
+from .optim_iterators import (
+    OptimIterator,
+    ADMMIteration,
+    PGDIteration,
+    FISTAIteration,
+    PMDIteration,
+    CPIteration,
+    HQSIteration,
+    DRSIteration,
+    GDIteration,
+    MDIteration,
+    SMIteration,
+)
 from .epll import EPLL
 from .dpir import DPIR
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
