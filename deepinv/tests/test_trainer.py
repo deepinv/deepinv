@@ -602,7 +602,7 @@ def test_dataloader_formats(
     # fmt: off
     def assert_x_none(x): assert x is None
     def assert_x_full(x): assert x.mean() == 1.
-    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded 
+    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded
     def assert_physics_offline(physics): assert physics.mask.mean() < .2
     def assert_physics_online(physics): assert physics.mask.mean() > .8
     def assert_y_offline(y): assert y.mean() < .2
@@ -687,3 +687,46 @@ def test_early_stop(
             assert metrics["PSNR"] < best and metrics["PSNR"] == last
         else:
             assert len(metrics_history) == epochs
+
+
+class ConstantLoss(dinv.loss.Loss):
+    def __init__(self, value, device):
+        super().__init__()
+        self.value = value
+        self.device = device
+
+    def forward(self, *args, **kwargs):
+        return torch.tensor(
+            self.value, device=self.device, dtype=torch.float32, requires_grad=True
+        )
+
+
+def test_total_loss(dummy_dataset, imsize, device, dummy_model):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    eval_dataloader = DataLoader(eval_data, batch_size=2)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+
+    losses = [
+        ConstantLoss(1 / 2, device),
+        ConstantLoss(1 / 3, device),
+    ]
+
+    trainer = dinv.Trainer(
+        model=dummy_model,
+        losses=losses,
+        epochs=2,
+        physics=physics,
+        train_dataloader=dataloader,
+        eval_dataloader=eval_dataloader,
+        optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
+        verbose=False,
+        online_measurements=True,
+    )
+
+    trainer.train()
+
+    loss_history = trainer.loss_history
+    assert all(
+        [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
+    )
