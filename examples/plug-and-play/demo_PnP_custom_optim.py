@@ -68,7 +68,10 @@ class CVIteration(OptimIterator):
         z = self.f_step(u, cur_data_fidelity, cur_params, y, physics)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_params, y, physics)
-            if self.has_cost and self.F_fn is not None and cur_data_fidelity is not None and cur_prior is not None
+            if self.has_cost
+            and self.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

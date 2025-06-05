@@ -124,7 +124,10 @@ class OptimIterator(nn.Module):
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.F_fn is not None and self.has_cost and cur_data_fidelity is not None and cur_prior is not None
+            if self.F_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

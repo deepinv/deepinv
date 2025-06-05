@@ -184,7 +184,9 @@ def DEQ_builder(
     :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
-    raise DeprecationWarning("The DEQ_builder function will be deprecated in 0.3.1.  Instead of using this function, it is possible to define DEQ algorithms using the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ..., DEQ=True, ...).")    
+    raise DeprecationWarning(
+        "The DEQ_builder function will be deprecated in 0.3.1.  Instead of using this function, it is possible to define DEQ algorithms using the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ..., DEQ=True, ...)."
+    )
     iterator = create_iterator(
         iteration,
         prior=prior,

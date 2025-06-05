@@ -535,7 +535,7 @@ class BaseOptim(Reconstructor):
             return True
         else:
             return False
-        
+
     def DEQ_additional_step(self, X, y, physics, **kwargs):
         r"""
         For Deep Equilibrium models, performs an additional step at the equilibrium point
@@ -545,7 +545,7 @@ class BaseOptim(Reconstructor):
         :param torch.Tensor y: measurement vector.
         :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
         """
-    
+
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
         cur_data_fidelity = (
             self.update_data_fidelity_fn(self.max_iter - 1)
@@ -611,9 +611,7 @@ class BaseOptim(Reconstructor):
             if x.requires_grad:
                 x.register_hook(backward_hook)
 
-        return x 
-
-        
+        return x
 
     def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
@@ -627,7 +625,9 @@ class BaseOptim(Reconstructor):
         :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        train_context = torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
+        train_context = (
+            torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
+        )
         with train_context:
             X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
@@ -745,7 +745,9 @@ def optim_builder(
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
-    raise DeprecationWarning("The optim_builder function is deprecated since 0.3.1.  Instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ...).")    
+    raise DeprecationWarning(
+        "The optim_builder function is deprecated since 0.3.1.  Instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ...)."
+    )
     iterator = create_iterator(
         iteration,
         prior=prior,
@@ -940,19 +942,19 @@ class GradientDescent(BaseOptim):
     Gradient Descent module for solving the problem
     .. math::
         \begin{equation}
-        \label{eq:min_prob} 
+        \label{eq:min_prob}
         \tag{1}
         \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
-        \end{equation}  
+        \end{equation}
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
-    
+
     The Gradient Descent iterations are given by
     .. math::
         \begin{equation*}
         x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
         \end{equation*}
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.GDIteration`.
-    
+
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
@@ -972,6 +974,7 @@ class GradientDescent(BaseOptim):
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
+
     def __init__(
         self,
         data_fidelity=None,
@@ -1059,6 +1062,7 @@ class HQS(BaseOptim):
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
+
     def __init__(
         self,
         data_fidelity=None,
@@ -1124,7 +1128,7 @@ class ProximalGradientDescent(BaseOptim):
         \end{equation*}
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.PGDIteration`.
-    
+
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
@@ -1146,6 +1150,7 @@ class ProximalGradientDescent(BaseOptim):
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
 
     """
+
     def __init__(
         self,
         data_fidelity=None,
@@ -1239,13 +1244,14 @@ class FISTA(BaseOptim):
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
+
     def __init__(
         self,
         data_fidelity=None,
         prior=None,
         lambda_reg=1.0,
         stepsize=1.0,
-        a = 3,
+        a=3,
         g_param=None,
         max_iter=100,
         g_first=False,
@@ -1316,6 +1322,7 @@ class MirrorDescent(BaseOptim):
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
+
     def __init__(
         self,
         bregman_potential=BregmanL2(),
@@ -1347,6 +1354,7 @@ class MirrorDescent(BaseOptim):
             device=device,
             **kwargs,
         )
+
 
 class ProximalMirrorDescent(BaseOptim):
     r"""
@@ -1391,6 +1399,7 @@ class ProximalMirrorDescent(BaseOptim):
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
 
     """
+
     def __init__(
         self,
         bregman_potential=BregmanL2(),
@@ -1422,6 +1431,7 @@ class ProximalMirrorDescent(BaseOptim):
             device=device,
             **kwargs,
         )
+
 
 class PrimalDualCP(BaseOptim):
     r"""
@@ -1477,6 +1487,7 @@ class PrimalDualCP(BaseOptim):
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
 
     """
+
     def __init__(
         self,
         K=lambda x: x,
