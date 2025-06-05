@@ -4,7 +4,8 @@ from torch.nn import Module
 from deepinv.optim.prior import PnP
 from deepinv.optim.data_fidelity import L2
 from deepinv.models import DnCNN, Denoiser
-from deepinv.optim import BaseOptim, HQSIteration
+from deepinv.optim import BaseOptim
+from deepinv.optim.optim_iterators import HQSIteration
 
 
 class MoDL(BaseOptim):
