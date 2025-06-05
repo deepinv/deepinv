@@ -49,9 +49,7 @@ class FISTAIteration(OptimIterator):
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (k+a-1)/(k+a)`.
-
-    :param float a: Parameter :math:`a` in the FISTA algorithm (should be strictly greater than 2).
+    :math:`\alpha_k = (k+a-1)/(k+a)`, with :math:`a` a parameter that should be strictly greater than 2.
     """
 
     def __init__(self, a=3, **kwargs):
@@ -59,6 +57,8 @@ class FISTAIteration(OptimIterator):
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
         self.a = a
+        if self.a != 3:
+            raise DeprecationWarning('setting the a parameter in the FISTAIteration is deprecated, it should now be set in the cur_params dictionary instead.')
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -76,7 +76,8 @@ class FISTAIteration(OptimIterator):
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
         k = 0 if "it" not in X else X["it"]
-        alpha = (k + self.a - 1) / (k + self.a)
+        a = cur_params["a"]
+        alpha = (k + a - 1) / (k + a)
 
         if not self.g_first:
             z = self.f_step(z_prev, cur_data_fidelity, cur_params, y, physics)
@@ -89,7 +90,7 @@ class FISTAIteration(OptimIterator):
 
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.F_fn is not None
+            if self.has_cost and self.F_fn is not None and cur_data_fidelity is not None and cur_prior is not None
             else None
         )
 

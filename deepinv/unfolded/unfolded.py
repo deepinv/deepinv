@@ -9,6 +9,11 @@ class BaseUnfold(BaseOptim):
     r"""
     Base class for unfolded algorithms. Child of :class:`deepinv.optim.BaseOptim`.
 
+    .. note::
+
+        Since 0.3.1, instead of using this class, it is possible to unfold directly an optimization algorithm using the algorithm name e.g.
+        ``model = ProximalGradientDescent(data_fidelity, prior, ..., unfold = True, ...)``.
+
     Enables to turn any iterative optimization algorithm into an unfolded algorithm, i.e. an algorithm
     that can be trained end-to-end, with learnable parameters. Recall that the algorithms have the
     following form (see :class:`deepinv.optim.OptimIterator`):
@@ -185,6 +190,7 @@ def unfolded_builder(
 
 
     """
+    raise DeprecationWarning("The unfolded_builder function will be deprecated in 0.3.1.  Instead of using this function, it is possible to define unfolded algorithms using the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ..., unfold=True, ...).")    
     iterator = create_iterator(
         iteration,
         prior=prior,

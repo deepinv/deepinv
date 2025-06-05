@@ -15,7 +15,7 @@ def objective_function(x, data_fidelity, prior, cur_params, y, physics):
     :param torch.Tensor y: Obervation.
     :param deepinv.physics physics: Instance of the physics modeling the observation.
     """
-    if prior.explicit_prior:
+    if prior is not None and prior.explicit_prior:
         prior_value = prior(x, cur_params["g_param"])
         if prior_value.dim() == 0:
             reg_value = cur_params["lambda"] * prior_value
@@ -124,7 +124,7 @@ class OptimIterator(nn.Module):
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.F_fn is not None and self.has_cost
+            if self.F_fn is not None and self.has_cost and cur_data_fidelity is not None and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

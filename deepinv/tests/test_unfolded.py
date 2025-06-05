@@ -109,9 +109,10 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     loss.backward()
 
 
-DEQ_ALGO = ["PGD", "HQS"]
-
-
+DEQ_ALGO = [
+    "ProximalGradientDescent",
+    "HQS"
+]
 @pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
@@ -143,12 +144,6 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
 
     sigma_denoiser_init = 0.01
     sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
-    # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
-    params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-        "stepsize": stepsize,
-        "g_param": sigma_denoiser,
-        "lambda": lamb,
-    }
 
     trainable_params = [
         "g_param",
@@ -160,16 +155,18 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
         for jac_free in [False, True]:
             # DRS, ADMM and CP algorithms are not real fixed-point algorithms on the primal variable
 
-            model = DEQ_builder(
-                unfolded_algo,
-                params_algo=params_algo,
+            model = getattr(optim, unfolded_algo)(
+                stepsize=stepsize,
+                g_param=sigma_denoiser,
+                lambda_reg=lamb,
+                DEQ=True,
                 trainable_params=trainable_params,
                 data_fidelity=data_fidelity,
                 max_iter=max_iter,
                 prior=prior,
                 anderson_acceleration=and_acc,
-                anderson_acceleration_backward=and_acc,
-                jacobian_free=jac_free,
+                DEQ_anderson_acceleration_backward=and_acc,
+                DEQ_jacobian_free=jac_free,
             )
 
             for idx, (name, param) in enumerate(model.named_parameters()):
