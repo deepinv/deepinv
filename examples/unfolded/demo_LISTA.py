@@ -152,30 +152,25 @@ prior = [
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
 # Unrolled optimization algorithm parameters
-lamb = [
+lambda_reg = [
     torch.ones(3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
-
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-}
-
 trainable_params = [
     "stepsize",
-    "lambda",
-]  # define which parameters from 'params_algo' are trainable
+    "lambda_reg",
+]  # define which parameters are trainable
 
 # Define the unfolded trainable model.
 model = ProximalGradientDescent(
     unfold=True,
-    params_algo=params_algo.copy(),
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
 ).to(device)
 
 
@@ -269,5 +264,7 @@ dinv.utils.plot(
 # Plotting the learned parameters.
 # ------------------------------------
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"stepsize": stepsize, "lambda": lambda_reg},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )

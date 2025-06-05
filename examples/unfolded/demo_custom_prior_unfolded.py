@@ -148,19 +148,15 @@ prior = Prior(g=g)
 
 # Unrolled optimization algorithm parameters
 max_iter = 5  # Number of unrolled iterations
-lamb = [
+lambda_reg = [
     1.0
 ] * max_iter  # initialization of the regularization parameter. A distinct lamb is trained for each iteration.
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-}
 trainable_params = [
     "stepsize",
-    "lambda",
+    "lambda_reg",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Select the data fidelity term
@@ -173,7 +169,8 @@ wandb_vis = False  # plot curves and images in Weight&Bias
 # Define the unfolded trainable model.
 model = ProximalGradientDescent(
     unfold=True,
-    params_algo=params_algo.copy(),
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
@@ -267,9 +264,10 @@ dinv.utils.plot(
 # ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
 #
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"stepsize": stepsize, "lambda": lambda_reg},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )

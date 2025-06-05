@@ -120,16 +120,11 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 beta = 1  # relaxation parameter of the Douglas-Rachford splitting
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "beta": beta,
-}
 trainable_params = [
     "g_param",
     "stepsize",
     "beta",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 # Logging parameters
 verbose = True
@@ -228,9 +223,11 @@ dinv.utils.plot(
 # ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
+# values. Note that ``g_param`` corresponds to the noise parameter :math:`\sigma` of the denoiser.
 #
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"g_param": sigma_denoiser, "stepsize": stepsize, "beta": beta},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )

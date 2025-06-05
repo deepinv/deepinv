@@ -240,6 +240,12 @@ class BaseOptim(Reconstructor):
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
 
+        # Correct the 'lambda_reg' key to 'lambda' in params_algo if it exists.
+        if "lambda_reg" in params_algo.keys():
+            params_algo["lambda"] = params_algo.pop("lambda_reg")
+        if "lambda_reg" in trainable_params:
+            trainable_params[trainable_params.index("lambda_reg")] = "lambda"
+
         # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
         if "lambda" not in params_algo.keys():
             params_algo["lambda"] = 1.0
@@ -745,9 +751,6 @@ def optim_builder(
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
-    raise DeprecationWarning(
-        "The optim_builder function is deprecated since 0.3.1.  Instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g. model = ProximalGradientDescent(data_fidelity, prior, ...)."
-    )
     iterator = create_iterator(
         iteration,
         prior=prior,

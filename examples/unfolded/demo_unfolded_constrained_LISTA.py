@@ -164,15 +164,7 @@ sigma_denoiser = [
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
 
 # Define the parameters of the unfolded Primal-Dual Chambolle-Pock algorithm
-# The CP algorithm requires to specify `params_algo`` the linear operator and its adjoint on which splitting is performed.
 # See the documentation of the CP algorithm :class:`deepinv.optim.optim_iterators.CPIteration` for more details.
-params_algo = {
-    "stepsize": stepsize,  # Stepsize for the primal update.
-    "g_param": sigma_denoiser,  # prior parameter.
-    "stepsize_dual": stepsize_dual,  # The CP algorithm requires a second stepsize ``sigma`` for the dual update.
-    "K": physics.A,
-    "K_adjoint": physics.A_adjoint,
-}
 
 # define which parameters from 'params_algo' are trainable
 trainable_params = ["g_param", "stepsize"]
@@ -187,9 +179,13 @@ def custom_init_CP(y, physics):
 
 # Define the unfolded trainable model.
 model = PrimalDualCP(
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    stepsize_dual=stepsize_dual,
+    K=physics.A,
+    K_adjoint=physics.A_adjoint,
     unfold=True,
     trainable_params=trainable_params,
-    params_algo=params_algo.copy(),
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
@@ -289,18 +285,14 @@ stepsize = [
 sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
 stepsize_dual = 1.0  # stepsize for Chambolle-Pock
 
-params_algo_new = {
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "stepsize_dual": stepsize_dual,
-    "K": physics.A,
-    "K_adjoint": physics.A_adjoint,
-}
-
 model_new = PrimalDualCP(
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    stepsize_dual=stepsize_dual,
+    K=physics.A,
+    K_adjoint=physics.A_adjoint,
     unfold=True,
     trainable_params=trainable_params,
-    params_algo=params_algo_new,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior_new,

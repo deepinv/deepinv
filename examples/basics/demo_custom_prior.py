@@ -131,9 +131,6 @@ prior = L2Prior()
 # Select the data fidelity term
 data_fidelity = L2()
 
-# Specific parameters for restoration with the given prior (Note that these parameters have not been optimized here)
-params_algo = {"stepsize": 1, "lambda": 0.1}
-
 # Logging parameters
 verbose = True
 
@@ -150,7 +147,8 @@ model = ADMM(
     prior=prior,
     g_first=False,
     data_fidelity=data_fidelity,
-    params_algo=params_algo,
+    stepsize=1.0,
+    lambda_reg=0.1,
     early_stop=early_stop,
     max_iter=max_iter,
     crit_conv=crit_conv,
