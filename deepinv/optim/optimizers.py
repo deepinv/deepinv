@@ -265,8 +265,6 @@ class BaseOptim(Reconstructor):
         # Correct the 'lambda_reg' key to 'lambda' in params_algo if it exists.
         if "lambda_reg" in params_algo.keys():
             params_algo["lambda"] = params_algo.pop("lambda_reg")
-        if "lambda_reg" in trainable_params:
-            trainable_params[trainable_params.index("lambda_reg")] = "lambda"
 
         # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
         if "lambda" not in params_algo.keys():
@@ -309,6 +307,8 @@ class BaseOptim(Reconstructor):
 
         # set trainable parameters
         if self.unfold or self.DEQ:
+            if trainable_params is not None and "lambda_reg" in trainable_params:
+                trainable_params[trainable_params.index("lambda_reg")] = "lambda"
             if trainable_params is None:
                 trainable_params = params_algo.keys()
             for param_key in trainable_params:
