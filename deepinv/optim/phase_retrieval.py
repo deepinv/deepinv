@@ -169,7 +169,7 @@ def spectral_methods(
     y = y / torch.mean(y)
     diag_T = preprocessing(y, physics)
     if physics.dtype == torch.cfloat:
-        # x = x.to(torch.cfloat)
+        x = x.to(torch.cfloat)
         diag_T = diag_T.to(torch.cfloat)
         
     for i in range(n_iter):
