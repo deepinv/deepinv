@@ -48,7 +48,7 @@ torch.manual_seed(0)
 # We use image inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
+physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # %%
@@ -80,7 +80,7 @@ lr = 1e-2  # learning rate for the optimizer.
 channels = 64  # number of channels per layer in the decoder.
 in_size = [2, 2]  # size of the input to the decoder.
 backbone = dinv.models.ConvDecoder(
-    img_shape=x.shape[1:], in_size=in_size, channels=channels
+    img_size=x.shape[1:], in_size=in_size, channels=channels
 ).to(device)
 
 f = dinv.models.DeepImagePrior(

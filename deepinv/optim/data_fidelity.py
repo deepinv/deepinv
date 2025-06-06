@@ -235,7 +235,7 @@ class L2(DataFidelity):
         >>> x = torch.ones(1, 1, 3, 3)
         >>> mask = torch.ones_like(x)
         >>> mask[0, 0, 1, 1] = 0
-        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 3, 3), mask=mask)
+        >>> physics = dinv.physics.Inpainting(img_size=(1, 3, 3), mask=mask)
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)

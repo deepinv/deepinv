@@ -152,7 +152,7 @@ def spectral_methods(
     if x is None:
         # always use randn for initial guess, never use rand!
         x = torch.randn(
-            (y.shape[0],) + physics.input_shape,
+            (y.shape[0],) + physics.img_size,
             dtype=physics.dtype,
             device=physics.device,
         )

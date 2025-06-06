@@ -643,7 +643,7 @@ class DecomposablePhysics(LinearPhysics):
 
         >>> from deepinv.physics import DecomposablePhysics
         >>> seed = torch.manual_seed(0)  # Random seed for reproducibility
-        >>> tensor_size = (1, 1, 3, 3)  # Input size
+        >>> img_size = (1, 1, 3, 3)  # Input size
         >>> mask = torch.tensor([[1, 0, 1], [1, 0, 1], [1, 0, 1]])  # Binary mask
         >>> U = lambda x: x  # U is the identity operation
         >>> U_adjoint = lambda x: x  # U_adjoint is the identity operation
@@ -654,7 +654,7 @@ class DecomposablePhysics(LinearPhysics):
 
         Apply the operator to a random tensor:
 
-        >>> x = torch.randn(tensor_size)
+        >>> x = torch.randn(img_size)
         >>> with torch.no_grad():
         ...     physics.A(x)  # Apply the masking
         tensor([[[[ 1.5410, -0.0000, -2.1788],

@@ -37,7 +37,7 @@ For example, here we generate a compressed sensing MNIST dataset:
     data_test = datasets.MNIST(root=save_dir, train=False, transform=transform_data)
 
     # define forward operator
-    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(m=300, img_size=(1, 28, 28))
     physics.noise_model = dinv.physics.GaussianNoise(sigma=.05)
 
     # generate paired dataset

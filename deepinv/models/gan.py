@@ -8,6 +8,7 @@ from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class PatchGANDiscriminator(nn.Module):
@@ -109,13 +110,14 @@ class ESRGANDiscriminator(nn.Module):
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
-    :param tuple input_shape: shape of input image
+    :param tuple img_size: shape of input image
     """
 
-    def __init__(self, input_shape: tuple):
+    @_deprecated_alias(input_shape="img_size")
+    def __init__(self, img_size: tuple):
         super().__init__()
-        self.input_shape = input_shape
-        in_channels, in_height, in_width = self.input_shape
+        self.img_size = img_size
+        in_channels, in_height, in_width = self.img_size
         patch_h, patch_w = int(in_height / 2**4), int(in_width / 2**4)
         self.output_shape = (1, patch_h, patch_w)
 
