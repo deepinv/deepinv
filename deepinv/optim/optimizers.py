@@ -74,7 +74,7 @@ class BaseOptim(Reconstructor):
 
     If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely leveraging the implicit function theorem.
     The backward pass is then performed using fixed point iterations to find solutions of the fixed-point equation
-    
+
     .. math::
 
         \begin{equation}
@@ -966,23 +966,23 @@ class DRS(BaseOptim):
 class GradientDescent(BaseOptim):
     r"""
     Gradient Descent module for solving the problem
-    
+
     .. math::
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
         \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
-    
+
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
 
     The Gradient Descent iterations are given by
-    
+
     .. math::
         \begin{equation*}
         x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
         \end{equation*}
-    
+
     where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
@@ -1147,7 +1147,7 @@ class HQS(BaseOptim):
 class ProximalGradientDescent(BaseOptim):
     r"""
     Proximal Gradient Descent module for solving the problem
-    
+
     .. math::
         \begin{equation}
         \label{eq:min_prob}
@@ -1157,12 +1157,12 @@ class ProximalGradientDescent(BaseOptim):
 
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
     If the attribute ``g_first`` is set to False (by default), the PGD iterations are given by
-    
+
     .. math::
         \begin{equation*}
         x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(x_k - \gamma \nabla f(x_k)).
         \end{equation*}
-    
+
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
     The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
 
