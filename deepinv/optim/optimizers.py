@@ -281,8 +281,11 @@ class BaseOptim(Reconstructor):
         :param int it: iteration number.
         :return: the prior at iteration ``it``.
         """
-        cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
-        return cur_prior
+        if isinstance(self.fixed_point.iterator, MACEIteration):
+            return self.prior
+        else:
+            cur_prior = self.prior[it] if len(self.prior) > 1 else self.prior[0]
+            return cur_prior
 
     def update_data_fidelity_fn(self, it):
         r"""
@@ -292,12 +295,15 @@ class BaseOptim(Reconstructor):
         :param int it: iteration number.
         :return: the data_fidelity at iteration ``it``.
         """
-        cur_data_fidelity = (
-            self.data_fidelity[it]
-            if len(self.data_fidelity) > 1
-            else self.data_fidelity[0]
-        )
-        return cur_data_fidelity
+        if isinstance(self.fixed_point.iterator, MACEIteration):
+            return self.data_fidelity
+        else:
+            cur_data_fidelity = (
+                self.data_fidelity[it]
+                if len(self.data_fidelity) > 1
+                else self.data_fidelity[0]
+            )
+            return cur_data_fidelity
 
     def init_iterate_fn(self, y, physics, F_fn=None):
         r"""
@@ -495,7 +501,7 @@ class BaseOptim(Reconstructor):
 
 
 def create_iterator(
-    iteration, prior=None, F_fn=None, g_first=False, bregman_potential=None
+    iteration, data_fidelity=None, prior=None, F_fn=None, g_first=False, bregman_potential=None
 ):
     r"""
     Helper function for creating an iterator, instance of the :class:`deepinv.optim.OptimIterator` class,
@@ -543,12 +549,21 @@ def create_iterator(
         iteration, str
     ):  # If the name of the algorithm is given as a string, the correspondong class is automatically called.
         iterator_fn = str_to_class(iteration + "Iteration")
-        return iterator_fn(
-            g_first=g_first,
-            F_fn=F_fn,
-            has_cost=has_cost,
-            bregman_potential=bregman_potential,
-        )
+        # For MACE, pass the full lists of data_fidelity and prior objects
+        if iteration == "MACE":
+            return iterator_fn(
+                data_fidelity_list=data_fidelity,
+                prior_list=prior,
+                F_fn=None,
+                has_cost=False,
+            )
+        else:
+            return iterator_fn(
+                g_first=g_first,
+                F_fn=F_fn,
+                has_cost=has_cost,
+                bregman_potential=bregman_potential,
+            )
     else:
         # If the iteration is directly given as an instance of OptimIterator, nothing to do
         return iteration
@@ -572,7 +587,8 @@ def optim_builder(
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
         ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
-        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
+        ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock), ``"DRS"`` (Douglas Rachford)
+        or ``"MACE"`` (Multi-Agent Consensus Equilibrium).
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
                             e.g. the stepsize, regularisation parameter, denoising standart deviation.
@@ -595,6 +611,7 @@ def optim_builder(
     iterator = create_iterator(
         iteration,
         prior=prior,
+        data_fidelity=data_fidelity,
         F_fn=F_fn,
         g_first=g_first,
         bregman_potential=bregman_potential,
