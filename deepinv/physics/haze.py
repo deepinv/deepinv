@@ -7,7 +7,7 @@ class Haze(Physics):
     r"""
     Standard haze model
 
-    The operator is defined as https://ieeexplore.ieee.org/abstract/document/5567108/
+    The operator is defined as in :footcite:ps:`he2010single`.
 
      .. math::
 
@@ -21,6 +21,9 @@ class Haze(Physics):
 
     :param float beta: constant :math:`\beta>0`
     :param float offset: constant :math:`o`
+
+    :References:
+        .. footbibliography::
 
     """
 

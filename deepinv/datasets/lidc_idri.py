@@ -27,7 +27,7 @@ except:
 
 
 class LidcIdriSliceDataset(torch.utils.data.Dataset):
-    """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
+    """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ :footcite:ps:`armato2011lung` that provides access to CT image slices.
 
     | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
     | of diagnostic and lung cancer screening thoracic computed tomography (CT)
@@ -70,6 +70,9 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
             batch = next(iter(dataloader))
             print(batch.shape)
+
+    :References:
+    .. footbibliography::
 
     """
 

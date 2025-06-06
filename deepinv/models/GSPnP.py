@@ -16,11 +16,13 @@ class StudentGrad(nn.Module):
 class GSPnP(Denoiser):
     r"""
     Gradient Step module to use a denoiser architecture as a Gradient Step Denoiser.
-    See https://arxiv.org/pdf/2110.03220.pdf.
-    Code from https://github.com/samuro95/GSPnP.
+    See :footcite:ps:`hurault2021gradient`. Code from https://github.com/samuro95/GSPnP.
 
     :param torch.nn.Module denoiser: Denoiser model.
     :param float alpha: Relaxation parameter
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(self, denoiser, alpha=1.0):
@@ -76,7 +78,7 @@ def GSDRUNet(
     device=torch.device("cpu"),
 ):
     """
-    Gradient Step Denoiser with DRUNet architecture
+    Gradient Step Denoiser with DRUNet architecture from :footcite:ps:`hurault2021gradient`.
 
     :param float alpha: Relaxation parameter
     :param int in_channels: Number of input channels
@@ -95,6 +97,8 @@ def GSDRUNet(
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
 
+    :References:
+    .. footbibliography::
     """
     from deepinv.models.drunet import DRUNet
 

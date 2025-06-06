@@ -53,7 +53,7 @@ class SplittingLoss(Loss):
 
     .. note::
 
-        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:ps:`yaman2020self`.
 
     .. seealso::
 
@@ -90,7 +90,8 @@ class SplittingLoss(Loss):
     >>> print(l.item() > 0)
     True
 
-
+    :References:
+    .. footbibliography::
     """
 
     def __init__(
@@ -355,13 +356,10 @@ class SplittingLoss(Loss):
 
 class Neighbor2Neighbor(Loss):
     r"""
-    Neighbor2Neighbor loss.
+    Neighbor2Neighbor loss :footcite:ps:`huang2021neighbor2neighbor`.
 
     Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
-    map (see details in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-    <https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_).
-
-    The self-supervised loss is computed as:
+    map (see details in :footcite:ps:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
 
     .. math::
 
@@ -378,6 +376,9 @@ class Neighbor2Neighbor(Loss):
     :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
+
+    :References:
+        .. footbibliography::
     """
 
     def __init__(
