@@ -237,6 +237,7 @@ model = optim_builder(
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
+    params_algo=params_algo,
     verbose=True,
 )
 
