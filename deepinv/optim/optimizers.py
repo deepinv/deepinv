@@ -1225,14 +1225,7 @@ class ProximalGradientDescent(BaseOptim):
 
 class FISTA(BaseOptim):
     r"""
-    FISTA module for solving the problem
-    .. math::
-        \begin{equation}
-        \label{eq:min_prob}
-        \tag{1}
-        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
-        \end{equation}
-    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    FISTA module for acceleration of the Proximal Gradient Descent algorithm.
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
     .. math::
         \begin{equation*}
@@ -1307,16 +1300,7 @@ class FISTA(BaseOptim):
 
 class MirrorDescent(BaseOptim):
     r"""
-    Mirror Descent module for solving the problem
-    .. math::
-        \begin{equation}
-        \label{eq:min_prob}
-        \tag{1}
-        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
-        \end{equation}
-
-    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
-    For a given convex potential :math:`h`, the iteration is given by
+    Mirror Descent or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1382,17 +1366,8 @@ class MirrorDescent(BaseOptim):
 
 
 class ProximalMirrorDescent(BaseOptim):
-    r"""
-    Proximal Mirror Descent module for solving the problem
-    .. math::
-        \begin{equation}
-        \label{eq:min_prob}
-        \tag{1}
-        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
-        \end{equation}
-
-    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
-    For a given convex potential :math:`h`, the iterations are given by
+    r""" 
+    Proximal Mirror Descent or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
     .. math::
         \begin{equation*}
         \begin{aligned}
