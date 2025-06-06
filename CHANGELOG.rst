@@ -15,6 +15,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
 
 
 v0.3.1
@@ -33,7 +34,7 @@ New Features
 
 Changed
 ^^^^^^^
-- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_). 
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_).
 
 Fixed
 ^^^^^

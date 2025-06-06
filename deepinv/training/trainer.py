@@ -626,11 +626,9 @@ class Trainer:
                     meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
-                meters = (
-                    self.logs_total_loss_train if train else self.logs_total_loss_eval
-                )
-                meters.update(loss_total.item())
-                logs[f"TotalLoss"] = meters.avg
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters.update(loss_total.item())
+            logs[f"TotalLoss"] = meters.avg
         else:  # TODO question: what do we want to do at test time?
             loss_total = 0
 
