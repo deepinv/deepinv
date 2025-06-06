@@ -74,6 +74,7 @@ class BaseOptim(Reconstructor):
 
     If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely leveraging the implicit function theorem.
     The backward pass is then performed using fixed point iterations to find solutions of the fixed-point equation
+    
     .. math::
 
         \begin{equation}
@@ -749,7 +750,7 @@ def optim_builder(
         Since 0.3.1, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
         ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
 
-    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
         ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
@@ -819,7 +820,7 @@ class ADMM(BaseOptim):
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
-    inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.ADMMIteration`.
+    inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
@@ -903,7 +904,7 @@ class DRS(BaseOptim):
         \end{equation*}
 
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
-    The DRS iterations are defined in the iterator class :class:`deepinv.optim.DRSIteration`.
+    The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
@@ -965,20 +966,24 @@ class DRS(BaseOptim):
 class GradientDescent(BaseOptim):
     r"""
     Gradient Descent module for solving the problem
+    
     .. math::
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
         \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
+    
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
 
     The Gradient Descent iterations are given by
+    
     .. math::
         \begin{equation*}
         x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
         \end{equation*}
-    where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.GDIteration`.
+    
+    where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1049,14 +1054,17 @@ class GradientDescent(BaseOptim):
 class HQS(BaseOptim):
     r"""
     Half-Quadratic Splitting module for solving the problem
+    
     .. math::
         \begin{equation}
         \label{eq:min_prob}
         \tag{1}
         \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
         \end{equation}
+    
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
     If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
+    
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1064,8 +1072,9 @@ class HQS(BaseOptim):
         x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
         \end{aligned}
         \end{equation*}
+    
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
-    The HQS iterations are defined in the iterator class :class:`deepinv.optim.HQSIteration`.
+    The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
    
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1138,6 +1147,7 @@ class HQS(BaseOptim):
 class ProximalGradientDescent(BaseOptim):
     r"""
     Proximal Gradient Descent module for solving the problem
+    
     .. math::
         \begin{equation}
         \label{eq:min_prob}
@@ -1147,12 +1157,14 @@ class ProximalGradientDescent(BaseOptim):
 
     where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
     If the attribute ``g_first`` is set to False (by default), the PGD iterations are given by
+    
     .. math::
         \begin{equation*}
         x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(x_k - \gamma \nabla f(x_k)).
         \end{equation*}
+    
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
-    The PGD iterations are defined in the iterator class :class:`deepinv.optim.PGDIteration`.
+    The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1173,7 +1185,6 @@ class ProximalGradientDescent(BaseOptim):
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
-
     """
 
     def __init__(
@@ -1227,6 +1238,7 @@ class FISTA(BaseOptim):
     r"""
     FISTA module for acceleration of the Proximal Gradient Descent algorithm.
     If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
+    
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1235,11 +1247,12 @@ class FISTA(BaseOptim):
         z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
         \end{aligned}
         \end{equation*}
-     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
+    
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
     :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
     
     If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
-    The FISTA iterations are defined in the iterator class :class:`deepinv.optim.FISTAIteration`.
+    The FISTA iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.FISTAIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
@@ -1301,6 +1314,7 @@ class FISTA(BaseOptim):
 class MirrorDescent(BaseOptim):
     r"""
     Mirror Descent or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1308,8 +1322,9 @@ class MirrorDescent(BaseOptim):
         x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
         \end{aligned}
         \end{equation*}
+    
     where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
-    The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.MDIteration`.
+    The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1368,6 +1383,7 @@ class MirrorDescent(BaseOptim):
 class ProximalMirrorDescent(BaseOptim):
     r""" 
     Proximal Mirror Descent or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1375,8 +1391,10 @@ class ProximalMirrorDescent(BaseOptim):
         x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
         \end{aligned}
         \end{equation*}
-    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
-    The Proximal Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.PMDIteration`.
+    
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
+    :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
+    The Proximal Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PMDIteration`.
 
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
@@ -1440,6 +1458,7 @@ class PrimalDualCP(BaseOptim):
     Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
 
     If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
+    
     .. math::
         \begin{equation*}
         \begin{aligned}
@@ -1448,8 +1467,9 @@ class PrimalDualCP(BaseOptim):
         z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
         \end{aligned}
         \end{equation*}
+    
     where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
-    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`.
+    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. 
 
     If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
     In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
@@ -1458,6 +1478,7 @@ class PrimalDualCP(BaseOptim):
         \begin{equation*}
         \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
         \end{equation*}
+    
     with a splitting on :math:`\distancename`.
 
     Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
@@ -1465,6 +1486,8 @@ class PrimalDualCP(BaseOptim):
     If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
     By default, the trainiable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    The Proximal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
 
     :param Callable K: linear operator :math:`K` in the primal problem. Default: identity function.
     :param Callable K_adjoint: adjoint linear operator :math:`K^\top` in the primal problem. Default: identity function.

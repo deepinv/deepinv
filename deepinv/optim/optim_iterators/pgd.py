@@ -164,7 +164,7 @@ class PMDIteration(OptimIterator):
 
     Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda \regname(x)`.
 
-   For a given Bregman convex potential :math:`h`, the iteration is given by
+    For a given Bregman convex potential :math:`h`, the iteration is given by
 
     .. math::
         \begin{equation*}
@@ -175,9 +175,8 @@ class PMDIteration(OptimIterator):
         \end{equation*}
 
 
-   where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
-   The potential :math:`h` should be specified in the cur_params dictionary.
-
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
+    The potential :math:`h` should be specified in the cur_params dictionary.
     """
 
     def __init__(self, bregman_potential=BregmanL2(), **kwargs):
