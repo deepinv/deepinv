@@ -3,6 +3,7 @@ from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
 from .dncnn import DnCNN
+from .dsccp import DScCP
 from .artifactremoval import ArtifactRemoval
 from .tv import TVDenoiser
 from .tgv import TGVDenoiser

@@ -59,7 +59,7 @@ Deep Denoisers
    deepinv.models.PanNet
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp
-
+   deepinv.models.DScCP
 
 
 Denoisers Utils

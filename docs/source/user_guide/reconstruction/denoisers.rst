@@ -101,6 +101,11 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Any C, H, W
      - RGB, diffusion
      - Yes
+   * - :class:`deepinv.models.DScCP`
+     - Unrolled
+     - Any C, H, W
+     - RGB
+     - Yes    
 
 .. _non-learned-denoisers:
 
