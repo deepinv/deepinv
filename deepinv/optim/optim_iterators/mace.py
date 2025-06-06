@@ -45,30 +45,37 @@ class MACEIteration(OptimIterator):
             )
 
         self.requires_prox_g = any(ptype == "prior" for ptype, _ in self.agents_ops)
-        
+
         # Build the cost function and check if it's valid
         self.F_fn = self._build_cost_function()
- 
+
     def _build_cost_function(self):
         """
         Builds a cost function that sums the data fidelity and all explicit prior costs.
         """
+
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
             total_cost = 0
             prior_idx_counter = 0
             # We need to iterate over the configured agents
             for agent_type, agent_obj in self.agents_ops:
-                if agent_type == 'data_fidelity':
+                if agent_type == "data_fidelity":
                     total_cost += agent_obj(x, y, physics)
-                elif agent_type == 'prior':
-                    if hasattr(agent_obj, 'explicit_prior') and agent_obj.explicit_prior:
+                elif agent_type == "prior":
+                    if (
+                        hasattr(agent_obj, "explicit_prior")
+                        and agent_obj.explicit_prior
+                    ):
                         lambda_key = f"lambda_{prior_idx_counter}"
-                        lambda_val = cur_params.get(lambda_key, cur_params.get("lambda", 1.0))
+                        lambda_val = cur_params.get(
+                            lambda_key, cur_params.get("lambda", 1.0)
+                        )
                         g_param = cur_params.get("g_param")
                         prior_cost = agent_obj(x, g_param)
                         total_cost += (lambda_val * prior_cost).sum()
                     prior_idx_counter += 1
             return total_cost
+
         return F_fn
 
     def _configure_agents(self, data_fidelity_list, prior_list):
@@ -84,7 +91,7 @@ class MACEIteration(OptimIterator):
             if df_agent is not None and hasattr(df_agent, "prox"):
                 self.agents_ops.append(("data_fidelity", df_agent))
                 self.agents_gammas_keys.append("stepsize")
-                self.agents_sigmas_keys.append(None) 
+                self.agents_sigmas_keys.append(None)
 
         prior_idx = 0
         for p_agent in p_list:
@@ -99,7 +106,7 @@ class MACEIteration(OptimIterator):
         gamma_keys = self.agents_gammas_keys[agent_idx]
         sigma_key = self.agents_sigmas_keys[agent_idx]
 
-        gamma = 1.
+        gamma = 1.0
         if isinstance(gamma_keys, tuple):  # (lambda_key, stepsize_key)
             lambda_key = gamma_keys[0]
             lambda_val = cur_params.get(lambda_key, cur_params.get("lambda", 1.0))
@@ -117,7 +124,11 @@ class MACEIteration(OptimIterator):
         for i, (agent_type, agent_obj) in enumerate(self.agents_ops):
             gamma, sigma = self._get_agent_params(i, cur_params)
             if agent_type == "data_fidelity":
-                F_v_k.append(agent_obj.prox(v_list_k[i], self._y_ref, self._physics_ref, gamma=gamma))
+                F_v_k.append(
+                    agent_obj.prox(
+                        v_list_k[i], self._y_ref, self._physics_ref, gamma=gamma
+                    )
+                )
             else:  # prior
                 F_v_k.append(agent_obj.prox(v_list_k[i], sigma, gamma=gamma))
         return F_v_k
@@ -130,7 +141,7 @@ class MACEIteration(OptimIterator):
         return [avg.clone() for _ in range(self.num_agents)]
 
     def forward(self, X, cur_data_fidelity, cur_prior, cur_params, y, physics):
-  
+
         self._y_ref = y
         self._physics_ref = physics
 
@@ -164,9 +175,7 @@ class MACEIteration(OptimIterator):
         G_TF_v_k = self._G_operator(TF_v_k)
 
         # 4. TFG_v_k =  (2G - I) (2F - I)
-        TFG_v_k = [
-            2 * g_tf_out - tf_out for g_tf_out, tf_out in zip(G_TF_v_k, TF_v_k)
-        ]
+        TFG_v_k = [2 * g_tf_out - tf_out for g_tf_out, tf_out in zip(G_TF_v_k, TF_v_k)]
 
         # 5. Mann iteration for v_list: v_{k+1} = (1 - rho) I + rho * TFG_v_k
         self.v_list = [
@@ -178,9 +187,15 @@ class MACEIteration(OptimIterator):
         for i in range(self.num_agents):
             x_consensus_next += self.mu[i] * self.v_list[i]
 
-        cost = self.F_fn(x_consensus_next, cur_data_fidelity, cur_prior, cur_params, y, physics) if self.has_cost else None
+        cost = (
+            self.F_fn(
+                x_consensus_next, cur_data_fidelity, cur_prior, cur_params, y, physics
+            )
+            if self.has_cost
+            else None
+        )
 
         return {
-            "est": (x_consensus_next, ),
+            "est": (x_consensus_next,),
             "cost": cost,
-        } 
+        }

@@ -501,7 +501,12 @@ class BaseOptim(Reconstructor):
 
 
 def create_iterator(
-    iteration, data_fidelity=None, prior=None, F_fn=None, g_first=False, bregman_potential=None
+    iteration,
+    data_fidelity=None,
+    prior=None,
+    F_fn=None,
+    g_first=False,
+    bregman_potential=None,
 ):
     r"""
     Helper function for creating an iterator, instance of the :class:`deepinv.optim.OptimIterator` class,
