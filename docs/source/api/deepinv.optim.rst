@@ -151,6 +151,7 @@ Iterators
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.MDIteration
+   deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
 
 
