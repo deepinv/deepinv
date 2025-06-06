@@ -69,6 +69,9 @@ class CVIteration(OptimIterator):
         F = (
             self.F_fn(x, cur_data_fidelity, cur_params, y, physics)
             if self.has_cost
+            and self.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}
@@ -234,8 +237,8 @@ model = optim_builder(
     data_fidelity=data_fidelity,
     early_stop=early_stop,
     max_iter=max_iter,
-    verbose=True,
     params_algo=params_algo,
+    verbose=True,
 )
 
 # %%

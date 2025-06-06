@@ -9,7 +9,19 @@ from .data_fidelity import (
     LogPoissonLikelihood,
     ZeroFidelity,
 )
-from .optimizers import BaseOptim, optim_builder
+from .optimizers import (
+    optim_builder,
+    BaseOptim,
+    ADMM,
+    DRS,
+    GradientDescent,
+    MirrorDescent,
+    HQS,
+    ProximalGradientDescent,
+    FISTA,
+    ProximalMirrorDescent,
+    PrimalDualCP,
+)
 from .fixed_point import FixedPoint
 from .prior import (
     Prior,
@@ -25,7 +37,19 @@ from .prior import (
     Zero,
     L12Prior,
 )
-from .optim_iterators.optim_iterator import OptimIterator
+from .optim_iterators import (
+    OptimIterator,
+    ADMMIteration,
+    PGDIteration,
+    FISTAIteration,
+    PMDIteration,
+    CPIteration,
+    HQSIteration,
+    DRSIteration,
+    GDIteration,
+    MDIteration,
+    SMIteration,
+)
 from .epll import EPLL
 from .dpir import DPIR
 from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
@@ -39,4 +63,11 @@ from .distance import (
     AmplitudeLossDistance,
     LogPoissonLikelihoodDistance,
     ZeroDistance,
+)
+from .deep_equilibrium import (
+    DEQ_builder,
+    BaseDEQ,
+    DEQ_GradientDescent,
+    DEQ_HQS,
+    DEQ_ProximalGradientDescent,
 )

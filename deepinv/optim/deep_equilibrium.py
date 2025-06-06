@@ -1,19 +1,14 @@
 import torch
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.optim_iterators import *
-from deepinv.unfolded.unfolded import BaseUnfold
+from deepinv.optim import BaseOptim
 from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.data_fidelity import L2
 
 
-class BaseDEQ(BaseUnfold):
+class BaseDEQ(BaseOptim):
     r"""
     Base class for deep equilibrium (DEQ) algorithms. Child of :class:`deepinv.unfolded.BaseUnfold`.
-
-    .. note::
-
-        Since 0.3.1, instead of using this class, it is possible to set directly an optimization algorithm as a DEQ algorithm using the algorithm name e.g.
-        ``model = ProximalGradientDescent(data_fidelity, prior, ..., DEQ = True, ...)``.
 
     Enables to turn any fixed-point algorithm into a DEQ algorithm, i.e. an algorithm
     that can be virtually unrolled infinitely leveraging the implicit function theorem.
@@ -34,32 +29,32 @@ class BaseDEQ(BaseUnfold):
 
         For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
 
+    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``.
     :param int max_iter_backward: Maximum number of backward iterations. Default: ``50``.
     :param bool anderson_acceleration_backward: if True, the Anderson acceleration is used at iteration of fixed-point algorithm for computing the backward pass. Default: ``False``.
     :param int history_size_backward: size of the history used for the Anderson acceleration for the backward pass. Default: ``5``.
     :param float beta_anderson_acc_backward: momentum of the Anderson acceleration step for the backward pass. Default: ``1.0``.
     :param float eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step for the backward pass. Default: ``1e-4``.
-    :param bool jacobian_free: Does not inverse the Jacobian but simply uses ``v=u``.
     """
 
     def __init__(
         self,
         *args,
+        jacobian_free=False,
         max_iter_backward=50,
         anderson_acceleration_backward=False,
         history_size_backward=5,
         beta_anderson_acc_backward=1.0,
         eps_anderson_acc_backward=1e-4,
-        jacobian_free=False,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, unfold=True, **kwargs)
+        self.jacobian_free = jacobian_free
         self.max_iter_backward = max_iter_backward
         self.anderson_acceleration = anderson_acceleration_backward
         self.history_size = history_size_backward
         self.beta_anderson_acc = beta_anderson_acc_backward
         self.eps_anderson_acc = eps_anderson_acc_backward
-        self.jacobian_free = jacobian_free
 
     def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
@@ -76,6 +71,7 @@ class BaseDEQ(BaseUnfold):
             X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
+
         # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
         cur_data_fidelity = (
             self.update_data_fidelity_fn(self.max_iter - 1)
@@ -92,39 +88,40 @@ class BaseDEQ(BaseUnfold):
             X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
         )["est"][0]
 
-        if not self.jacobian_free:
-            # Another iteration for jacobian computation via automatic differentiation.
-            x0 = x.clone().detach().requires_grad_()
-            f0 = self.fixed_point.iterator(
-                {"est": (x0,)},
-                cur_data_fidelity,
-                cur_prior,
-                cur_params,
-                y,
-                physics,
-                **kwargs,
-            )["est"][0]
+        # Then we perform automatic differentiation.
+        # First another iteration for jacobian computation via automatic differentiation.
+        x0 = x.clone().detach().requires_grad_()
+        f0 = self.fixed_point.iterator(
+            {"est": (x0,)},
+            cur_data_fidelity,
+            cur_prior,
+            cur_params,
+            y,
+            physics,
+            **kwargs,
+        )["est"][0]
 
-            # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
-            def backward_hook(grad):
-                class backward_iterator(OptimIterator):
-                    def __init__(self, **kwargs):
-                        super().__init__(**kwargs)
+        # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
+        def backward_hook(grad):
+            class backward_iterator(OptimIterator):
+                def __init__(self, **kwargs):
+                    super().__init__(has_cost=False, **kwargs)
 
-                    def forward(self, X, *args, **kwargs):
-                        return {
-                            "est": (
-                                torch.autograd.grad(
-                                    f0, x0, X["est"][0], retain_graph=True
-                                )[0]
-                                + grad,
-                            )
-                        }
+                def forward(self, X, *args, **kwargs):
+                    return {
+                        "est": (
+                            torch.autograd.grad(f0, x0, X["est"][0], retain_graph=True)[
+                                0
+                            ]
+                            + grad,
+                        )
+                    }
 
-                # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
-                def init_iterate_fn(y, physics, F_fn=None):
-                    return {"est": (grad,)}  # initialize the fixed point algorithm.
+            # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
+            def init_iterate_fn(y, physics, F_fn=None):
+                return {"est": (grad,)}  # initialize the fixed point algorithm.
 
+            if not self.jacobian_free:
                 backward_FP = FixedPoint(
                     backward_iterator(),
                     init_iterate_fn=init_iterate_fn,
@@ -135,11 +132,12 @@ class BaseDEQ(BaseUnfold):
                     beta_anderson_acc=self.beta_anderson_acc,
                     eps_anderson_acc=self.eps_anderson_acc,
                 )
-                g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
-                return g
+                return backward_FP({"est": (grad,)}, None)[0]["est"][0]
+            else:
+                return grad
 
-            if x.requires_grad:
-                x.register_hook(backward_hook)
+        if x.requires_grad:
+            x.register_hook(backward_hook)
 
         if compute_metrics:
             return x, metrics
@@ -199,3 +197,22 @@ def DEQ_builder(
         params_algo=params_algo,
         **kwargs,
     )
+
+
+class DEQ_GradientDescent(BaseDEQ):
+    def __init__(self, F_fn=None, **kwargs):
+        super(DEQ_GradientDescent, self).__init__(GDIteration(F_fn=F_fn), **kwargs)
+
+
+class DEQ_HQS(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )
+
+
+class DEQ_ProximalGradientDescent(BaseDEQ):
+    def __init__(self, g_first=False, F_fn=None, **kwargs):
+        super(DEQ_ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn), **kwargs
+        )

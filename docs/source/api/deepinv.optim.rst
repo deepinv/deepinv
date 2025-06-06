@@ -22,6 +22,14 @@ Base Class
    :nosignatures:
 
    deepinv.optim.BaseOptim
+   deepinv.optim.GradientDescent
+   deepinv.optim.ProximalGradientDescent
+   deepinv.optim.FISTA
+   deepinv.optim.ADMM
+   deepinv.optim.DRS
+   deepinv.optim.HQS
+   deepinv.optim.MirrorDescent
+   deepinv.optim.ProximalMirrorDescent
 
 
 Potentials
@@ -143,6 +151,7 @@ Iterators
    deepinv.optim.optim_iterators.DRSIteration
    deepinv.optim.optim_iterators.HQSIteration
    deepinv.optim.optim_iterators.MDIteration
+   deepinv.optim.optim_iterators.PMDIteration
    deepinv.optim.optim_iterators.SMIteration
 
 

@@ -5,8 +5,12 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
+from deepinv.optim.data_fidelity import ZeroFidelity
 from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
+from deepinv.optim.bregman import BregmanL2
+import torch.nn as nn
+from contextlib import nullcontext
 
 
 class BaseOptim(Reconstructor):
@@ -44,8 +48,6 @@ class BaseOptim(Reconstructor):
     where :math:`x_k` is a variable converging to the solution of the minimization problem, and
     :math:`z_k` is an additional variable that may be required in the computation of the fixed point operator.
 
-    The :func:`optim_builder` function can be used to instantiate this class with a specific fixed point operator.
-
     If the algorithm is minimizing an explicit and fixed cost function :math:`F(x) =  \datafid{x}{y} + \lambda \reg{x}`,
     the value of the cost function is computed along the iterations and can be used for convergence criterion.
     Moreover, backtracking can be used to adapt the stepsize at each iteration. Backtracking consists in choosing
@@ -63,6 +65,29 @@ class BaseOptim(Reconstructor):
     The variable ``data_fidelity`` is a list of instances of :class:`deepinv.optim.DataFidelity` (or a single instance).
     If a single instance, the same data-fidelity is used at each iteration. If a list, the data-fidelity can change at each iteration.
     The same holds for the variable ``prior`` which is a list of instances of :class:`deepinv.optim.Prior` (or a single instance).
+
+    Setting ``unfold`` to ``True`` enables to turn this iterative optimization algorithm into an unfolded algorithm, i.e. an algorithm
+    that can be trained end-to-end, with learnable parameters. These learnable parameters encompass the trainable parameters of the algorithm which
+    can be chosen with the ``trainable_params`` argument
+    (e.g. ``stepsize`` :math:`\gamma`, regularization parameter ``lambda_reg`` :math:`\lambda`, prior parameter (``g_param``) :math:`\sigma` ...)
+    but also the trainable priors (e.g. a deep denoiser) or forward models.
+
+    If ``DEQ`` is set to ``True``, the algorithm is unfolded as a Deep Equilibrium model, i.e. the algorithm is virtually unrolled infinitely leveraging the implicit function theorem.
+    The backward pass is then performed using fixed point iterations to find solutions of the fixed-point equation
+
+    .. math::
+
+        \begin{equation}
+        v = \left(\frac{\partial \operatorname{FixedPoint}(x^\star)}{\partial x^\star} \right )^{\top} v + u.
+        \end{equation}
+
+    where :math:`u` is the incoming gradient from the backward pass,
+    and :math:`x^\star` is the equilibrium point of the forward pass. See `this tutorial <http://implicit-layers-tutorial.org/deep_equilibrium_models/>`_ for more details.
+
+    .. note::
+
+        For now DEQ is only possible with ProximalGradientDescent, HQS and GradientDescent optimization algorithms.
+
 
     .. doctest::
 
@@ -114,10 +139,10 @@ class BaseOptim(Reconstructor):
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
     :param list, deepinv.optim.DataFidelity: data-fidelity term.
         Either a single instance (same data-fidelity for each iteration) or a list of instances of
-        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None``.
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
     :param list, deepinv.optim.Prior: regularization prior.
         Either a single instance (same prior for each iteration) or a list of instances of
-        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None``.
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param str crit_conv: convergence criterion to be used for claiming convergence, either ``"residual"`` (residual
         of the iterate norm) or ``"cost"`` (on the cost function). Default: ``"residual"``
@@ -138,6 +163,15 @@ class BaseOptim(Reconstructor):
     :param int history_size: size of the history of iterates used for Anderson acceleration. Default: ``5``.
     :param float beta_anderson_acc: momentum of the Anderson acceleration step. Default: ``1.0``.
     :param float eps_anderson_acc: regularization parameter of the Anderson acceleration step. Default: ``1e-4``.
+    :param bool unfold: whether to unfold the algorithm and make the model parameters trainable. Default: ``False``.
+    :param list trainable_params: list of the algorithmic parameters among the keys of the dictionery params_algo to be made trainable. Default: ``None``, which means that all parameters in params_algo are trainable. For no trainable parameters, set to an empty list ``[]``.
+    :param bool DEQ: whether to use a Deep Equilibrium approach as unfolding strategy i.e. the  algorithm is virtually unrolled infinitely leveraging the implicit function theorem. Default: ``False``.
+    :param bool DEQ_jacobian_free: whether to use a Jacobian-free approach for the backward pass in the Deep Equilibrium model. The expansive Jacobian is removed in the implicit differentiation theorem. See https://ojs.aaai.org/index.php/AAAI/article/view/20619. Default: ``False``.
+    :param bool DEQ_anderson_acceleration_backward: whether to use Anderson acceleration for the backward pass in the Deep Equilibrium model. Default: ``False``.
+    :param int DEQ_history_size_backward: size of the history of iterates used for Anderson acceleration in the backward pass in the Deep Equilibrium model. Default: ``5``.
+    :param float DEQ_beta_anderson_acc_backward: momentum of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1.0``.
+    :param float DEQ_eps_anderson_acc_backward: regularization parameter of the Anderson acceleration step in the backward pass in the Deep Equilibrium model. Default: ``1e-4``.
+    :param int DEQ_max_iter_backward: maximum number of iterations for the backward pass in the Deep Equilibrium model.
     :param bool verbose: whether to print relevant information of the algorithm during its run,
         such as convergence criterion at each iterate. Default: ``False``.
     :return: a torch model that solves the optimization problem.
@@ -164,7 +198,18 @@ class BaseOptim(Reconstructor):
         history_size=5,
         beta_anderson_acc=1.0,
         eps_anderson_acc=1e-4,
+        unfold=False,
+        DEQ=False,
+        trainable_params=None,
+        DEQ_jacobian_free=False,
+        DEQ_max_iter_backward=50,
+        DEQ_anderson_acceleration_backward=False,
+        DEQ_history_size_backward=5,
+        DEQ_beta_anderson_acc_backward=1.0,
+        DEQ_eps_anderson_acc_backward=1e-4,
         verbose=False,
+        device=torch.device("cpu"),
+        **kwargs,
     ):
         super(BaseOptim, self).__init__()
 
@@ -181,10 +226,46 @@ class BaseOptim(Reconstructor):
         self.custom_init = custom_init
         self.get_output = get_output
         self.has_cost = has_cost
+        self.unfold = unfold
+        self.DEQ = DEQ
+        self.DEQ_jacobian_free = DEQ_jacobian_free
+        self.DEQ_max_iter_backward = DEQ_max_iter_backward
+        self.DEQ_anderson_acceleration_backward = DEQ_anderson_acceleration_backward
+        self.DEQ_history_size_backward = DEQ_history_size_backward
+        self.DEQ_beta_anderson_acc_backward = DEQ_beta_anderson_acc_backward
+        self.DEQ_eps_anderson_acc_backward = DEQ_eps_anderson_acc_backward
+        self.device = device
+
+        # By default, ``self.prior`` should be a list of elements of the class :meth:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
+        if prior is None:
+            self.prior = [Zero()]
+        elif not isinstance(prior, Iterable):
+            self.prior = [prior]
+        else:
+            self.prior = prior
+
+        # By default, ``self.data_fidelity`` should be a list of elements of the class :meth:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
+        if data_fidelity is None:
+            self.data_fidelity = [ZeroFidelity()]
+        elif not isinstance(data_fidelity, Iterable):
+            self.data_fidelity = [data_fidelity]
+        else:
+            self.data_fidelity = data_fidelity
+
+        self.has_cost = (
+            self.prior[0].explicit_prior
+            if isinstance(self.prior, list)
+            else self.prior.explicit_prior
+        )
+        iterator.has_cost = self.has_cost
 
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
+
+        # Correct the 'lambda_reg' key to 'lambda' in params_algo if it exists.
+        if "lambda_reg" in params_algo.keys():
+            params_algo["lambda"] = params_algo.pop("lambda_reg")
 
         # By default ``params_algo`` should contain a regularization parameter ``lambda`` parameter, which multiplies the prior term ``g``. It is set by default to ``1``.
         if "lambda" not in params_algo.keys():
@@ -225,19 +306,32 @@ class BaseOptim(Reconstructor):
         # keep track of initial parameters in case they are changed during optimization (e.g. backtracking)
         self.init_params_algo = params_algo
 
-        # By default, ``self.prior`` should be a list of elements of the class :class:`deepinv.optim.Prior`. The user could want the prior to change at each iteration. If no prior is given, we set it to a zero prior.
-        if prior is None:
-            self.prior = [Zero()]
-        elif not isinstance(prior, Iterable):
-            self.prior = [prior]
-        else:
-            self.prior = prior
-
-        # By default, ``self.data_fidelity`` should be a list of elements of the class :class:`deepinv.optim.DataFidelity`. The user could want the data-fidelity to change at each iteration.
-        if not isinstance(data_fidelity, Iterable):
-            self.data_fidelity = [data_fidelity]
-        else:
-            self.data_fidelity = data_fidelity
+        # set trainable parameters
+        if self.unfold or self.DEQ:
+            if trainable_params is not None and "lambda_reg" in trainable_params:
+                trainable_params[trainable_params.index("lambda_reg")] = "lambda"
+            if trainable_params is None:
+                trainable_params = params_algo.keys()
+            for param_key in trainable_params:
+                if param_key in self.init_params_algo.keys():
+                    param_value = self.init_params_algo[param_key]
+                    self.init_params_algo[param_key] = nn.ParameterList(
+                        [
+                            (
+                                nn.Parameter(torch.tensor(el).float().to(device))
+                                if not isinstance(el, torch.Tensor)
+                                else nn.Parameter(el.float().to(device))
+                            )
+                            for el in param_value
+                        ]
+                    )
+            self.init_params_algo = nn.ParameterDict(self.init_params_algo)
+            self.params_algo = self.init_params_algo.copy()
+            # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
+            self.prior = nn.ModuleList(self.prior) if self.prior else None
+            self.data_fidelity = (
+                nn.ModuleList(self.data_fidelity) if self.data_fidelity else None
+            )
 
         # Initialize the fixed-point module
         self.fixed_point = FixedPoint(
@@ -471,6 +565,83 @@ class BaseOptim(Reconstructor):
         else:
             return False
 
+    def DEQ_additional_step(self, X, y, physics, **kwargs):
+        r"""
+        For Deep Equilibrium models, performs an additional step at the equilibrium point
+        to compute the gradient of the fixed point operator with respect to the input.
+
+        :param dict X: dictionary defining the current update at the equilibrium point.
+        :param torch.Tensor y: measurement vector.
+        :param deepinv.physics.Physics physics: physics of the problem for the acquisition of ``y``.
+        """
+
+        # Once, at the equilibrium point, performs one additional iteration with gradient tracking.
+        cur_data_fidelity = (
+            self.update_data_fidelity_fn(self.max_iter - 1)
+            if self.update_data_fidelity_fn
+            else None
+        )
+        cur_prior = (
+            self.update_prior_fn(self.max_iter - 1) if self.update_prior_fn else None
+        )
+        cur_params = (
+            self.update_params_fn(self.max_iter - 1) if self.update_params_fn else None
+        )
+        x = self.fixed_point.iterator(
+            X, cur_data_fidelity, cur_prior, cur_params, y, physics, **kwargs
+        )["est"][0]
+
+        if not self.DEQ_jacobian_free:
+            # Another iteration for jacobian computation via automatic differentiation.
+            x0 = x.clone().detach().requires_grad_()
+            f0 = self.fixed_point.iterator(
+                {"est": (x0,)},
+                cur_data_fidelity,
+                cur_prior,
+                cur_params,
+                y,
+                physics,
+                **kwargs,
+            )["est"][0]
+
+            # Add a backwards hook that takes the incoming backward gradient `X["est"][0]` and solves the fixed point equation
+            def backward_hook(grad):
+                class backward_iterator(OptimIterator):
+                    def __init__(self, **kwargs):
+                        super().__init__(**kwargs)
+
+                    def forward(self, X, *args, **kwargs):
+                        return {
+                            "est": (
+                                torch.autograd.grad(
+                                    f0, x0, X["est"][0], retain_graph=True
+                                )[0]
+                                + grad,
+                            )
+                        }
+
+                # Use the :class:`deepinv.optim.fixed_point.FixedPoint` class to solve the fixed point equation
+                def init_iterate_fn(y, physics, F_fn=None):
+                    return {"est": (grad,)}  # initialize the fixed point algorithm.
+
+                backward_FP = FixedPoint(
+                    backward_iterator(),
+                    init_iterate_fn=init_iterate_fn,
+                    max_iter=self.DEQ_max_iter_backward,
+                    check_conv_fn=self.check_conv_fn,
+                    anderson_acceleration=self.DEQ_anderson_acceleration_backward,
+                    history_size=self.DEQ_history_size_backward,
+                    beta_anderson_acc=self.DEQ_beta_anderson_acc_backward,
+                    eps_anderson_acc=self.DEQ_eps_anderson_acc_backward,
+                )
+                g = backward_FP({"est": (grad,)}, None)[0]["est"][0]
+                return g
+
+            if x.requires_grad:
+                x.register_hook(backward_hook)
+
+        return x
+
     def forward(self, y, physics, x_gt=None, compute_metrics=False, **kwargs):
         r"""
         Runs the fixed-point iteration algorithm for solving :ref:`(1) <optim>`.
@@ -483,15 +654,21 @@ class BaseOptim(Reconstructor):
         :return: If ``compute_metrics`` is ``False``,  returns (:class:`torch.Tensor`) the output of the algorithm.
                 Else, returns (torch.Tensor, dict) the output of the algorithm and the metrics.
         """
-        with torch.no_grad():
+        train_context = (
+            torch.no_grad() if not self.unfold or self.DEQ else nullcontext()
+        )
+        with train_context:
             X, metrics = self.fixed_point(
                 y, physics, x_gt=x_gt, compute_metrics=compute_metrics, **kwargs
             )
+        if self.DEQ:
+            x = self.DEQ_additional_step(X, y, physics, **kwargs)
+        else:
             x = self.get_output(X)
-            if compute_metrics:
-                return x, metrics
-            else:
-                return x
+        if compute_metrics:
+            return x, metrics
+        else:
+            return x
 
 
 def create_iterator(
@@ -568,7 +745,12 @@ def optim_builder(
     r"""
     Helper function for building an instance of the :class:`deepinv.optim.BaseOptim` class.
 
-    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
+    .. note::
+
+        Since 0.3.1, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
+        ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
+
+    :param str, deepinv.optim.optim_iterators.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
         ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
@@ -612,3 +794,759 @@ def optim_builder(
 
 def str_to_class(classname):
     return getattr(sys.modules[__name__], classname)
+
+
+class ADMM(BaseOptim):
+    r"""
+    ADMM module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    If the attribute ``g_first`` is set to False (by default), the ADMM iterations write (`see this paper <https://www.nowpublishers.com/article/Details/MAL-016>`_)
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(x_k - z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_{k+1} + z_k) \\
+        z_{k+1} &= z_k + \beta (u_{k+1} - x_{k+1})
+        \end{aligned}
+        \end{equation*}
+
+    where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
+    inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float beta: ADMM relaxation parameter :math:`\beta`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        trainable_params=None,
+        g_first=False,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+        # add an unfolded mode for DEQ
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "beta": beta,
+        }
+        super(ADMM, self).__init__(
+            ADMMIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
+
+
+class DRS(BaseOptim):
+    r"""
+    DRS module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+     If the attribute ``g_first`` is set to False (by default), the DRS iterations are given by
+
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k+1} &= \operatorname{prox}_{\gamma f}(z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(2*u_{k+1}-z_k) \\
+        z_{k+1} &= z_k + \beta (x_{k+1} - u_{k+1})
+        \end{aligned}
+        \end{equation*}
+
+    where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter. If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
+    The DRS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.DRSIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float beta: DRS relaxation parameter :math:`\beta`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        trainable_params=None,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "beta": beta,
+        }
+        super(DRS, self).__init__(
+            DRSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
+
+
+class GradientDescent(BaseOptim):
+    r"""
+    Gradient Descent module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+
+    The Gradient Descent iterations are given by
+
+    .. math::
+        \begin{equation*}
+        x_{k+1} = x_k - \gamma \nabla f(x_k) - \gamma \lambda \nabla \regname(x_k)
+        \end{equation*}
+
+    where :math:`\gamma>0` is a stepsize. The Gradient Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.GDIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        trainable_params=None,
+        DEQ=False,
+        DEQ_jacobian_free=False,
+        DEQ_max_iter_backward=10,
+        DEQ_anderson_acceleration_backward=False,
+        DEQ_history_size_backward=5,
+        DEQ_beta_anderson_acc_backward=0.5,
+        DEQ_eps_anderson_acc_backward=1e-6,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
+        super(GradientDescent, self).__init__(
+            GDIteration(F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            DEQ=DEQ,
+            DEQ_jacobian_free=DEQ_jacobian_free,
+            DEQ_max_iter_backward=DEQ_max_iter_backward,
+            DEQ_anderson_acceleration_backward=DEQ_anderson_acceleration_backward,
+            DEQ_history_size_backward=DEQ_history_size_backward,
+            DEQ_beta_anderson_acc_backward=DEQ_beta_anderson_acc_backward,
+            DEQ_eps_anderson_acc_backward=DEQ_eps_anderson_acc_backward,
+            device=device,
+            **kwargs,
+        )
+
+
+class HQS(BaseOptim):
+    r"""
+    Half-Quadratic Splitting module for solving the problem
+    
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+    
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    If the attribute ``g_first`` is set to False (by default), the HQS iterations are given by
+    
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k} &= \operatorname{prox}_{\gamma f}(x_k) \\
+        x_{k+1} &= \operatorname{prox}_{\sigma \lambda \regname}(u_k).
+        \end{aligned}
+        \end{equation*}
+    
+    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
+    The HQS iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.HQSIteration`.
+   
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        trainable_params=None,
+        DEQ=False,
+        DEQ_jacobian_free=False,
+        DEQ_max_iter_backward=10,
+        DEQ_anderson_acceleration_backward=False,
+        DEQ_history_size_backward=5,
+        DEQ_beta_anderson_acc_backward=0.5,
+        DEQ_eps_anderson_acc_backward=1e-6,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
+        super(HQS, self).__init__(
+            HQSIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            DEQ=DEQ,
+            DEQ_jacobian_free=DEQ_jacobian_free,
+            DEQ_max_iter_backward=DEQ_max_iter_backward,
+            DEQ_anderson_acceleration_backward=DEQ_anderson_acceleration_backward,
+            DEQ_history_size_backward=DEQ_history_size_backward,
+            DEQ_beta_anderson_acc_backward=DEQ_beta_anderson_acc_backward,
+            DEQ_eps_anderson_acc_backward=DEQ_eps_anderson_acc_backward,
+            device=device,
+            **kwargs,
+        )
+
+
+class ProximalGradientDescent(BaseOptim):
+    r"""
+    Proximal Gradient Descent module for solving the problem
+
+    .. math::
+        \begin{equation}
+        \label{eq:min_prob}
+        \tag{1}
+        \underset{x}{\arg\min} \quad  \datafid{x}{y} + \lambda \reg{x},
+        \end{equation}
+
+    where :math:`\datafid{x}{y}` is the data-fidelity term, :math:`\reg{x}` is the regularization term.
+    If the attribute ``g_first`` is set to False (by default), the PGD iterations are given by
+
+    .. math::
+        \begin{equation*}
+        x_{k+1} = \operatorname{prox}_{\gamma \lambda \regname}(x_k - \gamma \nabla f(x_k)).
+        \end{equation*}
+
+    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
+    The PGD iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PGDIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        trainable_params=None,
+        DEQ=False,
+        DEQ_jacobian_free=False,
+        DEQ_max_iter_backward=10,
+        DEQ_anderson_acceleration_backward=False,
+        DEQ_history_size_backward=5,
+        DEQ_beta_anderson_acc_backward=0.5,
+        DEQ_eps_anderson_acc_backward=1e-6,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
+        super(ProximalGradientDescent, self).__init__(
+            PGDIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            DEQ=DEQ,
+            DEQ_jacobian_free=DEQ_jacobian_free,
+            DEQ_max_iter_backward=DEQ_max_iter_backward,
+            DEQ_anderson_acceleration_backward=DEQ_anderson_acceleration_backward,
+            DEQ_history_size_backward=DEQ_history_size_backward,
+            DEQ_beta_anderson_acc_backward=DEQ_beta_anderson_acc_backward,
+            DEQ_eps_anderson_acc_backward=DEQ_eps_anderson_acc_backward,
+            device=device,
+            **kwargs,
+        )
+
+
+class FISTA(BaseOptim):
+    r"""
+    FISTA module for acceleration of the Proximal Gradient Descent algorithm.
+    If the attribute ``g_first`` is set to False (by default), the FISTA iterations are given by
+    
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k} &= z_k -  \gamma \nabla f(z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\gamma \lambda \regname}(u_k) \\
+        z_{k+1} &= x_{k+1} + \alpha_k (x_{k+1} - x_k),
+        \end{aligned}
+        \end{equation*}
+    
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
+    :math:`\alpha_k = (k+a-1)/(k+a)`,  with :math:`a` a parameter that should be strictly greater than 2.
+    
+    If the attribute ``g_first`` is set to True, the functions :math:`f` and :math:`\regname` are inverted in the previous iteration.
+    The FISTA iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.FISTAIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter, and the parameter :math:`a` of the FISTA algorithm.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param int a: parameter of the FISTA algorithm, should be strictly greater than 2. Default: ``3``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        a=3,
+        g_param=None,
+        max_iter=100,
+        g_first=False,
+        unfold=False,
+        trainable_params=None,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+            "a": a,
+        }
+        super(FISTA, self).__init__(
+            FISTAIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
+
+
+class MirrorDescent(BaseOptim):
+    r"""
+    Mirror Descent or Bregman variant of the Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        v_{k} &= \nabla f(x_k) + \lambda \nabla g(x_k) \\
+        x_{k+1} &= \nabla h^*(\nabla h(x_k) - \gamma v_{k})
+        \end{aligned}
+        \end{equation*}
+    
+    where :math:`\gamma>0` is a stepsize and :math:`h^*` is the convex conjugate of :math:`h`.
+    The Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.MDIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``BregmanL2()``.
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+    """
+
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        trainable_params=None,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
+        super(MirrorDescent, self).__init__(
+            MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
+
+
+class ProximalMirrorDescent(BaseOptim):
+    r""" 
+    Proximal Mirror Descent or Bregman variant of the Proximal Gradient Descent algorithm. For a given convex potential :math:`h`, the iterations are given by
+    
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k} &= \nabla h^*(\nabla h(x_k) - \gamma \nabla f(x_k)) \\
+        x_{k+1} &= \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)
+        \end{aligned}
+        \end{equation*}
+    
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex. 
+    :math:`\operatorname{prox^h}_{\gamma \lambda \regname}` is the Bregman proximal operator, detailed in the method :meth:`deepinv.optim.Potential.bregman_prox`.
+    The Proximal Mirror Descent iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.PMDIteration`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+    
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Proximal Mirror Descent. Default: ``BregmanL2()``.
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+          Either a single instance (same data-fidelity for each iteration) or a list of instances of
+          :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+          Either a single instance (same prior for each iteration) or a list of instances of
+          :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\gamma`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+
+    """
+
+    def __init__(
+        self,
+        bregman_potential=BregmanL2(),
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        trainable_params=None,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "g_param": g_param,
+        }
+        super(ProximalMirrorDescent, self).__init__(
+            PMDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
+
+
+class PrimalDualCP(BaseOptim):
+    r"""
+    Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
+    algorithm for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
+    Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
+
+    If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
+    
+    .. math::
+        \begin{equation*}
+        \begin{aligned}
+        u_{k+1} &= \operatorname{prox}_{\sigma F^*}(u_k + \sigma K z_k) \\
+        x_{k+1} &= \operatorname{prox}_{\tau \lambda G}(x_k-\tau K^\top u_{k+1}) \\
+        z_{k+1} &= x_{k+1} + \beta(x_{k+1}-x_k) \\
+        \end{aligned}
+        \end{equation*}
+    
+    where :math:`F^*` is the Fenchel-Legendre conjugate of :math:`F`, :math:`\beta>0` is a relaxation parameter, and :math:`\sigma` and :math:`\tau` are step-sizes that should
+    satisfy :math:`\sigma \tau \|K\|^2 \leq 1`. 
+
+    If the attribute ``g_first`` is set to ``True``, the functions :math:`F` and :math:`G` are inverted in the previous iteration.
+    In particular, setting :math:`F = \distancename`, :math:`K = A` and :math:`G = \regname`, the above algorithms solves
+
+    .. math::
+        \begin{equation*}
+        \underset{x}{\operatorname{min}} \,\,  \distancename(Ax, y) + \lambda \regname(x)
+        \end{equation*}
+    
+    with a splitting on :math:`\distancename`.
+
+    Note that the algorithm requires an intiliazation of the three variables :math:`x_0`, :math:`z_0` and :math:`u_0`.
+
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the parameters of the algorithm are trainable.
+    By default, the trainiable parameters are : the stepsize :math:`\sigma`, the stepsize :math:`\tau`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
+    Use the ``trainable_params`` argument to adjust the list of trainable parameters.
+
+    The Proximal Dual CP iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.CPIteration`.
+
+    :param Callable K: linear operator :math:`K` in the primal problem. Default: identity function.
+    :param Callable K_adjoint: adjoint linear operator :math:`K^\top` in the primal problem. Default: identity function.
+    :param list, deepinv.optim.DataFidelity data_fidelity: data-fidelity term :math:`\datafid{x}{y}`.
+        Either a single instance (same data-fidelity for each iteration) or a list of instances of
+        :class:`deepinv.optim.DataFidelity` (distinct data fidelity for each iteration). Default: ``None`` corresponding to :math:`\datafid{x}{y} = 0`.
+    :param list, deepinv.optim.Prior prior: regularization prior :math:`\reg{x}`.
+        Either a single instance (same prior for each iteration) or a list of instances of
+        :class:`deepinv.optim.Prior` (distinct prior for each iteration). Default: ``None`` corresponding to :math:`\reg{x} = 0`.
+    :param float lambda_reg: regularization parameter :math:`\lambda`. Default: ``1.0``.
+    :param float stepsize: stepsize parameter :math:`\tau`. Default: ``1.0``.
+    :param float stepsize_dual: stepsize parameter :math:`\sigma`. Default: ``1.0``.
+    :param float beta: PD relaxation parameter :math:`\beta`. Default: ``1.0``.
+    :param float g_param: parameter of the prior function. For example the noise level for a denoising prior. Default: ``None``.
+    :param int max_iter: maximum number of iterations of the optimization algorithm. Default: ``100``.
+    :param bool g_first: whether to perform the proximal step on :math:`\reg{x}` before that on :math:`\datafid{x}{y}`, or the opposite. Default: ``False``.
+    :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
+    :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
+    :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
+
+    """
+
+    def __init__(
+        self,
+        K=lambda x: x,
+        K_adjoint=lambda x: x,
+        data_fidelity=None,
+        prior=None,
+        lambda_reg=1.0,
+        stepsize=1.0,
+        stepsize_dual=1.0,
+        beta=1.0,
+        g_param=None,
+        max_iter=100,
+        unfold=False,
+        trainable_params=["lambda", "stepsize", "stepsize_dual", "g_param", "beta"],
+        g_first=False,
+        F_fn=None,
+        device=torch.device("cpu"),
+        **kwargs,
+    ):
+        params_algo = {
+            "lambda": lambda_reg,
+            "stepsize": stepsize,
+            "stepsize_dual": stepsize_dual,
+            "g_param": g_param,
+            "beta": beta,
+            "K": K,
+            "K_adjoint": K_adjoint,
+        }
+        super(PrimalDualCP, self).__init__(
+            CPIteration(g_first=g_first, F_fn=F_fn),
+            data_fidelity=data_fidelity,
+            prior=prior,
+            params_algo=params_algo,
+            max_iter=max_iter,
+            unfold=unfold,
+            trainable_params=trainable_params,
+            device=device,
+            **kwargs,
+        )
