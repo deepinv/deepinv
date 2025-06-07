@@ -10,6 +10,13 @@ from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
 
+from unittest.mock import patch
+import math
+import builtins
+import io
+import contextlib
+import re
+
 from conftest import no_plot
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
@@ -730,3 +737,76 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model):
     assert all(
         [abs(value - sum([l.value for l in losses])) < 1e-6 for value in loss_history]
     )
+
+
+# We test that the gradient norm is correctly computed and printed to the
+# standard output. To do that, we mock backprop to control the gradient norms.
+# More precisely, we make it so the gradient norm is 1.0 for epoch 1, 2.0 for
+# epoch 2, and so on. Then, we run the trainer while capturing the standard
+# output to get # the reported values for the gradient norms and compare them
+# to the expected values.
+def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    trainer = dinv.Trainer(
+        model,
+        device=device,
+        save_path="ckpts",
+        verbose=True,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=10,
+        losses=dinv.loss.SupLoss(),
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        online_measurements=True,
+        check_grad=True,
+    )
+
+    call_count = 0
+    calls_per_epoch = math.ceil(len(train_data) / dataloader.batch_size)
+
+    def mock_fn(self):
+        nonlocal call_count
+        epoch = 1 + call_count // calls_per_epoch
+        call_count += 1
+
+        # 1. Fill in the gradients with random values.
+        for p in model.parameters():
+            if p.requires_grad:
+                p.grad = torch.ones_like(p, dtype=p.dtype, device=p.device)
+
+        # 2. Compute the norm of the gradients.
+        # from https://discuss.pytorch.org/t/check-the-norm-of-gradients/27961/7
+        grads = [
+            p.grad.detach().flatten() for p in model.parameters() if p.grad is not None
+        ]
+        grads = torch.cat(grads)
+        norm = grads.norm()
+        norm = norm.item()
+
+        # 3. Rescale the gradients so that the gradient norm is equal to 1.0 for
+        # the 1st epoch, to 2.0 for the 2nd, and so on.
+        for p in model.parameters():
+            if p.requires_grad:
+                p.grad = epoch * p.grad / norm
+
+    # Capture the standard output for future testing
+    stdout_buf = io.StringIO()
+    with contextlib.redirect_stdout(stdout_buf):
+        with patch.object(torch.Tensor, "backward", mock_fn):
+            trainer.train()
+
+    stdout_value = stdout_buf.getvalue()
+
+    gradient_norms = re.findall(r"gradient_norm=(\d+(\.\d+)?)", stdout_value)
+    gradient_norms = [float(norm[0]) for norm in gradient_norms]
+    gradient_norms = torch.tensor(gradient_norms)
+    expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
+    expected_gradient_norms = torch.tensor(expected_gradient_norms)
+    assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-6)
