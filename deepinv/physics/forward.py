@@ -902,7 +902,7 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     # For more details, see https://github.com/deepinv/deepinv/issues/511
     class Adjoint(torch.autograd.Function):
         @staticmethod
-        def forward(ctx, y):
+        def forward(y):
             if y.size()[0] < batches:
                 y2 = torch.zeros(
                     (batches,) + y.shape[1:], device=y.device, dtype=y.dtype
@@ -915,6 +915,10 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
                 )
             else:
                 return vjpfunc(y)[0]
+
+        @staticmethod
+        def setup_context(ctx, inputs, outputs):
+            pass
 
         @staticmethod
         def backward(ctx, grad_output):
