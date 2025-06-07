@@ -75,7 +75,7 @@ def no_plot():
         importlib.reload(plt)
 
 
-# Certain tests are particularly slow and make for a large part of
+# Certain tests are particularly slow and make for a large part of
 # the time it takes for the entire test suite to run. For this reason, we make
 # them run in parallel of the rest of the tests thereby reducing the overall
 # test time drastically.
