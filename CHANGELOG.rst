@@ -12,6 +12,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
