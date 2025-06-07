@@ -79,6 +79,9 @@ def no_plot():
 # the time it takes for the entire test suite to run. For this reason, we make
 # them run in parallel of the rest of the tests thereby reducing the overall
 # test time drastically.
+# NOTE: The decorator `pytest.hookimpl̀` is needed to make sure that the group
+# marks are set before xdist reads them.
+@pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
     """Set the xdist group of the test items based on their markers."""
     next_slow_idx = 1
