@@ -53,6 +53,7 @@ Tracker = "https://github.com/deepinv/deepinv/issues"
 test = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "coverage",
 ]
 

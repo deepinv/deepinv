@@ -48,12 +48,10 @@ jobs:
 
       - name: Test with pytest and generate coverage report
         run: |
-          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
-
-
