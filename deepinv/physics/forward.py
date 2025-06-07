@@ -893,13 +893,13 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     (_, vjpfunc) = torch.func.vjp(A, x)
     batches = x.size()[0]
 
-    # NOTE: In certain cases A(x) can't be differentiated infinitely many times
-    # wrt x. In that case, the adjoint of A computed using automatic
-    # differentiation might not be automatically differentiable either. We
-    # avoid this problem by using the involutive property of the adjoint
-    # operator, i.e.,  (A^\top)^\top = A, and we specifically define the
-    # adjoint of the adjoint as the original linear operator A.
-    # For more details, see https://github.com/deepinv/deepinv/issues/511
+    # NOTE: In certain cases A(x) can't be automatically differentiated
+    # infinitely many times wrt x. In that case, the adjoint of A computed
+    # using automatic differentiation might not be automatically differentiable
+    # either. We avoid this problem by using the involutive property of the
+    # adjoint operator, i.e.,  (A^\top)^\top = A, and we specifically define
+    # the adjoint of the adjoint as the original linear operator A. For more
+    # details, see https://github.com/deepinv/deepinv/issues/511
     class Adjoint(torch.autograd.Function):
         @staticmethod
         def forward(y):

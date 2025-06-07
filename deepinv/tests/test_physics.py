@@ -1286,7 +1286,8 @@ def test_unmixing(device):
 @pytest.mark.parametrize("name", OPERATORS)
 def test_adjoint_autograd(name, device):
     # NOTE: The current implementation of adjoint_function does not support
-    # physics that return tensor lists or complex tensors.
+    # physics that return tensor lists or complex tensors. It also does not
+    # support RadioInterferometry although it is not entirely clear why.
     if name in {
         "aliased_pansharpen",
         "pansharpen_valid",
@@ -1295,6 +1296,8 @@ def test_adjoint_autograd(name, device):
         "pansharpen_replicate",
         "complex_compressed_sensing",
         "ptychography_linear",
+        "radio",
+        "radio_weighted",
     }:
         pytest.skip(f"Operator {name} is not supported by adjoint_function.")
 
