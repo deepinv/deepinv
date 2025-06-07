@@ -17,6 +17,7 @@ Changed
 Fixed
 ^^^^^
 - Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 
 
 v0.3.1

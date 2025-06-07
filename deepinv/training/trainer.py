@@ -939,6 +939,9 @@ class Trainer:
         for l in self.logs_metrics_eval:
             l.reset()
 
+        if hasattr(self, "check_grad_val"):
+            self.check_grad_val.reset()
+
     def save_best_model(self, epoch, train_ite, **kwargs):
         r"""
         Save the best model using validation metrics.
