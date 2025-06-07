@@ -12,6 +12,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
