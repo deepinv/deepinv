@@ -65,6 +65,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
    * - Tomography
      -
        | :class:`deepinv.physics.Tomography`
+       | :class:`deepinv.physics.TomographyWithAstra`
      -
 
    * - Remote Sensing & Multispectral
