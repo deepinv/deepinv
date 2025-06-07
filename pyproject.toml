@@ -99,6 +99,9 @@ minversion = "6.0"
 testpaths = [
     "deepinv/tests",
 ]
+markers = [
+    "slow",
+]
 
 [tool.coverage.run]
 branch = true
