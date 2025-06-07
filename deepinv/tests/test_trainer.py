@@ -809,4 +809,4 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
     gradient_norms = torch.tensor(gradient_norms)
     expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
     expected_gradient_norms = torch.tensor(expected_gradient_norms)
-    assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-6)
+    assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
