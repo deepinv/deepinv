@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-from typing import List, Tuple
 from math import ceil, floor
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.functional import histogramdd, conv2d
@@ -19,7 +18,7 @@ class PSFGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        psf_size: Tuple[int] = (31, 31),
+        psf_size: tuple[int] = (31, 31),
         num_channels: int = 1,
         **kwargs,
     ) -> None:
@@ -221,7 +220,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         device: str = "cpu",
         dtype: type = torch.float32,
         rng: torch.Generator = None,
-        list_param: List[str] = [
+        list_param: list[str] = [
             "Z4",
             "Z5",
             "Z6",
@@ -233,7 +232,7 @@ class DiffractionBlurGenerator(PSFGenerator):
         ],
         fc: float = 0.2,
         max_zernike_amplitude: float = 0.15,
-        pupil_size: Tuple[int] = (256, 256),
+        pupil_size: tuple[int] = (256, 256),
     ):
         kwargs = {
             "list_param": list_param,
@@ -603,9 +602,9 @@ class ProductConvolutionBlurGenerator(PhysicsGenerator):
     def __init__(
         self,
         psf_generator: PSFGenerator,
-        img_size: Tuple[int],
+        img_size: tuple[int],
         n_eigen_psf: int = 10,
-        spacing: Tuple[int] = None,
+        spacing: tuple[int] = None,
         padding: str = "valid",
         **kwargs,
     ) -> None:
@@ -735,11 +734,11 @@ class DiffractionBlurGenerator3D(PSFGenerator):
         num_channels: int = 1,
         device: str = "cpu",
         dtype: type = torch.float32,
-        list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        list_param: list[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         fc: float = 0.2,
         kb: float = 0.25,
         max_zernike_amplitude: float = 0.15,
-        pupil_size: Tuple[int] = (512, 512),
+        pupil_size: tuple[int] = (512, 512),
         stepz_pixel: float = 1.0,
     ):
         if len(psf_size) != 3:
@@ -871,7 +870,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         num_channels: int = 1,
         device: str = "cpu",
         dtype: type = torch.float32,
-        list_param: List[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
+        list_param: list[str] = ["Z4", "Z5", "Z6", "Z7", "Z8", "Z9", "Z10", "Z11"],
         NI: float = 1.51,
         NA: float = 1.37,
         lambda_ill: float = 489e-9,
@@ -880,7 +879,7 @@ class ConfocalBlurGenerator3D(PSFGenerator):
         pixelsize_Z: float = 100e-9,
         pinhole_radius: float = 1,
         max_zernike_amplitude: float = 0.1,
-        pupil_size: Tuple[int] = (512, 512),
+        pupil_size: tuple[int] = (512, 512),
     ):
         if len(psf_size) != 3:
             raise ValueError(

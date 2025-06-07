@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union, Callable, Tuple
+from typing import TYPE_CHECKING, Union, Callable
 
 from tqdm import tqdm
 import os
@@ -264,7 +264,7 @@ def generate_dataset(
         x0 = x0.to(device).unsqueeze(0)
 
         # get initial measurement for initial image
-        def measure(x: Tensor, b: int, g: int) -> Tuple[Tensor, Union[dict, None]]:
+        def measure(x: Tensor, b: int, g: int) -> tuple[Tensor, Union[dict, None]]:
             if physics_generator is None:
                 return physics[g](x), None
             else:

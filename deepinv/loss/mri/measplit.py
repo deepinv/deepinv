@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 from copy import deepcopy
 import torch
 from deepinv.physics.forward import Physics
@@ -307,7 +307,7 @@ class Phase2PhaseLoss(SplittingLoss):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        tensor_size: tuple[int],
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
@@ -493,8 +493,8 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     def __init__(
         self,
-        tensor_size: Tuple[int],
-        split_size: Union[int, Tuple[int]] = 2,
+        tensor_size: tuple[int],
+        split_size: Union[int, tuple[int]] = 2,
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",

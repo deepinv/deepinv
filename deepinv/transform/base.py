@@ -1,6 +1,6 @@
 from __future__ import annotations
 from itertools import product
-from typing import Tuple, Callable, Any
+from typing import Callable, Any
 import torch
 from deepinv.physics.time import TimeMixin
 
