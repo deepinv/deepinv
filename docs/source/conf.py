@@ -65,7 +65,7 @@ nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
 # for sitemap
-html_baseurl = 'https://deepinv.github.io/deepinv/'
+html_baseurl = "https://deepinv.github.io/deepinv/"
 
 ####  userguide directive ###
 from docutils import nodes
