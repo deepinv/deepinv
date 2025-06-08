@@ -43,6 +43,7 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_sitemap",
 ]
 copybutton_exclude = ".linenos, .gp"
 
