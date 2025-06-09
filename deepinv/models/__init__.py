@@ -34,3 +34,4 @@ from .unet import UNet
 from .ncsnpp import NCSNpp
 from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
+from .ram import RAM
