@@ -111,10 +111,11 @@ def hadamard_2d_ishift(x):
     return x
 
 
-def sequency_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def sequency_mask(img_size, m):
     """
     Generates a sequency-ordered binary mask for single-pixel imaging.
-    :param tuple img_shape: The shape of the input image as a tuple (C, H, W),
+    :param tuple img_size: The shape of the input image as a tuple (C, H, W),
                             where C is the number of channels, H is the height,
                             and W is the width.
     :param int m: The number of pixels to select based on sequency order.
@@ -123,7 +124,7 @@ def sequency_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     n = H * W
 
     indexes = sequency_order(n)[:m]
@@ -131,23 +132,24 @@ def sequency_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
 
 
-def old_sequency_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def old_sequency_mask(img_size, m):
     """
     Generates a binary mask for a single-pixel camera based on a sequency ordering.
-    :param tuple img_shape: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
+    :param tuple img_size: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
                             H is the height, and W is the width.
     :param int m: The number of pixels to include in the mask, selected based on the sequency ordering.
     :return: A binary mask of shape (1, C, H, W) with `m` pixels set to 1 and the rest set to 0.
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     n = H * W
 
     indexes = get_permutation_list(n)[:m]
@@ -155,7 +157,7 @@ def old_sequency_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
@@ -200,10 +202,10 @@ def cake_cutting_order(n):
     return np.argsort(seq)
 
 
-def cake_cutting_mask(img_shape, m):
+def cake_cutting_mask(img_size, m):
     """
     Generates a "cake cutting" mask for single-pixel imaging.
-    :param tuple img_shape: A tuple representing the shape of the input image
+    :param tuple img_size: A tuple representing the shape of the input image
                             in the format (channels, height, width). The height
                             and width must be equal.
     :param int m: The number of pixels to include in the mask.
@@ -213,7 +215,7 @@ def cake_cutting_mask(img_shape, m):
     :raises Warning: If the height and width of the image are not equal.
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
 
     if H != W:
         warnings.warn("Image height and width must be equal for cake cutting mask.")
@@ -227,7 +229,7 @@ def cake_cutting_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
@@ -259,10 +261,11 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
     return flat_A.view(H, W)
 
 
-def zig_zag_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def zig_zag_mask(img_size, m):
     """
     Generates a zig-zag mask for an image of a given shape.
-    :param tuple img_shape: A tuple representing the shape of the input image
+    :param tuple img_size: A tuple representing the shape of the input image
                             in the format (C, H, W), where C is the number of
                             channels, H is the height, and W is the width.
     :param int m: The number of elements to include in the zig-zag mask.
@@ -271,20 +274,21 @@ def zig_zag_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     mask = diagonal_index_matrix(H, W)
     mask = mask < m
     mask = mask.float()
-    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = mask.unsqueeze(0).repeat(1, img_size[0], 1, 1)
     mask = hadamard_2d_ishift(mask)
 
     return mask
 
 
-def xy_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def xy_mask(img_size, m):
     """
     Generates a 2D mask based on the spatial coordinates of an image and a given threshold.
-    :param tuple img_shape: A tuple representing the shape of the input image in the format
+    :param tuple img_size: A tuple representing the shape of the input image in the format
                             (channels, height, width).
     :param int m: The threshold value used to determine the mask size. Pixels with indices
                   less than or equal to `m` will be included in the mask.
@@ -293,7 +297,7 @@ def xy_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
 
     X, Y = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
     index_matrix = X * Y + (X**2 + Y**2) / 4
@@ -306,7 +310,7 @@ def xy_mask(img_shape, m):
     mask = mask.view(H, W) <= m
     mask = mask.float()
 
-    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = mask.unsqueeze(0).repeat(1, img_size[0], 1, 1)
     mask = hadamard_2d_ishift(mask)
 
     return mask

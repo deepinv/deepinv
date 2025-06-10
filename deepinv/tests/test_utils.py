@@ -2,6 +2,7 @@ import deepinv
 import torch
 import pytest
 from deepinv.utils.decorators import _deprecated_alias
+import warnings
 
 
 @pytest.fixture
@@ -134,6 +135,11 @@ class DummyModule(torch.nn.Module):
         self.lr = lr
 
 
+@_deprecated_alias(old_arg="new_arg")
+def dummy_function(new_arg=0.1):
+    return new_arg**2
+
+
 def test_deprecated_alias():
     # --- Class (torch.nn.Module) tests ---
     with pytest.warns(DeprecationWarning, match="old_lr.*deprecated"):
@@ -145,3 +151,24 @@ def test_deprecated_alias():
 
     with pytest.raises(TypeError, match="Cannot specify both 'old_lr' and 'lr'"):
         DummyModule(old_lr=0.01, lr=0.02)
+
+    # Test no warning with correct parameter
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        DummyModule(lr=0.3)
+        assert len(record) == 0
+
+    # --- Function tests ---
+    with pytest.warns(DeprecationWarning, match="old_arg.*deprecated"):
+        result1 = dummy_function(old_arg=0.1)
+        assert result1 == 0.1**2
+
+    result2 = dummy_function(new_arg=0.2)
+    assert result2 == 0.2**2
+    with pytest.raises(TypeError, match="Cannot specify both 'old_arg' and 'new_arg'"):
+        dummy_function(old_arg=0.1, new_arg=0.2)
+    # Test no warning with correct parameter
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        dummy_function(new_arg=0.3)
+        assert len(record) == 0

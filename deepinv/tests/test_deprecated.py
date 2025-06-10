@@ -52,10 +52,11 @@ def test_deprecated_physics_image_size():
 
     # StructuredRandomPhaseRetrieval: input_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
-        p = dinv.physics.StructuredRandomPhaseRetrieval(
-            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
-        )
-        assert p.img_size == img_size
+        with pytest.warns(DeprecationWarning, match="output_shape.*deprecated"):
+            p = dinv.physics.StructuredRandomPhaseRetrieval(
+                input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+            )
+            assert p.img_size == img_size
 
     # RandomPhaseRetrieval: img_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
@@ -64,10 +65,11 @@ def test_deprecated_physics_image_size():
 
     # StructuredRandom: input_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
-        p = dinv.physics.StructuredRandom(
-            input_shape=img_size, output_shape=img_size, device=device
-        )
-        assert p.img_size == img_size
+        with pytest.warns(DeprecationWarning, match="output_shape.*deprecated"):
+            p = dinv.physics.StructuredRandom(
+                input_shape=img_size, output_shape=img_size, device=device
+            )
+            assert p.img_size == img_size
 
     # Inpainting mask generators: tensor_size is changed to img_size
     with pytest.warns(DeprecationWarning, match="tensor_size.*deprecated"):
@@ -121,4 +123,38 @@ def test_deprecated_physics_image_size():
         with pytest.warns(DeprecationWarning, match="input_size.*deprecated"):
             model = dinv.models.DeepImagePrior(
                 generator=generator, input_size=(3, 4, 4)
+            )
+
+    # DEPRECATED FUNCTION ARGUMENT TESTS
+    # single_pixel_camera
+    with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
+        mask = dinv.physics.singlepixel.sequency_mask(img_shape=img_size, m=4)
+        assert mask.shape[1:] == img_size
+
+        mask = dinv.physics.singlepixel.old_sequency_mask(img_shape=img_size, m=4)
+        assert mask.shape[1:] == img_size
+
+        mask = dinv.physics.singlepixel.zig_zag_mask(img_shape=img_size, m=4)
+        assert mask.shape[1:] == img_size
+
+        mask = dinv.physics.singlepixel.xy_mask(img_shape=img_size, m=4)
+        assert mask.shape[1:] == img_size
+
+    # structured random
+    with pytest.warns(DeprecationWarning, match="input_shape.*deprecated"):
+        with pytest.warns(DeprecationWarning, match="output_shape.*deprecated"):
+            dinv.physics.structured_random.compare(
+                input_shape=img_size, output_shape=img_size
+            )
+
+            dinv.physics.structured_random.padding(
+                torch.randn((1,) + img_size),
+                input_shape=img_size,
+                output_shape=img_size,
+            )
+
+            dinv.physics.structured_random.trimming(
+                torch.randn((1,) + img_size),
+                input_shape=img_size,
+                output_shape=img_size,
             )

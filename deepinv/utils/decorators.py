@@ -4,7 +4,7 @@ import functools
 
 def _deprecated_alias(**aliases):
     """
-    Decorator to support deprecated argument names in a class.
+    Decorator to support deprecated argument names in a class or a function.
 
     :param **aliases: mapping of old_name='new_name'
 
@@ -12,7 +12,7 @@ def _deprecated_alias(**aliases):
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(*args, **kwargs):
             for old, new in aliases.items():
                 if old in kwargs:
                     if new in kwargs:
@@ -24,7 +24,7 @@ def _deprecated_alias(**aliases):
                         stacklevel=2,
                     )
                     kwargs[new] = kwargs.pop(old)
-            return func(self, *args, **kwargs)
+            return func(*args, **kwargs)
 
         return wrapper
 
