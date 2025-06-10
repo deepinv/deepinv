@@ -689,6 +689,7 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
     # Check the output tensor shape
     assert y.shape == x.shape
 
+
 @pytest.mark.parametrize("device", [torch.device("cpu")])
 @pytest.mark.parametrize("n_channels", [3])
 def test_dsccp_net(device, n_channels):

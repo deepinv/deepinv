@@ -4,6 +4,7 @@ from torch.nn import functional
 
 from .utils import get_weights_url
 
+
 class DScCP(nn.Module):
     r"""
     DScCP denoiser network.
@@ -22,7 +23,7 @@ class DScCP(nn.Module):
     :param str device: 'cuda' or 'cpu'.
     """
 
-    def __init__(self, K=20, F=64, pretrained='download', device=None):
+    def __init__(self, K=20, F=64, pretrained="download", device=None):
         super(DScCP, self).__init__()
         self.K = K
         self.F = F
@@ -66,9 +67,13 @@ class DScCP(nn.Module):
 
         if pretrained is not None:
             if pretrained == "download":
-                url = get_weights_url(model_name="dsccp", file_name='ckpt_dsccp.pth.tar')
+                url = get_weights_url(
+                    model_name="dsccp", file_name="ckpt_dsccp.pth.tar"
+                )
                 ckpt = torch.hub.load_state_dict_from_url(
-                    url, map_location=lambda storage, loc: storage, file_name='ckpt_dsccp.pth.tar'
+                    url,
+                    map_location=lambda storage, loc: storage,
+                    file_name="ckpt_dsccp.pth.tar",
                 )
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
@@ -106,9 +111,15 @@ class DScCP(nn.Module):
             tau = 0.99 / val
 
             alphak = 1 / torch.sqrt(1 + 2 * gamma * self.mu.data[k])
-            u_ = u + tau / self.mu[k] * self.conv[k * 2]((1 + alphak) * x_curr - alphak * x_prev)
+            u_ = u + tau / self.mu[k] * self.conv[k * 2](
+                (1 + alphak) * x_curr - alphak * x_prev
+            )
             u = functional.hardtanh(u_, min_val=-(sigma**2), max_val=sigma**2)
-            x_ = (self.mu[k] / (self.mu[k] + 1)) * x + (1 / (1 + self.mu[k])) * x_curr - (self.mu[k] / (self.mu[k] + 1)) * self.conv[k * 2 + 1](u)
+            x_ = (
+                (self.mu[k] / (self.mu[k] + 1)) * x
+                + (1 / (1 + self.mu[k])) * x_curr
+                - (self.mu[k] / (self.mu[k] + 1)) * self.conv[k * 2 + 1](u)
+            )
             x_next = torch.clamp(x_, min=0, max=1)
             x_prev = x_curr
             x_curr = x_next
