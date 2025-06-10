@@ -1,6 +1,7 @@
 import pytest
 import deepinv as dinv
 import torch
+import warnings
 
 
 def test_deprecated_physics_image_size():
@@ -15,6 +16,13 @@ def test_deprecated_physics_image_size():
             tensor_size=img_size, mask=0.5, device=device, rng=rng
         )
         assert p.img_size == img_size
+
+    # test_no_warning_with_correct_parameter
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        assert p.img_size == img_size
+        assert len(record) == 0
 
     # CS: img_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
