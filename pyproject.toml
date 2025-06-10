@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -64,6 +64,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
+    "sphinx_sitemap",
 ]
 
 # optional dependencies for specific denoisers
