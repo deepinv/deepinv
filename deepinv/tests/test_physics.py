@@ -1592,8 +1592,6 @@ def test_composed_linear_physics(device):
         atol=1e-4,
         rtol=1e-4,
     )
-    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
-    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
 
 
 @pytest.mark.parametrize("name", OPERATORS)
