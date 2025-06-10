@@ -1,8 +1,8 @@
-import os
 import torch
 from torch import nn
 from torch.nn import functional
 
+from .utils import get_weights_url
 
 class DScCP(nn.Module):
     r"""
@@ -18,10 +18,11 @@ class DScCP(nn.Module):
 
     :param int K: depth i.e. number of convolutional layers.
     :param int F:  number of channels per convolutional layer.
-    :param str device: gpu or cpu.
+    :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
+    :param str device: 'cuda' or 'cpu'.
     """
 
-    def __init__(self, K=20, F=64, device="cpu"):
+    def __init__(self, K=20, F=64, pretrained='download', device=None):
         super(DScCP, self).__init__()
         self.K = K
         self.F = F
@@ -63,10 +64,21 @@ class DScCP(nn.Module):
         for i in range(K):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
 
-        outputdir = "checkpoints/unfolded_ScCP_ver2/unfolded_ScCP_ver2_F64_K20_batchsize200_param_34580_data_vary"
-        checkpoint_path = os.path.join(outputdir, "checkpoint.pth.tar")
-        checkpoint = torch.load(checkpoint_path, map_location=device)
-        self.load_state_dict(checkpoint["Net"])
+        if pretrained is not None:
+            if pretrained == "download":
+                url = get_weights_url(model_name="dsccp", file_name='ckpt_dsccp.pth.tar')
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name='ckpt_dsccp.pth.tar'
+                )
+            else:
+                ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+            self.load_state_dict(ckpt)
+
+        self.tol = 1e-4
+        self.max_iter = 50
+
+        if device is not None:
+            self.to(device)
 
     def forward(self, x, sigma=0.03):
         r"""
@@ -75,46 +87,30 @@ class DScCP(nn.Module):
         :param torch.Tensor x: noisy image.
         :param float sigma: noise level.
         """
-        K = self.K
-        # Initialization
         x_prev = x
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
-        for k in range(K):
-            tol = 1e-4
-            max_iter = 50
+        for k in range(self.K):
             xtmp = torch.randn_like(x)
             xtmp = xtmp / torch.linalg.norm(xtmp.flatten())
             val = 1
-            for i in range(max_iter):
+            for i in range(self.max_iter):
                 old_val = val
                 xtmp = self.conv[2 * k + 1](self.conv[2 * k](xtmp))
                 val = torch.linalg.norm(xtmp.flatten())
                 rel_val = torch.absolute(val - old_val) / old_val
-                if rel_val < tol:
+                if rel_val < self.tol:
                     break
                 xtmp = xtmp / val
             tau = 0.99 / val
 
             alphak = 1 / torch.sqrt(1 + 2 * gamma * self.mu.data[k])
-            u = functional.hardtanh(
-                u
-                + tau
-                / self.mu[k]
-                * self.conv[k * 2]((1 + alphak) * x_curr - alphak * x_prev),
-                min_val=-(sigma**2),
-                max_val=sigma**2,
-            )
-            x_next = torch.clamp(
-                (self.mu[k] / (self.mu[k] + 1)) * x
-                + (1 / (1 + self.mu[k])) * x_curr
-                - (self.mu[k] / (self.mu[k] + 1)) * self.conv[k * 2 + 1](u),
-                min=0,
-                max=1,
-            )
+            u_ = u + tau / self.mu[k] * self.conv[k * 2]((1 + alphak) * x_curr - alphak * x_prev)
+            u = functional.hardtanh(u_, min_val=-(sigma**2), max_val=sigma**2)
+            x_ = (self.mu[k] / (self.mu[k] + 1)) * x + (1 / (1 + self.mu[k])) * x_curr - (self.mu[k] / (self.mu[k] + 1)) * self.conv[k * 2 + 1](u)
+            x_next = torch.clamp(x_, min=0, max=1)
             x_prev = x_curr
             x_curr = x_next
 
-        # K-th layer
         return x_curr
