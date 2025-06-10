@@ -65,8 +65,6 @@ authors:
   - name: Georg Schramm  
     affiliation: 17
     orcid: 0000-0002-2251-3195
-  - name: Chao Tang  
-    affiliation: "4, 5"
   - name: Romain Vo
     affiliation: 1
   - name: Pierre Weiss  
@@ -367,6 +365,7 @@ Thomas Moreau was supported from a national grant attributed to the ExaDoST proj
 J. Hertrich is supported by the German Research Foundation (DFG) with project number 530824055.
 Z. Hu acknowledges funding from the Swiss National Science Foundation (grant PZ00P2_216211). Thomas Davies is supported by UKRI EPSRC (grants EP/V006134/1 and EP/V006177/1).
 S. Neumayer acknowledges funding from the German Research Foundation (DFG) with project number 543939932.
+We thank the BASP Laboratory at Heriot-Watt University (https://basp.site.hw.ac.uk/) for insightful discussions, and their contribution on the radio astronomy application.
 The authors acknowledge the Jean-Zay high-performance computing center, using HPC resources from GENCI-IDRIS (Grants 2021-AD011012210, 2024-AD011015191). 
 
 # References
