@@ -104,7 +104,7 @@ One can also differentiate the parameter as:
 	>>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
 	>>> physics = Blur(filter=theta, padding='circular') # we instantiate a blur operator with its convolution filter
 	>>> y = physics(x)
-	>>> theta_2 = torch.ones((1, 1, 3, 3)) / 9
+	>>> theta_2 = torch.ones((1, 1, 3, 3)) / 9 # we'll compute the gradient of the physics with the new filter theta_2 comparing to the measurement with theta
 	>>> with torch.enable_grad():
 	... 	loss = torch.sum(y - physics(x, filter=theta_2.requires_grad_(True))) / y.numel()
 	... 	loss.backward()

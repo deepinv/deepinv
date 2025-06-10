@@ -16,11 +16,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     .. math::
 
-        y = N(A(x))
+        y = \noise(\forw(x))
 
     where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
-    :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
-    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
+    :math:`\forw:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
+    and :math:`\noise:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
@@ -64,6 +64,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
+
         return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
@@ -603,25 +604,25 @@ class ComposedPhysics(Physics):
 
     .. math::
 
-        N(A(x)) = N_k(A_k(\dots A_2(A_1(x))))
+        \noise(\forw(x)) = \noise_k(\forw_k(\dots \forw_2(\forw_1(x))))
 
-    where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
+    where :math:`\forw_i` is the ith physics operator and :math:`\noise_k` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] physics_list: list of physics operators to compose.
+    :param list[deepinv.physics.Physics] *physics: list of physics to compose.
     """
 
-    def __init__(self, physics_list: List[Physics], device=None, **kwargs):
+    def __init__(self, *physics: Physics, device=None, **kwargs):
         super().__init__()
 
         self.physics_list = nn.ModuleList([])
-        for physics in physics_list:
+        for physics_item in physics:
             self.physics_list.extend(
-                [physics]
-                if not isinstance(physics, ComposedPhysics)
-                else physics.physics_list
+                [physics_item]
+                if not isinstance(physics_item, ComposedPhysics)
+                else physics_item.physics_list
             )
-        self.noise_model = physics_list[-1].noise_model
-        self.sensor_model = physics_list[-1].sensor_model
+        self.noise_model = physics[-1].noise_model
+        self.sensor_model = physics[-1].sensor_model
         self.to(device)
 
     def A(self, x: Tensor, **kwargs) -> Tensor:
@@ -675,15 +676,15 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     .. math::
 
-        N(A(x)) = N_k(A_k \dots A_2(A_1(x)))
+        \noise(\forw(x)) = \noise_k(\forw_k \dots \forw_2(\forw_1(x)))
 
-    where :math:`A_i` is the ith physics operator and :math:`N_k` is the noise of the last operator.
+    where :math:`\forw_i` is the i-th physics operator and :math:`\noise_k` is the noise of the last operator.
 
-    :param list[deepinv.physics.Physics] physics_list: list of physics operators to compose.
+    :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
     """
 
-    def __init__(self, physics_list: list[Physics], **kwargs):
-        super().__init__(physics_list, **kwargs)
+    def __init__(self, *physics: Physics, **kwargs):
+        super().__init__(*physics, **kwargs)
 
     def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         r"""
@@ -711,9 +712,9 @@ def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
     :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
     """
     if all(isinstance(phys, LinearPhysics) for phys in physics):
-        return ComposedLinearPhysics(physics, **kwargs)
+        return ComposedLinearPhysics(*physics, **kwargs)
     else:
-        return ComposedPhysics(physics, **kwargs)
+        return ComposedPhysics(*physics, **kwargs)
 
 
 class DecomposablePhysics(LinearPhysics):

@@ -166,7 +166,7 @@ def find_operator(name, device, get_physics_param=False):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
-        params = ["mask"]
+        params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         n_coils = 15
@@ -716,7 +716,7 @@ def test_MRI(mri, mri_img_size, device, rng):
         y1 = physics(x)
         if isinstance(physics, MultiCoilMRI):
             y1 = y1[:, :, 0]  # check 0th coil
-        assert torch.all((y1 == 0) == (mask == 0))
+        assert torch.all((y1 == 0) == (physics.mask == 0))
 
         # Set mask in forward
         y1 = physics(x, mask=mask2)
@@ -1441,7 +1441,9 @@ def test_device_consistency(name):
 
     # The current radio physics depends on torchkbnufft, which seems to be not compatible.
     if "radio" in name:
-        return 1
+        return pytest.mark.skip(
+            reason="Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnuff, which seems to be not compatible"
+        )
     else:
         # Test CPU
         torch.manual_seed(11)
@@ -1465,9 +1467,9 @@ def test_device_consistency(name):
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
                     for y11, y22 in zip(y1, y2):
-                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-3
+                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
-                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-3
+                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
 
 
 @pytest.mark.parametrize("name", OPERATORS)

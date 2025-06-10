@@ -1,6 +1,6 @@
 r"""
-Optimizing your operator with Deepinv Physics
-========================================================
+Solving blind inverse problems / estimating physics parameters
+==============================================================
 
 This demo shows you how to use
 :class:`deepinv.physics.Physics` together with automatic differentiation to optimize your operator.
@@ -8,9 +8,9 @@ This demo shows you how to use
 Consider the forward model
 
 .. math::
-    y = N(A(x, \theta))
+    y = \noise(\forw(x, \theta))
 
-where :math:`N` is the noise model, :math:`A(\cdot, \theta)` is the forward operator, with the parameter :math:`\theta` (e.g., the filter in :class:`deepinv.physics.Blur`).
+where :math:`\noise` is the noise model, :math:`\forw(\cdot, \theta)` is the forward operator, and the goal is to learn the parameter :math:`\theta` (e.g., the filter in :class:`deepinv.physics.Blur`).
 
 In a typical blind inverse problem, given a measurement :math:`y`, we would like to recover both the underlying image :math:`x` and the operator parameter :math:`\theta`,
 resulting in a highly ill-posed inverse problem.
@@ -19,12 +19,15 @@ In this example, we only focus on a much more simpler problem: given the measure
 This can be reformulated as the following optimization problem:
 
 .. math::
-    \min_{\theta} \frac{1}{2} \|A(x, \theta) - y \|^2
+    \min_{\theta} \frac{1}{2} \|\forw{x, \theta} - y \|^2
 
 This problem can be addressed by first-order optimization if we can compute the gradient of the above function with respect to :math:`\theta`.
 The dependence between the operator :math:`A` and the parameter :math:`\theta` can be complicated.
-Physics classes in DeepInverse are implemented in a differentiable (from a programming viewpoint) manner.
+DeepInverse provides a wide range of physics operators, implemented as differentiable classes.
 We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient of the above loss function w.r.t to the physics parameters :math:`\theta`.
+
+The purpose of this demo is to show how to use the physics classes in DeepInverse to estimate the physics parameters, together with the automatic differentiation.
+We show 3 different ways to do this: manually implementing the projected gradient descent algorithm, using a Pytorch optimizer and optimizing the physics as a usual neural network.
 """
 
 # %%
@@ -35,7 +38,7 @@ import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 dtype = torch.float32
 
 # %%
@@ -68,13 +71,18 @@ dinv.utils.plot([x, y, true_kernel], titles=["Sharp", "Blurry", "True kernel"])
 #
 # The convolution kernel lives in the simplex, ie the kernel must have positive entries summing to 1.
 # We can use a simple optimization algorithm - Projected Gradient Descent - to enforce this constraint.
-# The following function allows one to compute the orthogonal projection onto the simplex, by a sorting algorithm (Reference: Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex
-# Mathieu Blondel, Akinori Fujino, and Naonori Ueda)
+# The following function allows one to compute the orthogonal projection onto the simplex, by a sorting algorithm
+# (Reference: `Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex
+# -- Mathieu Blondel, Akinori Fujino, and Naonori Ueda
+# <https://ieeexplore.ieee.org/document/6976941>_`)
 #
 
 
 @torch.no_grad()
-def projection_simplex_sort(v):
+def projection_simplex_sort(v: torch.Tensor) -> torch.Tensor:
+    r"""
+    Projects a tensor onto the simplex using a sorting algorithm.
+    """
     shape = v.shape
     B = shape[0]
     v = v.view(B, -1)
@@ -142,7 +150,7 @@ plt.show()
 # Combine with arbitrary optimizer
 # --------------------------------
 #
-# Pytorch provides a wide range of optimizer for training neural networks.
+# Pytorch provides a wide range of optimizers for training neural networks.
 # We can also pick one of those to optimizer our parameter
 
 kernel_init = torch.zeros_like(true_kernel)

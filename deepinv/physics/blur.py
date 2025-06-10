@@ -166,8 +166,12 @@ class Downsampling(LinearPhysics):
         :param int factor: New downsampling factor to be applied to the input image.
         """
         if factor is not None:
-            assert isinstance(factor, int), "downsampling factor should be an integer"
-            self.factor = factor
+            if isinstance(factor, (int, float)):
+                self.factor = int(factor)
+            else:
+                raise ValueError(
+                    f"Factor must be an integer, got {factor} of type {type(factor)}."
+                )
 
         if filter is not None:
             if isinstance(filter, torch.Tensor):

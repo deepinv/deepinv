@@ -20,6 +20,10 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
 .. tip::
 
+    To make the new physics compatible with other torch functionalities, physics parameters (tensor attributes) should be registered as module buffers by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using DDP. 
+
+.. tip::
+
     You can also inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
 
 .. tip::
