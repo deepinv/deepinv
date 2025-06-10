@@ -1441,8 +1441,8 @@ def test_device_consistency(name):
 
     # The current radio physics depends on torchkbnufft, which seems to be not compatible.
     if "radio" in name:
-        return pytest.mark.skip(
-            reason="Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnuff, which seems to be not compatible"
+        pytest.skip(
+            "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
         )
     else:
         # Test CPU
