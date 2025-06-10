@@ -14,14 +14,16 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 class RAM(nn.Module):
     r"""
-    RAM model
+    RAM model.
 
-    This model is a convolutional neural network (CNN) designed for image reconstruction tasks.
+    This model (proposed in `this paper <https://arxiv.org/abs/2503.08915>`_) is a convolutional neural network (CNN)
+    designed for image reconstruction tasks.
 
     :param in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param device: Device to which the model should be moved. If None, the model will be created on the default device.
     :param pretrained: If True, the model will be initialized with pretrained weights.
     """
+
     def __init__(
         self,
         in_channels=[1, 2, 3],
@@ -30,7 +32,7 @@ class RAM(nn.Module):
     ):
         super(RAM, self).__init__()
 
-        nc = [64, 128, 256, 512] # number of channels in the network
+        nc = [64, 128, 256, 512]  # number of channels in the network
         self.in_channels = in_channels
         self.fact_realign = torch.nn.Parameter(torch.tensor([1.0], device=device))
 
@@ -44,13 +46,27 @@ class RAM(nn.Module):
         # check if in_channels is a list
         self.m_head = InHead(in_channels_first, nc[0])
 
-        self.m_down1 = BaseEncBlock(nc[0], nc[0], img_channels=in_channels, decode_upscale=1)
-        self.m_down2 = BaseEncBlock(nc[1], nc[1], img_channels=in_channels, decode_upscale=2)
-        self.m_down3 = BaseEncBlock(nc[2], nc[2], img_channels=in_channels, decode_upscale=4)
-        self.m_body = BaseEncBlock(nc[3], nc[3], img_channels=in_channels, decode_upscale=8)
-        self.m_up3 = BaseEncBlock(nc[2], nc[2], img_channels=in_channels, decode_upscale=4)
-        self.m_up2 = BaseEncBlock(nc[1], nc[1], img_channels=in_channels, decode_upscale=2)
-        self.m_up1 = BaseEncBlock(nc[0], nc[0], img_channels=in_channels, decode_upscale=1)
+        self.m_down1 = BaseEncBlock(
+            nc[0], nc[0], img_channels=in_channels, decode_upscale=1
+        )
+        self.m_down2 = BaseEncBlock(
+            nc[1], nc[1], img_channels=in_channels, decode_upscale=2
+        )
+        self.m_down3 = BaseEncBlock(
+            nc[2], nc[2], img_channels=in_channels, decode_upscale=4
+        )
+        self.m_body = BaseEncBlock(
+            nc[3], nc[3], img_channels=in_channels, decode_upscale=8
+        )
+        self.m_up3 = BaseEncBlock(
+            nc[2], nc[2], img_channels=in_channels, decode_upscale=4
+        )
+        self.m_up2 = BaseEncBlock(
+            nc[1], nc[1], img_channels=in_channels, decode_upscale=2
+        )
+        self.m_up1 = BaseEncBlock(
+            nc[0], nc[0], img_channels=in_channels, decode_upscale=1
+        )
 
         self.pool1 = downsample_strideconv(nc[0], nc[1], bias=False, mode="2")
         self.pool2 = downsample_strideconv(nc[1], nc[2], bias=False, mode="2")
@@ -63,7 +79,12 @@ class RAM(nn.Module):
 
         # load pretrained weights from hugging face
         if pretrained:
-            self.load_state_dict(torch.load(hf_hub_download(repo_id="mterris/ram", filename="ram.pth.tar"), map_location=device))
+            self.load_state_dict(
+                torch.load(
+                    hf_hub_download(repo_id="mterris/ram", filename="ram.pth.tar"),
+                    map_location=device,
+                )
+            )
 
         if device is not None:
             self.to(device)
@@ -108,26 +129,39 @@ class RAM(nn.Module):
             f = physics.factor
         elif hasattr(physics, "base") and hasattr(physics.base, "factor"):
             f = physics.base.factor
-        elif hasattr(physics, "base") and hasattr(physics.base, "base") and hasattr(physics.base.base, "factor"):
+        elif (
+            hasattr(physics, "base")
+            and hasattr(physics.base, "base")
+            and hasattr(physics.base.base, "factor")
+        ):
             f = physics.base.base.factor
         else:
             f = 1.0
 
         sigma = 1e-6  # default value
-        if hasattr(physics.noise_model, 'sigma'):
+        if hasattr(physics.noise_model, "sigma"):
             sigma = physics.noise_model.sigma
-        if hasattr(physics, 'base') and hasattr(physics.base, 'noise_model') and hasattr(physics.base.noise_model, 'sigma'):
+        if (
+            hasattr(physics, "base")
+            and hasattr(physics.base, "noise_model")
+            and hasattr(physics.base.noise_model, "sigma")
+        ):
             sigma = physics.base.noise_model.sigma
-        if hasattr(physics, 'base') and hasattr(physics.base, 'base') and hasattr(physics.base.base, 'noise_model') and hasattr(physics.base.base.noise_model, 'sigma'):
+        if (
+            hasattr(physics, "base")
+            and hasattr(physics.base, "base")
+            and hasattr(physics.base.base, "noise_model")
+            and hasattr(physics.base.base.noise_model, "sigma")
+        ):
             sigma = physics.base.base.noise_model.sigma
 
         if isinstance(y, TensorList):
-            num = (y[0].reshape(y[0].shape[0], -1).abs().mean(1))
+            num = y[0].reshape(y[0].shape[0], -1).abs().mean(1)
         else:
-            num = (y.reshape(y.shape[0], -1).abs().mean(1))
+            num = y.reshape(y.shape[0], -1).abs().mean(1)
 
         snr = num / (sigma + 1e-4)  # SNR equivariant
-        gamma = 1 / (1e-4 + 1 / (snr * f **2 ))  # TODO: check square-root / mean / check if we need to add a factor in front ?
+        gamma = 1 / (1e-4 + 1 / (snr * f**2))
         gamma = gamma[(...,) + (None,) * (x.dim() - 1)]
         model_input = physics.prox_l2(x, y, gamma=gamma * self.fact_realign)
 
@@ -147,7 +181,9 @@ class RAM(nn.Module):
         physics = MultiScaleLinearPhysics(physics, x0.shape[-3:], device=x0.device)
 
         if self.separate_head and img_channels not in self.in_channels:
-            raise ValueError(f"Input image has {img_channels} channels, but the network only have heads for {self.in_channels} channels.")
+            raise ValueError(
+                f"Input image has {img_channels} channels, but the network only have heads for {self.in_channels} channels."
+            )
 
         if y is not None:
             x0 = self.realign_input(x0, physics, y)
@@ -180,7 +216,6 @@ class RAM(nn.Module):
 
         return x
 
-
     def forward(self, y=None, physics=None):
         r"""
         Reconstructs a signal estimate from measurements y
@@ -188,7 +223,9 @@ class RAM(nn.Module):
         :param deepinv.physics.Physics physics: forward operator
         """
         if physics is None:
-            physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=0.), device=y.device)
+            physics = dinv.physics.Denoising(
+                noise_model=dinv.physics.GaussianNoise(sigma=0.0), device=y.device
+            )
 
         x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
@@ -196,8 +233,12 @@ class RAM(nn.Module):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = physics.noise_model.sigma if hasattr(physics.noise_model, "sigma") else 1e-3
-        gamma = physics.noise_model.gain if hasattr(physics.noise_model, "gain") else 1e-3
+        sigma = (
+            physics.noise_model.sigma if hasattr(physics.noise_model, "sigma") else 1e-3
+        )
+        gamma = (
+            physics.noise_model.gain if hasattr(physics.noise_model, "gain") else 1e-3
+        )
 
         out = self.forward_unet(x_in, sigma=sigma, gamma=gamma, physics=physics, y=y)
 
@@ -206,10 +247,17 @@ class RAM(nn.Module):
         return out
 
 
-
 ### --------------- MODEL ---------------
 class BaseEncBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, bias=False, nb=4, img_channels=None, decode_upscale=None):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        bias=False,
+        nb=4,
+        img_channels=None,
+        decode_upscale=None,
+    ):
         super(BaseEncBlock, self).__init__()
         self.enc = nn.ModuleList(
             [
@@ -226,7 +274,9 @@ class BaseEncBlock(nn.Module):
 
     def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
         for i in range(len(self.enc)):
-            x = self.enc[i](x, physics=physics, y=y, img_channels=img_channels, scale=scale)
+            x = self.enc[i](
+                x, physics=physics, y=y, img_channels=img_channels, scale=scale
+            )
         return x
 
 
@@ -247,7 +297,7 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     else:
         x = x_init.clone()  # Extract the first img_channels
 
-    norm = factor ** 2  # Precompute normalization factor
+    norm = factor**2  # Precompute normalization factor
     AtA = lambda u: p.A_adjoint(p.A(u)) * norm  # Define the linear operator
 
     v = v if v is not None else torch.zeros_like(x)
@@ -255,7 +305,7 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     out = x.clone()
     # Compute Krylov basis
     x_k = x.clone()
-    for i in range(N-1):
+    for i in range(N - 1):
         x_k = AtA(x_k) - v
         out = torch.cat([out, x_k], dim=1)
 
@@ -273,7 +323,16 @@ class MeasCondBlock(nn.Module):
     :param depth_encoding: Depth of the encoding convolution.
     :param c_mult: Multiplier for the number of channels.
     """
-    def __init__(self, out_channels=64, img_channels=None, decode_upscale=None, N=4, depth_encoding=1, c_mult=1):
+
+    def __init__(
+        self,
+        out_channels=64,
+        img_channels=None,
+        decode_upscale=None,
+        N=4,
+        depth_encoding=1,
+        c_mult=1,
+    ):
         super(MeasCondBlock, self).__init__()
 
         self.separate_head = isinstance(img_channels, list)
@@ -284,8 +343,20 @@ class MeasCondBlock(nn.Module):
         self.N = N
         self.c_mult = c_mult
         self.relu_encoding = nn.ReLU(inplace=False)
-        self.decoding_conv = Tails(out_channels, img_channels, depth=1, scale=1, bias=False, c_mult=self.c_mult)
-        self.encoding_conv = Heads(img_channels, out_channels,  depth=depth_encoding, scale=1, bias=False, c_mult=self.c_mult*N, c_add=N, relu_in=False, skip_in=True)
+        self.decoding_conv = Tails(
+            out_channels, img_channels, depth=1, scale=1, bias=False, c_mult=self.c_mult
+        )
+        self.encoding_conv = Heads(
+            img_channels,
+            out_channels,
+            depth=depth_encoding,
+            scale=1,
+            bias=False,
+            c_mult=self.c_mult * N,
+            c_add=N,
+            relu_in=False,
+            skip_in=True,
+        )
 
         self.gain = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
         self.gain_gradx = torch.nn.Parameter(torch.tensor([1e-2]), requires_grad=True)
@@ -296,11 +367,19 @@ class MeasCondBlock(nn.Module):
     def forward(self, x, y, physics, img_channels=None, scale=1):
         physics.set_scale(scale)
         dec = self.decoding_conv(x, img_channels)
-        factor = 2**(scale)
+        factor = 2 ** (scale)
         meas_y = krylov_embeddings(y, physics, factor, N=self.N)
-        meas_dec = krylov_embeddings(y, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...])
+        meas_dec = krylov_embeddings(
+            y, physics, factor, N=self.N, x_init=dec[:, :img_channels, ...]
+        )
         for c in range(1, self.c_mult):
-            meas_cur = krylov_embeddings(y, physics, factor, N=self.N, x_init=dec[:, img_channels*c:img_channels*(c+1)])
+            meas_cur = krylov_embeddings(
+                y,
+                physics,
+                factor,
+                N=self.N,
+                x_init=dec[:, img_channels * c : img_channels * (c + 1)],
+            )
             meas_dec = torch.cat([meas_dec, meas_cur], dim=1)
         meas = torch.cat([meas_y, meas_dec], dim=1)
         cond = self.encoding_conv(meas)
@@ -326,6 +405,7 @@ class ResBlock(nn.Module):
     :param c_mult: Multiplier for the number of channels.
     :param depth_encoding: Depth of the encoding convolution.
     """
+
     def __init__(
         self,
         in_channels=64,
@@ -345,7 +425,9 @@ class ResBlock(nn.Module):
         super(ResBlock, self).__init__()
 
         if not head and not tail:
-            assert in_channels == out_channels, "Only support in_channels==out_channels."
+            assert (
+                in_channels == out_channels
+            ), "Only support in_channels==out_channels."
         self.separate_head = isinstance(img_channels, list)
         self.is_head = head
         self.is_tail = tail
@@ -375,21 +457,30 @@ class ResBlock(nn.Module):
             )
 
         self.gain = torch.nn.Parameter(torch.tensor([1.0]), requires_grad=True)
-        self.PhysicsBlock = MeasCondBlock(out_channels=out_channels, c_mult=c_mult,
-                                          img_channels=img_channels, decode_upscale=decode_upscale,
-                                          N=N, depth_encoding=depth_encoding)
+        self.PhysicsBlock = MeasCondBlock(
+            out_channels=out_channels,
+            c_mult=c_mult,
+            img_channels=img_channels,
+            decode_upscale=decode_upscale,
+            N=N,
+            depth_encoding=depth_encoding,
+        )
 
     def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
         u = self.conv1(x)
         u = self.nl(u)
         u_2 = self.conv2(u)
-        emb_grad = self.PhysicsBlock(u, y, physics, img_channels=img_channels, scale=scale)
+        emb_grad = self.PhysicsBlock(
+            u, y, physics, img_channels=img_channels, scale=scale
+        )
         u_1 = self.gain * emb_grad
         return x + u_2 + u_1
 
 
 class InHead(torch.nn.Module):
-    def __init__(self, in_channels_list, out_channels, mode="", bias=False, input_layer=False):
+    def __init__(
+        self, in_channels_list, out_channels, mode="", bias=False, input_layer=False
+    ):
         super(InHead, self).__init__()
         self.in_channels_list = in_channels_list
         self.input_layer = input_layer
@@ -415,6 +506,7 @@ class InHead(torch.nn.Module):
 
         return x
 
+
 class OutTail(torch.nn.Module):
     def __init__(self, in_channels, out_channels_list, mode="", bias=False):
         super(OutTail, self).__init__()
@@ -439,20 +531,50 @@ class OutTail(torch.nn.Module):
 
         return x
 
+
 class Heads(torch.nn.Module):
-    def __init__(self, in_channels_list, out_channels, depth=2, scale=1, bias=True, mode="bilinear", c_mult=1, c_add=0, relu_in=False, skip_in=False):
+    def __init__(
+        self,
+        in_channels_list,
+        out_channels,
+        depth=2,
+        scale=1,
+        bias=True,
+        mode="bilinear",
+        c_mult=1,
+        c_add=0,
+        relu_in=False,
+        skip_in=False,
+    ):
         super(Heads, self).__init__()
         self.in_channels_list = [c * (c_mult + c_add) for c in in_channels_list]
         self.scale = scale
         self.mode = mode
         for i, in_channels in enumerate(self.in_channels_list):
-            setattr(self, f"head{i}", HeadBlock(in_channels, out_channels, depth=depth, bias=bias, relu_in=relu_in, skip_in=skip_in))
+            setattr(
+                self,
+                f"head{i}",
+                HeadBlock(
+                    in_channels,
+                    out_channels,
+                    depth=depth,
+                    bias=bias,
+                    relu_in=relu_in,
+                    skip_in=skip_in,
+                ),
+            )
 
         if self.mode == "":
             self.nl = torch.nn.ReLU(inplace=False)
             if self.scale != 1:
                 for i, in_channels in enumerate(in_channels_list):
-                    setattr(self, f"down{i}", downsample_strideconv(in_channels, in_channels, bias=False, mode=str(self.scale)))
+                    setattr(
+                        self,
+                        f"down{i}",
+                        downsample_strideconv(
+                            in_channels, in_channels, bias=False, mode=str(self.scale)
+                        ),
+                    )
 
     def forward(self, x):
         in_channels = x.size(1)
@@ -460,7 +582,9 @@ class Heads(torch.nn.Module):
 
         if self.scale != 1:
             if self.mode == "bilinear":
-                x = torch.nn.functional.interpolate(x, scale_factor=1/self.scale, mode='bilinear', align_corners=False)
+                x = torch.nn.functional.interpolate(
+                    x, scale_factor=1 / self.scale, mode="bilinear", align_corners=False
+                )
             else:
                 x = getattr(self, f"down{i}")(x)
                 x = self.nl(x)
@@ -470,20 +594,52 @@ class Heads(torch.nn.Module):
 
         return x
 
+
 class Tails(torch.nn.Module):
-    def __init__(self, in_channels, out_channels_list, depth=2, scale=1, bias=True, mode="bilinear", c_mult=1, relu_in=False, skip_in=False):
+    def __init__(
+        self,
+        in_channels,
+        out_channels_list,
+        depth=2,
+        scale=1,
+        bias=True,
+        mode="bilinear",
+        c_mult=1,
+        relu_in=False,
+        skip_in=False,
+    ):
         super(Tails, self).__init__()
         self.out_channels_list = out_channels_list
         self.scale = scale
         for i, out_channels in enumerate(out_channels_list):
-            setattr(self, f"tail{i}", HeadBlock(in_channels, out_channels * c_mult, depth=depth, bias=bias, relu_in=relu_in, skip_in=skip_in))
+            setattr(
+                self,
+                f"tail{i}",
+                HeadBlock(
+                    in_channels,
+                    out_channels * c_mult,
+                    depth=depth,
+                    bias=bias,
+                    relu_in=relu_in,
+                    skip_in=skip_in,
+                ),
+            )
 
         self.mode = mode
         if self.mode == "":
             self.nl = torch.nn.ReLU(inplace=False)
             if self.scale != 1:
                 for i, out_channels in enumerate(out_channels_list):
-                    setattr(self, f"up{i}", upsample_convtranspose(out_channels * c_mult, out_channels * c_mult, bias=bias, mode=str(self.scale)))
+                    setattr(
+                        self,
+                        f"up{i}",
+                        upsample_convtranspose(
+                            out_channels * c_mult,
+                            out_channels * c_mult,
+                            bias=bias,
+                            mode=str(self.scale),
+                        ),
+                    )
 
     def forward(self, x, out_channels):
         i = self.out_channels_list.index(out_channels)
@@ -491,21 +647,35 @@ class Tails(torch.nn.Module):
         # find index
         if self.scale != 1:
             if self.mode == "bilinear":
-                x = torch.nn.functional.interpolate(x, scale_factor=self.scale, mode='bilinear', align_corners=False)
+                x = torch.nn.functional.interpolate(
+                    x, scale_factor=self.scale, mode="bilinear", align_corners=False
+                )
             else:
                 x = getattr(self, f"up{i}")(x)
 
         return x
 
+
 class HeadBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, bias=True, depth=2, relu_in=False, skip_in=False):
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size=3,
+        bias=True,
+        depth=2,
+        relu_in=False,
+        skip_in=False,
+    ):
         super(HeadBlock, self).__init__()
 
         padding = kernel_size // 2
 
         c = out_channels if depth < 2 else in_channels
 
-        self.convin = torch.nn.Conv2d(in_channels, c, kernel_size, padding=padding, bias=bias)
+        self.convin = torch.nn.Conv2d(
+            in_channels, c, kernel_size, padding=padding, bias=bias
+        )
         self.zero_conv_skip = torch.nn.Conv2d(in_channels, c, 1, bias=False)
         self.depth = depth
         self.nl_1 = torch.nn.ReLU(inplace=False)
@@ -513,16 +683,23 @@ class HeadBlock(torch.nn.Module):
         self.relu_in = relu_in
         self.skip_in = skip_in
 
-        for i in range(depth-1):
+        for i in range(depth - 1):
             if i < depth - 2:
                 c_in, c = in_channels, in_channels
             else:
                 c_in, c = in_channels, out_channels
 
-            setattr(self, f"conv1{i}", torch.nn.Conv2d(c_in, c_in, kernel_size, padding=padding, bias=bias))
-            setattr(self, f"conv2{i}", torch.nn.Conv2d(c_in, c, kernel_size, padding=padding, bias=bias))
+            setattr(
+                self,
+                f"conv1{i}",
+                torch.nn.Conv2d(c_in, c_in, kernel_size, padding=padding, bias=bias),
+            )
+            setattr(
+                self,
+                f"conv2{i}",
+                torch.nn.Conv2d(c_in, c, kernel_size, padding=padding, bias=bias),
+            )
             setattr(self, f"skipconv{i}", torch.nn.Conv2d(c_in, c, 1, bias=False))
-
 
     def forward(self, x):
 
@@ -533,7 +710,7 @@ class HeadBlock(torch.nn.Module):
         else:
             x = self.convin(x)
 
-        for i in range(self.depth-1):
+        for i in range(self.depth - 1):
             aux = getattr(self, f"conv1{i}")(x)
             aux = self.nl_2(aux)
             aux_0 = getattr(self, f"conv2{i}")(aux)
@@ -608,6 +785,7 @@ class AffineConv2d(nn.Conv2d):
                 dilation=self.dilation,
                 groups=self.groups,
             )
+
 
 """
 Functional blocks below
@@ -749,7 +927,6 @@ def downsample_strideconv(
     return down1
 
 
-
 class Upsampling(Downsampling):
     def A(self, x, **kwargs):
         return super().A_adjoint(x, **kwargs)
@@ -762,12 +939,23 @@ class Upsampling(Downsampling):
 
 
 class MultiScalePhysics(Physics):
-    def __init__(self, physics, img_shape, filter="sinc", scales=[2, 4, 8], device='cpu', **kwargs):
+    def __init__(
+        self,
+        physics,
+        img_shape,
+        filter="sinc",
+        scales=[2, 4, 8],
+        device="cpu",
+        **kwargs,
+    ):
         super().__init__(noise_model=physics.noise_model, **kwargs)
         self.base = physics
         self.scales = scales
         self.img_shape = img_shape
-        self.Upsamplings = [Upsampling(img_size=img_shape, filter=filter, factor=factor, device=device) for factor in scales]
+        self.Upsamplings = [
+            Upsampling(img_size=img_shape, filter=filter, factor=factor, device=device)
+            for factor in scales
+        ]
         self.scale = 0
 
     def set_scale(self, scale):
@@ -801,7 +989,9 @@ class MultiScalePhysics(Physics):
 
 class MultiScaleLinearPhysics(MultiScalePhysics, LinearPhysics):
     def __init__(self, physics, img_shape, filter="sinc", scales=[2, 4, 8], **kwargs):
-        super().__init__(physics=physics, img_shape=img_shape, filter=filter, scales=scales, **kwargs)
+        super().__init__(
+            physics=physics, img_shape=img_shape, filter=filter, scales=scales, **kwargs
+        )
 
     def A_adjoint(self, y, scale=None, **kwargs):
         self.set_scale(scale)
@@ -819,7 +1009,7 @@ class Pad(LinearPhysics):
         self.pad = pad
 
     def A(self, x):
-        return self.base.A(x[..., self.pad[0]:, self.pad[1]:])
+        return self.base.A(x[..., self.pad[0] :, self.pad[1] :])
 
     def A_adjoint(self, y):
         y = self.base.A_adjoint(y)
@@ -827,7 +1017,7 @@ class Pad(LinearPhysics):
         return y
 
     def remove_pad(self, x):
-        return x[..., self.pad[0]:, self.pad[1]:]
+        return x[..., self.pad[0] :, self.pad[1] :]
 
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)
