@@ -4,8 +4,23 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-
 Current
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+
+Fixed
+^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+
+
+v0.3.1
 ----------------
 
 New Features
@@ -21,7 +36,7 @@ New Features
 
 Changed
 ^^^^^^^
-- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_). 
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_).
 
 Fixed
 ^^^^^

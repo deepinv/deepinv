@@ -893,17 +893,38 @@ def adjoint_function(A, input_size, device="cpu", dtype=torch.float):
     (_, vjpfunc) = torch.func.vjp(A, x)
     batches = x.size()[0]
 
-    def adjoint(y):
-        if y.size()[0] < batches:
-            y2 = torch.zeros((batches,) + y.shape[1:], device=y.device, dtype=y.dtype)
-            y2[: y.size()[0], ...] = y
-            return vjpfunc(y2)[0][: y.size()[0], ...]
-        elif y.size()[0] > batches:
-            raise ValueError("Batch size of A_adjoint input is larger than expected")
-        else:
-            return vjpfunc(y)[0]
+    # NOTE: In certain cases A(x) can't be automatically differentiated
+    # infinitely many times wrt x. In that case, the adjoint of A computed
+    # using automatic differentiation might not be automatically differentiable
+    # either. We avoid this problem by using the involutive property of the
+    # adjoint operator, i.e.,  (A^\top)^\top = A, and we specifically define
+    # the adjoint of the adjoint as the original linear operator A. For more
+    # details, see https://github.com/deepinv/deepinv/issues/511
+    class Adjoint(torch.autograd.Function):
+        @staticmethod
+        def forward(y):
+            if y.size()[0] < batches:
+                y2 = torch.zeros(
+                    (batches,) + y.shape[1:], device=y.device, dtype=y.dtype
+                )
+                y2[: y.size()[0], ...] = y
+                return vjpfunc(y2)[0][: y.size()[0], ...]
+            elif y.size()[0] > batches:
+                raise ValueError(
+                    "Batch size of A_adjoint input is larger than expected"
+                )
+            else:
+                return vjpfunc(y)[0]
 
-    return adjoint
+        @staticmethod
+        def setup_context(ctx, inputs, outputs):
+            pass
+
+        @staticmethod
+        def backward(ctx, grad_output):
+            return A(grad_output)
+
+    return Adjoint.apply
 
 
 def stack(*physics: Union[Physics, LinearPhysics]):
