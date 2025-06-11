@@ -189,6 +189,7 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
+@pytest.mark.slow
 @torch.no_grad()
 def test_sde(device):
     from deepinv.sampling import (
