@@ -202,7 +202,7 @@ class Tomography(LinearPhysics):
 
 class TomographyWithAstra(LinearPhysics):
     r"""Computed Tomography operator with `astra-toolbox <https://astra-toolbox.com/>`_ backend.
-    It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3d geometries.
+    It is more memory efficient than the :class:`deepinv.physics.Tomography` operator and support 3D geometries.
     See documentation of :class:`deepinv.physics.functional.XrayTransform` for more
     information on the ``astra`` wrapper.
 
@@ -218,27 +218,27 @@ class TomographyWithAstra(LinearPhysics):
     trajectory. Given different acquisition systems, the lines along which
     the integrals are computed follow different geometries:
 
-    * parallel. (2d and 3d)
-        Per view, all rays intersecting the object are parallel. In 2d, all rays live on the same plane, perpendicular
+    * parallel. (2D and 3D)
+        Per view, all rays intersecting the object are parallel. In 2D, all rays live on the same plane, perpendicular
         to the axis of rotation.
-    * fanbeam. (2d)
+    * fanbeam. (2D)
         Per view, all rays come from a single source and intersect the object at a certain angle. The detector consists of a 1d line of cells. Similar to
-        the 2d "parallel", all rays live on the same plane, perpendicular to the axis of rotation.
-    * conebeam. (3d)
-        Per view, all rays come from a single source. The detector consists of a 2d grid of cells. Apart from the central plane, the set of rays coming onto
+        the 2D "parallel", all rays live on the same plane, perpendicular to the axis of rotation.
+    * conebeam. (3D)
+        Per view, all rays come from a single source. The detector consists of a 2D grid of cells. Apart from the central plane, the set of rays coming onto
         a line of cells live on a tilted plane.
 
     .. note::
 
         The pseudo-inverse is computed using the filtered back-projection
-        algorithm with a Ramp filter, and its equivalent for conebeam 3d, the
+        algorithm with a Ramp filter, and its equivalent for conebeam 3D, the
         Feldkamp-Davis-Kress algorithm. This is not the exact linear pseudo-inverse
         of the Ray Transform, but it is a good approximation which is robust to noise.
 
     .. note::
 
         In the default configuration, reconstruction cells and detector cells are
-        set to have isotropic unit lengths. The geometry is set to 2d parallel
+        set to have isotropic unit lengths. The geometry is set to 2D parallel
         and matches the default configuration of the :class:`deepinv.physics.Tomography` operator with
         ``circle=False``.
 
@@ -251,17 +251,17 @@ class TomographyWithAstra(LinearPhysics):
 
     .. warning::
 
-        The :class:`deepinv.physics.functional.XrayTransform` used in :class:`TomographyWithAstra` sequentially processes batch elements, which can make the 2d parallel beam operator significantly slower than the its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
+        The :class:`deepinv.physics.functional.XrayTransform` used in :class:`deepinv.physics.TomographyWithAstra` sequentially processes batch elements, which can make the 2D parallel beam operator significantly slower than its native torch counterpart with :class:`deepinv.physics.Tomography` (though still more memory-efficient).
 
-    :param tuple[int, ...] img_size: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2d or 3d.
+    :param tuple[int, ...] img_size: Shape of the object grid, either a 2 or 3-element tuple, for respectively 2D or 3D.
     :param int num_angles: Number of angular positions sampled uniformly in ``angular_range``. (default: 180)
-    :param int | tuple[int, ...], None num_detectors: In 2d, specify an integer for a single line of detector cells. In 3d, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
-    :param tuple[float, float] angular_range: Angular range, defaults to (0,``torch.pi``).
-    :param float | tuple[float, float] detector_spacing: In 2d the width of a detector cell. In 3d a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
-    :param tuple[float, ...] object_spacing: In 2d, the (x,y) dimensions of a pixel in the reconstructed image. In 3d, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
-    :param tuple[float, ...], None aabb: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
+    :param int | tuple[int, ...], None num_detectors: In 2D, specify an integer for a single line of detector cells. In 3D, specify a 2-element tuple for (row,col) shape of the detector. (default: None)
+    :param tuple[float, float] angular_range: Angular range, defaults to ``(0, torch.pi)``.
+    :param float | tuple[float, float] detector_spacing: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
+    :param tuple[float, ...] object_spacing: In 2D, the (x,y) dimensions of a pixel in the reconstructed image. In 3D, the (x,y,z) dimensions of a voxel. (default: ``(1.,1.)``)
+    :param tuple[float, ...], None bounding_box: Axis-aligned bounding-box of the reconstruction area [min_x, max_x, min_y, max_y, ...]. Optional argument, if specified, overrides argument ``object_spacing``. (default: None)
     :param torch.Tensor, None angles: Tensor containing angular positions in radii. Optional, if specified, overrides arguments ``num_angles`` and ``angular_range``. (default: None)
-    :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d. (default: ``'parallel'``)
+    :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D. (default: ``'parallel'``)
     :param dict[str, Any] geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
         - ``"source_radius"``: the distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}`, (default: 80.),
@@ -286,7 +286,7 @@ class TomographyWithAstra(LinearPhysics):
 
     :Examples:
 
-        Tomography operator with a 2d ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
+        Tomography operator with a 2D ``'fanbeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector line of 5 cells with length 2., a source-radius of 20.0 and a detector_radius of 20.0 for 5x5 image:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -319,7 +319,7 @@ class TomographyWithAstra(LinearPhysics):
                     [-1.6350,  1.4374,  2.2693, -2.2185, -3.7328],
                     [-1.9789,  0.1986, -0.2281, -1.7952, -0.3667]]]], device='cuda:0')
 
-        Tomography operator with a 3d ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
+        Tomography operator with a 3D ``'conebeam'`` geometry, 10 uniformly sampled angles in ``[0,2*torch.pi]``, a detector grid of 5x5 cells of size (2.,2.), a source-radius of 20.0 and a detector_radius of 20.0 for a 5x5x5 volume:
 
         .. doctest::
            :skipif: astra is None or not cuda_available
@@ -370,7 +370,7 @@ class TomographyWithAstra(LinearPhysics):
         angular_range: tuple[float, float] = (0, torch.pi),
         detector_spacing: Union[float, tuple[float, float]] = 1.0,
         object_spacing: tuple[float, ...] = (1.0, 1.0),
-        aabb: Optional[tuple[float, ...]] = None,
+        bounding_box: Optional[tuple[float, ...]] = None,
         angles: Optional[torch.Tensor] = None,
         geometry_type: str = "parallel",
         geometry_parameters: dict[str, Any] = {
@@ -387,7 +387,7 @@ class TomographyWithAstra(LinearPhysics):
         assert len(img_size) in (
             2,
             3,
-        ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2d and 3d respectively)"
+        ), f"len(img_size) is {len(img_size)}, must be either 2 or 3 (for 2D and 3D respectively)"
 
         if torch.device(device).type != "cuda":
             warn(
@@ -410,7 +410,10 @@ class TomographyWithAstra(LinearPhysics):
             angles = torch.linspace(*angular_range, steps=num_angles + 1)[:-1]
 
         self.object_geometry = create_object_geometry(
-            *img_size, aabb=aabb, spacing=object_spacing, is_2d=self.is_2d
+            *img_size,
+            bounding_box=bounding_box,
+            spacing=object_spacing,
+            is_2d=self.is_2d,
         )
 
         self.projection_geometry = create_projection_geometry(
@@ -456,7 +459,7 @@ class TomographyWithAstra(LinearPhysics):
         r"""Scales the computation by the inverse number of views and
         object-to-dector cell ratio.
 
-        In conebeam 3d, compute FDK weights to correct inflated distances due to
+        In conebeam 3D, compute FDK weights to correct inflated distances due to
         tilted rays. Given coordinate :math:`(x,y)`  of a detector cell, the corresponding
         weight is :math:`\omega(x,y) = \frac{D_{s0}}{\sqrt{D_{sd}^2 + x^2 + y^2}}`.
 

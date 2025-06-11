@@ -28,7 +28,7 @@ class XrayTransform:
 
     :param dict[str, Any] projection_geometry: Dictionnary containing the parameters of the projection geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
     :param dict[str, Any] object_geometry:  Dictionnary containing the parameters of the object geometry. It is passed to the ``astra.create_projector()`` function to instanciate the projector.
-    :param bool is_2d: Specifies if the geometry is flat (2d) or describe a real 3d reconstruction setup.
+    :param bool is_2d: Specifies if the geometry is flat (2D) or describe a real 3D reconstruction setup.
     """
 
     def __init__(
@@ -150,10 +150,10 @@ class XrayTransform:
     ) -> torch.Tensor:
         r"""Forward projection.
 
-        :param torch.Tensor x: Tensor of shape [1,H,W] in 2d, or [D,H,W] in 3d.
+        :param torch.Tensor x: Tensor of shape [1,H,W] in 2D, or [D,H,W] in 3D.
         :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,A,N]
         to store output results
-        :return: Sinogram of shape [1,A,N] in 2d or set of sinograms [V,A,N] in 3d.
+        :return: Sinogram of shape [1,A,N] in 2D or set of sinograms [V,A,N] in 3D.
         """
 
         assert (
@@ -191,10 +191,10 @@ class XrayTransform:
             ) -> torch.Tensor:
                 r"""Backprojection.
 
-                :param torch.Tensor x: Tensor of shape [1,A,N] in 2d, or [V,A,N] in 3d.
+                :param torch.Tensor x: Tensor of shape [1,A,N] in 2D, or [V,A,N] in 3D.
                 :param torch.Tensor, None out: To avoid unecessary copies, provide tensor of shape [...,H,W]
                 to store output results
-                :return: Image of shape [1,H,W] in 2d or volume [D,H,W] in 3d.
+                :return: Image of shape [1,H,W] in 2D or volume [D,H,W] in 3D.
                 """
                 assert (
                     x.shape == self.domain_shape
@@ -355,10 +355,10 @@ def create_projection_geometry(
     """Utility function that produces a "projection geometry", a dict of parameters
     used by ``astra`` to parametrize the geometry of the detector and the x-ray source.
 
-    :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2d and ``'parallel'`` and ``'conebeam'`` in 3d.
-    :param int | tuple[int, int]: In 2d the width of a detector cell. In 3d a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
+    :param str geometry_type: The type of geometry among ``'parallel'``, ``'fanbeam'`` in 2D and ``'parallel'`` and ``'conebeam'`` in 3D.
+    :param int | tuple[int, int]: In 2D the width of a detector cell. In 3D a 2-element tuple specifying the (vertical, horizontal) dimensions of a detector cell. (default: 1.0)
     :param torch.Tensor angles: Tensor containing angular positions in radii.
-    :param bool is_2d: Boolean specifying if the parameters define a 2d slice or a 3d volume.
+    :param bool is_2d: Boolean specifying if the parameters define a 2D slice or a 3D volume.
     :param dict[str, str], None geometry_parameters: Contains extra parameters specific to certain geometries. When ``geometry_type='fanbeam'`` or  ``'conebeam'``, the dictionnary should contains the keys
 
         - "source_radius" distance between the x-ray source and the rotation axis, denoted :math:`D_{s0}` (default: 80.)
@@ -391,11 +391,11 @@ def create_projection_geometry(
         if geometry_vectors is None:
             if len(detector_spacing) != 2:
                 raise ValueError(
-                    f"For 3d geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
+                    f"For 3D geometry, argument `detector_spacing` should be a tuple of 2 float the vertical and horizontal dimensions of a detector cell, got {len(detector_spacing)}"
                 )
         if len(n_detector_pixels) != 2:
             raise ValueError(
-                f"For 3d geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
+                f"For 3D geometry, argument `n_detector_pixels` should be a tuple of 2 int specifying the number of (columns,rows) in the detector grid {len(n_detector_pixels)}"
             )
 
     if geometry_parameters is not None:
@@ -432,7 +432,7 @@ def create_projection_geometry(
             )
         else:
             raise ValueError(
-                f'got geometry_type="{geometry_type}", in 2d should be one of ["parallel","fanbeam"]'
+                f'got geometry_type="{geometry_type}", in 2D should be one of ["parallel","fanbeam"]'
             )
     else:
         detector_row_count, detector_col_count = n_detector_pixels
@@ -455,7 +455,7 @@ def create_projection_geometry(
                     angles,
                 )
         elif geometry_type == "fanbeam":
-            raise NotImplementedError("fanbeam geometry is not implemented in 3d")
+            raise NotImplementedError("fanbeam geometry is not implemented in 3D")
 
         elif geometry_type == "conebeam":
             if geometry_vectors is not None:
@@ -478,7 +478,7 @@ def create_projection_geometry(
                 )
         else:
             raise ValueError(
-                f'got geometry_type="{geometry_type}", in 3d should be one of ["parallel","conebeam"]'
+                f'got geometry_type="{geometry_type}", in 3D should be one of ["parallel","conebeam"]'
             )
 
     return projection_geometry
@@ -490,7 +490,7 @@ def create_object_geometry(
     n_slices: int = 1,
     is_2d: bool = True,
     spacing: tuple[float, ...] = (1.0, 1.0),
-    aabb: Optional[tuple[float, ...]] = None,
+    bounding_box: Optional[tuple[float, ...]] = None,
 ) -> dict[str, Any]:
     """Utility function that produces a "volume geometry", a dict of parameters
     used by ``astra`` to parametrize the reconstruction grid.
@@ -498,27 +498,27 @@ def create_object_geometry(
     :param int n_rows: Number of rows.
     :param int n_cols: Number of columns.
     :param int n_slices: Number of slices. It is automatically set to 1 when ``is_2d=True``.
-    :param bool is_2d: Boolean specifying if the parameters define a 2d slice or a 3d volume.
+    :param bool is_2D: Boolean specifying if the parameters define a 2D slice or a 3D volume.
     :param tuple[float, ...] spacing: Dimensions of reconstruction cell along the axis [x,y,...].
-    :param tuple[float, ...] aabb: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
+    :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
     """
 
     if is_2d:
-        if aabb is not None:
-            if len(aabb) != 4:
+        if bounding_box is not None:
+            if len(bounding_box) != 4:
                 raise ValueError(
-                    f"For 2d geometry, argument `aabb` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(aabb)={len(aabb)}"
+                    f"For 2D geometry, argument `bounding_box` should be a tuple of size 4 for with (min_x,max_x,min_y,max_y), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
             if len(spacing) != 2:
                 raise ValueError(
-                    f"For 2d geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)={len(spacing)}"
+                    f"For 2D geometry, `spacing` should be a tuple of size 2 with dimensions (length_x,length_y) of a pixel, got len(spacing)={len(spacing)}"
                 )
     else:
-        if aabb is not None:
-            if len(aabb) != 6:
+        if bounding_box is not None:
+            if len(bounding_box) != 6:
                 raise ValueError(
-                    f"For 3d geometry, argument `aabb` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(aabb)={len(aabb)}"
+                    f"For 3D geometry, argument `bounding_box` should be a tuple of size 6 for with (min_x,max_x,min_y,max_y,min_z,max_z), got len(bounding_box)={len(bounding_box)}"
                 )
         else:
             if len(spacing) != 3:
@@ -528,8 +528,8 @@ def create_object_geometry(
 
     if is_2d:
         n_slices = 1
-        if aabb is not None:
-            min_x, max_x, min_y, max_y = aabb
+        if bounding_box is not None:
+            min_x, max_x, min_y, max_y = bounding_box
         else:
             min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
             min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
@@ -538,8 +538,8 @@ def create_object_geometry(
         min_z, max_z = -0.5, 0.5
 
     else:
-        if aabb is not None:
-            min_x, max_x, min_y, max_y, min_z, max_z = aabb
+        if bounding_box is not None:
+            min_x, max_x, min_y, max_y, min_z, max_z = bounding_box
         else:
             min_x, max_x = -n_cols / 2 * spacing[0], n_cols / 2 * spacing[0]
             min_y, max_y = -n_rows / 2 * spacing[1], n_rows / 2 * spacing[1]
