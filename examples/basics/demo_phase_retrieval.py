@@ -221,7 +221,8 @@ denoiser_complex = to_complex_denoiser(denoiser, mode="abs_angle")
 # Algorithm parameters
 data_fidelity = L2()
 prior = PnP(denoiser=denoiser_complex)
-params_algo = {"stepsize": 0.30, "g_param": 0.04}
+stepsize = 0.3  # stepsize for the proximal gradient descent algorithm.
+sigma_denoiser = 0.04  # noise level of the denoiser, used for the regularization parameter in the PnP algorithm.
 max_iter = 100
 early_stop = True
 verbose = True
@@ -233,7 +234,8 @@ model = ProximalGradientDescent(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-    params_algo=params_algo,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
 )
 
 # Run the algorithm

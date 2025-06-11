@@ -16,18 +16,9 @@ def objective_function(x, data_fidelity, prior, cur_params, y, physics):
     :param deepinv.physics physics: Instance of the physics modeling the observation.
     """
     if prior is not None and prior.explicit_prior:
-        prior_value = prior(x, cur_params["g_param"])
-        if prior_value.dim() == 0:
-            reg_value = cur_params["lambda"] * prior_value
-        else:
-            if isinstance(cur_params["lambda"], float):
-                reg_value = (cur_params["lambda"] * prior_value).sum()
-            else:
-                reg_value = (
-                    cur_params["lambda"].flatten().to(prior_value.device)
-                    * prior_value.flatten()
-                ).sum()
-        return data_fidelity(x, y, physics) + reg_value
+        return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
+            x, cur_params["g_param"]
+        )
     else:
         warnings.warn(
             "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."

@@ -197,7 +197,7 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 1
+train_batch_size = 64 if torch.cuda.is_available() else 2
 test_batch_size = 64 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(

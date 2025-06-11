@@ -214,6 +214,7 @@ def custom_output(X):
 model = PDNet_optim(
     unfold=True,
     params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
+    trainable_params=[],
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,
