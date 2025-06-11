@@ -86,6 +86,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "dsccp":
+        out = dinv.models.DScCP()
     else:
         raise Exception("Unknown denoiser")
 
@@ -270,7 +272,8 @@ def test_denoiser_color(imsize, device, denoiser):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
-    if denoiser != "scunet":  # scunet does not support 1 channel
+    # except scunet and dsccp, all models support 1 channel
+    if denoiser not in ["scunet", "dsccp"]:
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
