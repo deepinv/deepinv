@@ -388,7 +388,9 @@ class WaveletPrior(Prior):
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
-        list_norm_dec = torch.stack([torch.norm(dec, p=self.p, dim=-1) for dec in list_dec], dim=-1) # shape: (batch_size, n_dec)
+        list_norm_dec = torch.stack(
+            [torch.norm(dec, p=self.p, dim=-1) for dec in list_dec], dim=-1
+        )  # shape: (batch_size, n_dec)
         list_norm = torch.sum(list_norm_dec, dim=-1)  # shape: (batch_size,)
         if reduce:
             return torch.sum(list_norm)

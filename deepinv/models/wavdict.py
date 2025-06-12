@@ -112,12 +112,18 @@ class WaveletDenoiser(Denoiser):
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = [list(t) if isinstance(t, tuple) else t for t in dec]
             # vec = [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
-            vec = [decl.reshape(x.shape[0], -1) for l in range(1, len(dec)) for decl in dec[l]]
+            vec = [
+                decl.reshape(x.shape[0], -1)
+                for l in range(1, len(dec))
+                for decl in dec[l]
+            ]
         elif dimension == 3:
             dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = [list(t) if isinstance(t, tuple) else t for t in dec]
             # vec = [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
-            vec = [decl.view(x.shape[0], -1) for l in range(1, len(dec)) for decl in dec[l]]
+            vec = [
+                decl.view(x.shape[0], -1) for l in range(1, len(dec)) for decl in dec[l]
+            ]
         return vec
 
     def iwt(self, coeffs):
