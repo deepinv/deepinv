@@ -388,7 +388,10 @@ class WaveletPrior(Prior):
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
+        print("List of detail coefficients:", len(list_dec))
+        print('Shape of detail coefficients:', [dec.shape for dec in list_dec])
         list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        print("List norm length:", list_norm.shape)
         if reduce:
             return torch.sum(list_norm)
         else:
