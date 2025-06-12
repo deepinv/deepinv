@@ -331,9 +331,9 @@ class VariancePreservingDiffusion(DiffusionSDE):
 
     where :math:`\alpha \in [0,1]` is a constant weighting the diffusion term.
 
-    This class is the reverse-time SDE of the VE-SDE, serving as the generation process.
+    This class is the reverse-time SDE of the VP-SDE, serving as the generation process.
 
-    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` :math:`\nabla \log p_t`.
+    :param deepinv.models.Denoiser denoiser: a denoiser used to provide an approximation of the score at time :math:`t` : :math:`\nabla \log p_t`.
     :param float beta_min: the minimum noise level.
     :param float beta_max: the maximum noise level.
     :param float alpha: the weighting factor of the diffusion term.
