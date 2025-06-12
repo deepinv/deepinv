@@ -107,7 +107,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
 )
 
 
@@ -121,16 +121,16 @@ model = dinv.models.ArtifactRemoval(
 #       There are GR2R losses for various noise distributions, which can be specified by the noise model.
 #
 
-epochs = 60  # choose training epochs
-learning_rate = 1e-3
-batch_size = 32 if torch.cuda.is_available() else 1
+epochs = 1  # choose training epochs
+learning_rate = 1e-9
+batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
 loss = dinv.loss.R2RLoss(noise_model=None)
 model = loss.adapt_model(model)  # important step!
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # # start with a pretrained model to reduce training time
