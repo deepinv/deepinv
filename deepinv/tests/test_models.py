@@ -2,6 +2,7 @@ import sys
 import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torchvision.transforms.functional import rgb_to_grayscale
 
 import deepinv as dinv
 from dummy import DummyCircles, DummyModel
@@ -89,11 +90,17 @@ def choose_denoiser(name, imsize):
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "ncsnpp":
         out = dinv.models.NCSNpp(
-            in_channels=imsize[0], out_channels=imsize[0], img_resolution=imsize[1]
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            img_resolution=imsize[1],
+            pretrained=None,
         )
     elif name == "admunet":
         out = dinv.models.ADMUNet(
-            in_channels=imsize[0], out_channels=imsize[0], img_resolution=imsize[1]
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            img_resolution=imsize[1],
+            pretrained=None,
         )
     else:
         raise Exception("Unknown denoiser")
@@ -786,7 +793,10 @@ def test_pannet():
 def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp16):
     # Load the pretrained model
     model = dinv.models.NCSNpp(
-        img_resolution=image_size, in_channels=n_channels, out_channels=n_channels
+        img_resolution=image_size,
+        in_channels=n_channels,
+        out_channels=n_channels,
+        pretrained=None,
     )
     if precond:
         model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)

@@ -81,7 +81,7 @@ class NCSNpp(Denoiser):
             3,
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-        pretrained: str = None,
+        pretrained: str = "download",
         pixel_std: float = 0.75,
         device=None,
     ):
