@@ -54,11 +54,12 @@ test_dataset = datasets.MNIST(
 
 # %%
 # Generate a dataset of noisy images
-# ----------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 #
 # Generate a dataset of noisy images corrupted by Poisson noise.
 # The predefined noise models in the physics module include Gaussian, Poisson, and Gamma noise.
 # Here, we use Poisson noise as an example, but you can also use Gaussian or Gamma noise.
+#
 # .. note::
 #
 #       We use a subset of the whole training set to reduce the computational load of the example.
