@@ -462,7 +462,7 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs.
         """
         if not isinstance(sigma, torch.Tensor):
-            sigma = torch.tensor(sigma).to(x.device)
+            sigma = torch.tensor([sigma]).to(x.device).view(1, 1, 1, 1)
         else:
             sigma = sigma.squeeze().view((sigma.shape + (1,) * (4 - sigma.ndim)))
         alpha = 1 / (1 + 4 * sigma**2)
@@ -477,7 +477,7 @@ class DiffUNet(Denoiser):
         ) = self.get_alpha_prod()
 
         timesteps = self.find_nearest(
-            sqrt_1m_alphas_cumprod.to(x.device), sigma.squeeze() * 2
+            sqrt_1m_alphas_cumprod.to(x.device), sigma.squeeze(dim=(1, 2, 3)) * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
         timesteps = timesteps.to(x.device)

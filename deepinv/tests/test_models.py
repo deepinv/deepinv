@@ -266,6 +266,10 @@ def test_TV_models_identity():
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
+    # NCSNpp and ADMUnet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "admunet"]:
+        imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
+
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
     sigma = 0.2
@@ -280,6 +284,14 @@ def test_denoiser_color(imsize, device, denoiser):
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     if denoiser != "scunet":  # scunet does not support 1 channel
+        # NCSNpp and ADMUnet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "admunet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 8) * 8,
+                (imsize_1_channel[2] // 8) * 8,
+            )
+
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -700,10 +712,10 @@ def test_time_agnostic_net():
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
 
-    def dummy_dataset(imsize, device):
+    def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
 
-    x = dummy_dataset((2, 8, 8), device=device)[0].unsqueeze(0)
+    x = dummy_dataset((2, 8, 8))[0].unsqueeze(0).to(device)
     physics = dinv.physics.MRI(
         mask=dinv.physics.generator.GaussianMaskGenerator(
             x.shape[1:], acceleration=2, device=device
