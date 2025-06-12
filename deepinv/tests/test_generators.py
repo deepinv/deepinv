@@ -206,7 +206,7 @@ def test_generation(name, device, dtype):
 
 
 @pytest.mark.parametrize(
-    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+    "name", sorted(set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"])))
 )
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", [torch.float64])

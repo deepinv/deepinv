@@ -1281,3 +1281,39 @@ def test_unmixing(device):
 
     assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
     assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_adjoint_autograd(name, device):
+    # NOTE: The current implementation of adjoint_function does not support
+    # physics that return tensor lists or complex tensors. It also does not
+    # support RadioInterferometry although it is not entirely clear why.
+    if name in {
+        "aliased_pansharpen",
+        "pansharpen_valid",
+        "pansharpen_circular",
+        "pansharpen_reflect",
+        "pansharpen_replicate",
+        "complex_compressed_sensing",
+        "ptychography_linear",
+        "radio",
+        "radio_weighted",
+    }:
+        pytest.skip(f"Operator {name} is not supported by adjoint_function.")
+
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    y = physics.A(x)
+
+    A_adjoint = adjoint_function(physics.A, x.shape, x.device, x.dtype)
+
+    # Compute Df^\top(z) using autograd where f(z) = A^\top z.
+    y.requires_grad_()
+    z = torch.randn_like(x, device=device, dtype=dtype)
+    l = (z * A_adjoint(y)).sum()
+    l.backward()
+    # \delta y := \delta_y <z, A^\top y> = Az
+    delta_y = y.grad
+    Az = physics.A(z)
+    assert torch.allclose(delta_y, Az, rtol=1e-5)
