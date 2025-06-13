@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add `Physics.clone` (:gh:`534` by `Jérémy Scanvic`_)
 
 Changed
 ^^^^^^^
