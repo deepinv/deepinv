@@ -111,6 +111,14 @@ class NoiseModel(nn.Module):
                     self.register_buffer(key, self._float_to_tensor(value))
 
     def _float_to_tensor(self, value):
+        r"""
+        Handle the noise level input. b
+
+        :param value float or int or torch.Tensor: the input value
+
+        :return: the same value as a torch.Tensor
+        :rtype: torch.Tensor
+        """
         if value is None:
             return value
         elif isinstance(value, (float, int)):
@@ -118,7 +126,9 @@ class NoiseModel(nn.Module):
         elif isinstance(value, torch.Tensor):
             return value
         else:
-            raise ValueError
+            raise ValueError(
+                f"Unsupported type for noise level. Expected float, int, or torch.Tensor, got {type(value)}."
+            )
 
     # To handle the transfer between CPU/GPU properly
     def to(self, *args, **kwargs):

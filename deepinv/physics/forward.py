@@ -8,6 +8,7 @@ from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
 import warnings
 
+
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
     Parent class for forward operators

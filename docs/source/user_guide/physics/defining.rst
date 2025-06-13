@@ -20,7 +20,7 @@ a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
 .. tip::
 
-    To make the new physics compatible with other torch functionalities, physics parameters (tensor attributes) should be registered as module buffers by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using DDP. 
+    To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>` by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel. 
 
 .. tip::
 
