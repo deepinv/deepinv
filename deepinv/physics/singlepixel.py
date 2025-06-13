@@ -6,7 +6,7 @@ import math
 
 
 def hadamard_1d(u, normalize=True):
-    """
+    r"""
     Multiply H_n @ u where H_n is the Hadamard matrix of dimension n x n.
 
     :param torch.Tensor u: Input tensor of shape ``(..., n)``.
