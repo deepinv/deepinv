@@ -154,7 +154,7 @@ def test_algo_inpaint(name_algo, device):
     mask = torch.ones_like(x)
     mask[:, :, 10:20, 10:20] = 0
 
-    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
+    physics = dinv.physics.Inpainting(mask=mask, img_size=x.shape[1:], device=device)
 
     y = physics(x)
 
@@ -189,6 +189,7 @@ def test_algo_inpaint(name_algo, device):
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
 
 
+@pytest.mark.slow
 @torch.no_grad()
 def test_sde(device):
     from deepinv.sampling import (
@@ -271,7 +272,7 @@ def test_sde(device):
                     resize_mode="resize",
                 ).to(device)
                 physics = dinv.physics.Inpainting(
-                    tensor_size=x.shape[1:], mask=0.5, device=device
+                    img_size=x.shape[1:], mask=0.5, device=device
                 )
                 y = physics(x)
 

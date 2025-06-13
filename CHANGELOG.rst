@@ -13,6 +13,7 @@ New Features
 Changed
 ^^^^^^^
 - Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
 
 Fixed
 ^^^^^
@@ -98,6 +99,8 @@ Fixed
 - Fix device inconsistency in test_physics, physics classes and noise models (:gh:`462` by `Minh Hai Nguyen`_)
 
 
+- Fix Ptychography can not handle multi-channels input (:gh:`494` by `Minh Hai Nguyen`_)
+- Fix argument name (img_size, in_shape, ...) inconsistency  (:gh:`494` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^

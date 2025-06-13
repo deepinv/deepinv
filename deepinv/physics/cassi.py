@@ -163,7 +163,7 @@ class CompressiveSpectralImaging(LinearPhysics):
         :return: (:class:`torch.Tensor`) output measurements
         """
         if x.shape[1:] != self.img_size:
-            raise ValueError("Input must be same shape as img_shape.")
+            raise ValueError("Input must be same shape as img_size.")
 
         self.update_parameters(mask=mask, **kwargs)
 
