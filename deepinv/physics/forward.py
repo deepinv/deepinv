@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Union, List
 
 import torch
@@ -68,7 +69,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         warnings.warn(
             "You are composing two physics objects. The resulting physics will not retain the original attributes. "
-            "Additionally, 'A_dagger' will fall back to the conjugate gradient method, which may impact performance."
+            "You may instead retrieve attributes of the original physics by indexing the resulting physics."
         )
         return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
@@ -716,6 +717,11 @@ def compose(*physics: Union[Physics, LinearPhysics], **kwargs):
 
     :param deepinv.physics.Physics physics: Physics operators :math:`A_i` to be composed.
     """
+    if any(isinstance(phys, DecomposablePhysics) for phys in physics):
+        warnings.warn(
+            "At least one input physics is a DecomposablePhysics, but resulting physics will not be decomposable. `A_dagger` and `prox_l2` will fall back to approximate methods, which may impact performance."
+        )
+
     if all(isinstance(phys, LinearPhysics) for phys in physics):
         return ComposedLinearPhysics(*physics, **kwargs)
     else:
