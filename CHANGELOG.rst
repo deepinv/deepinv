@@ -15,6 +15,7 @@ New Features
 - Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
 - Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
 - Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
 
 Changed
 ^^^^^^^
