@@ -233,6 +233,7 @@ class NCSNpp(Denoiser):
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
             self.load_state_dict(ckpt, strict=True)
+            self._train_on_minus_one_one = True
         else:
             self._train_on_minus_one_one = False
         self.eval()
