@@ -4,8 +4,25 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-
 Current
+----------------
+
+New Features
+^^^^^^^^^^^^
+- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
+
+Changed
+^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+
+Fixed
+^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+
+
+v0.3.1
 ----------------
 
 New Features
@@ -15,11 +32,13 @@ New Features
 - Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
 - Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
 - Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
-- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
-- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_). 
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_).
 
 Fixed
 ^^^^^
@@ -30,7 +49,9 @@ Fixed
 - Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
 - Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
 - Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
 
 v0.3
 ----------------
@@ -331,5 +352,6 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo

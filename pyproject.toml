@@ -19,7 +19,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -53,6 +53,7 @@ Tracker = "https://github.com/deepinv/deepinv/issues"
 test = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "coverage",
 ]
 
@@ -64,6 +65,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
+    "sphinx_sitemap",
 ]
 
 # optional dependencies for specific denoisers
@@ -98,6 +100,9 @@ dataset = [
 minversion = "6.0"
 testpaths = [
     "deepinv/tests",
+]
+markers = [
+    "slow",
 ]
 
 [tool.coverage.run]

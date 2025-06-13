@@ -16,10 +16,10 @@ class LPIPS(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import get_image_url, load_url_image
+    >>> from deepinv.utils.demo import load_example
     >>> from deepinv.loss.metric import LPIPS
     >>> m = LPIPS() # doctest: +IGNORE_RESULT
-    >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
+    >>> x = load_example("celeba_example.jpg", img_size=128)
     >>> x_net = x - 0.01
     >>> m(x_net, x) # doctest: +ELLIPSIS
     tensor([...])
@@ -58,11 +58,11 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import get_image_url, load_url_image
+    >>> from deepinv.utils.demo import load_example
     >>> from deepinv.loss.metric import NIQE
     >>> m = NIQE() # doctest: +IGNORE_RESULT
     (...)
-    >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
+    >>> x_net = load_example("celeba_example.jpg", img_size=128)
     >>> m(x_net) # doctest: +ELLIPSIS
     tensor([...])
 
