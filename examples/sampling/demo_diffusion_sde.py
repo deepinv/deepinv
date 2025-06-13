@@ -131,6 +131,37 @@ dinv.utils.save_videos(
     figsize=(figsize, figsize),
 )
 
+# Compute the FID score between the samples and the FFHQ dataset, when running on GPU.
+# if device == "cuda":
+from deepinv.loss.metric import FID
+from torchvision.utils import save_image
+import tempfile
+fid = FID(device=device)
+n_samples = 10
+x, _ = model(
+    y=None,
+    physics=None,
+    x_init=(1, n_samples, 64, 64),
+    seed=1,
+    get_trajectory=False,
+)
+# Save the samples to a temporary directory
+temp_dir = tempfile.mkdtemp()
+for idx, img in enumerate(x):
+    path = os.path.join(temp_dir, f"{img}_{idx:05d}.png")
+    save_image(img, path)
+# Save 
+fid_score = fid(
+    out_dir=temp_dir,
+    dataset_name="FFHQ",
+    dataset_res=64,
+    dataset_split="test",
+    num_workers=1,
+    batch_size=8,
+)
+print(f"FID score: {fid_score.item()}")
+
+
 # sphinx_gallery_start_ignore
 # cleanup
 import os
