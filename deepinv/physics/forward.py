@@ -261,8 +261,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         memo = {}
 
-        temp_mem = None
-
         # Traverse the graph of nested attributes of the forward operator
         traversal_queue = [self]
         seen = set()
