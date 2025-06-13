@@ -257,7 +257,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
     # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
     def clone(self):
         r"""
-        Clone the forward operator.
+        Clone the forward operator by performing deepcopy to copy all attributes to new memory.
+
+        This method should be favored to `copy.deepcopy` as it works even in
+        the presence of `torch.Generator` objects. See `this issue
+        <https://github.com/pytorch/pytorch/issues/43672>` for more details.
         """
         memo = {}
 
