@@ -69,7 +69,7 @@ and the prior is implicitly defined by a median filter denoiser, can be implemen
     >>>
     >>> data_fidelity = dinv.optim.data_fidelity.L2()
     >>> prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
+    >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity,
     ...                                  params_algo={"stepsize": 1.0, "g_param": 0.1})
     >>> y = physics(x)
     >>> x_hat = model(y, physics)

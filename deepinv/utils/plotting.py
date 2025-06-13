@@ -464,7 +464,7 @@ def plot_curves(metrics, save_dir=None, show=True):
                 )
                 log_scale = True
             elif metric_name == "psnr":
-                label = r"$\text{PSNR}(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
+                label = r"$PSNR(x_k)$" if plt.rcParams["text.usetex"] else "PSNR"
                 log_scale = False
             elif metric_name == "cost":
                 label = r"$F(x_k)$" if plt.rcParams["text.usetex"] else "F"
@@ -537,6 +537,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     color = ["b", "g", "r", "c", "m", "y", "k", "w"]
 
     fig, ax = plt.subplots(figsize=(7, 7))
+
+    # Correct the 'lambda_reg' to 'lambda' in init_params if it exists.
+    if "lambda_reg" in init_params:
+        init_params[init_params.index("lambda_reg")] = "lambda"
 
     for key, value in zip(init_params.keys(), init_params.values()):
         if not isinstance(value, Iterable):

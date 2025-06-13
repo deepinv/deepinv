@@ -27,10 +27,6 @@ class PGDIteration(OptimIterator):
         super(PGDIteration, self).__init__(**kwargs)
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
 
 
 class FISTAIteration(OptimIterator):
@@ -53,9 +49,7 @@ class FISTAIteration(OptimIterator):
 
 
     where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 1/\operatorname{Lip}(\|\nabla f\|)` and
-    :math:`\alpha_k = (k+a-1)/(k+a)`.
-
-    :param float a: Parameter :math:`a` in the FISTA algorithm (should be strictly greater than 2).
+    :math:`\alpha_k = (k+a-1)/(k+a)`, with :math:`a` a parameter that should be strictly greater than 2.
     """
 
     def __init__(self, a=3, **kwargs):
@@ -63,10 +57,10 @@ class FISTAIteration(OptimIterator):
         self.g_step = gStepPGD(**kwargs)
         self.f_step = fStepPGD(**kwargs)
         self.a = a
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
+        if self.a != 3:
+            raise DeprecationWarning(
+                "setting the a parameter in the FISTAIteration is deprecated, it should now be set in the cur_params dictionary instead."
+            )
 
     def forward(
         self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
@@ -84,7 +78,8 @@ class FISTAIteration(OptimIterator):
         """
         x_prev, z_prev = X["est"][0], X["est"][1]
         k = 0 if "it" not in X else X["it"]
-        alpha = (k + self.a - 1) / (k + self.a)
+        a = cur_params["a"]
+        alpha = (k + a - 1) / (k + a)
 
         if not self.g_first:
             z = self.f_step(z_prev, cur_data_fidelity, cur_params, y, physics)
@@ -98,6 +93,9 @@ class FISTAIteration(OptimIterator):
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
             if self.has_cost
+            and self.F_fn is not None
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
 
@@ -166,7 +164,7 @@ class PMDIteration(OptimIterator):
 
     Class for a single iteration of the Proximal Mirror Descent (PMD) algorithm for minimizing :math:`f(x) + \lambda \regname(x)`.
 
-   For a given Bregman convex potential :math:`h`, the iteration is given by
+    For a given Bregman convex potential :math:`h`, the iteration is given by
 
     .. math::
         \begin{equation*}
@@ -177,48 +175,15 @@ class PMDIteration(OptimIterator):
         \end{equation*}
 
 
-   where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
-   The potential :math:`h` should be specified in the cur_params dictionary.
-
+    where :math:`\gamma` is a stepsize that should satisfy :math:`\gamma \leq 2/L` with :math:`L` verifying :math:`Lh-f` is convex.
+    The potential :math:`h` should be specified in the cur_params dictionary.
     """
 
     def __init__(self, bregman_potential=BregmanL2(), **kwargs):
         super(PMDIteration, self).__init__(**kwargs)
         self.bregman_potential = bregman_potential
-        self.g_step = gStepPGD(**kwargs)
-        self.f_step = fStepPGD(**kwargs)
-        if self.g_first:
-            self.requires_grad_g = True
-        else:
-            self.requires_prox_g = True
-
-    def forward(
-        self, X, cur_data_fidelity, cur_prior, cur_params, y, physics, *args, **kwargs
-    ):
-        r"""
-        Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda \reg{x}`.
-        The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`\regname`.
-
-        :param dict X: Dictionary containing the current iterate :math:`x_k`.
-        :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
-        :param deepinv.optim.Prior cur_prior: Instance of the Prior class defining the current prior.
-        :param dict cur_params: Dictionary containing the current parameters of the algorithm.
-        :param torch.Tensor y: Input data.
-        :param deepinv.physics.Physics physics: Instance of the `Physics` class defining the current physics.
-        :return: Dictionary `{"est": (x, ), "cost": F}` containing the updated current iterate and the estimated current cost.
-
-        """
-        super().forward(
-            X,
-            cur_data_fidelity,
-            cur_prior,
-            cur_params,
-            y,
-            physics,
-            self.bregman_potential,
-            *args,
-            **kwargs,
-        )
+        self.g_step = gStepPMD(bregman_potential=bregman_potential, **kwargs)
+        self.f_step = fStepPMD(bregman_potential=bregman_potential, **kwargs)
 
 
 class fStepPMD(fStep):
@@ -226,10 +191,11 @@ class fStepPMD(fStep):
     Proximal Mirror Descent fStep module.
     """
 
-    def __init__(self, **kwargs):
-        super(fStepPGD, self).__init__(**kwargs)
+    def __init__(self, bregman_potential=BregmanL2(), **kwargs):
+        super(fStepPMD, self).__init__(**kwargs)
+        self.bregman_potential = bregman_potential
 
-    def forward(self, x, cur_data_fidelity, cur_params, y, physics, bregman_potential):
+    def forward(self, x, cur_data_fidelity, cur_params, y, physics):
         r"""
          Single Proximal Mirror Descent iteration step on the data-fidelity term :math:`f`.
 
@@ -242,14 +208,12 @@ class fStepPMD(fStep):
         """
         if not self.g_first:
             grad = cur_params["stepsize"] * cur_data_fidelity.grad(x, y, physics)
-            return bregman_potential.grad_conj(bregman_potential.grad(x) - grad)
+            return self.bregman_potential.grad_conj(
+                self.bregman_potential.grad(x) - grad
+            )
         else:
             return cur_data_fidelity.bregman_prox(
-                x,
-                y,
-                physics,
-                gamma=cur_params["stepsize"],
-                bregman_potential=bregman_potential,
+                x, self.bregman_potential, y, physics, gamma=cur_params["stepsize"]
             )
 
 
@@ -258,10 +222,11 @@ class gStepPMD(gStep):
     Proximal Mirror Descent gStep module.
     """
 
-    def __init__(self, **kwargs):
-        super(gStepPGD, self).__init__(**kwargs)
+    def __init__(self, bregman_potential=BregmanL2(), **kwargs):
+        super(gStepPMD, self).__init__(**kwargs)
+        self.bregman_potential = bregman_potential
 
-    def forward(self, x, cur_prior, cur_params, bregman_potential):
+    def forward(self, x, cur_prior, cur_params):
         r"""
         Single iteration step on the prior term :math:`\lambda g`.
 
@@ -273,9 +238,9 @@ class gStepPMD(gStep):
         if not self.g_first:
             return cur_prior.bregman_prox(
                 x,
+                self.bregman_potential,
                 cur_params["g_param"],
                 gamma=cur_params["lambda"] * cur_params["stepsize"],
-                bregman_potential=bregman_potential,
             )
         else:
             grad = (
@@ -283,4 +248,6 @@ class gStepPMD(gStep):
                 * cur_params["stepsize"]
                 * cur_prior.grad(x, cur_params["g_param"])
             )
-            return bregman_potential.grad_conj(bregman_potential.grad(x) - grad)
+            return self.bregman_potential.grad_conj(
+                self.bregman_potential.grad(x) - grad
+            )

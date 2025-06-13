@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import DRS
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset
 
@@ -120,29 +120,27 @@ prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
 stepsize = [1] * max_iter  # stepsize of the algorithm
 sigma_denoiser = [0.01] * max_iter  # noise level parameter of the denoiser
 beta = 1  # relaxation parameter of the Douglas-Rachford splitting
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-    "beta": beta,
-}
 trainable_params = [
     "g_param",
     "stepsize",
     "beta",
-]  # define which parameters from 'params_algo' are trainable
+]  # define which parameters are trainable
 
 # Logging parameters
 verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="DRS",
-    params_algo=params_algo.copy(),
-    trainable_params=trainable_params,
+model = DRS(
+    prior=prior,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
-    prior=prior,
+    verbose=verbose,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    beta=beta,
+    unfold=True,
+    trainable_params=trainable_params,
 )
 
 # %%
@@ -225,9 +223,11 @@ dinv.utils.plot(
 # ------------------------------------
 #
 # We now plot the weights of the network that were learned and check that they are different from their initialization
-# values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gradient algorithm.
+# values. Note that ``g_param`` corresponds to the noise parameter :math:`\sigma` of the denoiser.
 #
 
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"g_param": sigma_denoiser, "stepsize": stepsize, "beta": beta},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )
