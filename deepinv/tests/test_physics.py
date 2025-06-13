@@ -106,7 +106,7 @@ def find_operator(name, device):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, compute_inverse=True, rng=rng
+            m=m, img_size=img_size, device=device, compute_inverse=True, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -116,7 +116,7 @@ def find_operator(name, device):
             m=20,
             fast=True,
             channelwise=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
         )
@@ -128,9 +128,7 @@ def find_operator(name, device):
         p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
         norm = 1 / img_size[0]
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(
-            tensor_size=img_size, mask=0.5, device=device, rng=rng
-        )
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
@@ -209,13 +207,13 @@ def find_operator(name, device):
         norm = 1.4
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng
+            m=20, fast=True, img_size=img_size, device=device, rng=rng
         )
     elif name == "fast_singlepixel_cake_cutting":
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="cake_cutting",
@@ -224,20 +222,20 @@ def find_operator(name, device):
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="zig_zag",
         )
     elif name == "fast_singlepixel_xy":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="xy"
+            m=20, fast=True, img_size=img_size, device=device, rng=rng, ordering="xy"
         )
     elif name == "fast_singlepixel_old_sequency":
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="old_sequency",
@@ -245,7 +243,7 @@ def find_operator(name, device):
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, img_shape=img_size, device=device, rng=rng
+            m=m, fast=False, img_size=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -326,7 +324,7 @@ def find_operator(name, device):
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
-            img_shape=img_size,
+            img_size=img_size,
             dtype=torch.cdouble,
             device=device,
             compute_inverse=True,
@@ -376,7 +374,7 @@ def find_operator(name, device):
     elif name == "structured_random":
         img_size = (1, 8, 8)
         p = dinv.physics.StructuredRandom(
-            input_shape=img_size, output_shape=img_size, device=device
+            img_size=img_size, output_size=img_size, device=device
         )
     elif name == "ptychography_linear":
         img_size = (1, 32, 32)
@@ -429,11 +427,11 @@ def find_phase_retrieval_operator(name, device):
     """
     if name == "random_phase_retrieval":
         img_size = (1, 10, 10)
-        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_size=img_size, device=device)
     elif name == "ptychography":
         img_size = (1, 32, 32)
         p = dinv.physics.Ptychography(
-            in_shape=img_size,
+            img_size=img_size,
             probe=None,
             shifts=None,
             device=device,
@@ -441,7 +439,7 @@ def find_phase_retrieval_operator(name, device):
     elif name == "structured_random_phase_retrieval":
         img_size = (1, 10, 10)
         p = dinv.physics.StructuredRandomPhaseRetrieval(
-            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+            img_size=img_size, output_size=img_size, n_layers=2, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -456,7 +454,7 @@ def test_stacking(device):
     :return: asserts error is less than 1e-3
     """
     imsize = (2, 5, 5)
-    p1 = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    p1 = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
     p2 = dinv.physics.Physics(A=lambda x: x**2)
     p3 = p1.stack(p2)
 
@@ -773,7 +771,7 @@ def test_concatenation(name, device):
     y = physics(x)
     physics = (
         dinv.physics.Inpainting(
-            tensor_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
+            img_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
         )
         * physics
     )
@@ -813,9 +811,7 @@ def test_phase_retrieval_Avjp(device):
     # essential to enable autograd
     torch.set_grad_enabled(True)
     x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
-    physics = dinv.physics.RandomPhaseRetrieval(
-        m=10, img_shape=(1, 3, 3), device=device
-    )
+    physics = dinv.physics.RandomPhaseRetrieval(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
@@ -839,7 +835,7 @@ def test_linear_physics_Avjp(device, rng):
         generator=rng,
         requires_grad=True,
     )
-    physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
+    physics = dinv.physics.CompressedSensing(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
@@ -929,7 +925,7 @@ def test_noise_domain_inpainting(device):
     mask[1, 1, 1] = 0
     mask[2, 2, 2] = 0
 
-    physics = dinv.physics.Inpainting(tensor_size=x.shape, mask=mask, device=device)
+    physics = dinv.physics.Inpainting(img_size=x.shape, mask=mask, device=device)
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
@@ -1281,3 +1277,39 @@ def test_unmixing(device):
 
     assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
     assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_adjoint_autograd(name, device):
+    # NOTE: The current implementation of adjoint_function does not support
+    # physics that return tensor lists or complex tensors. It also does not
+    # support RadioInterferometry although it is not entirely clear why.
+    if name in {
+        "aliased_pansharpen",
+        "pansharpen_valid",
+        "pansharpen_circular",
+        "pansharpen_reflect",
+        "pansharpen_replicate",
+        "complex_compressed_sensing",
+        "ptychography_linear",
+        "radio",
+        "radio_weighted",
+    }:
+        pytest.skip(f"Operator {name} is not supported by adjoint_function.")
+
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    y = physics.A(x)
+
+    A_adjoint = adjoint_function(physics.A, x.shape, x.device, x.dtype)
+
+    # Compute Df^\top(z) using autograd where f(z) = A^\top z.
+    y.requires_grad_()
+    z = torch.randn_like(x, device=device, dtype=dtype)
+    l = (z * A_adjoint(y)).sum()
+    l.backward()
+    # \delta y := \delta_y <z, A^\top y> = Az
+    delta_y = y.grad
+    Az = physics.A(z)
+    assert torch.allclose(delta_y, Az, rtol=1e-5)

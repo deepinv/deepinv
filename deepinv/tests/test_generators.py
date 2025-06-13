@@ -206,7 +206,7 @@ def test_generation(name, device, dtype):
 
 
 @pytest.mark.parametrize(
-    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+    "name", sorted(set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"])))
 )
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", [torch.float64])
@@ -350,7 +350,7 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, rng):
     if name == "bernoulli":
         return dinv.physics.generator.BernoulliSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
@@ -358,7 +358,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
@@ -372,7 +372,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
             rng=rng,
         )
         return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_generator=mri_gen,
         )
     else:

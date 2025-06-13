@@ -4,8 +4,24 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-
 Current
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+
+Fixed
+^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+
+
+v0.3.1
 ----------------
 
 New Features
@@ -76,6 +92,8 @@ Fixed
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
+- Fix Ptychography can not handle multi-channels input (:gh:`494` by `Minh Hai Nguyen`_)
+- Fix argument name (img_size, in_shape, ...) inconsistency  (:gh:`494` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^

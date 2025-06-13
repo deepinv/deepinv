@@ -1,6 +1,7 @@
 from deepinv.physics.forward import DecomposablePhysics
 from deepinv.physics.mri import MRI
 from deepinv.physics.generator import BernoulliSplittingMaskGenerator
+from deepinv.utils.decorators import _deprecated_alias
 import torch
 
 
@@ -26,11 +27,11 @@ class Inpainting(DecomposablePhysics):
     :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`, see example below.
 
     :param torch.Tensor, float mask: If the input is a float, the entries of the mask will be sampled from a bernoulli
-        distribution with probability equal to ``mask``. If the input is a :class:`torch.Tensor` matching `tensor_size`,
+        distribution with probability equal to ``mask``. If the input is a :class:`torch.Tensor` matching `img_size`,
         the mask will be set to this tensor. If ``mask`` is :class:`torch.Tensor`, it must be shape that is broadcastable
         to input shape and will be broadcast during forward call.
         If ``None``, it must be set during forward pass or using ``update`` method.
-    :param tuple tensor_size: size of the input images without batch dimension e.g. of shape ``(C, H, W)`` or ``(C, M)`` or ``(M,)``.
+    :param tuple img_size: size of the input images without batch dimension e.g. of shape ``(C, H, W)`` or ``(C, M)`` or ``(M,)``.
     :param torch.device device: gpu or cpu.
     :param bool pixelwise: Apply the mask in a pixelwise fashion, i.e., zero all channels in a given pixel simultaneously.
         If existing mask passed (i.e. mask is :class:`torch.Tensor`), this has no effect.
@@ -47,7 +48,7 @@ class Inpainting(DecomposablePhysics):
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
         >>> mask = torch.zeros(1, 3, 3) # Define empty mask
         >>> mask[:, 2, :] = 1 # Keeping last line only
-        >>> physics = Inpainting(mask=mask, tensor_size=x.shape[1:])
+        >>> physics = Inpainting(mask=mask, img_size=x.shape[1:])
         >>> physics(x)
         tensor([[[[ 0.0000, -0.0000, -0.0000],
                   [ 0.0000, -0.0000, -0.0000],
@@ -58,7 +59,7 @@ class Inpainting(DecomposablePhysics):
         >>> from deepinv.physics import Inpainting
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(mask=0.7, tensor_size=x.shape[1:])
+        >>> physics = Inpainting(mask=0.7, img_size=x.shape[1:])
         >>> physics(x)
         tensor([[[[ 1.5410, -0.0000, -2.1788],
                   [ 0.5684, -0.0000, -1.3986],
@@ -69,7 +70,7 @@ class Inpainting(DecomposablePhysics):
         >>> from deepinv.physics import Inpainting
         >>> from deepinv.physics.generator import BernoulliSplittingMaskGenerator
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = Inpainting(tensor_size=x.shape[1:])
+        >>> physics = Inpainting(img_size=x.shape[1:])
         >>> gen = BernoulliSplittingMaskGenerator(x.shape[1:], split_ratio=0.7)
         >>> params = gen.step(batch_size=1, seed = 0) # Generate random mask
         >>> physics(x, **params) # Set mask on-the-fly
@@ -84,9 +85,10 @@ class Inpainting(DecomposablePhysics):
 
     """
 
+    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        tensor_size,
+        img_size,
         mask=None,
         pixelwise=True,
         device="cpu",
@@ -99,7 +101,7 @@ class Inpainting(DecomposablePhysics):
             mask = mask.to(device)
         elif isinstance(mask, float):
             self.gen = BernoulliSplittingMaskGenerator(
-                tensor_size=tensor_size,
+                img_size=img_size,
                 split_ratio=mask,
                 pixelwise=pixelwise,
                 device=device,
@@ -113,10 +115,10 @@ class Inpainting(DecomposablePhysics):
                 "mask should either be torch.nn.Parameter, torch.Tensor, float or None."
             )
 
-        if mask is not None and len(mask.shape) == len(tensor_size):
+        if mask is not None and len(mask.shape) == len(img_size):
             mask = mask.unsqueeze(0)
 
-        self.tensor_size = tensor_size
+        self.img_size = img_size
         self.update_parameters(mask=mask)
 
     def noise(self, x, **kwargs):
@@ -147,7 +149,7 @@ class Inpainting(DecomposablePhysics):
 
         if isinstance(other, self.__class__):
             return self.__class__(
-                tensor_size=self.tensor_size,
+                img_size=self.img_size,
                 mask=self.mask * other.mask,
                 noise_model=self.noise_model,
                 device=self.mask.device,
@@ -206,5 +208,5 @@ class Demosaicing(Inpainting):
         else:
             raise ValueError(f"The {pattern} pattern is not implemented")
         super().__init__(
-            tensor_size=mask.shape, mask=mask, pixelwise=False, device=device, **kwargs
+            img_size=mask.shape, mask=mask, pixelwise=False, device=device, **kwargs
         )
