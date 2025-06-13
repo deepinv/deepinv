@@ -261,7 +261,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         """
         memo = {}
 
-        # Traverse the object hierarchy graph of the forward operator
+        # Traverse the object hierarchy graph of the forward operator
         traversal_queue = [self]
         seen = set()
         while traversal_queue:
@@ -277,18 +277,23 @@ class Physics(torch.nn.Module):  # parent class for forward models
                 memo[node_id] = obj_clone
 
             # 3. Compute its neighbors (attributes and values for mapping objects)
+            neighbors = []
 
-            # NOTE: Due to certain side effects, inspect.getmembers might
-            # return newly created Python objects leading to infinite
-            # traversal. To avoid that, we use inspect.getmembers_static which
-            # is guaranteed to return already existing objects.
-            neighbors = (neighbor for _, neighbor in inspect.getmembers_static(node))
+            # NOTE: Attribute resolution can be dynamic and return new objects,
+            # preventing the algorithm from terminating. To avoid that, we use
+            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # because it was only introduced in Python 3.11 and we currently
+            # support Python 3.9 onwards.
+            for attr in dir(node):
+                value = inspect.getattr_static(node, attr, default=None)
+                if value is not None:
+                    neighbors.append(value)
 
             # NOTE: It is necessary to include values for mapping objects for
             # the case of submodules which are stored as entries in a
             # dictionary instead of directly as attributes.
             if isinstance(node, collections.abc.Mapping):
-                neighbors = itertools.chain(neighbors, node.keys(), node.values())
+                neighbors += list(node.values())
 
             # 4. Queue the unseen neighbors
             for neighbor in neighbors:
