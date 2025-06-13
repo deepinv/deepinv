@@ -524,7 +524,7 @@ def create_iterator(
         def F_fn(x, data_fidelity, prior, cur_params, y, physics):
             prior_value = prior(x, cur_params["g_param"], reduce=False)
             return data_fidelity(x, y, physics) + cur_params["lambda"] * prior_value
-       
+
         has_cost = True  # boolean to indicate if there is a cost function to evaluate along the iterations
     else:
         has_cost = False
