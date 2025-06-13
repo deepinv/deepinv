@@ -84,7 +84,7 @@ x = load_url_image(
 physics_list = [
     dinv.physics.SinglePixelCamera(
         m=m,
-        img_shape=(1, img_size_H, img_size_W),
+        img_size=(1, img_size_H, img_size_W),
         noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
         device=device,
         ordering=ordering,
@@ -205,7 +205,7 @@ shifted_masks = [hadamard_2d_shift(mask) for mask in masks]
 # Calculate the Hadamard spectrum for visualization
 physics_full = dinv.physics.SinglePixelCamera(
     m=n,
-    img_shape=(1, img_size_H, img_size_W),
+    img_size=(1, img_size_H, img_size_W),
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
     device=device,
 )
