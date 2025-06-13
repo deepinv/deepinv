@@ -1325,7 +1325,10 @@ def test_clone(name, device):
 
     physics_clone = physics.clone()
 
-    # Check that parameters have been reallocated somewhere else in the memory space
+    # Test clone type (parent class)
+    assert type(physics_clone) == type(physics), "Clone is not of the same type."
+
+    # Check parameters
     parameter_names = set(name for name, _ in physics.named_parameters())
     parameter_names_clone = set(name for name, _ in physics_clone.named_parameters())
 
@@ -1335,22 +1338,78 @@ def test_clone(name, device):
         param = physics.get_parameter(name)
         param_clone = physics_clone.get_parameter(name)
 
-        # Check that buffers have been reallocated somewhere else in the memory space
+        # Check that params have been reallocated somewhere else in the memory space
         assert (
             param.data_ptr() != param_clone.data_ptr()
         ), f"Parameter {name} has not been cloned properly."
 
-    # Check that buffers have been reallocated somewhere else in the memory space
+        # Check that changing one parameter does not change the other
+        param.fill_(0)
+        param_clone.fill_(1)
+        assert not torch.allclose(param, param_clone), f"Expected different values"
+
+    # Check buffers
     buffer_names = set(name for name, _ in physics.named_buffers())
     buffer_names_clone = set(name for name, _ in physics_clone.named_buffers())
 
-    assert buffer_names == buffer_names_clone, "Parameter names do not match."
+    assert buffer_names == buffer_names_clone, "Buffer names do not match."
 
     for name in buffer_names.intersection(buffer_names_clone):
-        param = physics.get_buffer(name)
-        param_clone = physics_clone.get_buffer(name)
+        buffer = physics.get_buffer(name)
+        buffer_clone = physics_clone.get_buffer(name)
 
         # Check that buffers have been reallocated somewhere else in the memory space
         assert (
-            param.data_ptr() != param_clone.data_ptr()
-        ), f"Parameter {name} has not been cloned properly."
+            buffer.data_ptr() != buffer_clone.data_ptr()
+        ), f"Buffer {name} has not been cloned properly."
+
+        # Check that changing one buffer does not change the other
+        buffer.fill_(0)
+        buffer_clone.fill_(1)
+        assert not torch.allclose(buffer, buffer_clone), f"Expected different values"
+
+    # Test that RNGs have been cloned successfully
+    rng = getattr(physics, "rng", None)
+    rng_clone = getattr(physics_clone, "rng", None)
+
+    assert (rng is not None) == (
+        rng_clone is not None
+    ), "RNGs are not both set or unset."
+
+    if rng is not None:
+        assert torch.all(
+            rng.get_state() == rng_clone.get_state()
+        ), "RNG state does not match."
+
+        arr = torch.randn(16, device=rng.device, generator=rng)
+        arr_clone = torch.randn(16, device=rng_clone.device, generator=rng_clone)
+        assert torch.allclose(
+            arr, arr_clone
+        ), "RNGs do not produce the same random numbers after cloning."
+
+    # Additional tests
+    if hasattr(physics, "mask") and physics.mask.dtype != torch.bool:
+        # Save original values
+        saved_mask = physics.mask
+        saved_physics_clone = physics_clone
+
+        physics.mask += 7
+        physics_clone = physics.clone()
+        assert torch.allclose(
+            physics_clone.mask, physics.mask
+        ), "Mask has not been cloned properly."
+
+        # Restore original values
+        physics_clone.mask = saved_mask
+        physics_clone = physics_clone
+
+    # Save original values
+    saved_A = physics.A
+    physics.A = lambda *args, **kwargs: "hi"
+
+    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    assert physics.A(x) == "hi"
+    assert physics_clone.A(x) != "hi"
+
+    # Restore original values
+    physics.A = saved_A
