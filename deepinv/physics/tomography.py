@@ -27,7 +27,7 @@ class Tomography(LinearPhysics):
     (Computed) Tomography operator.
 
     The Radon transform is the integral transform which takes a square image :math:`x` defined on the plane to a function
-    :math:`y=Ax` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
+    :math:`y=\forw{x}` defined on the (two-dimensional) space of lines in the plane, whose value at a particular line is equal
     to the line integral of the function over that line.
 
     .. note::
@@ -211,7 +211,7 @@ class TomographyWithAstra(LinearPhysics):
     lines
 
     .. math::
-        y = Ax
+        y = \forw{x}
 
     where :math:`y` is the set of line integrals, called sinogram in 2D, or
     radiographs in 3D. An object is typically scanned using a surrounding circular
