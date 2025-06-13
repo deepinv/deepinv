@@ -1,4 +1,8 @@
 from typing import Union
+import copy
+import inspect
+import itertools
+import collections.abc
 
 import torch
 from torch import Tensor
@@ -243,6 +247,58 @@ class Physics(torch.nn.Module):  # parent class for forward models
         # check if noise model has a method named update_parameters
         if hasattr(self.noise_model, "update_parameters"):
             self.noise_model.update_parameters(**kwargs)
+
+    # NOTE: Physics instances can hold instances of torch.Generator as
+    # (possibly nested) attributes and they cannot be copied using deepcopy
+    # natively. For this reason, we manually copy them beforehand and populate
+    # the copies using the memo parameter of deepcopy. For more details, see:
+    # https://github.com/pytorch/pytorch/issues/43672
+    # https://github.com/pytorch/pytorch/pull/49840
+    # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
+    def clone(self):
+        r"""
+        Clone the forward operator.
+        """
+        memo = {}
+
+        temp_mem = None
+
+        # Traverse the graph of nested attributes of the forward operator
+        traversal_queue = [self]
+        seen = set()
+        while traversal_queue:
+            # 1. Get the next node to process
+            node = traversal_queue.pop()
+
+            # 2. Process the node
+            if isinstance(node, torch.Generator):
+                generator_device = node.device
+                obj_clone = torch.Generator(generator_device)
+                obj_clone.set_state(node.get_state())
+                node_id = id(node)
+                memo[node_id] = obj_clone
+
+            # 3. Queue its unseen neighbors
+
+            # NOTE: Due to certain side effects, inspect.getmembers might
+            # return newly created Python objects leading to infinite
+            # traversal. To avoid that, we use inspect.getmembers_static which
+            # is guaranteed to return already existing objects.
+            neighbors = (neighbor for _, neighbor in inspect.getmembers_static(node))
+
+            # Keys and values in a mapping are also considered neighbors. This
+            # makes sure that submodules in a torch.nn.Module are also
+            # traversed.
+            if isinstance(node, collections.abc.Mapping):
+                neighbors = itertools.chain(neighbors, node.keys(), node.values())
+
+            for neighbor in neighbors:
+                child_id = id(neighbor)
+                if child_id not in seen:
+                    seen.add(child_id)
+                    traversal_queue.append(neighbor)
+
+        return copy.deepcopy(self, memo=memo)
 
 
 class LinearPhysics(Physics):

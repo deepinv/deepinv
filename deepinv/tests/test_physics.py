@@ -1317,3 +1317,40 @@ def test_adjoint_autograd(name, device):
     delta_y = y.grad
     Az = physics.A(z)
     assert torch.allclose(delta_y, Az, rtol=1e-5)
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_clone(name, device):
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    physics_clone = physics.clone()
+
+    # Check that parameters have been reallocated somewhere else in the memory space
+    parameter_names = set(name for name, _ in physics.named_parameters())
+    parameter_names_clone = set(name for name, _ in physics_clone.named_parameters())
+
+    assert parameter_names == parameter_names_clone, "Parameter names do not match."
+
+    for name in parameter_names.intersection(parameter_names_clone):
+        param = physics.get_parameter(name)
+        param_clone = physics_clone.get_parameter(name)
+
+        # Check that buffers have been reallocated somewhere else in the memory space
+        assert (
+            param.data_ptr() != param_clone.data_ptr()
+        ), f"Parameter {name} has not been cloned properly."
+
+    # Check that buffers have been reallocated somewhere else in the memory space
+    buffer_names = set(name for name, _ in physics.named_buffers())
+    buffer_names_clone = set(name for name, _ in physics_clone.named_buffers())
+
+    assert buffer_names == buffer_names_clone, "Parameter names do not match."
+
+    for name in buffer_names.intersection(buffer_names_clone):
+        param = physics.get_buffer(name)
+        param_clone = physics_clone.get_buffer(name)
+
+        # Check that buffers have been reallocated somewhere else in the memory space
+        assert (
+            param.data_ptr() != param_clone.data_ptr()
+        ), f"Parameter {name} has not been cloned properly."
