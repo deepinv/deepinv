@@ -115,7 +115,7 @@ class Tomography(LinearPhysics):
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
         self.fan_beam = fan_beam
-        self.adjoint_via_backprop = self.adjoint_via_backprop
+        self.adjoint_via_backprop = adjoint_via_backprop
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
