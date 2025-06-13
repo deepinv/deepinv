@@ -1013,7 +1013,6 @@ def test_tomography(device):
 
     :param device: (torch.device) cpu or cuda:x
     """
-    PI = 4 * torch.ones(1).atan()
     for normalize in [True, False]:
         for parallel_computation in [True, False]:
             for fan_beam in [True, False]:
@@ -1032,7 +1031,7 @@ def test_tomography(device):
                     x = torch.randn(imsize, device=device).unsqueeze(0)
                     r = (
                         physics.A_adjoint(physics.A(x))
-                        * PI.item()
+                        * torch.pi
                         / (2 * len(physics.radon.theta))
                     )
                     y = physics.A(r)
@@ -1087,7 +1086,6 @@ def test_downsampling_adjointness(device):
 
 
 def test_prox_l2_downsampling(device):
-
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
@@ -1099,7 +1097,6 @@ def test_prox_l2_downsampling(device):
         for pad in paddings:
             for sim in size_im:
                 for h in filters:
-
                     x = torch.rand(sim)[None].to(device)
 
                     physics = dinv.physics.Downsampling(
@@ -1204,7 +1201,6 @@ def multispectral_channels():
 
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
 def test_decolorize(srf, device, imsize, multispectral_channels):
-
     channels = multispectral_channels
     if srf == "list":
         srf = list(range(channels))

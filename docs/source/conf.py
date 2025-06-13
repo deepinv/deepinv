@@ -146,6 +146,11 @@ doctest.OutputChecker = CustomOutputChecker
 doctest_global_setup = """
 import torch
 import numpy as np
+try:
+    import astra
+except ImportError:
+    astra = None
+cuda_available = torch.cuda.is_available()
 """
 
 
@@ -185,7 +190,7 @@ sphinx_gallery_conf = {
             "../../examples/patch-priors",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
-            "../../examples/advanced",
+            "../../examples/external-libraries",
         ]
     ),
 }

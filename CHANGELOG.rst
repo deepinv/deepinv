@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
 
 Changed
 ^^^^^^^

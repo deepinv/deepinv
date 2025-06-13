@@ -61,8 +61,7 @@ physics = dinv.physics.Tomography(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-PI = 4 * torch.ones(1).atan()
-SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
+scaling = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -80,7 +79,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-params_algo = {"stepsize": 0.01 * SCALING, "g_param": noise_level_img}
+params_algo = {"stepsize": 0.01 * scaling, "g_param": noise_level_img}
 max_iter = 100
 early_stop = True
 
@@ -111,7 +110,7 @@ model = optim_builder(
     verbose=verbose,
     params_algo=params_algo,
     custom_init=lambda y, physics: {
-        "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
+        "est": (physics.A_adjoint(y) * scaling, physics.A_adjoint(y) * scaling)
     },
 )
 
@@ -128,7 +127,7 @@ model.eval()
 
 y = physics(x)
 x_lin = (
-    physics.A_adjoint(y) * SCALING
+    physics.A_adjoint(y) * scaling
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
