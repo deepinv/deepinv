@@ -189,7 +189,6 @@ sphinx_gallery_conf = {
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/advanced",
-            "../../examples/external-libraries",
         ]
     ),
 }
