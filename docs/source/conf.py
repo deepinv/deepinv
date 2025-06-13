@@ -14,6 +14,8 @@ from sphinx.util import logging
 
 logger = logging.getLogger(__name__)
 
+import doctest
+
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
@@ -41,6 +43,7 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_sitemap",
 ]
 copybutton_exclude = ".linenos, .gp"
 
@@ -61,7 +64,8 @@ autodoc_preserve_defaults = True
 nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
-
+# for sitemap
+html_baseurl = "https://deepinv.github.io/deepinv/"
 
 ####  userguide directive ###
 from docutils import nodes
@@ -119,6 +123,30 @@ class TolerantImageSg(ImageSg):
 def setup(app):
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
+
+
+# ---------- doctest configuration -----------------------------------------
+# Add a IGNORE_RESULT option to skip some line output
+# From: https://stackoverflow.com/a/69780437/2642845
+
+IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
+
+OutputChecker = doctest.OutputChecker
+
+
+class CustomOutputChecker(OutputChecker):
+    def check_output(self, want, got, optionflags):
+        if IGNORE_RESULT & optionflags:
+            return True
+        return OutputChecker.check_output(self, want, got, optionflags)
+
+
+doctest.OutputChecker = CustomOutputChecker
+
+doctest_global_setup = """
+import torch
+import numpy as np
+"""
 
 
 #############################

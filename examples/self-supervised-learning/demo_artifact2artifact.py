@@ -15,11 +15,11 @@ consists of sampled lines such that the whole measurement is a set of
 non-overlapping lines.
 
 For a description of how Artifact2Artifact constructs the loss, see
-:class:`deepinv.loss.Artifact2ArtifactLoss`.
+:class:`deepinv.loss.mri.Artifact2ArtifactLoss`.
 
 Note in our implementation, this is a special case of the generic
 splitting loss: see :class:`deepinv.loss.SplittingLoss` for more
-details. See :class:`deepinv.loss.Phase2PhaseLoss` for the related
+details. See :class:`deepinv.loss.mri.Phase2PhaseLoss` for the related
 Phase2Phase.
 
 """
@@ -189,7 +189,7 @@ model = MoDL()
 # frame.
 #
 
-loss = dinv.loss.Artifact2ArtifactLoss(
+loss = dinv.loss.mri.Artifact2ArtifactLoss(
     (2, 4, H, H), split_size=1, dynamic_model=False, device=device
 )
 model = loss.adapt_model(model)

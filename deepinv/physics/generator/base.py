@@ -1,3 +1,4 @@
+from typing import Dict
 import torch
 import torch.nn as nn
 from typing import List, Union
@@ -134,6 +135,36 @@ class PhysicsGenerator(nn.Module):
             return d
 
         return PhysicsGenerator(step=step)
+
+    def average(self, n: int = 2000, batch_size: int = 1) -> dict:
+        """Calculate average of physics generator.
+        :param int n: number of samples to average over, defaults to 2000
+        :param int n: number of samples to compute in parallel, higher means faster but more costly memory-wise, defaults to 1
+        :returns: A dictionary with the new parameters, that is ``{param_name: param_value}``.
+        """
+        assert n > 0, "n must be positive"
+        assert batch_size >= 1, "batch_size must be positive"
+        params_sum = None
+        keys = None
+        n_processed = 0
+        while n_processed < n:
+            n_batch = min(n - n_processed, batch_size)
+            params = self.step(batch_size=n_batch)
+            n_processed += n_batch
+            params_partial_sum = {
+                k: v.sum(0, keepdim=True) for (k, v) in params.items()
+            }
+            if params_sum is None:
+                params_sum = params_partial_sum
+                keys = set(params_sum.keys())
+            else:
+                assert keys == set(
+                    params.keys()
+                ), "Different calls to PhysicsGenerator.step resulted in dictionaries with different keys"
+                for k in keys:
+                    params_sum[k] += params_partial_sum[k]
+        params_avg = {k: v / n for (k, v) in params_sum.items()}
+        return params_avg
 
 
 class GeneratorMixture(PhysicsGenerator):

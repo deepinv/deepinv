@@ -20,7 +20,7 @@ Diffusion models
 
 We provide a unified framework for image generation using diffusion models.
 Diffusion models for posterior sampling are defined using :class:`deepinv.sampling.PosteriorDiffusion`,
-which is a subclass of :class:`deepinv.models.base.Reconstructor`.
+which is a subclass of :class:`deepinv.models.Reconstructor`.
 Below, we explain the main components of the diffusion models, see :ref:`sphx_glr_auto_examples_sampling_demo_diffusion_sde.py` for an example usage and visualizations.
 
 Stochastic Differential Equations
@@ -127,20 +127,16 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
-We implement various data-fidelity terms in :class:`deepinv.sampling.NoisyDataFidelity`.
-
+We implement the following data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
 
-   * - **Method**
-     - **Description**
+   * - **Class**
+     - :math:`\nabla_x \log p_t(y|x + \epsilon\sigma(t))`
 
-   * - :class:`deepinv.sampling.NoisyDataFidelity`
-     - The base class for defining the noisy data-fidelity term, used to estimate the conditional score in the posterior sampling with SDE.
-     
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - The noisy data-fidelity term for the `Diffusion Posterior Sampling (DPS) method <https://arxiv.org/abs/2209.14687>`_. See also :class:`deepinv.sampling.DPS`.
+     - :math:`\nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`
 
 
 .. _diffusion_custom:

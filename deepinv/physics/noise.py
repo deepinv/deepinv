@@ -330,7 +330,7 @@ class PoissonNoise(NoiseModel):
         self, gain=1.0, normalize=True, clip_positive=False, rng: torch.Generator = None
     ):
         super().__init__(rng=rng)
-        self.normalize = to_nn_parameter(normalize)
+        self.normalize = normalize
         self.update_parameters(gain=gain)
         self.clip_positive = clip_positive
 
@@ -375,7 +375,7 @@ class GammaNoise(NoiseModel):
     where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
     see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 
-    Distribution for modelling speckle noise (eg. SAR images),
+    Distribution for modelling speckle noise (e.g. SAR images),
     where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
 
     .. warning:: This noise model does not support the random number generator.
@@ -552,9 +552,7 @@ class LogPoissonNoise(NoiseModel):
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper
     `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
 
-    :param float N0: number of photons
-
-        |sep|
+    |sep|
 
     :Examples:
 
@@ -568,7 +566,7 @@ class LogPoissonNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-
+    :param float N0: number of photons
     :param float mu: normalization constant
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
@@ -607,6 +605,76 @@ class LogPoissonNoise(NoiseModel):
 
         if N0 is not None:
             self.N0 = to_nn_parameter(N0)
+
+
+class SaltPepperNoise(NoiseModel):
+    r"""
+    SaltPepper noise :math:`y = \begin{cases} 0 & \text{if } z < p\\ z & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
+
+    This noise model is also known as impulse noise, is a form of noise sometimes seen on digital images.
+    For black-and-white or grayscale images, it presents as sparsely occurring white and black pixels,
+    giving the appearance of an image sprinkled with salt and pepper.
+
+    The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.
+
+    |sep|
+
+    :Examples:
+
+        Adding LogPoisson noise to a physics operator by setting the ``noise_model``
+        attribute of the physics operator:
+
+        >>> from deepinv.physics import Denoising, SaltPepperNoise
+        >>> import torch
+        >>> physics = Denoising()
+        >>> physics.noise_model = SaltPepperNoise()
+        >>> x = torch.rand(1, 1, 2, 2)
+        >>> y = physics(x)
+
+    :param float s: amount of salt noise.
+    :param float p: amount of pepper noise.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    """
+
+    def __init__(self, p=0.025, s=0.025, rng: torch.Generator = None):
+        super().__init__(rng=rng)
+        self.update_parameters(p=p, s=s)
+
+    def forward(self, x, p=None, s=None, seed: int = None, **kwargs):
+        r"""
+        Adds the noise to measurements x
+
+        :param torch.Tensor x: measurements
+        :param None, float, torch.Tensor s: amount of salt noise.
+            If not None, it will overwrite the current salt noise.
+        :param None, float, torch.Tensor p: amount of pepper noise.
+            If not None, it will overwrite the current pepper noise.
+        :param int seed: the seed for the random number generator, if `rng` is provided.
+        :returns: noisy measurements
+        """
+        self.update_parameters(p=p, s=s)
+        self.rng_manual_seed(seed)
+
+        proba_flip = self.s + self.p
+        proba_salt_vs_pepper = self.s / (self.s + self.p)
+
+        mask_flipped = (self.rand_like(x) < proba_flip).float()
+        mask_salt = (self.rand_like(x) < proba_salt_vs_pepper).float()
+        y = x * (1 - mask_flipped) + mask_flipped * mask_salt
+        return y
+
+    def update_parameters(self, s=None, p=None, **kwargs):
+        r"""
+        Updates the number of photons and normalization constant.
+
+        :param None, float, torch.Tensor s: amount of salt noise.
+        :param None, float, torch.Tensor p: amount of pepper noise.
+        """
+        if s is not None:
+            self.s = to_nn_parameter(s)
+
+        if p is not None:
+            self.p = to_nn_parameter(p)
 
 
 def to_nn_parameter(x):

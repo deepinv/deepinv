@@ -3,7 +3,7 @@ import pytest
 import torch
 
 import deepinv as dinv
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles
 
 import matplotlib
 import importlib
@@ -73,3 +73,28 @@ def no_plot():
         plt.close("all")
         matplotlib.use(original_backend, force=True)
         importlib.reload(plt)
+
+
+# Certain tests are particularly slow and make for a large part of
+# the time it takes for the entire test suite to run. For this reason, we make
+# them run in parallel of the rest of the tests thereby reducing the overall
+# test time drastically.
+# NOTE: The decorator `pytest.hookimpl̀` is needed to make sure that the group
+# marks are set before xdist reads them.
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(config, items):
+    """Set the xdist group of the test items based on their markers."""
+    next_slow_idx = 1
+    for item in items:
+        slow_marker = item.get_closest_marker("slow")
+        if slow_marker is not None:
+            # Slow tests can't share the same group to make sure they run in
+            # parallel. This is why we use a counter to create unique group
+            # names.
+            group_name = f"slow_{next_slow_idx}"
+            item.add_marker(pytest.mark.xdist_group(group_name))
+            next_slow_idx += 1
+        else:
+            # All other tests are grouped under "main" and run one at a time
+            # but in parallel of the slow tests.
+            item.add_marker(pytest.mark.xdist_group("main"))

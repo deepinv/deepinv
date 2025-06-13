@@ -154,7 +154,7 @@ def test_algo_inpaint(name_algo, device):
     mask = torch.ones_like(x)
     mask[:, :, 10:20, 10:20] = 0
 
-    physics = dinv.physics.Inpainting(mask=mask, tensor_size=x.shape[1:], device=device)
+    physics = dinv.physics.Inpainting(mask=mask, img_size=x.shape[1:], device=device)
 
     y = physics(x)
 
@@ -272,6 +272,7 @@ def test_build_algo(algo, imsize, device):
     assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
+@pytest.mark.slow
 @torch.no_grad()
 def test_sde(device):
     from deepinv.sampling import (
@@ -348,13 +349,13 @@ def test_sde(device):
                     dtype=torch.float64,
                     device=device,
                 )
-                x = dinv.utils.load_url_image(
-                    dinv.utils.demo.get_image_url("celeba_example.jpg"),
+                x = dinv.utils.load_example(
+                    "celeba_example.jpg",
                     img_size=64,
                     resize_mode="resize",
                 ).to(device)
                 physics = dinv.physics.Inpainting(
-                    tensor_size=x.shape[1:], mask=0.5, device=device
+                    img_size=x.shape[1:], mask=0.5, device=device
                 )
                 y = physics(x)
 

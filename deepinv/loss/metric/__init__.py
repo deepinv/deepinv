@@ -10,6 +10,7 @@ from .distortion import (
     QNR,
     SpectralAngleMapper,
     ERGAS,
+    HaarPSI,
 )
 from .perceptual import NIQE, LPIPS
 from .functional import cal_mse, cal_psnr, cal_mae

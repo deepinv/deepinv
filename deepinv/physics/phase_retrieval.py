@@ -10,6 +10,7 @@ from deepinv.physics.structured_random import (
     generate_diagonal,
     StructuredRandom,
 )
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class PhaseRetrieval(Physics):
@@ -115,7 +116,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
     An existing operator can be loaded from a saved .pth file via ``self.load_state_dict(save_path)``, in a similar fashion to :class:`torch.nn.Module`.
 
     :param int m: number of measurements.
-    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param tuple img_size: shape (C, H, W) of inputs.
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param bool unitary: Use a random unitary matrix instead of Gaussian matrix. Default is False.
     :param bool compute_inverse: Compute the pseudo-inverse of the forward matrix. Default is False.
@@ -130,18 +131,20 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         Random phase retrieval operator with 10 measurements for a 3x3 image:
 
+        >>> from deepinv.physics import RandomPhaseRetrieval
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 3, 3),dtype=torch.cfloat) # Define random 3x3 image
-        >>> physics = RandomPhaseRetrieval(m=6, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
+        >>> physics = RandomPhaseRetrieval(m=6, img_size=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
         tensor([[3.8405, 2.2588, 0.0146, 3.0864, 1.8075, 0.1518]])
 
     """
 
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
-        img_shape,
+        img_size,
         channelwise=False,
         dtype=torch.cfloat,
         device="cpu",
@@ -151,7 +154,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
         **kwargs,
     ):
         self.m = m
-        self.input_shape = img_shape
+        self.img_size = img_size
         self.channelwise = channelwise
         self.dtype = dtype
         self.device = device
@@ -167,7 +170,7 @@ class RandomPhaseRetrieval(PhaseRetrieval):
 
         B = CompressedSensing(
             m=m,
-            img_shape=img_shape,
+            img_size=img_size,
             fast=False,
             channelwise=channelwise,
             unitary=unitary,
@@ -197,8 +200,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
 
     The phase of the diagonal elements of the matrices :math:`D_i` are drawn from a uniform distribution in the interval :math:`[0, 2\pi]`.
 
-    :param tuple input_shape: shape (C, H, W) of inputs.
-    :param tuple output_shape: shape (C, H, W) of outputs.
+    :param tuple img_size: shape (C, H, W) of inputs.
+    :param tuple output_size: shape (C, H, W) of outputs.
     :param float n_layers: number of layers :math:`N`. If ``layers=N + 0.5``, a first :math:`F` transform is included, i.e., :math:`A(x)=|\prod_{i=1}^N (F D_i) F x|^2`.
     :param str transform: structured transform to use. Default is 'fft'.
     :param str diagonal_mode: sampling distribution for the diagonal elements. Default is 'uniform_phase'.
@@ -207,10 +210,11 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
     :param str device: Device for computation. Default is `cpu`.
     """
 
+    @_deprecated_alias(input_shape="img_size", output_shape="output_size")
     def __init__(
         self,
-        input_shape: tuple,
-        output_shape: tuple,
+        img_size: tuple,
+        output_size: tuple,
         n_layers: int,
         transform="fft",
         diagonal_mode="uniform_phase",
@@ -219,13 +223,13 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         device="cpu",
         **kwargs,
     ):
-        if output_shape is None:
-            output_shape = input_shape
+        if output_size is None:
+            output_size = img_size
 
-        self.input_shape = input_shape
-        self.output_shape = output_shape
-        self.n = torch.prod(torch.tensor(self.input_shape))
-        self.m = torch.prod(torch.tensor(self.output_shape))
+        self.img_size = img_size
+        self.output_size = output_size
+        self.n = torch.prod(torch.tensor(self.img_size))
+        self.m = torch.prod(torch.tensor(self.output_size))
         self.oversampling_ratio = self.m / self.n
         assert (
             n_layers % 1 == 0.5 or n_layers % 1 == 0
@@ -237,7 +241,7 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         self.dtype = dtype
         self.device = device
 
-        self.mode = compare(input_shape, output_shape)
+        self.mode = compare(img_size, output_size)
 
         # generate diagonal matrices
         self.diagonals = []
@@ -246,14 +250,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             for _ in range(math.floor(self.n_layers)):
                 if self.mode == "oversampling":
                     diagonal = generate_diagonal(
-                        shape=self.output_shape,
+                        shape=self.output_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
                         device=self.device,
                     )
                 else:
                     diagonal = generate_diagonal(
-                        shape=self.input_shape,
+                        shape=self.img_size,
                         mode=diagonal_mode,
                         dtype=self.dtype,
                         device=self.device,
@@ -262,14 +266,14 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         else:
             if self.mode == "oversampling":
                 diagonal = generate_diagonal(
-                    shape=self.output_shape,
+                    shape=self.output_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
                     device=self.device,
                 )
             else:
                 diagonal = generate_diagonal(
-                    shape=self.input_shape,
+                    shape=self.img_size,
                     mode=diagonal_mode,
                     dtype=self.dtype,
                     device=self.device,
@@ -284,8 +288,8 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
             raise ValueError(f"Unimplemented transform: {transform}")
 
         B = StructuredRandom(
-            input_shape=self.input_shape,
-            output_shape=self.output_shape,
+            img_size=self.img_size,
+            output_size=self.output_size,
             mode=self.mode,
             n_layers=self.n_layers,
             transform_func=transform_func,
@@ -448,7 +452,7 @@ class Ptychography(PhaseRetrieval):
 
     where :math:`B` is the linear forward operator defined by a :class:`deepinv.physics.PtychographyLinearOperator` object.
 
-    :param tuple in_shape: Shape of the input image.
+    :param tuple img_size: Shape of the input image.
     :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function.
         If None, a disk probe is generated with ``deepinv.physics.phase_retrieval.build_probe`` function.
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
@@ -456,16 +460,17 @@ class Ptychography(PhaseRetrieval):
     :param torch.device, str device: Device "cpu" or "gpu".
     """
 
+    @_deprecated_alias(in_shape="img_size")
     def __init__(
         self,
-        in_shape=None,
+        img_size=None,
         probe=None,
         shifts=None,
         device="cpu",
         **kwargs,
     ):
         B = PtychographyLinearOperator(
-            img_size=in_shape,
+            img_size=img_size,
             probe=probe,
             shifts=shifts,
             device=device,
@@ -473,7 +478,7 @@ class Ptychography(PhaseRetrieval):
         self.probe = B.probe
         self.shifts = B.shifts
         self.device = device
-
+        self.img_size = img_size
         super().__init__(B, **kwargs)
         self.name = f"Ptychography_PR"
 
@@ -494,9 +499,9 @@ def build_probe(img_size, type="disk", probe_radius=10, device="cpu"):
         X, Y = torch.meshgrid(x, y, indexing="ij")
         probe = torch.zeros(img_size, device=device)
         probe[
-            torch.sqrt(
-                (X - img_size[1] // 2) ** 2 + (Y - img_size[2] // 2) ** 2
-            ).unsqueeze(0)
+            torch.sqrt((X - img_size[1] // 2) ** 2 + (Y - img_size[2] // 2) ** 2)
+            .unsqueeze(0)
+            .expand(img_size[0], -1, -1)
             < probe_radius
         ] = 1
     else:
