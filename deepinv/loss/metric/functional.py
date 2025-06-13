@@ -11,6 +11,7 @@ def cal_psnr(
     a: torch.Tensor,
     b: torch.Tensor,
     max_pixel: float = 1.0,
+    min_pixel: float = 0.0,
 ):
     r"""
     Computes the peak signal-to-noise ratio (PSNR).
@@ -20,7 +21,7 @@ def cal_psnr(
     :param float max_pixel: maximum pixel value
     """
     with torch.no_grad():
-        psnr = -10.0 * torch.log10(cal_mse(a, b) / max_pixel**2 + 1e-8)
+        psnr = -10.0 * torch.log10(cal_mse(a, b) / (max_pixel - min_pixel) ** 2 + 1e-8)
     return psnr
 
 

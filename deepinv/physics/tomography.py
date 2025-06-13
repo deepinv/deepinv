@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from deepinv.physics.forward import LinearPhysics
 
-from deepinv.physics.functional import Radon, IRadon, RampFilter
+from deepinv.physics.functional import Radon, IRadon, RampFilter, ApplyRadon
 from deepinv.physics import adjoint_function
 
 
@@ -96,6 +96,7 @@ class Tomography(LinearPhysics):
         img_width,
         circle=False,
         parallel_computation=True,
+        adjoint_via_backprop=False,
         normalize=False,
         fan_beam=False,
         fan_parameters=None,
@@ -114,6 +115,7 @@ class Tomography(LinearPhysics):
             theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
 
         self.fan_beam = fan_beam
+        self.adjoint_via_backprop = self.adjoint_via_backprop
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
@@ -143,13 +145,16 @@ class Tomography(LinearPhysics):
     def A(self, x, **kwargs):
         if self.img_width is None:
             self.img_width = x.shape[-1]
-        output = self.radon(x)
+        if self.fan_beam or self.adjoint_via_backprop:
+            output = self.radon(x)
+        else:
+            output = ApplyRadon.apply(x, self.radon, self.iradon, False)
         if self.normalize:
             output = output / x.shape[-1]
         return output
 
     def A_dagger(self, y, **kwargs):
-        if self.fan_beam:
+        if self.fan_beam or self.adjoint_via_backprop:
             y = self.filter(y)
             output = (
                 self.A_adjoint(y, **kwargs) * PI.item() / (2 * len(self.radon.theta))
@@ -157,13 +162,14 @@ class Tomography(LinearPhysics):
             if self.normalize:
                 output = output * output.shape[-1] ** 2
         else:
-            output = self.iradon(y)
+            y = self.iradon.filter(y)
+            output = ApplyRadon.apply(x, self.radon, self.iradon, True)
             if self.normalize:
                 output = output * output.shape[-1]
         return output
 
     def A_adjoint(self, y, **kwargs):
-        if self.fan_beam:
+        if self.fan_beam or self.adjoint_via_backprop:
             assert (
                 not self.img_width is None
             ), "Image size unknown. Apply forward operator or add it for initialization."
@@ -176,12 +182,7 @@ class Tomography(LinearPhysics):
             )
             return adj(y)
         else:
-            # IRadon is not exactly the adjoint but a rescaled version of it...
-            output = (
-                self.iradon(y, filtering=False)
-                / PI.item()
-                * (2 * len(self.iradon.theta))
-            )
+            output = ApplyRadon.apply(x, self.radon, self.iradon, True)
             if self.normalize:
                 output = output / output.shape[-1]
             return output

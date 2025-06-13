@@ -222,6 +222,21 @@ class Radon(nn.Module):
             pad_width = (pad_before, pad - pad_before)
             x = F.pad(x, (pad_width[0], pad_width[1], pad_width[0], pad_width[1]))
 
+        if self.circle:
+            yax = (
+                2
+                * (
+                    torch.arange(W, dtype=torch.float, device=x.device)[None, :].repeat(
+                        W, 1
+                    )[None, None, :, :]
+                )
+                / (W - 1)
+                - 1.0
+            )
+            xax = yax.transpose(-2, -1)
+            mask = (xax**2 + yax**2 <= 1).to(torch.float)
+            x = x * mask
+
         N, C, W, _ = x.shape
 
         if self.parallel_computation:
@@ -424,3 +439,34 @@ class IRadon(nn.Module):
                 torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0)
             )
         return torch.stack(all_grids)
+
+
+# autograd wrapper
+class ApplyRadon(torch.autograd.Function):
+    @staticmethod
+    def forward(
+        x,
+        radon,
+        iradon,
+        adjoint,
+    ):
+        if adjoint:
+            # IRadon is not exactly the adjoint but a rescaled version of it...
+            return iradon(x, filtering=False) / PI.item() * (2 * len(iradon.theta))
+        else:
+            return radon(x)
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        ctx.radon = inputs[1]
+        ctx.iradon = inputs[2]
+        ctx.adjoint = inputs[3]
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return (
+            ApplyRadon.apply(grad_output, ctx.radon, ctx.iradon, not ctx.adjoint),
+            None,
+            None,
+            None,
+        )
