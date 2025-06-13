@@ -34,18 +34,20 @@ class SinglePhotonLidar(Physics):
         super().__init__()
 
         self.T = bins
-        self.grid = torch.meshgrid(torch.arange(bins), indexing="ij")[0].to(device)
-        self.sigma = torch.nn.Parameter(
-            torch.tensor(sigma, device=device), requires_grad=False
-        )
+        grid = torch.meshgrid(torch.arange(bins), indexing="ij")[0].to(device)
         self.noise_model = PoissonNoise(rng=rng)
 
-        h = ((self.grid - 3 * sigma) / self.sigma).pow(2)
+        h = ((grid - 3 * sigma) / sigma).pow(2)
         h = torch.exp(-h / 2.0)
         h = h[: int(6 * sigma)]
         h = h / h.sum()
-        self.irf = h.unsqueeze(0).unsqueeze(0)  # set impulse response function
-        self.grid = self.grid.unsqueeze(0).unsqueeze(2).unsqueeze(3)
+
+        self.register_buffer(
+            "irf", h.unsqueeze(0).unsqueeze(0)
+        )  # set impulse response function
+        self.register_buffer("grid", grid.unsqueeze(0).unsqueeze(2).unsqueeze(3))
+        self.register_buffer("sigma", torch.tensor(sigma, device=device))
+        self.to(device)
 
     def A(self, x, **kwargs):
         r"""

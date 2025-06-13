@@ -2,6 +2,7 @@ from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
 from deepinv.physics.functional import random_choice
+from torch import Tensor
 from deepinv.utils.decorators import _deprecated_alias
 
 
@@ -124,7 +125,7 @@ class CompressedSensing(LinearPhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if channelwise:
             n = int(np.prod(img_size[1:]))
@@ -133,33 +134,31 @@ class CompressedSensing(LinearPhysics):
 
         if self.fast:
             self.n = n
-            self.D = torch.where(
+            D = torch.where(
                 torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
             )
 
-            self.mask = torch.zeros(self.n, device=device)
+            mask = torch.zeros(self.n, device=device)
             idx = torch.sort(
                 random_choice(self.n, size=m, replace=False, rng=self.rng)
             ).values
-            self.mask[idx] = 1
-            self.mask = self.mask.type(torch.bool)
+            mask[idx] = 1
+            mask = mask.type(torch.bool)
 
-            self.D = torch.nn.Parameter(self.D, requires_grad=False)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+            self.register_buffer("D", D)
+            self.register_buffer("mask", mask)
         else:
-            self._A = torch.randn(
+            _A = torch.randn(
                 (m, n), device=device, dtype=dtype, generator=self.rng
             ) / np.sqrt(m)
-            self._A_dagger = torch.linalg.pinv(self._A)
-            self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-            self._A_adjoint = (
-                torch.nn.Parameter(self._A.conj().T, requires_grad=False)
-                .type(dtype)
-                .to(device)
-            )
+            _A_dagger = torch.linalg.pinv(_A)
 
-    def A(self, x, **kwargs):
+            self.register_buffer("_A", _A)
+            self.register_buffer("_A_dagger", _A_dagger)
+            self.register_buffer("_A_adjoint", self._A.conj().T.type(dtype).to(device))
+        self.to(device)
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -176,7 +175,7 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         N = y.shape[0]
         C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
@@ -197,7 +196,7 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         if self.fast:
             return self.A_adjoint(y)

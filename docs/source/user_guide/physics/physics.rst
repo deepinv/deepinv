@@ -11,6 +11,8 @@ Operators
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
 The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
+Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
+This is particular useful when dealing with blind inverse problems or parameter estimation.
 
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
