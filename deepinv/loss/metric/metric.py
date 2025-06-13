@@ -19,6 +19,16 @@ def import_pyiqa() -> ModuleType:
             "Metric not available. Please install the pyiqa package with `pip install pyiqa`."
         )
 
+def import_cleanfid() -> ModuleType:
+    try:
+        import cleanfid
+
+        return cleanfid
+    except ImportError:
+        raise ImportError(
+            "Metric not available. Please install the cleanfid package with `pip install clean-fid`."
+        )
+
 
 class Metric(Module):
     r"""
