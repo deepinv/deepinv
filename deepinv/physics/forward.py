@@ -6,7 +6,7 @@ import torch.nn as nn
 from deepinv.physics.noise import GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
-
+import warnings
 
 class Physics(torch.nn.Module):  # parent class for forward models
     r"""
@@ -65,6 +65,10 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
         """
 
+        warnings.warn(
+            "You are composing two physics objects. The resulting physics will not retain the original attributes. "
+            "Additionally, 'A_dagger' will fall back to the conjugate gradient method, which may impact performance."
+        )
         return compose(other, self, max_iter=self.max_iter, tol=self.tol)
 
     def stack(self, other):
