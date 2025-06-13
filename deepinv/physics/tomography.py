@@ -182,7 +182,7 @@ class Tomography(LinearPhysics):
             )
             return adj(y)
         else:
-            output = ApplyRadon.apply(x, self.radon, self.iradon, True)
+            output = ApplyRadon.apply(y, self.radon, self.iradon, True)
             if self.normalize:
                 output = output / output.shape[-1]
             return output
