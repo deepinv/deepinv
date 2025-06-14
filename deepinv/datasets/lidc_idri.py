@@ -167,6 +167,12 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             # the new function pydicom.pixels.apply_rescale. It is currently
             # kept for compatibility with Python 3.9 which is only compatible
             # with versions of pydicom older than version 3.0.0.
+            if not hasattr(pydicom, "pixel_data_handlers") or not hasattr(
+                pydicom.pixel_data_handlers, "apply_rescale"
+            ):
+                raise ImportError(
+                    "pydicom version is unsupported. Please install a version of pydicom ≥ 2.0.0 and < 4.0.0"
+                )
             slice_array = pydicom.pixel_data_handlers.apply_rescale(
                 slice_data.pixel_array, slice_data
             )
