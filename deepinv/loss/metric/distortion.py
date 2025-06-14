@@ -227,12 +227,12 @@ class PSNR(Metric):
         max_pixel = (
             self.max_pixel
             if self.max_pixel is not None
-            else x.max(dim=range(1, x.ndim))
+            else x.amax(dim=tuple(range(1, x.ndim)))
         )
         min_pixel = (
             self.min_pixel
             if self.min_pixel is not None
-            else x.min(dim=range(1, x.ndim))
+            else x.amin(dim=tuple(range(1, x.ndim)))
         )
         return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
 
