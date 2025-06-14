@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -194,22 +194,22 @@ class Trainer:
     """
 
     model: torch.nn.Module
-    physics: Union[Physics, List[Physics]]
+    physics: Union[Physics, list[Physics]]
     optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]] = (
+    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
         SupLoss()
     )
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
+    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, List[Metric]] = PSNR()
+    metrics: Union[Metric, list[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path] = "."
@@ -1232,7 +1232,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, List[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss]] = SupLoss(),
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,

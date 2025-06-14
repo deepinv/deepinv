@@ -1,4 +1,3 @@
-from typing import Tuple
 from warnings import warn
 import numpy as np
 import torch
@@ -6,7 +5,7 @@ import torch
 
 def random_choice(
     a: torch.Tensor,
-    size: Tuple[int] = None,
+    size: tuple[int] = None,
     replace: bool = True,
     p: torch.Tensor = None,
     rng: torch.Generator = None,

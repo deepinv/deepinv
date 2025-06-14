@@ -1,7 +1,6 @@
-from typing import Dict
 import torch
 import torch.nn as nn
-from typing import List, Union
+from typing import Union
 import warnings
 from hashlib import sha256
 
@@ -197,8 +196,8 @@ class GeneratorMixture(PhysicsGenerator):
 
     def __init__(
         self,
-        generators: List[PhysicsGenerator],
-        probs: List[float],
+        generators: list[PhysicsGenerator],
+        probs: list[float],
         rng: torch.Generator = None,
     ) -> None:
         super().__init__(rng=rng)

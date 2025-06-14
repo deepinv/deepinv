@@ -17,3 +17,7 @@ jobs:
         with:
           python-version: '3.9'
       - uses: psf/black@stable
+      - name: Install and run ruff
+        run: |
+          pip install ruff
+          ruff check --target-version "py39" --select "UP006"
