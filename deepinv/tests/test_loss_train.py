@@ -220,12 +220,7 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [
-        0.01
-        * torch.ones(
-            level,
-        )
-    ] * max_iter
+    sigma_denoiser = [0.01 * torch.ones(1, level)] * max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,

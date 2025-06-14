@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch.nn import functional
 
 from .utils import get_weights_url
 
@@ -54,13 +53,8 @@ class DScCP(nn.Module):
             self.conv[i * 2 + 1].weight = self.conv[i * 2].weight
             nn.init.kaiming_normal_(self.conv[i * 2].weight.data, nonlinearity="relu")
 
-        x = torch.ones(K)
-        self.mu = nn.Parameter(
-            torch.tensor(x, requires_grad=True, dtype=torch.float).cpu()
-        )
-        self.lip = torch.tensor(
-            torch.ones(K), requires_grad=False, dtype=torch.float
-        ).cpu()
+        self.mu = nn.Parameter(torch.ones(K, dtype=torch.float32), requires_grad=True)
+
         # apply He's initialization
         for i in range(K):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
@@ -96,6 +90,9 @@ class DScCP(nn.Module):
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
+        sigma = self._handle_sigma(sigma)
+        if isinstance(sigma, torch.Tensor):
+            sigma = sigma.to(x.device, x.dtype)
         for k in range(self.K):
             xtmp = torch.randn_like(x)
             xtmp = xtmp / torch.linalg.norm(xtmp.flatten())
@@ -114,7 +111,7 @@ class DScCP(nn.Module):
             u_ = u + tau / self.mu[k] * self.conv[k * 2](
                 (1 + alphak) * x_curr - alphak * x_prev
             )
-            u = functional.hardtanh(u_, min_val=-(sigma**2), max_val=sigma**2)
+            u = torch.clamp(u_, min=-(sigma**2), max=sigma**2)
             x_ = (
                 (self.mu[k] / (self.mu[k] + 1)) * x
                 + (1 / (1 + self.mu[k])) * x_curr
@@ -125,3 +122,24 @@ class DScCP(nn.Module):
             x_curr = x_next
 
         return x_curr
+
+    @staticmethod
+    def _handle_sigma(sigma):
+        r"""
+        Handle the sigma value.
+
+        :param float or list or torch.Tensor sigma: noise level, can be a scalar, list of scalar or a tensor.
+        :return: a tensor with the shape (B, 1, 1, 1) or a scalar value.
+        """
+        if isinstance(sigma, (int, float)):
+            return float(sigma)
+        elif isinstance(sigma, torch.Tensor):
+            sigma = sigma.squeeze()
+            return sigma.view(-1, 1, 1, 1)
+        elif isinstance(sigma, list):
+            sigma = torch.tensor(sigma, dtype=torch.float32)
+            return sigma.view(-1, 1, 1, 1)
+        else:
+            raise ValueError(
+                f"sigma must be a scalar, list of scalars or a torch.Tensor. Got {type(sigma)}."
+            )

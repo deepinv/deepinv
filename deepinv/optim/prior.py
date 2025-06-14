@@ -308,6 +308,7 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param str mode: padding mode for the wavelet transform (default: "zero").
     :param float clamp_min: minimum value for the clamping. Default is None.
     :param float clamp_max: maximum value for the clamping. Default is None.
     """
@@ -319,6 +320,7 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
+        mode="zero",
         clamp_min=None,
         clamp_max=None,
         *args,
@@ -331,6 +333,7 @@ class WaveletPrior(Prior):
         self.wvdim = wvdim
         self.level = level
         self.device = device
+        self.mode = mode
 
         self.clamp_min = clamp_min
         self.clamp_max = clamp_max
@@ -360,6 +363,10 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 wvdim=self.wvdim,
             )
+        else:
+            raise ValueError(
+                f"wv should be a string (name of the wavelet) or a list of strings (list of wavelet names). Got {type(self.wv)} instead."
+            )
 
     def fn(self, x, *args, reduce=True, **kwargs):
         r"""
@@ -388,9 +395,15 @@ class WaveletPrior(Prior):
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
-        list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        list_norm = torch.cat(
+            [
+                torch.linalg.norm(dec, ord=self.p, dim=1, keepdim=True)
+                for dec in list_dec
+            ],
+            dim=1,
+        )
         if reduce:
-            return torch.sum(list_norm)
+            return torch.sum(list_norm, dim=1)
         else:
             return list_norm
 
@@ -409,12 +422,18 @@ class WaveletPrior(Prior):
             out = torch.clamp(out, max=self.clamp_max)
         return out
 
-    def psi(self, x, wavelet="db2", level=2, dimension=2):
+    def psi(self, x, *args, **kwargs):
         r"""
         Applies the (flattening) wavelet decomposition of x.
         """
         return self.WaveletDenoiser.psi(
-            x, wavelet=self.wv, level=self.level, dimension=self.wvdim
+            x,
+            wavelet=self.wv,
+            level=self.level,
+            dimension=self.wvdim,
+            mode=self.mode,
+            *args,
+            **kwargs,
         )
 
 
