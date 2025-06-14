@@ -39,12 +39,23 @@ class WaveletDenoiser(Denoiser):
     :param int level: decomposition level of the wavelet transform
     :param str wv: mother wavelet (follows the `PyWavelets convention
         <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_) (default: "db8")
-    :param str device: cpu or gpu
     :param str non_linearity: ``"soft"``, ``"hard"`` or ``"topk"`` thresholding (default: ``"soft"``).
         If ``"topk"``, only the top-k wavelet coefficients are kept.
+    :param str mode: padding mode for the wavelet transform (default: "zero").
+    :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
+    :param str device: cpu or gpu
+
     """
 
-    def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft", wvdim=2):
+    def __init__(
+        self,
+        level: int = 3,
+        wv: str = "db8",
+        device: torch.device = "cpu",
+        non_linearity: str = "soft",
+        mode: str = "zero",
+        wvdim: int = 2,
+    ):
         if isinstance(ptwt, ImportError):
             raise ImportError(
                 "pytorch_wavelets is needed to use the WaveletDenoiser class. "
@@ -56,15 +67,20 @@ class WaveletDenoiser(Denoiser):
         self.device = device
         self.non_linearity = non_linearity
         self.dimension = wvdim
+        self.mode = mode
 
     def dwt(self, x):
         r"""
         Applies the wavelet decomposition.
         """
         if self.dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
+            dec = ptwt.wavedec2(
+                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
+            )
         elif self.dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
+            dec = ptwt.wavedec3(
+                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
+            )
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
         return dec
 
@@ -85,7 +101,7 @@ class WaveletDenoiser(Denoiser):
         return flat
 
     @staticmethod
-    def psi(x, wavelet="db2", level=2, dimension=2):
+    def psi(x, wavelet="db2", level=2, dimension=2, mode="zero"):
         r"""
         Returns a flattened list containing the wavelet coefficients.
 
@@ -95,13 +111,15 @@ class WaveletDenoiser(Denoiser):
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
         if dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode="zero", level=level)
-            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
-            vec = [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
+            dec = list(dec)
+            vec = [decl.flatten(1, -1) for l in range(1, len(dec)) for decl in dec[l]]
         elif dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode="zero", level=level)
-            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
-            vec = [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode=mode, level=level)
+            dec = list(dec)
+            vec = [
+                dec[l][key].flatten(1, -1) for l in range(1, len(dec)) for key in dec[l]
+            ]
         return vec
 
     def iwt(self, coeffs):
