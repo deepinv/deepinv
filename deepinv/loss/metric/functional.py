@@ -19,6 +19,7 @@ def cal_psnr(
     :param torch.Tensor a: tensor estimate
     :param torch.Tensor b: tensor reference
     :param float max_pixel: maximum pixel value
+    :param float min_pixel: minimum pixel value
     """
     with torch.no_grad():
         psnr = -10.0 * torch.log10(cal_mse(a, b) / (max_pixel - min_pixel) ** 2 + 1e-8)

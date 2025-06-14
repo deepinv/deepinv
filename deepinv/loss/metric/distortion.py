@@ -210,7 +210,8 @@ class PSNR(Metric):
     >>> m(x_net, x)
     tensor([80., 80., 80.])
 
-    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of the ground truth image x.
+    :param float min_pixel: minimum pixel value. If None, uses min pixel value of the ground truth image x.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
