@@ -46,6 +46,7 @@ class NCSNpp(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_train_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
@@ -232,6 +233,7 @@ class NCSNpp(Denoiser):
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+                self._train_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
         else:
             self._train_on_minus_one_one = False
@@ -319,10 +321,9 @@ class NCSNpp(Denoiser):
         sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
 
         # Rescale [0,1] input to [-1,-1]
-        if hasattr(self, "_train_on_minus_one_one"):
-            if self._train_on_minus_one_one:
-                x = (x - 0.5) * 2.0
-                sigma = sigma * 2.0
+        if getattr(self, "_train_on_minus_one_one", False):
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
         c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
         c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
@@ -339,7 +340,7 @@ class NCSNpp(Denoiser):
 
         D_x = D_x.to(dtype)
         # Rescale [-1,1] output to [0,-1]
-        if self._train_on_minus_one_one:
+        if getattr(self, "_train_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x
