@@ -117,6 +117,10 @@ class EPLL(nn.Module):
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
+        else:
+            betas = [
+                self._handle_sigma(beta, y.shape[0]).to(y.device) for beta in betas
+            ]
 
         x = x_init
         Aty = physics.A_adjoint(y)
@@ -167,7 +171,9 @@ class EPLL(nn.Module):
         while ind < total_patch_number:
             # extract patches
             n_patches = min(batch_size, total_patch_number - ind)
-            patch_inds = torch.LongTensor(range(ind, ind + n_patches)).to(x.device)
+            patch_inds = torch.arange(
+                ind, ind + n_patches, device=x.device, dtype=torch.long
+            )
             patches, linear_inds = patch_extractor(
                 x, n_patches, self.patch_size, position_inds_linear=patch_inds
             )
