@@ -249,10 +249,10 @@ def test_wavelet_models_identity():
         g_nonflat = prior(x, reduce=False)
         g_flat = prior(x, reduce=True)
         assert g_nonflat.dim() > 0
-        assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
-        assert g_flat.dim() == 0
+        assert g_nonflat.size(1) == 3 * level if wvdim == 2 else 7 * level
+        assert g_flat.dim() == 1  # Batch dimension
 
-        assert torch.allclose(g_nonflat.abs().sum(), g_flat)
+        assert torch.allclose(g_nonflat.abs().sum(dim=1), g_flat)
 
 
 def test_TV_models_identity():
