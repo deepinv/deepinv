@@ -34,7 +34,8 @@ jobs:
             version_python: 3.9
             extra: dataset,denoisers,test
             name: "windows all dependencies"
-
+    env:
+      DEEPINV_MOCK_TESTS: "True"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v5
