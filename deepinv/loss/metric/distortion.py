@@ -224,8 +224,16 @@ class PSNR(Metric):
         self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
-        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
-        min_pixel = self.min_pixel if self.min_pixel is not None else x.min()
+        max_pixel = (
+            self.max_pixel
+            if self.max_pixel is not None
+            else x.max(dim=range(1, x.ndim))
+        )
+        min_pixel = (
+            self.min_pixel
+            if self.min_pixel is not None
+            else x.min(dim=range(1, x.ndim))
+        )
         return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
 
 
