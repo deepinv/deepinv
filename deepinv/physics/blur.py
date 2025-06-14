@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import torch.fft as fft
 from torch import Tensor
-from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
+from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
@@ -202,6 +202,21 @@ class Downsampling(LinearPhysics):
             self.Fh2 = torch.nn.Parameter(self.Fhc * self.Fh, requires_grad=False)
             self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
             self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
+
+
+class Upsampling(Downsampling):
+    r"""
+    Upsampling operator.
+    """
+
+    def A(self, x, **kwargs):
+        return super().A_adjoint(x, **kwargs)
+
+    def A_adjoint(self, y, **kwargs):
+        return super().A(y, **kwargs)
+
+    def prox_l2(self, z, y, gamma, **kwargs):
+        return super().prox_l2(z, y, gamma, **kwargs)
 
 
 class Blur(LinearPhysics):

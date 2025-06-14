@@ -92,6 +92,7 @@ Artifact Removal
    :nosignatures:
 
    deepinv.models.ArtifactRemoval
+   deepinv.models.RAM
 
 Deep Image Prior
 ----------------
