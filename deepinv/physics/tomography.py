@@ -163,7 +163,11 @@ class Tomography(LinearPhysics):
                 output = output * output.shape[-1] ** 2
         else:
             y = self.iradon.filter(y)
-            output = ApplyRadon.apply(y, self.radon, self.iradon, True)
+            output = (
+                ApplyRadon.apply(y, self.radon, self.iradon, True)
+                * PI.item()
+                / (2 * len(self.iradon.theta))
+            )
             if self.normalize:
                 output = output * output.shape[-1]
         return output
