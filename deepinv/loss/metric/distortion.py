@@ -210,21 +210,32 @@ class PSNR(Metric):
     >>> m(x_net, x)
     tensor([80., 80., 80.])
 
-    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of the ground truth image x.
+    :param float min_pixel: minimum pixel value. If None, uses min pixel value of the ground truth image x.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
-    def __init__(self, max_pixel=1, **kwargs):
+    def __init__(self, max_pixel=1, min_pixel=0, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
+        self.min_pixel = min_pixel
         self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
-        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
-        return cal_psnr(x_net, x, max_pixel=max_pixel)
+        max_pixel = (
+            self.max_pixel
+            if self.max_pixel is not None
+            else x.amax(dim=tuple(range(1, x.ndim)))
+        )
+        min_pixel = (
+            self.min_pixel
+            if self.min_pixel is not None
+            else x.amin(dim=tuple(range(1, x.ndim)))
+        )
+        return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
 
 
 class L1L2(Metric):
