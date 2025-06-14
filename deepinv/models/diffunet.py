@@ -462,7 +462,7 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs.
         """
         if not isinstance(sigma, torch.Tensor):
-            sigma = torch.tensor([sigma]).to(x.device).view(1, 1, 1, 1)
+            sigma = torch.tensor([sigma]).to(x.device, x.dtype).view(1, 1, 1, 1)
         else:
             sigma = sigma.squeeze().view((sigma.shape + (1,) * (4 - sigma.ndim)))
         alpha = 1 / (1 + 4 * sigma**2)
