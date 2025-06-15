@@ -32,7 +32,7 @@ class ULA(BaseSampling):
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
     .. warning::
-        This is a legacy class provided for convenience. See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` for more details on sampling implementation, and how to adapt it to your specific problem.
+        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on building a sampler yourself.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
@@ -121,7 +121,7 @@ class SKRock(BaseSampling):
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
     .. warning::
-        This a legacy class provided for convenience. See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` for more details on sampling implementation, and how to adapt it to your specific problem.
+        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on building a sampler yourself.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
