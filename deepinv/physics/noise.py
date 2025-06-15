@@ -112,7 +112,7 @@ class NoiseModel(nn.Module):
 
     def _float_to_tensor(self, value):
         r"""
-        Handle the noise level input. b
+        Convert a float or int to a torch.Tensor.
 
         :param value float or int or torch.Tensor: the input value
 
@@ -528,7 +528,7 @@ class GammaNoise(NoiseModel):
     where the mean is given by :math:`x` and the variance is given by :math:`x/\ell`,
     see https://en.wikipedia.org/wiki/Gamma_distribution for more details.
 
-    Distribution for modelling speckle noise (eg. SAR images),
+    Distribution for modelling speckle noise (e.g. SAR images),
     where :math:`\ell>0` controls the noise level (smaller values correspond to higher noise).
 
     .. warning:: This noise model does not support the random number generator.
