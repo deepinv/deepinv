@@ -219,12 +219,13 @@ or with a user-defined one (an instance of :class:`deepinv.sampling.SamplingIter
 
 
 We provide a very flexible framework for MCMC algorithms, providing some predefined algorithms alongside making it easy to implement your own custom sampling algorithms.
-This is achieved by creating your own sampling iterator, which involves subclassing :class:`deepinv.sampling.SamplingIterator`.
+This is achieved by creating your own sampling iterator, which involves subclassing :class:`deepinv.sampling.SamplingIterator`. See :class:`deepinv.sampling.SamplingIterator` for a short example.
+
 A custom iterator needs to implement two methods:
 
 *   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
 
-*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
 
 
 Some predefined iterators are provided:

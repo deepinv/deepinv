@@ -115,7 +115,7 @@ class BaseSampling(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        x_init: Union[torch.Tensor, None] = None,
+        x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
         **kwargs,
     ) -> torch.Tensor:
@@ -124,7 +124,7 @@ class BaseSampling(Reconstructor):
 
         :param torch.Tensor y: The observed measurements
         :param Physics physics: Forward operator of your inverse problem
-        :param torch.Tensor x_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+        :param Union[torch.Tensor, dict, None] x_init: Optional initial state of the Markov chain. This can be a ``torch.Tensor`` to initialize the image ``X["x"]``, or a ``dict`` to initialize the entire state ``X`` including any latent variables. In most cases, providing a tensor to initialize ``X["x"]`` will be sufficient.
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
@@ -139,7 +139,7 @@ class BaseSampling(Reconstructor):
         self,
         y: torch.Tensor,
         physics: Physics,
-        x_init: Union[torch.Tensor, None] = None,
+        x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
         g_statistics: Union[Callable, List[Callable]] = [lambda d: d["x"]],
         **kwargs,
@@ -152,7 +152,7 @@ class BaseSampling(Reconstructor):
 
         :param torch.Tensor y: The observed measurements/data tensor
         :param Physics physics: Forward operator of your inverse problem.
-        :param torch.Tensor x_init: Initial state of the Markov chain. If None, uses ``physics.A_adjoint(y)`` as the starting point
+        :param Union[torch.Tensor, dict, None] x_init: Optional initial state of the Markov chain. This can be a ``torch.Tensor`` to initialize the image ``X["x"]``, or a ``dict`` to initialize the entire state ``X`` including any latent variables. In most cases, providing a tensor to initialize ``X["x"]`` will be sufficient.
             Default: ``None``
         :param int seed: Optional random seed for reproducible sampling.
             Default: ``None``
@@ -196,9 +196,12 @@ class BaseSampling(Reconstructor):
                         physics.A_dagger(y), y, physics, self.data_fidelity, self.prior
                     )
             else:
-                X = self.iterator.initialize_latent_variables(
-                    x_init, y, physics, self.data_fidelity, self.prior
-                )
+                if isinstance(x_init, dict):
+                    X = x_init
+                else:
+                    X = self.iterator.initialize_latent_variables(
+                        x_init, y, physics, self.data_fidelity, self.prior
+                    )
 
             if self.history_size:
                 if isinstance(self.history, deque):
