@@ -50,9 +50,6 @@ class ULA(BaseSampling):
     :param tuple clip: Tuple containing the box-constraints :math:`[a,b]`.
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
-    :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
-        Default: ``lambda d: d["x"]`` (identity function)
     :param bool verbose: prints progress of the algorithm.
 
     """
@@ -70,7 +67,6 @@ class ULA(BaseSampling):
         clip: tuple = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
         verbose: bool = False,
     ):
         algo_params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}
@@ -86,7 +82,6 @@ class ULA(BaseSampling):
             history_size=save_chain,
             verbose=verbose,
         )
-        self.g_statistics = g_statistics
 
     def forward(
         self,
@@ -94,6 +89,7 @@ class ULA(BaseSampling):
         physics: Physics,
         seed: Union[None, int] = None,
         x_init: Union[None, Tensor] = None,
+        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
     ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -101,10 +97,13 @@ class ULA(BaseSampling):
         :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the Monte Carlo samples
+        :param list[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+            The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
+            Default: ``lambda d: d["x"]`` (identity function)
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         return self.sample(
-            y, physics, x_init=x_init, seed=seed, g_statistics=self.g_statistics
+            y, physics, x_init=x_init, seed=seed, g_statistics=g_statistics
         )
 
 
@@ -141,9 +140,6 @@ class SKRock(BaseSampling):
     :param bool verbose: prints progress of the algorithm.
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
-    :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
-        The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
-        Default: ``lambda d: d["x"]`` (identity function)
 
     """
 
@@ -161,7 +157,6 @@ class SKRock(BaseSampling):
         clip: Tuple[float, float] = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
-        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
         verbose: bool = False,
         sigma: float = 0.05,
     ) -> None:
@@ -184,7 +179,6 @@ class SKRock(BaseSampling):
             history_size=save_chain,
             verbose=verbose,
         )
-        self.g_statistics = g_statistics
 
     def forward(
         self,
@@ -192,6 +186,7 @@ class SKRock(BaseSampling):
         physics: Physics,
         seed: Union[None, int] = None,
         x_init: Union[None, Tensor] = None,
+        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
     ) -> Tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -199,8 +194,11 @@ class SKRock(BaseSampling):
         :param torch.Tensor y: Measurements
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements
         :param float seed: Random seed for generating the Monte Carlo samples
+        :param List[Callable] | Callable g_statistics: List of functions for which to compute posterior statistics, or a single function.
+            The sampler will compute the posterior mean and variance of each function in the list. Note the sampler outputs a dictionary so they must act on `d["x"]`.
+            Default: ``lambda d: d["x"]`` (identity function)
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
         return self.sample(
-            y, physics, x_init=x_init, seed=seed, g_statistics=self.g_statistics
+            y, physics, x_init=x_init, seed=seed, g_statistics=g_statistics
         )
