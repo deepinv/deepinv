@@ -143,7 +143,9 @@ def test_get_samples(
         )
         param_name = "filter"
     elif physics_type == "inpainting":
-        physics = dinv.physics.Inpainting(img_size=imsize, device=device, rng=rng)
+        physics = dinv.physics.Inpainting(
+            img_size=imsize, device=device, rng=rng, mask=0.1
+        )
         param_name = "mask"
 
     # Define physics generator
@@ -268,8 +270,9 @@ def test_trainer_physics_generator_params(
             self.update_parameters(f=f)
             return x.sum() * self.f
 
-        def update_parameters(self, f=None, **kwargs):
-            self.f = f if f is not None else self.f
+        def update_parameters(self, f: float, **kwargs):
+            self.f = f
+            super().update_parameters(**kwargs)
 
     physics = DummyPhysics()
     if noise == "gaussian":

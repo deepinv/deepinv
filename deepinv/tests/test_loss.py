@@ -299,7 +299,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     ).to(device)
 
     # choose a reconstruction architecture
-    model = dinv.models.ArtifactRemoval(backbone)
+    model = dinv.models.ArtifactRemoval(backbone, device=device)
 
     # choose optimizer and scheduler
     epochs = 10

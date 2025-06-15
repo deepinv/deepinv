@@ -139,53 +139,66 @@ class StructuredRandom(LinearPhysics):
         rng: torch.Generator = None,
         **kwargs,
     ):
+        super().__init__(**kwargs)
+
         if len(img_size) == 3:
-            mode = compare(img_size, output_size)
+            self.mode = compare(img_size, output_size)
         else:
-            mode = None
+            self.mode = None
+
+        self.img_size = img_size
+        self.output_size = output_size
+        self.n_layers = n_layers
+        self.transform_func = transform_func
+        self.transform_func_inv = transform_func_inv
 
         if diagonals is None:
-            diagonals = [
-                generate_diagonal(
-                    shape=img_size,
-                    mode="rademacher",
-                    dtype=torch.float,
-                    generator=rng,
-                    device=device,
-                )
-            ]
-        self.img_size = img_size
+            diagonals = torch.stack(
+                [
+                    generate_diagonal(
+                        shape=img_size,
+                        mode="rademacher",
+                        dtype=torch.float,
+                        generator=rng,
+                        device=device,
+                    )
+                    for _ in range(math.floor(self.n_layers))
+                ],
+                dim=0,
+            )
+        elif isinstance(diagonals, list):
+            diagonals = torch.stack(diagonals, dim=0)
+        self.register_buffer("diagonals", diagonals)
+        self.to(device)
 
-        def A(x):
-            if mode == "oversampling":
-                x = padding(x, img_size, output_size)
+    def A(self, x: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        if self.mode == "oversampling":
+            x = padding(x, self.img_size, self.output_size)
 
-            if n_layers - math.floor(n_layers) == 0.5:
-                x = transform_func(x)
-            for i in range(math.floor(n_layers)):
-                diagonal = diagonals[i]
-                x = diagonal * x
-                x = transform_func(x)
+        if self.n_layers - math.floor(self.n_layers) == 0.5:
+            x = self.transform_func(x)
+        for i in range(math.floor(self.n_layers)):
+            diagonal = self.diagonals[i]
+            x = diagonal * x
+            x = self.transform_func(x)
 
-            if mode == "undersampling":
-                x = trimming(x, img_size, output_size)
+        if self.mode == "undersampling":
+            x = trimming(x, self.img_size, self.output_size)
 
-            return x
+        return x
 
-        def A_adjoint(y):
-            if mode == "undersampling":
-                y = padding(y, img_size, output_size)
+    def A_adjoint(self, y: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        if self.mode == "undersampling":
+            y = padding(y, self.img_size, self.output_size)
 
-            for i in range(math.floor(n_layers)):
-                diagonal = diagonals[-i - 1]
-                y = transform_func_inv(y)
-                y = torch.conj(diagonal) * y
-            if n_layers - math.floor(n_layers) == 0.5:
-                y = transform_func_inv(y)
+        for i in range(math.floor(self.n_layers)):
+            diagonal = self.diagonals[-i - 1]
+            y = self.transform_func_inv(y)
+            y = torch.conj(diagonal) * y
+        if self.n_layers - math.floor(self.n_layers) == 0.5:
+            y = self.transform_func_inv(y)
 
-            if mode == "oversampling":
-                y = trimming(y, img_size, output_size)
+        if self.mode == "oversampling":
+            y = trimming(y, self.img_size, self.output_size)
 
-            return y
-
-        super().__init__(A=A, A_adjoint=A_adjoint, **kwargs)
+        return y
