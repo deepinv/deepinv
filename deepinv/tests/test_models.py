@@ -2,6 +2,7 @@ import sys
 import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
+from torchvision.transforms.functional import rgb_to_grayscale
 
 import deepinv as dinv
 from dummy import DummyCircles, DummyModel
@@ -17,6 +18,8 @@ MODEL_LIST_1_CHANNEL = [
     "waveletdict",
     "epll",
     "restormer",
+    "ncsnpp",
+    "admunet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -86,6 +89,20 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "ncsnpp":
+        out = dinv.models.NCSNpp(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            img_resolution=imsize[1],
+            pretrained=None,
+        )
+    elif name == "admunet":
+        out = dinv.models.ADMUNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            img_resolution=imsize[1],
+            pretrained=None,
+        )
     elif name == "dsccp":
         out = dinv.models.DScCP()
     else:
@@ -232,10 +249,10 @@ def test_wavelet_models_identity():
         g_nonflat = prior(x, reduce=False)
         g_flat = prior(x, reduce=True)
         assert g_nonflat.dim() > 0
-        assert len(g_nonflat) == 3 * level if wvdim == 2 else 7 * level
-        assert g_flat.dim() == 0
+        assert g_nonflat.size(1) == 3 * level if wvdim == 2 else 7 * level
+        assert g_flat.dim() == 1  # Batch dimension
 
-        assert torch.allclose(g_nonflat.abs().sum(), g_flat)
+        assert torch.allclose(g_nonflat.abs().sum(dim=1), g_flat)
 
 
 def test_TV_models_identity():
@@ -259,6 +276,10 @@ def test_TV_models_identity():
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
+    # NCSNpp and ADMUnet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "admunet"]:
+        imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
+
     model = choose_denoiser(denoiser, imsize).to(device)
     torch.manual_seed(0)
     sigma = 0.2
@@ -274,6 +295,14 @@ def test_denoiser_color(imsize, device, denoiser):
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     # except scunet and dsccp, all models support 1 channel
     if denoiser not in ["scunet", "dsccp"]:
+        # NCSNpp and ADMUnet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "admunet"]:
+            imsize_1_channel = (
+                imsize_1_channel[0],
+                (imsize_1_channel[1] // 8) * 8,
+                (imsize_1_channel[2] // 8) * 8,
+            )
+
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -339,6 +368,12 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
+    if denoiser in ["ncsnpp", "admunet"]:
+        imsize_1_channel = list(imsize_1_channel)
+        if imsize_1_channel[1] % 8 > 0:
+            imsize_1_channel[1] = 32
+        if imsize_1_channel[2] % 8 > 0:
+            imsize_1_channel[2] = 32
     model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
     torch.manual_seed(0)
@@ -350,6 +385,96 @@ def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
     x_hat = model(y, sigma)
 
     assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_denoiser_sigma_gray(batch_size, denoiser, device):
+    img_size = (1, 64, 64)
+    model = choose_denoiser(denoiser, img_size).to(device)
+    noiser = dinv.physics.GaussianNoise()
+    x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
+    # Same sigma for all image in the batch
+    sigma = torch.tensor(0.1)
+    y = noiser(x, sigma=sigma)
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Same sigma but a float
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Each sigma for each image in the batch
+    if batch_size > 1:
+        sigma = torch.linspace(0.1, 0.3, batch_size, device=device)
+        with torch.no_grad():
+            y = noiser(x, sigma=sigma)
+            x_hat = model(y, sigma)
+        assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("denoiser", MODEL_LIST)
+@pytest.mark.parametrize("batch_size", [1, 2, 3])
+def test_denoiser_sigma_color(batch_size, denoiser, device):
+    img_size = (3, 64, 64)
+    model = choose_denoiser(denoiser, img_size).to(device)
+    noiser = dinv.physics.GaussianNoise()
+    x = torch.ones((batch_size,) + img_size, device=device, dtype=torch.float32)
+    # Same sigma for all image in the batch
+    sigma = torch.tensor(0.1)
+    y = noiser(x, sigma=sigma)
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Same sigma but a float
+    with torch.no_grad():
+        x_hat = model(y, sigma)
+    assert x_hat.shape == x.shape
+
+    # Each sigma for each image in the batch
+    if batch_size > 1:
+        sigma = torch.linspace(0.1, 0.3, batch_size, device=device)
+        with torch.no_grad():
+            y = noiser(x, sigma=sigma)
+            x_hat = model(y, sigma)
+        assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("level", [3, 5, 6])
+@pytest.mark.parametrize("channels", [1, 3])
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize("dimension", [2, 3])
+@pytest.mark.parametrize("non_linearity", ["soft", "hard", "topk"])
+def test_wavelet_denoiser_ths(
+    level, channels, dimension, non_linearity, batch_size, device
+):
+    model = dinv.models.WaveletDenoiser(
+        level=level, wvdim=dimension, non_linearity=non_linearity
+    ).to(device)
+    img_size = (batch_size, channels, 64, 64)
+    y = torch.randn(img_size, dtype=torch.float32).to(device)
+
+    # Test with a float threshold
+    ths = 0.1
+    x_hat = model(y, ths)
+    assert x_hat.shape == y.shape
+    # Test with a tensor threshold
+    ths_tensor = torch.tensor([ths] * batch_size, device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
+    # Test with a tensor for each level
+    ths_tensor = torch.rand((batch_size, level), device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
+
+    # Test with a tensor for batch, level and wavelet dimension
+    numel = 3 if dimension == 2 else 7
+    ths_tensor = torch.rand((batch_size, level, numel), device=device)
+    x_hat = model(y, ths_tensor)
+    assert x_hat.shape == y.shape
 
 
 def test_drunet_inputs(imsize_1_channel, device):
@@ -598,10 +723,10 @@ def test_time_agnostic_net():
 @pytest.mark.parametrize("varnet_type", ("varnet", "e2e-varnet", "modl"))
 def test_varnet(varnet_type, device):
 
-    def dummy_dataset(imsize, device):
+    def dummy_dataset(imsize):
         return DummyCircles(samples=1, imsize=imsize)
 
-    x = dummy_dataset((2, 8, 8), device=device)[0].unsqueeze(0)
+    x = dummy_dataset((2, 8, 8))[0].unsqueeze(0).to(device)
     physics = dinv.physics.MRI(
         mask=dinv.physics.generator.GaussianMaskGenerator(
             x.shape[1:], acceleration=2, device=device
@@ -672,7 +797,10 @@ def test_pannet():
 def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp16):
     # Load the pretrained model
     model = dinv.models.NCSNpp(
-        img_resolution=image_size, in_channels=n_channels, out_channels=n_channels
+        img_resolution=image_size,
+        in_channels=n_channels,
+        out_channels=n_channels,
+        pretrained=None,
     )
     if precond:
         model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)
@@ -693,12 +821,11 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
     assert y.shape == x.shape
 
 
-@pytest.mark.parametrize("device", [torch.device("cpu")])
 @pytest.mark.parametrize("n_channels", [3])
 def test_dsccp_net(device, n_channels):
     # Load the pretrained model
 
-    image_size = (3, 37, 28)
+    image_size = (n_channels, 37, 28)
     model = dinv.models.DScCP().to(device)
     x = torch.rand(image_size, device=device).unsqueeze(0)
 
@@ -708,4 +835,9 @@ def test_dsccp_net(device, n_channels):
 
     y = model(x, torch.tensor(0.01))
     # Check the output tensor shape
+    assert y.shape == x.shape
+
+    # batch of sigma
+    x = x.expand(4, -1, -1, -1)
+    y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
