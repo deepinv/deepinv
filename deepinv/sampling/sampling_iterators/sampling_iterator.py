@@ -11,9 +11,9 @@ class SamplingIterator(nn.Module):
     r"""
     Base class for sampling iterators.
 
-    All samplers should implement the forward method which performs one step of the Markov chain Monte Carlo sampling process,
+    All samplers should implement the `forward` method which performs one step of the Markov chain Monte Carlo sampling process,
     generating the next state :math:`X_{t+1}` given the current state :math:`X_t`.
-    Where :math:`X_t` is a dict containing the image :math:`x_t` as well as any latent variables.
+    Where :math:`X_t` is a `dict` containing the image :math:`x_t` as well as any latent variables.
     See the docs for :class:`deepinv.sampling.BaseSampling` for an example along with more information.
 
     :param dict algo_params: Dictionary containing the parameters for the sampling algorithm
@@ -63,7 +63,7 @@ class SamplingIterator(nn.Module):
         **kwargs,
     ) -> Dict[str, Any]:
         r"""
-        Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}`
+        Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}, where :math:`X_t` is a `dict` containing the image :math:`x_t` as well as any latents`
 
         :param Dict X: Dictionary containing the current image :math:`X_t` of the Markov chain along with any latent variables.
         :param torch.Tensor y: Observed measurements/data tensor

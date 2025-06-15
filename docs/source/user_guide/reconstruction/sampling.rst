@@ -213,7 +213,7 @@ or with a user-defined one (an instance of :class:`deepinv.sampling.SamplingIter
 
 .. doctest::
 
-    >>> model = dinv.optim.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
+    >>> model = dinv.sampling.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
                                     params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
     >>> x_hat = model(y, physics)
 
@@ -224,7 +224,7 @@ A custom iterator needs to implement two methods:
 
 *   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
 
-*   ``forward(self, X_prev, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X_{prev}` (a dictionary containing at least ``{"x": x_prev, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
 
 
 Some predefined iterators are provided:
