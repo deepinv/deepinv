@@ -1,12 +1,8 @@
 import torch
-from torch import nn
 from deepinv.physics.forward import LinearPhysics
 
 from deepinv.physics.functional import Radon, IRadon, RampFilter, ApplyRadon
 from deepinv.physics import adjoint_function
-
-
-PI = 4 * torch.ones(1).atan()
 
 
 class Tomography(LinearPhysics):
@@ -113,12 +109,13 @@ class Tomography(LinearPhysics):
         super().__init__(**kwargs)
 
         if isinstance(angles, int) or isinstance(angles, float):
-            theta = torch.nn.Parameter(
-                torch.linspace(0, 180, steps=angles + 1, device=device)[:-1],
-                requires_grad=False,
-            ).to(device)
+            theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
+                device
+            )
         else:
-            theta = torch.nn.Parameter(angles, requires_grad=False).to(device)
+            theta = torch.tensor(angles).to(device)
+
+        self.register_buffer("theta", theta)
 
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
@@ -162,9 +159,12 @@ class Tomography(LinearPhysics):
 
     def A_dagger(self, y, **kwargs):
         if self.fan_beam or self.adjoint_via_backprop:
-            y = self.filter(y)
+            if self.fan_beam:
+                y = self.filter(y)
+            else:
+                y = self.iradon.filter(y)
             output = (
-                self.A_adjoint(y, **kwargs) * PI.item() / (2 * len(self.radon.theta))
+                self.A_adjoint(y, **kwargs) * torch.pi / (2 * len(self.radon.theta))
             )
             if self.normalize:
                 output = output * output.shape[-1] ** 2
@@ -172,7 +172,7 @@ class Tomography(LinearPhysics):
             y = self.iradon.filter(y)
             output = (
                 ApplyRadon.apply(y, self.radon, self.iradon, True)
-                * PI.item()
+                * torch.pi
                 / (2 * len(self.iradon.theta))
             )
             if self.normalize:
