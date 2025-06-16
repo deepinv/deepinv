@@ -1049,7 +1049,15 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("circle", [True, False])
 @pytest.mark.parametrize("adjoint_via_backprop", [True, False])
 @pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
-def test_tomography(normalize, parallel_computation, fan_beam, circle, adjoint_via_backprop, fbp_interpolate_boundary, device):
+def test_tomography(
+    normalize,
+    parallel_computation,
+    fan_beam,
+    circle,
+    adjoint_via_backprop,
+    fbp_interpolate_boundary,
+    device,
+):
     r"""
     Tests tomography operator which does not have a numerically precise adjoint.
 

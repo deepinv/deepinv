@@ -37,7 +37,8 @@ class Tomography(LinearPhysics):
         The inverse Radon transform is computationally cheaper (particularly in memory), but has a small adjoint mismatch.
         The backprop adjoint is the exact adjoint, but might break random seeds since it backpropagates through :func:`torch.nn.functional.grid_sample`, see the note `here <https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html>`_.
     :param bool fbp_interpolate_boundary: the FBP (``A_dagger``) usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
-        these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image.
+        these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
+        only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
     :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
         In this case the operator norm is approximately given by :math:`\|A\|_2^2  \approx \frac{\pi}{2\,\text{angles}}`,
         If ``False``, then it is assumed that the image lives on [0,im_width]^2 for the computation of the line integrals
@@ -120,6 +121,9 @@ class Tomography(LinearPhysics):
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
         self.fbp_interpolate_boundary = fbp_interpolate_boundary
+        if circle:
+            # interpolate boundary does not make sense if circle is True
+            self.fbp_interpolate_boundary = False
         self.img_width = img_width
         self.device = device
         self.dtype = dtype
