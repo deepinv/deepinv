@@ -1,11 +1,6 @@
 from typing import Any, Union, Optional
 import math
 import torch
-<<<<<<< ct_with_astra
-from torch import nn
-from torch.nn import functional as F
-=======
->>>>>>> main
 from deepinv.physics.forward import LinearPhysics
 from deepinv.physics.functional import Radon, IRadon, RampFilter
 from deepinv.physics import adjoint_function
@@ -18,15 +13,12 @@ from deepinv.physics.functional.astra import (
 )
 from warnings import warn
 
-<<<<<<< ct_with_astra
 try:
     import astra
 except:
     astra = ImportError("The astra-toolbox package is not installed.")
 
 
-=======
->>>>>>> main
 class Tomography(LinearPhysics):
     r"""
     (Computed) Tomography operator.
