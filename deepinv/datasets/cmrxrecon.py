@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Union, List, Dict, Tuple
+from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
 from natsort import natsorted
@@ -105,7 +105,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
         mask_generator: Optional[BaseMaskGenerator] = None,
         transform: Optional[Callable] = None,
-        pad_size: Tuple[int, int] = (512, 256),
+        pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
 
@@ -168,7 +168,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def _retrieve_metadata(
         self, fname: Union[str, Path, os.PathLike]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
@@ -190,7 +190,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             else {}
         )
 
-    def __getitem__(self, i: int) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
+    def __getitem__(self, i: int) -> tuple[Tensor, Tensor, dict[str, Tensor]]:
         """Get ith data sampe.
 
         :param int i: dataset index to get

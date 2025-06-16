@@ -66,6 +66,10 @@ nitpicky = True
 autodoc_inherit_docstrings = False
 # for sitemap
 html_baseurl = "https://deepinv.github.io/deepinv/"
+# the default scheme makes for wrong urls so we specify it properly here
+# For more details, see:
+# https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
+sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
 from docutils import nodes

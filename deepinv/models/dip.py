@@ -4,6 +4,7 @@ import numpy as np
 from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def add_module(self, module):
@@ -21,18 +22,19 @@ class ConvDecoder(nn.Module):
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
-    :param tuple img_shape: shape of the output image.
+    :param tuple img_size: shape of the output image.
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
-    def __init__(self, img_shape, in_size=(4, 4), layers=7, channels=256):
+    @_deprecated_alias(img_shape="img_size")
+    def __init__(self, img_size, in_size=(4, 4), layers=7, channels=256):
         super(ConvDecoder, self).__init__()
 
-        out_size = img_shape[1:]
-        output_channels = img_shape[0]
+        out_size = img_size[1:]
+        output_channels = img_size[0]
 
         # parameter setup
         kernel_size = 3
@@ -120,7 +122,7 @@ class DeepImagePrior(Reconstructor):
         values may not be optimal for all problems. We recommend experimenting with different values.
 
     :param torch.nn.Module generator: Convolutional decoder network.
-    :param list, tuple input_size: Size `(C,H,W)` of the input noise vector :math:`z`.
+    :param list, tuple img_size: Size `(C,H,W)` of the input noise vector :math:`z`.
     :param int iterations: Number of optimization iterations.
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
@@ -128,10 +130,11 @@ class DeepImagePrior(Reconstructor):
 
     """
 
+    @_deprecated_alias(input_size="img_size")
     def __init__(
         self,
         generator,
-        input_size,
+        img_size,
         iterations=2500,
         learning_rate=1e-2,
         verbose=False,
@@ -144,11 +147,11 @@ class DeepImagePrior(Reconstructor):
         self.loss = MCLoss()
         self.verbose = verbose
         self.re_init = re_init
-        self.input_size = input_size
+        self.img_size = img_size
 
     def forward(self, y, physics, **kwargs):
         r"""
-        Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimiza
+        Reconstruct an image from the measurement :math:`y`. The reconstruction is performed by solving a minimization
         problem.
 
         .. warning::
@@ -165,7 +168,7 @@ class DeepImagePrior(Reconstructor):
                     layer.reset_parameters()
 
         self.generator.requires_grad_(True)
-        z = torch.randn(self.input_size, device=y.device).unsqueeze(0)
+        z = torch.randn(self.img_size, device=y.device).unsqueeze(0)
         optimizer = torch.optim.Adam(self.generator.parameters(), lr=self.lr)
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
