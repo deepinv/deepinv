@@ -225,8 +225,8 @@ class Radon(nn.Module):
             yax = (
                 2
                 * (
-                    torch.arange(W, dtype=torch.float, device=x.device)[None, :].repeat(
-                        W, 1
+                    torch.arange(W, dtype=torch.float, device=x.device)[None, :].expand(
+                        W, -1
                     )[None, None, :, :]
                 )
                 / (W - 1)
