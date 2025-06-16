@@ -442,6 +442,17 @@ class IRadon(nn.Module):
 
 # autograd wrapper
 class ApplyRadon(torch.autograd.Function):
+    r"""
+    (Static) Autograd Wrapper for the Radon transform and its adjoint.
+
+    It can be called by ``ApplyRadon.apply(x, radon, iradon, adjoint)`` and with inputs specified as follows:
+
+    :param torch.Tensor x:
+    :param Radon radon: Radon object used.
+    :param IRadon iradon: Inverse Radon object used for the adjoint.
+    :param bool adjoint: if ``True`` the ``ApplyRadon.apply(x, radon, iradon, adjoint)`` refers to the adjoint of the Radon transform, otherwise to the forward.
+    """
+
     @staticmethod
     def forward(
         x,

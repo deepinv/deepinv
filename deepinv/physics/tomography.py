@@ -32,10 +32,10 @@ class Tomography(LinearPhysics):
     :param int img_width: width/height of the square image input.
     :param bool circle: If ``True`` both forward and backward projection will be restricted to pixels inside a circle
         inscribed in the square image.
-    :param bool parallel_computation: if True, all projections are performed in parallel. Requires more memory but is faster on GPUs.
-    :param bool adjoint_via_backprop: if True, the adjoint will be computed via ``deepinv.physics.adjoint_function``. Otherwise the inverse Radon transform is used.
+    :param bool parallel_computation: if ``True``, all projections are performed in parallel. Requires more memory but is faster on GPUs.
+    :param bool adjoint_via_backprop: if ``True``, the adjoint will be computed via :func:`deepinv.physics.adjoint_function`. Otherwise the inverse Radon transform is used.
         The inverse Radon transform is computationally cheaper (particularly in memory), but has a small adjoint mismatch.
-        The backprop adjoint is the exact adjoint, but might break random seeds since it backpropagates through ``torch.nn.functional.grid_sample``, see the note `here <https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html>`_,
+        The backprop adjoint is the exact adjoint, but might break random seeds since it backpropagates through :func:`torch.nn.functional.grid_sample`, see the note `here <https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html>`_.
     :param bool fbp_interpolate_boundary: the FBP (``A_dagger``) usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image.
     :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
