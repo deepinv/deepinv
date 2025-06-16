@@ -1066,11 +1066,7 @@ def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
     )
 
     x = torch.randn(imsize, device=device).unsqueeze(0)
-    r = (
-        physics.A_adjoint(physics.A(x))
-        * PI.item()
-        / (2 * len(physics.radon.theta))
-    )
+    r = physics.A_adjoint(physics.A(x)) * PI.item() / (2 * len(physics.radon.theta))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
     epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
