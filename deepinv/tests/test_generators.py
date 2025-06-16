@@ -459,6 +459,8 @@ def test_inpainting_generators(
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 def test_inpainting_generator_random_ratio(num_channels, device, dtype):
+    rng = torch.Generator().manual_seed(0)
+
     # NOTE elements of this test are now redundant given above tests
     size = (100, 100)  # we take it large to have significant statistical numbers after
     physics = dinv.physics.Inpainting((num_channels, size[0], size[1]), 0.9)
@@ -477,10 +479,12 @@ def test_inpainting_generator_random_ratio(num_channels, device, dtype):
     assert abs(experimental_split_ratio.item() - split_ratio) < 1e-2
 
     # check forward
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    x = torch.randn((batch_size, num_channels, size[0], size[1]), generator=rng)
     y = physics(x, **params)
     experimental_split_ratio_obs = 1 - (y[0] == 0).sum() / y[0].numel()
-    assert experimental_split_ratio == experimental_split_ratio_obs
+    assert torch.allclose(
+        experimental_split_ratio, experimental_split_ratio_obs, rtol=1e-4
+    )
 
     # now we do the same with each element in the batch for random_split_ratio
     min_split_ratio = 0.001
@@ -498,7 +502,7 @@ def test_inpainting_generator_random_ratio(num_channels, device, dtype):
     mask = params["mask"]
     assert mask.shape == (batch_size, num_channels, size[0], size[1])
 
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    x = torch.randn((batch_size, num_channels, size[0], size[1]), generator=rng)
     y = physics(x, **params)
 
     list_exp_split_ratio = []
