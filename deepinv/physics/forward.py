@@ -1,9 +1,9 @@
+from __future__ import annotations
 from typing import Union
 import copy
 import inspect
 import itertools
 import collections.abc
-from __future__ import annotations
 
 import torch
 from torch import Tensor
