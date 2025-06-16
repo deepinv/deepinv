@@ -204,7 +204,7 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
@@ -276,7 +276,7 @@ def bicgstab(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
     :param Callable right_precon: right preconditioner as a callable function.
@@ -397,7 +397,7 @@ def lsqr(
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
@@ -606,7 +606,7 @@ def minres(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
     :param float tol: absolute tolerance for stopping the MINRES algorithm.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)

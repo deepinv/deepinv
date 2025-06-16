@@ -51,6 +51,7 @@ Fixed
 - Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
 
 - Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
+- Upgrade deprecated typing.T types in the code base (:gh:`501` by `Jérémy Scanvic`_)
 
 v0.3
 ----------------
