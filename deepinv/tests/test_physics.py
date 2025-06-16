@@ -1719,9 +1719,69 @@ def test_clone(name, device):
     saved_A = physics.A
     physics.A = lambda *args, **kwargs: "hi"
 
-    x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+    x = torch.randn(
+        imsize,
+        device=device,
+        dtype=dtype,
+        generator=torch.Generator(device).manual_seed(0),
+    ).unsqueeze(0)
     assert physics.A(x) == "hi"
     assert physics_clone.A(x) != "hi"
 
     # Restore original values
     physics.A = saved_A
+
+    # Check requires_grad in parameters and buffers
+
+    saved_physics = physics
+    saved_physics_clone = physics_clone
+
+    # Use a clone as the base to avoid mutations across different tests as it
+    # may happen when modifying parameters and buffers
+    physics = physics.clone()
+
+    for param in physics.parameters():
+        param.requires_grad = True
+
+    physics_clone = physics.clone()
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        assert param.requires_grad, "Cloned parameter does not require grad."
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        param.requires_grad = False
+
+    physics_clone = physics.clone()
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        assert not param.requires_grad, "Cloned parameter should not require grad."
+
+    for buffer in physics.buffers():
+        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
+            continue
+        buffer.requires_grad = True
+
+    physics_clone = physics.clone()
+
+    for buffer in physics_clone.buffers():
+        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
+            continue
+        assert buffer.requires_grad, "Cloned buffer does not require grad."
+
+    for buffer in physics.buffers():
+        buffer.requires_grad = False
+
+    physics_clone = physics.clone()
+
+    for buffer in physics_clone.buffers():
+        assert not buffer.requires_grad, "Cloned buffer should not require grad."
+
+    # Restore original values
+    physics = saved_physics
+    physics_clone = saved_physics_clone
