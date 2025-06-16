@@ -458,9 +458,8 @@ def test_inpainting_generators(
 @pytest.mark.parametrize("num_channels", NUM_CHANNELS)
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
-def test_inpainting_generator_random_ratio(num_channels, device, dtype):
-    rng = torch.Generator().manual_seed(0)
-
+@pytest.mark.parametrize("rng", [torch.Generator().manual_seed(0)])
+def test_inpainting_generator_random_ratio(num_channels, device, dtype, rng):
     # NOTE elements of this test are now redundant given above tests
     size = (100, 100)  # we take it large to have significant statistical numbers after
     physics = dinv.physics.Inpainting((num_channels, size[0], size[1]), 0.9)
