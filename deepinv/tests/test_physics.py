@@ -1022,26 +1022,28 @@ def test_tomography(device):
         for parallel_computation in [True, False]:
             for fan_beam in [True, False]:
                 for circle in [True, False]:
-                    imsize = (1, 16, 16)
-                    physics = dinv.physics.Tomography(
-                        img_width=imsize[-1],
-                        angles=imsize[-1],
-                        device=device,
-                        circle=circle,
-                        fan_beam=fan_beam,
-                        normalize=normalize,
-                        parallel_computation=parallel_computation,
-                    )
+                    for adjoint_via_backprop in [True, False]:
+                        for fbp_interpolate_boundary in [True, False]:
+                            imsize = (1, 16, 16)
+                            physics = dinv.physics.Tomography(
+                                img_width=imsize[-1],
+                                angles=imsize[-1],
+                                device=device,
+                                circle=circle,
+                                fan_beam=fan_beam,
+                                normalize=normalize,
+                                parallel_computation=parallel_computation,
+                            )
 
-                    x = torch.randn(imsize, device=device).unsqueeze(0)
-                    r = (
-                        physics.A_adjoint(physics.A(x))
-                        * PI.item()
-                        / (2 * len(physics.radon.theta))
-                    )
-                    y = physics.A(r)
-                    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-                    assert error < 0.2
+                            x = torch.randn(imsize, device=device).unsqueeze(0)
+                            r = (
+                                physics.A_adjoint(physics.A(x))
+                                * PI.item()
+                                / (2 * len(physics.radon.theta))
+                            )
+                            y = physics.A(r)
+                            error = (physics.A_dagger(y) - r).flatten().mean().abs()
+                            assert error < 0.2
 
 
 def test_downsampling_adjointness(device):

@@ -14,6 +14,7 @@ Changed
 ^^^^^^^
 - Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
 - Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+- Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
 
 Fixed
 ^^^^^
