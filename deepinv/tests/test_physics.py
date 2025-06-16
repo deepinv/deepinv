@@ -19,6 +19,7 @@ OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
+    "inpainting_clone",
     "demosaicing",
     "denoising",
     "colorize",
@@ -138,6 +139,10 @@ def find_operator(name, device, get_physics_param=False):
         params = ["mask"]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        params = ["mask"]
+    elif name == "inpainting_clone":
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        p = p.clone()
         params = ["mask"]
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
