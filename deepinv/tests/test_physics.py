@@ -2,7 +2,7 @@ import os
 import shutil
 import copy
 from math import sqrt
-from typing import Optional, List
+from typing import Optional
 import pytest
 import torch
 import numpy as np
@@ -1043,43 +1043,38 @@ def test_reset_noise(device):
     assert physics.noise_model.sigma == 0.2
 
 
-def test_tomography(device):
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("parallel_computation", [True, False])
+@pytest.mark.parametrize("fan_beam", [True, False])
+@pytest.mark.parametrize("circle", [True, False])
+@pytest.mark.parametrize("adjoint_via_backprop", [True, False])
+@pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+def test_tomography(normalize, parallel_computation, fan_beam, circle, adjoint_via_backprop, fbp_interpolate_boundary, device):
     r"""
     Tests tomography operator which does not have a numerically precise adjoint.
 
     :param device: (torch.device) cpu or cuda:x
     """
     PI = 4 * torch.ones(1).atan()
-    for normalize in [True, False]:
-        for parallel_computation in [True, False]:
-            for fan_beam in [True, False]:
-                for circle in [True, False]:
-                    for adjoint_via_backprop in [True, False]:
-                        for fbp_interpolate_boundary in [True, False]:
-                            imsize = (1, 16, 16)
-                            physics = dinv.physics.Tomography(
-                                img_width=imsize[-1],
-                                angles=imsize[-1],
-                                device=device,
-                                circle=circle,
-                                fan_beam=fan_beam,
-                                normalize=normalize,
-                                adjoint_via_backprop=adjoint_via_backprop,
-                                fbp_interpolate_boundary=fbp_interpolate_boundary,
-                                parallel_computation=parallel_computation,
-                            )
-                            x = torch.randn(imsize, device=device).unsqueeze(0)
-                            r = (
-                                physics.A_adjoint(physics.A(x))
-                                * PI.item()
-                                / (2 * len(physics.radon.theta))
-                            )
-                            y = physics.A(r)
-                            error = (physics.A_dagger(y) - r).flatten().mean().abs()
-                            epsilon = (
-                                0.2 if device == "cpu" else 0.3
-                            )  # Relax a bit of GPU
-                            assert error < epsilon
+    imsize = (1, 16, 16)
+    physics = dinv.physics.Tomography(
+        img_width=imsize[-1],
+        angles=imsize[-1],
+        device=device,
+        circle=circle,
+        fan_beam=fan_beam,
+        normalize=normalize,
+        adjoint_via_backprop=adjoint_via_backprop,
+        fbp_interpolate_boundary=fbp_interpolate_boundary,
+        parallel_computation=parallel_computation,
+    )
+
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+    r = physics.A_adjoint(physics.A(x)) * PI.item() / (2 * len(physics.radon.theta))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
+    assert error < epsilon
 
 
 def test_downsampling_adjointness(device):
@@ -1191,7 +1186,7 @@ def test_mri_fft():
 
         return torch.cat((right, left), dim=dim)
 
-    def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
+    def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
         if len(shift) != len(dim):
             raise ValueError("len(shift) must match len(dim)")
 
@@ -1200,7 +1195,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1214,7 +1209,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())

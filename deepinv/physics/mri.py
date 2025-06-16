@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple
+from typing import Optional, Union
 import numpy as np
 import torch
 from torch import Tensor
@@ -105,7 +105,7 @@ class MRIMixin:
         self,
         x: Tensor,
         crop: bool = True,
-        shape: Tuple[int, int] = None,
+        shape: tuple[int, int] = None,
         rescale: bool = False,
     ) -> Tensor:
         """Center crop 2D image according to ``img_size``.
