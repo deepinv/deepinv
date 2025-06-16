@@ -82,11 +82,11 @@ def test_generate_dataset_physics_generator(
     x_dataset = DummyDataset()
 
     if physics_combo == "single_physics_no_gen":
-        physics = Inpainting(img_size=imsize)
+        physics = Inpainting(img_size=imsize, mask=0.1)
         physics_generator = None
     elif physics_combo == "single_physics_with_gen":
         if phys_gen == "bernoulli_mask":
-            physics = Inpainting(img_size=imsize)
+            physics = Inpainting(img_size=imsize, mask=0.1)
             physics_generator = BernoulliSplittingMaskGenerator(imsize, 0.6)
         elif phys_gen == "sigma":
             physics = GaussianNoise()

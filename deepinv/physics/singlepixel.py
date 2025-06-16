@@ -393,7 +393,7 @@ class SinglePixelCamera(DecomposablePhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if self.fast:
 
@@ -435,13 +435,11 @@ class SinglePixelCamera(DecomposablePhysics):
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
             mask = mask.to(device).unsqueeze(0).type(dtype)
-            self.vh = vh.to(device).type(dtype)
-            self.u = u.to(device).type(dtype)
+            self.register_buffer("vh", vh.to(device).type(dtype))
+            self.register_buffer("u", u.to(device).type(dtype))
 
-            self.u = torch.nn.Parameter(self.u, requires_grad=False)
-            self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
-
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.register_buffer("mask", mask)
+        self.to(device)
 
     def V_adjoint(self, x):
         if self.fast:

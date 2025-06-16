@@ -80,6 +80,11 @@ New Features
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
 - Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
+- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_ and `Julian Tachella`_ )
+- Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
+- Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
+- Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)
+- Add test physics device transfer and differentiablity (:gh:`462` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -92,6 +97,9 @@ Fixed
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
+- Fix device inconsistency in test_physics, physics classes and noise models (:gh:`462` by `Minh Hai Nguyen`_)
+
+
 - Fix Ptychography can not handle multi-channels input (:gh:`494` by `Minh Hai Nguyen`_)
 - Fix argument name (img_size, in_shape, ...) inconsistency  (:gh:`494` by `Minh Hai Nguyen`_)
 
