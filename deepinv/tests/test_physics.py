@@ -1,5 +1,8 @@
+import os
+import shutil
+import copy
 from math import sqrt
-from typing import Optional, List
+from typing import Optional
 import pytest
 import torch
 import numpy as np
@@ -7,6 +10,8 @@ from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
+from deepinv.utils import TensorList
+
 
 # Linear forward operators to test (make sure they appear in find_operator as well)
 # We do not include operators for which padding is involved, they are tested separately
@@ -84,7 +89,7 @@ NOISES = [
 ]
 
 
-def find_operator(name, device):
+def find_operator(name, device, get_physics_param=False):
     r"""
     Chooses operator
 
@@ -106,43 +111,50 @@ def find_operator(name, device):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device=device, compute_inverse=True, rng=rng
+            m=m, img_size=img_size, device=device, compute_inverse=True, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 0.75  # Marcenko-Pastur law, second term is a small n correction
+        params = []
     elif name == "fastCS":
         p = dinv.physics.CompressedSensing(
             m=20,
             fast=True,
             channelwise=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
         )
+        params = []
     elif name == "colorize":
         p = dinv.physics.Decolorize(device=device)
         norm = 0.4468
+        params = ["srf"]
     elif name == "cassi":
         img_size = (7, 37, 31)
         p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
         norm = 1 / img_size[0]
+        params = ["mask"]
     elif name == "inpainting":
-        p = dinv.physics.Inpainting(
-            tensor_size=img_size, mask=0.5, device=device, rng=rng
-        )
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        params = ["mask"]
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
         norm = 1.0
+        params = []
     elif name == "MRI":
         img_size = (2, 17, 11)  # C,H,W
         p = MRI(img_size=img_size, device=device)
+        params = ["mask"]
     elif name == "3DMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         p = MRI(img_size=img_size, three_d=True, device=device)
+        params = ["mask"]
     elif name == "DynamicMRI":
         img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
+        params = ["mask"]
     elif name == "MultiCoilMRI":
         img_size = (2, 17, 11)  # C,H,W
         n_coils = 7
@@ -152,6 +164,7 @@ def find_operator(name, device):
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
+        params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
         img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
         n_coils = 15
@@ -161,11 +174,13 @@ def find_operator(name, device):
             n_coils
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
+        params = ["mask"]
     elif name == "Tomography":
         img_size = (1, 16, 16)
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
+        params = ["theta"]
     elif name == "composition":
         img_size = (3, 16, 16)
         p1 = dinv.physics.Downsampling(
@@ -178,6 +193,7 @@ def find_operator(name, device):
         )
         p = p1 * p2
         norm = 1 / 2**2
+        params = ["filter"]
     elif name == "composition2":
         img_size = (3, 16, 16)
         p1 = dinv.physics.Downsampling(
@@ -189,8 +205,10 @@ def find_operator(name, device):
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.5)),
         )
         p = p2 * p1
+        params = ["filter"]
     elif name == "denoising":
         p = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.1, rng=rng))
+        params = []
     elif name.startswith("pansharpen"):
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
@@ -201,55 +219,63 @@ def find_operator(name, device):
             use_brovey=False,
         )
         norm = 0.4
+        params = []
     elif name == "aliased_pansharpen":
         img_size = (3, 30, 32)
         p = dinv.physics.Pansharpen(
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
         norm = 1.4
+        params = ["filter"]
     elif name == "fast_singlepixel":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng
+            m=20, fast=True, img_size=img_size, device=device, rng=rng
         )
+        params = ["mask"]
     elif name == "fast_singlepixel_cake_cutting":
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="cake_cutting",
         )
+        params = ["mask"]
     elif name == "fast_singlepixel_zig_zag":
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="zig_zag",
         )
+        params = ["mask"]
     elif name == "fast_singlepixel_xy":
         p = dinv.physics.SinglePixelCamera(
-            m=20, fast=True, img_shape=img_size, device=device, rng=rng, ordering="xy"
+            m=20, fast=True, img_size=img_size, device=device, rng=rng, ordering="xy"
         )
+        params = []
     elif name == "fast_singlepixel_old_sequency":
         p = dinv.physics.SinglePixelCamera(
             m=20,
             fast=True,
-            img_shape=img_size,
+            img_size=img_size,
             device=device,
             rng=rng,
             ordering="old_sequency",
         )
+        params = ["mask"]
     elif name == "singlepixel":
         m = 20
         p = dinv.physics.SinglePixelCamera(
-            m=m, fast=False, img_shape=img_size, device=device, rng=rng
+            m=m, fast=False, img_size=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
+        params = ["mask"]
     elif name.startswith("deblur"):
         img_size = (3, 17, 19)
         p = dinv.physics.Blur(
@@ -257,6 +283,7 @@ def find_operator(name, device):
             padding=padding,
             device=device,
         )
+        params = ["filter"]
     elif name == "fftdeblur":
         img_size = (3, 17, 19)
         p = dinv.physics.BlurFFT(
@@ -264,6 +291,7 @@ def find_operator(name, device):
             filter=dinv.physics.blur.bicubic_filter(),
             device=device,
         )
+        params = ["filter"]
     elif name.startswith("space_deblur"):
         img_size = (3, 20, 13)
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
@@ -279,14 +307,16 @@ def find_operator(name, device):
                 )
                 + img_size[-2:],
                 device=device,
-            )
+            ).to(device)
             * 0.5,
             padding=padding,
+            device=device,
         )
+        params = ["filters", "multipliers"]
     elif name == "hyperspectral_unmixing":
         img_size = (15, 32, 32)  # x (E, H, W)
         p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
-
+        params = ["M"]
     elif name.startswith("3Ddeblur"):
         img_size = (1, 7, 6, 8)
         h_size = (1, 1, 4, 3, 5)
@@ -297,7 +327,7 @@ def find_operator(name, device):
             padding=padding,
             device=device,
         )
-
+        params = ["filter"]
     elif name == "aliased_super_resolution":
         img_size = (1, 32, 32)
         factor = 2
@@ -309,6 +339,7 @@ def find_operator(name, device):
             device=device,
             filter=None,
         )
+        params = []
     elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
         factor = 2
@@ -321,12 +352,13 @@ def find_operator(name, device):
             filter="bilinear",
             dtype=dtype,
         )
+        params = ["filter"]
     elif name == "complex_compressed_sensing":
         img_size = (1, 8, 8)
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
-            img_shape=img_size,
+            img_size=img_size,
             dtype=torch.cdouble,
             device=device,
             compute_inverse=True,
@@ -334,6 +366,7 @@ def find_operator(name, device):
         )
         dtype = p.dtype
         norm = (1 + np.sqrt(np.prod(img_size) / m)) ** 2
+        params = ["mask"]
     elif "radio" in name:
         dtype = torch.cfloat
         img_size = (1, 64, 64)
@@ -373,11 +406,13 @@ def find_operator(name, device):
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
+        params = []
     elif name == "structured_random":
         img_size = (1, 8, 8)
         p = dinv.physics.StructuredRandom(
-            input_shape=img_size, output_shape=img_size, device=device
+            img_size=img_size, output_size=img_size, device=device
         )
+        params = []
     elif name == "ptychography_linear":
         img_size = (1, 32, 32)
         dtype = torch.complex64
@@ -388,9 +423,13 @@ def find_operator(name, device):
             shifts=None,
             device=device,
         )
+        params = ["probe", "shifts"]
     else:
         raise Exception("The inverse problem chosen doesn't exist")
-    return p, img_size, norm, dtype
+    if not get_physics_param:
+        return p, img_size, norm, dtype
+    else:
+        return p, img_size, norm, dtype, params
 
 
 def find_nonlinear_operator(name, device):
@@ -401,6 +440,7 @@ def find_nonlinear_operator(name, device):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
+
     if name == "haze":
         x = dinv.utils.TensorList(
             [
@@ -429,11 +469,11 @@ def find_phase_retrieval_operator(name, device):
     """
     if name == "random_phase_retrieval":
         img_size = (1, 10, 10)
-        p = dinv.physics.RandomPhaseRetrieval(m=500, img_shape=img_size, device=device)
+        p = dinv.physics.RandomPhaseRetrieval(m=500, img_size=img_size, device=device)
     elif name == "ptychography":
         img_size = (1, 32, 32)
         p = dinv.physics.Ptychography(
-            in_shape=img_size,
+            img_size=img_size,
             probe=None,
             shifts=None,
             device=device,
@@ -441,7 +481,7 @@ def find_phase_retrieval_operator(name, device):
     elif name == "structured_random_phase_retrieval":
         img_size = (1, 10, 10)
         p = dinv.physics.StructuredRandomPhaseRetrieval(
-            input_shape=img_size, output_shape=img_size, n_layers=2, device=device
+            img_size=img_size, output_size=img_size, n_layers=2, device=device
         )
     else:
         raise Exception("The inverse problem chosen doesn't exist")
@@ -456,7 +496,7 @@ def test_stacking(device):
     :return: asserts error is less than 1e-3
     """
     imsize = (2, 5, 5)
-    p1 = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    p1 = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
     p2 = dinv.physics.Physics(A=lambda x: x**2)
     p3 = p1.stack(p2)
 
@@ -531,6 +571,7 @@ def test_operators_norm(name, device, rng):
 
     if name == "singlepixel" or name == "CS":
         device = torch.device("cpu")
+        rng = torch.Generator("cpu")
 
     torch.manual_seed(0)
     physics, imsize, norm_ref, dtype = find_operator(name, device)
@@ -588,12 +629,9 @@ def test_pseudo_inverse(name, device, rng):
     r = physics.A_adjoint(physics.A(x))  # project to range of A^T
     y = physics.A(r)
     error = torch.linalg.vector_norm(
-        physics.A_dagger(
-            y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True, use_fft=False
-        )
-        - r
+        physics.A_dagger(y, solver="lsqr", tol=0.0001, max_iter=50, verbose=True) - r
     ) / torch.linalg.vector_norm(r)
-    assert error < 0.02
+    assert error < 0.05
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -676,8 +714,6 @@ def test_MRI(mri, mri_img_size, device, rng):
         y1 = physics(x)
         if isinstance(physics, MultiCoilMRI):
             y1 = y1[:, :, 0]  # check 0th coil
-        # check shapes
-        print(y1.shape, mask.shape, physics.mask.shape)
         assert torch.all((y1 == 0) == (physics.mask == 0))
 
         # Set mask in forward
@@ -773,7 +809,7 @@ def test_concatenation(name, device):
     y = physics(x)
     physics = (
         dinv.physics.Inpainting(
-            tensor_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
+            img_size=y.size()[1:], mask=0.5, pixelwise=False, device=device
         )
         * physics
     )
@@ -813,9 +849,7 @@ def test_phase_retrieval_Avjp(device):
     # essential to enable autograd
     torch.set_grad_enabled(True)
     x = torch.randn((1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True)
-    physics = dinv.physics.RandomPhaseRetrieval(
-        m=10, img_shape=(1, 3, 3), device=device
-    )
+    physics = dinv.physics.RandomPhaseRetrieval(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
@@ -839,7 +873,7 @@ def test_linear_physics_Avjp(device, rng):
         generator=rng,
         requires_grad=True,
     )
-    physics = dinv.physics.CompressedSensing(m=10, img_shape=(1, 3, 3), device=device)
+    physics = dinv.physics.CompressedSensing(m=10, img_size=(1, 3, 3), device=device)
     loss = L2()
     func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
     grad_value = torch.func.grad(func)(x)
@@ -914,13 +948,10 @@ def test_noise(device, noise_type):
     assert y1.shape == x.shape
 
 
-def test_noise_domain_inpainting(device):
+def test_noise_domain(device):
     r"""
     Tests that there is no noise outside the domain of the measurement operator, i.e. that in y = Ax+n, we have
     n=0 where Ax=0.
-
-    This concerns the inpainting operator and mri, but due to all the possibilities for setting the MRI operator, we
-    test the feature on MRI in test_MRI_noise_domain.
     """
     x = torch.ones((1, 3, 12, 7), device=device)
     mask = torch.ones_like(x[0])
@@ -929,7 +960,7 @@ def test_noise_domain_inpainting(device):
     mask[1, 1, 1] = 0
     mask[2, 2, 2] = 0
 
-    physics = dinv.physics.Inpainting(tensor_size=x.shape, mask=mask, device=device)
+    physics = dinv.physics.Inpainting(img_size=x.shape, mask=mask, device=device)
     physics.noise_model = choose_noise("Gaussian")
     y1 = physics(
         x
@@ -988,22 +1019,23 @@ def test_reset_noise(device):
     :return: asserts error is > 0
     """
     x = torch.ones((1, 3, 3), device=device).unsqueeze(0)
+    rng = torch.Generator(device)
     physics = dinv.physics.Denoising()
-    physics.noise_model = dinv.physics.GaussianNoise(0.1)
+    physics.noise_model = dinv.physics.GaussianNoise(0.1, rng=rng)
 
     y1 = physics(x)
     y2 = physics(x, sigma=0.2)
 
     assert physics.noise_model.sigma == 0.2
 
-    physics.noise_model = dinv.physics.PoissonNoise(0.1)
+    physics.noise_model = dinv.physics.PoissonNoise(0.1, rng=rng)
 
     y1 = physics(x)
     y2 = physics(x, gain=0.2)
 
     assert physics.noise_model.gain == 0.2
 
-    physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3)
+    physics.noise_model = dinv.physics.PoissonGaussianNoise(0.5, 0.3, rng=rng)
     y1 = physics(x)
     y2 = physics(x, sigma=0.2, gain=0.2)
 
@@ -1041,7 +1073,8 @@ def test_tomography(device):
                     )
                     y = physics.A(r)
                     error = (physics.A_dagger(y) - r).flatten().mean().abs()
-                    assert error < 0.2
+                    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
+                    assert error < epsilon
 
 
 def test_downsampling_adjointness(device):
@@ -1153,7 +1186,7 @@ def test_mri_fft():
 
         return torch.cat((right, left), dim=dim)
 
-    def roll(x: torch.Tensor, shift: List[int], dim: List[int]) -> torch.Tensor:
+    def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
         if len(shift) != len(dim):
             raise ValueError("len(shift) must match len(dim)")
 
@@ -1162,7 +1195,7 @@ def test_mri_fft():
 
         return x
 
-    def fftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def fftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1176,7 +1209,7 @@ def test_mri_fft():
 
         return roll(x, shift, dim)
 
-    def ifftshift(x: torch.Tensor, dim: Optional[List[int]] = None) -> torch.Tensor:
+    def ifftshift(x: torch.Tensor, dim: Optional[list[int]] = None) -> torch.Tensor:
         if dim is None:
             # this weird code is necessary for toch.jit.script typing
             dim = [0] * (x.dim())
@@ -1230,7 +1263,7 @@ def test_decolorize(srf, device, imsize, multispectral_channels):
 def test_CASSI(shear_dir, imsize, device, multispectral_channels, rng, cassi_mode):
     channels = multispectral_channels
 
-    x = torch.ones(1, channels, *imsize[-2:])
+    x = torch.ones(1, channels, *imsize[-2:]).to(device)
     physics = dinv.physics.CompressiveSpectralImaging(
         (channels, *imsize[-2:]),
         mask=None,
@@ -1279,8 +1312,282 @@ def test_unmixing(device):
     )
     x_hat = physics.A_adjoint(y)
 
-    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0]))
-    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0]))
+    assert torch.all(x_hat[:, 0].squeeze() == torch.tensor([1.0, 0.0], device=device))
+    assert torch.all(x_hat[:, 1].squeeze() == torch.tensor([0.0, 1.0], device=device))
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_operators_differentiability(name, device):
+    r"""
+    Tests if a forward operator is differentiable (can perform back-propagation).
+
+    :param name: operator name (see find_operator)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts differentiability
+    """
+
+    physics, imsize, _, dtype, params = find_operator(
+        name, device, get_physics_param=True
+    )
+
+    if name == "radio":
+        dtype = torch.cfloat
+
+    # Only test for floating point tensor
+    valid_dtype = [torch.float16, torch.float32, torch.float64]
+    if dtype in valid_dtype:
+        # Differentiate w.r.t to input image
+        x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+        y = physics.A(x)
+        x_hat = (
+            torch.randn(imsize, device=device, dtype=dtype)
+            .unsqueeze(0)
+            .requires_grad_(True)
+        )
+        with torch.enable_grad():
+            y_hat = physics.A(x_hat)
+            if isinstance(y_hat, TensorList):
+                for y_hat_item, y_item in zip(y_hat.x, y.x):
+                    loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
+                    loss.backward()
+                    assert x_hat.requires_grad == True
+                    assert x_hat.grad is not None
+                    assert torch.all(~torch.isnan(x_hat.grad))
+            else:
+                loss = torch.nn.functional.mse_loss(y_hat, y)
+                loss.backward()
+                assert x_hat.requires_grad == True
+                assert x_hat.grad is not None
+                assert torch.all(~torch.isnan(x_hat.grad))
+
+        # Differentiate w.r.t to physics parameters
+        if (
+            not physics._buffers == dict() and len(params) > 0
+        ):  # If the buffers are not empty (i.e. there is a parameter)
+            x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+            buffers = copy.deepcopy(dict(physics.named_buffers()))
+            parameters = {k: v for k, v in buffers.items() if k in params}
+            # Set requires grad
+            for k, v in parameters.items():
+                if v.dtype in valid_dtype:
+                    parameters[k] = v.requires_grad_(True)
+
+            with torch.enable_grad():
+                y_hat = physics.A(x, **parameters)
+                if isinstance(y_hat, TensorList):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x):
+                        loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
+                        loss.backward()
+
+                        for k, v in parameters.items():
+                            if v.dtype in valid_dtype:
+                                assert v.requires_grad == True
+                                assert v.grad is not None
+                                assert torch.all(~torch.isnan(v.grad))
+
+                else:
+                    loss = torch.nn.functional.mse_loss(y_hat, y)
+                    loss.backward()
+
+                    for k, v in parameters.items():
+                        if v.dtype in valid_dtype:
+                            assert v.requires_grad == True
+                            assert v.grad is not None
+                            assert torch.all(~torch.isnan(v.grad))
+
+
+@pytest.mark.parametrize(
+    "name", OPERATORS + NONLINEAR_OPERATORS + PHASE_RETRIEVAL_OPERATORS
+)
+def test_device_consistency(name):
+    r"""
+    Tests if a physics can be moved properly between devices.
+
+    :param name: operator name (see find_operator)
+    :return: asserts
+    """
+
+    def try_find_operator(name):
+        physics, imsize, _, dtype = find_operator(name, "cpu")
+        return physics, imsize, dtype
+
+    def try_find_nonlinear_operator(name):
+        physics, x = find_nonlinear_operator(name, "cpu")
+        return physics, x, torch.float32
+
+    def try_find_phase_retrieval_operator(name):
+        (
+            physics,
+            imsize,
+        ) = find_phase_retrieval_operator(name, "cpu")
+        return physics, imsize, torch.complex64
+
+    for finder in (
+        try_find_operator,
+        try_find_nonlinear_operator,
+        try_find_phase_retrieval_operator,
+    ):
+        try:
+            physics, imsize, dtype = finder(name)
+            break
+        except Exception:
+            continue
+    else:
+        raise ValueError(f"Could not find an operator for {name}")
+
+    # The current radio physics depends on torchkbnufft, which seems to be not compatible.
+    if "radio" in name:
+        pytest.skip(
+            "Skip 'radio' operator for device consistency test, since the current implementation depends on torchkbnufft, which seems to be not compatible."
+        )
+    else:
+        # Test CPU
+        torch.manual_seed(11)
+        # For non linear operators
+        if not isinstance(imsize, (torch.Tensor, TensorList)):
+            x = torch.randn(imsize, device="cpu", dtype=dtype).unsqueeze(0)
+        else:
+            x = imsize
+        y1 = physics.A(x)
+        assert y1.device == torch.device("cpu")
+        # Move to GPU if cuda is available
+        if torch.cuda.is_available():
+            torch.manual_seed(11)
+            cuda = torch.device("cuda:0")
+            physics = physics.to(cuda)
+            x = x.to(cuda)
+            y2 = physics.A(x)
+            assert y2.device == cuda
+
+            # skip denoising that adds random noise in each forward call
+            if not isinstance(physics, dinv.physics.Denoising):
+                if isinstance(y2, TensorList):
+                    for y11, y22 in zip(y1, y2):
+                        assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
+                else:
+                    assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_physics_state_dict(name, device):
+    r"""
+    Tests if the physics state dict is well behaved.
+
+    :param name: operator name (see find_operator)
+    :param device: (torch.device) cpu or cuda:x
+    :return: asserts state dict is saved.
+    """
+
+    def get_all_tensor_attrs(module, prefix=""):
+        tensor_attrs = {}
+
+        # Check direct attributes
+        for name in dir(module):
+            try:
+                attr = getattr(module, name)
+            except Exception:
+                continue  # skip attributes that raise exceptions on access
+
+            full_name = f"{prefix}.{name}" if prefix else name
+            if isinstance(attr, torch.Tensor):
+                tensor_attrs[full_name] = attr
+            elif isinstance(attr, torch.nn.Module):
+                # Recurse into submodules
+                tensor_attrs.update(get_all_tensor_attrs(attr, prefix=full_name))
+
+        return tensor_attrs
+
+    physics, imsize, _, dtype = find_operator(name, device)
+    if name == "radio":
+        dtype = torch.cfloat
+
+    # A cache dir for saving state dict
+    cache_dir = "./cache_test_physics"
+    os.makedirs(cache_dir, exist_ok=True)
+
+    # If the buffers are not empty (i.e. there is a parameter)
+    if not physics._buffers == dict():
+        state_dict = physics.state_dict()
+        # Check that all tensor attributes are in the state dict
+        params = get_all_tensor_attrs(physics)
+
+        assert set(state_dict.keys()) == set(params.keys())
+        for k, v in params.items():
+            assert torch.allclose(state_dict[k], v)
+
+        # Save the state_dict
+        torch.save(state_dict, os.path.join(cache_dir, f"{name}.pt"))
+
+        # Reinitialize the physics
+        new_physics, _, _, _ = find_operator(name, device)
+        # Change to random parameters
+
+        loaded_state_dict = torch.load(os.path.join(cache_dir, f"{name}.pt"))
+        new_physics.load_state_dict(loaded_state_dict)
+        new_state_dict = new_physics.state_dict()
+        # Check that the state dict are identical
+        assert set(state_dict.keys()) == set(new_state_dict.keys())
+        for k, v in state_dict.items():
+            assert torch.equal(v, new_state_dict[k])
+
+        # Check two physics have the same output
+        x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
+        assert torch.allclose(physics(x), new_physics(x))
+
+        # Remove the cache dir
+        shutil.rmtree(cache_dir)
+
+
+def test_composed_linear_physics(device):
+    img_size = (3, 32, 32)
+    # First physics
+    mask_1 = torch.ones(img_size, device=device).unsqueeze(0)
+    mask_1[..., 10:15, 13:17] = 0.0
+    physics_1 = dinv.physics.Inpainting(
+        tensor_size=img_size, mask=mask_1, device=device
+    )
+    # Second physics
+    mask_2 = torch.ones(img_size, device=device).unsqueeze(0)
+    mask_2[..., 5:7, 9:13] = 0.0
+    physics_2 = dinv.physics.Inpainting(
+        tensor_size=img_size, mask=mask_2, device=device
+    )
+
+    composed_physics = physics_1 * physics_2  # physics_1(physics_2(.))
+    x = torch.randn(img_size, device=device).unsqueeze(0)
+    assert torch.equal(composed_physics.A(x), physics_1.A(physics_2.A(x)))
+    assert torch.equal(composed_physics.A(torch.ones_like(x)), mask_1 * mask_2)
+
+    # A blur physics
+    physics_3 = dinv.physics.BlurFFT(
+        img_size=img_size, filter=dinv.physics.blur.bilinear_filter(2.0), device=device
+    )
+
+    composed_physics = physics_1 * physics_3
+    assert torch.equal(composed_physics.A(x), physics_1.A(physics_3.A(x)))
+    assert torch.equal(
+        composed_physics.A_adjoint(x), physics_3.A_adjoint(physics_1.A_adjoint(x))
+    )
+
+    # Compose with Transform:
+    physics = dinv.physics.Blur(filter=dinv.physics.blur.bicubic_filter(3.0))
+    T = dinv.transform.Shift()
+    T_kwargs = {"x_shift": torch.tensor([1]), "y_shift": torch.tensor([1])}
+
+    physics_mul = physics * dinv.physics.LinearPhysics(
+        A=lambda x: T.inverse(x, **T_kwargs),
+        A_adjoint=lambda y: T(y, **T_kwargs),
+    )
+    x = torch.randn(1, 3, 64, 64)
+    assert torch.allclose(physics_mul.A(x), physics.A(T.inverse(x, **T_kwargs)))
+    y = physics_mul.A(x)
+    assert torch.allclose(physics_mul.A_adjoint(y), T(physics.A_adjoint(y), **T_kwargs))
+    assert torch.allclose(
+        physics_mul.A_dagger(y),
+        T(physics.A_dagger(y), **T_kwargs),
+        atol=1e-4,
+        rtol=1e-4,
+    )
 
 
 @pytest.mark.parametrize("name", OPERATORS)

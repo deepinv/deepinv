@@ -33,7 +33,7 @@ import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
 
-device = dinv.utils.get_freer_gpu if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 rng = torch.Generator(device=device).manual_seed(0)
 
 
@@ -271,7 +271,7 @@ x, y = next(iter(DataLoader(dataset)))
 
 print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 
-img_shape, kspace_shape = x.shape[-2:], y.shape[-2:]
+img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
 
 # %%
@@ -282,7 +282,7 @@ n_coils = y.shape[2]
 #
 
 physics = dinv.physics.MultiCoilMRI(
-    img_size=img_shape,
+    img_size=img_size,
     mask=torch.ones(kspace_shape),
     coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
     device=device,

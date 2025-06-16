@@ -206,7 +206,7 @@ def test_generation(name, device, dtype):
 
 
 @pytest.mark.parametrize(
-    "name", set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"]))
+    "name", sorted(set(GENERATORS).difference(set(["ProductConvolutionBlurGenerator"])))
 )
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", [torch.float64])
@@ -256,8 +256,6 @@ def test_downsampling_generator(num_channels, device, dtype):
         filter="bicubic",
         factor=4,
     )
-    list_filters = ["bilinear", "bicubic"]
-    list_factors = [2, 4]
     generator, _, _ = find_generator(
         "DownsamplingGenerator", size, num_channels, device, dtype
     )
@@ -265,7 +263,7 @@ def test_downsampling_generator(num_channels, device, dtype):
     batch_size = 2
     params = generator.step(batch_size=batch_size, seed=0)
 
-    x = torch.randn((batch_size, num_channels, size[0], size[1]))
+    x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
     y = physics(x, **params)
 
     assert y.shape[-1] == x.shape[-1] // params["factor"]
@@ -350,7 +348,7 @@ def test_mri_generator(generator_name, img_size, batch_size, acc, center_fractio
 def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, rng):
     if name == "bernoulli":
         return dinv.physics.generator.BernoulliSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
@@ -358,7 +356,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
         )
     elif name == "gaussian":
         return dinv.physics.generator.GaussianSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_ratio=split_ratio,
             device=device,
             pixelwise=pixelwise,
@@ -372,7 +370,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
             rng=rng,
         )
         return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
-            tensor_size=img_size,
+            img_size=img_size,
             split_generator=mri_gen,
         )
     else:

@@ -1,5 +1,4 @@
-from typing import List, Optional, Union, Tuple
-
+from typing import Optional, Union
 import numpy as np
 import torch
 from torch import Tensor
@@ -22,7 +21,7 @@ class MRIMixin:
         r"""
         Updates MRI mask and verifies mask shape to be B,C,...,H,W where C=2.
 
-        :param torch.nn.parameter.Parameter, torch.Tensor mask: MRI subsampling mask.
+        :param torch.Tensor mask: MRI subsampling mask.
         :param bool three_d: If ``False`` the mask should be min 4 dimensions (B, C, H, W) for 2D data, otherwise if ``True`` the mask should have 5 dimensions (B, C, D, H, W) for 3D data.
         :param torch.device, str device: mask intended device.
         """
@@ -106,7 +105,7 @@ class MRIMixin:
         self,
         x: Tensor,
         crop: bool = True,
-        shape: Tuple[int, int] = None,
+        shape: tuple[int, int] = None,
         rescale: bool = False,
     ) -> Tensor:
         """Center crop 2D image according to ``img_size``.
@@ -259,7 +258,8 @@ class MRI(MRIMixin, DecomposablePhysics):
             mask = torch.ones(*img_size, device=device)
 
         # Check and update mask
-        self.update_parameters(mask=mask.to(self.device))
+        self.register_buffer("mask", self.check_mask(mask).to(self.device))
+        self.to(device)
 
     def V_adjoint(self, x: Tensor) -> Tensor:
         return self.im_to_kspace(x, three_d=self.three_d)
@@ -315,18 +315,19 @@ class MRI(MRIMixin, DecomposablePhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(
-                        mask=mask,
-                        three_d=getattr(self, "three_d", False),
-                        device=self.device,
-                    )
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(
+                    mask=mask,
+                    three_d=getattr(self, "three_d", False),
+                    device=self.device,
+                )
+                if check_mask
+                else mask
             )
+
+            self.register_buffer("mask", mask)
+        if kwargs:
+            super().update_parameters(**kwargs)
 
 
 class MultiCoilMRI(MRIMixin, LinearPhysics):
@@ -411,7 +412,8 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         elif isinstance(coil_maps, int):
             coil_maps = self.simulate_birdcage_csm(n_coils=coil_maps)
 
-        self.update_parameters(mask=mask.to(device), coil_maps=coil_maps.to(device))
+        self.update_parameters(mask=mask, coil_maps=coil_maps)
+        self.to(device)
 
     def A(
         self, x: Tensor, mask: Tensor = None, coil_maps: Tensor = None, **kwargs
@@ -517,14 +519,12 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         :param bool check_mask: check mask dimensions before updating
         """
         if mask is not None:
-            self.mask = torch.nn.Parameter(
-                (
-                    self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
-                    if check_mask
-                    else mask
-                ),
-                requires_grad=False,
+            mask = (
+                self.check_mask(mask=mask, three_d=self.three_d, device=self.device)
+                if check_mask
+                else mask
             )
+            self.register_buffer("mask", mask)
 
         if coil_maps is not None:
             while len(coil_maps.shape) < (
@@ -535,9 +535,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
             if not coil_maps.is_complex():
                 raise ValueError("coil_maps should be of torch complex dtype.")
 
-            self.coil_maps = torch.nn.Parameter(
-                coil_maps.to(self.device), requires_grad=False
-            )
+            self.register_buffer("coil_maps", coil_maps.to(self.device))
+
+        if kwargs:
+            super().update_parameters(**kwargs)
 
     def simulate_birdcage_csm(self, n_coils: int) -> Tensor:
         """Simulate birdcage coil sensitivity maps. Requires library ``sigpy``.
@@ -644,15 +645,14 @@ class DynamicMRI(MRI, TimeMixin):
     """
 
     def A(self, x: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:
-        mask = self.check_mask(self.mask if mask is None else mask)
+        mask = self.check_mask(self.mask if mask is None else mask).to(x.device)
+        mask_flatten = self.flatten(mask.expand(*x.shape))
 
-        mask_flatten = self.flatten(mask.expand(*x.shape)).to(x.device)
         y = self.unflatten(
             super().A(self.flatten(x), mask_flatten, check_mask=False),
             batch_size=x.shape[0],
         )
-
-        self.update_parameters(mask=mask, **kwargs)
+        self.update_parameters(mask=mask, check_mask=False, **kwargs)
         return y
 
     def A_adjoint(
@@ -666,17 +666,16 @@ class DynamicMRI(MRI, TimeMixin):
         :param torch.Tensor mask: optionally set mask on-the-fly, see class docs for shapes allowed.
         :param bool mag: perform complex magnitude.
         """
-        mask = self.check_mask(self.mask if mask is None else mask)
-
-        mask_flatten = self.flatten(mask.expand(*y.shape)).to(y.device)
+        mask = self.check_mask(self.mask if mask is None else mask).to(y.device)
+        mask_flatten = self.flatten(mask.expand(*y.shape))
         x = self.unflatten(
             super().A_adjoint(
                 self.flatten(y), mask=mask_flatten, check_mask=False, mag=mag
             ),
             batch_size=y.shape[0],
         )
+        self.update_parameters(mask=mask, check_mask=False, **kwargs)
 
-        self.update_parameters(mask=mask, **kwargs)
         return x
 
     def A_dagger(self, y: Tensor, mask: Tensor = None, **kwargs) -> torch.Tensor:

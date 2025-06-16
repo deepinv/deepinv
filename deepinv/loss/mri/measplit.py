@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -14,6 +14,7 @@ from deepinv.models.dynamic import TimeAveragingNet
 from deepinv.physics.time import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class WeightedSplittingLoss(SplittingLoss):
@@ -255,7 +256,7 @@ class Phase2PhaseLoss(SplittingLoss):
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
-    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param tuple[int] img_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
     :param bool dynamic_model: set ``True`` if using with a model that inputs and outputs time-data i.e. ``x`` of shape (B,C,T,H,W). Set ``False`` if ``x`` are static images (B,C,H,W).
 
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
@@ -304,21 +305,22 @@ class Phase2PhaseLoss(SplittingLoss):
 
     """
 
+    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        tensor_size: Tuple[int],
+        img_size: tuple[int],
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
     ):
         super().__init__()
         self.name = "phase2phase"
-        self.tensor_size = tensor_size
+        self.img_size = img_size
         self.dynamic_model = dynamic_model
         self.metric = metric
         self.device = device
         self.mask_generator = Phase2PhaseSplittingMaskGenerator(
-            tensor_size=self.tensor_size, device=self.device
+            img_size=self.img_size, device=self.device
         )
         if not self.dynamic_model:
             # Metric wrapper to flatten dynamic inputs
@@ -441,8 +443,8 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
 
-    :param tuple[int] tensor_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
-    :param int, tuple[int] split_size: time-length of chunk. Must divide ``tensor_size[1]`` exactly. If ``tuple``, one is randomly selected each time.
+    :param tuple[int] img_size: size of the tensor to be masked without batch dimension of shape (C, T, H, W)
+    :param int, tuple[int] split_size: time-length of chunk. Must divide ``img_size[1]`` exactly. If ``tuple``, one is randomly selected each time.
     :param bool dynamic_model: set True if using with a model that inputs and outputs time-data i.e. x of shape (B,C,T,H,W). Set False if x are static images (B,C,H,W).
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     :param str, torch.device device: torch device.
@@ -490,23 +492,24 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
 
     """
 
+    @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        tensor_size: Tuple[int],
-        split_size: Union[int, Tuple[int]] = 2,
+        img_size: tuple[int],
+        split_size: Union[int, tuple[int]] = 2,
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
     ):
         super().__init__(
-            tensor_size=tensor_size,
+            img_size=img_size,
             dynamic_model=dynamic_model,
             metric=metric,
             device=device,
         )
         self.name = "artifact2artifact"
         self.mask_generator = Artifact2ArtifactSplittingMaskGenerator(
-            tensor_size=self.tensor_size, split_size=split_size, device=self.device
+            img_size=self.img_size, split_size=split_size, device=self.device
         )
 
     def forward(self, x_net, y, physics, model, **kwargs):
