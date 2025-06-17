@@ -1048,37 +1048,33 @@ def test_reset_noise(device):
     assert physics.noise_model.sigma == 0.2
 
 
-def test_tomography(device):
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("parallel_computation", [True, False])
+@pytest.mark.parametrize("fan_beam", [True, False])
+@pytest.mark.parametrize("circle", [True, False])
+def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
     r"""
     Tests tomography operator which does not have a numerically precise adjoint.
 
     :param device: (torch.device) cpu or cuda:x
     """
-    for normalize in [True, False]:
-        for parallel_computation in [True, False]:
-            for fan_beam in [True, False]:
-                for circle in [True, False]:
-                    imsize = (1, 16, 16)
-                    physics = dinv.physics.Tomography(
-                        img_width=imsize[-1],
-                        angles=imsize[-1],
-                        device=device,
-                        circle=circle,
-                        fan_beam=fan_beam,
-                        normalize=normalize,
-                        parallel_computation=parallel_computation,
-                    )
+    imsize = (1, 16, 16)
+    physics = dinv.physics.Tomography(
+        img_width=imsize[-1],
+        angles=imsize[-1],
+        device=device,
+        circle=circle,
+        fan_beam=fan_beam,
+        normalize=normalize,
+        parallel_computation=parallel_computation,
+    )
 
-                    x = torch.randn(imsize, device=device).unsqueeze(0)
-                    r = (
-                        physics.A_adjoint(physics.A(x))
-                        * torch.pi
-                        / (2 * len(physics.radon.theta))
-                    )
-                    y = physics.A(r)
-                    error = (physics.A_dagger(y) - r).flatten().mean().abs()
-                    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
-                    assert error < epsilon
+    x = torch.randn(imsize, device=device).unsqueeze(0)
+    r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
+    y = physics.A(r)
+    error = (physics.A_dagger(y) - r).flatten().mean().abs()
+    epsilon = 0.2 if device == "cpu" else 0.3  # Relax a bit of GPU
+    assert error < epsilon
 
 
 def test_downsampling_adjointness(device):
