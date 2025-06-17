@@ -194,6 +194,7 @@ sphinx_gallery_conf = {
             "../../examples/patch-priors",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
+            "../../examples/advanced",
             "../../examples/external-libraries",
         ]
     ),
