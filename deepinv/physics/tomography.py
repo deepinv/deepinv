@@ -177,21 +177,21 @@ class Tomography(LinearPhysics):
         return output
 
     def A_dagger(self, y, **kwargs):
-    r"""
-    Computes the filtered back-projection (FBP) of the measurements.
-    
-    .. warning::
+        r"""
+        Computes the filtered back-projection (FBP) of the measurements.
 
-        The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
-        
-        .. tip::
-        
-             By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
-        
-        
-        :param torch.Tensor y: measurements
-        :return torch.Tensor: noisy measurements
-    """
+        .. warning::
+
+            The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+
+            .. tip::
+
+                By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
+
+
+            :param torch.Tensor y: measurements
+            :return torch.Tensor: noisy measurements
+        """
         if self.fan_beam or self.adjoint_via_backprop:
             if self.fan_beam:
                 y = self.filter(y)
@@ -217,13 +217,13 @@ class Tomography(LinearPhysics):
         return output
 
     def A_adjoint(self, y, **kwargs):
-    r"""
+        r"""
         Computes adjoint of the tomography operator.
-    
+
         .. warning::
 
         The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
-        
+
         :param torch.Tensor y: measurements
         :return torch.Tensor: noisy measurements
         """

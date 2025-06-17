@@ -1084,7 +1084,6 @@ def test_tomography(
     assert error < epsilon
 
 
-
 def test_downsampling_adjointness(device):
     r"""
     Tests downsampling+blur operator adjointness for various image and filter sizes
