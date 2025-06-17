@@ -1120,7 +1120,6 @@ def test_downsampling_adjointness(device):
 
 
 def test_prox_l2_downsampling(device):
-
     nchannels = ((1, 1), (3, 1), (3, 3))
 
     for nchan_im, nchan_filt in nchannels:
@@ -1132,7 +1131,6 @@ def test_prox_l2_downsampling(device):
         for pad in paddings:
             for sim in size_im:
                 for h in filters:
-
                     x = torch.rand(sim)[None].to(device)
 
                     physics = dinv.physics.Downsampling(
@@ -1237,7 +1235,6 @@ def multispectral_channels():
 
 @pytest.mark.parametrize("srf", ("flat", "random", "rec601", "list"))
 def test_decolorize(srf, device, imsize, multispectral_channels):
-
     channels = multispectral_channels
     if srf == "list":
         srf = list(range(channels))
