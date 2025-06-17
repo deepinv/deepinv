@@ -18,19 +18,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     .. math::
 
-        y = \noise(\forw(x))
+        y = \noise{\forw{x}}
 
     where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
-    :math:`\forw:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
-    and :math:`\noise:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
+    :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
+    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`\noise{z}`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
-        such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
-        :math:`y=\eta\left(N(A(x))\right)`. By default, the `sensor_model` is set to the identity :math:`\eta(z)=z`.
+        such as quantization or saturation, defined as a function :math:`\sensor{z}`, such that
+        :math:`y=\sensor{\noise{\forw{x}}}`. By default, the `sensor_model` is set to the identity :math:`\sensor{z}=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
@@ -610,9 +610,9 @@ class ComposedPhysics(Physics):
 
     .. math::
 
-        \noise(\forw(x)) = \noise_k(\forw_k(\dots \forw_2(\forw_1(x))))
+        \noise{\forw{x}} = N_k{A_k{\dots A_2{A_1{x}}}}
 
-    where :math:`\forw_i` is the ith physics operator and :math:`\noise_k` is the noise of the last operator.
+    where :math:`A_i{\cdot}` is the ith physics operator and :math:`N_k{\cdot}` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics to compose.
     """
@@ -682,9 +682,9 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     .. math::
 
-        \noise(\forw(x)) = \noise_k(\forw_k \dots \forw_2(\forw_1(x)))
+        \noise{\forw{x}} = N_k{A_k \dots A_2{A_1{x}}}
 
-    where :math:`\forw_i` is the i-th physics operator and :math:`\noise_k` is the noise of the last operator.
+    where :math:`A_i{\cdot}` is the i-th physics operator and :math:`N_k{\cdot}` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
     """

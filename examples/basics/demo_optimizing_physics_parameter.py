@@ -8,9 +8,9 @@ This demo shows you how to use
 Consider the forward model
 
 .. math::
-    y = \noise(\forw(x, \theta))
+    y = \noise{\forw{x, \theta}}
 
-where :math:`\noise` is the noise model, :math:`\forw(\cdot, \theta)` is the forward operator, and the goal is to learn the parameter :math:`\theta` (e.g., the filter in :class:`deepinv.physics.Blur`).
+where :math:`N` is the noise model, :math:`\forw{\cdot, \theta}` is the forward operator, and the goal is to learn the parameter :math:`\theta` (e.g., the filter in :class:`deepinv.physics.Blur`).
 
 In a typical blind inverse problem, given a measurement :math:`y`, we would like to recover both the underlying image :math:`x` and the operator parameter :math:`\theta`,
 resulting in a highly ill-posed inverse problem.
@@ -24,7 +24,7 @@ This can be reformulated as the following optimization problem:
 This problem can be addressed by first-order optimization if we can compute the gradient of the above function with respect to :math:`\theta`.
 The dependence between the operator :math:`A` and the parameter :math:`\theta` can be complicated.
 DeepInverse provides a wide range of physics operators, implemented as differentiable classes.
-We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient of the above loss function w.r.t to the physics parameters :math:`\theta`.
+We can leverage the automatic differentiation engine provided in Pytorch to compute the gradient of the above loss function w.r.t. the physics parameters :math:`\theta`.
 
 The purpose of this demo is to show how to use the physics classes in DeepInverse to estimate the physics parameters, together with the automatic differentiation.
 We show 3 different ways to do this: manually implementing the projected gradient descent algorithm, using a Pytorch optimizer and optimizing the physics as a usual neural network.
