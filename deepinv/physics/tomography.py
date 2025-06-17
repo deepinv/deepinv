@@ -40,7 +40,7 @@ class Tomography(LinearPhysics):
 
     .. warning::
 
-        The adjoint operator has small numerical errors due to interpolation.
+        The adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
 
     :param int, torch.Tensor angles: These are the tomography angles. If the type is ``int``, the angles are sampled uniformly between 0 and 360 degrees.
         If the type is :class:`torch.Tensor`, the angles are the ones provided (e.g., ``torch.linspace(0, 180, steps=10)``).
