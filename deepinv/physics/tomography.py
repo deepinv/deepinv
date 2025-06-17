@@ -184,13 +184,13 @@ class Tomography(LinearPhysics):
 
             The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
 
-            .. tip::
+        .. tip::
 
-                By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
+            By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
 
 
-            :param torch.Tensor y: measurements
-            :return torch.Tensor: noisy measurements
+        :param torch.Tensor y: measurements
+        :return torch.Tensor: noisy measurements
         """
         if self.fan_beam or self.adjoint_via_backprop:
             if self.fan_beam:
@@ -222,7 +222,7 @@ class Tomography(LinearPhysics):
 
         .. warning::
 
-        The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
+            The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
 
         :param torch.Tensor y: measurements
         :return torch.Tensor: noisy measurements
