@@ -128,7 +128,7 @@ If you have any questions or suggestions, please join the conversation in our
 
 Citation
 --------
-If you use DeepInverse in your research, please cite the following paper (available in `arXiv <https://arxiv.org/abs/2505.20160>`_):
+If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
 
 
 .. code-block:: bash
