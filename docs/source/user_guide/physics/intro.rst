@@ -97,7 +97,7 @@ imaging system optimization, etc. The following example shows how operators and 
 One can also differentiate the parameter as:
 
 .. doctest::
-    
+
 	>>> import torch
 	>>> from deepinv.physics import Blur
 	>>> x = torch.rand((1, 1, 16, 16))
@@ -111,7 +111,7 @@ One can also differentiate the parameter as:
 	>>> print(theta_2.grad.shape)
 	torch.Size([1, 1, 3, 3])
 
-and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_advanced_demo_optimizing_physics_parameter.py` 
+and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py`
 
 .. _physics_generators:
 
