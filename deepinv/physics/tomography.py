@@ -36,7 +36,7 @@ class Tomography(LinearPhysics):
     :param bool adjoint_via_backprop: if ``True``, the adjoint will be computed via :func:`deepinv.physics.adjoint_function`. Otherwise the inverse Radon transform is used.
         The inverse Radon transform is computationally cheaper (particularly in memory), but has a small adjoint mismatch.
         The backprop adjoint is the exact adjoint, but might break random seeds since it backpropagates through :func:`torch.nn.functional.grid_sample`, see the note `here <https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html>`_.
-    :param bool fbp_interpolate_boundary: the FBP (``A_dagger``) usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
+    :param bool fbp_interpolate_boundary: the :func:`filtered back-projection <deepinv.physics.Tomography.A_dagger>` usually contains streaking artifacts on the boundary due to padding. For ``fbp_interpolate_boundary=True``
         these artifacts are corrected by cutting off the outer two pixels of the FBP and recovering them by interpolating the remaining image. This option
         only makes sense if ``circle`` is set to ``False``. Hence it will be ignored if ``circle`` is True.
     :param bool normalize: If ``True``, the outputs are normlized by the image size (i.e. it is assumed that the image lives on [0,1]^2 for the computation of the line integrals).
@@ -162,6 +162,21 @@ class Tomography(LinearPhysics):
         return output
 
     def A_dagger(self, y, **kwargs):
+    r"""
+    Computes the filtered back-projection (FBP) of the measurements.
+    
+    .. warning::
+
+        The filtered back-projection algorithm is not the exact linear pseudo-inverse of the Radon transform, but it is a good approximation that is robust to noise.
+        
+        .. tip::
+        
+             By default, the FBP reconstruction can display artifacts at the borders. Set ``fbp_interpolate_boundary=True`` to remove them with padding.
+        
+        
+        :param torch.Tensor y: measurements
+        :return torch.Tensor: noisy measurements
+    """
         if self.fan_beam or self.adjoint_via_backprop:
             if self.fan_beam:
                 y = self.filter(y)
@@ -187,6 +202,16 @@ class Tomography(LinearPhysics):
         return output
 
     def A_adjoint(self, y, **kwargs):
+    r"""
+        Computes adjoint of the tomography operator.
+    
+        .. warning::
+
+        The default adjoint operator has small numerical errors due to interpolation. Set ``adjoint_via_backprop=True`` if you want to use the exact adjoint (computed via autograd).
+        
+        :param torch.Tensor y: measurements
+        :return torch.Tensor: noisy measurements
+        """
         if self.fan_beam or self.adjoint_via_backprop:
             assert (
                 not self.img_width is None
