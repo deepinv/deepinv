@@ -610,9 +610,9 @@ class ComposedPhysics(Physics):
 
     .. math::
 
-        \noise{\forw{x}} = N_k{A_k{\dots A_2{A_1{x}}}}
+        \noise{\forw{x}} = N_k(A_k(\dots A_2(A_1(x))))
 
-    where :math:`A_i{\cdot}` is the ith physics operator and :math:`N_k{\cdot}` is the noise of the last operator.
+    where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics to compose.
     """
@@ -682,9 +682,9 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     .. math::
 
-        \noise{\forw{x}} = N_k{A_k \dots A_2{A_1{x}}}
+        \noise{\forw{x}} = N_k(A_k \dots A_2(A_1(x)))
 
-    where :math:`A_i{\cdot}` is the i-th physics operator and :math:`N_k{\cdot}` is the noise of the last operator.
+    where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
     """
