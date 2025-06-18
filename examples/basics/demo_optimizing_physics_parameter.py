@@ -74,7 +74,7 @@ dinv.utils.plot([x, y, true_kernel], titles=["Sharp", "Blurry", "True kernel"])
 # The following function allows one to compute the orthogonal projection onto the simplex, by a sorting algorithm
 # (Reference: `Large-scale Multiclass Support Vector Machine Training via Euclidean Projection onto the Simplex
 # -- Mathieu Blondel, Akinori Fujino, and Naonori Ueda
-# <https://ieeexplore.ieee.org/document/6976941>_`)
+# <https://ieeexplore.ieee.org/document/6976941>`_)
 #
 
 
