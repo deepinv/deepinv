@@ -1720,6 +1720,26 @@ def test_clone(name, device):
         physics_clone.mask = saved_mask
         physics_clone = physics_clone
 
+    # Test other attributes than parameters and buffers
+    attr_name = "img_size"
+    is_attr = hasattr(physics, attr_name)
+    is_parameter = attr_name in [name for name, _ in physics.named_parameters()]
+    is_buffer = attr_name in [name for name, _ in physics.named_buffers()]
+    if is_attr and not is_parameter and not is_buffer:
+        # Save original values
+        attr_val = getattr(physics, attr_name)
+        attr_val_clone = getattr(physics_clone, attr_name)
+
+        setattr(physics, attr_name, 42)
+        physics_clone = physics.clone()
+        assert getattr(physics_clone, attr_name) == getattr(
+            physics, attr_name
+        ), "Attribute has not been cloned properly."
+
+        # Restore original values
+        setattr(physics, attr_name, attr_val)
+        setattr(physics_clone, attr_name, attr_val_clone)
+
     # Save original values
     saved_A = physics.A
     physics.A = lambda *args, **kwargs: "hi"
