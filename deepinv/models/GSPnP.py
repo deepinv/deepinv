@@ -44,7 +44,7 @@ class GSPnP(Denoiser):
         :param float sigma: Denoiser level :math:`\sigma` (std)
         """
         with torch.enable_grad():
-            x = x.float()
+            x = x.to(torch.float32)
             x = x.requires_grad_()
             N = self.student_grad(x, sigma)
             JN = torch.autograd.grad(
