@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 from copy import deepcopy
 import torch
 from deepinv.physics.forward import Physics
@@ -309,7 +309,7 @@ class Phase2PhaseLoss(SplittingLoss):
     @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        img_size: Tuple[int],
+        img_size: tuple[int],
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
@@ -496,8 +496,8 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        img_size: Tuple[int],
-        split_size: Union[int, Tuple[int]] = 2,
+        img_size: tuple[int],
+        split_size: Union[int, tuple[int]] = 2,
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
