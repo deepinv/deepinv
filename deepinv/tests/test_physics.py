@@ -1077,6 +1077,8 @@ def test_tomography(
     )
 
     x = torch.randn(imsize, device=device).unsqueeze(0)
+    if adjoint_via_backprop:
+        assert physics.adjointness_test(x).abs() < 0.001
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
