@@ -86,11 +86,11 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x, strict=True)
+            for hi, xi in zip(h, x)
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y, strict=True):
+    for xi, hi, yi in zip(x, h, y):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
