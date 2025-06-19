@@ -749,7 +749,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model):
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
-def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model):
+def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
