@@ -83,8 +83,34 @@ class NCSNpp(Denoiser):
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
         pretrained: str = None,
         pixel_std: float = 0.75,
+        default_config: str = None,
         device=None,
-    ):
+    ):  
+        
+        if pretrained.lower() == "edm-ffhq64-uncond-ve":
+            default_config = "VE"
+        elif pretrained.lower() == "edm-ffhq64-uncond-vp":
+            default_config = "VP"
+        
+        # for some default configurations, we set default parameters
+        if default_config == "VE":
+            embedding_type = 'positional'
+            encoder_type = 'standard'
+            decoder_type='standard'
+            channel_mult_noise=1
+            resample_filter=[1,1]
+            model_channels=128
+            channel_mult=[2,2,2]
+        
+        elif default_config == "VP":
+            embedding_type = 'fourier'
+            encoder_type = 'residual'
+            decoder_type='standard'
+            channel_mult_noise=2
+            resample_filter=[1,3,3,1]
+            model_channels=128
+            channel_mult=[2,2,2]
+
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
         assert decoder_type in ["standard", "skip"]
@@ -224,6 +250,16 @@ class NCSNpp(Denoiser):
                 or pretrained.lower() == "download"
             ):
                 name = "ncsnpp-ffhq64-uncond-ve.pt"
+                url = get_weights_url(model_name="edm", file_name=name)
+                ckpt = torch.hub.load_state_dict_from_url(
+                    url, map_location=lambda storage, loc: storage, file_name=name
+                )
+                self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
+                self.pixel_std = 0.5
+            elif (
+                pretrained.lower() == "edm-ffhq64-uncond-vp"
+            ):
+                name = "ddpmpp-ffhq64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
