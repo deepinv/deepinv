@@ -831,7 +831,9 @@ def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model)
 
     timestamp = get_timestamp()
 
-    with patch.object(dinv.utils, "get_timestamp", return_value=timestamp):
+    # NOTE: Due to the way it's imported in the trainer module we need to patch
+    # the importing module instead of the imported module.
+    with patch.object(dinv.training.trainer, "get_timestamp", return_value=timestamp):
         with pytest.raises(FileExistsError, match=re.escape(timestamp)):
             # Train twice
             for _ in range(2):
