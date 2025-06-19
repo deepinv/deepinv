@@ -340,7 +340,7 @@ class Trainer:
             # directory. For this reason, we make sure the directory does not
             # already exist.
             dir_path = f"{self.save_path}/{get_timestamp()}"
-            # Acquire the output directory (might fail with an exception)
+            # Acquire the output directory (might fail with an exception)
             os.makedirs(dir_path, exist_ok=False)
             self.save_path = dir_path
         else:

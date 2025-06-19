@@ -816,7 +816,7 @@ def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model)
     assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
 
 
-# Test output directory collision detection
+# Test output directory collision detection
 # It is difficult to deterministically trigger actual collisions so we mock the
 # get_timestamp function used in the implementation to make it return the same
 # value every time it is called. This forces a collision to occur and we make
@@ -833,7 +833,7 @@ def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model)
 
     with patch.object(dinv.utils, "get_timestamp", return_value=timestamp):
         with pytest.raises(FileExistsError, match=re.escape(timestamp)):
-            # Train twice
+            # Train twice
             for _ in range(2):
                 trainer = dinv.Trainer(
                     model,
