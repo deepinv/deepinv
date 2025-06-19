@@ -24,6 +24,7 @@ from conftest import no_plot
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
+
 @pytest.fixture
 def imsize():
     return (3, 37, 31)
@@ -43,7 +44,7 @@ def physics(imsize, device):
 
 @pytest.fixture
 def save_path():
-    # NOTE: The save path should be unique to avoid collision errors.
+    # NOTE: The save path should be unique to avoid collision errors.
     with tempfile.TemporaryDirectory() as dirname:
         yield dirname
 
@@ -836,7 +837,9 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, save_path):
 # get_timestamp function used in the implementation to make it return the same
 # value every time it is called. This forces a collision to occur and we make
 # sure that it is detected as it should.
-def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model, save_path):
+def test_out_dir_collision_detection(
+    dummy_dataset, imsize, device, dummy_model, save_path
+):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
