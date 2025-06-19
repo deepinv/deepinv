@@ -15,11 +15,13 @@ Changed
 ^^^^^^^
 - Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
 - Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+- Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
 
 Fixed
 ^^^^^
 - Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+- Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
 
 
 v0.3.1
