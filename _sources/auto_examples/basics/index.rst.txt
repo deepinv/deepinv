@@ -1,0 +1,369 @@
+
+
+.. _sphx_glr_auto_examples_basics:
+
+Basics
+------
+
+
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbnails">
+
+.. thumbnail-parent-div-open
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we show how to use the deepinv.physics.SinglePhotonLidar forward model.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_lidar_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_lidar.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Single photon lidar operator for depth ranging.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This code shows how to reconstruct a noisy and incomplete image using the deep image prior.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_dip_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_dip.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Reconstructing an image using the deep image prior.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="We demonstrate the use of our deepinv.transform module for use in solving imaging problems. These can be used for:">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_transforms_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_transforms.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image transforms for equivariance & augmentations</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create your own dataset for deep image inverse problems from a base dataset of images. Here we use Set3C as a base dataset of natural images. This base dataset contains 3 images.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_dataset_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_dataset.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Creating your own dataset</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="| This simple example shows how to load and prepare properly a huggingface dataset. | Context: having a quick access to several datasets available under the huggingface format. | Available datasets: https://huggingface.co/datasets?search=deepinv">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_hf_dataset_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_hf_dataset.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Using huggingface dataset</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a Ptychography phase retrieval operator and generate phaseless measurements from a given image.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_ptychography_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_ptychography.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Ptychography phase retrieval</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example we demonstrate remote sensing inverse problems for multispectral satellite imaging.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_remote_sensing_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Remote sensing with satellite images</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="While deepinv offers a large number of forward operators in the physics module, you might want to create your own forward operator for your specific imaging problem. This example walks you through the creation of a custom forward operator.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_physics_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_physics.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Creating a forward operator.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 3D blur operators in the library. In particular, we show how to use Diffraction Blurs (Fresnel diffraction) to simulate fluorescence microscopes.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_microscopy_3d_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_microscopy_3d.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">3D diffraction PSF</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to train a simple reconstruction network for an image inpainting inverse problem.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_train_inpainting_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_train_inpainting.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Training a reconstruction network.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of some of the forward operators implemented in DeepInverse. We restrict ourselves to operators where the signal is a 2D image. The full list of operators can be found in here.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_physics_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_physics_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A tour of forward sensing operators</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="In this example, we show how to solve a deblurring inverse problem using an explicit prior.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_custom_prior_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_custom_prior.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Image deblurring with custom deep explicit prior.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="Models can be saved and loaded in the same way as in PyTorch. In this example, we show how to define, load and save a model. For the purpose of the example, we choose an unfolded Chambolle Pock algorithm as the model. The architecture of the model and its training are described in the constrained unfolded demo.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_loading_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_loading.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Saving and loading models</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This demo illustrates the impact of different Hadamard pattern ordering algorithms in the Single Pixel Camera (SPC), a computational imaging system that uses a single photodetector to capture images by projecting the scene onto a series of patterns. The SPC is implemented in the DeepInverse library.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_spc_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_spc.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Pattern Ordering in a Compressive Single Pixel Camera</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This demo shows you how to use deepinv.physics.Physics together with automatic differentiation to optimize your operator.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_optimizing_physics_parameter_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Solving blind inverse problems / estimating physics parameters</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of 2D blur operators in DeepInv. In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs.">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_blur_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_blur_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A tour of blur operators</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example shows how to create a random phase retrieval operator and generate phaseless measurements from a given image. The example showcases 4 different reconstruction methods to recover the image from the phaseless measurements:">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_phase_retrieval_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_phase_retrieval.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Random phase retrieval and reconstruction methods.</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example presents the various datasets, forward physics and models available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_tour_mri_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Tour of MRI functionality in DeepInverse</div>
+    </div>
+
+
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="This example provides a tour of the denoisers in DeepInv. A denoiser is a model that takes in a noisy image and outputs a denoised version of it. Basically, it solves the following problem:">
+
+.. only:: html
+
+  .. image:: /auto_examples/basics/images/thumb/sphx_glr_demo_denoiser_tour_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_basics_demo_denoiser_tour.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">A tour of DeepInv's denoisers</div>
+    </div>
+
+
+.. thumbnail-parent-div-close
+
+.. raw:: html
+
+    </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/basics/demo_lidar
+   /auto_examples/basics/demo_dip
+   /auto_examples/basics/demo_transforms
+   /auto_examples/basics/demo_dataset
+   /auto_examples/basics/demo_hf_dataset
+   /auto_examples/basics/demo_ptychography
+   /auto_examples/basics/demo_remote_sensing
+   /auto_examples/basics/demo_physics
+   /auto_examples/basics/demo_microscopy_3d
+   /auto_examples/basics/demo_train_inpainting
+   /auto_examples/basics/demo_physics_tour
+   /auto_examples/basics/demo_custom_prior
+   /auto_examples/basics/demo_loading
+   /auto_examples/basics/demo_spc
+   /auto_examples/basics/demo_optimizing_physics_parameter
+   /auto_examples/basics/demo_blur_tour
+   /auto_examples/basics/demo_phase_retrieval
+   /auto_examples/basics/demo_tour_mri
+   /auto_examples/basics/demo_denoiser_tour
+

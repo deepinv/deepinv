@@ -1,0 +1,9 @@
+﻿least\_squares
+==============
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: least_squares
+
+.. minigallery:: deepinv.optim.utils.least_squares
+    :add-heading: Examples using ``least_squares``:
