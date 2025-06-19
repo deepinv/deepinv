@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Union
-from copy import deepcopy
 
 import torch
 import torch.nn as nn
@@ -90,7 +89,7 @@ class AugmentConsistencyLoss(Loss):
         x_aug = self.T_e(physics.A_adjoint(self.T_i(y)), **e_params)
 
         # Transform physics
-        physics2 = deepcopy(physics)
+        physics2 = physics.clone()
         A, A_adjoint, A_dagger = physics2.A, physics2.A_adjoint, physics2.A_dagger
         physics2.A = lambda x, *args, **kwargs: A(
             self.T_e.inverse(x, **e_params), *args, **kwargs

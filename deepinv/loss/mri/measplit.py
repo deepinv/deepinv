@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Optional, Union
-from copy import deepcopy
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -370,7 +369,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if physics is None:
             return y_split_reduced
 
-        physics_split_reduced = deepcopy(physics_split)
+        physics_split_reduced = physics_split.clone()
         physics_split_reduced.update_parameters(
             mask=remove_zeros(physics_split.mask, mask)
         )

@@ -1,5 +1,4 @@
 from typing import Union, Optional
-from copy import deepcopy
 
 import numpy as np
 import torch
@@ -90,9 +89,9 @@ class MOILoss(Loss):
             j = torch.randint(0, len(self.physics), (1,), generator=self.rng).item()
             physics_cur = self.physics[j]
         else:
-            physics_cur = deepcopy(
+            physics_cur = (
                 self.physics if self.physics is not None else physics
-            )
+            ).clone()
             params = self.physics_generator.step()
             physics_cur.update(**params)
         return physics_cur
