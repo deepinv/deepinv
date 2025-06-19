@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
+from deepinv.utils import get_timestamp
 from dummy import DummyCircles, DummyModel
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
@@ -748,7 +749,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model):
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
+def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
@@ -813,3 +814,40 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
     expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
     expected_gradient_norms = torch.tensor(expected_gradient_norms)
     assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+
+
+# Test output directory collision detection
+# It is difficult to deterministically trigger actual collisions so we mock the
+# get_timestamp function used in the implementation to make it return the same
+# value every time it is called. This forces a collision to occur and we make
+# sure that it is detected as it should.
+def test_out_dir_collision_detection(dummy_dataset, imsize, device, dummy_model):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    timestamp = get_timestamp()
+
+    with patch.object(dinv.utils, "get_timestamp", return_value=timestamp):
+        with pytest.raises(FileExistsError, match=re.escape(timestamp)):
+            # Train twice
+            for _ in range(2):
+                trainer = dinv.Trainer(
+                    model,
+                    device=device,
+                    save_path="ckpts",
+                    verbose=True,
+                    show_progress_bar=False,
+                    physics=physics,
+                    epochs=2,
+                    losses=dinv.loss.SupLoss(),
+                    optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+                    train_dataloader=dataloader,
+                    online_measurements=True,
+                    check_grad=True,
+                )
+
+                trainer.train()
