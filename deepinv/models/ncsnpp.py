@@ -259,7 +259,7 @@ class NCSNpp(Denoiser):
             elif (
                 pretrained.lower() == "edm-ffhq64-uncond-vp"
             ):
-                name = "ddpmpp-ffhq64-uncond-ve.pt"
+                name = "ddpmpp-ffhq64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
