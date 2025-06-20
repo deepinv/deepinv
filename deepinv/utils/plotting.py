@@ -544,9 +544,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
-    for key, value in zip(init_params.keys(), init_params.values()):
-        if not isinstance(value, Iterable):
-            init_params[key] = [value]
+    if init_params is not None:
+        for key, value in zip(init_params.keys(), init_params.values()):
+            if not isinstance(value, Iterable):
+                init_params[key] = [value]
 
     def get_param(param):
         if torch.is_tensor(param):

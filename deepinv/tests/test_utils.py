@@ -28,6 +28,24 @@ def tensorlist():
     return x, y
 
 
+@pytest.fixture
+def model():
+    physics = deepinv.physics.Denoising()
+    model = deepinv.optim.optimizers.optim_builder(
+        iteration="PGD",
+        prior=deepinv.optim.prior.TVPrior(n_it_max=20),
+        data_fidelity=deepinv.optim.data_fidelity.L2(),
+        early_stop=True,
+        max_iter=10,
+        verbose=False,
+        params_algo={"stepsize": 1.0, "lambda": 1e-2},
+    )
+    x = torch.randn(1, 1, 64, 64, generator=torch.Generator().manual_seed(0))
+    # NOTE: It is needed for attribute params_algo to be initialized.
+    _ = model(x, physics=physics)
+    yield model
+
+
 def test_tensordict_sum(tensorlist):
     x, y = tensorlist
     z = torch.ones((1, 1, 2, 2)) * 2
@@ -152,6 +170,14 @@ def test_plot_curves(tmpdir, seed, n_metrics, n_batches, n_iterations, save_plot
     }
     save_dir = tmpdir if save_plot else None
     deepinv.utils.plot_curves(metrics, save_dir=save_dir, show=show)
+
+
+@pytest.mark.parametrize("init_params", [None])
+@pytest.mark.parametrize("save_plot", [False, True])
+@pytest.mark.parametrize("show", [False, True])
+def test_plot_parameters(tmpdir, model, init_params, save_plot, show):
+    save_dir = tmpdir if save_plot else None
+    deepinv.utils.plot_parameters(model, init_params, save_dir=save_dir, show=show)
 
 
 def test_plot_inset():
