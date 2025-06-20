@@ -5,9 +5,19 @@ from .sup import SupLoss as SupLoss
 from .score import ScoreLoss as ScoreLoss
 from .tv import TVLoss as TVLoss
 from .r2r import R2RLoss as R2RLoss
-from .sure import SureGaussianLoss as SureGaussianLoss, SurePoissonLoss as SurePoissonLoss, SurePGLoss as SurePGLoss
-from .regularisers import JacobianSpectralNorm as JacobianSpectralNorm, FNEJacobianSpectralNorm as FNEJacobianSpectralNorm
-from .measplit import SplittingLoss as SplittingLoss, Neighbor2Neighbor as Neighbor2Neighbor
+from .sure import (
+    SureGaussianLoss as SureGaussianLoss,
+    SurePoissonLoss as SurePoissonLoss,
+    SurePGLoss as SurePGLoss,
+)
+from .regularisers import (
+    JacobianSpectralNorm as JacobianSpectralNorm,
+    FNEJacobianSpectralNorm as FNEJacobianSpectralNorm,
+)
+from .measplit import (
+    SplittingLoss as SplittingLoss,
+    Neighbor2Neighbor as Neighbor2Neighbor,
+)
 from .loss import Loss as Loss, StackedPhysicsLoss as StackedPhysicsLoss
 from .scheduler import (
     BaseLossScheduler as BaseLossScheduler,

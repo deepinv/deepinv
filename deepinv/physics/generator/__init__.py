@@ -1,4 +1,7 @@
-from .base import PhysicsGenerator as PhysicsGenerator, GeneratorMixture as GeneratorMixture
+from .base import (
+    PhysicsGenerator as PhysicsGenerator,
+    GeneratorMixture as GeneratorMixture,
+)
 from .blur import (
     MotionBlurGenerator as MotionBlurGenerator,
     DiffractionBlurGenerator as DiffractionBlurGenerator,

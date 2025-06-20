@@ -6,4 +6,7 @@ from .projective import Homography as Homography
 from .reflect import Reflect as Reflect
 from .temporal import ShiftTime as ShiftTime
 from .diffeomorphism import CPABDiffeomorphism as CPABDiffeomorphism
-from .augmentation import RandomNoise as RandomNoise, RandomPhaseError as RandomPhaseError
+from .augmentation import (
+    RandomNoise as RandomNoise,
+    RandomPhaseError as RandomPhaseError,
+)

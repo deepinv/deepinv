@@ -28,7 +28,13 @@ from .prior import (
 from .optim_iterators.optim_iterator import OptimIterator as OptimIterator
 from .epll import EPLL as EPLL
 from .dpir import DPIR as DPIR
-from .bregman import Bregman as Bregman, BurgEntropy as BurgEntropy, NegEntropy as NegEntropy, BregmanL2 as BregmanL2, Bregman_ICNN as Bregman_ICNN
+from .bregman import (
+    Bregman as Bregman,
+    BurgEntropy as BurgEntropy,
+    NegEntropy as NegEntropy,
+    BregmanL2 as BregmanL2,
+    Bregman_ICNN as Bregman_ICNN,
+)
 from .potential import Potential as Potential
 from .distance import (
     Distance as Distance,

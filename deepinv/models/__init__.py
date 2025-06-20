@@ -7,13 +7,19 @@ from .dsccp import DScCP as DScCP
 from .artifactremoval import ArtifactRemoval as ArtifactRemoval
 from .tv import TVDenoiser as TVDenoiser
 from .tgv import TGVDenoiser as TGVDenoiser
-from .wavdict import WaveletDenoiser as WaveletDenoiser, WaveletDictDenoiser as WaveletDictDenoiser
+from .wavdict import (
+    WaveletDenoiser as WaveletDenoiser,
+    WaveletDictDenoiser as WaveletDictDenoiser,
+)
 from .GSPnP import GSDRUNet as GSDRUNet
 from .median import MedianFilter as MedianFilter
 from .dip import DeepImagePrior as DeepImagePrior, ConvDecoder as ConvDecoder
 from .diffunet import DiffUNet as DiffUNet
 from .swinir import SwinIR as SwinIR
-from .PDNet import PDNet_PrimalBlock as PDNet_PrimalBlock, PDNet_DualBlock as PDNet_DualBlock
+from .PDNet import (
+    PDNet_PrimalBlock as PDNet_PrimalBlock,
+    PDNet_DualBlock as PDNet_DualBlock,
+)
 from .bm3d import BM3D as BM3D
 from .equivariant import EquivariantDenoiser as EquivariantDenoiser
 from .epll import EPLLDenoiser as EPLLDenoiser
@@ -27,7 +33,10 @@ from .gan import (
     DCGANDiscriminator as DCGANDiscriminator,
 )
 from .complex import to_complex_denoiser as to_complex_denoiser
-from .dynamic import TimeAgnosticNet as TimeAgnosticNet, TimeAveragingNet as TimeAveragingNet
+from .dynamic import (
+    TimeAgnosticNet as TimeAgnosticNet,
+    TimeAveragingNet as TimeAveragingNet,
+)
 from .varnet import VarNet as VarNet
 from .modl import MoDL as MoDL
 from .multispectral import PanNet as PanNet

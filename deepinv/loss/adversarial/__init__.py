@@ -5,4 +5,8 @@ from .consistency import (
     UnsupAdversarialDiscriminatorLoss as UnsupAdversarialDiscriminatorLoss,
 )
 from .uair import UAIRGeneratorLoss as UAIRGeneratorLoss
-from .base import DiscriminatorLoss as DiscriminatorLoss, GeneratorLoss as GeneratorLoss, DiscriminatorMetric as DiscriminatorMetric
+from .base import (
+    DiscriminatorLoss as DiscriminatorLoss,
+    GeneratorLoss as GeneratorLoss,
+    DiscriminatorMetric as DiscriminatorMetric,
+)

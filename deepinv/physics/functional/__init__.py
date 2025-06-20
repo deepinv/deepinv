@@ -10,7 +10,10 @@ from .convolution import (
     conv_transpose3d_fft as conv_transpose3d_fft,
 )
 
-from .product_convolution import product_convolution2d as product_convolution2d, product_convolution2d_adjoint as product_convolution2d_adjoint
+from .product_convolution import (
+    product_convolution2d as product_convolution2d,
+    product_convolution2d_adjoint as product_convolution2d_adjoint,
+)
 
 from .multiplier import (
     multiplier as multiplier,

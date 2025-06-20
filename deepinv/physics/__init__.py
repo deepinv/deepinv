@@ -1,6 +1,11 @@
 from .inpainting import Inpainting as Inpainting, Demosaicing as Demosaicing
 from .compressed_sensing import CompressedSensing as CompressedSensing
-from .blur import Blur as Blur, Downsampling as Downsampling, BlurFFT as BlurFFT, SpaceVaryingBlur as SpaceVaryingBlur
+from .blur import (
+    Blur as Blur,
+    Downsampling as Downsampling,
+    BlurFFT as BlurFFT,
+    SpaceVaryingBlur as SpaceVaryingBlur,
+)
 from .range import Decolorize as Decolorize
 from .haze import Haze as Haze
 from .unmixing import HyperSpectralUnmixing as HyperSpectralUnmixing
@@ -25,8 +30,17 @@ from .noise import (
     GammaNoise as GammaNoise,
     SaltPepperNoise as SaltPepperNoise,
 )
-from .mri import MRI as MRI, DynamicMRI as DynamicMRI, SequentialMRI as SequentialMRI, MultiCoilMRI as MultiCoilMRI, MRIMixin as MRIMixin
-from .tomography import Tomography as Tomography, TomographyWithAstra as TomographyWithAstra
+from .mri import (
+    MRI as MRI,
+    DynamicMRI as DynamicMRI,
+    SequentialMRI as SequentialMRI,
+    MultiCoilMRI as MultiCoilMRI,
+    MRIMixin as MRIMixin,
+)
+from .tomography import (
+    Tomography as Tomography,
+    TomographyWithAstra as TomographyWithAstra,
+)
 from .lidar import SinglePhotonLidar as SinglePhotonLidar
 from .singlepixel import SinglePixelCamera as SinglePixelCamera
 from .remote_sensing import Pansharpen as Pansharpen

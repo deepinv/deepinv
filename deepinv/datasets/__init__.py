@@ -1,4 +1,7 @@
-from .datagenerator import generate_dataset as generate_dataset, HDF5Dataset as HDF5Dataset
+from .datagenerator import (
+    generate_dataset as generate_dataset,
+    HDF5Dataset as HDF5Dataset,
+)
 from .patch_dataset import PatchDataset as PatchDataset
 from .div2k import DIV2K as DIV2K
 from .urban100 import Urban100HR as Urban100HR
