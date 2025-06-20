@@ -15,8 +15,9 @@ from warnings import warn
 
 try:
     import astra
-    # NOTE: This import is used by its side effects.
-    from astra import experimental # noqa: F401
+
+    # NOTE: This import is used by its side effects.
+    from astra import experimental  # noqa: F401
 except:
     astra = ImportError("The astra-toolbox package is not installed.")
 
