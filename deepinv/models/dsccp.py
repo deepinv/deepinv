@@ -129,12 +129,6 @@ class DScCP(Denoiser):
 
     @staticmethod
     def _handle_sigma(sigma):
-        r"""
-        Handle the sigma value.
-
-        :param float or list or torch.Tensor sigma: noise level, can be a scalar, list of scalar or a tensor.
-        :return: a tensor with the shape (B, 1, 1, 1) or a scalar value.
-        """
         if isinstance(sigma, (int, float)):
             return float(sigma)
         elif isinstance(sigma, torch.Tensor):

@@ -231,9 +231,6 @@ class TGVDenoiser(Denoiser):
 
     @staticmethod
     def _handle_sigma(sigma, batch_size):
-        r"""
-        Handle various sigma input: float, int, tensor
-        """
         if isinstance(sigma, (float, int)):
             return torch.tensor(sigma).view(1, 1, 1, 1)
         elif isinstance(sigma, torch.Tensor):

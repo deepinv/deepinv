@@ -111,7 +111,9 @@ class TVDenoiser(Denoiser):
             u2 = self.u2.clone()
 
         if ths is not None:
-            lambd = self._handle_sigma(ths, y.size(0)).to(y.device, y.dtype)
+            lambd = self._handle_sigma(ths, y.size(0)).to(
+                device=y.device, dtype=y.dtype
+            )
 
         for _ in range(self.n_it_max):
             x_prev = x2
@@ -165,9 +167,6 @@ class TVDenoiser(Denoiser):
 
     @staticmethod
     def _handle_sigma(sigma, batch_size):
-        r"""
-        Handle various sigma input: float, int, tensor
-        """
         if isinstance(sigma, (float, int)):
             return torch.tensor(sigma).view(1, 1, 1, 1)
         elif isinstance(sigma, torch.Tensor):

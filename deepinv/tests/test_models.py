@@ -2,7 +2,6 @@ import sys
 import pytest
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms.functional import rgb_to_grayscale
 
 import deepinv as dinv
 from dummy import DummyCircles, DummyModel
@@ -476,21 +475,19 @@ def test_wavelet_denoiser_ths(
     x_hat = model(y, ths_tensor)
     assert x_hat.shape == y.shape
 
-    
     # Test the wavelet decomposition and reconstruction
     x = torch.randn(img_size, dtype=torch.float32).to(device)
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
     assert x_hat.shape == x.shape and torch.allclose(x, x_hat, rtol=1e-5, atol=1e-5)
-    
+
     # 2 decomposition
     cA1, cD1 = model.dwt(x)
     cA2, cD2 = model.dwt(cA1)
 
     x_hat = model.iwt((cA2, cD2, cD1))
     assert torch.allclose(x, x_hat, rtol=1e-5, atol=1e-5)
-
 
 
 def test_drunet_inputs(imsize_1_channel, device):

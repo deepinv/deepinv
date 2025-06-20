@@ -362,8 +362,8 @@ class WaveletDenoiser(Denoiser):
             raise ValueError(
                 f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
             )
-    
-    @staticmethod        
+
+    @staticmethod
     def _list_to_tuple(obj):
         r"""
         Helper function to convert lists to tuples recursively.

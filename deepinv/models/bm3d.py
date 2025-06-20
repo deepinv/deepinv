@@ -56,9 +56,6 @@ class BM3D(Denoiser):
 
     @staticmethod
     def _handle_sigma(sigma, batch_size):
-        r"""
-        Handle various sigma input: float, int, tensor
-        """
         if isinstance(sigma, (float, int)):
             return [sigma] * batch_size
         elif isinstance(sigma, torch.Tensor):

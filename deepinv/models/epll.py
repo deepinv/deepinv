@@ -75,13 +75,6 @@ class EPLLDenoiser(Denoiser):
 
     @staticmethod
     def _handle_sigma(sigma, batch_size):
-        r"""
-        Handle the sigma parameter for the denoising method.
-
-        :param float, torch.Tensor sigma: noise level, can be a scalar or a list of scalars.
-        :param batch_size: size of the batch.
-        :return: sigma as a tensor of shape (batch_size, 1).
-        """
         if isinstance(sigma, (int, float)):
             sigma = torch.tensor([float(sigma)] * batch_size)
         elif isinstance(sigma, list):
