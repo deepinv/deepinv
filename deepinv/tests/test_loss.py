@@ -249,7 +249,7 @@ def imsize():
 @pytest.fixture
 def physics(imsize, device):
     # choose a forward operator
-    return dinv.physics.Inpainting(tensor_size=imsize, mask=0.5, device=device)
+    return dinv.physics.Inpainting(img_size=imsize, mask=0.5, device=device)
 
 
 @pytest.fixture
@@ -299,7 +299,7 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
     ).to(device)
 
     # choose a reconstruction architecture
-    model = dinv.models.ArtifactRemoval(backbone)
+    model = dinv.models.ArtifactRemoval(backbone, device=device)
 
     # choose optimizer and scheduler
     epochs = 10
