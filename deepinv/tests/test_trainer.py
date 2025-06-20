@@ -12,7 +12,6 @@ from deepinv.physics.noise import GaussianNoise, PoissonNoise
 
 from unittest.mock import patch
 import math
-import builtins
 import io
 import contextlib
 import re

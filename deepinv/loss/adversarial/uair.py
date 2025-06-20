@@ -1,6 +1,6 @@
 import torch.nn as nn
 from torch import Tensor
-from .base import GeneratorLoss, DiscriminatorLoss
+from .base import GeneratorLoss
 from deepinv.physics import Physics
 
 

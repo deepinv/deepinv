@@ -9,7 +9,6 @@ from sphinx_gallery.sorting import ExplicitOrder
 from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from pathlib import Path
 from sphinx.util import logging
 
 logger = logging.getLogger(__name__)

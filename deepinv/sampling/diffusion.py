@@ -5,7 +5,6 @@ from deepinv.models import Reconstructor
 
 import deepinv.physics
 from deepinv.sampling.langevin import MonteCarlo
-from deepinv.utils.plotting import plot
 
 
 class DiffusionSampler(MonteCarlo):

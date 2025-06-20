@@ -19,7 +19,6 @@ In https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is shown 
 import deepinv as dinv
 from pathlib import Path
 import torch
-from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
 from deepinv.optim import optim_builder

@@ -6,7 +6,7 @@ import time as time
 import deepinv.optim
 from tqdm import tqdm
 from deepinv.optim.utils import check_conv
-from deepinv.sampling.utils import Welford, projbox, refl_projbox
+from deepinv.sampling.utils import Welford, projbox
 
 
 class MonteCarlo(nn.Module):
