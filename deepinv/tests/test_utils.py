@@ -6,6 +6,7 @@ import warnings
 import numpy as np
 from contextlib import nullcontext
 import matplotlib
+import random
 
 
 @pytest.fixture
@@ -135,6 +136,22 @@ def test_scatter_plot(tmpdir, n_plots, titles, save_plot):
     titles = [titles] * n_plots if n_plots > 1 else titles
     save_dir = tmpdir if save_plot else None
     deepinv.utils.scatter_plot(xy_list, titles=titles)
+
+
+@pytest.mark.parametrize("seed", [0])
+@pytest.mark.parametrize("n_metrics", [1, 2])
+@pytest.mark.parametrize("n_batches", [1, 2])
+@pytest.mark.parametrize("n_iterations", [1, 2])
+@pytest.mark.parametrize("save_plot", [False, True])
+@pytest.mark.parametrize("show", [False, True])
+def test_plot_curves(tmpdir, seed, n_metrics, n_batches, n_iterations, save_plot, show):
+    rng = random.Random(seed)
+    metrics = {
+        str(k): [[rng.random() for _ in range(n_iterations)] for _ in range(n_batches)]
+        for k in range(n_metrics)
+    }
+    save_dir = tmpdir if save_plot else None
+    deepinv.utils.plot_curves(metrics, save_dir=save_dir, show=show)
 
 
 def test_plot_inset():

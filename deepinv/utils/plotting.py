@@ -453,6 +453,9 @@ def plot_curves(metrics, save_dir=None, show=True):
     fig, axs = plt.subplots(
         1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
     )
+    # NOTE: axs is not an array when a single metric is passed in
+    if isinstance(axs, plt.Axes):
+        axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
