@@ -43,7 +43,6 @@ def resize_pad_square_tensor(tensor, size):
     class SquarePad:
         def __call__(self, image):
             W, H = image.size
-            print(W, H)
             max_wh = np.max([W, H])
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)

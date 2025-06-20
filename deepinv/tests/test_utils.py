@@ -348,5 +348,50 @@ def test_shepp_logan_dataset(size, n_data, transform):
     ), "Shape of phantom should match (n_data, size, size)."
 
 
+@pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
+@pytest.mark.parametrize("size", [32, 128, 129])
+def test_resize_pad_square_tensor(input_shape, size):
+    tensor = torch.rand(input_shape, generator=torch.Generator().manual_seed(0))
+    output = deepinv.utils.resize_pad_square_tensor(tensor, size)
+
+    assert isinstance(output, torch.Tensor), "Output should be a tensor."
+    assert output.dim() == 4, "Output tensor should be 4D."
+    assert output.shape[-2] == output.shape[-1], "Output tensor should be square."
+    assert output.shape[-2] == size, "Output tensor should have the specified size."
+
+    # The frequency of black pixels should increase as long as the input tensor is not square
+    def black_pixels_frequency(im, bin_size=10 / 255):
+        return torch.sum(2 * im.abs() < bin_size) / im.numel()
+
+    if input_shape[-2] != input_shape[-1]:
+        assert black_pixels_frequency(output) > black_pixels_frequency(
+            tensor
+        ), "Black pixels frequency should increase after resizing and padding."
+
+
+@pytest.mark.parametrize("input_shape", [(4, 3, 32, 32), (4, 2, 32, 32)])
+def test_torch2cpu(input_shape):
+    tensor = torch.randn(input_shape, generator=torch.Generator().manual_seed(0))
+    output = deepinv.utils.torch2cpu(tensor)
+
+    assert isinstance(output, np.ndarray), "Output should be a numpy array."
+
+    # Grayscale, complex and color images are treated differently:
+    # (B, C, H, W) -> (H, W, C) if C is not in { 1, 2 }
+    #              -> (H, W)    otherwise
+    assert output.shape[0] == tensor.shape[2]
+    assert output.shape[1] == tensor.shape[3]
+    if input_shape[1] not in [1, 2]:
+        assert output.ndim == 3, "Output should be 3D for color images."
+        assert output.shape[2] == (tensor.shape[1] if input_shape[1] != 2 else 1)
+    else:
+        assert output.ndim == 2, "Output should be 2D for grayscale or complex images."
+
+    # Values clamped to [0, 1]
+    assert np.all(output >= 0) and np.all(
+        output <= 1
+    ), "Output values should be in the range [0, 1]."
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_interactive_matplotlib")]
