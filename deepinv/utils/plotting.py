@@ -323,9 +323,12 @@ def plot(
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
         for i, row_imgs in enumerate(imgs):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else f"i"
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
+                # plt.imsave fails if img is not C-contiguous
+                img = np.ascontiguousarray(img)
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()

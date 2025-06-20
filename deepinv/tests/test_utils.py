@@ -5,6 +5,17 @@ from deepinv.utils.decorators import _deprecated_alias
 import warnings
 import numpy as np
 from contextlib import nullcontext
+import matplotlib
+
+
+@pytest.fixture
+def non_interactive_matplotlib():
+    # Use a non-interactive backend to avoid blocking tests
+    current_backend = matplotlib.get_backend()
+    matplotlib.use("agg")
+    yield
+    # Restore the original backend
+    matplotlib.use(current_backend)
 
 
 @pytest.fixture
@@ -101,14 +112,29 @@ def test_dirac_like(shape, length):
             ), "Convolution with Dirac delta should return the original tensor."
 
 
-def test_plot():
-    for c in range(1, 5):
-        x = torch.ones((1, c, 2, 2))
-        titles, imgs = ["a", "b"], [x, x]
-        deepinv.utils.plot(imgs, titles=titles, show=False)
-        deepinv.utils.plot(x, titles="a", show=False)
-        deepinv.utils.plot(imgs, show=False)
-        deepinv.utils.plot({k: v for k, v in zip(titles, imgs)}, show=False)
+@pytest.mark.parametrize("C", list(range(1, 5)))
+@pytest.mark.parametrize("save_plot", [False, True])
+def test_plot(tmpdir, C, save_plot):
+    x = torch.ones((1, C, 2, 2))
+    titles, imgs = ["a", "b"], [x, x]
+    save_dir = tmpdir if save_plot else None
+    deepinv.utils.plot(imgs, titles=titles, show=False, save_dir=save_dir)
+    deepinv.utils.plot(x, titles="a", show=False, save_dir=save_dir)
+    deepinv.utils.plot(imgs, show=False, save_dir=save_dir)
+    deepinv.utils.plot(
+        {k: v for k, v in zip(titles, imgs)}, show=False, save_dir=save_dir
+    )
+
+
+@pytest.mark.parametrize("n_plots", [1, 2, 3])
+@pytest.mark.parametrize("titles", [None, "Dummy plot"])
+@pytest.mark.parametrize("save_plot", [False, True])
+def test_scatter_plot(tmpdir, n_plots, titles, save_plot):
+    xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
+    xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
+    titles = [titles] * n_plots if n_plots > 1 else titles
+    save_dir = tmpdir if save_plot else None
+    deepinv.utils.scatter_plot(xy_list, titles=titles)
 
 
 def test_plot_inset():
@@ -245,3 +271,7 @@ def test_shepp_logan_dataset(size, n_data, transform):
         size,
         size,
     ), "Shape of phantom should match (n_data, size, size)."
+
+
+# Module-level fixtures
+pytestmark = [pytest.mark.usefixtures("non_interactive_matplotlib")]
