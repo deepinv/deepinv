@@ -98,7 +98,7 @@ def choose_denoiser(name, imsize):
             pretrained=None,
         )
     elif name == "adinv.modelsunet":
-        out = dinv.models.Adinv.modelsUNet(
+        out = dinv.models.ADMUNet(
             in_channels=imsize[0],
             out_channels=imsize[0],
             img_resolution=imsize[1],
@@ -829,7 +829,7 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
         pretrained=None,
     )
     if precond:
-        model = dinv.models.Edinv.modelsPrecond(model, use_fp16=use_fp16).to(device)
+        model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)
     else:
         model = model.to(device)
     x = torch.rand(batch_size, n_channels, image_size, image_size, device=device)
