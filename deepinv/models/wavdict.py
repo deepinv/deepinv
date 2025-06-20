@@ -126,7 +126,8 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet recomposition.
         """
-        coeffs = [tuple(t) if isinstance(t, list) else t for t in coeffs]
+
+        coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:
             rec = ptwt.waverec2(coeffs, pywt.Wavelet(self.wv))
         elif self.dimension == 3:
@@ -361,6 +362,16 @@ class WaveletDenoiser(Denoiser):
             raise ValueError(
                 f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
             )
+    
+    @staticmethod        
+    def _list_to_tuple(obj):
+        r"""
+        Helper function to convert lists to tuples recursively.
+        This is used to ensure that the wavelet coefficients are in the correct format for the inverse wavelet transform.
+        """
+        if isinstance(obj, (list, tuple)):
+            return tuple(WaveletDenoiser._list_to_tuple(item) for item in obj)
+        return obj
 
     def forward(self, x, ths=0.1, **kwargs):
         r"""
