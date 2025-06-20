@@ -42,15 +42,8 @@ def physics(imsize, device):
     return dinv.physics.BlurFFT(img_size=imsize, filter=filter, device=device)
 
 
-@pytest.fixture
-def save_path():
-    # NOTE: The save path should be unique to avoid collision errors.
-    with tempfile.TemporaryDirectory() as dirname:
-        yield dirname
-
-
 @pytest.mark.parametrize("no_learning", NO_LEARNING)
-def test_nolearning(imsize, physics, model, no_learning, device, save_path):
+def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
     y = torch.ones((1,) + imsize, device=device)
     trainer = dinv.Trainer(
         model=model,
@@ -60,7 +53,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, save_path):
         physics=physics,
         compare_no_learning=True,
         no_learning_method=no_learning,
-        save_path=save_path,
+        save_path=tmpdir,
     )
     x_hat = trainer.no_learning_inference(y, physics)
     assert (physics.A(x_hat) - y).pow(2).mean() < 0.1
@@ -136,7 +129,7 @@ def test_get_samples(
     use_physics_generator,
     online_measurements,
     rng,
-    save_path,
+    tmpdir,
 ):
     # Dummy constant GT dataset
     class DummyDataset(Dataset):
@@ -228,7 +221,7 @@ def test_get_samples(
             if online_measurements and physics_generator is not None
             else None
         ),
-        save_path=save_path,
+        save_path=tmpdir,
     )
 
     iterator = iter(dataloader)
@@ -544,7 +537,7 @@ def test_dataloader_formats(
     measurements,
     online_measurements,
     rng,
-    save_path,
+    tmpdir,
 ):
     """Test dataloader return formats
 
@@ -619,7 +612,7 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
-        save_path=save_path,
+        save_path=tmpdir,
     )
     trainer.setup_train()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
@@ -672,7 +665,7 @@ def test_dataloader_formats(
 @pytest.mark.parametrize("early_stop", [True, False])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps, save_path
+    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps, tmpdir
 ):
     torch.manual_seed(0)
     model = dummy_model
@@ -697,7 +690,7 @@ def test_early_stop(
         optimizer=optimizer,
         verbose=False,
         plot_images=True,
-        save_path=save_path,
+        save_path=tmpdir,
     )
     with no_plot():
         trainer.train()
@@ -727,7 +720,7 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-def test_total_loss(dummy_dataset, imsize, device, dummy_model, save_path):
+def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
@@ -748,7 +741,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, save_path):
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
-        save_path=save_path,
+        save_path=tmpdir,
     )
 
     trainer.train()
@@ -765,7 +758,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, save_path):
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, save_path):
+def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
@@ -776,7 +769,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, save_path):
     trainer = dinv.Trainer(
         model,
         device=device,
-        save_path=save_path,
+        save_path=tmpdir,
         verbose=True,
         show_progress_bar=False,
         physics=physics,
@@ -838,7 +831,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, save_path):
 # value every time it is called. This forces a collision to occur and we make
 # sure that it is detected as it should.
 def test_out_dir_collision_detection(
-    dummy_dataset, imsize, device, dummy_model, save_path
+    dummy_dataset, imsize, device, dummy_model, tmpdir
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
@@ -858,7 +851,7 @@ def test_out_dir_collision_detection(
                 trainer = dinv.Trainer(
                     model,
                     device=device,
-                    save_path=save_path,
+                    save_path=tmpdir,
                     verbose=True,
                     show_progress_bar=False,
                     physics=physics,
