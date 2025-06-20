@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
+from deepinv.loss import PSNR
+
 from dummy import DummyCircles, DummyModel
 
 
@@ -18,7 +20,7 @@ MODEL_LIST_1_CHANNEL = [
     "epll",
     "restormer",
     "ncsnpp",
-    "admunet",
+    "adinv.modelsunet",
 ]
 MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "bm3d",
@@ -95,8 +97,8 @@ def choose_denoiser(name, imsize):
             img_resolution=imsize[1],
             pretrained=None,
         )
-    elif name == "admunet":
-        out = dinv.models.ADMUNet(
+    elif name == "adinv.modelsunet":
+        out = dinv.models.Adinv.modelsUNet(
             in_channels=imsize[0],
             out_channels=imsize[0],
             img_resolution=imsize[1],
@@ -275,8 +277,8 @@ def test_TV_models_identity():
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_color(imsize, device, denoiser):
-    # NCSNpp and ADMUnet only support imsize that divisible by 8
-    if denoiser in ["ncsnpp", "admunet"]:
+    # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
+    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize = (imsize[0], (imsize[1] // 8) * 8, (imsize[2] // 8) * 8)
 
     model = choose_denoiser(denoiser, imsize).to(device)
@@ -294,8 +296,8 @@ def test_denoiser_color(imsize, device, denoiser):
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
     # except scunet and dsccp, all models support 1 channel
     if denoiser not in ["scunet", "dsccp"]:
-        # NCSNpp and ADMUnet only support imsize that divisible by 8
-        if denoiser in ["ncsnpp", "admunet"]:
+        # NCSNpp and Adinv.modelsUnet only support imsize that divisible by 8
+        if denoiser in ["ncsnpp", "adinv.modelsunet"]:
             imsize_1_channel = (
                 imsize_1_channel[0],
                 (imsize_1_channel[1] // 8) * 8,
@@ -367,7 +369,7 @@ def test_equivariant(imsize, device, batch_size):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST_1_CHANNEL)
 def test_denoiser_1_channel(imsize_1_channel, device, denoiser):
-    if denoiser in ["ncsnpp", "admunet"]:
+    if denoiser in ["ncsnpp", "adinv.modelsunet"]:
         imsize_1_channel = list(imsize_1_channel)
         if imsize_1_channel[1] % 8 > 0:
             imsize_1_channel[1] = 32
@@ -827,7 +829,7 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
         pretrained=None,
     )
     if precond:
-        model = dinv.models.EDMPrecond(model, use_fp16=use_fp16).to(device)
+        model = dinv.models.Edinv.modelsPrecond(model, use_fp16=use_fp16).to(device)
     else:
         model = model.to(device)
     x = torch.rand(batch_size, n_channels, image_size, image_size, device=device)
@@ -865,3 +867,99 @@ def test_dsccp_net(device, n_channels):
     x = x.expand(4, -1, -1, -1)
     y = model(x, torch.linspace(0.01, 0.1, 4, device=device))
     assert y.shape == x.shape
+
+
+def test_denoiser_perf(device):
+    # Load 2 example images
+    x1 = dinv.utils.load_example(
+        "butterfly.png",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x2 = dinv.utils.load_example(
+        "celeba_example.jpg",
+        img_size=64,
+        resize_mode="resize",
+    ).to(device)
+
+    x = torch.cat([x1, x2, x1], dim=0)
+    # three different noise levels
+    sigma = torch.tensor([0.05, 0.1, 0.2]).to(device)
+    rng = torch.Generator(device=device).manual_seed(123)
+    y = x + sigma.view(-1, 1, 1, 1) * torch.randn(x.shape, generator=rng, device=device)
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    # Only test the trained denoisers and the correspinding expected performance
+    learned_denoisers = [
+        (dinv.models.DnCNN(pretrained="download").to(device), (0.1, 0.03, 0.001)),
+        (dinv.models.DRUNet(pretrained="download").to(device), (7.0, 10.5, 11.0)),
+        (dinv.models.GSDRUNet(pretrained="download").to(device), (6.5, 10.5, 10.5)),
+        (dinv.models.SCUNet(pretrained="download").to(device), (3.5, 9.5, 8.5)),
+        (dinv.models.SwinIR(pretrained="download").to(device), (7.5, 3.4, 1.0)),
+        (dinv.models.DiffUNet(pretrained="download").to(device), (6.5, 10.5, 10.0)),
+        (
+            dinv.models.Restormer(
+                in_channels=3, out_channels=3, pretrained="denoising"
+            ).to(device),
+            (7.0, 9.5, 10.0),
+        ),
+        (dinv.models.NCSNpp(pretrained="download").to(device), (7.0, 11.5, 10.5)),
+        (dinv.models.ADMUNet(pretrained="download").to(device), (7.0, 11.5, 11.0)),
+        (dinv.models.DScCP(pretrained="download").to(device), (4.5, 9.0, 3.0)),
+    ]
+
+    for denoiser, expected_perf in learned_denoisers:
+        kwargs = {}
+
+        # It's a conditional denoiser
+        if isinstance(denoiser, dinv.models.ADMUNet):
+            class_labels = torch.eye(1000, device=device)[
+                0 : x.size(0)
+            ]  # Take random class labels
+            kwargs["class_labels"] = class_labels
+        with torch.no_grad():
+            x_hat = denoiser(y, sigma, **kwargs)
+        assert torch.all(
+            psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
+        )
+
+    # Classical denoisers
+    classical_denoisers = [
+        (dinv.models.BM3D(), (2.75, 7.5, 6.5)),
+        (dinv.models.MedianFilter(kernel_size=5), (-9, 4.25, 2.5)),
+        (dinv.models.TVDenoiser(), (1.5, 6.0, 4.0)),
+        (dinv.models.TGVDenoiser(), (1.75, 6, 5.0)),
+        (
+            dinv.models.WaveletDenoiser(non_linearity="hard", device=device),
+            (0.05, 2.5, 2.5),
+        ),
+        (
+            dinv.models.WaveletDictDenoiser(non_linearity="hard", device=device),
+            (0.2, 4.0, 2.5),
+        ),
+        (
+            dinv.models.EPLLDenoiser(pretrained="download", channels=3, device=device),
+            (2.5, 6, 7.5),
+        ),
+    ]
+    for denoiser, expected_perf in classical_denoisers:
+        kwargs = {}
+
+        # Some denoisers require specific sigma scaling
+        if isinstance(denoiser, dinv.models.TVDenoiser):
+            _sigma = sigma.clone() * torch.tensor([0.5, 1.0, 1.0]).to(device)
+        elif isinstance(denoiser, dinv.models.TGVDenoiser):
+            _sigma = sigma.clone() * torch.tensor([4.0, 5.0, 5.0]).to(device)
+        elif isinstance(
+            denoiser, (dinv.models.WaveletDenoiser, dinv.models.WaveletDictDenoiser)
+        ):
+            _sigma = sigma.clone() * torch.tensor([1.05, 2.0, 3.0]).to(device)
+        else:
+            _sigma = sigma
+        with torch.no_grad():
+            x_hat = denoiser(y, _sigma, **kwargs)
+        assert torch.all(
+            psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
+        )

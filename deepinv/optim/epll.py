@@ -130,7 +130,7 @@ class EPLL(nn.Module):
             for i in range(y.shape[0]):
                 xi = x[i : i + 1]
                 for beta in betas:
-                    self._reconstruction_step(
+                    xi = self._reconstruction_step(
                         Aty[i : i + 1], xi, sigma[i] ** 2, beta[i], physics, batch_size
                     )
                 out.append(xi)
