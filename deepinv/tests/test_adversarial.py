@@ -6,6 +6,9 @@ from torch.utils.data import DataLoader
 import deepinv as dinv
 from deepinv.loss import adversarial
 
+# NOTE: It is injected in tests as a fixture.
+from test_loss import physics # noqa: F401
+
 ADVERSARIAL_COMBOS = ["DeblurGAN", "CSGM", "AmbientGAN", "UAIR"]
 
 
