@@ -1,4 +1,5 @@
 import torch
+from typing import Union
 
 
 class Denoiser(torch.nn.Module):
@@ -32,6 +33,27 @@ class Denoiser(torch.nn.Module):
         :returns: (:class:`torch.Tensor`) Denoised tensor.
         """
         return NotImplementedError
+
+    @staticmethod
+    def _handle_sigma(sigma: Union[float, torch.Tensor], *args, **kwarg):
+        r"""
+        Convert various noise level types to the appropriate format for batch processing.
+            If `sigma` is a single float or int, the same value will be used for each sample in the batch.
+            If `sigma` is a tensor, it should be of shape `(batch_size,)` or a scalar.
+
+        To be overridden by subclasses if necessary.
+
+        :param float, torch.Tensor sigma: noise level.
+        :returns: list of noise levels for each sample in the batch.
+        """
+        if isinstance(sigma, (float, int)):
+            return float(sigma)
+        elif isinstance(sigma, torch.Tensor):
+            return sigma.squeeze()
+        else:
+            raise TypeError(
+                f"Sigma must be a float, int, or torch.Tensor. Got {type(sigma)}."
+            )
 
 
 class Reconstructor(torch.nn.Module):

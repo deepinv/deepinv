@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .base import Denoiser
+from typing import Union
 
 try:
     import ptwt
@@ -38,12 +39,23 @@ class WaveletDenoiser(Denoiser):
     :param int level: decomposition level of the wavelet transform
     :param str wv: mother wavelet (follows the `PyWavelets convention
         <https://pywavelets.readthedocs.io/en/latest/ref/wavelets.html>`_) (default: "db8")
-    :param str device: cpu or gpu
     :param str non_linearity: ``"soft"``, ``"hard"`` or ``"topk"`` thresholding (default: ``"soft"``).
         If ``"topk"``, only the top-k wavelet coefficients are kept.
+    :param str mode: padding mode for the wavelet transform (default: "zero").
+    :param int wvdim: dimension of the wavelet transform (either 2 or 3) (default: 2).
+    :param str device: cpu or gpu
+
     """
 
-    def __init__(self, level=3, wv="db8", device="cpu", non_linearity="soft", wvdim=2):
+    def __init__(
+        self,
+        level: int = 3,
+        wv: str = "db8",
+        device: torch.device = "cpu",
+        non_linearity: str = "soft",
+        mode: str = "zero",
+        wvdim: int = 2,
+    ):
         if isinstance(ptwt, ImportError):
             raise ImportError(
                 "pytorch_wavelets is needed to use the WaveletDenoiser class. "
@@ -55,15 +67,20 @@ class WaveletDenoiser(Denoiser):
         self.device = device
         self.non_linearity = non_linearity
         self.dimension = wvdim
+        self.mode = mode
 
     def dwt(self, x):
         r"""
         Applies the wavelet decomposition.
         """
         if self.dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
+            dec = ptwt.wavedec2(
+                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
+            )
         elif self.dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(self.wv), mode="zero", level=self.level)
+            dec = ptwt.wavedec3(
+                x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
+            )
         dec = [list(t) if isinstance(t, tuple) else t for t in dec]
         return dec
 
@@ -84,7 +101,7 @@ class WaveletDenoiser(Denoiser):
         return flat
 
     @staticmethod
-    def psi(x, wavelet="db2", level=2, dimension=2):
+    def psi(x, wavelet="db2", level=2, dimension=2, mode="zero"):
         r"""
         Returns a flattened list containing the wavelet coefficients.
 
@@ -94,20 +111,23 @@ class WaveletDenoiser(Denoiser):
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
         if dimension == 2:
-            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode="zero", level=level)
-            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
-            vec = [decl.flatten() for l in range(1, len(dec)) for decl in dec[l]]
+            dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
+            dec = list(dec)
+            vec = [decl.flatten(1, -1) for l in range(1, len(dec)) for decl in dec[l]]
         elif dimension == 3:
-            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode="zero", level=level)
-            dec = [list(t) if isinstance(t, tuple) else t for t in dec]
-            vec = [dec[l][key].flatten() for l in range(1, len(dec)) for key in dec[l]]
+            dec = ptwt.wavedec3(x, pywt.Wavelet(wavelet), mode=mode, level=level)
+            dec = list(dec)
+            vec = [
+                dec[l][key].flatten(1, -1) for l in range(1, len(dec)) for key in dec[l]
+            ]
         return vec
 
     def iwt(self, coeffs):
         r"""
         Applies the wavelet recomposition.
         """
-        coeffs = [tuple(t) if isinstance(t, list) else t for t in coeffs]
+
+        coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:
             rec = ptwt.waverec2(coeffs, pywt.Wavelet(self.wv))
         elif self.dimension == 3:
@@ -121,27 +141,39 @@ class WaveletDenoiser(Denoiser):
         :param torch.Tensor x: wavelet coefficients.
         :param float, torch.Tensor ths: threshold.
         """
-        return torch.maximum(
-            torch.tensor([0], device=x.device).type(x.dtype), x - abs(ths)
-        ) + torch.minimum(
-            torch.tensor([0], device=x.device).type(x.dtype), x + abs(ths)
+        ths = self._expand_ths_as(ths, x)
+        return torch.maximum(torch.tensor(0.0), x - abs(ths)) + torch.minimum(
+            torch.tensor(0.0), x + abs(ths)
         )
 
-    def prox_l0(self, x, ths=0.1):
+    @staticmethod
+    def _expand_ths_as(
+        ths: Union[float, torch.Tensor], x: torch.Tensor
+    ) -> torch.Tensor:
+        r"""
+        Expand the threshold to the same shape as the input tensor.
+        """
+        if isinstance(ths, (float, int)):
+            return float(ths)
+        elif isinstance(ths, torch.Tensor):
+            ths = ths.squeeze()
+            return ths.view(-1, *([1] * (x.ndim - 1))).to(x.device)
+        else:
+            raise ValueError(f"Invalid threshold type: {type(ths)}")
+
+    def prox_l0(
+        self, x: torch.Tensor, ths: Union[float, torch.Tensor] = 0.1
+    ) -> torch.Tensor:
         r"""
         Hard thresholding of the wavelet coefficients.
 
-        :param torch.Tensor x: wavelet coefficients.
-        :param float, torch.Tensor ths: threshold.
+        :param torch.Tensor x: wavelet coefficients of shape (B, C, H, W) or (B, C, D, H, W).
+        :param float, torch.Tensor ths: threshold of shape (B,) or scalar. If scalar, same threshold is used for all elements in batch.
         """
-        if isinstance(ths, float):
-            ths_map = ths
-        else:
-            ths_map = ths.repeat(
-                1, 1, 1, x.shape[-2], x.shape[-1]
-            )  # Reshaping to image wavelet shape
+
         out = x.clone()
-        out[abs(out) < ths_map] = 0
+        ths = self._expand_ths_as(ths, out)
+        out[out.abs() < ths] = 0
         return out
 
     def hard_threshold_topk(self, x, ths=0.1):
@@ -153,28 +185,38 @@ class WaveletDenoiser(Denoiser):
         :param float, int ths: top k coefficients to keep. If ``float``, it is interpreted as a proportion of the total
             number of coefficients. If ``int``, it is interpreted as the number of coefficients to keep.
         """
-        if isinstance(ths, float):
+        if isinstance(ths, (float, int)):
             k = int(ths * x.shape[-3] * x.shape[-2] * x.shape[-1])
+        elif isinstance(ths, torch.Tensor):
+            k = ths.squeeze().view(-1).expand(x.size(0)).to(x.device, torch.int32)
         else:
-            k = int(ths)
+            raise ValueError(
+                f"Invalid threshold type: {type(ths)}. Expected float, int or torch.Tensor."
+            )
 
         # Reshape arrays to 2D and initialize output to 0
         x_flat = x.reshape(x.shape[0], -1)
         out = torch.zeros_like(x_flat)
 
-        topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
-
         # Convert the flattened indices to the original indices of x
-        batch_indices = (
-            torch.arange(x.shape[0], device=x.device).unsqueeze(1).repeat(1, k)
-        )
-        topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
+        if isinstance(k, int):
+            topk_indices_flat = torch.topk(abs(x_flat), k, dim=-1)[1]
+            batch_indices = (
+                torch.arange(x.shape[0], device=x.device).unsqueeze(1).expand(-1, k)
+            )
+            topk_indices = torch.stack([batch_indices, topk_indices_flat], dim=-1)
 
-        # Set output's top-k elements to values from original x
-        out[tuple(topk_indices.view(-1, 2).t())] = x_flat[
-            tuple(topk_indices.view(-1, 2).t())
-        ]
-        return torch.reshape(out, x.shape)
+            # Set output's top-k elements to values from original x
+            out[tuple(topk_indices.view(-1, 2).t())] = x_flat[
+                tuple(topk_indices.view(-1, 2).t())
+            ]
+            return torch.reshape(out, x.shape)
+        else:
+            # For each batch, keep the top-k coefficients
+            for i in range(x.shape[0]):
+                topk_indices = torch.topk(abs(x_flat[i]), k[i].item(), dim=-1)[1]
+                out[i, topk_indices] = x_flat[i, topk_indices]
+            return torch.reshape(out, x.shape)
 
     def thresold_func(self, x, ths):
         r""" "
@@ -205,7 +247,7 @@ class WaveletDenoiser(Denoiser):
         for level in range(1, self.level + 1):
             ths_cur = self.reshape_ths(ths, level)
             for c, key in enumerate(["aad", "ada", "daa", "add", "dad", "dda", "ddd"]):
-                coeffs[level][key] = self.prox_l1(coeffs[level][key], ths_cur[c])
+                coeffs[level][key] = self.thresold_func(coeffs[level][key], ths_cur[c])
         return coeffs
 
     def threshold_ND(self, coeffs, ths):
@@ -230,14 +272,20 @@ class WaveletDenoiser(Denoiser):
             padding_bottom = h % 2
             padding_right = w % 2
             p = (padding_bottom, padding_right)
-            x = torch.nn.ReplicationPad2d((0, p[0], 0, p[1]))(x)
+            x = torch.nn.functional.pad(
+                x, (0, padding_right, 0, padding_bottom), mode="replicate"
+            )
         elif self.dimension == 3:
             d, h, w = x.size()[-3:]
             padding_depth = d % 2
             padding_bottom = h % 2
             padding_right = w % 2
             p = (padding_depth, padding_bottom, padding_right)
-            x = torch.nn.ReplicationPad3d((0, p[0], 0, p[1], 0, p[2]))(x)
+            x = torch.nn.functional.pad(
+                x,
+                (0, padding_right, 0, padding_bottom, 0, padding_depth),
+                mode="replicate",
+            )
         return x, p
 
     def crop_output(self, x, padding):
@@ -260,9 +308,11 @@ class WaveletDenoiser(Denoiser):
         Since the approximation coefficients are not thresholded, we do not need to provide a thresholding parameter,
         ths has shape (n_levels-1, 3).
         """
+
+        # Return tensor of shape (B, n_level - 1, numel)
         numel = 3 if self.dimension == 2 else 7
         if not torch.is_tensor(ths):
-            if isinstance(ths, int) or isinstance(ths, float):
+            if isinstance(ths, (int, float)):
                 ths_cur = [ths] * numel
             elif len(ths) == 1:
                 ths_cur = [ths[0]] * numel
@@ -271,12 +321,57 @@ class WaveletDenoiser(Denoiser):
                 if len(ths_cur) == 1:
                     ths_cur = [ths_cur[0]] * numel
         else:
-            if len(ths.shape) == 1:  # Needs to reshape to shape (n_levels-1, 3)
-                ths_cur = ths.squeeze().repeat(numel)
+            if ths.ndim == 0 or ths.ndim == 1:  # a tensor of shape 0 or (B,)
+                return self._reshape_ths_one_dim(ths, level)
+            elif ths.ndim == 2:  # (B, n_levels-1)
+                return self._reshape_ths_two_dim(ths, level)
+            elif ths.ndim == 3:
+                # (B, n_levels-1, numel) or (B, n_levels-1, 1)
+                ths_cur = self._reshape_ths_three_dim(ths, level)
             else:
-                ths_cur = ths[level - 2]
+                raise ValueError(
+                    f"Expected tensor of 0, 1, 2 or 3 dimensions. Got tensor of {ths.ndim} dimensions"
+                )
 
         return ths_cur
+
+    def _reshape_ths_one_dim(self, ths, level):
+        numel = 3 if self.dimension == 2 else 7
+        return [ths] * numel
+
+    def _reshape_ths_two_dim(self, ths, level):
+        numel = 3 if self.dimension == 2 else 7
+        if ths.size(1) == 1:
+            return [ths[:, 0]] * numel
+        else:
+            assert ths.size(1) == self.level
+            return [ths[:, level - 2]] * numel
+
+    def _reshape_ths_three_dim(self, ths, level):
+        numel = 3 if self.dimension == 2 else 7
+        if ths.size(1) == 1:
+            ths = ths.expand(-1, self.level, -1)
+        assert (
+            ths.size(1) == self.level
+        ), f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+        if ths.size(-1) == numel:
+            return ths.permute(2, 0, 1)[..., level - 2]
+        elif ths.size(-1) == 1:
+            return self._reshape_ths_two_dim(ths[..., 0], level)
+        else:
+            raise ValueError(
+                f"Expected tensor of shape (B, {self.level}, {numel}), got {ths.shape}"
+            )
+
+    @staticmethod
+    def _list_to_tuple(obj):
+        r"""
+        Helper function to convert lists to tuples recursively.
+        This is used to ensure that the wavelet coefficients are in the correct format for the inverse wavelet transform.
+        """
+        if isinstance(obj, (list, tuple)):
+            return tuple(WaveletDenoiser._list_to_tuple(item) for item in obj)
+        return obj
 
     def forward(self, x, ths=0.1, **kwargs):
         r"""
@@ -285,8 +380,8 @@ class WaveletDenoiser(Denoiser):
         :param torch.Tensor x: noisy image.
         :param int, float, torch.Tensor ths: thresholding parameter :math:`\gamma`.
             If `ths` is a tensor, it should be of shape
-            ``(1, )`` (same coefficent for all levels), ``(n_levels-1, )`` (one coefficient per level),
-            or ``(n_levels-1, 3)`` (one coefficient per subband and per level).
+            ``(B,)`` (same coefficent for all levels), ``(B, n_levels-1)`` (one coefficient per level),
+            or ``(B, n_levels-1, 3)`` (one coefficient per subband and per level). `B` should be the same as the batch size of the input or `1`.
             If ``non_linearity`` equals ``"soft"`` or ``"hard"``, ``ths`` serves as a (soft or hard)
             thresholding parameter for the wavelet coefficients. If ``non_linearity`` equals ``"topk"``,
             ``ths`` can indicate the number of wavelet coefficients

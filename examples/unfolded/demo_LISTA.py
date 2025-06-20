@@ -153,7 +153,7 @@ prior = [
 
 # Unrolled optimization algorithm parameters
 lamb = [
-    torch.ones(3, 3, device=device)
+    torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
