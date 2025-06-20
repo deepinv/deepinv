@@ -10,7 +10,6 @@ bases, which does not admit a closed-form solution. We solve the denoising probl
 import deepinv as dinv
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn

@@ -14,11 +14,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
-from deepinv.training import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 

@@ -27,7 +27,6 @@ from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
     cosine_similarity,
-    spectral_methods,
 )
 from deepinv.models.complex import to_complex_denoiser
 

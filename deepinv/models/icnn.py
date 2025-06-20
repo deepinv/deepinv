@@ -1,5 +1,4 @@
 # Code borrowed from https://github.com/ZhenghanFang/learned-proximal-networks
-import numpy as np
 import torch
 from torch import nn
 

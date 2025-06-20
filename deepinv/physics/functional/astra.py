@@ -5,7 +5,6 @@ import numpy as np
 
 try:
     import astra
-    from astra import experimental
 except:
     astra = ImportError("The astra-toolbox package is not installed.")
 

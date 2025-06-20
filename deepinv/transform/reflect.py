@@ -1,8 +1,5 @@
 from typing import Union, Iterable
 import torch
-from torchvision.transforms.functional import rotate
-from torchvision.transforms import InterpolationMode
-import numpy as np
 from deepinv.transform.base import Transform, TransformParam
 import itertools
 

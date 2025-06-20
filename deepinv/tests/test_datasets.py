@@ -30,7 +30,6 @@ from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
 
 from unittest.mock import patch
-import unittest.mock as mock
 import io
 
 
@@ -591,7 +590,6 @@ def download_CMRxRecon():
 
 
 def test_CMRxReconSliceDataset(download_CMRxRecon):
-    from math import prod
 
     img_size = (12, 512, 256)
 

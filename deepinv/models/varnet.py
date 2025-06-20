@@ -12,7 +12,7 @@ from deepinv.models import DnCNN
 from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
 
 if TYPE_CHECKING:
-    from deepinv.physics.forward import Physics
+    pass
 
 
 class VarNet(ArtifactRemoval, MRIMixin):
