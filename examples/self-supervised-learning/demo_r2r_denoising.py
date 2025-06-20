@@ -123,7 +123,7 @@ model = dinv.models.ArtifactRemoval(
 #
 
 epochs = 1  # choose training epochs
-learning_rate = 1e-9
+learning_rate = 1e-4
 batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
@@ -154,9 +154,11 @@ if noise_name == "poisson":
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
+# self-supervised training!
 train_dataloader = DataLoader(
-    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
+    test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
+
 test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
