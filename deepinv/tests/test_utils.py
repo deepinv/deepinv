@@ -131,29 +131,61 @@ def test_dirac_like(shape, length):
             ), "Convolution with Dirac delta should return the original tensor."
 
 
-@pytest.mark.parametrize("C", list(range(1, 5)))
+@pytest.mark.parametrize("C", [1, 3])
+@pytest.mark.parametrize("n_images", range(1, 3))
 @pytest.mark.parametrize("save_plot", [False, True])
-def test_plot(tmpdir, C, save_plot):
-    x = torch.ones((1, C, 2, 2))
-    titles, imgs = ["a", "b"], [x, x]
+@pytest.mark.parametrize("cbar", [False, True])
+@pytest.mark.parametrize("with_titles", [False, True])
+@pytest.mark.parametrize("dict_img_list", [False, True])
+@pytest.mark.parametrize("suptitle", [None, "dummy_title"])
+def test_plot(
+    tmpdir,
+    C,
+    n_images,
+    save_plot,
+    cbar,
+    with_titles,
+    dict_img_list,
+    suptitle,
+):
+    shape = (1, C, 2, 2)
+    img_list = torch.ones(shape)
+    img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
+    titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
+    img_list = {k: v for k, v in zip(titles, img_list)}
+    if not with_titles:
+        titles = None
+    if not dict_img_list:
+        img_list = list(img_list.values())
     save_dir = tmpdir if save_plot else None
-    deepinv.utils.plot(imgs, titles=titles, show=False, save_dir=save_dir)
-    deepinv.utils.plot(x, titles="a", show=False, save_dir=save_dir)
-    deepinv.utils.plot(imgs, show=False, save_dir=save_dir)
-    deepinv.utils.plot(
-        {k: v for k, v in zip(titles, imgs)}, show=False, save_dir=save_dir
-    )
+    with (
+        pytest.raises(AssertionError)
+        if titles is not None and isinstance(img_list, dict)
+        else nullcontext()
+    ):
+        deepinv.utils.plot(
+            img_list,
+            titles=titles,
+            save_dir=save_dir,
+            cbar=cbar,
+            suptitle=suptitle,
+        )
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
 @pytest.mark.parametrize("titles", [None, "Dummy plot"])
 @pytest.mark.parametrize("save_plot", [False, True])
-def test_scatter_plot(tmpdir, n_plots, titles, save_plot):
+@pytest.mark.parametrize("show", [False, True])
+@pytest.mark.parametrize("suptitle", [None, "dummy_title"])
+def test_scatter_plot(tmpdir, n_plots, titles, save_plot, show, suptitle):
     xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
     xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
-    titles = [titles] * n_plots if n_plots > 1 else titles
+    if titles is not None:
+        titles = [titles] * n_plots if n_plots > 1 else titles
     save_dir = tmpdir if save_plot else None
-    deepinv.utils.scatter_plot(xy_list, titles=titles)
+    deepinv.utils.scatter_plot(
+        xy_list, titles=titles, suptitle=suptitle, save_dir=save_dir, show=show
+    )
 
 
 @pytest.mark.parametrize("seed", [0])
