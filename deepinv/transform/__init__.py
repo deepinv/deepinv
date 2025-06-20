@@ -1,9 +1,9 @@
-from .rotate import Rotate
-from .shift import Shift
-from .scale import Scale
-from .base import Transform, Identity
-from .projective import Homography
-from .reflect import Reflect
-from .temporal import ShiftTime
-from .diffeomorphism import CPABDiffeomorphism
-from .augmentation import RandomNoise, RandomPhaseError
+from .rotate import Rotate as Rotate
+from .shift import Shift as Shift
+from .scale import Scale as Scale
+from .base import Transform as Transform, Identity as Identity
+from .projective import Homography as Homography
+from .reflect import Reflect as Reflect
+from .temporal import ShiftTime as ShiftTime
+from .diffeomorphism import CPABDiffeomorphism as CPABDiffeomorphism
+from .augmentation import RandomNoise as RandomNoise, RandomPhaseError as RandomPhaseError

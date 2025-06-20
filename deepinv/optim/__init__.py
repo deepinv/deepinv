@@ -1,42 +1,42 @@
 from .data_fidelity import (
-    DataFidelity,
-    StackedPhysicsDataFidelity,
-    L2,
-    L1,
-    IndicatorL2,
-    PoissonLikelihood,
-    AmplitudeLoss,
-    LogPoissonLikelihood,
-    ZeroFidelity,
+    DataFidelity as DataFidelity,
+    StackedPhysicsDataFidelity as StackedPhysicsDataFidelity,
+    L2 as L2,
+    L1 as L1,
+    IndicatorL2 as IndicatorL2,
+    PoissonLikelihood as PoissonLikelihood,
+    AmplitudeLoss as AmplitudeLoss,
+    LogPoissonLikelihood as LogPoissonLikelihood,
+    ZeroFidelity as ZeroFidelity,
 )
-from .optimizers import BaseOptim, optim_builder
-from .fixed_point import FixedPoint
+from .optimizers import BaseOptim as BaseOptim, optim_builder as optim_builder
+from .fixed_point import FixedPoint as FixedPoint
 from .prior import (
-    Prior,
-    ScorePrior,
-    Tikhonov,
-    PnP,
-    RED,
-    L1Prior,
-    TVPrior,
-    PatchPrior,
-    WaveletPrior,
-    PatchNR,
-    Zero,
-    L12Prior,
+    Prior as Prior,
+    ScorePrior as ScorePrior,
+    Tikhonov as Tikhonov,
+    PnP as PnP,
+    RED as RED,
+    L1Prior as L1Prior,
+    TVPrior as TVPrior,
+    PatchPrior as PatchPrior,
+    WaveletPrior as WaveletPrior,
+    PatchNR as PatchNR,
+    Zero as Zero,
+    L12Prior as L12Prior,
 )
-from .optim_iterators.optim_iterator import OptimIterator
-from .epll import EPLL
-from .dpir import DPIR
-from .bregman import Bregman, BurgEntropy, NegEntropy, BregmanL2, Bregman_ICNN
-from .potential import Potential
+from .optim_iterators.optim_iterator import OptimIterator as OptimIterator
+from .epll import EPLL as EPLL
+from .dpir import DPIR as DPIR
+from .bregman import Bregman as Bregman, BurgEntropy as BurgEntropy, NegEntropy as NegEntropy, BregmanL2 as BregmanL2, Bregman_ICNN as Bregman_ICNN
+from .potential import Potential as Potential
 from .distance import (
-    Distance,
-    L2Distance,
-    IndicatorL2Distance,
-    PoissonLikelihoodDistance,
-    L1Distance,
-    AmplitudeLossDistance,
-    LogPoissonLikelihoodDistance,
-    ZeroDistance,
+    Distance as Distance,
+    L2Distance as L2Distance,
+    IndicatorL2Distance as IndicatorL2Distance,
+    PoissonLikelihoodDistance as PoissonLikelihoodDistance,
+    L1Distance as L1Distance,
+    AmplitudeLossDistance as AmplitudeLossDistance,
+    LogPoissonLikelihoodDistance as LogPoissonLikelihoodDistance,
+    ZeroDistance as ZeroDistance,
 )
