@@ -27,6 +27,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "unet",
     "waveletdict_hard",
     "waveletdict_topk",
+    "dsccp",
 ]
 
 
@@ -85,6 +86,8 @@ def choose_denoiser(name, imsize):
         out = dinv.models.EPLLDenoiser(channels=imsize[0])
     elif name == "restormer":
         out = dinv.models.Restormer(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "dsccp":
+        out = dinv.models.DScCP()
     else:
         raise Exception("Unknown denoiser")
 
@@ -269,7 +272,8 @@ def test_denoiser_color(imsize, device, denoiser):
 
 @pytest.mark.parametrize("denoiser", MODEL_LIST)
 def test_denoiser_gray(imsize_1_channel, device, denoiser):
-    if denoiser != "scunet":  # scunet does not support 1 channel
+    # except scunet and dsccp, all models support 1 channel
+    if denoiser not in ["scunet", "dsccp"]:
         model = choose_denoiser(denoiser, imsize_1_channel).to(device)
 
         torch.manual_seed(0)
@@ -685,5 +689,23 @@ def test_ncsnpp_net(device, image_size, n_channels, batch_size, precond, use_fp1
     assert y.shape == x.shape
 
     y = model(x, torch.tensor([0.01]))
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+
+@pytest.mark.parametrize("device", [torch.device("cpu")])
+@pytest.mark.parametrize("n_channels", [3])
+def test_dsccp_net(device, n_channels):
+    # Load the pretrained model
+
+    image_size = (3, 37, 28)
+    model = dinv.models.DScCP().to(device)
+    x = torch.rand(image_size, device=device).unsqueeze(0)
+
+    y = model(x, 0.01)
+    # Check the output tensor shape
+    assert y.shape == x.shape
+
+    y = model(x, torch.tensor(0.01))
     # Check the output tensor shape
     assert y.shape == x.shape

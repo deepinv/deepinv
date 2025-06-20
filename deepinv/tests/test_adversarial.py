@@ -42,7 +42,7 @@ def choose_adversarial_combo(combo_name, imsize, device):
         dis_loss = adversarial.SupAdversarialDiscriminatorLoss(device=device)
     elif combo_name == "UAIR":
         generator = unet
-        discrimin = dinv.models.ESRGANDiscriminator(input_shape=imsize).to(device)
+        discrimin = dinv.models.ESRGANDiscriminator(img_size=imsize).to(device)
         gen_loss = adversarial.UAIRGeneratorLoss(device=device)
         dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
     elif combo_name == "CSGM":

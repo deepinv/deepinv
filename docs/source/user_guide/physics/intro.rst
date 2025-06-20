@@ -24,7 +24,7 @@ They are :class:`torch.nn.Module` which can be called with the ``forward`` metho
     >>> import torch
     >>> import deepinv as dinv
     >>> # load an inpainting operator that masks 50% of the pixels and adds Gaussian noise
-    >>> physics = dinv.physics.Inpainting(mask=.5, tensor_size=(1, 28, 28),
+    >>> physics = dinv.physics.Inpainting(mask=.5, img_size=(1, 28, 28),
     ...                    noise_model=dinv.physics.GaussianNoise(sigma=.05))
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
@@ -44,7 +44,7 @@ Composition and linear combinations of linear operators is still a linear operat
     >>> import torch
     >>> import deepinv as dinv
     >>> # load a CS operator with 300 measurements, acting on 28 x 28 grayscale images.
-    >>> physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    >>> physics = dinv.physics.CompressedSensing(m=300, img_size=(1, 28, 28))
     >>> x = torch.rand(1, 1, 28, 28) # create a random image
     >>> y = physics(x) # compute noisy measurements
     >>> y2 = physics.A(x) # compute the linear operator (no noise)
@@ -65,7 +65,7 @@ More details can be found in the doc of each class.
 Parameter-dependent operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, ie
+Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, i.e.
 :math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of parameters as an extra input.
 The explicit dependency on :math:`\theta` is often useful for blind inverse problems, model identification,
 imaging system optimization, etc. The following example shows how operators and their parameter can be instantiated and called as:
@@ -93,6 +93,25 @@ imaging system optimization, etc. The following example shows how operators and 
    >>> dict_params = {'filter': theta, 'dummy': None}
    >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
 
+
+One can also differentiate the parameter as:
+
+.. doctest::
+
+	>>> import torch
+	>>> from deepinv.physics import Blur
+	>>> x = torch.rand((1, 1, 16, 16))
+	>>> theta = torch.ones((1, 1, 2, 2)) / 4 # a basic 2x2 averaging filter
+	>>> physics = Blur(filter=theta, padding='circular') # we instantiate a blur operator with its convolution filter
+	>>> y = physics(x)
+	>>> theta_2 = torch.ones((1, 1, 3, 3)) / 9 # we'll compute the gradient of the physics with the new filter theta_2 comparing to the measurement with theta
+	>>> with torch.enable_grad():
+	... 	loss = torch.sum(y - physics(x, filter=theta_2.requires_grad_(True))) / y.numel()
+	... 	loss.backward()
+	>>> print(theta_2.grad.shape)
+	torch.Size([1, 1, 3, 3])
+
+and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py`
 
 .. _physics_generators:
 
