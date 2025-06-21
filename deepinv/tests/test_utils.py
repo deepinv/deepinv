@@ -7,12 +7,16 @@ import numpy as np
 from contextlib import nullcontext
 import matplotlib
 import random
+import unittest.mock as mock
 from unittest.mock import patch
 import subprocess
 import os
 import inspect
 import itertools
 import pathlib
+import torchvision
+import torchvision.transforms as transforms
+import PIL
 
 
 @pytest.fixture
@@ -523,6 +527,39 @@ def test_load_degradation(tmpdir, with_data_dir, data_dir_type, name, index, dow
 
     kernel_torch = deepinv.utils.load_degradation(*args, **kwargs, download=download)
     assert isinstance(kernel_torch, torch.Tensor), "Kernel should be a torch tensor."
+
+
+@pytest.mark.parametrize("n_retrievals", [1, 2])
+@pytest.mark.parametrize("dataset_name", ["set3c"])
+@pytest.mark.parametrize(
+    "transform",
+    [None, transforms.Compose([transforms.CenterCrop(64), transforms.ToTensor()])],
+)
+def test_load_dataset(n_retrievals, dataset_name, transform):
+    # If a transform function is provided, mock it for further testing
+    if transform is not None:
+        transform = mock.Mock(wraps=transform)
+
+    dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
+
+    assert isinstance(dataset, torchvision.datasets.ImageFolder)
+
+    for k in range(n_retrievals):
+        x, y = dataset[k]
+        # NOTE: We assume that the transform always converts the image to a
+        # tensor if it is provided.
+        if transform is not None:
+            assert isinstance(x, torch.Tensor), "Dataset image should be a tensor."
+        else:
+            assert isinstance(
+                x, PIL.Image.Image
+            ), "Dataset image should be a PIL Image."
+        assert isinstance(y, int), "Dataset label should be an integer."
+
+    if transform is not None:
+        assert (
+            transform.call_count == n_retrievals
+        ), "Transform should be called once for each dataset item."
 
 
 # Module-level fixtures
