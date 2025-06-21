@@ -19,6 +19,7 @@ import torchvision
 import torchvision.transforms as transforms
 import PIL
 import io
+import copy
 
 
 @pytest.fixture
@@ -117,6 +118,47 @@ def test_tensordict_append(tensorlist):
     z1 = deepinv.utils.TensorList([z, z, z, z])
     z = x.append(y)
     assert (z1[0] == z[0]).all() and (z1[-1] == z[-1]).all()
+
+
+# The class TensorList features many utility methods that we do not test in
+# depth but verify that they do not raise any exception when called. To do
+# that, we get a tensor list instance, we iterate over its methods and try to call
+# them filling in the required parameters in the process. We use the name of
+# the parameter to determine what to pass in, e.g., if the parameter is named
+# shape we use the input tensor list shape as the value for that parameter. By
+# default we use the tensor list itself for every optional parameter.
+def test_tensorlist_methods(tensorlist):
+    tensorlist, _ = tensorlist
+    parameter_map = {
+        "shape": tensorlist.shape,
+        "dim": 0,
+        "device": tensorlist[0].device,
+        "dtype": tensorlist[0].dtype,
+    }
+
+    for method_name, method in inspect.getmembers(
+        tensorlist, predicate=inspect.ismethod
+    ):
+        # Ignore dunder methods
+        if method_name.startswith("__") and method_name.endswith("__"):
+            continue
+
+        sig = inspect.signature(method)
+
+        # Use the tensor list itself for every required argument
+        args = [
+            parameter_map[p.name] if p.name in parameter_map else tensorlist
+            for p in sig.parameters.values()
+            # Both conditions are needed to deal with *args and **kwargs
+            # but also not to include parameters that are not required
+            if p.default is p.empty
+            and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        ]
+
+        # Test that the method does not raise any exception
+        # NOTE: We run the method on a copy of the object to avoid side effects
+        tensorlist_copy = copy.deepcopy(tensorlist)
+        _ = getattr(tensorlist_copy, method_name)(*args)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
