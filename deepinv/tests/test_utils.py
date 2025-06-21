@@ -407,7 +407,7 @@ def test_torch2cpu(input_shape):
         # Case 2: The command fails and torch.cuda.device_count() is zero.
         (False, 0, None),
         # Case 3: The command fails and torch.cuda.device_count() is positive.
-        (True, 2, 1),
+        (False, 2, 1),
     ],
 )
 # NOTE: The nvidia-smi command is executed differently depending on the OS, we
