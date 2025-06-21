@@ -151,7 +151,7 @@ if noise_name == "poisson":
 #
 #
 
-verbose = True     # print training information
+verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 train_dataloader = DataLoader(
