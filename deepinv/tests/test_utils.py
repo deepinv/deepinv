@@ -193,7 +193,7 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
 def test_plot(
-    tmpdir,
+    tmp_path,
     C,
     n_images,
     save_plot,
@@ -211,7 +211,7 @@ def test_plot(
         titles = None
     if not dict_img_list:
         img_list = list(img_list.values())
-    save_dir = tmpdir if save_plot else None
+    save_dir = tmp_path if save_plot else None
     with (
         pytest.raises(AssertionError)
         if titles is not None and isinstance(img_list, dict)
@@ -231,12 +231,12 @@ def test_plot(
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
-def test_scatter_plot(tmpdir, n_plots, titles, save_plot, show, suptitle):
+def test_scatter_plot(tmp_path, n_plots, titles, save_plot, show, suptitle):
     xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
     xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
     if titles is not None:
         titles = [titles] * n_plots if n_plots > 1 else titles
-    save_dir = tmpdir if save_plot else None
+    save_dir = tmp_path if save_plot else None
     deepinv.utils.scatter_plot(
         xy_list, titles=titles, suptitle=suptitle, save_dir=save_dir, show=show
     )
@@ -248,21 +248,23 @@ def test_scatter_plot(tmpdir, n_plots, titles, save_plot, show, suptitle):
 @pytest.mark.parametrize("n_iterations", [1, 2])
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
-def test_plot_curves(tmpdir, seed, n_metrics, n_batches, n_iterations, save_plot, show):
+def test_plot_curves(
+    tmp_path, seed, n_metrics, n_batches, n_iterations, save_plot, show
+):
     rng = random.Random(seed)
     metrics = {
         str(k): [[rng.random() for _ in range(n_iterations)] for _ in range(n_batches)]
         for k in range(n_metrics)
     }
-    save_dir = tmpdir if save_plot else None
+    save_dir = tmp_path if save_plot else None
     deepinv.utils.plot_curves(metrics, save_dir=save_dir, show=show)
 
 
 @pytest.mark.parametrize("init_params", [None])
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
-def test_plot_parameters(tmpdir, model, init_params, save_plot, show):
-    save_dir = tmpdir if save_plot else None
+def test_plot_parameters(tmp_path, model, init_params, save_plot, show):
+    save_dir = tmp_path if save_plot else None
     deepinv.utils.plot_parameters(model, init_params, save_dir=save_dir, show=show)
 
 
@@ -552,13 +554,15 @@ def test_deprecated_metric_functions(fn_name):
 @pytest.mark.parametrize("name", ["Levin09.npy"])
 @pytest.mark.parametrize("index", [1])
 @pytest.mark.parametrize("download", [False, True])
-def test_load_degradation(tmpdir, with_data_dir, data_dir_type, name, index, download):
+def test_load_degradation(
+    tmp_path, with_data_dir, data_dir_type, name, index, download
+):
     if with_data_dir:
         assert data_dir_type in [
             str,
             pathlib.Path,
         ], "data_dir_type should be str or pathlib.Path."
-        data_dir = data_dir_type(tmpdir)
+        data_dir = data_dir_type(tmp_path)
     else:
         data_dir = None
 
