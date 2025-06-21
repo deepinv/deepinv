@@ -10,6 +10,8 @@ import random
 from unittest.mock import patch
 import subprocess
 import os
+import inspect
+import itertools
 
 
 @pytest.fixture
@@ -477,6 +479,23 @@ def test_get_freer_gpu(test_case, os_name, verbose):
             assert (
                 device.index == freer_gpu_index
             ), f"Selected GPU index should be {freer_gpu_index}."
+
+
+@pytest.mark.parametrize(
+    "fn_name", ["norm", "cal_angle", "cal_mse", "complex_abs", "norm_psnr"]
+)
+def test_deprecated_metric_functions(fn_name):
+    f = getattr(deepinv.utils.metric, fn_name)
+    with pytest.raises(NotImplementedError, match="deprecated"):
+        # The functions take a variable number of required arguments so we
+        # use reflection to get their number and pass in None for each of them.
+        sig = inspect.signature(f)
+        args = [
+            None
+            for p in sig.parameters.values()
+            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        ]
+        f(*args)
 
 
 # Module-level fixtures
