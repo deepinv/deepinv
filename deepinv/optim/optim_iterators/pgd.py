@@ -197,7 +197,7 @@ class PMDIteration(OptimIterator):
     ):
         r"""
         Single proximal mirror descent iteration on the objective :math:`f(x) + \lambda \reg{x}`.
-        The Bregman potential, which is an intance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`\regname`.
+        The Bregman potential, which is an instance of the :class:`dinv.optim.Bregman` class, is used as argument by :class:`dinv.optim.fStepPMD` and :class:`dinv.optim.gStepPMD` for, respectively, the update steps on :math:`f` and :math:`\regname`.
 
         :param dict X: Dictionary containing the current iterate :math:`x_k`.
         :param deepinv.optim.DataFidelity cur_data_fidelity: Instance of the DataFidelity class defining the current data_fidelity.
