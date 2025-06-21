@@ -143,6 +143,10 @@ def test_tensorlist_methods(tensorlist):
         if method_name.startswith("__") and method_name.endswith("__"):
             continue
 
+        # Ignore methods that assume a GPU is available if there is none
+        if method_name == "cuda" and not torch.cuda.is_available():
+            continue
+
         sig = inspect.signature(method)
 
         # Use the tensor list itself for every required argument
