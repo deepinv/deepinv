@@ -4,6 +4,7 @@ import pytest
 from deepinv.utils.decorators import _deprecated_alias
 import warnings
 import numpy as np
+import contextlib
 from contextlib import nullcontext
 import matplotlib
 import random
@@ -17,6 +18,7 @@ import pathlib
 import torchvision
 import torchvision.transforms as transforms
 import PIL
+import io
 
 
 @pytest.fixture
@@ -584,6 +586,62 @@ def test_get_GSPnP_params(operation, noise_level_img):
         assert stepsize > 0, "Stepsize should be positive."
         assert isinstance(max_iter, int), "Max iterations should be an integer."
         assert max_iter > 0, "Max iterations should be positive."
+
+
+@pytest.mark.parametrize("rng", [random.Random(0)])
+@pytest.mark.parametrize("n_meters", [1, 2])
+@pytest.mark.parametrize("n_updates", [10])
+@pytest.mark.parametrize("fmt", ["f"])
+@pytest.mark.parametrize(
+    "epoch, num_epochs",
+    [
+        (0, 5),
+        (5, 5),
+        (5, 10),
+        (10, 15),
+        (37, 100),
+        (150, 150),
+    ],
+)
+@pytest.mark.parametrize("surfix", ["", "dummy_suffix"])
+@pytest.mark.parametrize("prefix", ["", "dummy_prefix"])
+def test_ProgressMeter(
+    rng, n_meters, n_updates, fmt, epoch, num_epochs, surfix, prefix
+):
+    meters = [
+        deepinv.utils.AverageMeter(f"dummy_meter{i + 1}", fmt=f":{fmt}")
+        for i in range(n_meters)
+    ]
+
+    for meter in meters:
+        for _ in range(n_updates):
+            meter.update(rng.random())
+
+    progress = deepinv.utils.ProgressMeter(
+        num_epochs, meters, surfix=surfix, prefix=prefix
+    )
+
+    stdout_buf = io.StringIO()
+    with contextlib.redirect_stdout(stdout_buf):
+        progress.display(epoch)
+
+    stdout = stdout_buf.getvalue()
+    stdout = stdout.strip()
+    # NOTE: For some reason prefix is appended at the end and surfix at the
+    # beginning. Is it a bug?
+    assert stdout.endswith(prefix), "Prefix should be at the end of the output."
+    assert stdout.startswith(surfix), "Surfix should be at the beginning of the output."
+
+    assert str(epoch) in stdout, "Epoch number should be in the output."
+    assert str(num_epochs) in stdout, "Number of epochs should be in the output."
+
+    for meter in meters:
+        assert (
+            meter.name in stdout
+        ), f"Meter name '{meter.name}' should be in the output."
+        assert (
+            f"{meter.avg:{fmt}}" in stdout
+        ), f"Meter average '{meter.avg}' should be in the output."
 
 
 # Module-level fixtures
