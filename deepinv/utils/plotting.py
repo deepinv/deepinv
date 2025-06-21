@@ -322,7 +322,7 @@ def plot(
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
         for i, row_imgs in enumerate(imgs):
-            row_dirname = titles[i] if titles is not None else f"i"
+            row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
@@ -424,7 +424,7 @@ def scatter_plot(
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
-            row_dirname = titles[i] if titles is not None else f"i"
+            row_dirname = titles[i] if titles is not None else str(i)
             save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
