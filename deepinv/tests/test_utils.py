@@ -7,6 +7,9 @@ import numpy as np
 from contextlib import nullcontext
 import matplotlib
 import random
+from unittest.mock import patch
+import subprocess
+import os
 
 
 @pytest.fixture
@@ -391,6 +394,89 @@ def test_torch2cpu(input_shape):
     assert np.all(output >= 0) and np.all(
         output <= 1
     ), "Output values should be in the range [0, 1]."
+
+
+# A list of tuples: (command_runs, n_gpus, freer_gpu_index)
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        # Case 1: The nvidia-smi command succeeds.
+        (True, 2, 1),
+        # Case 2: The command fails and torch.cuda.device_count() is zero.
+        (False, 0, None),
+        # Case 3: The command fails and torch.cuda.device_count() is positive.
+        (True, 2, 1),
+    ],
+)
+# NOTE: The nvidia-smi command is executed differently depending on the OS, we
+# make sure that the logic is right.
+@pytest.mark.parametrize("os_name", ["posix", "nt"])
+@pytest.mark.parametrize("verbose", [False, True])
+def test_get_freer_gpu(test_case, os_name, verbose):
+    # The function get_freer_gpu is meant to return the torch.device associated
+    # to the available GPU with the most free memory if there is one and
+    # torch.device("cuda") as a fallback.
+    # It works by first trying to run a `nvidia-smi` command and if it fails
+    # it falls back to using the functions `torch.cuda.device_count` and
+    # `torch.cuda.mem_get_info`. We mock the three components to control the
+    # expected return value. In this scenario, we consider is a machine with n
+    # GPUs, all of which have 1 MiB of total memory, and all of which have 0
+    # MiB of free memory except for a single GPU (the freer GPU). We also
+    # consider that the command
+    # nvidia-smi might or might not be present in the system, resulting in
+    # a failure of the function `subprocess.run` used in the implementation.
+    command_runs, n_gpus, freer_gpu_index = test_case
+
+    if freer_gpu_index is not None:
+        assert (
+            0 <= freer_gpu_index and freer_gpu_index < n_gpus
+        ), "freer_gpu_index should be a valid index within the range of available GPUs."
+    else:
+        assert n_gpus == 0, "freer_gpu_index should be None only when n_gpus is 0."
+
+    with (
+        patch.object(subprocess, "run") as mock_subprocess_run,
+        patch.object(torch.cuda, "device_count") as mock_device_count,
+        patch.object(torch.cuda, "mem_get_info") as mock_mem_get_info,
+        patch.object(os, "name", os_name),
+    ):
+        if command_runs:
+            # Mock the standard output reported by subprocess.run by simulating
+            # the output of the command used in the implementation:
+            # nvidia-smi -q -d Memory | grep -A5 GPU | grep Free
+            mock_subprocess_run.return_value.stdout = "\n".join(
+                [
+                    f"Free : 1 MiB" if idx == freer_gpu_index else "Free : 0 MiB"
+                    for idx in range(n_gpus)
+                ]
+            )
+        else:
+            mock_subprocess_run.side_effect = FileNotFoundError
+        mock_device_count.return_value = n_gpus
+
+        def mem_info_mock(idx):
+            total_mem = 1048576  # 1 MiB
+            if idx == freer_gpu_index:
+                free_mem = total_mem
+            elif idx < n_gpus:
+                free_mem = 0
+            else:
+                raise ValueError("Invalid GPU index")
+            return (free_mem, total_mem)
+
+        mock_mem_get_info.side_effect = mem_info_mock
+
+        device = deepinv.utils.get_freer_gpu(verbose)
+        assert isinstance(device, torch.device), "Device should be a torch device."
+        assert device.type == "cuda", "Device should be a CUDA device."
+        if n_gpus == 0:
+            assert (
+                device.index is None
+            ), "Selected GPU index should be None when no GPUs are available."
+        else:
+            assert (
+                device.index == freer_gpu_index
+            ), f"Selected GPU index should be {freer_gpu_index}."
 
 
 # Module-level fixtures
