@@ -562,5 +562,29 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
         ), "Transform should be called once for each dataset item."
 
 
+@pytest.mark.parametrize(
+    "operation", ["super-resolution", "deblur", "inpaint", "dummy"]
+)
+@pytest.mark.parametrize("noise_level_img", [0, 0.03])
+def test_get_GSPnP_params(operation, noise_level_img):
+    supported_operations = ["super-resolution", "deblur", "inpaint"]
+    with (
+        pytest.raises(ValueError)
+        if operation not in supported_operations
+        else nullcontext()
+    ):
+        lamb, sigma_denoiser, stepsize, max_iter = deepinv.utils.get_GSPnP_params(
+            operation, noise_level_img
+        )
+        assert isinstance(lamb, float), "Lambda should be a float."
+        assert lamb > 0, "Lambda should be positive."
+        assert isinstance(sigma_denoiser, float), "Sigma denoiser should be a float."
+        assert sigma_denoiser >= 0, "Sigma denoiser should be non-negative."
+        assert isinstance(stepsize, float), "Stepsize should be a float."
+        assert stepsize > 0, "Stepsize should be positive."
+        assert isinstance(max_iter, int), "Max iterations should be an integer."
+        assert max_iter > 0, "Max iterations should be positive."
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_interactive_matplotlib")]
