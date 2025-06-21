@@ -12,6 +12,7 @@ import subprocess
 import os
 import inspect
 import itertools
+import pathlib
 
 
 @pytest.fixture
@@ -496,6 +497,32 @@ def test_deprecated_metric_functions(fn_name):
             if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
         ]
         f(*args)
+
+
+@pytest.mark.parametrize("with_data_dir", [False, True])
+@pytest.mark.parametrize("data_dir_type", [str, pathlib.Path])
+@pytest.mark.parametrize("name", ["Levin09.npy"])
+@pytest.mark.parametrize("index", [1])
+@pytest.mark.parametrize("download", [False, True])
+def test_load_degradation(tmpdir, with_data_dir, data_dir_type, name, index, download):
+    if with_data_dir:
+        assert data_dir_type in [
+            str,
+            pathlib.Path,
+        ], "data_dir_type should be str or pathlib.Path."
+        data_dir = data_dir_type(tmpdir)
+    else:
+        data_dir = None
+
+    args = [name, data_dir]
+    kwargs = {"index": index}
+
+    # We make sure the degradation is present on disk if download is False.
+    if not download:
+        _ = deepinv.utils.load_degradation(*args, **kwargs, download=True)
+
+    kernel_torch = deepinv.utils.load_degradation(*args, **kwargs, download=download)
+    assert isinstance(kernel_torch, torch.Tensor), "Kernel should be a torch tensor."
 
 
 # Module-level fixtures
