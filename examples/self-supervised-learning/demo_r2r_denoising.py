@@ -154,9 +154,8 @@ if noise_name == "poisson":
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
-# self-supervised training!
 train_dataloader = DataLoader(
-    test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
+    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
 
 test_dataloader = DataLoader(
