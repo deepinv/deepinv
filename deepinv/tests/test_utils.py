@@ -686,5 +686,37 @@ def test_ProgressMeter(
         ), f"Meter average '{meter.avg}' should be in the output."
 
 
+@pytest.mark.parametrize("original_size", [(16, 16), (32, 32), (64, 64)])
+@pytest.mark.parametrize("grayscale", [False, True])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("img_size", [None, 32, (32, 32)])
+@pytest.mark.parametrize("resize_mode", ["crop", "resize"])
+def test_load_image(
+    tmp_path, device, original_size, grayscale, dtype, img_size, resize_mode
+):
+    # We use a mocked PIL image to test the load_image function.
+    im = PIL.Image.new("RGB", original_size, color=(0, 0, 0))
+    buffer = io.BytesIO()
+    im.save(buffer, format="PNG")
+    buffer.seek(0)
+    im = PIL.PngImagePlugin.PngImageFile(buffer)
+
+    with patch.object(PIL.Image, "open", return_value=im):
+        x = deepinv.utils.load_image(
+            f"{tmp_path}/im.png",
+            grayscale=grayscale,
+            device=device,
+            dtype=dtype,
+            img_size=img_size,
+            resize_mode=resize_mode,
+        )
+        assert isinstance(x, torch.Tensor), "Loaded image should be a tensor."
+        if img_size is not None:
+            img_size = (img_size, img_size) if isinstance(img_size, int) else img_size
+            assert (
+                x.shape[-2:] == img_size
+            ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_interactive_matplotlib")]
