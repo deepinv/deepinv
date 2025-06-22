@@ -18,7 +18,8 @@ from deepinv.optim.prior import RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
 from torchvision import transforms
-from deepinv.utils import get_GSPnP_params, load_dataset, load_degradation
+from deepinv.utils.parameters import get_GSPnP_params
+from deepinv.utils.demo import load_dataset, load_degradation
 
 
 # %%
