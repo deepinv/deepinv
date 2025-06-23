@@ -137,7 +137,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.
 # # start with a pretrained model to reduce training time
 
 if noise_name == "poisson":
-    # model.noise_model = noise_model
     file_name = "ckp_10_demo_r2r_poisson.pth"
     url = get_weights_url(model_name="demo", file_name=file_name)
     ckpt = torch.hub.load_state_dict_from_url(
