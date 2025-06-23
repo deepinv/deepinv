@@ -30,7 +30,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
       - name: Install deepinv and its dependencies
         run: |
-          uv pip install -e .[dataset,denoisers,doc]
+          uv pip install --system -e .[dataset,denoisers,doc]
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build

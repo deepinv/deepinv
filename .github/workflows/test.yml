@@ -46,7 +46,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
       - name: Install deepinv and its dependencies
         run: |
-          uv pip install .[${{ matrix.extra }}]
+          uv pip install --system .[${{ matrix.extra }}]
 
       - name: Test with pytest and generate coverage report
         run: |
