@@ -65,7 +65,7 @@ doc = [
     "sphinx_copybutton",
     "sphinx_autoapi",
     "sphinx-design",
-    "sphinx_sitemap",
+    "sphinx_sitemap<2.7.0",
 ]
 
 # optional dependencies for specific denoisers
