@@ -42,10 +42,11 @@ jobs:
         with:
           python-version: ${{ matrix.version_python }}
           cache: 'pip' # caching pip dependencies
-
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
       - name: Install deepinv and its dependencies
         run: |
-          pip install .[${{ matrix.extra }}]
+          uv pip install .[${{ matrix.extra }}]
 
       - name: Test with pytest and generate coverage report
         run: |

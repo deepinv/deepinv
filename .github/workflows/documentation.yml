@@ -26,10 +26,11 @@ jobs:
         with:
           python-version: 3.12
           cache: 'pip' # caching pip dependencies
-
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[dataset,denoisers,doc]
+          uv pip install -e .[dataset,denoisers,doc]
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build
