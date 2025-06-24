@@ -61,8 +61,7 @@ physics = dinv.physics.Tomography(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-PI = 4 * torch.ones(1).atan()
-SCALING = (PI / (2 * angles)).to(device)  # approximate operator norm of A^T A
+SCALING = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
@@ -116,7 +115,14 @@ model = ProximalGradientDescent(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
+<<<<<<< HEAD
     custom_init=init,
+=======
+    params_algo=params_algo,
+    custom_init=lambda y, physics: {
+        "est": (physics.A_adjoint(y) * scaling, physics.A_adjoint(y) * scaling)
+    },
+>>>>>>> main
 )
 
 # Set the model to evaluation mode. We do not require training here.
@@ -132,7 +138,7 @@ model.eval()
 
 y = physics(x)
 x_lin = (
-    physics.A_adjoint(y) * SCALING
+    physics.A_adjoint(y) * scaling
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.

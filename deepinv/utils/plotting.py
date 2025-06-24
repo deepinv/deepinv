@@ -3,7 +3,7 @@ import math
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
-from typing import List, Tuple, Union
+from typing import Union
 from itertools import zip_longest
 from functools import partial
 from warnings import warn
@@ -584,15 +584,15 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
 
 def plot_inset(
-    img_list: List[torch.Tensor],
-    titles: List[str] = None,
-    labels: List[str] = [],
-    label_loc: Union[Tuple, List] = (0.03, 0.03),
-    extract_loc: Union[Tuple, List] = (0.0, 0.0),
+    img_list: list[torch.Tensor],
+    titles: list[str] = None,
+    labels: list[str] = [],
+    label_loc: Union[tuple, list] = (0.03, 0.03),
+    extract_loc: Union[tuple, list] = (0.0, 0.0),
     extract_size: float = 0.2,
-    inset_loc: Union[Tuple, List] = (0.0, 0.5),
+    inset_loc: Union[tuple, list] = (0.0, 0.5),
     inset_size: float = 0.4,
-    figsize: Tuple[int] = None,
+    figsize: tuple[int] = None,
     save_fn: str = None,
     dpi: int = 1200,
     show: bool = True,
@@ -718,12 +718,12 @@ def plot_inset(
 
 
 def plot_videos(
-    vid_list: Union[torch.Tensor, List[torch.Tensor]],
-    titles: Union[str, List[str]] = None,
+    vid_list: Union[torch.Tensor, list[torch.Tensor]],
+    titles: Union[str, list[str]] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
-    figsize: Tuple[int] = None,
+    figsize: tuple[int] = None,
     dpi: int = None,
     save_fn: str = None,
     return_anim: bool = False,
@@ -758,13 +758,13 @@ def plot_videos(
         >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
-    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above.
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`.
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above.
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`.
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1.
         After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2.
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
-    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
@@ -837,11 +837,11 @@ def plot_videos(
 
 
 def save_videos(
-    vid_list: Union[torch.Tensor, List[torch.Tensor]],
-    titles: Union[str, List[str]] = None,
+    vid_list: Union[torch.Tensor, list[torch.Tensor]],
+    titles: Union[str, list[str]] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
-    figsize: Tuple[int] = None,
+    figsize: tuple[int] = None,
     save_fn: str = None,
     **plot_kwargs,
 ):
@@ -864,8 +864,8 @@ def save_videos(
         >>> save_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
-    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to `None`
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
     :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
     :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
