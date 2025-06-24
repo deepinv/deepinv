@@ -1,6 +1,6 @@
 import numbers
 import os
-from typing import List, Optional
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -55,9 +55,9 @@ class Restormer(Denoiser):
         in_channels: int = 3,
         out_channels: int = 3,
         dim: int = 48,
-        num_blocks: List[int] = [4, 6, 6, 8],
+        num_blocks: list[int] = [4, 6, 6, 8],
         num_refinement_blocks: int = 4,
-        heads: List[int] = [1, 2, 4, 8],
+        heads: list[int] = [1, 2, 4, 8],
         ffn_expansion_factor: float = 2.66,
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",

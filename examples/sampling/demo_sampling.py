@@ -43,7 +43,7 @@ x = load_url_image(url=url, img_size=32).to(device)
 # This example uses inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
+physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.

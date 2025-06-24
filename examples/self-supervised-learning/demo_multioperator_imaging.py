@@ -76,7 +76,7 @@ number_of_operators = 10
 
 # defined physics
 physics = [
-    dinv.physics.Inpainting(mask=0.5, tensor_size=(1, 28, 28), device=device)
+    dinv.physics.Inpainting(mask=0.5, img_size=(1, 28, 28), device=device)
     for _ in range(number_of_operators)
 ]
 

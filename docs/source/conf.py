@@ -43,7 +43,11 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
+<<<<<<< HEAD
     "sphinxcontrib.bibtex",
+=======
+    "sphinx_sitemap",
+>>>>>>> main
 ]
 
 bibtex_bibfiles = ["refs.bib"]
@@ -68,8 +72,14 @@ autodoc_preserve_defaults = True
 nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
+# For bibtex
 bibtex_footbibliography_backrefs = True
-
+# for sitemap
+html_baseurl = "https://deepinv.github.io/deepinv/"
+# the default scheme makes for wrong urls so we specify it properly here
+# For more details, see:
+# https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
+sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
 from docutils import nodes
@@ -150,6 +160,11 @@ doctest.OutputChecker = CustomOutputChecker
 doctest_global_setup = """
 import torch
 import numpy as np
+try:
+    import astra
+except ImportError:
+    astra = None
+cuda_available = torch.cuda.is_available()
 """
 
 
@@ -189,7 +204,7 @@ sphinx_gallery_conf = {
             "../../examples/patch-priors",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
-            "../../examples/advanced",
+            "../../examples/external-libraries",
         ]
     ),
 }

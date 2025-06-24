@@ -39,7 +39,7 @@ x = x_true.clone()
 sigma = 12.75 / 255.0  # noise level
 
 physics = dinv.physics.Inpainting(
-    tensor_size=(3, x.shape[-2], x.shape[-1]),
+    img_size=(3, x.shape[-2], x.shape[-1]),
     mask=0.1,
     pixelwise=True,
     device=device,

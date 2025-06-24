@@ -2,6 +2,8 @@ from deepinv.physics.forward import LinearPhysics
 import torch
 import numpy as np
 from deepinv.physics.functional import random_choice
+from torch import Tensor
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def dst1(x):
@@ -30,7 +32,7 @@ def dst1(x):
 class CompressedSensing(LinearPhysics):
     r"""
     Compressed Sensing forward operator. Creates a random sampling :math:`m \times n` matrix where :math:`n` is the
-    number of elements of the signal, i.e., ``np.prod(img_shape)`` and ``m`` is the number of measurements.
+    number of elements of the signal, i.e., ``np.prod(img_size)`` and ``m`` is the number of measurements.
 
     This class generates a random iid Gaussian matrix if ``fast=False``
 
@@ -71,7 +73,7 @@ class CompressedSensing(LinearPhysics):
         A_{i,j} \sim \mathcal{N} \left( 0, \frac{1}{2m} \right) + \mathrm{i} \mathcal{N} \left( 0, \frac{1}{2m} \right).
 
     :param int m: number of measurements.
-    :param tuple img_shape: shape (C, H, W) of inputs.
+    :param tuple img_size: shape (C, H, W) of inputs.
     :param bool fast: The operator is iid Gaussian if false, otherwise A is a SORS matrix with the Discrete Sine Transform (type I).
     :param bool channelwise: Channels are processed independently using the same random forward operator.
     :param torch.dtype dtype: Forward matrix is stored as a dtype. For complex matrices, use torch.cfloat. Default is torch.float.
@@ -88,7 +90,7 @@ class CompressedSensing(LinearPhysics):
         >>> from deepinv.physics import CompressedSensing
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn(1, 1, 3, 3) # Define random 3x3 image
-        >>> physics = CompressedSensing(m=10, img_shape=(1, 3, 3), rng=torch.Generator('cpu'))
+        >>> physics = CompressedSensing(m=10, img_size=(1, 3, 3), rng=torch.Generator('cpu'))
         >>> physics(x)
         tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
                   0.6752, -1.5684]])
@@ -98,10 +100,11 @@ class CompressedSensing(LinearPhysics):
 
     """
 
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
-        img_shape,
+        img_size,
         fast=False,
         channelwise=False,
         dtype=torch.float,
@@ -111,7 +114,7 @@ class CompressedSensing(LinearPhysics):
     ):
         super().__init__(**kwargs)
         self.name = f"CS_m{m}"
-        self.img_shape = img_shape
+        self.img_size = img_size
         self.fast = fast
         self.channelwise = channelwise
         self.dtype = dtype
@@ -125,42 +128,40 @@ class CompressedSensing(LinearPhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if channelwise:
-            n = int(np.prod(img_shape[1:]))
+            n = int(np.prod(img_size[1:]))
         else:
-            n = int(np.prod(img_shape))
+            n = int(np.prod(img_size))
 
         if self.fast:
             self.n = n
-            self.D = torch.where(
+            D = torch.where(
                 torch.rand(self.n, device=device, generator=self.rng) > 0.5, -1.0, 1.0
             )
 
-            self.mask = torch.zeros(self.n, device=device)
+            mask = torch.zeros(self.n, device=device)
             idx = torch.sort(
                 random_choice(self.n, size=m, replace=False, rng=self.rng)
             ).values
-            self.mask[idx] = 1
-            self.mask = self.mask.type(torch.bool)
+            mask[idx] = 1
+            mask = mask.type(torch.bool)
 
-            self.D = torch.nn.Parameter(self.D, requires_grad=False)
-            self.mask = torch.nn.Parameter(self.mask, requires_grad=False)
+            self.register_buffer("D", D)
+            self.register_buffer("mask", mask)
         else:
-            self._A = torch.randn(
+            _A = torch.randn(
                 (m, n), device=device, dtype=dtype, generator=self.rng
             ) / np.sqrt(m)
-            self._A_dagger = torch.linalg.pinv(self._A)
-            self._A = torch.nn.Parameter(self._A, requires_grad=False)
-            self._A_dagger = torch.nn.Parameter(self._A_dagger, requires_grad=False)
-            self._A_adjoint = (
-                torch.nn.Parameter(self._A.conj().T, requires_grad=False)
-                .type(dtype)
-                .to(device)
-            )
+            _A_dagger = torch.linalg.pinv(_A)
 
-    def A(self, x, **kwargs):
+            self.register_buffer("_A", _A)
+            self.register_buffer("_A_dagger", _A_dagger)
+            self.register_buffer("_A_adjoint", self._A.conj().T.type(dtype).to(device))
+        self.to(device)
+
+    def A(self, x: Tensor, **kwargs) -> Tensor:
         N, C = x.shape[:2]
         if self.channelwise:
             x = x.reshape(N * C, -1)
@@ -177,10 +178,10 @@ class CompressedSensing(LinearPhysics):
 
         return y
 
-    def A_adjoint(self, y, **kwargs):
+    def A_adjoint(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         N = y.shape[0]
-        C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+        C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
         if self.channelwise:
             N2 = N * C
@@ -198,13 +199,13 @@ class CompressedSensing(LinearPhysics):
         x = x.view(N, C, H, W)
         return x
 
-    def A_dagger(self, y, **kwargs):
+    def A_dagger(self, y: Tensor, **kwargs) -> Tensor:
         y = y.type(self.dtype)
         if self.fast:
             return self.A_adjoint(y)
         else:
             N = y.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
 
             if self.channelwise:
                 y = y.reshape(N * C, -1)
