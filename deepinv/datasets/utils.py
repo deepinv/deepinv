@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Union
 import hashlib
 import os
 import shutil
@@ -106,7 +106,7 @@ def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
+def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     """Load MATLAB array from file.
 
     :param str fname: filename to load
