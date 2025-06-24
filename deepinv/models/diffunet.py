@@ -393,7 +393,6 @@ class DiffUNet(Denoiser):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -415,12 +414,12 @@ class DiffUNet(Denoiser):
         """
         Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
         """
-        betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
-        betas = torch.from_numpy(
-            betas
-        )  # .to(self.device) Removing this for now, can be done outside
+        betas = torch.linspace(
+            beta_start, beta_end, num_train_timesteps, dtype=torch.float32
+        )
+        # .to(self.device) Removing this for now, can be done outside
         alphas = 1.0 - betas
-        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+        alphas_cumprod = torch.cumprod(alphas, dim=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
         sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
@@ -438,12 +437,9 @@ class DiffUNet(Denoiser):
 
     def find_nearest(self, array, value):
         """
-        Find the argmin of the nearest value in an array.
+        Find the argmin of the nearest value in a tensor.
         """
-        array = np.asarray(array)
-        if isinstance(value, torch.Tensor):
-            value = np.asarray(value.cpu())
-        idx = (np.abs(array - value)).argmin()
+        idx = (torch.abs(array[:, None] - value[None, :])).argmin(dim=0)
         return idx
 
     def forward_denoise(self, x, sigma, y=None):
@@ -465,9 +461,10 @@ class DiffUNet(Denoiser):
         :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
         :return: an `(N, C, ...)` Tensor of outputs.
         """
-        if not isinstance(sigma, torch.Tensor):
-            sigma = torch.tensor(sigma).to(x.device)
 
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
         alpha = 1 / (1 + 4 * sigma**2)
         x = alpha.sqrt() * (2 * x - 1)
         sigma = sigma * alpha.sqrt()
@@ -480,16 +477,16 @@ class DiffUNet(Denoiser):
         ) = self.get_alpha_prod()
 
         timesteps = self.find_nearest(
-            sqrt_1m_alphas_cumprod, sigma * 2
+            sqrt_1m_alphas_cumprod.to(x.device), sigma.squeeze(dim=(1, 2, 3)) * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
-        noise_est_sample_var = self.forward_diffusion(
-            x, torch.tensor([timesteps]).to(x.device), y=y
-        )
+        timesteps = timesteps.to(x.device)
+        noise_est_sample_var = self.forward_diffusion(x, timesteps, y=y)
         noise_est = noise_est_sample_var[:, :3, ...]
-        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps]
+        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod.to(x.device)[
+            timesteps
+        ].view(-1, 1, 1, 1)
         denoised = denoised.clamp(-1, 1)
-
         return (denoised + 1) / 2
 
 
