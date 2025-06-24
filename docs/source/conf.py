@@ -43,11 +43,8 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
-<<<<<<< HEAD
-    "sphinxcontrib.bibtex",
-=======
     "sphinx_sitemap",
->>>>>>> main
+    "sphinxcontrib.bibtex",
 ]
 
 bibtex_bibfiles = ["refs.bib"]
