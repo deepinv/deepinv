@@ -1,11 +1,10 @@
 import torch
 from torch import nn
-from torch.nn import functional
-
+from deepinv.models import Denoiser
 from .utils import get_weights_url
 
 
-class DScCP(nn.Module):
+class DScCP(Denoiser):
     r"""
     DScCP denoiser network.
 
@@ -14,27 +13,29 @@ class DScCP(nn.Module):
     and has an unrolled architecture based on the fast Chambolle-Pock algorithm using strong convexity.
     DScCP stands for Deep Strongly Convex Chambolle Pock.
 
-    The pretrained weights are trained with the default parameters of the network, i.e. K=20 layers, F=64 channels.
+    The pretrained weights are trained with the default parameters of the network, i.e. depth=20 layers, n_channels_per_layer=64 channels.
     They can be downloaded via setting ``pretrained='download'``.
 
-    :param int K: depth i.e. number of convolutional layers.
-    :param int F: number of channels per convolutional layer.
+    :param int depth: depth i.e. number of convolutional layers.
+    :param int n_channels_per_layer: number of channels per convolutional layer.
     :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
     :param torch.device, str device: 'cuda' or 'cpu'.
     """
 
-    def __init__(self, K=20, F=64, pretrained="download", device=None):
+    def __init__(
+        self, depth=20, n_channels_per_layer=64, pretrained="download", device=None
+    ):
         super(DScCP, self).__init__()
-        self.K = K
-        self.F = F
+        self.depth = depth
+        self.n_channels_per_layer = n_channels_per_layer
         self.norm_net = 0
         # convolution layers
         self.conv = nn.ModuleList()
-        for i in range(self.K):
+        for i in range(self.depth):
             self.conv.append(
                 nn.Conv2d(
                     in_channels=3,
-                    out_channels=F,
+                    out_channels=n_channels_per_layer,
                     kernel_size=3,
                     padding=1,
                     bias=False,
@@ -43,7 +44,7 @@ class DScCP(nn.Module):
             )
             self.conv.append(
                 nn.ConvTranspose2d(
-                    in_channels=F,
+                    in_channels=n_channels_per_layer,
                     out_channels=3,
                     kernel_size=3,
                     padding=1,
@@ -54,15 +55,12 @@ class DScCP(nn.Module):
             self.conv[i * 2 + 1].weight = self.conv[i * 2].weight
             nn.init.kaiming_normal_(self.conv[i * 2].weight.data, nonlinearity="relu")
 
-        x = torch.ones(K)
         self.mu = nn.Parameter(
-            torch.tensor(x, requires_grad=True, dtype=torch.float).cpu()
+            torch.ones(depth, dtype=torch.float32), requires_grad=True
         )
-        self.lip = torch.tensor(
-            torch.ones(K), requires_grad=False, dtype=torch.float
-        ).cpu()
+
         # apply He's initialization
-        for i in range(K):
+        for i in range(depth):
             nn.init.kaiming_normal_(self.conv[i].weight.data, nonlinearity="relu")
 
         if pretrained is not None:
@@ -96,7 +94,11 @@ class DScCP(nn.Module):
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
-        for k in range(self.K):
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
+
+        for k in range(self.depth):
             xtmp = torch.randn_like(x)
             xtmp = xtmp / torch.linalg.norm(xtmp.flatten())
             val = 1
@@ -114,7 +116,7 @@ class DScCP(nn.Module):
             u_ = u + tau / self.mu[k] * self.conv[k * 2](
                 (1 + alphak) * x_curr - alphak * x_prev
             )
-            u = functional.hardtanh(u_, min_val=-(sigma**2), max_val=sigma**2)
+            u = torch.clamp(u_, min=-(sigma**2), max=sigma**2)
             x_ = (
                 (self.mu[k] / (self.mu[k] + 1)) * x
                 + (1 / (1 + self.mu[k])) * x_curr
