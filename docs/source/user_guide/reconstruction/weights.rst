@@ -49,3 +49,5 @@ associated reference and relevant details. All pretrained weights are hosted on
      - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_.
    * -
      - Also available on the `deepinverse Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+   * - :class:`deepinv.models.RAM`
+     - from `Reconstruct Anything Model: a lightweight foundation model for computational imaging <https://arxiv.org/abs/2503.08915>`_. Pretrained parameters from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.

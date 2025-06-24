@@ -46,6 +46,7 @@ dinv.utils.plot(
         "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
         "Reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
     ],
+    figsize=(8, 3),
 )
 
 # %%
@@ -78,6 +79,7 @@ dinv.utils.plot(
         "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
         "0 shot reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
     ],
+    figsize=(8, 3),
 )
 
 
@@ -154,4 +156,5 @@ dinv.utils.plot(
         "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
         "Finetuned reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
     ],
+    figsize=(8, 3),
 )

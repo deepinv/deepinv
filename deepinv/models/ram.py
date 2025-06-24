@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import deepinv as dinv
 from deepinv.physics import MultiScaleLinearPhysics, Pad
 from deepinv.utils.tensorlist import TensorList
+from .base import Reconstructor
 
 from huggingface_hub import hf_hub_download
 
@@ -12,7 +13,7 @@ cuda = True if torch.cuda.is_available() else False
 Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 
-class RAM(nn.Module):
+class RAM(Reconstructor):
     r"""
     RAM model.
 
