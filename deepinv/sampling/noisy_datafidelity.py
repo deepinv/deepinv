@@ -3,7 +3,7 @@ from deepinv.optim import DataFidelity, Distance
 import deepinv as dinv
 from deepinv.physics import Physics
 from deepinv.models import Denoiser
-
+from deepinv.utils._typing import _handle_sigma
 
 class NoisyDataFidelity(DataFidelity):
     r"""
@@ -95,7 +95,7 @@ class NoisyDataFidelity(DataFidelity):
         :return: (torch.Tensor) loss term.
         """
         return self.d(physics.A(x), y) * self.weight
-
+        
 
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
@@ -182,3 +182,58 @@ class DPSDataFidelity(NoisyDataFidelity):
         if self.clip is not None:
             x0_t = torch.clip(x0_t, self.clip[0], self.clip[1])  # optional
         return (self.d(physics.A(x0_t), y) * y.numel() / y.size(0)).sqrt() * self.weight
+
+
+class ScoreADLDataFidelity(NoisyDataFidelity):
+    r"""
+    Score-based data fidelity term for diffusion algorithms.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Robust Compressed Sensing MRI with Deep Generative Priors <https://arxiv.org/abs/2108.01368>`_.
+
+    .. math::
+            \begin{aligned}
+            \nabla_x \log p_t(y|x) &= \nabla_x \frac{1}{2} \| \forw{x} - y \|^2
+            \end{aligned}
+
+    where :math:`\sigma = \sigma(t)` is the noise level.
+
+    :param float weight: Weighting factor for the data fidelity term. Default to 100.
+    """
+
+    def __init__(self, weight=1.0, *args, **kwargs):
+        super().__init__()
+        self.weight = weight
+    
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, *args, **kwargs) -> torch.Tensor:
+        return self.precond(self.diff(x, y, physics), physics=physics) * self.weight
+    
+    
+class ScoreSDEDataFidelity(NoisyDataFidelity):
+    r"""
+    Score-based data fidelity term for diffusion algorithms.
+
+    This corresponds to the :math:`p(y|x_t)` approximation proposed in `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
+
+    .. math::
+            \begin{aligned}
+            \nabla_x \log p_t(y|x) &= \nabla_x \frac{1}{2} \| \forw{x} - y - \sigma w \|^2
+            \end{aligned}
+
+    where :math:`\sigma = \sigma(t)` is the noise level and :math:`w \sim \mathcal{N}(0, I)`.
+
+    :param float weight: Weighting factor for the data fidelity term. Default to 100.
+    """
+
+    def __init__(self, weight=1.0, *args, **kwargs):
+        super().__init__()
+        self.weight = weight
+        
+    def grad(self, x: torch.Tensor, y: torch.Tensor, physics: Physics, sigma, *args, **kwargs) -> torch.Tensor:
+        sigma = _handle_sigma(sigma, x.size(0), x.ndim, x.device, x.dtype)
+        y = y + sigma * torch.randn_like(y)
+        return self.diff(x, y, physics) * self.weight
+    
+    def precond(self, u, physics, *args, **kwargs):
+        return u 
+    
+    
