@@ -17,12 +17,14 @@ def get_freer_gpu(verbose=True):
     """
     try:
         pipeline = "nvidia-smi -q -d Memory | grep -A5 GPU | grep Free"
+        env = os.environ.copyy()
+        env["CUDA_DEVICE_ORDER"]="PCI_BUS_ID" # by default 'nvidia-smi' uses 'FASTEST_FIRST' / torch.devices 'PCI_BUS_ID'
         if os.name == "posix":
             shell = True
         else:
             pipeline = ["bash", "-c", pipeline]
             shell = False
-        proc = subprocess.run(pipeline, shell=shell, capture_output=True, text=True)
+        proc = subprocess.run(pipeline, shell=shell, env=env, capture_output=True, text=True)
         stdout = proc.stdout
         lines = stdout.splitlines()
         memory_available = [int(line.split()[2]) for line in lines]
