@@ -40,7 +40,7 @@ Under this forward process, we have that:
 
 .. math::
 
-    x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \frac{\sigma(t)^2}{s(t)^2} \mathrm{I} \right),
+    x_t \vert x_0 \sim \mathcal{N} \left( s(t) x_0, \left( s(t)\sigma(t) \right)^2 \mathrm{I} \right),
 
 where the **scaling** over time is :math:`s(t) = \exp\left( \int_0^t f(r) d\,r \right)` and
 the **normalized noise level** is :math:`\sigma(t) = \sqrt{\int_0^t \frac{g(r)^2}{s(r)^2} d\,r}`.
@@ -57,7 +57,7 @@ Tweedie's formula:
 
 .. math::
 
-    \nabla \log p_t(x_t) =  \frac{\mathbb{E}\left[ s(t)x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.
+    \nabla \log p_t(x_t) =  \frac{  s(t) \mathbb{E}\left[x_0|x_t \right] -  x_t }{s(t)^2\sigma(t)^2} \approx \frac{s(t) \denoiser{\frac{x_t}{s(t)}}{\sigma(t)} -  x_t }{s(t)^2\sigma(t)^2}.
 
 where :math:`\denoiser{\cdot}{\sigma}` is a denoiser trained to denoise images with noise level :math:`\sigma`
 that is :math:`\denoiser{x+\sigma\omega}{\sigma} \approx \mathbb{E} [ x|x+\sigma\omega ]` with :math:`\omega\sim\mathcal{N}(0,\mathrm{I})`.
@@ -123,7 +123,7 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 
 .. math::
 
-    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y \vert \frac{x_t}{s(t)} = x_0 + \sigma(t)\omega\right).
+    \nabla \log p_t(x_t | y) = \nabla \log p_t(x_t) + \nabla \log p_t \left(y \vert x_t = s(t)x_0 + \right).
 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
