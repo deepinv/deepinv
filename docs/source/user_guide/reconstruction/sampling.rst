@@ -136,10 +136,10 @@ We implement the following noisy data-fidelity terms, which inherit from the :cl
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_x \log p_t(y|x + \epsilon\sigma(t))`
+     - :math:`\nabla_{x_\sigma} \log p(y| x_\sigma = x + \sigma \omega)`
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - :math:`\nabla_x \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x}{\sigma}} - y \|`
+     - :math:`\nabla_{x_\sigma} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x_\sigma }{\sigma}} - y \|`
 
 
 .. _diffusion_custom:
