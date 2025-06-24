@@ -16,7 +16,7 @@ def url_basename(url: str) -> str:
 
 
 class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_ 
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
 
     Published in :footcite:ps:`kohler2012recording`.
 

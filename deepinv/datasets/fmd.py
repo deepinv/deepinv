@@ -81,7 +81,7 @@ class FMD(torch.utils.data.Dataset):
 
     :References:
         .. footbibliography::
-        
+
     """
 
     gdrive_ids = {

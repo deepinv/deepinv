@@ -16,7 +16,7 @@ from .utils import get_weights_url
 class ADMUNet(Denoiser):
     r"""
     Implementation of the ADM UNet diffusion model.
-     
+
     From the paper :footcite:ps:`dhariwal2021diffusion`.
 
     The model is also pre-conditioned by the method described in the EDM paper :footcite:ps:`karras2022elucidating`.

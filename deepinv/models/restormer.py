@@ -13,11 +13,11 @@ from .base import Denoiser
 
 class Restormer(Denoiser):
     r"""
-    Restormer denoiser network. 
-    
+    Restormer denoiser network.
+
     Model :footcite:ps:`zamir2022restormer` specialized in restoration tasks including deraining, single-image motion deblurring,
-    defocus deblurring and image denoising for high-resolution images. 
-    
+    defocus deblurring and image denoising for high-resolution images.
+
     Code adapted from https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
 
     By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.

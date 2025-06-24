@@ -6,8 +6,8 @@ from deepinv.models.base import Reconstructor
 
 class ScoreLoss(Loss):
     r"""
-    Learns score of distribution in the context of Noise2Score. 
-    
+    Learns score of distribution in the context of Noise2Score.
+
     Published in :footcite:ps:`kim2021noise2score`.
 
     Approximates the score of the measurement distribution :math:`S(y)\approx \nabla \log p(y)`.

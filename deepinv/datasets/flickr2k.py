@@ -44,7 +44,7 @@ class Flickr2kHR(torch.utils.data.Dataset):
             dataset = Flickr2kHR(root=root, download=True)  # download raw data at root and load dataset
             print(dataset.check_dataset_exists())           # check that raw data has been downloaded correctly
             print(len(dataset))                             # check that we have 100 images
-    
+
     :References:
         .. footbibliography::
 

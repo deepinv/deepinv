@@ -32,7 +32,7 @@ class SplittingLoss(Loss):
         or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{A}`
 
-    This loss was used for MRI in SSDU :footcite:ps:`yaman2020self` for MRI, Noise2Inverse :footcite:ps:`hendriksen2020noise2inverse` for CT, as well as numerous other papers. 
+    This loss was used for MRI in SSDU :footcite:ps:`yaman2020self` for MRI, Noise2Inverse :footcite:ps:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
     Note we implement the multi-mask strategy proposed by :footcite:ps:`yaman2020self`.
 
 
