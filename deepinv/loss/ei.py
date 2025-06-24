@@ -12,8 +12,7 @@ class EILoss(Loss):
     Equivariant imaging self-supervised loss.
 
     Assumes that the set of signals is invariant to a group of transformations (rotations, translations, etc.)
-    in order to learn from incomplete measurement data alone https://https://arxiv.org/pdf/2103.14756.pdf.
-
+    in order to learn from incomplete measurement data alone :footcite:ps:`chen2021equivariant`.
     The EI loss is defined as
 
     .. math::
@@ -37,7 +36,10 @@ class EILoss(Loss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
-        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
+        This option is useful for super-resolution problems, see :footcite:ps:`scanvic2025scale` for details.
+
+    :References:
+    .. footbibliography::
     """
 
     def __init__(

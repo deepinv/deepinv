@@ -10,7 +10,7 @@ class DScCP(nn.Module):
     DScCP denoiser network.
 
     The network architecture is based on the paper
-    `Unfolded proximal neural networks for robust image Gaussian denoising <https://arxiv.org/abs/2308.03139>`_,
+    `Unfolded proximal neural networks for robust image Gaussian denoising :footcite:ps:`le2024unfolded`.
     and has an unrolled architecture based on the fast Chambolle-Pock algorithm using strong convexity.
     DScCP stands for Deep Strongly Convex Chambolle Pock.
 
@@ -21,6 +21,9 @@ class DScCP(nn.Module):
     :param int F: number of channels per convolutional layer.
     :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
     :param torch.device, str device: 'cuda' or 'cpu'.
+
+    :References:
+     .. footbibliography::
     """
 
     def __init__(self, K=20, F=64, pretrained="download", device=None):

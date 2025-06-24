@@ -26,6 +26,9 @@ class ConvDecoder(nn.Module):
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
+
+    :References:
+     .. footbibliography::
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
@@ -126,6 +129,9 @@ class DeepImagePrior(Reconstructor):
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
+
+    :References:
+     .. footbibliography::
 
     """
 

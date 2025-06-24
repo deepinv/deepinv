@@ -32,10 +32,8 @@ class SplittingLoss(Loss):
         or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{A}`
 
-    This loss was used for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
-    networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
-    `Hendriksen et al. <https://arxiv.org/abs/2001.11801>`_ (Noise2Inverse) for CT, as well as numerous other papers. Note we use implement the
-    `multi-mask strategy proposed by Yaman et al. <https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/10.1002/nbm.4798>`_.
+    This loss was used for MRI in SSDU :footcite:ps:`yaman2020self` for MRI, Noise2Inverse :footcite:ps:`hendriksen2020noise2inverse` for CT, as well as numerous other papers. 
+    Note we implement the multi-mask strategy proposed by :footcite:ps:`yaman2020self`.
 
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
