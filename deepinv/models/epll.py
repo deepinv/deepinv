@@ -63,7 +63,7 @@ class EPLLDenoiser(Denoiser):
             but a small value reduces the memory consumption
             and might increase the computation time. ``-1`` for considering all patches at once.
         """
-        sigma = self._handle_sigma(sigma, x.size(0)).to(x.device, x.dtype)
+        sigma = self._handle_sigma(sigma, batch_size=x.size(0)).to(x.device, x.dtype)
         return self.PatchGMM(
             x,
             x_init=x.clone(),
@@ -72,27 +72,3 @@ class EPLLDenoiser(Denoiser):
             batch_size=batch_size,
             betas=betas,
         )
-
-    @staticmethod
-    def _handle_sigma(sigma, batch_size):
-        if isinstance(sigma, (int, float)):
-            sigma = torch.tensor([float(sigma)] * batch_size)
-        elif isinstance(sigma, list):
-            assert (
-                len(sigma) == batch_size
-            ), "Length of sigma list must match batch size."
-            sigma = (
-                torch.tensor(sigma, dtype=torch.float32)
-                .squeeze()
-                .view(-1)
-                .expand(batch_size)
-            )
-        elif isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze().view(-1).expand(batch_size)
-        else:
-            raise TypeError(
-                "sigma must be a scalar, list, or torch.Tensor, "
-                f"but got {type(sigma)}."
-            )
-
-        return sigma

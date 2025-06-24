@@ -4,6 +4,7 @@ from deepinv.utils import patch_extractor
 from deepinv.optim.utils import conjugate_gradient
 from deepinv.models.utils import get_weights_url
 from deepinv.optim.utils import GaussianMixtureModel
+from deepinv.models.base import Denoiser
 from typing import Union
 
 
@@ -113,13 +114,14 @@ class EPLL(nn.Module):
                     "Noise level sigma has to be provided if not present in the physics model."
                 )
 
-        sigma = self._handle_sigma(sigma, y.shape[0]).to(y.device)
+        sigma = Denoiser._handle_sigma(sigma, batch_size=y.shape[0]).to(y.device)
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
         else:
             betas = [
-                self._handle_sigma(beta, y.shape[0]).to(y.device) for beta in betas
+                Denoiser._handle_sigma(beta, batch_size=y.shape[0]).to(y.device)
+                for beta in betas
             ]
 
         x = x_init
@@ -212,27 +214,3 @@ class EPLL(nn.Module):
         op = lambda im: physics.A_adjoint(physics.A(im)) + beta * sigma_sq * im
         hat_x = conjugate_gradient(op, rhs, max_iter=1e2, tol=1e-5)
         return hat_x
-
-    @staticmethod
-    def _handle_sigma(sigma, batch_size):
-        if isinstance(sigma, (int, float)):
-            sigma = torch.tensor([float(sigma)] * batch_size)
-        elif isinstance(sigma, list):
-            assert (
-                len(sigma) == batch_size
-            ), "Length of sigma list must match batch size."
-            sigma = (
-                torch.tensor(sigma, dtype=torch.float32)
-                .squeeze()
-                .view(-1)
-                .expand(batch_size)
-            )
-        elif isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze().view(-1).expand(batch_size)
-        else:
-            raise TypeError(
-                "sigma must be a scalar, list, or torch.Tensor, "
-                f"but got {type(sigma)}."
-            )
-
-        return sigma

@@ -94,7 +94,7 @@ class DScCP(Denoiser):
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
-        sigma = self._handle_sigma(sigma)
+        sigma = self._handle_sigma(sigma, batch_size=x.size(0), ndim=x.ndim)
         if isinstance(sigma, torch.Tensor):
             sigma = sigma.to(x.device, x.dtype)
         for k in range(self.depth):
@@ -126,18 +126,3 @@ class DScCP(Denoiser):
             x_curr = x_next
 
         return x_curr
-
-    @staticmethod
-    def _handle_sigma(sigma):
-        if isinstance(sigma, (int, float)):
-            return float(sigma)
-        elif isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze()
-            return sigma.view(-1, 1, 1, 1)
-        elif isinstance(sigma, list):
-            sigma = torch.tensor(sigma, dtype=torch.float32)
-            return sigma.view(-1, 1, 1, 1)
-        else:
-            raise ValueError(
-                f"sigma must be a scalar, list of scalars or a torch.Tensor. Got {type(sigma)}."
-            )

@@ -106,8 +106,18 @@ class TGVDenoiser(Denoiser):
             self.restart = False
 
         if ths is not None:
-            lambda1 = self._handle_sigma(ths, y.size(0)).to(y.device, y.dtype) * 0.1
-            lambda2 = self._handle_sigma(ths, y.size(0)).to(y.device, y.dtype) * 0.15
+            lambda1 = (
+                self._handle_sigma(ths, batch_size=y.size(0), ndim=y.ndim).to(
+                    y.device, y.dtype
+                )
+                * 0.1
+            )
+            lambda2 = (
+                self._handle_sigma(ths, batch_size=y.size(0), ndim=y.ndim).to(
+                    y.device, y.dtype
+                )
+                * 0.15
+            )
 
         cy = (y**2).sum() / 2
         primalcostlowerbound = 0
@@ -228,13 +238,3 @@ class TGVDenoiser(Denoiser):
         I[:, :, :-1, :, 1] = I[:, :, :-1, :, 1] - G[:, :, :-1, :, 3]
         I[:, :, 1:, :, 1] = I[:, :, 1:, :, 1] + G[:, :, :-1, :, 3]
         return I
-
-    @staticmethod
-    def _handle_sigma(sigma, batch_size):
-        if isinstance(sigma, (float, int)):
-            return torch.tensor(sigma).view(1, 1, 1, 1)
-        elif isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze()
-            assert sigma.ndim == 0 or (sigma.ndim == 1 and sigma.size(0) == batch_size)
-
-            return sigma.view(sigma.shape + (1,) * (4 - sigma.ndim))

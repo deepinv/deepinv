@@ -312,12 +312,12 @@ class NCSNpp(Denoiser):
         """
         dtype = x.dtype
         x = x.to(torch.float32)
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.to(torch.float32)
 
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        sigma = self._handle_sigma(sigma, batch_size=x.size(0), ndim=x.ndim)
+        sigma = sigma.to(x.device, x.dtype)
 
         # Rescale [0,1] input to [-1,-1]
         if getattr(self, "_train_on_minus_one_one", False):
@@ -329,13 +329,13 @@ class NCSNpp(Denoiser):
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
-            c_in.view(-1, 1, 1, 1) * x,
+            c_in * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
 
-        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
+        D_x = c_skip * x + c_out * F_x
 
         D_x = D_x.to(dtype)
         # Rescale [-1,1] output to [0,-1]
@@ -343,22 +343,3 @@ class NCSNpp(Denoiser):
             return (D_x + 1.0) / 2.0
         else:
             return D_x
-
-    @staticmethod
-    def _handle_sigma(sigma, dtype, device, batch_size):
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze()
-            if sigma.ndim == 0:
-                return sigma[None].to(device, dtype)
-            elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype)
-            else:
-                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
-
-        elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype)
-        else:
-            raise ValueError("Unsupported sigma type.")

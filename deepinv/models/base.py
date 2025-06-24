@@ -1,5 +1,6 @@
 import torch
 from typing import Union
+import numpy as np
 
 
 class Denoiser(torch.nn.Module):
@@ -35,25 +36,67 @@ class Denoiser(torch.nn.Module):
         return NotImplementedError
 
     @staticmethod
-    def _handle_sigma(sigma: Union[float, torch.Tensor], *args, **kwarg):
+    def _handle_sigma(
+        sigma: Union[float, torch.Tensor],
+        batch_size: int = None,
+        ndim: int = None,
+        *args,
+        **kwarg,
+    ):
         r"""
         Convert various noise level types to the appropriate format for batch processing.
             If `sigma` is a single float or int, the same value will be used for each sample in the batch.
-            If `sigma` is a tensor, it should be of shape `(batch_size,)` or a scalar.
+            If `sigma` is a tensor, it should be of shape `(batch_size,)` or a scalar or a list or length `(batch_size)` or `1`.
+            If `sigma` is a list, it should be of length `batch_size` or `1`.
 
         To be overridden by subclasses if necessary.
 
         :param float, torch.Tensor sigma: noise level.
-        :returns: list of noise levels for each sample in the batch.
+        :param int batch_size: number of samples in the batch (optional).
+        :param int ndim: number of dimensions of the input tensor (optional).
+
+        :returns: noise levels for each sample in the batch adapted to the denoiser.
         """
         if isinstance(sigma, (float, int)):
-            return float(sigma)
+            sigma = float(sigma)
         elif isinstance(sigma, torch.Tensor):
-            return sigma.squeeze()
+            sigma = sigma.squeeze()
+        elif isinstance(sigma, list):
+            sigma = torch.tensor(sigma, dtype=torch.float32).squeeze()
+        elif isinstance(sigma, np.ndarray):
+            sigma = torch.from_numpy(sigma, dtype=torch.float32).squeeze()
         else:
             raise TypeError(
                 f"Sigma must be a float, int, or torch.Tensor. Got {type(sigma)}."
             )
+
+        # Will reshape to (batch_size,) if batch_size is not None
+        if batch_size is not None:
+            # duplicate sigma for each sample in the batch
+            if isinstance(sigma, float):
+                sigma = torch.tensor([sigma] * batch_size, dtype=torch.float32)
+            elif sigma.ndim == 0:
+                sigma = sigma.view(1).expand(batch_size)
+            elif sigma.ndim == 1 and sigma.size(0) == 1:
+                sigma = sigma.view(1).expand(batch_size)
+            elif sigma.ndim == 1 and sigma.size(0) != batch_size:
+                raise ValueError(
+                    f"Sigma tensor size {sigma.size(0)} does not match batch size {batch_size}."
+                )
+
+        # Will reshape to (batch_size, 1, ..., 1) if ndim is not None
+        if ndim is not None:
+            # add dimensions to sigma to match the input tensor shape
+            if sigma.ndim == 0:
+                sigma = sigma.view(1, *([1] * (ndim - 1)))
+            elif sigma.ndim == 1:
+                sigma = sigma.view(-1, *([1] * (ndim - 1)))
+            else:
+                raise ValueError(
+                    f"Sigma tensor has {sigma.ndim} dimensions, expected 0 or 1."
+                )
+
+        return sigma
 
 
 class Reconstructor(torch.nn.Module):
