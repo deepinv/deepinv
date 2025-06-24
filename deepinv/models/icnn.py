@@ -136,6 +136,7 @@ class ICNN(nn.Module):
             dim=[1, 2, 3]
         ).reshape(-1, 1)
 
+    @torch.enable_grad()
     def grad(self, x):
         r"""
         Calculate the gradient of the potential function.
