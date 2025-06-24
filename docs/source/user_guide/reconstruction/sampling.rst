@@ -124,14 +124,15 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 .. math::
     \begin{align}
     \nabla_{x_t} \log p_t(x_t | y) &= \nabla_{x_t} \log p_t(x_t) + \nabla_{x_t} \log p_t \left(y \vert x_t \right) \\
-                            &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} \eqdef \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
+                            &= \nabla_{x_t} \log p_t(x_t) + \frac{1}{s_t} \nabla_{\hat x_t} \log \hat p_t \left(y \vert \hat x_{t} = \frac{x_t}{s(t)} = x_0 + \sigma(t) \omega \right).
     \end{align}
 where :math:`\hat p_t` stands for the distribution of the unscaled data :math:`x_t / s(t)`. 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
 The second term is the conditional score function, which is untractable:
+
 .. math::
 
-  \hat p_t(y | \hat x_t) = \int p(y|x_0) p_t(x_0 | \hat x_t = x_0 + \sigma(t) \omega) dx_0 
+  \hat p_t(y | \hat x_t) = \int p(y|x_0) p(x_0 | \hat x_t = x_0 + \sigma(t) \omega) dx_0 .
 
 This likelihood term :math:`\log \hat p_t`, that we call noisy data-fidelity term, can be approximated in different ways.
 We implement the following noisy data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
@@ -140,10 +141,10 @@ We implement the following noisy data-fidelity terms, which inherit from the :cl
    :header-rows: 1
 
    * - **Class**
-     - :math:`\nabla_{x_\sigma} \log p(y| x_\sigma = x + \sigma \omega)`
+     - :math:`\nabla_{\hat x_t} \log \hat p_t(y| \hat x_t = x + \sigma_t \omega)`
 
    * - :class:`deepinv.sampling.DPSDataFidelity`
-     - :math:`\nabla_{x_\sigma} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{x_\sigma }{\sigma}} - y \|`
+     - :math:`\nabla_{\hat x_t} \frac{\lambda}{2\sqrt{m}} \| \forw{\denoiser{\hat x_t}{\sigma_t}} - y \|`
 
 
 .. _diffusion_custom:
