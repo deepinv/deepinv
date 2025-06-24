@@ -115,14 +115,7 @@ model = ProximalGradientDescent(
     early_stop=early_stop,
     max_iter=max_iter,
     verbose=verbose,
-<<<<<<< HEAD
     custom_init=init,
-=======
-    params_algo=params_algo,
-    custom_init=lambda y, physics: {
-        "est": (physics.A_adjoint(y) * scaling, physics.A_adjoint(y) * scaling)
-    },
->>>>>>> main
 )
 
 # Set the model to evaluation mode. We do not require training here.
