@@ -94,9 +94,10 @@ class DScCP(Denoiser):
         x_curr = x
         u = self.conv[0](x)
         gamma = 1
-        sigma = self._handle_sigma(sigma, batch_size=x.size(0), ndim=x.ndim)
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.to(x.device, x.dtype)
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
+
         for k in range(self.depth):
             xtmp = torch.randn_like(x)
             xtmp = xtmp / torch.linalg.norm(xtmp.flatten())

@@ -111,8 +111,8 @@ class TVDenoiser(Denoiser):
             u2 = self.u2.clone()
 
         if ths is not None:
-            lambd = self._handle_sigma(ths, batch_size=y.size(0), ndim=y.ndim).to(
-                device=y.device, dtype=y.dtype
+            lambd = self._handle_sigma(
+                ths, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
             )
 
         for _ in range(self.n_it_max):

@@ -212,8 +212,9 @@ class ADMUNet(Denoiser):
         """
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(sigma, batch_size=x.size(0), ndim=x.ndim)
-        sigma = sigma.to(x.device, x.dtype)
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
 
         # Rescale [0,1] input to [-1,-1]
         if getattr(self, "_train_on_minus_one_one", False):

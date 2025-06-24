@@ -114,13 +114,17 @@ class EPLL(nn.Module):
                     "Noise level sigma has to be provided if not present in the physics model."
                 )
 
-        sigma = Denoiser._handle_sigma(sigma, batch_size=y.shape[0]).to(y.device)
+        sigma = Denoiser._handle_sigma(
+            sigma, batch_size=y.shape[0], device=y.device, dtype=y.dtype
+        )
         if betas is None:
             # default choice as suggested in Parameswaran et al. "Accelerating GMM-Based Patch Priors for Image Restoration: Three Ingredients for a 100× Speed-Up"
             betas = [beta / sigma**2 for beta in [1.0, 4.0, 8.0, 16.0, 32.0]]
         else:
             betas = [
-                Denoiser._handle_sigma(beta, batch_size=y.shape[0]).to(y.device)
+                Denoiser._handle_sigma(
+                    beta, batch_size=y.shape[0], device=y.device, dtype=y.dtype
+                )
                 for beta in betas
             ]
 
