@@ -347,8 +347,8 @@ class VariancePreservingDiffusion(DiffusionSDE):
     def __init__(
         self,
         denoiser: Denoiser = None,
-        beta_min: float = 0.0001,
-        beta_max: float = 5.0,
+        beta_min: float = 0.1,
+        beta_max: float = 20.0,
         alpha: float = 1.0,
         solver: BaseSDESolver = None,
         dtype=torch.float64,
