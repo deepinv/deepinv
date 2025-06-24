@@ -208,7 +208,9 @@ class DiffusionSDE(BaseSDE):
 
 class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
-    `Variance-Exploding Stochastic Differential Equation (VE-SDE) :footcite:ps:`song2020score`.
+    Variance-Exploding Stochastic Differential Equation (VE-SDE).
+
+    This class implements the reverse-time SDE of the Variance-Exploding SDE (VE-SDE) :footcite:ps:`song2020score`.
 
     The forward-time SDE is defined as follows:
 
@@ -320,7 +322,9 @@ class VarianceExplodingDiffusion(DiffusionSDE):
 
 class VariancePreservingDiffusion(DiffusionSDE):
     r"""
-    Variance-Preserving Stochastic Differential Equation (VP-SDE) :footcite:ps:`song2020score`.
+    Variance-Preserving Stochastic Differential Equation (VP-SDE).
+
+    This class implements the reverse-time SDE of the Variance-Preserving SDE (VP-SDE) :footcite:ps:`song2020score`.
 
     The forward-time SDE is defined as follows:
 

@@ -75,7 +75,6 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
 
     :References:
     .. footbibliography::
-
     """
 
     class SliceSampleIdentifier(NamedTuple):

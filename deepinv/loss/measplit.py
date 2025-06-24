@@ -354,7 +354,9 @@ class SplittingLoss(Loss):
 
 class Neighbor2Neighbor(Loss):
     r"""
-    Neighbor2Neighbor loss :footcite:ps:`huang2021neighbor2neighbor`.
+    Neighbor2Neighbor loss.
+
+    Implements the self-supervised Neighbor2Neighbor loss :footcite:ps:`huang2021neighbor2neighbor`.
 
     Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
     map (see details in :footcite:ps:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:

@@ -64,8 +64,10 @@ class DiffusionSampler(MonteCarlo):
 
 
 class DDRM(Reconstructor):
-    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
-    Denoising Diffusion Restoration Models (DDRM) :footcite:ps:`kawar2022denoising`.
+    r"""
+    Denoising Diffusion Restoration Models (DDRM).
+
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:ps:`zhu2023denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
