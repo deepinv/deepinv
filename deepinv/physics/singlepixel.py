@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import warnings
 import math
+from deepinv.utils.decorators import _deprecated_alias
 
 
 def hadamard_1d(u, normalize=True):
@@ -110,10 +111,11 @@ def hadamard_2d_ishift(x):
     return x
 
 
-def sequency_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def sequency_mask(img_size, m):
     """
     Generates a sequency-ordered binary mask for single-pixel imaging.
-    :param tuple img_shape: The shape of the input image as a tuple (C, H, W),
+    :param tuple img_size: The shape of the input image as a tuple (C, H, W),
                             where C is the number of channels, H is the height,
                             and W is the width.
     :param int m: The number of pixels to select based on sequency order.
@@ -122,7 +124,7 @@ def sequency_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     n = H * W
 
     indexes = sequency_order(n)[:m]
@@ -130,23 +132,24 @@ def sequency_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
 
 
-def old_sequency_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def old_sequency_mask(img_size, m):
     """
     Generates a binary mask for a single-pixel camera based on a sequency ordering.
-    :param tuple img_shape: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
+    :param tuple img_size: The shape of the input image as a tuple (C, H, W), where C is the number of channels,
                             H is the height, and W is the width.
     :param int m: The number of pixels to include in the mask, selected based on the sequency ordering.
     :return: A binary mask of shape (1, C, H, W) with `m` pixels set to 1 and the rest set to 0.
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     n = H * W
 
     indexes = get_permutation_list(n)[:m]
@@ -154,7 +157,7 @@ def old_sequency_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
@@ -199,10 +202,10 @@ def cake_cutting_order(n):
     return np.argsort(seq)
 
 
-def cake_cutting_mask(img_shape, m):
+def cake_cutting_mask(img_size, m):
     """
     Generates a "cake cutting" mask for single-pixel imaging.
-    :param tuple img_shape: A tuple representing the shape of the input image
+    :param tuple img_size: A tuple representing the shape of the input image
                             in the format (channels, height, width). The height
                             and width must be equal.
     :param int m: The number of pixels to include in the mask.
@@ -212,7 +215,7 @@ def cake_cutting_mask(img_shape, m):
     :raises Warning: If the height and width of the image are not equal.
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
 
     if H != W:
         warnings.warn("Image height and width must be equal for cake cutting mask.")
@@ -226,7 +229,7 @@ def cake_cutting_mask(img_shape, m):
     i = i.flatten(order="F")
     j = j.flatten(order="F")
 
-    mask = torch.zeros((1, *img_shape))
+    mask = torch.zeros((1, *img_size))
     mask[:, :, i[indexes], j[indexes]] = 1.0
 
     return mask
@@ -258,10 +261,11 @@ def diagonal_index_matrix(H: int, W: int) -> torch.Tensor:
     return flat_A.view(H, W)
 
 
-def zig_zag_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def zig_zag_mask(img_size, m):
     """
     Generates a zig-zag mask for an image of a given shape.
-    :param tuple img_shape: A tuple representing the shape of the input image
+    :param tuple img_size: A tuple representing the shape of the input image
                             in the format (C, H, W), where C is the number of
                             channels, H is the height, and W is the width.
     :param int m: The number of elements to include in the zig-zag mask.
@@ -270,20 +274,21 @@ def zig_zag_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
     mask = diagonal_index_matrix(H, W)
     mask = mask < m
     mask = mask.float()
-    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = mask.unsqueeze(0).repeat(1, img_size[0], 1, 1)
     mask = hadamard_2d_ishift(mask)
 
     return mask
 
 
-def xy_mask(img_shape, m):
+@_deprecated_alias(img_shape="img_size")
+def xy_mask(img_size, m):
     """
     Generates a 2D mask based on the spatial coordinates of an image and a given threshold.
-    :param tuple img_shape: A tuple representing the shape of the input image in the format
+    :param tuple img_size: A tuple representing the shape of the input image in the format
                             (channels, height, width).
     :param int m: The threshold value used to determine the mask size. Pixels with indices
                   less than or equal to `m` will be included in the mask.
@@ -292,7 +297,7 @@ def xy_mask(img_shape, m):
     :rtype: torch.Tensor
     """
 
-    _, H, W = img_shape
+    _, H, W = img_size
 
     X, Y = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
     index_matrix = X * Y + (X**2 + Y**2) / 4
@@ -305,7 +310,7 @@ def xy_mask(img_shape, m):
     mask = mask.view(H, W) <= m
     mask = mask.float()
 
-    mask = mask.unsqueeze(0).repeat(1, img_shape[0], 1, 1)
+    mask = mask.unsqueeze(0).repeat(1, img_size[0], 1, 1)
     mask = hadamard_2d_ishift(mask)
 
     return mask
@@ -338,7 +343,7 @@ class SinglePixelCamera(DecomposablePhysics):
         Since version 0.3.1, a small bug in the sequency ordering has been fixed. However, it is possible to use the old sequency ordering by setting `ordering='old_sequency'`.
 
     :param int m: number of single pixel measurements per acquisition (m).
-    :param tuple img_shape: shape (C, H, W) of images.
+    :param tuple img_size: shape (C, H, W) of images.
     :param bool fast: The operator is iid binary if false, otherwise A is a 2D subsampled hadamard transform.
     :param str ordering: The ordering of selecting the first m measurements, available options are: `'sequency'`, `'cake_cutting'`, `'zig_zag'`, `'xy'`, `'old_sequency'`.
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
@@ -353,7 +358,7 @@ class SinglePixelCamera(DecomposablePhysics):
         >>> from deepinv.physics import SinglePixelCamera
         >>> seed = torch.manual_seed(0) # Random seed for reproducibility
         >>> x = torch.randn((1, 1, 32, 32)) # Define random 32x32 image
-        >>> physics = SinglePixelCamera(m=16, img_shape=(1, 32, 32), fast=True)
+        >>> physics = SinglePixelCamera(m=16, img_size=(1, 32, 32), fast=True)
         >>> torch.sum(physics.mask).item() # Number of measurements
         16.0
         >>> torch.round(physics(x)[:, :, :3, :3]).abs() # Compute measurements
@@ -363,10 +368,11 @@ class SinglePixelCamera(DecomposablePhysics):
 
     """
 
+    @_deprecated_alias(img_shape="img_size")
     def __init__(
         self,
         m,
-        img_shape,
+        img_size,
         fast=True,
         ordering="sequency",
         device="cpu",
@@ -376,7 +382,7 @@ class SinglePixelCamera(DecomposablePhysics):
     ):
         super().__init__(**kwargs)
         self.name = f"spcamera_m{m}"
-        self.img_shape = img_shape
+        self.img_size = img_size
         self.fast = fast
         self.device = device
         if rng is None:
@@ -387,29 +393,29 @@ class SinglePixelCamera(DecomposablePhysics):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state())
 
         if self.fast:
 
-            _, H, W = img_shape
+            _, H, W = img_size
 
             assert H == 1 << int(math.log2(H)), "image height must be a power of 2"
             assert W == 1 << int(math.log2(W)), "image width must be a power of 2"
 
             if ordering == "sequency":
-                mask = sequency_mask(img_shape, m)
+                mask = sequency_mask(img_size, m)
             elif ordering == "cake_cutting":
-                mask = cake_cutting_mask(img_shape, m)
+                mask = cake_cutting_mask(img_size, m)
             elif ordering == "zig_zag":
-                mask = zig_zag_mask(img_shape, m)
+                mask = zig_zag_mask(img_size, m)
             elif ordering == "xy":
-                mask = xy_mask(img_shape, m)
+                mask = xy_mask(img_size, m)
             elif ordering == "old_sequency":
                 # Raise warning if the old sequency mask is used
                 print(
                     "Warning: The old sequency mask is deprecated. Plase, use sequency mask instead."
                 )
-                mask = old_sequency_mask(img_shape, m)
+                mask = old_sequency_mask(img_size, m)
             else:
                 raise ValueError(
                     f"Unknown ordering {ordering}. Available options are: `sequency`, `cake_cutting`, `zig_zag`, `xy`."
@@ -418,7 +424,7 @@ class SinglePixelCamera(DecomposablePhysics):
             mask = mask.to(device)
 
         else:
-            n = int(math.prod(img_shape[1:]))
+            n = int(math.prod(img_size[1:]))
             A = torch.where(
                 torch.randn((m, n), device=device, dtype=dtype, generator=self.rng)
                 > 0.5,
@@ -429,19 +435,17 @@ class SinglePixelCamera(DecomposablePhysics):
             u, mask, vh = torch.linalg.svd(A, full_matrices=False)
 
             mask = mask.to(device).unsqueeze(0).type(dtype)
-            self.vh = vh.to(device).type(dtype)
-            self.u = u.to(device).type(dtype)
+            self.register_buffer("vh", vh.to(device).type(dtype))
+            self.register_buffer("u", u.to(device).type(dtype))
 
-            self.u = torch.nn.Parameter(self.u, requires_grad=False)
-            self.vh = torch.nn.Parameter(self.vh, requires_grad=False)
-
-        self.mask = torch.nn.Parameter(mask, requires_grad=False)
+        self.register_buffer("mask", mask)
+        self.to(device)
 
     def V_adjoint(self, x):
         if self.fast:
             y = hadamard_2d(x)
         else:
-            N, C = x.shape[0], self.img_shape[0]
+            N, C = x.shape[0], self.img_size[0]
             x = x.reshape(N, C, -1)
             y = torch.einsum("ijk, mk->ijm", x, self.vh)
         return y
@@ -451,7 +455,7 @@ class SinglePixelCamera(DecomposablePhysics):
             x = hadamard_2d(y)
         else:
             N = y.shape[0]
-            C, H, W = self.img_shape[0], self.img_shape[1], self.img_shape[2]
+            C, H, W = self.img_size[0], self.img_size[1], self.img_size[2]
             x = torch.einsum("ijk, km->ijm", y, self.vh)
             x = x.reshape(N, C, H, W)
         return x
