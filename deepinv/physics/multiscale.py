@@ -1,3 +1,5 @@
+import torch
+
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.physics.blur import Upsampling
 

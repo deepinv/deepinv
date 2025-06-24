@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from scipy.io import loadmat as scipy_loadmat
 from numpy import ndarray
 
+import torch
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
@@ -180,3 +181,21 @@ class ToComplex(Module):
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
         return stack([x, zeros_like(x)], dim=-3)
+
+
+class UnsupDataset(torch.utils.data.Dataset):
+    r"""
+    Dataset for unsupervised learning tasks.
+
+    This dataset is used to return only the data without any labels.
+
+    :param torch.Tensor data: Input data tensor of shape (N, ...), where N is the number of samples and ... represents the data dimensions.
+    """
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return self.data.size(0)
+
+    def __getitem__(self, idx):
+        return torch.nan, self.data[idx]

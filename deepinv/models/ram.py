@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import deepinv as dinv
-from deepinv.physics import Physics, LinearPhysics, Downsampling
+from deepinv.physics import MultiScaleLinearPhysics, Pad
 from deepinv.utils.tensorlist import TensorList
 
 from huggingface_hub import hf_hub_download
