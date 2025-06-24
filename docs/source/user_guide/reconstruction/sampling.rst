@@ -129,8 +129,8 @@ by the conditional score function :math:`\nabla \log p_t(x_t|y)`. The conditiona
 where $\hat p_t$ stands for the unscaled distribution, i.e., $\hat p_t(x_0 + \sigma(t) \omega) = p_t(s_t (x_0 + \sigma(t) \omega))$.
 
 The first term is the unconditional score function and can be approximated by using a denoiser as explained previously. 
-The second term is the conditional score function, and can be approximated by the (noisy) data-fidelity term.
-We implement the following data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
+The second term is the conditional score function, which is untractable. This likelihood term :math:`\log \hat p_t \left(y \vert x_0 + \sigma(t) \omega)`, that we call noisy data-fidelity term, can be approximated in different ways. 
+We implement the following noisy data-fidelity terms, which inherit from the :class:`deepinv.sampling.NoisyDataFidelity` base class.
 
 .. list-table:: Noisy data-fidelity terms
    :header-rows: 1
