@@ -191,6 +191,7 @@ class UnsupDataset(torch.utils.data.Dataset):
 
     :param torch.Tensor data: Input data tensor of shape (N, ...), where N is the number of samples and ... represents the data dimensions.
     """
+
     def __init__(self, data):
         self.data = data
 
