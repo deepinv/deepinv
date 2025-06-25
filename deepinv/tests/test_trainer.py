@@ -559,9 +559,11 @@ def test_dataloader_formats(
 
         def __getitem__(self, i):
             params = generator.step(1)
+            # NOTE: The test relies on changing params in place.
             params["mask"] = params["mask"].squeeze(0)
-            x = torch.ones(imsize)
-            y = x * params["mask"]
+            mask = params["mask"]
+            x = torch.ones(imsize, device=mask.device, dtype=mask.dtype)
+            y = x * mask
             if ground_truth:
                 if measurements:
                     if generate_params:
@@ -611,8 +613,8 @@ def test_dataloader_formats(
 
     # fmt: off
     def assert_x_none(x): assert x is None
-    def assert_x_full(x): assert x.mean() == 1.
-    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded
+    def assert_x_full(x): assert math.isclose(x.mean(), 1.0, abs_tol=1e-7)
+    def assert_physics_unchanged(physics): assert math.isclose(physics.mask.mean(), 1.0, abs_tol=1e-7) # params not loaded
     def assert_physics_offline(physics): assert physics.mask.mean() < .2
     def assert_physics_online(physics): assert physics.mask.mean() > .8
     def assert_y_offline(y): assert y.mean() < .2
