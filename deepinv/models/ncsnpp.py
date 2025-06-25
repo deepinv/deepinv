@@ -92,23 +92,22 @@ class NCSNpp(Denoiser):
             default_config = "VP"
         
         # for some default configurations, we set default parameters
-        if default_config == "VE":
+        if default_config == "VP":
             embedding_type = 'positional'
             encoder_type = 'standard'
             decoder_type='standard'
             channel_mult_noise=1
             resample_filter=[1,1]
-            model_channels=128
-            channel_mult=[2,2,2]
         
-        elif default_config == "VP":
+        elif default_config == "VE":
             embedding_type = 'fourier'
             encoder_type = 'residual'
             decoder_type='standard'
             channel_mult_noise=2
             resample_filter=[1,3,3,1]
-            model_channels=128
-            channel_mult=[2,2,2]
+        
+        model_channels=128
+        channel_mult=[1,2,2,2]
 
         assert embedding_type in ["fourier", "positional"]
         assert encoder_type in ["standard", "skip", "residual"]
@@ -244,11 +243,12 @@ class NCSNpp(Denoiser):
                 )
 
         if pretrained is not None:
+            # print(self)
             if (
                 pretrained.lower() == "edm-ffhq64-uncond-ve"
                 or pretrained.lower() == "download"
             ):
-                name = "ncsnpp-ffhq64-uncond-ve.pt"
+                name = "edm-ffhq-64x64-uncond-ve.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
@@ -258,11 +258,12 @@ class NCSNpp(Denoiser):
             elif (
                 pretrained.lower() == "edm-ffhq64-uncond-vp"
             ):
-                name = "ddpmpp-ffhq64-uncond-vp.pt"
+                name = "edm-ffhq-64x64-uncond-vp.pt"
                 url = get_weights_url(model_name="edm", file_name=name)
                 ckpt = torch.hub.load_state_dict_from_url(
                     url, map_location=lambda storage, loc: storage, file_name=name
                 )
+                # print(ckpt.keys())
                 self._train_on_minus_one_one = True  # Pretrained on [-1,1]s
                 self.pixel_std = 0.5
             else:
