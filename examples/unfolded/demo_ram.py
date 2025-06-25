@@ -57,7 +57,7 @@ dinv.utils.plot(
 
 # Define the Demosaicing physics
 physics = dinv.physics.Demosaicing(
-    img_size=(3, 256, 256), noise_model=dinv.physics.GaussianNoise(0.05), device=device
+    img_size=(3, 256, 256), noise_model=dinv.physics.PoissonNoise(0.1), device=device
 )
 
 # generate measurement
@@ -91,22 +91,17 @@ dinv.utils.plot(
 # but in practice, we can use the full image.
 from deepinv.datasets.utils import UnsupDataset
 
-# Define small physics in the case of no-GPU
-if not torch.cuda.is_available():
-    physics_train = dinv.physics.Demosaicing(
-        img_size=(3, 64, 64),
-        noise_model=dinv.physics.GaussianNoise(0.05),
-        device=device,
-    )
-    x_train = x[..., :64, :64]  # take a small patch of the image
-    y_train = physics_train(x_train)
-else:
-    physics_train = physics.clone()
-    x_train = x.clone()
-    y_train = y.clone()
+
+physics_train = dinv.physics.Demosaicing(
+    img_size=(3, 64, 64),
+    noise_model=dinv.physics.PoissonNoise(0.1, clip_positive=True),
+    device=device,
+)
+x_train = x[..., :64, :64]  # take a small patch of the image
+y_train = physics_train(x_train)
 
 
-mc_loss = dinv.loss.SureGaussianLoss(physics.noise_model.sigma)
+mc_loss = dinv.loss.R2RLoss()
 
 t = dinv.transform.Shift(shift_max=0.4)
 eq_loss = dinv.loss.EILoss(t, weight=0.1)
@@ -117,13 +112,22 @@ dataset = UnsupDataset(y_train)
 
 train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
 
+# %%
+# In order to check the performance of the fine-tuned model, we will use a validation set.
+# We will use a small patch of another image. Note that this validation is also performed in an unsupervised manner,
+# so we will not use the ground truth validation image.
+y_val = physics_train(dinv.utils.load_example("leaves.png")[..., :64, :64].to(device))
+eval_dataloader = torch.utils.data.DataLoader(
+    UnsupDataset(y_val), batch_size=1, shuffle=True
+)
+
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 
 max_epochs = 20
 trainer = dinv.Trainer(
     model=model,
     physics=physics_train,
-    eval_interval=max_epochs,
+    eval_interval=5,
     ckp_interval=max_epochs - 1,
     metrics=losses[0],
     early_stop=True,
@@ -132,7 +136,7 @@ trainer = dinv.Trainer(
     epochs=max_epochs,
     optimizer=optimizer,
     train_dataloader=train_dataloader,
-    eval_dataloader=train_dataloader,
+    eval_dataloader=eval_dataloader,
 )
 
 # finetune
