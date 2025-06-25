@@ -9,11 +9,8 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torch.nn import Module
 import torchvision
 from torchvision import transforms
-
-from deepinv.models.base import Reconstructor, Denoiser
 
 
 def get_git_root():

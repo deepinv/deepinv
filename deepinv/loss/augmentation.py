@@ -13,7 +13,6 @@ from deepinv.physics.mri import MRI
 from deepinv.transform.base import Transform, Identity
 from deepinv.transform.rotate import Rotate
 from deepinv.transform.shift import Shift
-from deepinv.physics.forward import LinearPhysics
 
 
 class AugmentConsistencyLoss(Loss):

@@ -1,4 +1,3 @@
-import torch
 from deepinv.optim.epll import EPLL
 from deepinv.physics import Denoising, GaussianNoise
 from .base import Denoiser

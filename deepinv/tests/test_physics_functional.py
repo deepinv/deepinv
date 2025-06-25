@@ -8,7 +8,6 @@ Created on Thu Jul 11 14:48:05 2024
 
 import deepinv as dinv
 import torch
-import pytest
 
 
 def test_conv2d_adjointness(device):
