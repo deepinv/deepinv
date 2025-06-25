@@ -121,7 +121,7 @@ If you have any questions or suggestions, please join the conversation in our
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
 .. |views| image:: https://komarev.com/ghpvc/?username=deepinv
-.. |install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=install
+.. |install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=install&color=fedcba
    :target: https://pypistats.org/packages/deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
