@@ -1,5 +1,9 @@
 from __future__ import annotations
-from typing import Union, List
+from typing import Union
+import copy
+import inspect
+import itertools
+import collections.abc
 
 import torch
 from torch import Tensor
@@ -18,19 +22,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     .. math::
 
-        y = \noise(\forw(x))
+        y = \noise{\forw{x}}
 
     where :math:`x` is an image of :math:`n` pixels, :math:`y` is the measurements of size :math:`m`,
-    :math:`\forw:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
-    and :math:`\noise:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
+    :math:`A:\xset\mapsto \yset` is a deterministic mapping capturing the physics of the acquisition
+    and :math:`N:\yset\mapsto \yset` is a stochastic mapping which characterizes the noise affecting
     the measurements.
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
-    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
+    :param deepinv.physics.NoiseModel, Callable noise_model: function that adds noise to the measurements :math:`\noise{z}`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
-        such as quantization or saturation, defined as a function :math:`\eta(z)`, such that
-        :math:`y=\eta\left(N(A(x))\right)`. By default, the `sensor_model` is set to the identity :math:`\eta(z)=z`.
+        such as quantization or saturation, defined as a function :math:`\sensor{z}`, such that
+        :math:`y=\sensor{\noise{\forw{x}}}`. By default, the `sensor_model` is set to the identity :math:`\sensor{z}=z`.
     :param int max_iter: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
         is used for computing it, and this parameter fixes the maximum number of gradient descent iterations.
     :param float tol: If the operator does not have a closed form pseudoinverse, the gradient descent algorithm
@@ -242,6 +246,66 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
                     self.register_buffer(key, value)
+
+    # NOTE: Physics instances can hold instances of torch.Generator as
+    # (possibly nested) attributes and they cannot be copied using deepcopy
+    # natively. For this reason, we manually copy them beforehand and populate
+    # the copies using the memo parameter of deepcopy. For more details, see:
+    # https://github.com/pytorch/pytorch/issues/43672
+    # https://github.com/pytorch/pytorch/pull/49840
+    # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
+    def clone(self):
+        r"""
+        Clone the forward operator by performing deepcopy to copy all attributes to new memory.
+
+        This method should be favored to `copy.deepcopy` as it works even in
+        the presence of `torch.Generator` objects. See `this issue
+        <https://github.com/pytorch/pytorch/issues/43672>` for more details.
+        """
+        memo = {}
+
+        # Traverse the object hierarchy graph of the forward operator
+        traversal_queue = [self]
+        seen = set()
+        while traversal_queue:
+            # 1. Get the next node to process
+            node = traversal_queue.pop()
+
+            # 2. Process the node
+            if isinstance(node, torch.Generator):
+                generator_device = node.device
+                obj_clone = torch.Generator(generator_device)
+                obj_clone.set_state(node.get_state())
+                node_id = id(node)
+                memo[node_id] = obj_clone
+
+            # 3. Compute its neighbors (attributes and values for mapping objects)
+            neighbors = []
+
+            # NOTE: Attribute resolution can be dynamic and return new objects,
+            # preventing the algorithm from terminating. To avoid that, we use
+            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # because it was only introduced in Python 3.11 and we currently
+            # support Python 3.9 onwards.
+            for attr in dir(node):
+                value = inspect.getattr_static(node, attr, default=None)
+                if value is not None:
+                    neighbors.append(value)
+
+            # NOTE: It is necessary to include values for mapping objects for
+            # the case of submodules which are stored as entries in a
+            # dictionary instead of directly as attributes.
+            if isinstance(node, collections.abc.Mapping):
+                neighbors += list(node.values())
+
+            # 4. Queue the unseen neighbors
+            for neighbor in neighbors:
+                child_id = id(neighbor)
+                if child_id not in seen:
+                    seen.add(child_id)
+                    traversal_queue.append(neighbor)
+
+        return copy.deepcopy(self, memo=memo)
 
 
 class LinearPhysics(Physics):
@@ -610,9 +674,9 @@ class ComposedPhysics(Physics):
 
     .. math::
 
-        \noise(\forw(x)) = \noise_k(\forw_k(\dots \forw_2(\forw_1(x))))
+        \noise{\forw{x}} = N_k(A_k(\dots A_2(A_1(x))))
 
-    where :math:`\forw_i` is the ith physics operator and :math:`\noise_k` is the noise of the last operator.
+    where :math:`A_i(\cdot)` is the ith physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics to compose.
     """
@@ -682,9 +746,9 @@ class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
 
     .. math::
 
-        \noise(\forw(x)) = \noise_k(\forw_k \dots \forw_2(\forw_1(x)))
+        \noise{\forw{x}} = N_k(A_k \dots A_2(A_1(x)))
 
-    where :math:`\forw_i` is the i-th physics operator and :math:`\noise_k` is the noise of the last operator.
+    where :math:`A_i(\cdot)` is the i-th physics operator and :math:`N_k(\cdot)` is the noise of the last operator.
 
     :param list[deepinv.physics.Physics] *physics: list of physics operators to compose.
     """
