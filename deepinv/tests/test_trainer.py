@@ -426,6 +426,7 @@ def test_trainer_multidatasets(imsize, rng, device):
             return self.dummy_param * torch.ones_like(y)
 
     dummy_model = DummyModel()
+    dummy_model.to(device)
     optimizer = torch.optim.Adam(dummy_model.parameters(), lr=1e-2, weight_decay=0.0)
 
     trainer = Trainer(
