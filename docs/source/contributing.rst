@@ -4,7 +4,7 @@ DeepInverse is a community-driven project and welcomes contributions of all form
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
 
-View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`_.
+View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`__.
 
 How to Contribute
 =================
@@ -34,7 +34,7 @@ check the following points:
   following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
   All existing tests should pass on your local machine. This can be done by installing ``pytest`` and running
   ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.
-  Learn more `here <https://realpython.com/pytest-python-testing/>`_.
+  Learn more `here <https://realpython.com/pytest-python-testing/>`__.
   Your code coverage will automatically be checked using ``codecov``.
 - **Docs**: the documentation is updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
   and built with `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_.
