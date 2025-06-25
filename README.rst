@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |views| |discord| |colab|   
 
 
 Introduction
@@ -120,10 +120,26 @@ If you have any questions or suggestions, please join the conversation in our
    :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
+.. |views| image:: https://komarev.com/ghpvc/?username=deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/1XhCO5S1dYN3eKm4NEkczzVU7ZLBuE42J
+
+
+Star history
+------------
+
+.. raw:: html
+
+   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+    </picture>
+   </a>
+
 
 
 Citation
