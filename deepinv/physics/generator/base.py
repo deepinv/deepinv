@@ -76,12 +76,12 @@ class PhysicsGenerator(nn.Module):
             self.rng = rng
 
         # NOTE: Counter-intuitively, the random state of the generator
-        # needs to **not** be registered as a buffer and to **not**
+        # needs to **not** be registered as a buffer and to **not**
         # be moved to a cuda device. The reason behind this is that 1)
         # Generator.get_state returns a state that is always on the CPU no
         # matter the device of the generator and 2) that Generator.set_state
         # expects a state that is on the CPU. For this reason, we cannot
-        # store it as a buffer as buffers are automatically moved when
+        # store it as a buffer as buffers are automatically moved when
         # calling Module.to.
         self.initial_random_state = self.rng.get_state()
 
