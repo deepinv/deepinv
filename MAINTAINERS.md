@@ -31,13 +31,15 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 Maintainers are active and visible members of the community, and have [maintain-level permissions on a repository](https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-permission-levels-for-an-organization). Maintainers serve the community using this privilege, by having the below day-to-day responsibilities. Read more maintainer best practices [here](https://opensource.guide/best-practices/).
 
-- **Uphold code of conduct**: model the behavior set forward by the [code of conduct](CODE_OF_CONDUCT.md) and raise any violations to other maintainers.
+- **Security**: security is your number one priority. Maintainer's GitHub keys must be password protected securely and any reported security vulnerabilities are addressed before features or bugs, following the [security guidelines](SECURITY.md).
 
-- **Prioritise security**: security is your number one priority. Maintainer's GitHub keys must be password protected securely and any reported security vulnerabilities are addressed before features or bugs, following the [security guidelines](SECURITY.md).
+- **Uphold code of conduct**: model the behavior set forward by the [code of conduct](CODE_OF_CONDUCT.md) and raise any violations to other maintainers.
 
 - **Pull requests**: ensure PRs adhere to our [contributing guidelines](https://deepinv.github.io/deepinv/contributing.html) and have completed the checklist in the [PR template](.github/pull_request_template.md). Triage the PR and assign them to maintainers for review. Provide actionable feedback to guide the PR towards a conclusion. In cases of uncertainty, or where contributed code is out of your domain of expertise, reach out to additional maintainers or contributors.
 
 - **Issues**: manage labels, review issues regularly, and triage by labelling them, e.g. `bug`, `documentation`, `duplicate`, `enhancement`, `good first issue`, `help wanted`, `blocker`, `invalid`, `question`, `wontfix`, and `untriaged`. Request further information from a submitter if an issue is not clear. See the [issue template](.github/ISSUE_TEMPLATE.md) for an example.
+
+- **Philosophy**: maintainers uphold the design philosophy of DeepInverse, as detailed in the paper [DeepInverse: A Python package for solving imaging inverse problems with deep learning](https://arxiv.org/abs/2505.20160). Maintainers make executive decisions to uphold this, e.g. in accepting or rejecting contributions, arranging the code into submodules, or structuring the documentation.
 
 - **Responsiveness**: promptly respond to [issues](https://github.com/deepinv/deepinv/issues) and [discussions](https://github.com/deepinv/deepinv/discussions). Allocate time for reviewing, commenting and continuing conversations.
 
