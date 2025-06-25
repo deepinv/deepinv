@@ -497,7 +497,7 @@ def test_wavelet_decomposition(channels, dimension, batch_size, device):
     # For some reason the precision is more than 100x lower on GPU.
     tol = 1e-3 if torch.device(device).type == "cuda" else 1e-5
 
-    # NOTE: Tensors are broadcasted in torch.allclose so
+    # NOTE: Tensors are broadcasted in torch.allclose so
     # they might pass the test even if they have different shapes. For this
     # reason we also check the shapes.
     assert x_hat.shape == x.shape
