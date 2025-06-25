@@ -20,7 +20,7 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 | Andrew Wang | [andrewwango.github.io](https://andrewwango.github.io/about) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
 | Dongdong Chen | [dongdongchen.com](http://dongdongchen.com/) | Heriot-Watt University | [📧](mailto:d.chen@hw.ac.uk) |
 | Minh-Hai Nguyen | [mh-nguyen712.github.io](https://mh-nguyen712.github.io/) | IRIT, CBI, CNRS, Université de Toulouse | [📧](mailto:nguyenhai7120qh@gmail.com) |
-| Jérémy Scanvic | [jeremyscanvic.com](https://jeremyscanvic.com/) | CNRS, ENS Lyon | [📧]() |
+| Jérémy Scanvic | [jeremyscanvic.com](https://jeremyscanvic.com/) | CNRS, ENS Lyon | [📧](mailto:jeremy.scanvic@ens-lyon.fr) |
 
 ## Emeritus
 
