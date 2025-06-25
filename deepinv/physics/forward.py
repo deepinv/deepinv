@@ -1,5 +1,9 @@
 from __future__ import annotations
-from typing import Union, List
+from typing import Union
+import copy
+import inspect
+import itertools
+import collections.abc
 
 import torch
 from torch import Tensor
@@ -242,6 +246,66 @@ class Physics(torch.nn.Module):  # parent class for forward models
                     and isinstance(value, torch.Tensor)
                 ):
                     self.register_buffer(key, value)
+
+    # NOTE: Physics instances can hold instances of torch.Generator as
+    # (possibly nested) attributes and they cannot be copied using deepcopy
+    # natively. For this reason, we manually copy them beforehand and populate
+    # the copies using the memo parameter of deepcopy. For more details, see:
+    # https://github.com/pytorch/pytorch/issues/43672
+    # https://github.com/pytorch/pytorch/pull/49840
+    # https://discuss.pytorch.org/t/deepcopy-typeerror-cant-pickle-torch-c-generator-objects/104464
+    def clone(self):
+        r"""
+        Clone the forward operator by performing deepcopy to copy all attributes to new memory.
+
+        This method should be favored to `copy.deepcopy` as it works even in
+        the presence of `torch.Generator` objects. See `this issue
+        <https://github.com/pytorch/pytorch/issues/43672>` for more details.
+        """
+        memo = {}
+
+        # Traverse the object hierarchy graph of the forward operator
+        traversal_queue = [self]
+        seen = set()
+        while traversal_queue:
+            # 1. Get the next node to process
+            node = traversal_queue.pop()
+
+            # 2. Process the node
+            if isinstance(node, torch.Generator):
+                generator_device = node.device
+                obj_clone = torch.Generator(generator_device)
+                obj_clone.set_state(node.get_state())
+                node_id = id(node)
+                memo[node_id] = obj_clone
+
+            # 3. Compute its neighbors (attributes and values for mapping objects)
+            neighbors = []
+
+            # NOTE: Attribute resolution can be dynamic and return new objects,
+            # preventing the algorithm from terminating. To avoid that, we use
+            # insepct.getattr_static. We don't use inspect.getmembers_static
+            # because it was only introduced in Python 3.11 and we currently
+            # support Python 3.9 onwards.
+            for attr in dir(node):
+                value = inspect.getattr_static(node, attr, default=None)
+                if value is not None:
+                    neighbors.append(value)
+
+            # NOTE: It is necessary to include values for mapping objects for
+            # the case of submodules which are stored as entries in a
+            # dictionary instead of directly as attributes.
+            if isinstance(node, collections.abc.Mapping):
+                neighbors += list(node.values())
+
+            # 4. Queue the unseen neighbors
+            for neighbor in neighbors:
+                child_id = id(neighbor)
+                if child_id not in seen:
+                    seen.add(child_id)
+                    traversal_queue.append(neighbor)
+
+        return copy.deepcopy(self, memo=memo)
 
 
 class LinearPhysics(Physics):
