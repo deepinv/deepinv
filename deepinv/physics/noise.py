@@ -22,7 +22,15 @@ class NoiseModel(nn.Module):
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
-            self.register_buffer("initial_random_state", rng.get_state())
+            # NOTE: Counter-intuitively, the random state of the generator
+            # needs to **not** be registered as a buffer and to **not**
+            # be moved to a cuda device. The reason behind this is that 1)
+            # Generator.get_state returns a state that is always on the CPU no
+            # matter the device of the generator and 2) that Generator.set_state
+            # expects a state that is on the CPU. For this reason, we cannot
+            # store it as a buffer as buffers are automatically moved when
+            # calling Module.to.
+            self.initial_random_state = rng.get_state()
 
     def forward(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
         r"""

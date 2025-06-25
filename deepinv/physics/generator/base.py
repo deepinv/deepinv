@@ -74,7 +74,16 @@ class PhysicsGenerator(nn.Module):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {self.device}."
             self.rng = rng
-        self.register_buffer("initial_random_state", self.rng.get_state().to(device))
+
+        # NOTE: Counter-intuitively, the random state of the generator
+        # needs to **not** be registered as a buffer and to **not**
+        # be moved to a cuda device. The reason behind this is that 1)
+        # Generator.get_state returns a state that is always on the CPU no
+        # matter the device of the generator and 2) that Generator.set_state
+        # expects a state that is on the CPU. For this reason, we cannot
+        # store it as a buffer as buffers are automatically moved when
+        # calling Module.to.
+        self.initial_random_state = self.rng.get_state()
 
         # Set attributes
         for k, v in kwargs.items():

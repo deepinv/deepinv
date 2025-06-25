@@ -107,7 +107,7 @@ def get_dummy_physics_generator(rng, device):
                 "f": torch.rand((batch_size,), generator=self.rng, device=device).item()
             }
 
-    return DummyPhysicsGenerator(rng=rng)
+    return DummyPhysicsGenerator(rng=rng, device=device)
 
 
 @pytest.mark.parametrize(
@@ -257,7 +257,7 @@ def test_trainer_physics_generator_params(
 ):
     N = 10
     rng1 = rng
-    rng2 = torch.Generator().manual_seed(0)
+    rng2 = torch.Generator(device).manual_seed(0)
 
     class DummyPhysics(Physics):
         # Dummy physics which sums images, and multiplies by a parameter f
