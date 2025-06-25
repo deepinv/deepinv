@@ -39,12 +39,9 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
    community
 
 
-**Lead Developers**
+**Maintainers**
 
-`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
-`Samuel Hurault <https://github.com/samuro95/>`_, `Matthieu Terris <https://matthieutrs.github.io>`_
-and `Andrew Wang <https://andrewwango.github.io/about>`_.
-
+View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg

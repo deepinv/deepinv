@@ -94,12 +94,13 @@ Contributing
 ------------
 
 DeepInverse is a community-driven project and welcomes contributions of all forms.
-We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
+We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
-The preferred way to contribute to ``deepinv`` is to fork the `main
+
+Please contribute to ``deepinv`` by forking the `main
 repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/contributing.html>`_
-for more details.
+for full instructions on how to contribute.
 
 
 Finding help
@@ -109,6 +110,10 @@ If you have any questions or suggestions, please join the conversation in our
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers is to open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
+Maintainers
+-----------
+
+View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
