@@ -55,6 +55,19 @@ If you use DeepInverse in your research, please cite the following paper (availa
           url={https://arxiv.org/abs/2505.20160},
     }
 
+**Star history**
+
+.. raw:: html
+
+   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+    </picture>
+   </a>
+
+
 **Lead Developers**
 
 `Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,

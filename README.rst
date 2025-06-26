@@ -143,7 +143,7 @@ Star history
    </a>
 
 
-
+ 
 Citation
 --------
 If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
