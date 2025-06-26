@@ -524,9 +524,9 @@ class PoissonNoise(NoiseModel):
         else:
             # NOTE: PyTorch operations are generally run asynchronously on CUDA
             # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
+            # torch.poisson typically raises a CUDA-level assertion error
             # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
+            # recovered from using Python's exception system due to their
             # asynchronous nature. For this reason we add a manual check if the
             # RNG is on a CUDA device.
             if self.rng.device.type == "cuda":
@@ -641,9 +641,9 @@ class PoissonGaussianNoise(NoiseModel):
         else:
             # NOTE: PyTorch operations are generally run asynchronously on CUDA
             # devices and the underlying CUDA kernel under
-            # torch.poisson typically raises a CUDA-level assertion error
+            # torch.poisson typically raises a CUDA-level assertion error
             # when its input has negative entries. Those errors can't be
-            # recovered from using Python's exception system due to their
+            # recovered from using Python's exception system due to their
             # asynchronous nature. For this reason we add a manual check if the
             # RNG is on a CUDA device.
             if self.rng.device.type == "cuda":
