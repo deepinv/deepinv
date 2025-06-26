@@ -78,7 +78,7 @@ class TVDenoiser(Denoiser):
         return u / (
             torch.maximum(
                 torch.sqrt(torch.sum(u**2, axis=-1)) / lambda2,
-                torch.tensor([1], device=u.device).type(u.dtype),
+                torch.tensor([1], device=u.device, dtype=u.dtype),
             ).unsqueeze(-1)
         )
 
@@ -111,7 +111,9 @@ class TVDenoiser(Denoiser):
             u2 = self.u2.clone()
 
         if ths is not None:
-            lambd = ths
+            lambd = self._handle_sigma(
+                ths, batch_size=y.size(0), ndim=y.ndim, device=y.device, dtype=y.dtype
+            )
 
         for _ in range(self.n_it_max):
             x_prev = x2

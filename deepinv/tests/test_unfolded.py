@@ -95,7 +95,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
     sigma_denoiser_init = 0.01
-    sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
+    sigma_denoiser = [sigma_denoiser_init * torch.ones(1, level, 3)] * max_iter
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,

@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Tuple, Union
-from copy import deepcopy
+from typing import Optional, Union
 import torch
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise
@@ -309,7 +308,7 @@ class Phase2PhaseLoss(SplittingLoss):
     @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        img_size: Tuple[int],
+        img_size: tuple[int],
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
@@ -370,7 +369,7 @@ class Phase2PhaseLoss(SplittingLoss):
         if physics is None:
             return y_split_reduced
 
-        physics_split_reduced = deepcopy(physics_split)
+        physics_split_reduced = physics_split.clone()
         physics_split_reduced.update_parameters(
             mask=remove_zeros(physics_split.mask, mask)
         )
@@ -496,8 +495,8 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     @_deprecated_alias(tensor_size="img_size")
     def __init__(
         self,
-        img_size: Tuple[int],
-        split_size: Union[int, Tuple[int]] = 2,
+        img_size: tuple[int],
+        split_size: Union[int, tuple[int]] = 2,
         dynamic_model: bool = True,
         metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss(),
         device="cpu",
