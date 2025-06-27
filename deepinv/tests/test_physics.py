@@ -90,7 +90,7 @@ NOISES = [
 ]
 
 
-def find_operator(name, device, get_physics_param=False):
+def find_operator(name, device, imsize=None, get_physics_param=False):
     r"""
     Chooses operator
 
@@ -98,7 +98,7 @@ def find_operator(name, device, get_physics_param=False):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
-    img_size = (3, 16, 8)
+    img_size = (3, 16, 8) if imsize is None else imsize
     norm = 1
     dtype = torch.float
     padding = None
@@ -133,7 +133,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 0.4468
         params = ["srf"]
     elif name == "cassi":
-        img_size = (7, 37, 31)
+        img_size = (7, 37, 31) if imsize is None else imsize
         p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
         norm = 1 / img_size[0]
         params = ["mask"]
@@ -149,45 +149,55 @@ def find_operator(name, device, get_physics_param=False):
         norm = 1.0
         params = []
     elif name == "MRI":
-        img_size = (2, 17, 11)  # C,H,W
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         p = MRI(img_size=img_size, device=device)
         params = ["mask"]
     elif name == "3DMRI":
-        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,D,H,W where D is depth
         p = MRI(img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "DynamicMRI":
-        img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
     elif name == "MultiCoilMRI":
-        img_size = (2, 17, 11)  # C,H,W
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         n_coils = 7
         maps = torch.ones(
-            (1, n_coils, 17, 11), dtype=torch.complex64, device=device
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
         ) / sqrt(
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
-        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,D,H,W where D is depth
         n_coils = 15
         maps = torch.ones(
-            (1, n_coils, 5, 17, 11), dtype=torch.complex64, device=device
+            (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
         ) / sqrt(
             n_coils
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "Tomography":
-        img_size = (1, 16, 16)
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
         params = ["theta"]
     elif name == "composition":
-        img_size = (3, 16, 16)
+        img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
             img_size=img_size, factor=2, device=device, padding="same", filter=None
         )
@@ -200,7 +210,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 1 / 2**2
         params = ["filter"]
     elif name == "composition2":
-        img_size = (3, 16, 16)
+        img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
             img_size=img_size, factor=2, device=device, filter=None
         )
@@ -226,7 +236,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 0.4
         params = []
     elif name == "aliased_pansharpen":
-        img_size = (3, 30, 32)
+        img_size = (3, 30, 32) if imsize is None else imsize
         p = dinv.physics.Pansharpen(
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
@@ -282,7 +292,7 @@ def find_operator(name, device, get_physics_param=False):
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
         params = ["mask"]
     elif name.startswith("deblur"):
-        img_size = (3, 17, 19)
+        img_size = (3, 17, 19) if imsize is None else imsize
         p = dinv.physics.Blur(
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
             padding=padding,
@@ -290,7 +300,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name == "fftdeblur":
-        img_size = (3, 17, 19)
+        img_size = (3, 17, 19) if imsize is None else imsize
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.bicubic_filter(),
@@ -298,7 +308,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name.startswith("space_deblur"):
-        img_size = (3, 20, 13)
+        img_size = (3, 20, 13) if imsize is None else imsize
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
         h /= torch.sum(h)
         h = torch.cat([h, h], dim=2)
@@ -319,11 +329,11 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filters", "multipliers"]
     elif name == "hyperspectral_unmixing":
-        img_size = (15, 32, 32)  # x (E, H, W)
+        img_size = (15, 32, 32) if imsize is None else imsize  # x (E, H, W)
         p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
         params = ["M"]
     elif name.startswith("3Ddeblur"):
-        img_size = (1, 7, 6, 8)
+        img_size = (1, 7, 6, 8) if imsize is None else imsize  # C,D,H,W
         h_size = (1, 1, 4, 3, 5)
         h = torch.rand(h_size)
         h /= h.sum()
@@ -334,7 +344,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name == "aliased_super_resolution":
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         factor = 2
         norm = 1.0
         p = dinv.physics.Downsampling(
@@ -346,7 +356,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = []
     elif name.startswith("super_resolution"):
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         factor = 2
         norm = 1.0 / factor**2
         p = dinv.physics.Downsampling(
@@ -359,7 +369,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name == "complex_compressed_sensing":
-        img_size = (1, 8, 8)
+        img_size = (1, 8, 8) if imsize is None else imsize
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
@@ -374,7 +384,7 @@ def find_operator(name, device, get_physics_param=False):
         params = ["mask"]
     elif "radio" in name:
         dtype = torch.cfloat
-        img_size = (1, 64, 64)
+        img_size = (1, 64, 64) if imsize is None else imsize
         pytest.importorskip(
             "torchkbnufft",
             reason="This test requires torchkbnufft. It should be "
@@ -413,13 +423,13 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = []
     elif name == "structured_random":
-        img_size = (1, 8, 8)
+        img_size = (1, 8, 8) if imsize is None else imsize
         p = dinv.physics.StructuredRandom(
             img_size=img_size, output_size=img_size, device=device
         )
         params = []
     elif name == "ptychography_linear":
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         dtype = torch.complex64
         norm = 1.32
         p = dinv.physics.PtychographyLinearOperator(
@@ -445,7 +455,6 @@ def find_nonlinear_operator(name, device):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
-
     if name == "haze":
         x = dinv.utils.TensorList(
             [

@@ -14,3 +14,24 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 - Pseudoinverse: :math:`\inversef{y}{A}=\phi(A^{\dagger}y)` with ``mode='pinv'``.
 - | Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
   | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
+
+
+Deep artfact removal networks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+We provide the following list of deep artifact removal architectures.
+See :ref:`pretrained-weights` for more information on pretrained denoisers.
+
+.. list-table:: Deep denoisers
+   :widths: 15 25 15 15 10
+   :header-rows: 1
+
+   * - Model
+     - Type
+     - Tensor Size (C, H, W)
+     - Pretrained Weights
+     - Noise level aware
+   * - :class:`deepinv.models.RAM`
+     - CNN-UNet
+     - C=1, 2, 3; H,W>8
+     - C=1, 2, 3
+     - Yes
