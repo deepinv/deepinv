@@ -43,6 +43,8 @@ Maintainers are active and visible members of the community, and have [maintain-
 
 - **Responsiveness**: promptly respond to [issues](https://github.com/deepinv/deepinv/issues) and [discussions](https://github.com/deepinv/deepinv/discussions). Allocate time for reviewing, commenting and continuing conversations.
 
+- **Meetings**: maintainers commit to regularly attending team meetings to review team progress, assign work, and contribute to discussions about blockers.
+
 - **Maintain overall health**: keep the `main` branch at production quality at all times, and backport features as needed. Monitor and improve CI workflows where appropriate, including docs build, automatic tests, code coverage, formatting and linting.
 
 - **Dependencies**: maintain up-to-date dependencies on third party projects to reduce the risk of security vulnerabilities.
