@@ -33,6 +33,8 @@ class CPABDiffeomorphism(Transform):
     :param bool override: see ``libcpab.Cpab`` docs.
     :param str, torch.device device: torch device.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

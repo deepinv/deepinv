@@ -58,6 +58,8 @@ class CompressiveSpectralImaging(LinearPhysics):
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

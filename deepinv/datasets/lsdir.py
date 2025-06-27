@@ -63,6 +63,8 @@ class LsdirHR(torch.utils.data.Dataset):
             print(val_dataset.verify_split_dataset_integrity())             # check that raw data has been downloaded correctly
             print(len(val_dataset))                                         # check that we have 250 images
 
+    |sep|
+
     :References:
         .. footbibliography::
     """

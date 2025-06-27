@@ -236,6 +236,8 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """
@@ -349,6 +351,8 @@ class VariancePreservingDiffusion(DiffusionSDE):
         We recommend using `torch.float64` for better stability and less numerical error when solving the SDE in discrete time, since
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
+
+    |sep|
 
     :References:
         .. footbibliography::

@@ -82,6 +82,8 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
 
+    |sep|
+
     :References:
         .. footbibliography::
     """

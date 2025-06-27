@@ -277,6 +277,8 @@ class ULA(MonteCarlo):
         and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
 
+    |sep|
+
     :References:
         .. footbibliography::
 
@@ -399,6 +401,8 @@ class SKRock(MonteCarlo):
         of the function g_statistic. By default, it is the identity function (lambda x: x),
         and thus the sampler computes the posterior mean and variance.
 
+    |sep|
+    
     :References:
         .. footbibliography::
 

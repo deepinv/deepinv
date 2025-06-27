@@ -28,6 +28,8 @@ class GSPnP(Denoiser):
         Setting this to `False` allows one to compute the gradient of the denoiser output with respect to the input, it is necessary in training.
         Default is `True`.
 
+    |sep|
+
     :References:
     .. footbibliography::
     """
@@ -115,6 +117,8 @@ def GSDRUNet(
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

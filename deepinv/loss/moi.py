@@ -47,6 +47,8 @@ class MOILoss(Loss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

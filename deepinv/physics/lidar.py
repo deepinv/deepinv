@@ -29,6 +29,8 @@ class SinglePhotonLidar(Physics):
     :param torch.Generator rng: (optional) a pseudorandom random number generator for
         the Poisson noise model :class:`deepinv.physics.PoissonNoise`
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

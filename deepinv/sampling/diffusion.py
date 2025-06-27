@@ -104,6 +104,8 @@ class DDRM(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
+    |sep|
+
     :References:
         .. footbibliography::
 
@@ -272,6 +274,8 @@ class DiffPIR(Reconstructor):
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
+
+    |sep|
 
     :References:
         .. footbibliography::
@@ -553,6 +557,8 @@ class DPS(Reconstructor):
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

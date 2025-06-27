@@ -87,6 +87,8 @@ class PDNet_DualBlock(nn.Module):
     :param bool bias: whether to use bias in convolutional layers. Default: True.
     :param int nf: number of features in the convolutional layers. Default: 32.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

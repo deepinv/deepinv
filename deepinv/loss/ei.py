@@ -38,6 +38,8 @@ class EILoss(Loss):
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
         This option is useful for super-resolution problems, see :footcite:ps:`scanvic2025scale` for details.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

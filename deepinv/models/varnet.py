@@ -38,6 +38,8 @@ class VarNet(ArtifactRemoval, MRIMixin):
     :param str mode: if 'varnet', perform iterates on the images x as in original VarNet.
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

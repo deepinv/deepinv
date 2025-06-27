@@ -74,6 +74,8 @@ class ScoreLoss(Loss):
         >>> print(l.item() > 0)
         True
 
+    |sep|
+
     :References:
         .. footbibliography::
 

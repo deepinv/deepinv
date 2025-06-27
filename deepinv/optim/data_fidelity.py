@@ -333,6 +333,8 @@ class IndicatorL2(DataFidelity):
                             operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
 
+        |sep|
+        
         :References:
             .. footbibliography::
         """

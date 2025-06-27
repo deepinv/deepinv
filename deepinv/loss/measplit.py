@@ -377,6 +377,8 @@ class Neighbor2Neighbor(Loss):
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

@@ -28,6 +28,8 @@ class PatchGANDiscriminator(nn.Module):
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """
@@ -220,6 +222,8 @@ class DCGANGenerator(nn.Module):
     :param int ngf: hidden layer size, defaults to 64
     :param int nc: number of image output channels, defaults to 3
 
+    |sep|
+
     :References:
     .. footbibliography::
     """
@@ -298,6 +302,8 @@ class CSGMGenerator(Reconstructor):
     :param float inf_tol: tolerance of inference-time optimisation, defaults to 1e-2
     :param float inf_lr: learning rate of inference-time optimisation, defaults to 1e-2
     :param bool inf_progress_bar: whether to display progress bar for inference-time optimisation, defaults to False
+
+    |sep|
 
     :References:
     .. footbibliography::

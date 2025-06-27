@@ -67,6 +67,8 @@ class NBUDataset(Dataset):
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
 
+    |sep|
+        
     :References:
         .. footbibliography::
     """

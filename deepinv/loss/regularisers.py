@@ -44,6 +44,8 @@ class JacobianSpectralNorm(Loss):
         >>> print(regval) # returns approx 50
         tensor(49.9999)
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

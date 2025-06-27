@@ -95,6 +95,8 @@ class CompressedSensing(LinearPhysics):
         tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
                   0.6752, -1.5684]])
 
+    |sep|
+
     :References:
         .. footbibliography::
 

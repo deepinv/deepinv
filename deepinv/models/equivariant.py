@@ -42,6 +42,8 @@ class EquivariantDenoiser(Denoiser):
         If False, the denoiser is applied to the average of all the transformed images, turning the denoiser into an
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

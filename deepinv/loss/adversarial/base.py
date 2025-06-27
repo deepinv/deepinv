@@ -24,6 +24,8 @@ class DiscriminatorMetric:
     :param bool no_grad: whether to no_grad the metric computation, defaults to ``False``
     :param str device: torch device, defaults to ``"cpu"``
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

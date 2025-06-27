@@ -96,6 +96,8 @@ def apply_homography(
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
 
+    |sep|
+
     :References:
         .. footbibliography::
     """
@@ -202,6 +204,8 @@ class Homography(Transform):
     :param str device: torch device, defaults to "cpu".
     :param int n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
+    |sep|
 
     :References:
         .. footbibliography::
@@ -437,6 +441,8 @@ class PanTiltRotate(Homography):
     :param n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

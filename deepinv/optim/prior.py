@@ -162,6 +162,8 @@ class ScorePrior(Prior):
 
             p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
+    |sep|
+    
     :References:
             .. footbibliography::
     """

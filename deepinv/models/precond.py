@@ -28,6 +28,8 @@ class EDMPrecond(Denoiser):
         c_{\mathrm{noise}}(\sigma) &= \log(\sigma) / 4
         \end{align}
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

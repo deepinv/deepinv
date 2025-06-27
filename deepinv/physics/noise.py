@@ -704,6 +704,8 @@ class LogPoissonNoise(NoiseModel):
     :param float mu: normalization constant
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

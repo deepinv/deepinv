@@ -25,7 +25,9 @@ class BM3D(Denoiser):
 
         This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
         It can be installed with ``pip install bm3d``.
-
+    
+    |sep|
+    
     :References:
     .. footbibliography::
     """

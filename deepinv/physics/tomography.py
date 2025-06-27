@@ -97,7 +97,8 @@ class Tomography(LinearPhysics):
                   [ 0.9002, -0.8457, -0.1666],
                   [-2.4882, -2.7340, -0.9793]]]])
 
-
+    |sep|
+    
     :References:
         .. footbibliography::
     """

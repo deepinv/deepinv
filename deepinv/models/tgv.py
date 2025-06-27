@@ -39,6 +39,8 @@ class TGVDenoiser(Denoiser):
     :param torch.Tensor, None u2: Dual variable. Default: None.
     :param torch.Tensor, None r2: Auxiliary variable. Default: None.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

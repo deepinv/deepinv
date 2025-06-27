@@ -49,6 +49,8 @@ class Restormer(Denoiser):
         ``LayerNorm_type='BiasFree'`` and ``bias=False``
         (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

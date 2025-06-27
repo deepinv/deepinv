@@ -47,6 +47,8 @@ class AugmentConsistencyLoss(Loss):
         if ``False``, propagate through both branches.
     :param torch.Generator rng: torch random number generator to pass to transforms.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

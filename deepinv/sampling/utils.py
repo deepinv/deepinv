@@ -6,6 +6,8 @@ class Welford:
     r"""
     Welford's algorithm :footcite:ps:`welford1962note`for calculating mean and variance.
 
+    |sep|
+    
     :References:
         .. footbibliography::
     """

@@ -8,6 +8,8 @@ class BFBatchNorm2d(nn.BatchNorm2d):
     r"""
     From :footcite:ps:`mohan2019robust`.
 
+    |sep|
+
     :References:
     .. footbibliography::
     """
@@ -75,6 +77,8 @@ class UNet(Denoiser):
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
 
+    |sep|
+    
     :References:
     .. footbibliography::
     """

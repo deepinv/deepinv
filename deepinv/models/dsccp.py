@@ -21,6 +21,8 @@ class DScCP(Denoiser):
     :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
     :param torch.device, str device: 'cuda' or 'cpu'.
 
+    |sep|
+    
     :References:
      .. footbibliography::
     """

@@ -45,6 +45,8 @@ class DiffUNet(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
 
+    |sep|
+    
     :References:
      .. footbibliography::
     """
