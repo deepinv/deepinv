@@ -11,6 +11,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check CI is passing
+        run: |
+            gh auth setup-git
+            # Check latest run for "Test" workflow
+            STATUS_TEST=$(gh run list --repo deepinv/deepinv --workflow test.yml --limit 1 --json conclusion --jq '.[0].conclusion')
+            echo "Test workflow conclusion: $STATUS_TEST"
+            # Check "documentation"
+            STATUS_DOC=$(gh run list --repo deepinv/deepinv --workflow documentation.yml --limit 1 --json conclusion --jq '.[0].conclusion')
+            echo "Doc workflow conclusion: $STATUS_DOC"
+            if [ "$STATUS_TEST" != "SUCCESS" ] || [ "$STATUS_DOC" != "SUCCESS" ]; then
+            echo "❌ Tests not passing — aborting release of new version."
+            exit 1
+            fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
