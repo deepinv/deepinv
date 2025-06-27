@@ -37,3 +37,4 @@ from .tensorlist import (
 )
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
+from .parameters import get_GSPnP_params
