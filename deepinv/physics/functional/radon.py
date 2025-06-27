@@ -494,7 +494,7 @@ class ApplyRadon(torch.autograd.Function):
 
     It can be called by ``ApplyRadon.apply(x, radon, iradon, adjoint)`` and with inputs specified as follows:
 
-    :param torch.Tensor x:
+    :param torch.Tensor x: Input tensor, i.e., the input image if ``adjoint==False`` and the measurement tensor if ``adjoint==True``.
     :param Radon radon: Radon object used.
     :param IRadon iradon: Inverse Radon object used for the adjoint.
     :param bool adjoint: if ``True`` the ``ApplyRadon.apply(x, radon, iradon, adjoint)`` refers to the adjoint of the Radon transform, otherwise to the forward.

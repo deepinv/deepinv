@@ -138,6 +138,9 @@ class Tomography(LinearPhysics):
         self.fbp_interpolate_boundary = fbp_interpolate_boundary
         if circle:
             # interpolate boundary does not make sense if circle is True
+            warn(
+                "The argument fbp_interpolate_boundary=True is not applicable if circle=True. The value fbp_interpolate_boundary will be changed to False..."
+            )
             self.fbp_interpolate_boundary = False
         self.img_width = img_width
         self.device = device
@@ -228,9 +231,10 @@ class Tomography(LinearPhysics):
         :return torch.Tensor: noisy measurements
         """
         if self.fan_beam or self.adjoint_via_backprop:
-            assert (
-                not self.img_width is None
-            ), "Image size unknown. Apply forward operator or add it for initialization."
+            if self.img_width is None:
+                raise ValueError(
+                    "Image size unknown. Apply forward operator or add it for initialization."
+                )
             # lazy implementation for the adjoint...
             adj = adjoint_function(
                 self.A,
