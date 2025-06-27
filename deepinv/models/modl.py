@@ -1,14 +1,14 @@
 from typing import Union
 from torch.nn import Module
 
-from deepinv.optim.optimizers import create_iterator
 from deepinv.optim.prior import PnP
 from deepinv.optim.data_fidelity import L2
 from deepinv.models import DnCNN, Denoiser
-from deepinv.unfolded import BaseUnfold
+from deepinv.optim import BaseOptim
+from deepinv.optim.optim_iterators import HQSIteration
 
 
-class MoDL(BaseUnfold):
+class MoDL(BaseOptim):
     def __init__(
         self,
         denoiser: Union[Denoiser, Module] = None,
@@ -42,31 +42,30 @@ class MoDL(BaseUnfold):
         prior = PnP(denoiser=denoiser)
 
         # Unrolled optimization algorithm parameters
-        lamb = [1.0] * num_iter  # initialization of the regularization parameter
+        lambda_reg = [1.0] * num_iter  # initialization of the regularization parameter
         stepsize = [1.0] * num_iter  # initialization of the step sizes.
         sigma_denoiser = [0.01] * num_iter  # initialization of the denoiser parameters
         params_algo = (
             {  # wrap all the restoration parameters in a 'params_algo' dictionary
                 "stepsize": stepsize,
                 "g_param": sigma_denoiser,
-                "lambda": lamb,
+                "lambda_reg": lambda_reg,
             }
         )
 
         trainable_params = [
-            "lambda",
+            "lambda_reg",
             "stepsize",
             "g_param",
         ]  # define which parameters from 'params_algo' are trainable
 
         # Define the unfolded trainable model.
-        iterator = create_iterator("HQS", prior=prior)
-        super().__init__(
-            iterator,
+        super(MoDL, self).__init__(
+            HQSIteration(),
             max_iter=num_iter,
             trainable_params=trainable_params,
-            has_cost=iterator.has_cost,
             data_fidelity=data_fidelity,
             prior=prior,
             params_algo=params_algo,
+            unfold=True,
         )

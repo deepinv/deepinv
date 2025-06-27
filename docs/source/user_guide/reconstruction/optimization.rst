@@ -226,14 +226,13 @@ Predefined Algorithms
 Optimization algorithm inherit from the base class :class:`deepinv.optim.BaseOptim`, which serves as a common interface
 for all predefined optimization algorithms.
 
-The function :func:`deepinv.optim.optim_builder` returns an instance of :class:`deepinv.optim.BaseOptim` with the
-optimization algorithm of choice, either a predefined one (``"PGD"``, ``"ADMM"``, ``"HQS"``, etc.),
-or with a user-defined one. For example, we can create the same proximal gradient algorithm as the one
-at the beginning of this page, in one line of code:
+Classical optimizations algorithms are already implemented as subclasses of :class:`deepinv.optim.BaseOptim`, for example:
+:class:`deepinv.optim.GradientDescent`, :class:`deepinv.optim.ProximalGradientDescent`, :class:`deepinv.optim.ADMM`, etc...
+For example, we can create the same proximal gradient algorithm as the one at the beginning of this page, in one line of code:
 
 .. doctest::
 
-    >>> model = dinv.optim.optim_builder(iteration="PGD", prior=prior, data_fidelity=data_fidelity,
+    >>> model = dinv.optim.ProximalGradientDescent(prior=prior, data_fidelity=data_fidelity,
     ...                             params_algo={"stepsize": stepsize, "lambda": lambd}, max_iter=max_iter)
     >>> x_hat = model(y, physics)
     >>> dinv.utils.plot([x, y, x_hat], ["signal", "measurement", "estimate"], rescale_mode='clip')
@@ -290,7 +289,13 @@ Some predefined optimizers are provided:
    * - :class:`Mirror Descent (MD) <deepinv.optim.optim_iterators.MDIteration>`
      - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
        | :math:`x_{k+1} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
-     - ``"stepsize"``, ``"lambda"``, ``"g_param"``, convex potential ``h``
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
+
+   * - :class:`Proximal Mirror Descent (MD) <deepinv.optim.optim_iterators.PMDIteration>`
+     - | :math:`v_{k} = \nabla f(x_k) + \lambda \nabla \reg{x_k}`
+       | :math:`u_{k} = \nabla h^*(\nabla h(x_k) - \gamma v_{k})`
+       | :math:`x_{k+1} = \operatorname{prox^h}_{\gamma \lambda \regname}(u_k)`
+     - ``"stepsize"``, ``"lambda"``, ``"g_param"``
 
    * - :class:`Spectral Methods (SM) <deepinv.optim.optim_iterators.SMIteration>`
      - :math:`M = \conj{B} \text{diag}(T(y)) B + \lambda I`

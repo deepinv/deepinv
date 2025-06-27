@@ -16,7 +16,7 @@ from torchvision import transforms
 import deepinv as dinv
 from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import ProximalGradientDescent
 from deepinv.utils.demo import get_data_home
 
 # %%
@@ -152,30 +152,25 @@ prior = [
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
 # Unrolled optimization algorithm parameters
-lamb = [
+lambda_reg = [
     torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
-
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "lambda": lamb,
-}
-
 trainable_params = [
     "stepsize",
-    "lambda",
-]  # define which parameters from 'params_algo' are trainable
+    "lambda_reg",
+]  # define which parameters are trainable
 
 # Define the unfolded trainable model.
-model = unfolded_builder(
-    iteration="PGD",
-    params_algo=params_algo.copy(),
+model = ProximalGradientDescent(
+    unfold=True,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,
+    stepsize=stepsize,
+    lambda_reg=lambda_reg,
 ).to(device)
 
 
@@ -202,7 +197,7 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 1
+train_batch_size = 64 if torch.cuda.is_available() else 2
 test_batch_size = 64 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
@@ -269,5 +264,7 @@ dinv.utils.plot(
 # Plotting the learned parameters.
 # ------------------------------------
 dinv.utils.plotting.plot_parameters(
-    model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
+    model,
+    init_params={"stepsize": stepsize, "lambda": lambda_reg},
+    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )
