@@ -2,10 +2,10 @@ try:
     import tomllib
 except ImportError:
     import tomli as tomllib
-    
+
 with open("pyproject.toml", "rb") as f:
     data = tomllib.load(f)
-    
+
 version = data["project"]["version"]
 major, minor, patch = map(int, version.split("."))
 patch += 1
