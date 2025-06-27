@@ -63,7 +63,7 @@ class RandomNoise(Transform):
 
 
 class RandomPhaseError(Transform):
-    """Random phase error transform.
+    r"""Random phase error transform.
 
     This transform is specific to MRI problems, and adds a phase error to k-space using:
 
