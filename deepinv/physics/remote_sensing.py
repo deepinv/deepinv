@@ -112,7 +112,7 @@ class Pansharpen(StackedLinearPhysics):
         :return: Tensor of image pan-sharpening using the Brovey method.
 
         |sep|
-        
+
         :References:
         .. footbibliography::
         """

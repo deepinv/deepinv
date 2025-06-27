@@ -237,7 +237,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     :param torch.device device: device on which the computation is performed.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

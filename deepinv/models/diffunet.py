@@ -46,7 +46,7 @@ class DiffUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
 
     |sep|
-    
+
     :References:
      .. footbibliography::
     """

@@ -48,7 +48,7 @@ class AugmentConsistencyLoss(Loss):
     :param torch.Generator rng: torch random number generator to pass to transforms.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

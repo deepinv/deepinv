@@ -22,7 +22,7 @@ class DScCP(Denoiser):
     :param torch.device, str device: 'cuda' or 'cpu'.
 
     |sep|
-    
+
     :References:
      .. footbibliography::
     """

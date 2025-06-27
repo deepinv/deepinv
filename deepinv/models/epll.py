@@ -30,7 +30,7 @@ class EPLLDenoiser(Denoiser):
     :param str device: defines device (``cpu`` or ``cuda``)
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

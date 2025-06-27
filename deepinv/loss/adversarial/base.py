@@ -25,7 +25,7 @@ class DiscriminatorMetric:
     :param str device: torch device, defaults to ``"cpu"``
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

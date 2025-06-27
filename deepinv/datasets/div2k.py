@@ -54,7 +54,7 @@ class DIV2K(torch.utils.data.Dataset):
         >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

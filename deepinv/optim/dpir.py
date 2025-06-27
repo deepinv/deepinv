@@ -40,9 +40,9 @@ class DPIR(BaseOptim):
     :param float sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
-    
+
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

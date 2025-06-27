@@ -50,7 +50,7 @@ class Restormer(Denoiser):
         (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

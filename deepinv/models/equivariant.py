@@ -43,7 +43,7 @@ class EquivariantDenoiser(Denoiser):
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

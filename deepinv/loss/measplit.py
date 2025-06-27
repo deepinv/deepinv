@@ -378,7 +378,7 @@ class Neighbor2Neighbor(Loss):
     :param float gamma: regularization parameter :math:`\gamma`.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

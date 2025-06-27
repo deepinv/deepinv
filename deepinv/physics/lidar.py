@@ -30,7 +30,7 @@ class SinglePhotonLidar(Physics):
         the Poisson noise model :class:`deepinv.physics.PoissonNoise`
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

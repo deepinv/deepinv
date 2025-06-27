@@ -118,7 +118,7 @@ def GSDRUNet(
     :param str device: gpu or cpu.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

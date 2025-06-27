@@ -50,7 +50,7 @@ class Scale(Transform):
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

@@ -40,7 +40,7 @@ class TVDenoiser(Denoiser):
         :class:`~deepinv.optim.prior.TVPrior` instead. In particular, it allows to evaluate TV.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

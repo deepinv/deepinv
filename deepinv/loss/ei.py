@@ -39,7 +39,7 @@ class EILoss(Loss):
         This option is useful for super-resolution problems, see :footcite:ps:`scanvic2025scale` for details.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

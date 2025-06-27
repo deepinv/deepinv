@@ -826,7 +826,7 @@ class SwinIR(Denoiser):
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

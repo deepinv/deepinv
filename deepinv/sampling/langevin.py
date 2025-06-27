@@ -402,7 +402,7 @@ class SKRock(MonteCarlo):
         and thus the sampler computes the posterior mean and variance.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
 

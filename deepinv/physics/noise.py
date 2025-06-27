@@ -705,7 +705,7 @@ class LogPoissonNoise(NoiseModel):
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

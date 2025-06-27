@@ -23,7 +23,7 @@ class Haze(Physics):
     :param float offset: constant :math:`o`
 
     |sep|
-    
+
     :References:
         .. footbibliography::
 

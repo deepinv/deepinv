@@ -49,7 +49,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """

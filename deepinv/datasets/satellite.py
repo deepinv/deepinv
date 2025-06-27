@@ -68,7 +68,7 @@ class NBUDataset(Dataset):
     :param bool download: whether to download dataset
 
     |sep|
-        
+
     :References:
         .. footbibliography::
     """

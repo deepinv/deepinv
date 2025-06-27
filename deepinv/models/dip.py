@@ -28,7 +28,7 @@ class ConvDecoder(nn.Module):
     :param int channels: number of channels in the network.
 
     |sep|
-    
+
     :References:
      .. footbibliography::
     """

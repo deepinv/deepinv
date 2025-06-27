@@ -50,7 +50,7 @@ class NCSNpp(Denoiser):
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
-    
+
     :References:
     .. footbibliography::
     """

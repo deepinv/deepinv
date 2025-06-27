@@ -29,7 +29,7 @@ class PatchGANDiscriminator(nn.Module):
     :param bool bias: whether to use bias in conv layers, defaults to True
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

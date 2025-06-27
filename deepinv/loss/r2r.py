@@ -100,7 +100,7 @@ class R2RLoss(Loss):
     True
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

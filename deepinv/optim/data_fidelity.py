@@ -334,7 +334,7 @@ class IndicatorL2(DataFidelity):
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
 
         |sep|
-        
+
         :References:
             .. footbibliography::
         """

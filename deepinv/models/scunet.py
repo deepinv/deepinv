@@ -291,7 +291,7 @@ class SCUNet(Denoiser):
     :param str device: gpu or cpu. Default: 'cpu'.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

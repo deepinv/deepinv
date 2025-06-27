@@ -109,7 +109,7 @@ class BurgEntropy(Bregman):
     As shown in :footcite:ps:`Bolte2016descent`, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

@@ -299,7 +299,7 @@ class LpNorm(Metric):
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

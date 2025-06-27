@@ -78,7 +78,7 @@ class UNet(Denoiser):
         The number of trainable parameters increases with the scale.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

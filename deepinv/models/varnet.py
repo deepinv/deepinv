@@ -39,7 +39,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

@@ -45,7 +45,7 @@ class JacobianSpectralNorm(Loss):
         tensor(49.9999)
 
     |sep|
-    
+
     :References:
     .. footbibliography::
     """

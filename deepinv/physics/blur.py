@@ -133,7 +133,7 @@ class Downsampling(LinearPhysics):
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
 
         |sep|
-        
+
         :References:
             .. footbibliography::
         """

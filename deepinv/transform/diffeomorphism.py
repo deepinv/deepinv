@@ -34,7 +34,7 @@ class CPABDiffeomorphism(Transform):
     :param str, torch.device device: torch device.
 
     |sep|
-    
+
     :References:
         .. footbibliography::
     """
