@@ -3,5 +3,7 @@ try:
 except ImportError:
     import tomli as tomllib
 
-data = tomllib.load("pyproject.toml")
-print(data["project"]["version"])
+with open("pyproject.toml", "rb") as f:
+    metadata = tomllib.load(f)["project"]
+
+print(metadata["version"])
