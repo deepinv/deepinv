@@ -98,7 +98,7 @@ class CompressedSensing(LinearPhysics):
     |sep|
 
     :References:
-    
+
         .. footbibliography::
 
     """

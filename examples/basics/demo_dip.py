@@ -114,5 +114,5 @@ plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

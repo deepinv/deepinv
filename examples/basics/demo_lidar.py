@@ -102,5 +102,5 @@ plt.show()
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

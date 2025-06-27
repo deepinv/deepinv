@@ -161,5 +161,5 @@ test(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

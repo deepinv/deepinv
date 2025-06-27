@@ -56,7 +56,7 @@ class Pansharpen(StackedLinearPhysics):
     |sep|
 
     :References:
-    
+
         .. footbibliography::
 
     """

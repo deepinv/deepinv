@@ -189,5 +189,5 @@ test(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

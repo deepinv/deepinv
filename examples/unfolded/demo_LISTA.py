@@ -274,5 +274,5 @@ dinv.utils.plotting.plot_parameters(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

@@ -190,5 +190,5 @@ if plot_convergence_metrics:
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

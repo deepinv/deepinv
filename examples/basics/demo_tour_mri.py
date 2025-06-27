@@ -490,5 +490,5 @@ dinv.utils.plot(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

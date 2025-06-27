@@ -147,5 +147,5 @@ plot(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

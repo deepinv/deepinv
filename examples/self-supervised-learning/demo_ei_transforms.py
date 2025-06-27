@@ -157,5 +157,5 @@ dinv.utils.plot([x, y, x_hat], ["x", "y", "reconstruction"])
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::

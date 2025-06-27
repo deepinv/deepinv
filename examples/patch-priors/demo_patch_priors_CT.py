@@ -268,5 +268,5 @@ plot(
 
 # %%
 # :References:
-# 
+#
 #    .. footbibliography::
