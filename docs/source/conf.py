@@ -36,7 +36,7 @@ copyright = "deepinverse contributors"
 
 author = ""
 for auth in metadata["authors"]:
-    if auth:
+    if author:
         author += ", "
     author += auth["name"]
 release = metadata["version"]
