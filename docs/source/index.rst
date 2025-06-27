@@ -3,7 +3,7 @@
 DeepInverse: a PyTorch library for imaging with deep learning
 =============================================================
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
 
 DeepInverse is a PyTorch-based library for solving imaging inverse problems with deep learning.
 
@@ -59,6 +59,18 @@ If you use DeepInverse in your research, please cite the following paper (availa
           url={https://arxiv.org/abs/2505.20160},
     }
 
+**Star history**
+
+.. raw:: html
+
+   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+    </picture>
+   </a>
+
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -70,6 +82,8 @@ If you use DeepInverse in your research, please cite the following paper (availa
    :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
+.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
+   :target: https://pypistats.org/packages/deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
