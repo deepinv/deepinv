@@ -3,7 +3,7 @@
 DeepInverse: a PyTorch library for imaging with deep learning
 =============================================================
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |views| |pip install| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
 
 DeepInverse is a PyTorch-based library for solving imaging inverse problems with deep learning.
 
@@ -86,7 +86,6 @@ and `Andrew Wang <https://andrewwango.github.io/about>`_.
    :target: https://www.python.org/downloads/release/python-390/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
-.. |views| image:: https://komarev.com/ghpvc/?username=deepinv
 .. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
    :target: https://pypistats.org/packages/deepinv
 .. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
