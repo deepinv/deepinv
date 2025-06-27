@@ -1,0 +1,68 @@
+name: Auto Publish to PyPI
+
+on:
+  schedule:
+    - cron: '0 0 */21 * *'  # every 21 days at 00:00 UTC
+  workflow_dispatch:        # manual trigger
+
+jobs:
+  build-test-publish:
+    name: Auto version, test & publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install tools
+        run: |
+          pip install --upgrade build twine toml
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          python .github/scripts/bump_patch_version.py
+          echo "version=$(python .github/scripts/get_version.py)" >> "$GITHUB_OUTPUT"
+
+      - name: Build the package
+        run: python -m build
+
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          python -m twine upload --repository testpypi dist/*
+
+      - name: Install from TestPyPI and test
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
+          python -c "import deepinv"
+
+      - name: Publish to PyPI
+        if: ${{ success() }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload dist/*
+          
+      - name: Commit version bump and tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Release version ${{ steps.bump.outputs.version }}"
+          git tag v${{ steps.bump.outputs.version }}
+          git push origin HEAD --tags
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: Release v${{ steps.bump.outputs.version }}
+          files: dist/*
