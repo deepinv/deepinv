@@ -18,7 +18,6 @@ def increment_version(version):
 file_path = "pyproject.toml"
 
 path = Path(file_path)
-
 if not path.exists():
     raise FileNotFoundError(f"{file_path} does not exist")
 
@@ -26,32 +25,31 @@ if not path.exists():
 with open(path, "r", newline="") as f:
     lines = f.readlines()
 
-version_pattern = re.compile(r'^\s*version\s*=\s*"(\d+\.\d+\.\d+)"')
+# More precise pattern that matches the whole version line
+version_pattern = re.compile(
+    r'^(\s*version\s*=\s*")(\d+\.\d+\.\d+)("\s*(?:#.*)?$)', re.IGNORECASE
+)
+
 version_line_index = None
 old_version = None
 
-# Find the version line
+# Find and update the version line
 for i, line in enumerate(lines):
     match = version_pattern.match(line)
     if match:
         version_line_index = i
-        old_version = match.group(1)
+        prefix, old_version, suffix = match.groups()
+        new_version = increment_version(old_version)
+        lines[i] = f"{prefix}{new_version}{suffix}\n"
         break
 
 if version_line_index is None:
     raise ValueError(
-        'Could not find version in pyproject.toml (expected format: version = "X.Y.Z")'
+        "Could not find version in pyproject.toml\n"
+        'Expected format: version = "X.Y.Z" (with optional spaces/comments)'
     )
 
-new_version = increment_version(old_version)
-
-# Replace only the version number while preserving the rest of the line
-old_line = lines[version_line_index]
-new_line = re.sub(r'(")(\d+\.\d+\.\d+)(")', f"\\g<1>{new_version}\\g<3>", old_line)
-
-lines[version_line_index] = new_line
-
-# Write back to file with original line endings
+# Write back to file only if we found and modified the version
 with open(path, "w", newline="") as f:
     f.writelines(lines)
 
