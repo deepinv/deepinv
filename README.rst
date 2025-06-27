@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|   
 
 
 Introduction
@@ -115,6 +115,7 @@ Maintainers
 
 View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
 
+
 Citation
 --------
 If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
@@ -131,6 +132,21 @@ If you use DeepInverse in your research, please cite the following paper (availa
           primaryClass={eess.IV},
           url={https://arxiv.org/abs/2505.20160},
     }
+
+
+Star history
+------------
+
+.. raw:: html
+
+   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+    </picture>
+   </a>
+
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
