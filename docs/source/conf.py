@@ -19,7 +19,7 @@ import doctest
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-    
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -30,7 +30,7 @@ except ImportError:
 
 with open(os.path.join(basedir, "pyproject.toml"), "rb") as f:
     metadata = tomllib.load(f)["project"]
-    
+
 project = metadata["name"]
 copyright = "deepinverse contributors"
 
