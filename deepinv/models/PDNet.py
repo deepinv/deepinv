@@ -25,6 +25,7 @@ class PDNet_PrimalBlock(nn.Module):
     :param int nf: number of features in the convolutional layers. Default: 32.
 
     :References:
+
     .. footbibliography::
     """
 
@@ -90,6 +91,7 @@ class PDNet_DualBlock(nn.Module):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

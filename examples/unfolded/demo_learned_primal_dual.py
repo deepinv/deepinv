@@ -10,6 +10,7 @@ The phantoms are generated on the fly during training using the odl library (htt
 
 
 :References:
+
 .. footbibliography::
 """
 
@@ -287,4 +288,5 @@ trainer.test(test_dataloader)
 
 # %%
 # :References:
+# 
 #    .. footbibliography::

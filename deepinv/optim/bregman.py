@@ -111,6 +111,7 @@ class BurgEntropy(Bregman):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

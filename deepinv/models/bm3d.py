@@ -29,6 +29,7 @@ class BM3D(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

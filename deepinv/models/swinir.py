@@ -828,6 +828,7 @@ class SwinIR(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

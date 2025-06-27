@@ -11,6 +11,7 @@ The DDRM method requires that:
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
 
 :References:
+
 .. footbibliography::
 """
 
@@ -146,4 +147,5 @@ plot(
 
 # %%
 # :References:
+# 
 #    .. footbibliography::

@@ -50,6 +50,7 @@ class MOILoss(Loss):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

@@ -22,6 +22,7 @@ class ICNN(nn.Module):
     :param str device: Device to use for the model.
 
     :References:
+
     .. footbibliography::
     """
 

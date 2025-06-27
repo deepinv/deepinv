@@ -31,6 +31,7 @@ class EDMPrecond(Denoiser):
     |sep|
     
     :References:
+
     .. footbibliography::
     """
 

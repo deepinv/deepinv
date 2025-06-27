@@ -76,6 +76,7 @@ class PanNet(nn.Module):
     :param str device: torch device, defaults to "cpu"
 
     :References:
+
     .. footbibliography::
     """
 

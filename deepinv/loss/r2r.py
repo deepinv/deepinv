@@ -102,6 +102,7 @@ class R2RLoss(Loss):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

@@ -31,6 +31,7 @@ class PatchGANDiscriminator(nn.Module):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 
@@ -114,6 +115,7 @@ class ESRGANDiscriminator(nn.Module):
     :param tuple img_size: shape of input image
 
     :References:
+
     .. footbibliography::
     """
 
@@ -173,6 +175,7 @@ class DCGANDiscriminator(nn.Module):
     :param int nc: number of input channels, defaults to 3
 
     :References:
+
     .. footbibliography::
     """
 
@@ -225,6 +228,7 @@ class DCGANGenerator(nn.Module):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 
@@ -306,6 +310,7 @@ class CSGMGenerator(Reconstructor):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

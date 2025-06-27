@@ -45,6 +45,7 @@ class EquivariantDenoiser(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

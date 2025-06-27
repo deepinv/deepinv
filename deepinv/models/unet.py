@@ -11,6 +11,7 @@ class BFBatchNorm2d(nn.BatchNorm2d):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 
@@ -80,6 +81,7 @@ class UNet(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

@@ -41,7 +41,9 @@ class EILoss(Loss):
     |sep|
 
     :References:
+    
     .. footbibliography::
+    
     """
 
     def __init__(

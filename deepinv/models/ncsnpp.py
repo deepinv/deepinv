@@ -52,6 +52,7 @@ class NCSNpp(Denoiser):
 
 
     :References:
+
     .. footbibliography::
     """
 

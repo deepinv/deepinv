@@ -47,6 +47,7 @@ class JacobianSpectralNorm(Loss):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

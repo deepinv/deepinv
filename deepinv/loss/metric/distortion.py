@@ -301,6 +301,7 @@ class LpNorm(Metric):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

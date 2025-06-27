@@ -293,6 +293,7 @@ class SCUNet(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

@@ -33,6 +33,7 @@ class DnCNN(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

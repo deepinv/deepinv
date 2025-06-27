@@ -48,6 +48,7 @@ class ADMUNet(Denoiser):
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
     :References:
+
     .. footbibliography::
     """
 

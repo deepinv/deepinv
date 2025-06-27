@@ -89,6 +89,7 @@ class SplittingLoss(Loss):
     True
 
     :References:
+
     .. footbibliography::
     """
 

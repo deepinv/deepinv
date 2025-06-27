@@ -41,6 +41,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

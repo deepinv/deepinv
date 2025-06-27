@@ -133,4 +133,5 @@ plot_curves(metrics, save_dir=RESULTS_DIR / "curves", show=True)
 
 # %%
 # :References:
+# 
 #    .. footbibliography::

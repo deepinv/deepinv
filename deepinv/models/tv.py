@@ -42,6 +42,7 @@ class TVDenoiser(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

@@ -56,6 +56,7 @@ class Pansharpen(StackedLinearPhysics):
     |sep|
 
     :References:
+    
         .. footbibliography::
 
     """
@@ -114,6 +115,7 @@ class Pansharpen(StackedLinearPhysics):
         |sep|
 
         :References:
+
         .. footbibliography::
         """
 

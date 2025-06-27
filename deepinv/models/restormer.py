@@ -52,6 +52,7 @@ class Restormer(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 

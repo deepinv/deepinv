@@ -31,6 +31,7 @@ class GSPnP(Denoiser):
     |sep|
 
     :References:
+
     .. footbibliography::
     """
 
@@ -120,6 +121,7 @@ def GSDRUNet(
     |sep|
 
     :References:
+
     .. footbibliography::
     """
     from deepinv.models.drunet import DRUNet
