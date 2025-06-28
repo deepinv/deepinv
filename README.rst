@@ -113,7 +113,7 @@ If you have any questions or suggestions, please join the conversation in our
 Maintainers
 -----------
 
-View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
+View our current and former maintainers, and how to get in touch, at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 
 Citation
