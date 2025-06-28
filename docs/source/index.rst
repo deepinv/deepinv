@@ -39,6 +39,10 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
    community
 
 
+**Maintainers**
+
+View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
+
 **Citation**
 
 If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
@@ -66,14 +70,6 @@ If you use DeepInverse in your research, please cite the following paper (availa
       <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
     </picture>
    </a>
-
-
-**Lead Developers**
-
-`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
-`Samuel Hurault <https://github.com/samuro95/>`_, `Matthieu Terris <https://matthieutrs.github.io>`_
-and `Andrew Wang <https://andrewwango.github.io/about>`_.
-
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
