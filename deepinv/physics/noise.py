@@ -492,7 +492,6 @@ class PoissonNoise(NoiseModel):
     ):
         super().__init__(rng=rng)
         self.register_buffer("normalize", torch.tensor(normalize, dtype=torch.bool))
-        self.update_parameters(gain=gain)
         self.clip_positive = clip_positive
         self.register_buffer(
             "gain", self._float_to_tensor(gain).to(getattr(rng, "device", "cpu"))
