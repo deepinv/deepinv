@@ -41,7 +41,7 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
 
 **Maintainers**
 
-View our current and former maintainers, and how to get in touch, at [MAINTAINERS](https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md).
+View our current and former maintainers, and how to get in touch, at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 **Citation**
 
