@@ -22,7 +22,6 @@ def bump_patch_version(file_path):
     if not path.exists():
         raise FileNotFoundError(f"{file_path} does not exist")
 
-
     # Read the file content while preserving line endings
     with open(path, "r", newline="") as f:
         lines = f.readlines()
@@ -54,13 +53,12 @@ def bump_patch_version(file_path):
     # Write back to file only if we found and modified the version
     with open(path, "w", newline="") as f:
         f.writelines(lines)
-        
+
     return new_version
 
 
-
 if __name__ == "__main__":
-    
+
     file_path = "../../pyproject.toml"
     new_version = bump_patch_version(file_path)
 

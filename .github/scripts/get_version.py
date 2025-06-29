@@ -9,6 +9,7 @@ def get_version_from_toml(filename):
         metadata = tomllib.load(f)["project"]
     return metadata["version"]
 
+
 if __name__ == "__main__":
     version = get_version_from_toml("../../pyproject.toml")
     print(version)
