@@ -1,5 +1,8 @@
 :html_theme.sidebar_secondary.remove:
 
+Contributing to DeepInverse
+===========================
+
 DeepInverse is a community-driven project and welcomes contributions of all forms.
 We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
@@ -7,7 +10,7 @@ and we need your help to get there!
 View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`__.
 
 How to Contribute
-=================
+-----------------
 
 Make sure that you download all the required dependencies for testing
 by running in the root directory of the repository:
