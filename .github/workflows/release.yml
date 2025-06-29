@@ -11,6 +11,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check for recent release commit
+        id: check_release
+        run: |
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%s)
+          echo "Last commit: $LAST_COMMIT_MSG"
+          if [[ "$LAST_COMMIT_MSG" =~ ^Release\ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Latest commit is a release. Skipping release process."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if no new changes
+        if: steps.check_release.outputs.skip == 'true'
+        run: |
+          echo "No new changes since last release. Skipping workflow."
+          exit 0
+
       - name: Check CI is passing
         run: |
             gh auth setup-git
@@ -74,9 +92,24 @@ jobs:
           git tag v${{ steps.bump.outputs.version }}
           git push origin HEAD --tags
 
+      - name: Extract changelog description
+        id: changelog
+        run: |
+          python .github/scripts/get_latest_changelog.py > changelog.txt
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}
+          body_path: changelog.txt
           name: Release v${{ steps.bump.outputs.version }}
           files: dist/*
+
+          
+      - name: Commit and push version and changelog updates
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add pyproject.toml CHANGELOG.rst
+          git commit -m "Release v${{ steps.bump.outputs.version }}: update version, changelog"
+          git push origin HEAD
