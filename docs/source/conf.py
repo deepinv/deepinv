@@ -12,6 +12,11 @@ import os
 from pathlib import Path
 from sphinx.util import logging
 
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 logger = logging.getLogger(__name__)
 
 import doctest
@@ -19,15 +24,18 @@ import doctest
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "deepinverse"
-copyright = "2024, deepinverse contributors"
-author = (
-    "Julian Tachella, Matthieu Terris, Samuel Hurault, Dongdong Chen and Andrew Wang"
-)
-release = "0.3"
+with open(os.path.join(basedir, "pyproject.toml"), "rb") as f:
+    metadata = tomllib.load(f)["project"]
+
+project = metadata["name"]
+copyright = "deepinverse contributors"
+
+author = ", ".join(auth["name"] for auth in metadata["authors"])
+release = metadata["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

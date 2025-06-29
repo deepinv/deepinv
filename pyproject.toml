@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
+authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
 license = {text = "BSD 3-Clause"}
-description = "Pytorch library for solving inverse problems with deep learning"
+description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

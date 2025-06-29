@@ -1,3 +1,11 @@
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+with open("pyproject.toml", "rb") as f:
+    metadata = tomllib.load(f)["project"]
+
 __all__ = [
     "__title__",
     "__summary__",
@@ -7,11 +15,9 @@ __all__ = [
     "__license__",
 ]
 
-__title__ = "deepinv"
-__summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
-__version__ = "0.3"
-__author__ = (
-    "Julian Tachella, Samuel Hurault, Matthieu Terris, Dongdong Chen, Andrew Wang"
-)
-__license__ = "BSD 3-Clause Clear"
-__url__ = "https://deepinv.github.io/"
+__title__ = metadata["name"]
+__summary__ = metadata["description"]
+__version__ = metadata["version"]
+__author__ = ", ".join(auth["name"] for auth in metadata["authors"])
+__license__ = metadata["license"]["text"]
+__url__ = metadata["urls"]["Homepage"]
