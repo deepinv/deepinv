@@ -2,6 +2,7 @@ import re
 import sys
 from get_version import get_version_from_toml
 
+
 def rst_to_md(rst_text):
     lines = rst_text.strip().splitlines()
     md_lines = []
@@ -23,7 +24,9 @@ def rst_to_md(rst_text):
             continue
 
         # Convert references
-        line = re.sub(r":gh:`(\d+)`", r"[#\1](https://github.com/deepinv/deepinv/pull/\1)", line)
+        line = re.sub(
+            r":gh:`(\d+)`", r"[#\1](https://github.com/deepinv/deepinv/pull/\1)", line
+        )
         line = re.sub(r"`([^`]+)`_", r"\1", line)
         line = re.sub(r":class:`([^`]+)`", r"`\1`", line)
 
@@ -72,7 +75,9 @@ def update_changelog(filename):
     )
 
     # Replace the old "Current" section with the empty one and insert the versioned section below it
-    updated_changelog = changelog.replace(header + body, new_current + "\n" + version_header + body.strip() + "\n\n", 1)
+    updated_changelog = changelog.replace(
+        header + body, new_current + "\n" + version_header + body.strip() + "\n\n", 1
+    )
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(updated_changelog)
@@ -82,5 +87,3 @@ if __name__ == "__main__":
     filename = "../../CHANGELOG.rst"
     update_changelog(filename)
     print("CHANGELOG.rst updated.")
-
-
