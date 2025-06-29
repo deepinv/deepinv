@@ -111,6 +111,7 @@ Fixed
 
 Changed
 ^^^^^^^
+- Add bibtex references (:gh:`413` by `Samuel Hurault`_)
 - Set sphinx warnings as errors (:gh:`379` by `Julian Tachella`_)
 - Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)

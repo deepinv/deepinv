@@ -13,7 +13,7 @@ class JacobianSpectralNorm(Loss):
 
         \|\frac{df}{du}(x)\|_2.
 
-    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
+    This spectral norm is computed with a power method leveraging jacobian vector products, as proposed in :footcite:ps:`pesquet2021learning`.
 
     .. note::
 
@@ -43,6 +43,12 @@ class JacobianSpectralNorm(Loss):
         >>> regval = reg_l2(out, x)
         >>> print(regval) # returns approx 50
         tensor(49.9999)
+
+    |sep|
+
+    :References:
+
+    .. footbibliography::
     """
 
     def __init__(
@@ -192,7 +198,7 @@ class FNEJacobianSpectralNorm(Loss):
 
         \|\frac{d(2f-\operatorname{Id})}{du}(x)\|_2,
 
-    as proposed in `<https://arxiv.org/abs/2012.13247v2>`_.
+    as proposed in :footcite:ps:`pesquet2021learning`.
     This spectral norm is computed with the :class:`deepinv.loss.JacobianSpectralNorm` class.
 
     .. note::

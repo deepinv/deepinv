@@ -40,7 +40,7 @@ class CompressedSensing(LinearPhysics):
 
         A_{i,j} \sim \mathcal{N}(0,\frac{1}{m})
 
-    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see https://arxiv.org/abs/1506.03521)
+    or a Subsampled Orthogonal with Random Signs matrix (SORS) if ``fast=True`` (see :footcite:ps:`oymak2018isometric`)
 
     .. math::
 
@@ -94,6 +94,12 @@ class CompressedSensing(LinearPhysics):
         >>> physics(x)
         tensor([[-1.7769,  0.6160, -0.8181, -0.5282, -1.2197,  0.9332, -0.1668,  1.5779,
                   0.6752, -1.5684]])
+
+    |sep|
+
+    :References:
+
+        .. footbibliography::
 
     """
 

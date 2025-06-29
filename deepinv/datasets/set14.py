@@ -12,7 +12,7 @@ from deepinv.datasets.utils import (
 
 
 class Set14HR(torch.utils.data.Dataset):
-    """Dataset for `Set14 <https://paperswithcode.com/dataset/set14>`_.
+    """Dataset for `Set14`.
 
     The Set14 dataset is a dataset consisting of 14 images commonly used for testing performance of image reconstruction algorithms.
     Images have sizes ranging from 276×276 to 512×768 pixels.

@@ -64,10 +64,10 @@ class DiffusionSampler(MonteCarlo):
 
 
 class DDRM(Reconstructor):
-    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
+    r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the denoising diffusion restoration model (DDRM) described in https://arxiv.org/abs/2201.11793.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:ps:`zhu2023denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -103,6 +103,11 @@ class DDRM(Reconstructor):
         >>> xhat = model(y, physics) # sample from the posterior distribution
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
+
+    |sep|
+
+    :References:
+        .. footbibliography::
 
     """
 
@@ -206,8 +211,7 @@ class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described
-    in https://arxiv.org/abs/2305.08995.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:ps:`zhu2023denoising`.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
@@ -271,6 +275,11 @@ class DiffPIR(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
+    |sep|
+
+    :References:
+        .. footbibliography::
+        
     """
 
     def __init__(
@@ -505,8 +514,7 @@ class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 
-    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in
-    https://arxiv.org/abs/2209.14687.
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:ps:`chung2022diffusion`.
 
     DPS is an approximation of a gradient-based posterior sampling algorithm,
     which has minimal assumptions on the forward model. The only restriction is that
@@ -548,6 +556,11 @@ class DPS(Reconstructor):
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
+
+    |sep|
+    
+    :References:
+        .. footbibliography::
     """
 
     def __init__(
