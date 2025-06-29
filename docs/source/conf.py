@@ -12,6 +12,11 @@ import os
 from pathlib import Path
 from sphinx.util import logging
 
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
 logger = logging.getLogger(__name__)
 
 import doctest
@@ -22,11 +27,6 @@ sys.path.insert(0, basedir)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib
 
 with open(os.path.join(basedir, "pyproject.toml"), "rb") as f:
     metadata = tomllib.load(f)["project"]
