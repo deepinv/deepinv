@@ -34,11 +34,7 @@ with open(os.path.join(basedir, "pyproject.toml"), "rb") as f:
 project = metadata["name"]
 copyright = "deepinverse contributors"
 
-author = ""
-for auth in metadata["authors"]:
-    if author:
-        author += ", "
-    author += auth["name"]
+author = ", ".join(auth["name"] for auth in metadata["authors"])
 release = metadata["version"]
 
 # -- General configuration ---------------------------------------------------
