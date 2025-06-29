@@ -18,11 +18,6 @@ __all__ = [
 __title__ = metadata["name"]
 __summary__ = metadata["description"]
 __version__ = metadata["version"]
-authors = ""
-for author in metadata["authors"]:
-    if authors:
-        authors += ", "
-    authors += author["name"]
-__author__ = authors
+__author__ = ", ".join(auth["name"] for auth in metadata["authors"])
 __license__ = metadata["license"]["text"]
 __url__ = metadata["urls"]["Homepage"]
