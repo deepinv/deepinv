@@ -65,7 +65,7 @@ jobs:
         run: |
           pip install --upgrade build twine tomlkit
 
-      - name: Bump patch version
+      - name: Bump version
         id: bump
         run: |
           python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}$
