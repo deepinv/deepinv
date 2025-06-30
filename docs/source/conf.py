@@ -29,7 +29,7 @@ with open(os.path.join(basedir, "pyproject.toml"), "r", encoding="utf-8") as f:
     metadata = tomlkit.parse(f.read())["project"]
 
 project = str(metadata["name"])
-copyright = "deepinverse contributors"
+copyright = "deepinverse contributors 2025"
 
 author = ", ".join(str(auth["name"]) for auth in metadata["authors"])
 release = str(metadata["version"])
