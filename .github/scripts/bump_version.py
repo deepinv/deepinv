@@ -5,7 +5,7 @@ import tomlkit
 
 def increment_version(version, increment="patch"):
     """Increment the version number.
-    :param str version: The current version string in the format "major".minor.patch".
+    :param str version: The current version string in the format "major.minor.patch".
     :param str increment: The part of the version to increment, can be "major", "minor", or "patch".
     """
     parts = version.split(".")
