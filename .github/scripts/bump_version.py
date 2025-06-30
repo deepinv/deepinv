@@ -52,7 +52,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) not in [2, 3]:
-        print("Usage: python bump_patch_version.py path/to/pyproject.toml patch")
+        print("Usage: python bump_version.py path/to/pyproject.toml patch")
         sys.exit(1)
     file_path = sys.argv[1]
     increment = sys.argv[2] if len(sys.argv) > 2 else "patch"
