@@ -44,7 +44,7 @@ class BaseSampling(Reconstructor):
                 return new_X
 
         # create the sampler
-        sampler = BaseSampler(MyIterator(), prior, data_fidelity, iterator_params)
+        sampler = BaseSampling(MyIterator(), prior, data_fidelity, iterator_params)
 
         # compute posterior mean and variance of reconstruction of x
         mean, var = sampler.sample(y, physics)
@@ -166,8 +166,9 @@ class BaseSampling(Reconstructor):
             | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
 
         Example:
+            >>> from deepinv.sampling import BaseSampling, ULAIterator
             >>> # Basic usage with default settings
-            >>> sampler = BaseSampling(iterator, data_fidelity, prior)
+            >>> sampler = BaseSampling(ULAIterator, data_fidelity, prior)
             >>> mean, var = sampler.sample(measurements, forward_operator)
 
             >>> # Using multiple statistics
@@ -301,6 +302,7 @@ class BaseSampling(Reconstructor):
         :raises RuntimeError: If history storage was disabled (history_size=False)
 
         Example:
+            >>> from deepinv.sampling import BaseSampling, SamplingIterator
             >>> sampler = BaseSampling(iterator, data_fidelity, prior, history_size=5)
             >>> _ = sampler(measurements, forward_operator)
             >>> history = sampler.get_chain()
