@@ -66,6 +66,7 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+    "tomlkit",
 ]
 
 # optional dependencies for specific denoisers
@@ -91,9 +92,6 @@ dataset = [
     "pydicom",
     "mat73",
 ]
-
-# dependencies for automatic release of new versions
-release = ["tomlkit"]
 
 
 #####################################################################

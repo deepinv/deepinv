@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from sphinx.util import logging
 
-import toml
+import tomlkit
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,8 @@ sys.path.insert(0, basedir)
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-metadata = toml.load(os.path.join(basedir, "pyproject.toml"))["project"]
+with open(os.path.join(basedir, "pyproject.toml"), "r", encoding="utf-8") as f:
+    metadata = tomlkit.parse(f.read())["project"]
 
 project = metadata["name"]
 copyright = "deepinverse contributors"
