@@ -105,7 +105,7 @@ jobs:
       - name: Extract changelog description
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py CHANGELOG.rst
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -120,6 +120,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add pyproject.toml CHANGELOG.rst ${{github.event.inputs.bump_type}}
+          git add pyproject.toml CHANGELOG.rst
           git commit -m "Release v${{ steps.bump.outputs.version }}: update version, changelog"
           git push origin HEAD
