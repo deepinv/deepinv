@@ -147,7 +147,7 @@ def process_docstring(app, what, name, obj, options, lines):
 
 
 def setup(app):
-    app.connect("autodoc-process-docstring", process_docstring)
+    app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
 
