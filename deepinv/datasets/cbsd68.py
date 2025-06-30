@@ -17,7 +17,7 @@ except:
 class CBSD68(torch.utils.data.Dataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
-    Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark :footcite:ps:`MartinFTM01`.
+    Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark :footcite:t:`MartinFTM01`.
     It is used for measuring image restoration algorithms performance. It contains 68 images.
 
 
@@ -51,11 +51,6 @@ class CBSD68(torch.utils.data.Dataset):
         >>> print(len(dataset))                                  # check that we have 68 images
         68
         >>> shutil.rmtree("CBSB68")                         # remove raw data from disk
-
-    |sep|
-
-    :References:
-        .. footbibliography::
 
     """
 

@@ -8,8 +8,7 @@ class DScCP(Denoiser):
     r"""
     DScCP denoiser network.
 
-    The network architecture is based on the paper
-    `Unfolded proximal neural networks for robust image Gaussian denoising :footcite:ps:`le2024unfolded`.
+    The network architecture is based on the paper from :footcite:t:`le2024unfolded`.
     and has an unrolled architecture based on the fast Chambolle-Pock algorithm using strong convexity.
     DScCP stands for Deep Strongly Convex Chambolle Pock.
 
@@ -21,10 +20,6 @@ class DScCP(Denoiser):
     :param str pretrained: 'download' to download pretrained weights, or path to local weights file.
     :param torch.device, str device: 'cuda' or 'cpu'.
 
-    |sep|
-
-    :References:
-     .. footbibliography::
     """
 
     def __init__(

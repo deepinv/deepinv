@@ -14,10 +14,10 @@ from deepinv.utils.decorators import _deprecated_alias
 class PatchGANDiscriminator(nn.Module):
     r"""PatchGAN Discriminator model.
 
-     This discriminator model was originally proposed in :footcite:ps:`isola2017image` and classifies whether each patch of an image is real
-     or fake.
+    This discriminator model was originally proposed by :footcite:t:`isola2017image` and classifies whether each patch of an image is real
+    or fake.
 
-    Implementation adapted from :footcite:ps:`kupyn2018deblurgan`.
+    Implementation adapted from :footcite:t:`kupyn2018deblurgan`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
@@ -27,12 +27,6 @@ class PatchGANDiscriminator(nn.Module):
     :param bool use_sigmoid: use sigmoid activation at end, defaults to False
     :param bool batch_norm: whether to use batch norm layers, defaults to True
     :param bool bias: whether to use bias in conv layers, defaults to True
-
-    |sep|
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(
@@ -107,16 +101,14 @@ class PatchGANDiscriminator(nn.Module):
 class ESRGANDiscriminator(nn.Module):
     r"""ESRGAN Discriminator.
 
-    The ESRGAN discriminator model was originally proposed in :footcite:ps:`wang2018esrgan`. Implementation taken from
+    The ESRGAN discriminator model was originally proposed by :footcite:t:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param tuple img_size: shape of input image
 
-    :References:
 
-    .. footbibliography::
     """
 
     @_deprecated_alias(input_shape="img_size")
@@ -166,7 +158,7 @@ class ESRGANDiscriminator(nn.Module):
 class DCGANDiscriminator(nn.Module):
     r"""DCGAN Discriminator.
 
-    The DCGAN discriminator model was originally proposed in :footcite:ps:`radford2015unsupervised`. Implementation taken from
+    The DCGAN discriminator model was originally proposed by :footcite:t:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
@@ -174,9 +166,7 @@ class DCGANDiscriminator(nn.Module):
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
 
-    :References:
 
-    .. footbibliography::
     """
 
     def __init__(self, ndf: int = 64, nc: int = 3):
@@ -213,7 +203,7 @@ class DCGANDiscriminator(nn.Module):
 class DCGANGenerator(nn.Module):
     r"""DCGAN Generator.
 
-    The DCGAN generator model was originally proposed in :footcite:ps:`radford2015unsupervised`
+    The DCGAN generator model was originally proposed by :footcite:t:`radford2015unsupervised`
     and takes a latent sample as input.
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
@@ -227,9 +217,7 @@ class DCGANGenerator(nn.Module):
 
     |sep|
 
-    :References:
 
-    .. footbibliography::
     """
 
     def __init__(
@@ -284,7 +272,7 @@ class CSGMGenerator(Reconstructor):
     r"""CSGMGenerator(backbone_generator=DCGANGenerator(), inf_max_iter=2500, inf_tol=1e-4, inf_lr=1e-2, inf_progress_bar=False)
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
-    This approach was proposed in :footcite:ps:`bora2017compressed` and :footcite:ps:`bora2018ambientgan`.
+    This approach was proposed by :footcite:t:`bora2017compressed` and :footcite:t:`bora2018ambientgan`.
 
     At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
 
@@ -306,12 +294,6 @@ class CSGMGenerator(Reconstructor):
     :param float inf_tol: tolerance of inference-time optimisation, defaults to 1e-2
     :param float inf_lr: learning rate of inference-time optimisation, defaults to 1e-2
     :param bool inf_progress_bar: whether to display progress bar for inference-time optimisation, defaults to False
-
-    |sep|
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(

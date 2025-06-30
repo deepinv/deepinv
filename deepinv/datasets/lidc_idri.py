@@ -29,7 +29,7 @@ except:
 class LidcIdriSliceDataset(torch.utils.data.Dataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
 
-    Published in :footcite:ps:`armato2011lung`.
+    Published in :footcite:t:`armato2011lung`.
 
     | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
     | of diagnostic and lung cancer screening thoracic computed tomography (CT)
@@ -74,9 +74,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             print(batch.shape)
 
 
-    :References:
 
-    .. footbibliography::
     """
 
     class SliceSampleIdentifier(NamedTuple):

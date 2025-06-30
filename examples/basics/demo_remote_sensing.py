@@ -12,7 +12,7 @@ operator :class:`deepinv.physics.Pansharpen`.
 
 We will also demonstrate other inverse problems including compressive spectral imaging and hyperspectral unmixing.
 
-We provide a convenient satellite image dataset for pan-sharpening :class:`deepinv.datasets.NBUDataset` provided in the paper :footcite:ps:`meng2020large`.
+We provide a convenient satellite image dataset for pan-sharpening :class:`deepinv.datasets.NBUDataset` provided in the paper :footcite:t:`meng2020large`.
 which includes data from several satellites such as WorldView satellites.
 
 .. tip::
@@ -137,11 +137,11 @@ x_hat = physics.A_dagger(y)
 # -------------------------------------------
 # The pan-sharpening physics is compatible with the rest of the DeepInverse library
 # so we can solve the inverse problem using any method provided in the library.
-# For example, we use here the PanNet :footcite:ps:`yang2017pannet` model.
+# For example, we use here the PanNet :footcite:t:`yang2017pannet` model.
 #
 # This model can be trained using losses such as supervised learning using :class:`deepinv.loss.SupLoss`
 # or self-supervised learning using Equivariant Imaging :class:`deepinv.loss.EILoss`, which was applied to
-# pan-sharpening in :footcite:ps:`wang2024perspective`.
+# pan-sharpening in :footcite:t:`wang2024perspective`.
 #
 # For evaluation, we use the standard full-reference metrics (ERGAS, SAM) and no-reference (QNR).
 #

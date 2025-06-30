@@ -36,7 +36,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:ps:`levin2009understanding`.
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

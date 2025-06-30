@@ -149,7 +149,7 @@ class ScorePrior(Prior):
     .. note::
 
         If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
-        `Regularization by Denoising (RED) :footcite:ps:`romano2017little` and doesn't require the normalization.
+        `Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn't require the normalization.
 
 
     .. note::
@@ -161,11 +161,6 @@ class ScorePrior(Prior):
         .. math::
 
             p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
-
-    |sep|
-
-    :References:
-            .. footbibliography::
     """
 
     def __init__(self, denoiser, *args, **kwargs):

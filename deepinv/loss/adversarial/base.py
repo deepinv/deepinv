@@ -12,11 +12,11 @@ class DiscriminatorMetric:
 
     Compares discriminator output with labels depending on if the image should be real or not.
 
-    The loss function is composed following LSGAN :footcite:ps:`mao2017least`.
+    The loss function is composed following LSGAN from :footcite:t:`mao2017least`.
 
     This can be overriden to provide any flavour of discriminator metric, e.g. NSGAN, WGAN, LSGAN etc.
 
-    See :footcite:ps:`lucic2018gans` for a comparison.
+    See :footcite:t:`lucic2018gans` for a comparison.
 
     :param torch.nn.Module metric: loss with which to compare outputs, defaults to :class:`torch.nn.MSELoss`
     :param float real_label: value for ideal real image, defaults to 1.
@@ -24,10 +24,7 @@ class DiscriminatorMetric:
     :param bool no_grad: whether to no_grad the metric computation, defaults to ``False``
     :param str device: torch device, defaults to ``"cpu"``
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(
@@ -64,7 +61,7 @@ class GeneratorLoss(Loss):
     For examples, see :class:`SupAdversarialGeneratorLoss <deepinv.loss.adversarial.SupAdversarialGeneratorLoss>`
     and :class:`UnsupAdversarialGeneratorLoss <deepinv.loss.adversarial.UnsupAdversarialGeneratorLoss>`
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formulae.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formula.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network. If not specified, `D` must be provided in forward(), defaults to None.
@@ -109,7 +106,7 @@ class DiscriminatorLoss(Loss):
     For examples, see :class:`deepinv.loss.adversarial.SupAdversarialDiscriminatorLoss`,
     :class:`deepinv.loss.adversarial.UnsupAdversarialDiscriminatorLoss`.
 
-    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formulae.
+    See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for formula.
 
     :param float weight_adv: weight for adversarial loss, defaults to 1.
     :param torch.nn.Module D: discriminator network.

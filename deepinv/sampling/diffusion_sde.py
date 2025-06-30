@@ -210,7 +210,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
     r"""
     Variance-Exploding Stochastic Differential Equation (VE-SDE).
 
-    This class implements the reverse-time SDE of the Variance-Exploding SDE (VE-SDE) :footcite:ps:`song2020score`.
+    This class implements the reverse-time SDE of the Variance-Exploding SDE (VE-SDE) :footcite:t:`song2020score`.
 
     The forward-time SDE is defined as follows:
 
@@ -236,10 +236,7 @@ class VarianceExplodingDiffusion(DiffusionSDE):
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(
@@ -326,7 +323,7 @@ class VariancePreservingDiffusion(DiffusionSDE):
     r"""
     Variance-Preserving Stochastic Differential Equation (VP-SDE).
 
-    This class implements the reverse-time SDE of the Variance-Preserving SDE (VP-SDE) :footcite:ps:`song2020score`.
+    This class implements the reverse-time SDE of the Variance-Preserving SDE (VP-SDE) :footcite:t:`song2020score`.
 
     The forward-time SDE is defined as follows:
 
@@ -352,10 +349,7 @@ class VariancePreservingDiffusion(DiffusionSDE):
         most computation cost is from evaluating the ``denoiser``, which will be always computed in ``torch.float32``.
     :param torch.device device: device on which the computation is performed.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

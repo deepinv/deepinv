@@ -32,8 +32,8 @@ class SplittingLoss(Loss):
         or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{A}`
 
-    This loss was used for MRI in SSDU :footcite:ps:`yaman2020self` for MRI, Noise2Inverse :footcite:ps:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
-    Note we implement the multi-mask strategy proposed by :footcite:ps:`yaman2020self`.
+    This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
+    Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.
 
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
@@ -51,7 +51,7 @@ class SplittingLoss(Loss):
 
     .. note::
 
-        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:ps:`yaman2020self`.
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
 
     .. seealso::
 
@@ -88,9 +88,7 @@ class SplittingLoss(Loss):
     >>> print(l.item() > 0)
     True
 
-    :References:
 
-    .. footbibliography::
     """
 
     def __init__(
@@ -357,10 +355,10 @@ class Neighbor2Neighbor(Loss):
     r"""
     Neighbor2Neighbor loss.
 
-    Implements the self-supervised Neighbor2Neighbor loss :footcite:ps:`huang2021neighbor2neighbor`.
+    Implements the self-supervised Neighbor2Neighbor loss :footcite:t:`huang2021neighbor2neighbor`.
 
     Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
-    map (see details in :footcite:ps:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
+    map (see details in :footcite:t:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
 
     .. math::
 
@@ -378,10 +376,7 @@ class Neighbor2Neighbor(Loss):
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

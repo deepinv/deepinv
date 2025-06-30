@@ -13,7 +13,7 @@ class BM3D(Denoiser):
     r"""
     BM3D denoiser.
 
-    The BM3D denoiser was introduced in :footcite:ps:`dabov2007image`.
+    The BM3D denoiser was introduced by :footcite:t:`dabov2007image`.
 
 
     .. note::
@@ -26,11 +26,6 @@ class BM3D(Denoiser):
         This module wraps the BM3D denoiser from the `BM3D python package <https://pypi.org/project/bm3d/>`_.
         It can be installed with ``pip install bm3d``.
 
-    |sep|
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(self):

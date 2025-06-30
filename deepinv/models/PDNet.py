@@ -12,7 +12,7 @@ class PDNet_PrimalBlock(nn.Module):
     r"""
     Primal block for the Primal-Dual unfolding model.
 
-    From the paper :footcite:ps:`adler2018learned`.
+    from :footcite:t:`adler2018learned`.
 
     Primal variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current primal variable and the backprojected dual variable along
@@ -76,7 +76,7 @@ class PDNet_DualBlock(nn.Module):
     r"""
     Dual block for the Primal-Dual unfolding model.
 
-    From the paper :footcite:ps:`adler2018learned`.
+    from :footcite:t:`adler2018learned`.
 
     Dual variables are images of shape (batch_size, in_channels, height, width). The input of each
     primal block is the concatenation of the current dual variable with the projected primal variable and
@@ -87,12 +87,6 @@ class PDNet_DualBlock(nn.Module):
     :param int depth: number of convolutional layers in the block. Default: 3.
     :param bool bias: whether to use bias in convolutional layers. Default: True.
     :param int nf: number of features in the convolutional layers. Default: 32.
-
-    |sep|
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(self, in_channels=7, out_channels=5, depth=3, bias=True, nf=32):

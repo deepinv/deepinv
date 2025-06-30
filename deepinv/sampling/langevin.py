@@ -238,7 +238,7 @@ class ULA(MonteCarlo):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
-    The algorithm runs the following markov chain iteration (Algorithm 2 from :footcite:ps:`laumont2022bayesian`):
+    The algorithm runs the following markov chain iteration (Algorithm 2 from :footcite:t:`laumont2022bayesian`):
 
     .. math::
 
@@ -277,10 +277,7 @@ class ULA(MonteCarlo):
         and thus the sampler computes the posterior mean and variance.
     :param bool verbose: prints progress of the algorithm.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
 
     """
 
@@ -375,7 +372,7 @@ class SKRock(MonteCarlo):
     Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic
     approximation to accelerate the standard Unadjusted Langevin Algorithm.
 
-    The algorithm was introduced in :footcite:ps:`pereyra2020accelerating`.
+    The algorithm was introduced by :footcite:t:`pereyra2020accelerating`.
 
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
@@ -401,10 +398,7 @@ class SKRock(MonteCarlo):
         of the function g_statistic. By default, it is the identity function (lambda x: x),
         and thus the sampler computes the posterior mean and variance.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
 
     """
 

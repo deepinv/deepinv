@@ -13,8 +13,8 @@ available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:
    easy-to-use subset
    :class:`deepinv.datasets.SimpleFastMRISliceDataset`
 -  Models: :class:`deepinv.models.VarNet`
-   (VarNet :footcite:ps:`hammernik2018learning`, E2E-VarNet :footcite:ps:`sriram2020end`),
-   :class:`deepinv.models.MoDL` (a simple MoDL :footcite:ps:`aggarwal2018modl` unrolled model)
+   (VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end`),
+   :class:`deepinv.models.MoDL` (a simple MoDL :footcite:t:`aggarwal2018modl` unrolled model)
 
 Contents:
 
@@ -186,7 +186,7 @@ denoiser = dinv.models.DnCNN(
 
 # %%
 # These backbones can be used within specific MRI models, such as
-# VarNet :footcite:ps:`hammernik2018learning`, E2E-VarNet :footcite:ps:`sriram2020end` and MoDL :footcite:ps:`aggarwal2018modl`,
+# VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end` and MoDL :footcite:t:`aggarwal2018modl`,
 # for which we provide implementations:
 #
 

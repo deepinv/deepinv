@@ -63,7 +63,7 @@ class Tomography(LinearPhysics):
 
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
 
-        The default values are adapted from the geometry in :footcite:ps:`khalil_2023_8307932`.
+        The default values are adapted from the geometry in :footcite:t:`khalil_2023_8307932`.
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param str device: gpu or cpu.
@@ -97,10 +97,7 @@ class Tomography(LinearPhysics):
                   [ 0.9002, -0.8457, -0.1666],
                   [-2.4882, -2.7340, -0.9793]]]])
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

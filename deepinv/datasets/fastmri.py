@@ -40,7 +40,7 @@ from deepinv.physics.mri import MultiCoilMRI, MRIMixin
 class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     """Simple FastMRI image dataset.
 
-    Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset :footcite:ps:`knoll2020advancing` for quick loading.
+    Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset :footcite:t:`knoll2020advancing` for quick loading.
 
     .. important::
 
@@ -82,10 +82,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(
@@ -156,7 +153,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR image slices.
 
-    :footcite:ps:`knoll2020advancing` This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.
+    :footcite:t:`knoll2020advancing` This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.
     This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.
 
     To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.
@@ -266,8 +263,6 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         Saving dataset cache to ...
         >>> import shutil; shutil.rmtree(root.parent)
 
-    :References:
-        .. footbibliography::
     """
 
     @staticmethod

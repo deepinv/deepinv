@@ -15,7 +15,7 @@ class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
 
-    Model :footcite:ps:`zamir2022restormer` specialized in restoration tasks including deraining, single-image motion deblurring,
+    Model introduced by :footcite:t:`zamir2022restormer`, specialized in restoration tasks including deraining, single-image motion deblurring,
     defocus deblurring and image denoising for high-resolution images.
 
     Code adapted from https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
@@ -51,9 +51,7 @@ class Restormer(Denoiser):
 
     |sep|
 
-    :References:
 
-    .. footbibliography::
     """
 
     def __init__(

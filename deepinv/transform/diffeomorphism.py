@@ -11,7 +11,7 @@ class CPABDiffeomorphism(Transform):
     using ``pip install libcpab``.
 
     Wraps CPAB from a modified version of the `original implementation <https://github.com/SkafteNicki/libcpab>`_.
-    From the paper :footcite:ps:`freifeld2017transformations`.
+    from :footcite:t:`freifeld2017transformations`.
 
     These diffeomorphisms benefit from fast GPU-accelerated transform + fast inverse.
 
@@ -33,10 +33,7 @@ class CPABDiffeomorphism(Transform):
     :param bool override: see ``libcpab.Cpab`` docs.
     :param str, torch.device device: torch device.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

@@ -8,7 +8,7 @@ class ScoreLoss(Loss):
     r"""
     Learns score of distribution in the context of Noise2Score.
 
-    Published in :footcite:ps:`kim2021noise2score`.
+    Proposed by :footcite:t:`kim2021noise2score`.
 
     Approximates the score of the measurement distribution :math:`S(y)\approx \nabla \log p(y)`.
 
@@ -73,11 +73,6 @@ class ScoreLoss(Loss):
         >>> l = loss(model)
         >>> print(l.item() > 0)
         True
-
-    |sep|
-
-    :References:
-        .. footbibliography::
 
     """
 

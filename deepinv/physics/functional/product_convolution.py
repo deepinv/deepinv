@@ -12,7 +12,7 @@ def product_convolution2d(
 ) -> torch.Tensor:
     r"""
 
-    Product-convolution operator in 2d. Details available in the paper :footcite:ps:`escande2017approximation`.
+    Product-convolution operator in 2d. Details available in the paper :footcite:t:`escande2017approximation`.
 
     This forward operator performs
 

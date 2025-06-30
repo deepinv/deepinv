@@ -15,7 +15,7 @@ from deepinv.datasets.utils import (
 class FMD(torch.utils.data.Dataset):
     """Dataset for `Fluorescence Microscopy Denoising <https://github.com/yinhaoz/denoising-fluorescence>`_.
 
-    Published in :footcite:`zhang2018poisson`.
+    Introduced by :footcite:t:`zhang2018poisson`.
 
     | 1) The Fluorescence Microscopy Denoising (FMD) dataset is dedicated to
     | Poisson-Gaussian denoising.
@@ -78,10 +78,6 @@ class FMD(torch.utils.data.Dataset):
             dataset = FMD(root="fmd", img_types=img_types, download=True)  # download raw data at root and load dataset
             print(len(dataset))                                            # check that we have 5000 images
             shutil.rmtree("fmd")                                           # remove raw data from disk
-
-    :References:
-        .. footbibliography::
-
     """
 
     gdrive_ids = {

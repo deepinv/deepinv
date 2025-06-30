@@ -10,7 +10,7 @@ class EPLLDenoiser(Denoiser):
     r"""
     Expected Patch Log Likelihood denoising method.
 
-    This class implements the Expected Patch Log Likelihood (EPLL) denoising method :footcite:ps:`zoran2011learning`, which is a denoising method based on the minimization problem
+    This class implements the Expected Patch Log Likelihood (EPLL) denoising method from :footcite:t:`zoran2011learning`, which is a denoising method based on the minimization problem
 
     .. math::
 
@@ -29,10 +29,7 @@ class EPLLDenoiser(Denoiser):
     :param int channels: number of color channels (e.g. 1 for gray-valued images and 3 for RGB images)
     :param str device: defines device (``cpu`` or ``cuda``)
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

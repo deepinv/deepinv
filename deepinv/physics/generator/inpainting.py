@@ -279,13 +279,13 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     """Randomly generate Gaussian splitting/inpainting masks.
 
     Generates binary masks with an approximate given split ratio, where samples are weighted according to a spatial Gaussian distribution, where pixels near the center are less likely to be kept.
-    This mask is used for measurement splitting for MRI in :footcite:ps:`yaman2020self`.
+    This mask is used for measurement splitting for MRI in :footcite:t:`yaman2020self`.
 
     Can be used either for generating random inpainting masks for :class:`deepinv.physics.Inpainting`, or random splitting masks for :class:`deepinv.loss.SplittingLoss`.
 
     Optional pass in input_mask to subsample this mask given the split ratio.
 
-    Handles both 2D mask (i.e. [C, H, W] from :footcite:ps:`yaman2020self` and 2D+time dynamic mask (i.e. [C, T, H, W] from :footcite:ps:`acar2021self` generation. Does not handle 1D data (e.g. of shape [C, M])
+    Handles both 2D mask (i.e. [C, H, W] from :footcite:t:`yaman2020self` and 2D+time dynamic mask (i.e. [C, T, H, W] from :footcite:t:`acar2021self` generation. Does not handle 1D data (e.g. of shape [C, M])
 
     |sep|
 
@@ -371,7 +371,7 @@ class GaussianSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
         r"""
         Create one batch of splitting mask using Gaussian distribution.
 
-        Adapted from https://github.com/byaman14/SSDU/blob/main/masks/ssdu_masks.py from SSDU :footcite:ps:`yaman2020self`.
+        Adapted from https://github.com/byaman14/SSDU/blob/main/masks/ssdu_masks.py from SSDU :footcite:t:`yaman2020self`.
 
         :param torch.Tensor, None input_mask: optional mask to be split. If None, all pixels are considered. If not None, only pixels where mask==1 are considered. No batch dim in shape.
         """
@@ -450,7 +450,7 @@ class Phase2PhaseSplittingMaskGenerator(BernoulliSplittingMaskGenerator):
     To be exclusively used with :class:`deepinv.loss.mri.Phase2PhaseLoss`.
     Splits dynamic data (i.e. data of shape (B, C, T, H, W)) into even and odd phases in the T dimension.
 
-    Used in :footcite:ps:`eldeniz2021phase2phase`.
+    Used in :footcite:t:`eldeniz2021phase2phase`.
 
     If input_mask not passed, a blank input mask is used instead.
 
@@ -498,7 +498,7 @@ class Artifact2ArtifactSplittingMaskGenerator(Phase2PhaseSplittingMaskGenerator)
     When ``step`` called with ``persist_prev``, the selected chunk will be different from the previous time it was called.
     This is used so input chunk is compared to a different output chunk.
 
-    Artifact2Artifact was introduced in :footcite:ps:`liu2020rare`.
+    Artifact2Artifact was introduced by :footcite:t:`liu2020rare`.
 
     If input_mask not passed, a blank input mask is used instead.
 

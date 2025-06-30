@@ -15,7 +15,7 @@ from deepinv.datasets.utils import (
 class LsdirHR(torch.utils.data.Dataset):
     """Dataset for `LSDIR <https://ofsoundof.github.io/lsdir-data/>`_.
 
-    Published in :footcite:ps:`li2023lsdir`.
+    Published in :footcite:t:`li2023lsdir`.
 
     A large-scale dataset for image restoration tasks such as image super-resolution (SR),
     image denoising, JPEG deblocking, deblurring, and demosaicking, and real-world SR.
@@ -63,10 +63,7 @@ class LsdirHR(torch.utils.data.Dataset):
             print(val_dataset.verify_split_dataset_integrity())             # check that raw data has been downloaded correctly
             print(len(val_dataset))                                         # check that we have 250 images
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     archive_urls = {

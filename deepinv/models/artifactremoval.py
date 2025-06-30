@@ -24,7 +24,7 @@ class ArtifactRemoval(Reconstructor):
     .. note::
 
         In the case of ``mode='pinv'``, the architecture is inspired by the FBPConvNet
-        approach :footcite:ps:`jin2017deep` where a deep network :math:`\phi`
+        approach :footcite:t:`jin2017deep` where a deep network :math:`\phi`
         is used to improve the filtered back projection :math:`A^{\dagger}y`.
 
     .. deprecated:: 0.2.2

@@ -18,7 +18,7 @@ class EquivariantDenoiser(Denoiser):
     .. math::
         \operatorname{D}^{\text{eq}}_{\sigma}(x) = \frac{1}{|\mathcal{G}|}\sum_{g\in \mathcal{G}} T_g^{-1}(\operatorname{D}_{\sigma}(T_g(x))).
 
-    Otherwise, as proposed in :footcite:ps:`terris2024equivariant`, a Monte Carlo approximation can be obtained by
+    Otherwise, as proposed by :footcite:t:`terris2024equivariant`, a Monte Carlo approximation can be obtained by
     sampling :math:`g \sim \mathcal{G}` at random and applying
 
     .. math::
@@ -41,12 +41,6 @@ class EquivariantDenoiser(Denoiser):
         each time i.e. a Monte-Carlo approximation of an equivariant denoiser.
         If False, the denoiser is applied to the average of all the transformed images, turning the denoiser into an
         equivariant denoiser with respect to the chosen group of transformations. Ignored if ``transform`` is provided.
-
-    |sep|
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(

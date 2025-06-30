@@ -35,16 +35,13 @@ class DPIR(BaseOptim):
 
     This method uses a standard :math:`\ell_2` data fidelity term.
 
-    The DPIR method is described in :footcite:ps:`zhang2021plug`.
+    The DPIR method is described in :footcite:t:`zhang2021plug`.
 
     :param float sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(self, sigma=0.1, device="cuda"):

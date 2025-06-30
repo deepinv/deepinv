@@ -67,7 +67,7 @@ class DDRM(Reconstructor):
     r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:ps:`zhu2023denoising`.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`zhu2023denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -104,10 +104,7 @@ class DDRM(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
-    |sep|
 
-    :References:
-        .. footbibliography::
 
     """
 
@@ -211,7 +208,7 @@ class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:ps:`zhu2023denoising`.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
@@ -275,10 +272,7 @@ class DiffPIR(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
-    |sep|
-
-    :References:
-        .. footbibliography::
+    
         
     """
 
@@ -514,7 +508,7 @@ class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 
-    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:ps:`chung2022diffusion`.
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.
 
     DPS is an approximation of a gradient-based posterior sampling algorithm,
     which has minimal assumptions on the forward model. The only restriction is that
@@ -557,10 +551,6 @@ class DPS(Reconstructor):
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
 
-    |sep|
-    
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

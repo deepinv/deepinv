@@ -19,7 +19,7 @@ from deepinv.physics.forward import LinearPhysics
 class AugmentConsistencyLoss(Loss):
     r"""Data augmentation consistency (DAC) loss.
 
-    Performs data augmentation in measurement domain as proposed by `VORTEX: Physics-Driven Data Augmentations Using Consistency Training for Robust Accelerated MRI Reconstruction <https://arxiv.org/abs/2111.02549>`_ :footcite:ps:`desai2021vortex`.
+    Performs data augmentation in measurement domain as proposed by :footcite:t:`desai2021vortex`.
 
     The loss is defined as follows:
 
@@ -47,10 +47,7 @@ class AugmentConsistencyLoss(Loss):
         if ``False``, propagate through both branches.
     :param torch.Generator rng: torch random number generator to pass to transforms.
 
-    |sep|
 
-    :References:
-        .. footbibliography::
     """
 
     def __init__(

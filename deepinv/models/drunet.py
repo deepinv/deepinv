@@ -10,37 +10,33 @@ Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
 class DRUNet(Denoiser):
     r"""
-     DRUNet denoiser network.
+    DRUNet denoiser network.
 
-     The network architecture is based on the paper :footcite:ps:`zhang2021plug`.
-     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
+    The network architecture is based on the paper :footcite:t:`zhang2021plug`.
+    and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
-     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
+    The network takes into account the noise level of the input image, which is encoded as an additional input channel.
 
-     A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
-     can be downloaded via setting ``pretrained='download'``.
+    A pretrained network for (in_channels=out_channels=1 or in_channels=out_channels=3)
+    can be downloaded via setting ``pretrained='download'``.
 
-     :param int in_channels: number of channels of the input.
-     :param int out_channels: number of channels of the output.
-     :param list nc: number of convolutional layers.
-     :param int nb: number of convolutional blocks per layer.
-     :param int nf: number of channels per convolutional layer.
-     :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
-     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
-         "strideconv" for convolution with stride 2.
-     :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
-         shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
-     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
-         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
-         online repository (only available for the default architecture with 3 or 1 input/output channels).
-         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
-         See :ref:`pretrained-weights <pretrained-weights>` for more details.
-     :param str device: gpu or cpu.
+    :param int in_channels: number of channels of the input.
+    :param int out_channels: number of channels of the output.
+    :param list nc: number of convolutional layers.
+    :param int nb: number of convolutional blocks per layer.
+    :param int nf: number of channels per convolutional layer.
+    :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
+    :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
+        "strideconv" for convolution with stride 2.
+    :param str upsample_mode: Upsampling mode, "convtranspose" for convolution transpose, "pixelsuffle" for pixel
+        shuffling, and "upconv" for nearest neighbour upsampling with additional convolution.
+    :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
+        using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
+        online repository (only available for the default architecture with 3 or 1 input/output channels).
+        Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        See :ref:`pretrained-weights <pretrained-weights>` for more details.
+    :param str device: gpu or cpu.
 
-    |sep|
-
-    :References:
-     .. footbibliography::
     """
 
     def __init__(

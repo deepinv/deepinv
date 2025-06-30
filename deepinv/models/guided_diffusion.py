@@ -17,9 +17,9 @@ class ADMUNet(Denoiser):
     r"""
     Implementation of the ADM UNet diffusion model.
 
-    From the paper :footcite:ps:`dhariwal2021diffusion`.
+    From the paper of :footcite:t:`dhariwal2021diffusion`.
 
-    The model is also pre-conditioned by the method described in the EDM paper :footcite:ps:`karras2022elucidating`.
+    The model is also pre-conditioned by the method described in the EDM paper :footcite:t:`karras2022elucidating`.
 
     Equivalent to the original implementation by Dhariwal and Nichol, available at: https://github.com/openai/guided-diffusion.
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections.
@@ -47,9 +47,7 @@ class ADMUNet(Denoiser):
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
 
-    :References:
 
-    .. footbibliography::
     """
 
     def __init__(

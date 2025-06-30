@@ -321,7 +321,7 @@ class IndicatorL2(DataFidelity):
             \operatorname{prox}_{\gamma \iota_{\mathcal{B}_2(y, r)}(A\cdot)}(x) = \underset{u}{\text{argmin}} \,\, \iota_{\mathcal{B}_2(y, r)}(Au)+\frac{1}{2}\|u-x\|_2^2
 
         Since no closed form is available for general measurement operators, we use a dual forward-backward algorithm,
-        as suggested in :footcite:ps:`combettes2011proximal`.
+        as suggested in :footcite:t:`combettes2011proximal`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`\forw{x}`.
@@ -333,10 +333,6 @@ class IndicatorL2(DataFidelity):
                             operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
 
-        |sep|
-
-        :References:
-            .. footbibliography::
         """
         radius = self.radius if radius is None else radius
 

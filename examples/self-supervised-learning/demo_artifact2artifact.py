@@ -5,7 +5,7 @@ Self-supervised MRI reconstruction with Artifact2Artifact
 We demonstrate the self-supervised Artifact2Artifact loss for solving an
 undersampled sequential MRI reconstruction problem without ground truth.
 
-The Artifact2Artifact loss was introduced in :footcite:ps:`liu2020rare`.
+The Artifact2Artifact loss was introduced by :footcite:t:`liu2020rare`.
 
 In our example, we use it to reconstruct **static** images, where the
 k-space measurements is a time-sequence, where each time step (phase)
@@ -170,7 +170,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL :footcite:ps:`aggarwal2018modl`.
+# DnCNN architecture which was proposed in `MoDL :footcite:t:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 

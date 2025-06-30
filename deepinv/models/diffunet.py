@@ -14,11 +14,11 @@ class DiffUNet(Denoiser):
     r"""
     Diffusion UNet model.
 
-    This is the model with attention and timestep embeddings from :footcite:ps:`choi2021ilvr`;
+    This is the model with attention and timestep embeddings from :footcite:t:`choi2021ilvr`;
     code is adapted from https://github.com/jychoi118/ilvr_adm.
 
-    It is possible to choose the `standard model from :footcite:ps:`choi2021ilvr` with 128 hidden channels per layer (trained on FFHQ)
-    and a larger model :footcite:ps:`dhariwal2021diffusion` with 256 hidden channels per layer (trained on ImageNet128).
+    It is possible to choose the `standard model from :footcite:t:`choi2021ilvr` with 128 hidden channels per layer (trained on FFHQ)
+    and a larger model :footcite:t:`dhariwal2021diffusion` with 256 hidden channels per layer (trained on ImageNet128).
 
     A pretrained network for (in_channels=out_channels=3)
     can be downloaded via setting ``pretrained='download'``.
@@ -45,10 +45,6 @@ class DiffUNet(Denoiser):
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
 
-    |sep|
-
-    :References:
-     .. footbibliography::
     """
 
     def __init__(

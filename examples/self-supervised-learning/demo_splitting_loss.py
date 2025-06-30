@@ -4,9 +4,9 @@ Self-supervised learning with measurement splitting
 
 We demonstrate self-supervised learning with measurement splitting, to
 train a denoiser network on the MNIST dataset. The physics here is noisy
-computed tomography, as is the case in Noise2Inverse :footcite:ps:`hendriksen2020noise2inverse`. Note this example
+computed tomography, as is the case in Noise2Inverse :footcite:t:`hendriksen2020noise2inverse`. Note this example
 can also be easily applied to undersampled multicoil MRI as is the case
-in SSDU :footcite:ps:`yaman2020self`.
+in SSDU :footcite:t:`yaman2020self`.
 
 Measurement splitting constructs a ground-truth free loss
 :math:`\frac{m}{m_2}\| y_2 - A_2 \inversef{y_1}{A_1}\|^2` by splitting
@@ -50,7 +50,7 @@ ORIGINAL_DATA_HOME = get_data_home()
 # -  Use ``eval_n_samples`` to set how many realisations of the random
 #    mask is used at evaluation time;
 # -  Optionally disable measurement splitting at evaluation time using
-#    ``eval_split_input`` (as is the case in SSDU :footcite:ps:`yaman2020self`).
+#    ``eval_split_input`` (as is the case in SSDU :footcite:t:`yaman2020self`).
 # -  Average over both input and output masks at evaluation time using
 #    ``eval_split_output``. See :class:`deepinv.loss.SplittingLoss` for
 #    details.
@@ -189,7 +189,7 @@ trainer.test(test_dataloader)
 # %%
 # Furthermore, we can disable measurement splitting at evaluation
 # altogether by setting ``eval_split_input`` to False (this is done in
-# SSDU :footcite:ps:`yaman2020self`). This generally is
+# SSDU :footcite:t:`yaman2020self`). This generally is
 # worse than MC averaging:
 #
 

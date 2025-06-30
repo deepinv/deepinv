@@ -8,8 +8,8 @@ solving imaging problems. These can be used for:
 1. Data augmentation (similar to ``torchvision.transforms``)
 2. Building equivariant denoisers
    (:class:`deepinv.models.EquivariantDenoiser`) for robust denoising
-   (e.g from :footcite:ps:`terris2024equivariant`)
-3. Self-supervised learning using Equivariant Imaging from :footcite:ps:`chen2021equivariant`. See
+   (e.g from :footcite:t:`terris2024equivariant`)
+3. Self-supervised learning using Equivariant Imaging from :footcite:t:`chen2021equivariant`. See
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`,
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`
    for thorough examples.

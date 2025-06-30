@@ -7,7 +7,7 @@ class Haze(Physics):
     r"""
     Standard haze model
 
-    The operator is defined as in :footcite:ps:`he2010single`.
+    The operator is defined as in :footcite:t:`he2010single`.
 
      .. math::
 
@@ -22,10 +22,7 @@ class Haze(Physics):
     :param float beta: constant :math:`\beta>0`
     :param float offset: constant :math:`o`
 
-    |sep|
 
-    :References:
-        .. footbibliography::
 
     """
 
