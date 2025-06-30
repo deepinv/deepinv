@@ -1,6 +1,6 @@
 import tomlkit
 
-with open("../pyproject.toml", "rb") as f:
+with open("pyproject.toml", "rb") as f:
     metadata = tomlkit.parse(f)["project"]
 
 __all__ = [
