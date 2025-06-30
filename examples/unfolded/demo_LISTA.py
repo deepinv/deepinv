@@ -152,14 +152,14 @@ prior = [
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
 # Unrolled optimization algorithm parameters
-lambda_reg = [
+g_param = [
     torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
 trainable_params = [
     "stepsize",
-    "lambda_reg",
+    "g_param",
 ]  # define which parameters are trainable
 
 # Define the unfolded trainable model.
@@ -170,7 +170,7 @@ model = ProximalGradientDescent(
     max_iter=max_iter,
     prior=prior,
     stepsize=stepsize,
-    lambda_reg=lambda_reg,
+    g_param=g_param,
 ).to(device)
 
 
