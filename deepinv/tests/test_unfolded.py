@@ -14,6 +14,8 @@ UNFOLDED_ALGO = [
     "ADMM",
     "FISTA",
 ]
+
+
 @pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
@@ -108,6 +110,8 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 
 DEQ_ALGO = ["ProximalGradientDescent", "HQS"]
+
+
 @pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
