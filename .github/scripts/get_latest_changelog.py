@@ -90,7 +90,7 @@ def update_changelog(changelog_path, increment="patch"):
 
 if __name__ == "__main__":
     if len(sys.argv) not in [2, 3]:
-        print("Usage: python get_latest_changelog.py path/to/CHANGELOG.md patch")
+        print("Usage: python get_latest_changelog.py path/to/CHANGELOG.rst patch")
         sys.exit(1)
     file_path = sys.argv[1]
     increment = sys.argv[2] if len(sys.argv) > 2 else "patch"
