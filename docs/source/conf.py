@@ -49,6 +49,7 @@ extensions = [
 
 bibtex_bibfiles = ["refs.bib"]
 bibtex_default_style = "plain"
+bibtex_foot_reference_style = "foot"
 copybutton_exclude = ".linenos, .gp"
 bibtex_tooltips = True
 
@@ -130,34 +131,25 @@ class TolerantImageSg(ImageSg):
             return []  # Return empty node list to skip rendering
         return super().run()
 
-from sphinx.transforms import SphinxTransform
-class DefineRefsSubstitution(SphinxTransform):
-    default_priority = 700  # early enough
 
-    def apply(self):
-        # Add a substitution definition node for |refs|
-        substitution = nodes.substitution_definition('', '', nodes.Text(':References:\n    .. footbibliography::'))
-        substitution['names'].append('refs')
-        self.document.substitution_defs['refs'] = substitution
+def process_docstring(app, what, name, obj, options, lines):
+    # Check if there is a footcite in the docstring
+    if any(":footcite:" in line for line in lines):
+        # Add the References section if not already present
+        if not any(":References:" in line for line in lines):
+            lines.append("")
+            lines.append("|sep|")
+            lines.append("")
+            lines.append(":References:")
+            lines.append("")
+            lines.append(".. footbibliography::")
+            lines.append("")
 
 
 def setup(app):
-    app.add_transform(DefineRefsSubstitution)
+    app.connect("autodoc-process-docstring", process_docstring)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
-    
-    def on_source_read(app, docname, source):
-        source[0] = source[0].replace(
-            "|refs|",
-            ":References:\n    .. footbibliography::"
-        )
-    app.connect("source-read", on_source_read)
-
-    def replace_refs_in_docstrings(app, what, name, obj, options, lines):
-        for i, line in enumerate(lines):
-            if "|refs|" in line:
-                lines[i] = line.replace("|refs|", ":References:\n    .. footbibliography::")
-    app.connect("autodoc-process-docstring", replace_refs_in_docstrings)
 
 
 # ---------- doctest configuration -----------------------------------------
