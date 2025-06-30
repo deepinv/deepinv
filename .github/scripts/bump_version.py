@@ -2,7 +2,8 @@ import re
 from pathlib import Path
 import tomlkit
 
-def increment_version(version, increment='patch'):
+
+def increment_version(version, increment="patch"):
     """Increment the patch version number (last digit)."""
     parts = version.split(".")
 
@@ -11,18 +12,18 @@ def increment_version(version, increment='patch'):
     except ValueError:
         raise ValueError("Version components must be integers")
 
-    if increment == 'major':
+    if increment == "major":
         major += 1
-    elif increment == 'minor':
+    elif increment == "minor":
         minor += 1
-    elif increment == 'patch':
+    elif increment == "patch":
         patch += 1
     else:
         raise ValueError("Increment must be 'major', 'minor', or 'patch'")
     return f"{major}.{minor}.{patch}"
 
 
-def bump_patch_version(file_path, increment='patch'):
+def bump_patch_version(file_path, increment="patch"):
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(f"{file_path} does not exist")
@@ -32,12 +33,12 @@ def bump_patch_version(file_path, increment='patch'):
         # Load the TOML file
         toml_content = f.read()
         metadata = tomlkit.parse(toml_content)
-    
-    current_version = metadata['project'].get("version")
+
+    current_version = metadata["project"].get("version")
     if not current_version:
         raise ValueError("Version not found in the provided file")
     new_version = increment_version(current_version, increment=increment)
-    metadata['project']["version"] = new_version
+    metadata["project"]["version"] = new_version
     # Write the updated version back to the file
     tomlkit.dump(metadata, path.open("w", encoding="utf-8"))
 
@@ -46,11 +47,12 @@ def bump_patch_version(file_path, increment='patch'):
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) not in [2, 3]:
         print("Usage: python bump_patch_version.py path/to/pyproject.toml patch")
         sys.exit(1)
     file_path = sys.argv[1]
-    increment = sys.argv[2] if len(sys.argv) > 2 else 'patch'
+    increment = sys.argv[2] if len(sys.argv) > 2 else "patch"
     new_version = bump_patch_version(file_path, increment)
 
     print(f"Updated version to {new_version}")

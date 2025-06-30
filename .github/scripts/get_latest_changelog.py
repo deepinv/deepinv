@@ -89,6 +89,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python get_latest_changelog.py path/to/CHANGELOG.rst")
         sys.exit(1)
-    
+
     update_changelog(sys.argv[1])
     print("CHANGELOG.rst updated.")
