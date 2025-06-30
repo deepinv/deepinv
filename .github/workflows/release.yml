@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: '0 0 */21 * *'  # every 21 days at 00:00 UTC
   workflow_dispatch:        # manual trigger
+    inputs:
+      bump_type:
+        description: 'Type of version bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
   build-test-publish:
@@ -53,12 +63,12 @@ jobs:
 
       - name: Install tools
         run: |
-          pip install --upgrade build twine toml
+          pip install --upgrade build twine tomlkit
 
       - name: Bump patch version
         id: bump
         run: |
-          python .github/scripts/bump_patch_version.py
+          python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}$
           echo "version=$(python .github/scripts/get_version.py)" >> "$GITHUB_OUTPUT"
 
       - name: Build the package
@@ -95,7 +105,7 @@ jobs:
       - name: Extract changelog description
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py > changelog.txt
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

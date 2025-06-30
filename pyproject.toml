@@ -92,6 +92,9 @@ dataset = [
     "mat73",
 ]
 
+# dependencies for automatic release of new versions
+release = ["tomlkit"]
+
 
 #####################################################################
 # Pytest configuration and coverage reporting

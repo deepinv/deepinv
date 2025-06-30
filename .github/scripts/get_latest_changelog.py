@@ -35,12 +35,12 @@ def rst_to_md(rst_text):
     return "\n".join(md_lines).strip()
 
 
-def update_changelog(filename):
+def update_changelog(changelog_path):
     r"""
     Function for automatic release changelog generation.
     """
 
-    with open(filename, "r", encoding="utf-8") as f:
+    with open(changelog_path, "r", encoding="utf-8") as f:
         changelog = f.read()
 
     # Extract the "Current" section
@@ -58,7 +58,9 @@ def update_changelog(filename):
     body = match.group("body").rstrip()
 
     # Extract current version from pyproject.toml or bump script
-    version = get_version_from_toml("../../pyproject.toml")
+    # get path from changelog path
+    pyproject_path = changelog_path.replace("CHANGELOG.rst", "pyproject.toml")
+    version = get_version_from_toml(pyproject_path)
     version_header = f"v{version}\n{'-' * len(version)}\n"
 
     # Write extracted changes to changelog.txt
@@ -84,6 +86,9 @@ def update_changelog(filename):
 
 
 if __name__ == "__main__":
-    filename = "../../CHANGELOG.rst"
-    update_changelog(filename)
+    if len(sys.argv) != 2:
+        print("Usage: python get_latest_changelog.py path/to/CHANGELOG.rst")
+        sys.exit(1)
+    
+    update_changelog(sys.argv[1])
     print("CHANGELOG.rst updated.")
