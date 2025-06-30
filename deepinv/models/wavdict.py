@@ -388,6 +388,7 @@ class WaveletDenoiser(Denoiser):
             that are kept (if ``int``) or the proportion of coefficients that are kept (if ``float``).
 
         """
+
         # Pad data
         x, padding = self.pad_input(x)
 

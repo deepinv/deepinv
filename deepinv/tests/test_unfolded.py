@@ -14,8 +14,6 @@ UNFOLDED_ALGO = [
     "ADMM",
     "FISTA",
 ]
-
-
 @pytest.mark.parametrize("unfolded_algo", UNFOLDED_ALGO)
 def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
@@ -57,7 +55,7 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
     sigma_denoiser_init = 0.01
-    sigma_denoiser = [sigma_denoiser_init * torch.ones(level, 3)] * max_iter
+    sigma_denoiser = [sigma_denoiser_init * torch.ones(1, level, 3)] * max_iter
     # sigma_denoiser = [torch.Tensor([sigma_denoiser_init])]*max_iter
     trainable_params = [
         "g_param",
@@ -110,8 +108,6 @@ def test_unfolded(unfolded_algo, imsize, dummy_dataset, device):
 
 
 DEQ_ALGO = ["ProximalGradientDescent", "HQS"]
-
-
 @pytest.mark.parametrize("unfolded_algo", DEQ_ALGO)
 def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
     pytest.importorskip("ptwt")
