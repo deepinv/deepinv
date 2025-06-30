@@ -130,10 +130,34 @@ class TolerantImageSg(ImageSg):
             return []  # Return empty node list to skip rendering
         return super().run()
 
+from sphinx.transforms import SphinxTransform
+class DefineRefsSubstitution(SphinxTransform):
+    default_priority = 700  # early enough
+
+    def apply(self):
+        # Add a substitution definition node for |refs|
+        substitution = nodes.substitution_definition('', '', nodes.Text(':References:\n    .. footbibliography::'))
+        substitution['names'].append('refs')
+        self.document.substitution_defs['refs'] = substitution
+
 
 def setup(app):
+    app.add_transform(DefineRefsSubstitution)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
+    
+    def on_source_read(app, docname, source):
+        source[0] = source[0].replace(
+            "|refs|",
+            ":References:\n    .. footbibliography::"
+        )
+    app.connect("source-read", on_source_read)
+
+    def replace_refs_in_docstrings(app, what, name, obj, options, lines):
+        for i, line in enumerate(lines):
+            if "|refs|" in line:
+                lines[i] = line.replace("|refs|", ":References:\n    .. footbibliography::")
+    app.connect("autodoc-process-docstring", replace_refs_in_docstrings)
 
 
 # ---------- doctest configuration -----------------------------------------
@@ -276,6 +300,7 @@ rst_prolog = """
 .. |sep| raw:: html
 
    <hr />
+
 """
 
 napoleon_custom_sections = [

@@ -9,7 +9,7 @@ class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.
 
-    The architecture was introduced by :footcite:ps:`zhang2017beyond` and is composed of a series of
+    The architecture was introduced by :cite:`zhang2017beyond` and is composed of a series of
     convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
     original paper, this implementation does not include batch normalization layers.
 
@@ -32,9 +32,7 @@ class DnCNN(Denoiser):
 
     |sep|
 
-    :References:
-
-    .. footbibliography::
+    |refs|
     """
 
     def __init__(
