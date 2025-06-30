@@ -1,7 +1,7 @@
 import tomlkit
 
 with open("../pyproject.toml", "rb") as f:
-    metadata = tomlkit.load(f)["project"]
+    metadata = tomlkit.parse(f)["project"]
 
 __all__ = [
     "__title__",
