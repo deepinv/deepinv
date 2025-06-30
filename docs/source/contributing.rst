@@ -63,6 +63,9 @@ check the following points:
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
+Finding Help
+------------
+
 If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. We will then try to address the issue as soon as possible.
