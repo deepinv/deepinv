@@ -1,6 +1,7 @@
 import re
 import sys
 from get_version import get_version_from_toml
+from bump_version import increment_version
 
 
 def rst_to_md(rst_text):
@@ -35,7 +36,7 @@ def rst_to_md(rst_text):
     return "\n".join(md_lines).strip()
 
 
-def update_changelog(changelog_path):
+def update_changelog(changelog_path, increment="patch"):
     r"""
     Function for automatic release changelog generation.
     """
@@ -57,11 +58,13 @@ def update_changelog(changelog_path):
     header = match.group("header")
     body = match.group("body").rstrip()
 
-    # Extract current version from pyproject.toml or bump script
     # get path from changelog path
     pyproject_path = changelog_path.replace("CHANGELOG.rst", "pyproject.toml")
+
+    # Extract current version from pyproject.toml or bump script
     version = get_version_from_toml(pyproject_path)
-    version_header = f"v{version}\n{'-' * len(version)}\n"
+    version = increment_version(version, increment=increment)
+    version_header = f"v{version}\n{'-' * (len(version)+1)}\n"
 
     # Write extracted changes to changelog.txt
     with open("changelog.txt", "w", encoding="utf-8") as f:
@@ -81,14 +84,16 @@ def update_changelog(changelog_path):
         header + body, new_current + "\n" + version_header + body.strip() + "\n\n", 1
     )
 
-    with open(filename, "w", encoding="utf-8") as f:
+    with open(changelog_path, "w", encoding="utf-8") as f:
         f.write(updated_changelog)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python get_latest_changelog.py path/to/CHANGELOG.rst")
+    if len(sys.argv) not in [2, 3]:
+        print("Usage: python bump_patch_version.py path/to/pyproject.toml patch")
         sys.exit(1)
+    file_path = sys.argv[1]
+    increment = sys.argv[2] if len(sys.argv) > 2 else "patch"
 
-    update_changelog(sys.argv[1])
+    update_changelog(sys.argv[1], increment)
     print("CHANGELOG.rst updated.")
