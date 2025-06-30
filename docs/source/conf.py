@@ -28,11 +28,11 @@ sys.path.insert(0, basedir)
 with open(os.path.join(basedir, "pyproject.toml"), "r", encoding="utf-8") as f:
     metadata = tomlkit.parse(f.read())["project"]
 
-project = metadata["name"]
+project = str(metadata["name"])
 copyright = "deepinverse contributors"
 
-author = ", ".join(auth["name"] for auth in metadata["authors"])
-release = metadata["version"]
+author = ", ".join(str(auth["name"]) for auth in metadata["authors"])
+release = str(metadata["version"])
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
