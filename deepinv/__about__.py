@@ -1,10 +1,7 @@
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib
+import tomlkit
 
-with open("pyproject.toml", "rb") as f:
-    metadata = tomllib.load(f)["project"]
+with open("../pyproject.toml", "rb") as f:
+    metadata = tomlkit.load(f)["project"]
 
 __all__ = [
     "__title__",
