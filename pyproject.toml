@@ -32,7 +32,6 @@ dependencies = [
     "wandb",
     "scipy",
     "natsort",
-    "tomlkit",
 ]
 
 [tool.setuptools]

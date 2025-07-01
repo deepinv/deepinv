@@ -4,7 +4,7 @@ import numpy as np
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, DDRM
+from deepinv.sampling import ULA, SKRock, DiffPIR, DPS, sampling_builder, DDRM
 
 SAMPLING_ALGOS = ["DDRM", "ULA", "SKRock"]
 
@@ -104,7 +104,7 @@ def test_sampling_algo(algo, imsize, device):
         torch.sum((xvar - post_var).abs() / post_var < tol) > np.prod(xvar.shape) / 2
     )
 
-    assert f.mean_has_converged() and f.var_has_converged() and mean_ok and var_ok
+    assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
 @pytest.mark.parametrize("name_algo", ["DiffPIR", "DPS"])
@@ -187,6 +187,89 @@ def test_algo_inpaint(name_algo, device):
 
     assert (mean_target_inmask - mean_crop).abs() < 0.2
     assert (mean_target_masked - mean_outside_crop).abs() < 0.01
+
+
+# tests for sample_builder
+BUILD_ALGOS = ["ULA", "SKRock"]
+
+
+def choose_algo_build(algo, likelihood, thresh_conv, sigma, sigma_prior):
+    prior = GaussianScore(sigma_prior)
+
+    if algo == "ULA":
+        params = {
+            "step_size": 0.01 / (1 / sigma**2 + 1 / sigma_prior**2),
+            "alpha": 1.0,
+            "sigma": 1.0,
+        }
+    elif algo == "SKRock":
+        params = {
+            "step_size": 1 / (1 / sigma**2 + 1 / sigma_prior**2),
+            "alpha": 1.0,
+            "inner_iter": 5,
+            "eta": 0.05,
+            "sigma": 1.0,
+        }
+    else:
+        raise Exception("The sampling algorithm doesn't exist")
+
+    out = sampling_builder(
+        iterator=algo,
+        data_fidelity=likelihood,
+        prior=prior,
+        thresh_conv=thresh_conv,
+        params_algo=params,
+        max_iter=500,
+        burnin_ratio=0.2,
+        thinning=1,
+        verbose=True,
+        clip=(-100, 100),
+    )
+
+    return out
+
+
+@pytest.mark.parametrize("algo", BUILD_ALGOS)
+def test_build_algo(algo, imsize, device):
+    # NOTE: redundancy here with the above test_sample_algo
+    test_sample = torch.ones((1, *imsize))
+
+    sigma = 1
+    sigma_prior = 1
+    physics = dinv.physics.Denoising()
+    physics.noise_model = dinv.physics.GaussianNoise(sigma)
+    y = physics(test_sample)
+
+    convergence_crit = 0.1  # for fast tests
+    likelihood = L2(sigma=sigma)
+    f = choose_algo_build(
+        algo,
+        likelihood,
+        thresh_conv=convergence_crit,
+        sigma=sigma,
+        sigma_prior=sigma_prior,
+    )
+
+    xmean, xvar = f.sample(y, physics, seed=0)
+
+    tol = 5  # can be lowered?
+    sigma2 = sigma**2
+    sigma_prior2 = sigma_prior**2
+
+    # the posterior of a gaussian likelihood with a gaussian prior is gaussian
+    post_var = (sigma2 * sigma_prior2) / (sigma2 + sigma_prior2)
+    post_mean = y / (1 + sigma2 / sigma_prior2)
+
+    mean_ok = (
+        torch.sum((xmean - post_mean).abs() / post_mean < tol)
+        > np.prod(xmean.shape) / 2
+    )
+
+    var_ok = (
+        torch.sum((xvar - post_var).abs() / post_var < tol) > np.prod(xvar.shape) / 2
+    )
+
+    assert f.mean_has_converged and f.var_has_converged and mean_ok and var_ok
 
 
 @pytest.mark.slow
