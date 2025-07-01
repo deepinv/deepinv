@@ -1,3 +1,10 @@
+import tomlkit
+
+with open("pyproject.toml", "r", encoding="utf-8") as f:
+    # Load the TOML file
+    toml_content = f.read()
+    metadata = tomlkit.parse(toml_content)["project"]
+
 __all__ = [
     "__title__",
     "__summary__",
@@ -7,11 +14,9 @@ __all__ = [
     "__license__",
 ]
 
-__title__ = "deepinv"
-__summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
-__version__ = "0.3"
-__author__ = (
-    "Julian Tachella, Samuel Hurault, Matthieu Terris, Dongdong Chen, Andrew Wang"
-)
-__license__ = "BSD 3-Clause Clear"
-__url__ = "https://deepinv.github.io/"
+__title__ = metadata["name"]
+__summary__ = metadata["description"]
+__version__ = metadata["version"]
+__author__ = ", ".join(auth["name"] for auth in metadata["authors"])
+__license__ = metadata["license"]["text"]
+__url__ = metadata["urls"]["Homepage"]
