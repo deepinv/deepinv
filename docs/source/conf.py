@@ -9,14 +9,11 @@ from sphinx_gallery.sorting import ExplicitOrder
 from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from pathlib import Path
 from sphinx.util import logging
-
-import tomlkit
+import doctest
+from importlib.metadata import metadata as importlib_metadata
 
 logger = logging.getLogger(__name__)
-
-import doctest
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
@@ -25,14 +22,11 @@ sys.path.insert(0, basedir)
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-with open(os.path.join(basedir, "pyproject.toml"), "r", encoding="utf-8") as f:
-    metadata = tomlkit.parse(f.read())["project"]
-
-project = str(metadata["name"])
+metadata = importlib_metadata("deepinv")
+project = str(metadata["Name"])
 copyright = "deepinverse contributors 2025"
-
-author = ", ".join(str(auth["name"]) for auth in metadata["authors"])
-release = str(metadata["version"])
+author = str(metadata["Author"])
+release = str(metadata["Version"])
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
