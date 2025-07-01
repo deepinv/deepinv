@@ -367,7 +367,10 @@ def sampling_builder(
 ) -> BaseSampling:
     r"""
     Helper function for building an instance of the :class:`deepinv.sampling.BaseSampling` class.
-    See the docs for :class:`deepinv.sampling.BaseSampling` for examples and more information.
+
+    See :ref:`sphx_glr_auto_examples_sampling_demo_sampling.py` and :ref:`mcmc` for example usage.
+
+    See the docs for :class:`deepinv.sampling.BaseSampling` for further examples and information.
 
     :param iterator: Either a SamplingIterator instance or a string naming the iterator class
     :param data_fidelity: Negative log-likelihood function

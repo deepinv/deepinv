@@ -1,8 +1,9 @@
 import time as time
 from typing import Callable, Union
 from torch import Tensor
-import deepinv.optim
+from warnings import warn, DeprecationWarning
 
+import deepinv.optim
 from deepinv.sampling import BaseSampling
 from deepinv.optim import ScorePrior
 from deepinv.physics import Physics
@@ -32,7 +33,7 @@ class ULA(BaseSampling):
     - For convergence, ULA required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
     .. warning::
-        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on building a sampler yourself.
+        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on how to build a ULA sampler.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
@@ -102,6 +103,10 @@ class ULA(BaseSampling):
             Default: ``lambda d: d["x"]`` (identity function)
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
+        warn(
+            "Deprecated ULA.forward returns tuple (mean, var). This will return only mean in a future version in line with BaseSampling.forward. Use deepinv.sampling.sampling_builder instead to build an ULA sampler",
+            DeprecationWarning,
+        )
         return self.sample(
             y, physics, x_init=x_init, seed=seed, g_statistics=g_statistics
         )
@@ -121,7 +126,7 @@ class SKRock(BaseSampling):
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
 
     .. warning::
-        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on building a sampler yourself.
+        This a legacy class provided for convenience. See the example in :ref:`mcmc` for details on how to build a SKRock sampler.
 
     :param deepinv.optim.ScorePrior, torch.nn.Module prior: negative log-prior based on a trained or model-based denoiser.
     :param deepinv.optim.DataFidelity, torch.nn.Module data_fidelity: negative log-likelihood function linked with the
@@ -199,6 +204,10 @@ class SKRock(BaseSampling):
             Default: ``lambda d: d["x"]`` (identity function)
         :return: (tuple of torch.tensor) containing the posterior mean and variance.
         """
+        warn(
+            "Deprecated ULA.forward returns tuple (mean, var). This will return only mean in a future version in line with BaseSampling.forward. Use deepinv.sampling.sampling_builder instead to build an SKRock sampler",
+            DeprecationWarning,
+        )
         return self.sample(
             y, physics, x_init=x_init, seed=seed, g_statistics=g_statistics
         )
