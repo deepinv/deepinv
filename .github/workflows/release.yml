@@ -66,7 +66,7 @@ jobs:
         if: steps.check_release.outputs.skip == 'true'
         run: |
           echo "No new changes since last release. Skipping workflow."
-          exit 0
+          exit 1
           
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -90,7 +90,7 @@ jobs:
         run: |
           if [ "${{ github.ref_name }}" != "main" ]; then
             echo "❌ Not on main branch — skipping release."
-            exit 0
+            exit 1
           fi
 
       - name: Publish to TestPyPI
