@@ -100,6 +100,14 @@ jobs:
         run: |
           python -m twine upload --repository testpypi dist/*
 
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          body_path: changelog.txt
+          name: Release v${{ steps.bump.outputs.version }}
+          files: dist/*
+        
       - name: Install from TestPyPI and test
         run: |
           pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
@@ -126,11 +134,3 @@ jobs:
         id: changelog
         run: |
           python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.bump.outputs.version }}
-          body_path: changelog.txt
-          name: Release v${{ steps.bump.outputs.version }}
-          files: dist/*
