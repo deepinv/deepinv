@@ -1,5 +1,5 @@
 import time as time
-from typing import Callable, Tuple, Union, List
+from typing import Callable, Union
 from torch import Tensor
 import deepinv.optim
 
@@ -89,7 +89,7 @@ class ULA(BaseSampling):
         physics: Physics,
         seed: Union[None, int] = None,
         x_init: Union[None, Tensor] = None,
-        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
+        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
     ):
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
@@ -154,7 +154,7 @@ class SKRock(BaseSampling):
         max_iter: int = 1e3,
         burnin_ratio: float = 0.2,
         thinning: int = 10,
-        clip: Tuple[float, float] = (-1.0, 2.0),
+        clip: tuple[float, float] = (-1.0, 2.0),
         thresh_conv: float = 1e-3,
         save_chain: bool = False,
         verbose: bool = False,
@@ -186,8 +186,8 @@ class SKRock(BaseSampling):
         physics: Physics,
         seed: Union[None, int] = None,
         x_init: Union[None, Tensor] = None,
-        g_statistics: Union[List[Callable], Callable] = lambda d: d["x"],
-    ) -> Tuple[Tensor, Tensor]:
+        g_statistics: Union[list[Callable], Callable] = lambda d: d["x"],
+    ) -> tuple[Tensor, Tensor]:
         r"""
         Runs the chain to obtain the posterior mean and variance of the reconstruction of the measurements y.
 

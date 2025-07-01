@@ -10,12 +10,10 @@ to accelerate the sampling.
 """
 
 import torch
-from typing import Dict, Any
-import numpy as np
+from typing import Any
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.utils.demo import load_url_image
-from deepinv.sampling import ULA
 
 # %%
 # Load image from the internet
@@ -92,7 +90,7 @@ class PreconULAIterator(dinv.sampling.SamplingIterator):
     def __init__(self, algo_params):
         super().__init__(algo_params)
 
-    def forward(self, X, y, physics, data_fidelity, prior, iteration) -> Dict[str, Any]:
+    def forward(self, X, y, physics, data_fidelity, prior, iteration) -> dict[str, Any]:
         x = X["x"]
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)

@@ -3,7 +3,7 @@ import torch.nn as nn
 from deepinv.physics import Physics
 from deepinv.optim import Prior
 from deepinv.optim import DataFidelity
-from typing import Dict, Any
+from typing import Any
 import torch
 
 
@@ -21,7 +21,7 @@ class SamplingIterator(nn.Module):
 
     def __init__(
         self,
-        algo_params: Dict[str, Any],
+        algo_params: dict[str, Any],
         **kwargs,
     ):
         super(SamplingIterator, self).__init__()
@@ -34,7 +34,7 @@ class SamplingIterator(nn.Module):
         physics: Physics,
         cur_data_fidelity: DataFidelity,
         cur_prior: Prior,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         r"""
         Initializes latent variables for the sampling iterator.
 
@@ -53,7 +53,7 @@ class SamplingIterator(nn.Module):
 
     def forward(
         self,
-        X: Dict[str, Any],
+        X: dict[str, Any],
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -61,7 +61,7 @@ class SamplingIterator(nn.Module):
         iteration: int,
         *args,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         r"""
         Performs a single sampling step: :math:`X_t \rightarrow X_{t+1}, where :math:`X_t` is a `dict` containing the image :math:`x_t` as well as any latents`
 

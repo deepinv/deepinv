@@ -3,7 +3,7 @@ from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
 import time as time
-from typing import Dict, Optional, Tuple, Any
+from typing import Optional
 
 from deepinv.optim import ScorePrior
 from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
@@ -57,7 +57,7 @@ class SKRockIterator(SamplingIterator):
     """
 
     def __init__(
-        self, algo_params: Dict[str, float], clip: Optional[Tuple[float, float]] = None
+        self, algo_params: dict[str, float], clip: Optional[tuple[float, float]] = None
     ):
         super().__init__(algo_params)
         # Check for required parameters and raise error if any are missing
@@ -81,7 +81,7 @@ class SKRockIterator(SamplingIterator):
 
     def forward(
         self,
-        X: Dict[str, torch.Tensor],
+        X: dict[str, torch.Tensor],
         y: torch.Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -89,7 +89,7 @@ class SKRockIterator(SamplingIterator):
         iteration: int,
         *args,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         r"""
         Performs a single SK-ROCK sampling step.
 

@@ -1,17 +1,12 @@
-import torch.nn as nn
 from deepinv.sampling.utils import projbox
 import torch
 from torch import Tensor
 import time as time
 import numpy as np
-from deepinv.physics import LinearPhysics
-from deepinv.optim import PnP
 from deepinv.physics import Physics
 from deepinv.optim.prior import ScorePrior
 from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
 from deepinv.optim.data_fidelity import DataFidelity
-
-from typing import Dict, Optional, Tuple, Any
 
 
 class ULAIterator(SamplingIterator):
@@ -62,7 +57,7 @@ class ULAIterator(SamplingIterator):
 
     """
 
-    def __init__(self, algo_params: Dict[str, float], clip=None):
+    def __init__(self, algo_params: dict[str, float], clip=None):
         super().__init__(algo_params)
 
         # Raise an error if these are not supplied
@@ -83,7 +78,7 @@ class ULAIterator(SamplingIterator):
 
     def forward(
         self,
-        X: Dict[str, Tensor],
+        X: dict[str, Tensor],
         y: Tensor,
         physics: Physics,
         cur_data_fidelity: DataFidelity,
@@ -91,7 +86,7 @@ class ULAIterator(SamplingIterator):
         iteration: int,
         *args,
         **kwargs,
-    ) -> Dict[str, Tensor]:
+    ) -> dict[str, Tensor]:
         r"""
         Performs a single ULA sampling step using the Unadjusted Langevin Algorithm.
 

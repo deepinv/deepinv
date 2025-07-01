@@ -1,6 +1,6 @@
 import sys
 from collections import deque
-from typing import Union, Dict, Callable, List, Tuple
+from typing import Union, Callable
 
 import torch
 from tqdm import tqdm
@@ -141,9 +141,9 @@ class BaseSampling(Reconstructor):
         physics: Physics,
         x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, List[Callable]] = [lambda d: d["x"]],
+        g_statistics: Union[Callable, list[Callable]] = [lambda d: d["x"]],
         **kwargs,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
         Execute the MCMC sampling chain and compute posterior statistics.
 
@@ -216,7 +216,7 @@ class BaseSampling(Reconstructor):
             self.mean_convergence = False
             self.var_convergence = False
 
-            if not isinstance(g_statistics, List):
+            if not isinstance(g_statistics, list):
                 g_statistics = [g_statistics]
 
             # Initialize Welford trackers for each g_statistic
@@ -292,7 +292,7 @@ class BaseSampling(Reconstructor):
                 return means[0], vars[0]
         return means, vars
 
-    def get_chain(self) -> List[torch.Tensor]:
+    def get_chain(self) -> list[torch.Tensor]:
         r"""
         Retrieve the stored history of samples.
 
@@ -355,7 +355,7 @@ def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo: Dict = {},
+    params_algo: dict = {},
     max_iter: int = 100,
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,

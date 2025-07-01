@@ -1,7 +1,6 @@
 from deepinv.sampling.utils import projbox
 import torch
 import time as time
-from typing import Dict
 from deepinv.sampling.sampling_iterators.sampling_iterator import SamplingIterator
 
 
@@ -20,13 +19,13 @@ class DiffusionIterator(SamplingIterator):
 
     def forward(
         self,
-        X: Dict[str, torch.Tensor],
+        X: dict[str, torch.Tensor],
         y: torch.Tensor,
         physics,
         cur_data_fidelity,
         prior,
         iteration,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         x = X["x"]
         # run one sampling kernel iteration
         x = prior(y, physics)
