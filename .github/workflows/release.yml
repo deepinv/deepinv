@@ -1,0 +1,125 @@
+name: Auto Publish to PyPI
+
+on:
+  schedule:
+    - cron: '0 0 */21 * *'  # every 21 days at 00:00 UTC
+  workflow_dispatch:        # manual trigger
+    inputs:
+      bump_type:
+        description: 'Type of version bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  build-test-publish:
+    name: Auto version, test & publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for recent release commit
+        id: check_release
+        run: |
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%s)
+          echo "Last commit: $LAST_COMMIT_MSG"
+          if [[ "$LAST_COMMIT_MSG" =~ ^Release\ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "Latest commit is a release. Skipping release process."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exit if no new changes
+        if: steps.check_release.outputs.skip == 'true'
+        run: |
+          echo "No new changes since last release. Skipping workflow."
+          exit 0
+
+      - name: Check CI is passing
+        run: |
+            gh auth setup-git
+            # Check latest run for "Test" workflow
+            STATUS_TEST=$(gh run list --repo deepinv/deepinv --workflow test.yml --limit 1 --json conclusion --jq '.[0].conclusion')
+            echo "Test workflow conclusion: $STATUS_TEST"
+            # Check "documentation"
+            STATUS_DOC=$(gh run list --repo deepinv/deepinv --workflow documentation.yml --limit 1 --json conclusion --jq '.[0].conclusion')
+            echo "Doc workflow conclusion: $STATUS_DOC"
+            if [ "$STATUS_TEST" != "SUCCESS" ] || [ "$STATUS_DOC" != "SUCCESS" ]; then
+            echo "❌ Tests not passing — aborting release of new version."
+            exit 1
+            fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install tools
+        run: |
+          pip install --upgrade build twine tomlkit
+
+      - name: Bump version
+        id: bump
+        run: |
+          python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}
+          echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
+
+      - name: Build the package
+        run: python -m build
+
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          python -m twine upload --repository testpypi dist/*
+
+      - name: Install from TestPyPI and test
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
+          python -c "import deepinv"
+
+      - name: Publish to PyPI
+        if: ${{ success() }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload dist/*
+          
+      - name: Commit version bump and tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git commit -am "Release version ${{ steps.bump.outputs.version }}"
+          git tag v${{ steps.bump.outputs.version }}
+          git push origin HEAD --tags
+
+      - name: Extract changelog description
+        id: changelog
+        run: |
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          body_path: changelog.txt
+          name: Release v${{ steps.bump.outputs.version }}
+          files: dist/*
+
+          
+      - name: Commit and push version and changelog updates
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add pyproject.toml CHANGELOG.rst
+          git commit -m "Release v${{ steps.bump.outputs.version }}: update version, changelog"
+          git push origin HEAD
