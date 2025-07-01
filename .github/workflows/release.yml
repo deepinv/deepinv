@@ -15,6 +15,9 @@ on:
           - minor
           - major
 
+permissions:
+  contents: write
+  
 jobs:
   build-test-publish:
     name: Auto version, test & publish
@@ -22,18 +25,27 @@ jobs:
 
     steps:
       - name: Check CI is passing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            gh auth setup-git
-            # Check latest run for "Test" workflow
-            STATUS_TEST=$(gh run list --repo deepinv/deepinv --workflow test.yml --limit 1 --json conclusion --jq '.[0].conclusion')
-            echo "Test workflow conclusion: $STATUS_TEST"
-            # Check "documentation"
-            STATUS_DOC=$(gh run list --repo deepinv/deepinv --workflow documentation.yml --limit 1 --json conclusion --jq '.[0].conclusion')
-            echo "Doc workflow conclusion: $STATUS_DOC"
-            if [ "$STATUS_TEST" != "SUCCESS" ] || [ "$STATUS_DOC" != "SUCCESS" ]; then
-            echo "❌ Tests not passing — aborting release of new version."
+          REPO="deepinv/deepinv"
+
+          get_status () {
+            curl -s -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/$REPO/actions/workflows/$1/runs?branch=main&status=completed&per_page=1" \
+              | jq -r '.workflow_runs[0].conclusion'
+          }
+
+          STATUS_TEST=$(get_status "test.yml")
+          STATUS_DOC=$(get_status "documentation.yml")
+
+          echo "Test: $STATUS_TEST"
+          echo "Docs: $STATUS_DOC"
+
+          if [[ "$STATUS_TEST" != "success" || "$STATUS_DOC" != "success" ]]; then
+            echo "❌ One or both workflows failed — aborting."
             exit 1
-            fi
+          fi
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -74,6 +86,13 @@ jobs:
       - name: Build the package
         run: python -m build
 
+      - name: Stop if not on main
+        run: |
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "❌ Not on main branch — skipping release."
+            exit 0
+          fi
+
       - name: Publish to TestPyPI
         env:
           TWINE_USERNAME: __token__
@@ -98,6 +117,7 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+          git add pyproject.toml CHANGELOG.rst 
           git commit -am "Release version ${{ steps.bump.outputs.version }}"
           git tag v${{ steps.bump.outputs.version }}
           git push origin HEAD --tags
@@ -114,12 +134,3 @@ jobs:
           body_path: changelog.txt
           name: Release v${{ steps.bump.outputs.version }}
           files: dist/*
-
-          
-      - name: Commit and push version and changelog updates
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add pyproject.toml CHANGELOG.rst
-          git commit -m "Release v${{ steps.bump.outputs.version }}: update version, changelog"
-          git push origin HEAD
