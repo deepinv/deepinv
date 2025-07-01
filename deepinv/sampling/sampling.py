@@ -165,21 +165,23 @@ class BaseSampling(Reconstructor):
         :return: | If a single g_statistic was specified: Returns tuple (mean, var) of torch.Tensors
             | If multiple g_statistics were specified: Returns tuple (means, vars) of lists of torch.Tensors
 
-        Example:
-            >>> from deepinv.sampling import BaseSampling, ULAIterator
-            >>> # Define iterator
-            >>> iterator = ULAIterator(...)
-            >>>
-            >>> # Basic usage with default settings
-            >>> sampler = BaseSampling(iterator, data_fidelity, prior)
-            >>> mean, var = sampler.sample(measurements, forward_operator)
-            >>>
-            >>> # Using multiple statistics
-            >>> sampler = BaseSampling(
-            ...     iterator, data_fidelity, prior,
-            ...     g_statistics=[lambda X: X["x"], lambda X: X["x"]**2]
-            ... )
-            >>> means, vars = sampler.sample(measurements, forward_operator)
+        Example::
+
+            from deepinv.sampling import BaseSampling, ULAIterator
+            
+            iterator = ULAIterator(...) # define iterator
+            
+            # Basic usage with default settings
+            sampler = BaseSampling(iterator, data_fidelity, prior)
+            mean, var = sampler.sample(measurements, forward_operator)
+            
+            # Using multiple statistics
+            sampler = BaseSampling(
+                iterator, data_fidelity, prior,
+                g_statistics=[lambda X: X["x"], lambda X: X["x"]**2]
+            )
+            means, vars = sampler.sample(measurements, forward_operator)
+            
         """
 
         # Don't store computational graphs
@@ -304,13 +306,16 @@ class BaseSampling(Reconstructor):
         :rtype: list[dict]
         :raises RuntimeError: If history storage was disabled (history_size=False)
 
-        Example:
-            >>> from deepinv.sampling import BaseSampling, SamplingIterator
-            >>> sampler = BaseSampling(SamplingIterator(...), data_fidelity, prior, history_size=5)
-            >>> _ = sampler(measurements, forward_operator)
-            >>> history = sampler.get_chain()
-            >>> latest_state = history[-1]  # Get most recent state dictionary
-            >>> latest_sample = latest_state["x"] # Get sample from state
+        Example::
+        
+            from deepinv.sampling import BaseSampling, SamplingIterator
+
+            sampler = BaseSampling(SamplingIterator(...), data_fidelity, prior, history_size=5)
+            _ = sampler(measurements, forward_operator)
+            history = sampler.get_chain()
+            latest_state = history[-1]  # Get most recent state dictionary
+            latest_sample = latest_state["x"] # Get sample from state
+
         """
         if self.history is False:
             raise RuntimeError(
