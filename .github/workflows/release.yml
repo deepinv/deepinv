@@ -118,7 +118,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add pyproject.toml CHANGELOG.rst 
-          git commit -am "Release version ${{ steps.bump.outputs.version }}"
+          git commit -m "Release version ${{ steps.bump.outputs.version }}"
           git tag v${{ steps.bump.outputs.version }}
           git push origin HEAD --tags
 
