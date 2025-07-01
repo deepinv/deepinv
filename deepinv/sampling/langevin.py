@@ -1,7 +1,7 @@
 import time as time
 from typing import Callable, Union
 from torch import Tensor
-from warnings import warn, DeprecationWarning
+from warnings import warn
 
 import deepinv.optim
 from deepinv.sampling import BaseSampling
