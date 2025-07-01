@@ -93,21 +93,28 @@ jobs:
             exit 1
           fi
 
+      - name: Extract changelog description
+        id: changelog
+        run: |
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
+
+      - name: Commit version bump and tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add pyproject.toml CHANGELOG.rst 
+          git commit -m "Release version ${{ steps.bump.outputs.version }}"
+          git tag v${{ steps.bump.outputs.version }}
+          git push origin HEAD --tags
+          
       - name: Publish to TestPyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
         run: |
-          python -m twine upload --repository testpypi dist/*
+          python -m twine check dist/*
+          python -m twine upload --verbose --repository testpypi dist/*
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.bump.outputs.version }}
-          body_path: changelog.txt
-          name: Release v${{ steps.bump.outputs.version }}
-          files: dist/*
-        
       - name: Install from TestPyPI and test
         run: |
           pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
@@ -119,18 +126,5 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
-          python -m twine upload dist/*
+          python -m twine --verbose upload dist/*
           
-      - name: Commit version bump and tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add pyproject.toml CHANGELOG.rst 
-          git commit -m "Release version ${{ steps.bump.outputs.version }}"
-          git tag v${{ steps.bump.outputs.version }}
-          git push origin HEAD --tags
-
-      - name: Extract changelog description
-        id: changelog
-        run: |
-          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
