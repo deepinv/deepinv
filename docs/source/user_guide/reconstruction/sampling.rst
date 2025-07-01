@@ -211,11 +211,11 @@ The function :func:`deepinv.sampling.sampling_builder` returns an instance of :c
 optimization algorithm of choice, either a predefined one (``"SKRock"``, ``"ULA"``),
 or with a user-defined one (an instance of :class:`deepinv.sampling.SamplingIterator`). For example, we can use ULA with a score prior:
 
-.. doctest::
+::
 
-    >>> model = dinv.sampling.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
+    model = dinv.sampling.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
                                     params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
-    >>> x_hat = model(y, physics)
+    x_hat = model(y, physics)
 
 
 We provide a very flexible framework for MCMC algorithms, providing some predefined algorithms alongside making it easy to implement your own custom sampling algorithms.

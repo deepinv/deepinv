@@ -168,20 +168,20 @@ class BaseSampling(Reconstructor):
         Example::
 
             from deepinv.sampling import BaseSampling, ULAIterator
-            
+
             iterator = ULAIterator(...) # define iterator
-            
+
             # Basic usage with default settings
             sampler = BaseSampling(iterator, data_fidelity, prior)
             mean, var = sampler.sample(measurements, forward_operator)
-            
+
             # Using multiple statistics
             sampler = BaseSampling(
                 iterator, data_fidelity, prior,
                 g_statistics=[lambda X: X["x"], lambda X: X["x"]**2]
             )
             means, vars = sampler.sample(measurements, forward_operator)
-            
+
         """
 
         # Don't store computational graphs
@@ -307,7 +307,7 @@ class BaseSampling(Reconstructor):
         :raises RuntimeError: If history storage was disabled (history_size=False)
 
         Example::
-        
+
             from deepinv.sampling import BaseSampling, SamplingIterator
 
             sampler = BaseSampling(SamplingIterator(...), data_fidelity, prior, history_size=5)
