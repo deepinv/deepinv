@@ -1,12 +1,9 @@
 import torch
-from deepinv.optim import DataFidelity, Distance, Potential
+from deepinv.optim import Distance, Potential
 import deepinv as dinv
 from deepinv.physics import Physics
 from deepinv.models import Denoiser
 from typing import Union
-
-# Question : the base should have default value to automatic differetiation : i.e. not a default distance : so it should be a child of Potential, not DataFidelity ?
-
 
 class NoisyDataFidelity(Potential):
     r"""
@@ -32,8 +29,8 @@ class NoisyDataFidelity(Potential):
     By default, the distance function :math:`d` is the L2 distance.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
+    def __init__(self, fn = None, *args, **kwargs):
+        super().__init__(fn = fn)
 
     def fn(self, x, y, physics, sigma=None, *args, **kwargs):
         r"""
@@ -60,7 +57,44 @@ class NoisyDataFidelity(Potential):
         return super().grad(x, y, physics, sigma, *args, **kwargs)
 
 
-class L2(NoisyDataFidelity):
+class DataFidelity(NoisyDataFidelity):
+    
+    def __init__(self, d=None):
+        super().__init__()
+        if not isinstance(d, Distance):
+            self.d = Distance(d=d)
+    
+    def fn(self, x, y, physics, *args, **kwargs):
+        r"""
+        Computes the data fidelity term :math:`\datafid{x}{y} = \distance{\forw{x}}{y}`.
+
+        :param torch.Tensor x: Variable :math:`x` at which the data fidelity is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (:class:`torch.Tensor`) data fidelity :math:`\datafid{x}{y}`.
+        """
+        return self.d(physics.A(x), y, *args, **kwargs)
+
+    def grad(self, x, y, physics, *args, **kwargs):
+        r"""
+        Calculates the gradient of the data fidelity term :math:`\datafidname` at :math:`x`.
+
+        The gradient is computed using the chain rule:
+
+        .. math::
+
+            \nabla_x \distance{\forw{x}}{y} = \left. \frac{\partial A}{\partial x} \right|_x^\top \nabla_u \distance{u}{y},
+
+        where :math:`\left. \frac{\partial A}{\partial x} \right|_x` is the Jacobian of :math:`A` at :math:`x`, and :math:`\nabla_u \distance{u}{y}` is computed using ``grad_d`` with :math:`u = \forw{x}`. The multiplication is computed using the ``A_vjp`` method of the physics.
+
+        :param torch.Tensor x: Variable :math:`x` at which the gradient is computed.
+        :param torch.Tensor y: Data :math:`y`.
+        :param deepinv.physics.Physics physics: physics model.
+        :return: (:class:`torch.Tensor`) gradient :math:`\nabla_x \datafid{x}{y}`, computed in :math:`x`.
+        """
+        return physics.A_vjp(x, self.d.grad(physics.A(x), y, *args, **kwargs))
+
+class L2(DataFidelity):
     """
     Noisy data fidelity term using the L2 distance:
 
