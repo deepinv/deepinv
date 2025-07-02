@@ -119,7 +119,7 @@ jobs:
         run: |
           pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
           python -c "import deepinv"
-
+          
       - name: Publish to PyPI
         if: ${{ success() }}
         env:

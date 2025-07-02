@@ -76,16 +76,16 @@ jobs:
         run: |
           pip install --upgrade build twine tomlkit
 
-      - name: Bump version
-        id: bump
-        run: |
-          python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}
-          echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
-
       - name: Update changelog 
         id: changelog
         run: |
-          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst dev
+
+      - name: Bump version
+        id: bump
+        run: |
+          python .github/scripts/bump_version.py pyproject.toml dev
+          echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
 
       - name: Build the package
         run: python -m build
