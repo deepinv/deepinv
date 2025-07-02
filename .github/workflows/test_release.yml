@@ -94,7 +94,7 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git checkout -b releasetest2
+          git checkout -b releasetest3
           git add pyproject.toml CHANGELOG.rst 
           git commit -m "Release version ${{ steps.bump.outputs.version }}"
           git push origin HEAD
