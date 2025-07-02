@@ -1,14 +1,15 @@
 name: Test Auto Publish to PyPI
 
 on:
-  schedule:
-    - cron: '0 0 */21 * *'  # every 21 days at 00:00 UTC
+  push:
+    branches:
+      - tachella-patch-4
   workflow_dispatch:        # manual trigger
     inputs:
       bump_type:
         description: 'Type of version bump'
         required: true
-        default: 'patch'
+        default: 'dev'
         type: choice
         options:
           - dev # for debugging purposes, not a real version bump
