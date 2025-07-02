@@ -1,8 +1,6 @@
 name: Auto Publish to PyPI
 
 on:
-  schedule:
-    - cron: '0 0 */21 * *'  # every 21 days at 00:00 UTC
   workflow_dispatch:        # manual trigger
     inputs:
       bump_type:
@@ -99,13 +97,18 @@ jobs:
             exit 1
           fi
 
-      - name: Commit version bump
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add pyproject.toml CHANGELOG.rst 
-          git commit -m "Release version ${{ steps.bump.outputs.version }}"
-          git push origin HEAD
+      - name: create PR with changes
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: release-${{ steps.bump.outputs.version }}
+          title: "Release v${{ steps.bump.outputs.version }}"
+          body: |
+            This automatic PR updates the version to v${{ steps.bump.outputs.version }} and updates the changelog.
+            Please merge this PR to finalize the release.
+          commit-message: "Release v${{ steps.bump.outputs.version }}"
+          base: main
+          labels: release
+          delete-branch: true
           
       - name: Publish to TestPyPI
         env:
@@ -121,14 +124,15 @@ jobs:
           python -c "import deepinv"
           
       - name: Publish to PyPI
-        if: ${{ success() }}
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
         run: |
           python -m twine --verbose upload dist/*
 
       - name: Create Github release
+        if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}
