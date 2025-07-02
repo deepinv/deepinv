@@ -97,8 +97,7 @@ jobs:
           git checkout -b releasetest2
           git add pyproject.toml CHANGELOG.rst 
           git commit -m "Release version ${{ steps.bump.outputs.version }}"
-          git tag v${{ steps.bump.outputs.version }}
-          git push origin HEAD --tags
+          git push origin HEAD
           
       - name: Publish to TestPyPI
         env:
