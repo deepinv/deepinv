@@ -14,6 +14,7 @@ on:
           - patch
           - minor
           - major
+          - dev # for debugging
 
 permissions:
   contents: write
@@ -98,14 +99,13 @@ jobs:
             exit 1
           fi
 
-      - name: Commit version bump and tag
+      - name: Commit version bump
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add pyproject.toml CHANGELOG.rst 
           git commit -m "Release version ${{ steps.bump.outputs.version }}"
-          git tag v${{ steps.bump.outputs.version }}
-          git push origin HEAD --tags
+          git push origin HEAD
           
       - name: Publish to TestPyPI
         env:
