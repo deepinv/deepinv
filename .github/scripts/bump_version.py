@@ -23,7 +23,11 @@ def increment_version(version, increment="patch"):
         patch += 1
     else:
         raise ValueError("Increment must be 'major', 'minor', 'patch' or 'dev'")
-    return f"{major}.{minor}.{patch}" if increment != "dev" else f"{major}.{minor}.{patch}.dev"
+    return (
+        f"{major}.{minor}.{patch}"
+        if increment != "dev"
+        else f"{major}.{minor}.{patch}.dev"
+    )
 
 
 def bump_patch_version(file_path, increment="patch"):

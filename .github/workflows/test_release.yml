@@ -1,4 +1,4 @@
-name: Auto Publish to PyPI
+name: Test Auto Publish to PyPI
 
 on:
   schedule:
