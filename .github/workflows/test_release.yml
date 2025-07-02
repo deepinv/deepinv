@@ -11,9 +11,7 @@ on:
         default: 'patch'
         type: choice
         options:
-          - patch
-          - minor
-          - major
+          - dev # for debugging purposes, not a real version bump
 
 permissions:
   contents: write
@@ -77,31 +75,25 @@ jobs:
         run: |
           pip install --upgrade build twine tomlkit
 
-      - name: Build the package
-        run: python -m build
-
-      - name: Update changelog
-        id: changelog
-        run: |
-          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
-
       - name: Bump version
         id: bump
         run: |
           python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}
           echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
 
-      - name: Stop if not on main
+      - name: Update changelog 
+        id: changelog
         run: |
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "❌ Not on main branch — skipping release."
-            exit 1
-          fi
+          python .github/scripts/get_latest_changelog.py CHANGELOG.rst ${{github.event.inputs.bump_type}}
+
+      - name: Build the package
+        run: python -m build
 
       - name: Commit version bump and tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
+          git checkout -b releasetest
           git add pyproject.toml CHANGELOG.rst 
           git commit -m "Release version ${{ steps.bump.outputs.version }}"
           git tag v${{ steps.bump.outputs.version }}
@@ -120,11 +112,4 @@ jobs:
           pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
           python -c "import deepinv"
 
-      - name: Publish to PyPI
-        if: ${{ success() }}
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          python -m twine --verbose upload dist/*
           
