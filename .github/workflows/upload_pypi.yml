@@ -1,0 +1,33 @@
+name: Deploy on release branch merge
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  deploy:
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'release-branch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          python -m twine check dist/*
+          python -m twine upload --verbose --repository testpypi dist/*
+
+      - name: Install from TestPyPI and test
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
+          python -c "import deepinv"
+          
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine --verbose upload dist/*

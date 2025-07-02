@@ -90,17 +90,10 @@ jobs:
           python .github/scripts/bump_version.py pyproject.toml ${{github.event.inputs.bump_type}}
           echo "version=$(python .github/scripts/get_version.py pyproject.toml)" >> "$GITHUB_OUTPUT"
 
-      - name: Stop if not on main
-        run: |
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "❌ Not on main branch — skipping release."
-            exit 1
-          fi
-
       - name: create PR with changes
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: release-${{ steps.bump.outputs.version }}
+          branch: release-branch
           title: "Release v${{ steps.bump.outputs.version }}"
           body: |
             This automatic PR updates the version to v${{ steps.bump.outputs.version }} and updates the changelog.
@@ -109,28 +102,7 @@ jobs:
           base: main
           labels: release
           delete-branch: true
-          
-      - name: Publish to TestPyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
-        run: |
-          python -m twine check dist/*
-          python -m twine upload --verbose --repository testpypi dist/*
-
-      - name: Install from TestPyPI and test
-        run: |
-          pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
-          python -c "import deepinv"
-          
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
-        run: |
-          python -m twine --verbose upload dist/*
-
+    
       - name: Create Github release
         if: ${{ github.event.inputs.bump_type != 'dev' }} and ${{ success() }}
         uses: softprops/action-gh-release@v2
