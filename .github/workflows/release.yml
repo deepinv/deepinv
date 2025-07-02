@@ -45,39 +45,18 @@ jobs:
             echo "❌ One or both workflows failed — aborting."
             exit 1
           fi
+          
+      - name: Install tools
+        run: |
+          pip install --upgrade tomlkit
 
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Check for recent release commit
-        id: check_release
-        run: |
-          LAST_COMMIT_MSG=$(git log -1 --pretty=%s)
-          echo "Last commit: $LAST_COMMIT_MSG"
-          if [[ "$LAST_COMMIT_MSG" =~ ^Release\ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            echo "Latest commit is a release. Skipping release process."
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Exit if no new changes
-        if: steps.check_release.outputs.skip == 'true'
-        run: |
-          echo "No new changes since last release. Skipping workflow."
-          exit 1
           
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-
-      - name: Install tools
-        run: |
-          pip install --upgrade build twine tomlkit
-
-      - name: Build the package
-        run: python -m build
 
       - name: Update changelog
         id: changelog
