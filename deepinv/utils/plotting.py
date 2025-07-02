@@ -43,7 +43,6 @@ def resize_pad_square_tensor(tensor, size):
     class SquarePad:
         def __call__(self, image):
             W, H = image.size
-            print(W, H)
             max_wh = np.max([W, H])
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)
@@ -323,9 +322,12 @@ def plot(
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
         for i, row_imgs in enumerate(imgs):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
+                # plt.imsave fails if img is not C-contiguous
+                img = np.ascontiguousarray(img)
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
@@ -422,7 +424,8 @@ def scatter_plot(
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
                 plt.imsave(save_dir_i / Path(str(r) + ".png"), img, cmap=cmap)
@@ -450,6 +453,9 @@ def plot_curves(metrics, save_dir=None, show=True):
     fig, axs = plt.subplots(
         1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
     )
+    # NOTE: axs is not an array when a single metric is passed in
+    if isinstance(axs, plt.Axes):
+        axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
@@ -538,9 +544,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
-    for key, value in zip(init_params.keys(), init_params.values()):
-        if not isinstance(value, Iterable):
-            init_params[key] = [value]
+    if init_params is not None:
+        for key, value in zip(init_params.keys(), init_params.values()):
+            if not isinstance(value, Iterable):
+                init_params[key] = [value]
 
     def get_param(param):
         if torch.is_tensor(param):
