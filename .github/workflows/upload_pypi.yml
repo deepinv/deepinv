@@ -1,4 +1,4 @@
-name: Deploy on release branch merge
+name: Deploy to pipy 
 
 on:
   pull_request:
@@ -45,6 +45,6 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
-          python -m twine --verbose upload dist/*
+          python -m twine upload dist/*
         
       
