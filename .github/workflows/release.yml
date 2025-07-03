@@ -15,7 +15,7 @@ on:
           - dev # for debugging
 
 permissions:
-  contents: write
+  contents: write-all
   
 jobs:
   build-test-publish:
