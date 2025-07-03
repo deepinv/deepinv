@@ -46,17 +46,17 @@ jobs:
             exit 1
           fi
           
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
       - name: Install tools
         run: |
           pip install --upgrade tomlkit
 
       - name: Checkout code
         uses: actions/checkout@v4
-          
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
 
       - name: Update changelog
         id: changelog
@@ -78,6 +78,9 @@ jobs:
             This automatic PR updates the version to v${{ steps.bump.outputs.version }} and updates the changelog.
             Please merge this PR to finalize the release.
           commit-message: "Release v${{ steps.bump.outputs.version }}"
+          add-paths: |
+            pyproject.toml
+            CHANGELOG.rst
           base: main
           labels: release
           delete-branch: true
