@@ -5,24 +5,20 @@ import torch.nn.functional as F
 import deepinv as dinv
 from deepinv.physics import MultiScaleLinearPhysics, Pad
 from deepinv.utils.tensorlist import TensorList
-from .base import Reconstructor
-
-from huggingface_hub import hf_hub_download
-
-cuda = True if torch.cuda.is_available() else False
-Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+from deepinv.models.base import Reconstructor
 
 
 class RAM(Reconstructor):
     r"""
-    RAM model.
+    Reconstruct Anything Model.
 
     This model (proposed in `this paper <https://arxiv.org/abs/2503.08915>`_) is a convolutional neural network (CNN)
     designed for image reconstruction tasks.
 
-    :param in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
-    :param device: Device to which the model should be moved. If None, the model will be created on the default device.
-    :param pretrained: If True, the model will be initialized with pretrained weights.
+    :param list in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
+    :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
+    :param bool pretrained: If True, the model will be initialized with pretrained weights.
+    :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
     """
 
     def __init__(
@@ -30,6 +26,7 @@ class RAM(Reconstructor):
         in_channels=[1, 2, 3],
         device=None,
         pretrained=True,
+        sigma_threshold=1e-3,
     ):
         super(RAM, self).__init__()
 
@@ -78,14 +75,12 @@ class RAM(Reconstructor):
 
         self.m_tail = OutTail(nc[0], in_channels)
 
+        self.sigma_threshold = sigma_threshold
+
         # load pretrained weights from hugging face
         if pretrained:
-            self.load_state_dict(
-                torch.load(
-                    hf_hub_download(repo_id="mterris/ram", filename="ram.pth.tar"),
-                    map_location=device,
-                )
-            )
+            url_download = "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
+            self.load_state_dict(torch.hub.load_state_dict_from_url(url_download))
 
         if device is not None:
             self.to(device)
@@ -94,8 +89,8 @@ class RAM(Reconstructor):
         r"""
         Converts a constant value to a map of the same size as the input tensor x.
 
-        :params float value: constant value
-        :params torch.Tensor x: input tensor
+        :param float value: constant value
+        :param torch.Tensor x: input tensor
         """
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:
@@ -122,9 +117,9 @@ class RAM(Reconstructor):
         Realign the input x based on the measurements y and the physics model.
         Applies the proximity operator of the L2 norm with respect to the physics model.
 
-        :params torch.Tensor x: Input tensor
-        :params deepinv.physics.Physics physics: Physics model
-        :params torch.Tensor y: Measurements
+        :param torch.Tensor x: Input tensor
+        :param deepinv.physics.Physics physics: Physics model
+        :param torch.Tensor y: Measurements
         """
         if hasattr(physics, "factor"):
             f = physics.factor
@@ -172,11 +167,11 @@ class RAM(Reconstructor):
         r"""
         Forward pass of the UNet model.
 
-        :params torch.Tensor x0: init image
-        :params float sigma: Gaussian noise level
-        :params float gamma: Poisson noise gain
-        :params deepinv.physics.Physics physics: physics measurement operator
-        :params torch.Tensor y: measurements
+        :param torch.Tensor x0: init image
+        :param float sigma: Gaussian noise level
+        :param float gamma: Poisson noise gain
+        :param deepinv.physics.Physics physics: physics measurement operator
+        :param torch.Tensor y: measurements
         """
         img_channels = x0.shape[1]
         physics = MultiScaleLinearPhysics(physics, x0.shape[-3:], device=x0.device)
@@ -220,7 +215,7 @@ class RAM(Reconstructor):
     def forward(self, y=None, physics=None):
         r"""
         Reconstructs a signal estimate from measurements y
-        :param torch.tensor y: measurements
+        :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
         """
         if physics is None:
@@ -237,9 +232,11 @@ class RAM(Reconstructor):
         sigma = (
             physics.noise_model.sigma if hasattr(physics.noise_model, "sigma") else 1e-3
         )
+        sigma = torch.tensor(max(sigma, self.sigma_threshold), device=y.device)
         gamma = (
             physics.noise_model.gain if hasattr(physics.noise_model, "gain") else 1e-3
         )
+        gamma = torch.tensor(max(gamma, 1e-3), device=y.device)
 
         out = self.forward_unet(x_in, sigma=sigma, gamma=gamma, physics=physics, y=y)
 
@@ -285,12 +282,12 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     r"""
     Efficient Krylov subspace embedding computation with parallel processing.
 
-    :params torch.Tensor y: Input tensor.
-    :params p: An object with A and A_adjoint methods (linear operator).
-    :params float factor: Scaling factor.
-    :params torch.Tensor v: Precomputed values to subtract from Krylov sequence. Defaults to None.
-    :params int N: Number of Krylov iterations. Defaults to 4.
-    :params torch.Tensor x_init: Initial guess. Defaults to None.
+    :param torch.Tensor y: Input tensor.
+    :param deepinv.physics.Physics p: A deepinv physics.
+    :param float factor: Scaling factor.
+    :param torch.Tensor v: Precomputed values to subtract from Krylov sequence. Defaults to None.
+    :param int N: Number of Krylov iterations. Defaults to 4.
+    :param torch.Tensor x_init: Initial guess. Defaults to None.
     """
 
     if x_init is None:
@@ -317,12 +314,12 @@ class MeasCondBlock(nn.Module):
     r"""
     Measurement conditioning block for the RAM model.
 
-    :param out_channels: Number of output channels.
-    :param img_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
-    :param decode_upscale: Upscaling factor for the decoding convolution.
-    :param N: Number of Krylov iterations.
-    :param depth_encoding: Depth of the encoding convolution.
-    :param c_mult: Multiplier for the number of channels.
+    :param int out_channels: Number of output channels.
+    :param int img_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
+    :param int decode_upscale: Upscaling factor for the decoding convolution.
+    :param int N: Number of Krylov iterations.
+    :param int depth_encoding: Depth of the encoding convolution.
+    :param int c_mult: Multiplier for the number of channels.
     """
 
     def __init__(
@@ -392,19 +389,19 @@ class ResBlock(nn.Module):
     r"""
     Convolutional residual block.
 
-    :param in_channels: Number of input channels.
-    :param out_channels: Number of output channels.
-    :param kernel_size: Size of the convolution kernel.
-    :param stride: Stride of the convolution.
-    :param padding: Padding for the convolution.
-    :param bias: Whether to use bias in the convolution.
-    :param img_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
-    :param decode_upscale: Upscaling factor for the decoding convolution.
-    :param head: Whether this is a head block.
-    :param tail: Whether this is a tail block.
-    :param N: Number of Krylov iterations.
-    :param c_mult: Multiplier for the number of channels.
-    :param depth_encoding: Depth of the encoding convolution.
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int kernel_size: Size of the convolution kernel.
+    :param int stride: Stride of the convolution.
+    :param int padding: Padding for the convolution.
+    :param bool bias: Whether to use bias in the convolution.
+    :param int, list[int] img_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
+    :param int decode_upscale: Upscaling factor for the decoding convolution.
+    :param bool head: Whether this is a head block.
+    :param bool tail: Whether this is a tail block.
+    :param int N: Number of Krylov iterations.
+    :param int c_mult: Multiplier for the number of channels.
+    :param int depth_encoding: Depth of the encoding convolution.
     """
 
     def __init__(
@@ -479,6 +476,18 @@ class ResBlock(nn.Module):
 
 
 class InHead(torch.nn.Module):
+    r"""
+    Input head for the RAM model.
+
+    This module applies a convolution to the input tensor based on the number of input channels.
+
+    :param list[int] in_channels_list: List of input channels for each head.
+    :param int out_channels: Number of output channels for the convolution.
+    :param str mode: Mode for the convolution, e.g., "" or "affine".
+    :param bool bias: Whether to use bias in the convolution.
+    :param bool input_layer: If True, this will be considered as an input layer (necessitating a channel number adjustment), otherwise it will not.
+    """
+
     def __init__(
         self, in_channels_list, out_channels, mode="", bias=False, input_layer=False
     ):
@@ -509,6 +518,17 @@ class InHead(torch.nn.Module):
 
 
 class OutTail(torch.nn.Module):
+    r"""
+    Output tail for the RAM model.
+
+    This module applies a convolution to the input tensor based on the number of output channels.
+
+    :param int in_channels: Number of input channels.
+    :param list[int] out_channels_list: List of output channels for each tail.
+    :param str mode: Mode for the convolution, e.g., "" or "affine".
+    :param bool bias: Whether to use bias in the convolution.
+    """
+
     def __init__(self, in_channels, out_channels_list, mode="", bias=False):
         super(OutTail, self).__init__()
         self.in_channels = in_channels

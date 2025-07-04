@@ -1,5 +1,5 @@
 """
-RAM model for solving inverse problems.
+Reconstruct Anything Model (RAM) for solving inverse problems.
 ====================================================================================================
 
 This example shows how to use the RAM model method to solve inverse problems. The RAM model, described in
@@ -89,7 +89,27 @@ dinv.utils.plot(
 # We showcase this in the following, where the model is fine-tuned on the measurement vector `y` itself.
 # Here, since this example is run in a no-GPU environment, we will use a small patch of the image to speed up training,
 # but in practice, we can use the full image.
-from deepinv.datasets.utils import UnsupDataset
+#
+# First, we will create a dataset for unsupervised training that
+
+
+class UnsupDataset(torch.utils.data.Dataset):
+    r"""
+    Dataset for unsupervised learning tasks.
+
+    This dataset is used to return only the data without any labels.
+
+    :param torch.Tensor data: Input data tensor of shape (N, ...), where N is the number of samples and ... represents the data dimensions.
+    """
+
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return self.data.size(0)
+
+    def __getitem__(self, idx):
+        return torch.nan, self.data[idx]
 
 
 physics_train = dinv.physics.Demosaicing(
