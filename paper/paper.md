@@ -127,11 +127,11 @@ of new ideas across imaging domains;
 3. Enhance **research reproducibility** via a common framework for imaging operators, reconstruction
 methods, datasets, and metrics for inverse problems.
 
-To the best of our knowledge, `deepinv` is the only library with a strong focus and wide set of modern learning-based methods, while covering many imaging domains.
-SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] focus only on optimization-based methods, and do not include neural network training, diffusion methods, adversarial methods nor unrolling networks.
-CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification methods for inverse problems.
-There are also multiple libraries focusing on specific inverse problems, and we encourage `deepinv` to be used alongside any such library: ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] for tomography, sigpy [@ong2019sigpy] for magnetic resonance imaging (without deep learning), and PyLops [@ravasi2019pylops] for certain linear operators. 
-Advanced libraries for inverse problems also exist in MATLAB, including GlobalBioIm [@soubies2019pocket] or IR Tools [@gazzola2019ir], but they are restricted to handcrafted reconstruction methods without automatic differentiation.
+To the best of our knowledge, `deepinv` is the only library with a strong focus and wide set of modern learning-based methods, covering many imaging domains.
+SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] focus only on optimization-based methods.
+CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification methods.
+ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus only on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain linear operators. 
+MATLAB libraries such as GlobalBioIm [@soubies2019pocket] or IR Tools [@gazzola2019ir] are restricted to handcrafted reconstruction methods without automatic differentiation.
 
 
 ![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
@@ -144,16 +144,12 @@ y = N_{\sigma}(A_{\xi}(x))
 \end{equation}
 where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}\colon\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
-$N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a mapping that characterizes the noise affecting the 
-measurements (Gaussian, Poisson etc.) parameterized by $\sigma$ (e.g. the noise level and/or gain). The forward operation is written in `deepinv` as `x = physics(y, **params)` where `params` is a dictionary with
-optional parameters $\xi$ (blur kernels, noise levels, MRI sampling masks, tomographic projection angles etc.). This framework unifies the wide variety of forward operators across various domains. The ever-expanding library of physics is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
+$N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `x = physics(y, **params)` where `params` is a dictionary with optional parameters $\xi$, unifying the wide variety of forward operators across various domains. The ever-expanding library of physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
 
-Most forward operators in `deepinv` are matrix-free, scaling gracefully to large image sizes. The framework allows users to perform operator algebra, and provides tools for linear operators such as adjoint, pseudoinverses and proximal operators (leveraging the singular value decomposition when possible), matrix-free linear solvers [@hestenes1952methods] [@paige1975solution] [@van1992bi], and operator norm and condition number estimators [@paige1982lsqr].
-
-The physics `params` $\xi$ also allows for essential advanced problems, including calibration of the system (measuring $\xi$ from $y$),
+The physics `params` $\xi$ allows for advanced problems, including calibration of the system (measuring $\xi$ from $y$),
 blind inverse problems (recovering $\xi$ and $x$ from $y$) [@debarnot2024deep] [@chung2023parallel], co-design (optimizing $\xi$ and possibly 
 the reconstruction algorithm jointly) [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust neural network training [@gossard2024training]
-[@terris2023meta] [@terris2025ram]. To the best of our knowledge, `deepinv` is unique in offering this feature.
+[@terris2023meta] [@terris2025ram].
 
 
 # Reconstruction Methods
@@ -169,10 +165,10 @@ where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional tr
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x)
 \end{equation}.
 
-  The `optim` module implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a wide range of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
-  - Traditional explicit priors [@candes2008introduction] [@rudin1992nonlinear] [@stephane1999wavelet] [@zoran2011learning] [@kowalski2009sparse];
+  The [`optim` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html) implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a wide range of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
+  - Traditional explicit priors [@candes2008introduction];
   - Learned regularizers [@zoran2011epll] [@altekruger2023patchnr];
-  - Denoising **Plug-and-Play** priors, which replace the proximal operator [@venkatakrishnan2013plug] or the gradient [@romano2017little] of the regularizer $g$ with a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2017beyond] [@zhang2021plug] or recent diffusion-based denoisers [@ho2020denoising] [@song2020score].
+  - **Plug-and-Play** priors [@venkatakrishnan2013plug] [@romano2017little] using a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2017beyond] [@zhang2021plug] [@ho2020denoising] [@song2020score].
 
   To solve these problems, `optim` includes:
   - Classical algorithms [@dossal2024optimizationorderalgorithms];
@@ -186,62 +182,55 @@ x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text
 such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$, and $\operatorname{R}_{\theta}$ is a (potentially learned) denoiser.
 Sampling multiple plausible reconstructions enables uncertainty estimates by computing statistics across the samples.
 
-  The `sampling` module implements general modular frameworks for:
-  - **Diffusion models** [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] and multiple methods of posterior sampling;
-  - **Langevin-type algorithms** [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo (MCMC) methods with stationary distribution close to the posterior distribution $p(x|y) \propto \exp(f_{\sigma}(y, A_{\xi}(x)) + g(x))$.
+  The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements general modular frameworks for:
+  - **Diffusion model** posterior sampling [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising];
+  - **Langevin-type algorithms** [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo (MCMC).
 
-- **Non-iterative**: The `models` module implements:
+- **Non-iterative**: The [`models` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html) implements:
   
-  - **Artifact removal** models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y),$, which simply backproject the measurements to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep]
+  - **Artifact removal** models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y),$, which simply backproject the measurements to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
   
-  - **Generative networks**: both unconditional [@bora2017compressed] [@bora2018ambientgan] [@ulyanov2018deep]
-that leverage a pretrained or untrained generator $\operatorname{G}_{\theta}(z)\colon\mathcal{Z}\mapsto \mathcal{X}$ where $z\in\mathcal{Z}$ is a latent code to solve an inverse problem via
-$\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{G}_{\theta}(\hat{z}) \text{ with } \hat{z} \in \operatorname{argmin}_{z} f_{\sigma}(y,A_{\xi}(\operatorname{G}_{\theta}(z)))$,
-and conditional [@isola2017image] [@bendel2023gan] that learn a generator $\operatorname{R}_{\theta}(y, z, A_{\xi}, \sigma)$.
+  - **Generative networks** [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
+that add a latent code to a generator network $\operatorname{G}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
 
-  - End-to-end **foundation models** [@terris2025ram] that are trained across a wide variety of forward operators $A_{\xi}$ and noise distributions $N_{\sigma}$. These models often obtain good performance in new tasks without retraining, and can also be finetuned to specific inverse problems or datasets using measurement data alone.
+  - **Foundation models** [@terris2025ram] that are trained end-to-end across a wide variety of $A_{\xi},N_{\sigma}$, which can be finetuned to new problems.
 
 # Training
 
-Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the `Trainer` high-level interface, handling data ingestion, the training loop, logging, and checkpointing. 
+Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the [`Trainer` high-level interface](https://deepinv.github.io/deepinv/user_guide/training/trainer.html).
 
 ## Losses
 
-The `loss` module framework unifies training loss functions that are widely used in various inverse problems across domains, defined as
+The [`loss` module](https://deepinv.github.io/deepinv/user_guide/training/loss.html) framework unifies training loss functions that are widely used across various domains:
 
 \begin{equation} \label{eq:loss}
 l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right)
 \end{equation}
 
-with $\hat{x}=R_{\theta}(y,A_{\xi},\sigma)$ being the network prediction, 
-and written in `deepinv` as `l = loss(x_hat, x, y, physics, model)`. The ever-expanding library of losses is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html).
+The ever-expanding library of losses `loss(x_hat, x, y, physics, model)` is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
+- **Supervised** loss between $x$ and $y$;
+- **Self-supervised** losses which only use $y$ [@wang2025benchmarking] [@yaman2020self] [@tachella2025unsure] [@monroy2025gr2r] [@chen2021equivariant] [@tachella2022unsupervised];
+- **Network regularization** losses that enforce regularity on $\operatorname{R}_{\theta}$ [@pesquet2021learning];
+- **Adversarial** losses [@bora2017compressed] [@bora2018ambientgan].
 
-The **supervised** loss computes a metric between pairs of ground-truth and measurements $\{(x_i,y_i)\}_{i=1}^{N}$. **Self-supervised** losses do not need $x$ and rely on measurement data only $\{y_i\}_{i=1}^{N}$ [@wang2025benchmarking] [@yaman2020self] [@tachella2025unsure] [@pang2021recorrupted] [@monroy2025gr2r] [@chen2021equivariant] [@tachella2022unsupervised].
-
-The `transform` module implements image transforms $\tilde{x}=T_g x$, which can be used for data augmentation, equivariant imaging [@wang2024perspective], and equivariant networks.
-
-**Network regularization** losses enforce some regularity condition on $\operatorname{R}_{\theta}$ [@pesquet2021learning]. **Adversarial** losses train conditional or unconditional generative networks [@bora2017compressed] [@bora2018ambientgan].
+The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements transforms $\tilde{x}=T_g x$ for data augmentation and equivariance [@wang2024perspective].
 
 ## Datasets
-The `datasets` module provides a common framework for defining datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$, and optional parameters $\xi_i$, and simulating paired datasets, given a dataset of ground-truth $\{x_i\}_{i=1}^{N}$ and physics, to encourage reproducibility. The ever-expanding library of popular application-specific datasets is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/datasets.html).
+The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics.
 
 # Evaluation
-The `metric` module provides metrics for evaluating reconstruction methods using `Trainer.test` or for training.
-These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective]. `deepinv` includes both distortion [@wang2004image] [@zhang2018unreasonable] and perceptual [@blau2018perception] [@mittal2012making] metrics.
+The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods using `Trainer.test` or for training.
+These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective], including distortion [@wang2004image] [@zhang2018unreasonable] and perceptual [@blau2018perception] [@mittal2012making] metrics.
 
 # Philosophy
 
 ### Coding Practices
 
-`deepinv` is coded in modern Python following a test-driven development philosophy.
+`deepinv` uses modern test-driven Python.
 The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
-and is compliant with PEP8 using `black`.  To encourage reproducibility, the library passes random number generators
-for all random generation functionality. Architecturally, `deepinv` is implemented using an object-oriented framework
-where base classes provide abstract functionality and interfaces (such as `Physics` or `Metric`),
-sub-classes provide specific implementations or special cases (such as `LinearPhysics`) along with methods inherited
-from base classes (such as the operator pseudoinverse), and mixins provide specialized methods. This framework
-reduces code duplication and makes it easy for researchers, engineers, and practitioners to implement new or specialized
-functionality while inheriting existing methods.
+and is compliant with PEP8 using `black`. We adopt an object-oriented framework
+where base classes provide abstract functionality and interfaces,
+sub-classes provide specific method implementations or special cases, reducing code duplication, facilitating users to implement new or specialized functionality while inheriting existing methods.
 
 ### Documentation
 
@@ -250,18 +239,19 @@ for classes. The documentation is generated using Sphinx and Sphinx-Gallery [@na
 
 # Perspectives
 
-DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress (release v0.3.2). The community is continuously contributing more methods, such as more realistic physics operators and more advanced training techniques, which reflect the state-of-the-art in imaging with deep learning, addressing the needs and interests of researchers and practitioners alike.
+DeepInverse is a dynamic and evolving project and this paper is merely a snapshot of ongoing progress. The community is continuously contributing more methods reflecting state-of-the-art in imaging with deep learning, addressing the needs and interests of researchers and practitioners.
 
 # Acknowledgements
 
-J. Tachella acknowledges support by the French National Research Agency (Agence Nationale de la Recherche) grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA deepinverse project.
+J. Tachella acknowledges support by the French ANR grant UNLIP (ANR-23-CE23-0013) and the CNRS PNRIA DeepInverse project.
 M. Terris acknowledges support by the BrAIN grant (ANR-20-CHIA-0016).
-F. Sarron, P. Weiss, M.H. Nguyen were supported by the ANR Micro-Blind ANR-21-CE48-0008.
-T. Moreau was supported from a national grant attributed to the ExaDoST project of the NumPEx PEPR program, under the reference ANR-22-EXNU-0004.
-J. Hertrich is supported by the German Research Foundation (DFG) with project number 530824055.
-Z. Hu acknowledges funding from the Swiss National Science Foundation (grant PZ00P2_216211). Thomas Davies is supported by UKRI EPSRC (grants EP/V006134/1 and EP/V006177/1).
-S. Neumayer acknowledges funding from the German Research Foundation (DFG) with project number 543939932.
-We thank the [BASP Laboratory at Heriot-Watt University](https://basp.site.hw.ac.uk/) for insightful discussions, and their contribution on the radio astronomy application.
-The authors acknowledge the Jean-Zay high-performance computing center, using HPC resources from GENCI-IDRIS (Grants 2021-AD011012210, 2024-AD011015191). 
+F. Sarron, P. Weiss, M.H. Nguyen were supported by ANR Micro-Blind ANR-21-CE48-0008.
+T. Moreau was supported by the ExaDoST project under NumPEx PEPR (ANR-22-EXNU-0004).
+J. Hertrich is supported by DFG (project 530824055).
+Z. Hu acknowledges funding from the Swiss National Science Foundation (grant PZ00P2_216211).
+T. Davies is supported by UKRI EPSRC (grants EP/V006134/1, EP/V006177/1).
+S. Neumayer acknowledges funding from DFG (project 543939932).
+We thank the [BASP Laboratory at Heriot-Watt University](https://basp.site.hw.ac.uk/) for insightful discussions and contributions to the radioastronomy application.
+The authors acknowledge the Jean-Zay HPC (GENCI-IDRIS grants 2021-AD011012210, 2024-AD011015191). 
 
 # References
