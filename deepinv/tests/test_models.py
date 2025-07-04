@@ -8,6 +8,7 @@ from deepinv.loss import PSNR
 
 from dummy import DummyCircles, DummyModel
 
+from deepinv.tests.test_physics import find_operator
 
 MODEL_LIST_1_CHANNEL = [
     "autoencoder",
@@ -33,6 +34,32 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_topk",
     "dsccp",
 ]
+
+REST_MODEL_LIST = [
+    "ram",
+]
+
+LINEAR_OPERATORS = [
+    "inpainting",
+    "demosaicing",
+    "denoising",
+    "fftdeblur",
+    "deblur_valid",
+    "super_resolution_circular",
+    "MRI",
+    "pansharpen_circular",
+]  # this is a reduced list of linear operators for testing restoration models.
+
+CHANNELS = [
+    1,
+    2,
+    3,
+]
+
+
+@pytest.fixture
+def rng(device):
+    return torch.Generator(device).manual_seed(0)
 
 
 def choose_denoiser(name, imsize):
@@ -109,6 +136,14 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
+    return out.eval()
+
+
+def choose_restoration_model(name):
+    if name == "ram":
+        out = dinv.models.RAM()
+    else:
+        raise Exception("Unknown restoration model")
     return out.eval()
 
 
@@ -798,6 +833,42 @@ def test_varnet(varnet_type, device):
 
     psnr = dinv.metric.PSNR()
     assert psnr(x_init, x) < psnr(x_hat, x)
+
+
+@pytest.mark.parametrize("model", REST_MODEL_LIST)
+@pytest.mark.parametrize("physics_name", LINEAR_OPERATORS)
+@pytest.mark.parametrize("channels", CHANNELS)
+def test_restoration_model(device, model, physics_name, channels, rng):
+
+    # skip test if channel is 1 and physics_name is in ["demosaicing", "MRI"]
+    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+        pytest.skip(f"Skipping {model} with {physics_name} for 1 channel input.")
+
+    # skip test if channel is 2 and physics_name is "demosaicing"
+    if channels == 2 and physics_name == "demosaicing":
+        pytest.skip(f"Skipping {model} with {physics_name} for 2 channel input.")
+
+    # skip test if channel is 3 and physics_name is "MRI"
+    if channels == 3 and physics_name == "MRI":
+        pytest.skip(f"Skipping {model} with {physics_name} for 3 channel input.")
+
+    model = choose_restoration_model(model).to(device)
+    torch.manual_seed(0)
+
+    imsize = (
+        channels,
+        32,
+        37,
+    )  # minimal size for this model is (3, 64, 64), but we want to test non-square images
+    physics, imsize, _, dtype = find_operator(physics_name, device, imsize=imsize)
+
+    x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    y = physics(x)
+
+    with torch.no_grad():
+        x_hat = model(y, physics)
+
+    assert x_hat.shape == x.shape
 
 
 def test_pannet():
