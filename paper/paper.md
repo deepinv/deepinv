@@ -169,10 +169,15 @@ where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional tr
 \operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x)
 \end{equation}.
 
-The `optim` module implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a wide range of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including traditional explicit priors [@candes2008introduction] [@rudin1992nonlinear] [@stephane1999wavelet] [@zoran2011learning] [@kowalski2009sparse],
-learned regularizers [@zoran2011epll] [@altekruger2023patchnr], and denoising **Plug-and-Play** priors, which replace the proximal operator [@venkatakrishnan2013plug] or the gradient [@romano2017little] of the regularizer $g$ with a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2017beyond] [@zhang2021plug] or recent diffusion-based denoisers [@ho2020denoising] [@song2020score].
+  The `optim` module implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a wide range of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
+  - Traditional explicit priors [@candes2008introduction] [@rudin1992nonlinear] [@stephane1999wavelet] [@zoran2011learning] [@kowalski2009sparse];
+  - Learned regularizers [@zoran2011epll] [@altekruger2023patchnr];
+  - Denoising **Plug-and-Play** priors, which replace the proximal operator [@venkatakrishnan2013plug] or the gradient [@romano2017little] of the regularizer $g$ with a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2017beyond] [@zhang2021plug] or recent diffusion-based denoisers [@ho2020denoising] [@song2020score].
 
-To solve these problems, `optim` includes classical algorithms [@dossal2024optimizationorderalgorithms], **unfolded networks** [@gregor2010learning], that unroll a fixed number of iterations of an optimization algorithm and train the parameters end-to-end via backpropagation, and **deep equilibrium methods** [@bai2019deep] that implicitly differentiate the fixed point of the algorithm.
+  To solve these problems, `optim` includes:
+  - Classical algorithms [@dossal2024optimizationorderalgorithms];
+  - **Unfolded networks** [@gregor2010learning], that unroll a fixed number of iterations of an optimization algorithm and train the parameters end-to-end via backpropagation;
+  - **Deep equilibrium methods** [@bai2019deep] that implicitly differentiate the fixed point of the algorithm.
 
 - **Sampling-based**: These are defined via ordinary or stochastic differential equations:
 \begin{equation}
@@ -181,7 +186,9 @@ x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text
 such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$, and $\operatorname{R}_{\theta}$ is a (potentially learned) denoiser.
 Sampling multiple plausible reconstructions enables uncertainty estimates by computing statistics across the samples.
 
-The `sampling` module implements a general modular framework for **diffusion models** [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] and multiple methods of posterior sampling, as well as a framework for popular **Langevin-type algorithms** [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo (MCMC) methods with stationary distribution close to the posterior distribution $p(x|y) \propto \exp(f_{\sigma}(y, A_{\xi}(x)) + g(x))$.
+  The `sampling` module implements general modular frameworks for:
+  - **Diffusion models** [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising] and multiple methods of posterior sampling;
+  - **Langevin-type algorithms** [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo (MCMC) methods with stationary distribution close to the posterior distribution $p(x|y) \propto \exp(f_{\sigma}(y, A_{\xi}(x)) + g(x))$.
 
 - **Non-iterative**: The `models` module implements:
   
