@@ -6,7 +6,7 @@ from tqdm import tqdm
 import torch
 import wandb
 from pathlib import Path
-from typing import Union, List
+from typing import Union
 from dataclasses import dataclass, field
 from deepinv.loss import Loss, SupLoss, BaseLossScheduler
 from deepinv.loss.metric import PSNR, Metric
@@ -194,22 +194,22 @@ class Trainer:
     """
 
     model: torch.nn.Module
-    physics: Union[Physics, List[Physics]]
+    physics: Union[Physics, list[Physics]]
     optimizer: Union[torch.optim.Optimizer, None]
     train_dataloader: torch.utils.data.DataLoader
     epochs: int = 100
     max_batch_steps: int = 10**10
-    losses: Union[Loss, BaseLossScheduler, List[Loss], List[BaseLossScheduler]] = (
+    losses: Union[Loss, BaseLossScheduler, list[Loss], list[BaseLossScheduler]] = (
         SupLoss()
     )
     eval_dataloader: torch.utils.data.DataLoader = None
     early_stop: bool = False
     scheduler: torch.optim.lr_scheduler.LRScheduler = None
     online_measurements: bool = False
-    physics_generator: Union[PhysicsGenerator, List[PhysicsGenerator]] = None
+    physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, List[Metric]] = PSNR()
+    metrics: Union[Metric, list[Metric]] = PSNR()
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path] = "."
@@ -335,9 +335,16 @@ class Trainer:
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = (
-            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
-        )
+        if self.save_path:
+            # NOTE: Two separate training should not write to the same
+            # directory. For this reason, we make sure the directory does not
+            # already exist.
+            dir_path = f"{self.save_path}/{get_timestamp()}"
+            # Acquire the output directory (might fail with an exception)
+            os.makedirs(dir_path, exist_ok=False)
+            self.save_path = dir_path
+        else:
+            self.save_path = None
 
         # count the overall training parameters
         if self.verbose and train:
@@ -626,11 +633,9 @@ class Trainer:
                     meters.update(loss.detach().cpu().numpy())
                     logs[l.__class__.__name__] = meters.avg
 
-                meters = (
-                    self.logs_total_loss_train if train else self.logs_total_loss_eval
-                )
-                meters.update(loss_total.item())
-                logs[f"TotalLoss"] = meters.avg
+            meters = self.logs_total_loss_train if train else self.logs_total_loss_eval
+            meters.update(loss_total.item())
+            logs[f"TotalLoss"] = meters.avg
         else:  # TODO question: what do we want to do at test time?
             loss_total = 0
 
@@ -941,6 +946,9 @@ class Trainer:
         for l in self.logs_metrics_eval:
             l.reset()
 
+        if hasattr(self, "check_grad_val"):
+            self.check_grad_val.reset()
+
     def save_best_model(self, epoch, train_ite, **kwargs):
         r"""
         Save the best model using validation metrics.
@@ -1231,7 +1239,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, List[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss]] = SupLoss(),
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,

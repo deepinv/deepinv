@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Union, Iterable, Tuple
+from typing import Union, Iterable
 
 import torch
 from torch import Tensor
@@ -27,7 +27,7 @@ class RandomNoise(Transform):
         self,
         *args,
         noise_type: str = "gaussian",
-        sigma: Union[int, Tuple[int, int]] = 0.1,
+        sigma: Union[int, tuple[int, int]] = 0.1,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -63,7 +63,7 @@ class RandomNoise(Transform):
 
 
 class RandomPhaseError(Transform):
-    """Random phase error transform.
+    r"""Random phase error transform.
 
     This transform is specific to MRI problems, and adds a phase error to k-space using:
 
@@ -76,7 +76,7 @@ class RandomPhaseError(Transform):
     :param int, tuple[int, int] scale: scale parameters :math:`s_e` and :math:`s_o` or range to pick randomly.
     """
 
-    def __init__(self, *args, scale: Union[int, Tuple[int, int]] = 0.2, **kwargs):
+    def __init__(self, *args, scale: Union[int, tuple[int, int]] = 0.2, **kwargs):
         super().__init__(*args, **kwargs)
         self.scale = scale
         self.flatten_video_input = False

@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "deepinv"
-authors = [{name="Julian Tachella", email="tachellajulian@gmail.com"}]
+authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
 license = {text = "BSD 3-Clause"}
-description = "Pytorch library for solving inverse problems with deep learning"
+description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -20,7 +20,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 requires-python = ">=3.9"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
     "numpy",
     "matplotlib",
@@ -54,6 +54,7 @@ Tracker = "https://github.com/deepinv/deepinv/issues"
 test = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "coverage",
 ]
 
@@ -66,6 +67,7 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinxcontrib-bibtex",
+    "sphinx_sitemap<2.7.0",
 ]
 
 # optional dependencies for specific denoisers
@@ -81,6 +83,7 @@ denoisers = [
     "torchkbnufft",
     "libcpab",
     "sigpy",
+    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
 ]
 
 # optional dependencies for specific datasets
@@ -99,6 +102,9 @@ dataset = [
 minversion = "6.0"
 testpaths = [
     "deepinv/tests",
+]
+markers = [
+    "slow",
 ]
 
 [tool.coverage.run]

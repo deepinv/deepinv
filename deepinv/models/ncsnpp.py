@@ -1,6 +1,5 @@
 import torch
 from torch.nn.functional import silu
-from typing import List
 import numpy as np
 from .utils import (
     PositionalEmbedding,
@@ -46,6 +45,7 @@ class NCSNpp(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (the default model trained on FFHQ at 64x64 resolution (`ffhq64-uncond-ve`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_train_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
@@ -60,7 +60,7 @@ class NCSNpp(Denoiser):
         label_dim: int = 0,  # Number of class labels, 0 = unconditional.
         augment_dim: int = 9,  # Augmentation label dimensionality, 0 = no augmentation.
         model_channels: int = 128,  # Base multiplier for the number of channels.
-        channel_mult: List = [
+        channel_mult: list = [
             1,
             2,
             2,
@@ -68,20 +68,20 @@ class NCSNpp(Denoiser):
         ],  # Per-resolution multipliers for the number of channels.
         channel_mult_emb: int = 4,  # Multiplier for the dimensionality of the embedding vector.
         num_blocks: int = 4,  # Number of residual blocks per resolution.
-        attn_resolutions: List = [16],  # List of resolutions with self-attention.
+        attn_resolutions: list = [16],  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
         embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
         channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
         encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
         decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter: List = [
+        resample_filter: list = [
             1,
             3,
             3,
             1,
         ],  # Resampling filter: [1,1] for DDPM++, [1,3,3,1] for NCSN++.
-        pretrained: str = None,
+        pretrained: str = "download",
         pixel_std: float = 0.75,
         device=None,
     ):
@@ -232,6 +232,7 @@ class NCSNpp(Denoiser):
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+                self._train_on_minus_one_one = False
             self.load_state_dict(ckpt, strict=True)
         else:
             self._train_on_minus_one_one = False
@@ -311,54 +312,35 @@ class NCSNpp(Denoiser):
         """
         dtype = x.dtype
         x = x.to(torch.float32)
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.to(torch.float32)
 
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
 
         # Rescale [0,1] input to [-1,-1]
-        if hasattr(self, "_train_on_minus_one_one"):
-            if self._train_on_minus_one_one:
-                x = (x - 0.5) * 2.0
-                sigma = sigma * 2.0
+        if getattr(self, "_train_on_minus_one_one", False):
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
         c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
         c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
-            c_in.view(-1, 1, 1, 1) * x,
+            c_in * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
 
-        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out.view(-1, 1, 1, 1) * F_x
+        D_x = c_skip * x + c_out * F_x
 
         D_x = D_x.to(dtype)
         # Rescale [-1,1] output to [0,-1]
-        if self._train_on_minus_one_one:
+        if getattr(self, "_train_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x
-
-    @staticmethod
-    def _handle_sigma(sigma, dtype, device, batch_size):
-        if isinstance(sigma, torch.Tensor):
-            sigma = sigma.squeeze()
-            if sigma.ndim == 0:
-                return sigma[None].to(device, dtype).expand(batch_size)
-            elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
-            else:
-                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
-
-        elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype).expand(batch_size)
-        else:
-            raise ValueError("Unsupported sigma type.")

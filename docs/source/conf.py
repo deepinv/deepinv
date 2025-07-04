@@ -9,25 +9,24 @@ from sphinx_gallery.sorting import ExplicitOrder
 from sphinx_gallery.directives import ImageSg
 import sys
 import os
-from pathlib import Path
 from sphinx.util import logging
+import doctest
+from importlib.metadata import metadata as importlib_metadata
 
 logger = logging.getLogger(__name__)
-
-import doctest
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "deepinverse"
-copyright = "2024, deepinverse contributors"
-author = (
-    "Julian Tachella, Matthieu Terris, Samuel Hurault, Dongdong Chen and Andrew Wang"
-)
-release = "0.3"
+metadata = importlib_metadata("deepinv")
+project = str(metadata["Name"])
+copyright = "deepinverse contributors 2025"
+author = str(metadata["Author"])
+release = str(metadata["Version"])
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -44,6 +43,7 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     'sphinxcontrib.bibtex'
+    "sphinx_sitemap",
 ]
 
 bibtex_bibfiles = ['../../paper/paper.bib']
@@ -67,7 +67,12 @@ autodoc_preserve_defaults = True
 nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
-
+# for sitemap
+html_baseurl = "https://deepinv.github.io/deepinv/"
+# the default scheme makes for wrong urls so we specify it properly here
+# For more details, see:
+# https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
+sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
 from docutils import nodes
@@ -148,6 +153,11 @@ doctest.OutputChecker = CustomOutputChecker
 doctest_global_setup = """
 import torch
 import numpy as np
+try:
+    import astra
+except ImportError:
+    astra = None
+cuda_available = torch.cuda.is_available()
 """
 
 
@@ -187,7 +197,7 @@ sphinx_gallery_conf = {
             "../../examples/patch-priors",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
-            "../../examples/advanced",
+            "../../examples/external-libraries",
         ]
     ),
 }
