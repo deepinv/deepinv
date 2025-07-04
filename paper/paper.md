@@ -144,7 +144,7 @@ deterministic (linear or non-linear) operator capturing the physics of the acqui
 $N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `x = physics(y, **params)`, unifying the wide variety of forward operators across various domains. 
 
 The optional physics `params` $\xi$ allows for advanced problems, including calibration,
-blind inverse problems [@debarnot2024deep] [@chung2023parallel], co-design [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
+blind inverse problems [@debarnot2024deep] [@chung2023parallel], codesign [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
 
 The ever-expanding library of physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
 
@@ -226,7 +226,7 @@ These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_h
 The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
 and is compliant with PEP8 using `black`. We adopt an object-oriented framework
 where base classes provide abstract functionality and interfaces,
-sub-classes provide specific method implementations or special cases, reducing code duplication, facilitating users to implement new or specialized functionality while inheriting existing methods.
+subclasses provide specific method implementations or special cases, reducing code duplication, facilitating users to implement new or specialized functionality while inheriting existing methods.
 
 ### Documentation
 
