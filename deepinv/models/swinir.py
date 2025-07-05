@@ -790,8 +790,7 @@ class UpsampleOneStep(nn.Sequential):
 class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
-    The Swin Image Restoration (SwinIR) denoising network was introduced in `SwinIR: Image Restoration Using Swin
-    Transformer <https://arxiv.org/abs/2108.10257>`_. This code is adapted from the official implementation by the
+    The Swin Image Restoration (SwinIR) denoising network was introduced by :footcite:t:`liang2021swinir`. This code is adapted from the official implementation by the
     authors.
 
     :param int, tuple img_size: Input image size. Default 128.
@@ -825,6 +824,10 @@ class SwinIR(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param int pretrained_noise_level: The noise level of the pretrained model to be downloaded (in 0-255 scale). This
         value is directly concatenated to the download url; should be chosen in the set {15, 25, 50}. Default: 15.
+
+    |sep|
+
+
     """
 
     def __init__(

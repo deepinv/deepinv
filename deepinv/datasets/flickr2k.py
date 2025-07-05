@@ -14,6 +14,8 @@ from deepinv.datasets.utils import (
 class Flickr2kHR(torch.utils.data.Dataset):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
 
+    The Flickr2k dataset introduced by :footcite:t:`agustsson2017ntire` contains 2650 2K images.
+
     **Raw data file structure:** ::
 
         self.root --- Flickr2K --- 000001.png

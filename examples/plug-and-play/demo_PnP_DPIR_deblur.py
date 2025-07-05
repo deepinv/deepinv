@@ -36,9 +36,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
-#
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
@@ -160,3 +158,8 @@ test(
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=True,
 )
+
+# %%
+# :References:
+#
+#    .. footbibliography::

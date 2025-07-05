@@ -3,7 +3,7 @@ Self-supervised denoising with the Generalized R2R loss.
 ====================================================================================================
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
-using noisy images only via the `Generalized Recorrupted2Recorrupted (GR2R) loss <https://arxiv.org/abs/2412.04648>`_,
+using noisy images only via the `Generalized Recorrupted2Recorrupted (GR2R) loss :footcite:t:`monroy2024generalized`,
 which exploits knowledge about the noise distribution. You can change the noise distribution by selecting
 from predefined noise models such as Gaussian, Poisson, and Gamma noise.
 """
@@ -190,3 +190,8 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+#    .. footbibliography::

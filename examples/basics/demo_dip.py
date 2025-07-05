@@ -4,8 +4,7 @@ Reconstructing an image using the deep image prior.
 
 This code shows how to reconstruct a noisy and incomplete image using the deep image prior.
 
-This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-<https://arxiv.org/abs/1711.10925>`_, and reconstructs
+This method is based on the paper "Deep Image Prior" :footcite:t:`ulyanov2018deep` and reconstructs
 an image by minimizing the loss function
 
 .. math::
@@ -99,11 +98,7 @@ f = dinv.models.DeepImagePrior(
 # The good performance of DIP is somewhat surprising, since the network has many parameters and could potentially
 # overfit the noisy measurement data. However, the architecture acts as an implicit regularizer, providing good
 # reconstructions if the optimization is stopped early.
-# While this phenomenon is not yet well understood, there has been some efforts to explain it. For example, see
-# `"The Neural Tangent Link Between CNN Denoisers and Non-Local Filters"
-# <https://openaccess.thecvf.com/content/CVPR2021/html/Tachella_The_Neural_Tangent_Link_Between_CNN_Denoisers_and_Non-Local_Filters_CVPR_2021_paper.html>`_.
-
-
+# While this phenomenon is not yet well understood, there has been some efforts to explain it. For example, see :footcite:t:`tachella2021neural`.
 dip = f(y, physics)
 
 # compute linear inverse
@@ -115,3 +110,9 @@ print(f"DIP PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
 
 # plot results
 plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])
+
+
+# %%
+# :References:
+#
+#    .. footbibliography::

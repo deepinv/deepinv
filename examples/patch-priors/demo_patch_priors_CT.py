@@ -26,7 +26,7 @@ where :math:`P_i` is the linear operator which extracts the :math:`i`-th patch f
 :math:`h` is a regularizer on the space of patches.
 We consider the following two choices of :math:`h`:
 
-* The expected patch log-likelihood (EPLL) prior was proposed in `"From learning models of natural image patches to whole image restoration" <https://ieeexplore.ieee.org/document/6126278>`_.
+* The expected patch log-likelihood (EPLL) prior was proposed by :footcite:t:`zoran2011learning`.
   It sets :math:`h(x)=-\log(p_\theta(x))`, where :math:`p_\theta` is the probability density function of a Gaussian mixture model.
   The parameters :math:`\theta` are estimated a-priori on a (possibly small) data set of training patches using
   an expectation maximization algorithm.
@@ -34,7 +34,7 @@ We consider the following two choices of :math:`h`:
   the Adam optimizers. For an example for using the (approximated) half-quadratic splitting algorithm proposed by Zoran
   and Weiss, we refer to the denoising example...
 
-* The patch normalizing flow regularizer (PatchNR) was proposed in `"PatchNR: learning from very few images by patch normalizing flow regularization" <https://iopscience.iop.org/article/10.1088/1361-6420/acce5e/>`_.
+* The patch normalizing flow regularizer (PatchNR) was proposed by :footcite:t:`altekruger2023patchnr`.
   It models :math:`h(x)=-\log(p_{\theta}(x))` as negative log-likelihood function of a probaility density function
   :math:`p_\theta={\mathcal{T}_\theta}_\#\mathcal{N}(0,I)` which is given as the push-forward measure of a standard
   normal distribution under a normalizing flow (invertible neural network) :math:`\mathcal{T}_\theta`.
@@ -265,3 +265,8 @@ plot(
     ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )
+
+# %%
+# :References:
+#
+#    .. footbibliography::

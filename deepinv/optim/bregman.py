@@ -106,7 +106,11 @@ class BurgEntropy(Bregman):
     Module for the using Burg's entropy as Bregman potential :math:`\phi(x) = - \sum_i \log x_i`.
 
     The corresponding Bregman divergence is the Itakura-Saito distance :math:`D(x,y) = \sum_i x_i / y_i - \log(x_i / y_i) - 1`.
-    As shown in https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
+    As shown in :footcite:t:`Bolte2016descent`, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
+
+    |sep|
+
+
     """
 
     def __init__(self):

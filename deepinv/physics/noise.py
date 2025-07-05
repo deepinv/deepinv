@@ -682,8 +682,7 @@ class LogPoissonNoise(NoiseModel):
     larger value of N0 corresponds to a lower strength of the noise.
     The value mu acts as a normalization constant of the forward operator. Consequently it should be chosen antiproportionally to the image size.
 
-    For more details on the interpretation of the parameters for CT measurements, we refer to the paper
-    `"LoDoPaB-CT, a benchmark dataset for low-dose computed tomography reconstruction" <https://www.nature.com/articles/s41597-021-00893-z>`_.
+    For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
     :param float N0: number of photons
 
@@ -704,6 +703,8 @@ class LogPoissonNoise(NoiseModel):
 
     :param float mu: normalization constant
     :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+
+
     """
 
     def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):

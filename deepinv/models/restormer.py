@@ -1,15 +1,3 @@
-r"""Define the neural network architecture of the Restormer.
-
-Model specialized in restoration tasks including deraining, single-image motion deblurring,
-defocus deblurring and image denoising for high-resolution images. Code adapted from
-https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
-
-Restormer: Efficient Transformer for High-Resolution Image Restoration
-Authors: Syed Waqas Zamir, Aditya Arora, Salman Khan, Munawar Hayat, Fahad Shahbaz Khan, and Ming-Hsuan Yang
-Paper: https://arxiv.org/abs/2111.09881
-Code: https://github.com/swz30/Restormer
-"""
-
 import numbers
 import os
 from typing import Optional
@@ -27,8 +15,10 @@ class Restormer(Denoiser):
     r"""
     Restormer denoiser network.
 
-    This network architecture was proposed in the paper:
-    `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_
+    Model introduced by :footcite:t:`zamir2022restormer`, specialized in restoration tasks including deraining, single-image motion deblurring,
+    defocus deblurring and image denoising for high-resolution images.
+
+    Code adapted from https://github.com/swz30/Restormer/blob/main/basicsr/models/archs/restormer_arch.py.
 
     By default, the model is a denoising network with pretrained weights. For other tasks such as deraining, some arguments needs to be adapted.
 
@@ -58,6 +48,10 @@ class Restormer(Denoiser):
         To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
         ``LayerNorm_type='BiasFree'`` and ``bias=False``
         (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
+
+    |sep|
+
+
     """
 
     def __init__(

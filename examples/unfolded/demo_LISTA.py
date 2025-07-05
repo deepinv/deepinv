@@ -2,7 +2,7 @@ r"""
 Learned Iterative Soft-Thresholding Algorithm (LISTA) for compressed sensing
 ====================================================================================================
 
-This example shows how to implement the `LISTA <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_ algorithm
+This example shows how to implement the LISTA algorithm :footcite:t:`gregor2010learning`,
 for a compressed sensing problem. In a nutshell, LISTA is an unfolded proximal gradient algorithm involving a
 soft-thresholding proximal operator with learnable thresholding parameters.
 
@@ -96,7 +96,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded Proximal Gradient algorithm.
 # ------------------------------------------------------------------------
-# In this example, following the original `LISTA algorithm <http://yann.lecun.com/exdb/publis/pdf/gregor-icml-10.pdf>`_,
+# In this example, following the original LISTA algorithm :footcite:t:`gregor2010learning`
 # the backbone algorithm we unfold is the proximal gradient algorithm which minimizes the following objective function
 #
 # .. math::
@@ -271,3 +271,8 @@ dinv.utils.plot(
 dinv.utils.plotting.plot_parameters(
     model, init_params=params_algo, save_dir=RESULTS_DIR / "unfolded_pgd" / operation
 )
+
+# %%
+# :References:
+#
+#    .. footbibliography::

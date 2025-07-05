@@ -40,8 +40,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the motion blur kernels from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the motion blur kernels from :footcite:t:`levin2009understanding`.
 #
 
 # Set up the variable to fetch dataset and operators.
@@ -188,3 +187,9 @@ test(
     plot_convergence_metrics=plot_convergence_metrics,
     verbose=verbose,
 )
+
+
+# %%
+# :References:
+#
+#    .. footbibliography::

@@ -3,9 +3,8 @@ Radio interferometric imaging with deepinverse
 ==============================================
 
 In this example, we investigate a simple 2D Radio Interferometry (RI) imaging task with deepinverse.
-The following example and data are taken from `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
+The following example and data are taken from :footcite:t:`aghabiglou2024r2d2`.
 If you are interested in RI imaging problem and would like to see more examples or try the state-of-the-art algorithms, please check `BASPLib <https://basp-group.github.io/BASPLib/>`_.
-
 """
 
 # %%
@@ -147,7 +146,7 @@ class RadioInterferometry(LinearPhysics):
 #
 # Groundtruth image
 # ----------------------------------------------------------------------------------------
-# The following data is our groundtruth with the settings of Experiment II in `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_.
+# The following data is our groundtruth with the settings of Experiment II in :footcite:t:`aghabiglou2024r2d2`.
 # The groundtruth data has been normalized in the [0, 1] range.
 # As usual in radio interferometric imaging, the data has high dynamic range,
 # i.e. the ratio between the faintest and highest emissions is higher than in traditional low-level vision tasks.
@@ -198,7 +197,7 @@ scatter_plot([uv], titles=["uv coverage"], s=0.2, linewidths=0.0)
 # We now have all the data and tools to generate our measurements!
 # The noise level :math:`\tau` in the spacial Fourier domain is set to ``0.5976 * 2e-3``.
 # This value will preserve the dynamic range of the groundtruth image in this case.
-# Please check `Terris et al. (2024) <https://doi.org/10.1093/mnras/stac2672>`_ and `Aghabiglou et al. (2024) <https://arxiv.org/abs/2403.05452>`_
+# Please check :footcite:t:`terris2023image` and :footcite:t:`aghabiglou2024r2d2`.
 # for more information about the relationship between the noise level in the Fourier domain and the dynamic range of the target image.
 
 tau = 0.5976 * 2e-3
@@ -370,3 +369,8 @@ if plot_convergence_metrics:
 # `AIRI <https://basp-group.github.io/BASPLib/AIRI.html>`_,
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
+
+# %%
+# :References:
+#
+#    .. footbibliography::

@@ -3,8 +3,7 @@ Implementing DPS
 ================
 
 In this tutorial, we will go over the steps in the Diffusion Posterior Sampling (DPS) algorithm introduced in
-`Chung et al. <https://arxiv.org/abs/2209.14687>`_ The full algorithm is implemented in
-:class:`deepinv.sampling.DPS`.
+:footcite:t:`chung2022diffusion`. The full algorithm is implemented in :class:`deepinv.sampling.DPS`.
 """
 
 # %%
@@ -187,8 +186,7 @@ plot(
 #           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\mathbf{x}_t)
 #
 # For the former term, we can simply plug-in our estimated score function as in Tweedie's formula. As the latter term
-# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of
-# `Chung et al. <https://arxiv.org/abs/2209.14687>`_)
+# is intractable, DPS proposes the following approximation (for details, see Theorem 1 of :footcite:t:`chung2022diffusion`)
 #
 # .. math::
 #
@@ -253,8 +251,8 @@ plot(
 # 3. Perform reverse diffusion sampling with DDPM(IM), corresponding to an update with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)`.
 # 4. Take a gradient step with :math:`\nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\hat{\mathbf{x}}_t)`.
 #
-# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the `DDIM sampler
-# <https://arxiv.org/abs/2010.02502)>`_ is a generalization of DDPM in a sense that it retrieves DDPM when
+# There are two caveats here. First, in the original work, DPS used DDPM ancestral sampling. As the DDIM sampler :footcite:t:`song2020denoising`
+# is a generalization of DDPM in a sense that it retrieves DDPM when
 # :math:`\eta = 1.0`, here we consider DDIM sampling.
 # One can freely choose the :math:`\eta` parameter here, but since we will consider 1000
 # neural function evaluations (NFEs),
@@ -359,3 +357,8 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 #       model = dinv.sampling.DPS(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
+
+# %%
+# :References:
+#
+#    .. footbibliography::

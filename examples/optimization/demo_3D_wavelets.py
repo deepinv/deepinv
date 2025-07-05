@@ -134,8 +134,7 @@ dinv.utils.plot(
 # :math:`\sum_{\ell=1}^{L}\lambda_i \|\Psi_{\ell} x\|_1`. In this case however, the proximal operator is not available in closed
 # form but can be computed numerically.
 #
-# A convenient algorithm in this situation is the Dykstra-like algorithm proposed in
-# `[Combettes, 2009] <https://pcombet.math.ncsu.edu/jca2.pdf>`_, writing
+# A convenient algorithm in this situation is the Dykstra-like algorithm proposed by :footcite:t:`combettes2009iterative`, writing
 #
 # .. math::
 #     \begin{equation}
@@ -250,3 +249,9 @@ dinv.utils.plot(
 #       model = dinv.models.WaveletDictDenoiser(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
 #       xhat = model(y, ths)
 #
+
+
+# %%
+# :References:
+#
+#    .. footbibliography::

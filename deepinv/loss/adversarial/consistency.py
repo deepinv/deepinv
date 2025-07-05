@@ -54,9 +54,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Supervised adversarial consistency loss for discriminator.
 
-     This loss was as used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-     Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-     Models".
+    This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
     Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
 

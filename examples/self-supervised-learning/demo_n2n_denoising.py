@@ -5,9 +5,7 @@ Self-supervised denoising with the Neighbor2Neighbor loss.
 This example shows you how to train a denoiser network in a fully self-supervised way,
 i.e., using noisy images only via the Neighbor2Neighbor loss, which exploits the local correlation of natural images.
 
-The Neighbor2Neighbor loss is presented in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-<https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_
-and is defined as:
+The Neighbor2Neighbor loss is presented in :footcite:t:`huang2021neighbor2neighbor` and is defined as:
 
 .. math::
 
@@ -17,7 +15,9 @@ where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neigh
 :math:`R` is the trainable denoiser network, :math:`\gamma>0` is a regularization parameter
 and no gradient is propagated when computing :math:`R(y)`.
 
+:References:
 
+    .. footbibliography::
 """
 
 from pathlib import Path
@@ -187,3 +187,8 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+#    .. footbibliography::

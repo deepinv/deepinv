@@ -12,10 +12,11 @@ from deepinv.datasets.utils import (
 
 
 class DIV2K(torch.utils.data.Dataset):
-    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
+    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`.
+
+    The DIV2K dataset :footcite:t:`agustsson2017ntire` is a high-quality image dataset originally built for image super-resolution tasks.
 
     Images have varying sizes with up to 2040 vertical pixels, and 2040 horizontal pixels.
-
 
     **Raw data file structure:** ::
 
@@ -51,6 +52,8 @@ class DIV2K(torch.utils.data.Dataset):
         >>> print(len(dataset))                                            # check that we have 100 images
         100
         >>> shutil.rmtree("DIV2K")                                    # remove raw data from disk
+
+
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/

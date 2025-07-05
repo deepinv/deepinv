@@ -8,12 +8,8 @@ solving imaging problems. These can be used for:
 1. Data augmentation (similar to ``torchvision.transforms``)
 2. Building equivariant denoisers
    (:class:`deepinv.models.EquivariantDenoiser`) for robust denoising
-   (e.g from `Terris et al., Equivariant plug-and-play image
-   reconstruction <https://arxiv.org/abs/2312.01831>`__)
-3. Self-supervised learning using Equivariant Imaging from `Chen et al.,
-   Equivariant Imaging: Learning Beyond the Range
-   Space <https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`__:
-   see
+   (e.g from :footcite:t:`terris2024equivariant`)
+3. Self-supervised learning using Equivariant Imaging from :footcite:t:`chen2021equivariant`. See
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`,
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`
    for thorough examples.
@@ -141,3 +137,9 @@ dinv.utils.plot(
 loss = dinv.loss.EILoss(
     transform=dinv.transform.projective.Affine() | dinv.transform.projective.Euclidean()
 )
+
+
+# %%
+# :References:
+#
+#    .. footbibliography::

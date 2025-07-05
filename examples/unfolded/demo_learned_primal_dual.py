@@ -1,16 +1,17 @@
 r"""
 Learned Primal-Dual algorithm for CT scan.
 ====================================================================================================
-Implementation of the Unfolded Primal-Dual algorithm from
-
-Adler, Jonas, and Ozan Öktem.
-"Learned primal-dual reconstruction."
-IEEE transactions on medical imaging 37.6 (2018): 1322-1332.
+Implementation of the Unfolded Primal-Dual algorithm from :footcite:t:`adler2018learned`.
 
 where both the data fidelity and the prior are learned modules, distinct for each iterations.
 
 The algorithm is used for CT reconstruction trained on random phantoms.
 The phantoms are generated on the fly during training using the odl library (https://odlgroup.github.io/odl/).
+
+
+:References:
+
+.. footbibliography::
 """
 
 import deepinv as dinv
@@ -284,3 +285,8 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+#    .. footbibliography::

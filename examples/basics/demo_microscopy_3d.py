@@ -171,7 +171,7 @@ blurs = diffraction_generator.step(batch_size=3)
 # where :math:`h(r, z)` is the amplitude PSF and :math:`D(r)` is the detector intensity sensitivity distribution (here : one inside the confocal pinhole, 0 outside).
 # `ill` coincides with illumination, while `coll` coincides with collection. :math:`\lambda` coincides with the wavelength.
 #
-# See e.g. Gu and Sheppard, JMO, 1991  - Eq. (6) https://doi.org/10.1080/09500349114552311
+# See :footcite:t:`gu1991three`.
 #
 
 from deepinv.physics.generator import ConfocalBlurGenerator3D
@@ -211,3 +211,9 @@ plot_ortho3D(
     [psf[None] for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )
+
+
+# %%
+# :References:
+#
+#    .. footbibliography::

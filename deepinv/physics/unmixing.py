@@ -12,7 +12,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 
-    Please see the survey `Hyperspectral Unmixing Overview: Geometrical, Statistical, and Sparse Regression-Based Approaches <https://core.ac.uk/download/pdf/12043173.pdf>`_ for more details.
+    Please see the survey :footcite:t:`bioucas2012hyperspectral` for details.
 
     Hyperspectral mixing is modelled using a Linear Mixing Model (LMM).
 
@@ -47,6 +47,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         >>> y = physics(x) # resulting mixed image
         >>> print(x.shape, y.shape, physics.M.shape)
         torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
+
 
     """
 

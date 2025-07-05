@@ -14,9 +14,7 @@ class TVDenoiser(Denoiser):
 
     where :math:`D` maps an image to its gradient field.
 
-    The problem is solved with an over-relaxed Chambolle-Pock algorithm (see L. Condat, "A primal-dual splitting method
-    for convex optimization  involving Lipschitzian, proximable and linear composite terms", J. Optimization Theory and
-    Applications, vol. 158, no. 2, pp. 460-479, 2013.
+    The problem is solved with an over-relaxed Chambolle-Pock algorithm, see :footcite:t:`condat2013primal`.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
@@ -40,6 +38,10 @@ class TVDenoiser(Denoiser):
     .. warning::
         For using TV as a prior for Plug and Play algorithms, it is recommended to use the class
         :class:`~deepinv.optim.prior.TVPrior` instead. In particular, it allows to evaluate TV.
+
+    |sep|
+
+
     """
 
     def __init__(

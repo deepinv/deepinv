@@ -31,7 +31,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     channel-height of channel-width plane and :math:`C` is number of channels.
     Note that the output size of the single-disperser mode has the ``H`` or ``W`` dim extended by ``C-1`` pixels.
 
-    For more details see e.g. the paper `High-Quality Hyperspectral Reconstruction Using a Spectral Prior <https://zaguan.unizar.es/record/75680/files/texto_completo.pdf>`_.
+    For more details see e.g. the paper :footcite:t:`choi2017high`.
 
     The implementation is a type of linear physics as it is not completely decomposable due to edge effects and different scaling.
 
@@ -57,6 +57,7 @@ class CompressiveSpectralImaging(LinearPhysics):
     :param str shear_dir: "h" for shear in H-C plane or "w" for shear in W-C plane where C is channel dim, defaults to "h"
     :param torch.device device: torch device, only used if ``mask`` is ``None`` or ``float``
     :param torch.Generator rng: torch random generator, only used if ``mask`` is ``None`` or ``float``
+    
     """
 
     def __init__(

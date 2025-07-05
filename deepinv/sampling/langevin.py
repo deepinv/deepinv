@@ -14,8 +14,7 @@ class ULA(BaseSampling):
     r"""
     Projected Plug-and-Play Unadjusted Langevin Algorithm.
 
-    The algorithm runs the following markov chain iteration
-    (Algorithm 2 from https://arxiv.org/abs/2103.04715):
+    The algorithm runs the following markov chain iteration (Algorithm 2 from :footcite:t:`laumont2022bayesian`):
 
     .. math::
 
@@ -52,6 +51,8 @@ class ULA(BaseSampling):
         If ``None``, the algorithm will not project the samples.
     :param float crit_conv: Threshold for verifying the convergence of the mean and variance estimates.
     :param bool verbose: prints progress of the algorithm.
+
+
 
     """
 
@@ -119,8 +120,7 @@ class SKRock(BaseSampling):
     Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic
     approximation to accelerate the standard Unadjusted Langevin Algorithm.
 
-    The algorithm was introduced in "Accelerating proximal Markov chain Monte Carlo by using an explicit stabilised method"
-    by L. Vargas, M. Pereyra and K. Zygalakis (https://arxiv.org/abs/1908.08845)
+    The algorithm was introduced by :footcite:t:`pereyra2020accelerating`.
 
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK required step_size smaller than :math:`\frac{1}{L+\|A\|_2^2}`
@@ -145,6 +145,8 @@ class SKRock(BaseSampling):
     :param bool verbose: prints progress of the algorithm.
     :param float sigma: noise level used in the plug-and-play prior denoiser. A larger value of sigma will result in
         a more regularized reconstruction.
+
+
 
     """
 

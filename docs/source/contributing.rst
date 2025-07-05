@@ -71,8 +71,76 @@ If you are not familiar with the GitHub contribution workflow, you can also open
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. We will then try to address the issue as soon as possible.
 You can also send an email to any of the `maintainers <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ with your questions or ideas.
 
+=======
 Learn more about our code philosophy in the paper:
 `DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
+
+Docstring Guidelines
+--------------------
+
+For class and function docstrings, we use the **reStructuredText (reST)** syntax.  
+See the `Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ for more details.
+
+Please follow these guidelines:
+
+- Each parameter and return value must be properly documented with its type, using inline type annotations in the ``:param`` and ``:return`` fields, as shown below:
+
+  .. code-block:: rest
+
+      :param <type> <name>: Description of the parameter.
+      :return <type>: Description of the return value.
+
+- Docstrings can be split into multiple sections using the horizontal separator ``|sep|``, with section titles introduced by ``:Title:``.
+
+- To provide usage examples, include an ``:Example:`` section. Code in this section will be executed during documentation generation.
+
+- Use ``:math:`` for inline LaTeX-style mathematics, and ``.. math::`` for block equations.
+
+- To include remarks or tips, use the ``.. note::`` directive.
+
+- To cite a paper:
+
+  1. Add the BibTeX entry to the ``refs.bib`` file.
+  2. Use ``:footcite:t:`<key>``` to cite in the format *Author et al. [1]*.
+  3. Use ``:footcite:p:`<key>``` to cite with only the reference number *[1]*.
+
+  For details on citing references with Sphinx, see the `sphinx-bibtex documentation <https://sphinxcontrib-bibtex.readthedocs.io/en/latest/>`_.
+
+  All references will be compiled and listed automatically in the generated documentation.
+
+Below is a minimal working example of a typical docstring that includes all these features:
+
+
+
+.. code-block:: python
+
+    class MyDenoiser:
+        r"""
+        Denoiser denoiser from the paper :footcite:t:`my_paper`.
+
+        .. math::
+            y = \D_\sigma{x + \sigma \omega}
+
+        .. note::
+            This is a note.
+
+        |sep|
+
+        :Example:
+
+        >>> import torch
+        >>> import deepinv as dinv
+        >>> model = dinv.models.DRUNet()
+        >>> x = torch.ones((1, 1, 8, 8))
+        >>> y = model(x)
+
+        :param int in_channels: number of input channels.
+        :param int out_channels: number of output channels.
+        :param str pretrained: path to pretrained weights or 'download'.
+        """
+        def __init__(self, in_channels, out_channels, pretrained=None):
+            pass
+
 
 Contributing new datasets
 --------------------------

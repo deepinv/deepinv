@@ -3,8 +3,7 @@ Self-supervised denoising with the UNSURE loss.
 ====================================================================================================
 
 This example shows you how to train a denoiser network in a fully self-supervised way,
-i.e., using noisy images with unknown noise level only via the UNSURE loss, which is introduced in
-https://arxiv.org/abs/2409.01985.
+i.e., using noisy images with unknown noise level only via the UNSURE loss, which is introduced by :footcite:t:`tachella2024unsure`.
 
 The UNSURE optimization problem for Gaussian denoising with unknown noise level is defined as:
 
@@ -197,3 +196,8 @@ test_dataloader = DataLoader(
 
 trainer.plot_images = True
 trainer.test(test_dataloader=test_dataloader)
+
+# %%
+# :References:
+#
+#    .. footbibliography::
