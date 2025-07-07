@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -215,8 +217,10 @@ class RAM(Reconstructor):
     def forward(self, y=None, physics=None):
         r"""
         Reconstructs a signal estimate from measurements y
+
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
+        :return: torch.Tensor: reconstructed signal estimate
         """
         if physics is None:
             physics = dinv.physics.Denoising(
@@ -245,8 +249,20 @@ class RAM(Reconstructor):
         return out
 
 
-### --------------- MODEL ---------------
 class BaseEncBlock(nn.Module):
+    r"""
+    Base encoding block for the RAM model.
+
+    This block consists of multiple convolutional residual blocks.
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param bool bias: Whether to use bias in the convolution.
+    :param int nb: Number of residual blocks in the encoding block.
+    :param int, list[int] img_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
+    :param int decode_upscale: Upscaling factor for the decoding convolution.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -288,6 +304,7 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     :param torch.Tensor v: Precomputed values to subtract from Krylov sequence. Defaults to None.
     :param int N: Number of Krylov iterations. Defaults to 4.
     :param torch.Tensor x_init: Initial guess. Defaults to None.
+    :return: torch.Tensor: a stacked tensor over the channel dimension containing Krylov embeddings.
     """
 
     if x_init is None:
@@ -554,6 +571,21 @@ class OutTail(torch.nn.Module):
 
 
 class Heads(torch.nn.Module):
+    r"""
+    General heads module for the RAM model.
+
+    :param list[int] in_channels_list: List of input channels for each head.
+    :param int out_channels: Number of output channels for the convolution.
+    :param int depth: Depth of the head block.
+    :param int scale: Scale factor for the downsampling or upsampling.
+    :param bool bias: Whether to use bias in the convolution.
+    :param str mode: Mode for the upsampling, e.g., "bilinear".
+    :param int c_mult: Multiplier for the number of channels.
+    :param int c_add: Additional channels to add to the input.
+    :param bool relu_in: If True, applies ReLU activation after the input convolution.
+    :param bool skip_in: If True, applies a skip connection from the input to the output.
+    """
+
     def __init__(
         self,
         in_channels_list,
@@ -617,6 +649,20 @@ class Heads(torch.nn.Module):
 
 
 class Tails(torch.nn.Module):
+    r"""
+    General tails module for the RAM model.
+
+    :param int in_channels: Number of input channels.
+    :param list[int] out_channels_list: List of output channels for each tail.
+    :param int depth: Depth of the tail block.
+    :param int scale: Scale factor for the upsampling.
+    :param bool bias: Whether to use bias in the convolution.
+    :param str mode: Mode for the upsampling, e.g., "bilinear".
+    :param int c_mult: Multiplier for the number of channels.
+    :param bool relu_in: If True, applies ReLU activation after the input convolution.
+    :param bool skip_in: If True, applies a skip connection from the input to the output.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -678,6 +724,20 @@ class Tails(torch.nn.Module):
 
 
 class HeadBlock(torch.nn.Module):
+    r"""
+    Head block for the RAM model.
+
+    This module applies a series of convolutions to the input tensor, with optional skip connections and ReLU activations.
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int kernel_size: Size of the convolution kernel.
+    :param bool bias: Whether to use bias in the convolution.
+    :param int depth: Depth of the head block.
+    :param bool relu_in: If True, applies ReLU activation after the input convolution.
+    :param bool skip_in: If True, applies a skip connection from the input to the output.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -741,8 +801,28 @@ class HeadBlock(torch.nn.Module):
         return x
 
 
-# --------------------------------------------------------------------------------------
 class AffineConv2d(nn.Conv2d):
+    r"""
+    Convolutional layer with optional affine property.
+
+    An affine convolutional layer :math:`c` satisfies the following property:
+
+    .. math::
+        c(\alpha x + \beta) = \alpha c(x) + \beta
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int kernel_size: Size of the convolution kernel.
+    :param str mode: Mode of the convolution, e.g., "affine" or "". If mode is "affine", the convolution will be affine, otherwise it will be a standard convolution.
+    :param bool bias: Whether to use bias in the convolution. Note that if `mode` is "affine", `bias` will be set to False.
+    :param int stride: Stride of the convolution.
+    :param int padding: Padding for the convolution.
+    :param int dilation: Dilation for the convolution.
+    :param int groups: Number of groups for the convolution.
+    :param str padding_mode: Padding mode for the convolution, e.g., "circular" or "zeros".
+    :param bool blind: If True, applies the affine transformation to the weight, otherwise keeps the original weight.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -757,7 +837,7 @@ class AffineConv2d(nn.Conv2d):
         padding_mode="circular",
         blind=True,
     ):
-        if mode == "affine":  # f(a*x + 1) = a*f(x) + 1
+        if mode == "affine":
             bias = False
         super().__init__(
             in_channels,
@@ -774,7 +854,6 @@ class AffineConv2d(nn.Conv2d):
         self.mode = mode
 
     def affine(self, w):
-        """returns new kernels that encode affine combinations"""
         return (
             w.view(self.out_channels, -1).roll(1, 1).view(w.size())
             - w
@@ -808,32 +887,16 @@ class AffineConv2d(nn.Conv2d):
             )
 
 
-"""
-Functional blocks below
-
-Parts of code borrowed from
-https://github.com/cszn/DPIR/tree/master/models
-https://github.com/xinntao/BasicSR
-"""
-from collections import OrderedDict
-import torch
-import torch.nn as nn
-
-
-"""
-# --------------------------------------------
-# Advanced nn.Sequential
-# https://github.com/xinntao/BasicSR
-# --------------------------------------------
-"""
-
-
 def sequential(*args):
-    """Advanced nn.Sequential.
-    Args:
-        nn.Sequential, nn.Module
-    Returns:
-        nn.Sequential
+    r"""
+    Creates a sequential container from the provided arguments.
+
+    This function takes as input a list of modules or Sequential containers and returns a single nn.Sequential container.
+
+    Function borrowed from https://github.com/xinntao/BasicSR.
+
+    :param args: Modules or Sequential containers to be combined.
+    :return: nn.Sequential container containing all the modules.
     """
     if len(args) == 1:
         if isinstance(args[0], OrderedDict):
@@ -856,8 +919,23 @@ def conv(
     stride=1,
     padding=1,
     bias=True,
-    mode="CBR",
+    mode="CR",
 ):
+    r"""
+    Conv + ReLU layer with optional transposed convolution.
+
+    Takes as input a string `mode` that defines the sequence of operations.
+
+    Code borrowed from https://github.com/cszn/DPIR/tree/master/models
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int kernel_size: Size of the convolution kernel.
+    :param int stride: Stride of the convolution.
+    :param int padding: Padding for the convolution.
+    :param bool bias: Whether to use bias in the convolution.
+    :param str mode: Sequence of operations, e.g., "CR", "CT", "C", "T", etc.
+    """
     L = []
     for t in mode:
         if t == "C":
@@ -889,9 +967,6 @@ def conv(
     return sequential(*L)
 
 
-# --------------------------------------------
-# convTranspose (+ relu)
-# --------------------------------------------
 def upsample_convtranspose(
     in_channels=64,
     out_channels=3,
@@ -899,12 +974,25 @@ def upsample_convtranspose(
     bias=True,
     mode="2R",
 ):
+    r"""
+    Upsample using ConvTranspose2d + ReLU layer.
+
+    Takes as input a string `mode` that defines the sequence of operations.
+
+    Code borrowed from https://github.com/cszn/DPIR/tree/master/models
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int padding: Padding for the convolution.
+    :param bool bias: Whether to use bias in the convolution.
+    :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
+    """
     assert len(mode) < 4 and mode[0] in [
         "2",
         "3",
         "4",
         "8",
-    ], "mode examples: 2, 2R, 2BR, 3, ..., 4BR."
+    ], "mode examples: 2, 2R, 2R, 3, ..., 4R."
     kernel_size = int(mode[0])
     stride = int(mode[0])
     mode = mode.replace(mode[0], "T")
@@ -927,6 +1015,17 @@ def downsample_strideconv(
     bias=True,
     mode="2R",
 ):
+    r"""
+    Downsample using Conv2d with stride + ReLU layer.
+
+    Takes as input a string `mode` that defines the sequence of operations.
+
+    :param int in_channels: Number of input channels.
+    :param int out_channels: Number of output channels.
+    :param int padding: Padding for the convolution.
+    :param bool bias: Whether to use bias in the convolution.
+    :param str mode: Sequence of operations, e.g., "2R", "3", "4R", etc.
+    """
     assert len(mode) < 4 and mode[0] in [
         "2",
         "3",

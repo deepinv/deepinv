@@ -34,6 +34,9 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
 
 REST_MODEL_LIST = [
     "ram",
+    "modl",
+    "varnet",
+    "pannet",
 ]
 
 LINEAR_OPERATORS = [
@@ -122,9 +125,22 @@ def choose_denoiser(name, imsize):
     return out.eval()
 
 
-def choose_restoration_model(name):
+def choose_restoration_model(name, in_channels=3, out_channels=3):
     if name == "ram":
         out = dinv.models.RAM()
+    elif name == "modl" or name == "varnet":
+        denoiser = dinv.models.DnCNN(in_channels, out_channels, 7, pretrained=None)
+        if name == "modl":
+            out = dinv.models.MoDL(denoiser=denoiser, num_iter=3)
+        else:
+            out = dinv.models.VarNet(
+                num_cascades=3,
+                mode=name,
+                denoiser=denoiser,
+            )
+    elif name == "pannet":
+        hrms_shape = (8, 16, 16)  # manually adjust
+        out = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
     else:
         raise Exception("Unknown restoration model")
     return out.eval()
@@ -689,24 +705,83 @@ LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
 
 
 @pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
-@pytest.mark.parametrize("model", REST_MODEL_LIST)
+@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
 @pytest.mark.parametrize("physics_name", LINEAR_OPERATORS)
 @pytest.mark.parametrize("channels", CHANNELS)
-def test_restoration_model(device, model, physics_name, channels, rng, whsize):
+def test_restoration_model_sizes(
+    device, model_name, physics_name, channels, rng, whsize
+):
 
     # skip test if channel is 1 and physics_name is in ["demosaicing", "MRI"]
     if channels == 1 and physics_name in ["demosaicing", "MRI"]:
-        pytest.skip(f"Skipping {model} with {physics_name} for 1 channel input.")
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
 
     # skip test if channel is 2 and physics_name is "demosaicing"
     if channels == 2 and physics_name == "demosaicing":
-        pytest.skip(f"Skipping {model} with {physics_name} for 2 channel input.")
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
 
     # skip test if channel is 3 and physics_name is "MRI"
     if channels == 3 and physics_name == "MRI":
-        pytest.skip(f"Skipping {model} with {physics_name} for 3 channel input.")
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
 
-    model = choose_restoration_model(model).to(device)
+    if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
+        pytest.skip(f"Skipping {model_name} with {physics_name}. TODO: fix.")
+
+    model = choose_restoration_model(
+        model_name, in_channels=channels, out_channels=channels
+    ).to(device)
+    torch.manual_seed(0)
+
+    imsize = (channels, whsize[0], whsize[1])
+
+    physics, imsize, _, dtype = find_operator(physics_name, device, imsize=imsize)
+
+    if hasattr(physics, "noise_model"):
+        if hasattr(physics.noise_model, "sigma"):
+            physics.noise_model.sigma = torch.tensor(
+                [max(physics.noise_model.sigma, 0.01)]
+            )
+        else:
+            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+    else:
+        physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+
+    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0)
+
+    y = physics(x)
+
+    with torch.no_grad():
+        x_hat = model(y, physics)
+
+    assert x_hat.shape == x.shape
+
+
+@pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
+@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("physics_name", LINEAR_OPERATORS)
+@pytest.mark.parametrize("channels", CHANNELS)
+def test_restoration_model_performance(
+    device, model_name, physics_name, channels, rng, whsize
+):
+
+    if model_name != "ram":
+        pytest.skip(
+            f"Skipping performance test for {model_name}. Only 'ram' is tested."
+        )
+
+    # skip test if channel is 1 and physics_name is in ["demosaicing", "MRI"]
+    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
+
+    # skip test if channel is 2 and physics_name is "demosaicing"
+    if channels == 2 and physics_name == "demosaicing":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
+
+    # skip test if channel is 3 and physics_name is "MRI"
+    if channels == 3 and physics_name == "MRI":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
+
+    model = choose_restoration_model(model_name).to(device)
     torch.manual_seed(0)
 
     imsize = (channels, whsize[0], whsize[1])
@@ -731,10 +806,10 @@ def test_restoration_model(device, model, physics_name, channels, rng, whsize):
         x_hat = model(y, physics)
 
     psnr_fn = PSNR(max_pixel=1)
-    assert x_hat.shape == x.shape
 
-    if not (
-        physics_name == "super_resolution_circular" and channels == 2
+    if (
+        not (physics_name == "super_resolution_circular" and channels == 2)
+        and model_name == "ram"
     ):  # suboptimal performance in this case
         psnr_in = psnr_fn(physics.A_dagger(y), x)
         psnr_out = psnr_fn(x_hat, x)
