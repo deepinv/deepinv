@@ -113,7 +113,7 @@ bibliography: paper.bib
 
 # Summary
 
-[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all the steps to reconstruct images using deep learning for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
+[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all the steps to simulate acquisition and perform image reconstruction using deep learning for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
 
 # Statement of Need
 
@@ -131,22 +131,22 @@ CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification.
 ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain operators. 
 MATLAB libraries ([@soubies2019pocket], IR Tools [@gazzola2019ir]) are restricted to handcrafted methods without automatic differentiation.
 
-![Schematic of the library.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
+![Schematic of the modular DeepInverse framework.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
 # Inverse Problems
 
 Imaging inverse problems can be expressed as 
 \begin{equation} \label{eq:forward}
-y = N_{\sigma}(A_{\xi}(x))
+y = N_{\sigma}(A_{\xi}(x)),
 \end{equation}
 where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_{\xi}\colon\mathcal{X}\mapsto\mathcal{Y}$ is a
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
-$N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `x = physics(y, **params)`, unifying the wide variety of forward operators across various domains. 
+$N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `y = physics(x, **params)`, unifying the wide variety of forward operators across various domains. 
 
 The optional physics `params` $\xi$ allows for advanced problems, including calibration,
 blind inverse problems [@debarnot2024deep] [@chung2023parallel], codesign [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
 
-The ever-expanding library of physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
+The current implemented physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
 
 
 # Reconstruction Methods
@@ -155,61 +155,62 @@ The ever-expanding library of physics, noise models, parameters $\xi$ and tools 
 \begin{equation} \label{eq:solver}
 \hat{x} = \operatorname{R}_{\theta}(y, A_{\xi}, \sigma)
 \end{equation}
-where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional trainable parameters $\theta$ and $\hat{x}$ is the reconstructed image, written as `x_hat = model(y, physics)`. The ever-expanding library of algorithms is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html), categorized as:
+where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional trainable parameters $\theta$ and $\hat{x}$ is the reconstructed image, written as `x_hat = model(y, physics)`. The current library of algorithms is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html), categorized as:
 
 - **Optimization-based** methods [@chambolle2016introduction] solve
 \begin{equation} \label{eq:var}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x)
-\end{equation}.
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x).
+\end{equation}
 
   The [`optim` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html) implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a variety of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
   - Traditional explicit priors [@candes2008introduction];
   - Learned regularizers [@zoran2011epll] [@altekruger2023patchnr];
-  - **Plug-and-Play** priors [@venkatakrishnan2013plug] [@romano2017little] using a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2017beyond] [@zhang2021plug] [@ho2020denoising] [@song2020score].
+  - Plug-and-Play priors [@venkatakrishnan2013plug] using a pretrained denoiser $\operatorname{D}_{\sigma}$ [@zhang2021plug].
 
   To solve these problems, `optim` includes:
   - Classical algorithms [@dossal2024optimizationorderalgorithms];
-  - **Unfolded networks** [@gregor2010learning], that unroll a fixed number of iterations of an optimization algorithm and train the parameters end-to-end;
-  - **Deep equilibrium methods** [@bai2019deep] that implicitly differentiate the fixed point of the algorithm.
+  - Unfolded networks [@gregor2010learning], that unroll a fixed number of iterations of an optimization algorithm and train the parameters end-to-end;
+  - Deep equilibrium methods [@bai2019deep] that implicitly differentiate the fixed point of the algorithm.
 
 - **Sampling-based** methods defined by differential equations:
 \begin{equation}
-x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=0,\dots,T-1
+x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=0,\dots,T-1,
 \end{equation} 
-such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$, and $\operatorname{R}_{\theta}$ is a denoiser. Sampling multiple times enables uncertainty quantification.
+such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$. Sampling multiple times enables uncertainty quantification.
 
-  The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements general modular frameworks for:
-  - **Diffusion model** posterior sampling [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising];
-  - **Langevin-type algorithms** [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo.
+  The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements generalised, modular frameworks for:
+  - Diffusion model posterior sampling [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising];
+  - Langevin-type algorithms [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo.
 
 - **Non-iterative**: The [`models` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html) implements:
   
-  - **Artifact removal** models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y),$, which simply backproject $y$ to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
+  - Artifact removal models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$, which simply backproject $y$ to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
   
-  - **Generative networks** [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
+  - Generative networks [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
 that add a latent $z$ to a generator network $\operatorname{G}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
 
-  - **Foundation models** [@terris2025ram], trained end-to-end across a wide variety of $A_{\xi},N_{\sigma}$, and can be finetuned to new problems.
+  - Foundation models [@terris2025ram], trained end-to-end across a wide variety of $A_{\xi},N_{\sigma}$, and can be finetuned to new problems.
 
 # Training
 
-Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the [`Trainer` high-level interface](https://deepinv.github.io/deepinv/user_guide/training/trainer.html).
+Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the modular [`Trainer` class](https://deepinv.github.io/deepinv/user_guide/training/trainer.html).
 
 ## Losses
 
 The [`loss` module](https://deepinv.github.io/deepinv/user_guide/training/loss.html) framework unifies training loss functions that are widely used across various domains:
 
 \begin{equation} \label{eq:loss}
-l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right)
+l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right).
 \end{equation}
 
-The ever-expanding library of losses `loss(x_hat, x, y, physics, model)` is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
-- **Supervised** loss between $x$ and $y$;
-- **Self-supervised** losses which only use $y$ [@wang2025benchmarking] [@yaman2020self] [@tachella2025unsure] [@monroy2025gr2r] [@chen2021equivariant] [@tachella2022unsupervised];
-- **Network regularization** losses [@pesquet2021learning];
-- **Adversarial** losses [@bora2017compressed] [@bora2018ambientgan].
+The library of losses `loss(x_hat, x, y, physics, model)` is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
 
-The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements transforms $\tilde{x}=T_g x$ for data augmentation and equivariance [@wang2024perspective].
+- Supervised loss between $x$ and $y$;
+- Self-supervised losses which only use $y$ [@wang2025benchmarking] [@monroy2025gr2r];
+- Network regularization losses [@pesquet2021learning];
+- Adversarial losses [@bora2017compressed] [@bora2018ambientgan].
+
+The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements transforms $\tilde{x}=T_g x$ for data augmentation and equivariance [@chen2023imaging] [@wang2024perspective].
 
 ## Datasets
 The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics.
