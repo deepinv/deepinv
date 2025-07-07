@@ -1,17 +1,9 @@
-__all__ = [
-    "__title__",
-    "__summary__",
-    "__url__",
-    "__version__",
-    "__author__",
-    "__license__",
-]
+from importlib.metadata import metadata as importlib_metadata
 
-__title__ = "deepinv"
-__summary__ = "Deep Learning for Inverse Problems Library for PyTorch"
-__version__ = "0.3"
-__author__ = (
-    "Julian Tachella, Samuel Hurault, Matthieu Terris, Dongdong Chen, Andrew Wang"
-)
-__license__ = "BSD 3-Clause Clear"
-__url__ = "https://deepinv.github.io/"
+metadata = importlib_metadata("deepinv")
+__title__ = metadata["Name"]
+__summary__ = metadata["Summary"]
+__version__ = metadata["Version"]
+__author__ = metadata["Author"]
+__license__ = metadata["License"]
+__url__ = metadata["Project-URL"]
