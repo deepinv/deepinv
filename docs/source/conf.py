@@ -182,33 +182,32 @@ cuda_available = torch.cuda.is_available()
 
 #############################
 
+
 def add_references_block_to_examples():
     print("🔧 add_references_block_to_examples() called")
-    for root, _, files in os.walk('../../examples'):
+    for root, _, files in os.walk("../../examples"):
         for fname in files:
-            if not fname.endswith('.py'):
+            if not fname.endswith(".py"):
                 continue
             full_path = os.path.join(root, fname)
 
-            with open(full_path, 'r', encoding='utf-8') as f:
+            with open(full_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Skip if already has a bibliography block
-            if 'footbibliography' in content:
+            if "footbibliography" in content:
                 continue
 
             # Add References block if footcite appears
-            if ':footcite:' in content:
+            if ":footcite:" in content:
                 references_block = (
-                    "\n# %%\n"
-                    "# :References:\n"
-                    "#\n"
-                    "# .. footbibliography::\n"
+                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
                 )
                 content += references_block
 
-                with open(full_path, 'w', encoding='utf-8') as f:
+                with open(full_path, "w", encoding="utf-8") as f:
                     f.write(content)
+
 
 add_references_block_to_examples()
 
@@ -248,7 +247,7 @@ sphinx_gallery_conf = {
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
         ]
-    )
+    ),
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
@@ -328,4 +327,3 @@ napoleon_custom_sections = [
     ("Reference", "params_style"),  # Sphinx ≥ 3.5
     # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
 ]
-
