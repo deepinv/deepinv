@@ -19,6 +19,7 @@ OPERATORS = [
     "CS",
     "fastCS",
     "inpainting",
+    "inpainting_clone",
     "demosaicing",
     "denoising",
     "colorize",
@@ -138,6 +139,10 @@ def find_operator(name, device, get_physics_param=False):
         params = ["mask"]
     elif name == "inpainting":
         p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        params = ["mask"]
+    elif name == "inpainting_clone":
+        p = dinv.physics.Inpainting(img_size=img_size, mask=0.5, device=device, rng=rng)
+        p = p.clone()
         params = ["mask"]
     elif name == "demosaicing":
         p = dinv.physics.Demosaicing(img_size=img_size, device=device)
@@ -1047,7 +1052,17 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("parallel_computation", [True, False])
 @pytest.mark.parametrize("fan_beam", [True, False])
 @pytest.mark.parametrize("circle", [True, False])
-def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
+@pytest.mark.parametrize("adjoint_via_backprop", [True, False])
+@pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+def test_tomography(
+    normalize,
+    parallel_computation,
+    fan_beam,
+    circle,
+    adjoint_via_backprop,
+    fbp_interpolate_boundary,
+    device,
+):
     r"""
     Tests tomography operator which does not have a numerically precise adjoint.
 
@@ -1061,10 +1076,14 @@ def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
         circle=circle,
         fan_beam=fan_beam,
         normalize=normalize,
+        adjoint_via_backprop=adjoint_via_backprop,
+        fbp_interpolate_boundary=fbp_interpolate_boundary,
         parallel_computation=parallel_computation,
     )
 
     x = torch.randn(imsize, device=device).unsqueeze(0)
+    if adjoint_via_backprop:
+        assert physics.adjointness_test(x).abs() < 0.001
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()
@@ -1616,3 +1635,247 @@ def test_adjoint_autograd(name, device):
     delta_y = y.grad
     Az = physics.A(z)
     assert torch.allclose(delta_y, Az, rtol=1e-5)
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_clone(name, device):
+    physics, imsize, _, dtype = find_operator(name, device)
+
+    # Add a dummy parameter used for further testing
+    dummy_tensor = torch.randn(
+        imsize,
+        device=device,
+        dtype=dtype,
+        generator=torch.Generator(device).manual_seed(0),
+    )
+    dummy_parameter = torch.nn.Parameter(dummy_tensor)
+    physics.register_parameter("dummy", dummy_parameter)
+
+    physics_clone = physics.clone()
+
+    # Test clone type (parent class)
+    assert type(physics_clone) == type(physics), "Clone is not of the same type."
+
+    # Check parameters
+    parameter_names = set(name for name, _ in physics.named_parameters())
+    parameter_names_clone = set(name for name, _ in physics_clone.named_parameters())
+
+    assert parameter_names == parameter_names_clone, "Parameter names do not match."
+
+    for name in parameter_names.intersection(parameter_names_clone):
+        param = physics.get_parameter(name)
+        param_clone = physics_clone.get_parameter(name)
+
+        # Check that params have been reallocated somewhere else in the memory space
+        assert (
+            param.data_ptr() != param_clone.data_ptr()
+        ), f"Parameter {name} has not been cloned properly."
+
+        # Check that changing one parameter does not change the other
+        # NOTE: no_grad is necessary because autograd prevents in-place modifications
+        # of leaf variables.
+        with torch.no_grad():
+            param.fill_(0)
+            param_clone.fill_(1)
+        assert not torch.allclose(param, param_clone), f"Expected different values"
+
+    # Check buffers
+    buffer_names = set(name for name, _ in physics.named_buffers())
+    buffer_names_clone = set(name for name, _ in physics_clone.named_buffers())
+
+    assert buffer_names == buffer_names_clone, "Buffer names do not match."
+
+    for name in buffer_names.intersection(buffer_names_clone):
+        buffer = physics.get_buffer(name)
+        buffer_clone = physics_clone.get_buffer(name)
+
+        # Check that buffers have been reallocated somewhere else in the memory space
+        assert (
+            buffer.data_ptr() != buffer_clone.data_ptr()
+        ), f"Buffer {name} has not been cloned properly."
+
+        # Check that changing one buffer does not change the other
+        buffer.fill_(0)
+        buffer_clone.fill_(1)
+        assert not torch.allclose(buffer, buffer_clone), f"Expected different values"
+
+    # Test that RNGs have been cloned successfully
+    rng = getattr(physics, "rng", None)
+    rng_clone = getattr(physics_clone, "rng", None)
+
+    assert (rng is not None) == (
+        rng_clone is not None
+    ), "RNGs are not both set or unset."
+
+    if rng is not None:
+        assert torch.all(
+            rng.get_state() == rng_clone.get_state()
+        ), "RNG state does not match."
+
+        arr = torch.randn(16, device=rng.device, generator=rng)
+        arr_clone = torch.randn(16, device=rng_clone.device, generator=rng_clone)
+        assert torch.allclose(
+            arr, arr_clone
+        ), "RNGs do not produce the same random numbers after cloning."
+
+    # Additional tests
+    if hasattr(physics, "mask") and physics.mask.dtype != torch.bool:
+        # Save original values
+        saved_mask = physics.mask
+        saved_physics_clone = physics_clone
+
+        physics.mask += 7
+        physics_clone = physics.clone()
+        assert torch.allclose(
+            physics_clone.mask, physics.mask
+        ), "Mask has not been cloned properly."
+
+        # Restore original values
+        physics_clone.mask = saved_mask
+        physics_clone = physics_clone
+
+    # Test other attributes than parameters and buffers
+    attr_name = "img_size"
+    is_attr = hasattr(physics, attr_name)
+    is_parameter = attr_name in [name for name, _ in physics.named_parameters()]
+    is_buffer = attr_name in [name for name, _ in physics.named_buffers()]
+    if is_attr and not is_parameter and not is_buffer:
+        # Save original values
+        attr_val = getattr(physics, attr_name)
+        attr_val_clone = getattr(physics_clone, attr_name)
+
+        setattr(physics, attr_name, 42)
+        physics_clone = physics.clone()
+        assert getattr(physics_clone, attr_name) == getattr(
+            physics, attr_name
+        ), "Attribute has not been cloned properly."
+
+        # Restore original values
+        setattr(physics, attr_name, attr_val)
+        setattr(physics_clone, attr_name, attr_val_clone)
+
+    # Save original values
+    saved_A = physics.A
+    physics.A = lambda *args, **kwargs: "hi"
+
+    x = torch.randn(
+        imsize,
+        device=device,
+        dtype=dtype,
+        generator=torch.Generator(device).manual_seed(0),
+    ).unsqueeze(0)
+    assert physics.A(x) == "hi"
+    assert physics_clone.A(x) != "hi"
+
+    # Restore original values
+    physics.A = saved_A
+
+    # Check requires_grad in parameters and buffers
+
+    saved_physics = physics
+    saved_physics_clone = physics_clone
+
+    # Use a clone as the base to avoid mutations across different tests as it
+    # may happen when modifying parameters and buffers
+    physics = physics.clone()
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        param.requires_grad = True
+
+    physics_clone = physics.clone()
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        assert param.requires_grad, "Cloned parameter does not require grad."
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        param.requires_grad = False
+
+    physics_clone = physics.clone()
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        assert not param.requires_grad, "Cloned parameter should not require grad."
+
+    for buffer in physics.buffers():
+        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
+            continue
+        buffer.requires_grad = True
+
+    physics_clone = physics.clone()
+
+    for buffer in physics_clone.buffers():
+        if not torch.is_floating_point(buffer) and not torch.is_complex(buffer):
+            continue
+        assert buffer.requires_grad, "Cloned buffer does not require grad."
+
+    for buffer in physics.buffers():
+        buffer.requires_grad = False
+
+    physics_clone = physics.clone()
+
+    for buffer in physics_clone.buffers():
+        assert not buffer.requires_grad, "Cloned buffer should not require grad."
+
+    # Restore original values
+    physics = saved_physics
+    physics_clone = saved_physics_clone
+
+    # Test autograd
+    saved_physics = physics
+    saved_physics_clone = physics_clone
+
+    # Use a clone as the base to avoid mutations across different tests as it
+    # may happen when modifying parameters and buffers
+    physics = physics.clone()
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param) and not torch.is_complex(param):
+            continue
+        param.requires_grad = True
+
+    physics_clone = physics.clone()
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        l = param.flatten()[0]
+        l.backward()
+        assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        assert param.grad is None, "Cloned parameter should not have a gradient."
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        param.grad = None  # Reset gradients
+
+    for param in physics_clone.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        l = param.flatten()[0]
+        l.backward()
+        assert param.grad is not None, "Parameter gradient is None after backward."
+
+    for param in physics.parameters():
+        if not torch.is_floating_point(param):
+            continue
+        assert param.grad is None, "Original parameter should not have a gradient."
+
+    # Restore original values
+    physics = saved_physics
+    physics_clone = saved_physics_clone
