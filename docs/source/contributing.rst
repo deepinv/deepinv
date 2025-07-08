@@ -9,6 +9,10 @@ and we need your help to get there!
 
 View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`__.
 
+Learn more about our code philosophy in the paper:
+`DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
+
+
 How to Contribute
 -----------------
 
@@ -71,9 +75,6 @@ If you are not familiar with the GitHub contribution workflow, you can also open
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. We will then try to address the issue as soon as possible.
 You can also send an email to any of the `maintainers <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ with your questions or ideas.
 
-=======
-Learn more about our code philosophy in the paper:
-`DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
 
 Docstring Guidelines
 --------------------
