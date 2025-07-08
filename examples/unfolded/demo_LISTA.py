@@ -184,7 +184,7 @@ model = ProximalGradientDescent(
 
 # Training parameters
 epochs = 5 if torch.cuda.is_available() else 3
-learning_rate = 0.01
+learning_rate = 0.1
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -258,13 +258,4 @@ dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
-)
-
-# %%
-# Plotting the learned parameters.
-# ------------------------------------
-dinv.utils.plotting.plot_parameters(
-    model,
-    init_params={"stepsize": stepsize, "lambda": lambda_reg},
-    save_dir=RESULTS_DIR / "unfolded_pgd" / operation,
 )
