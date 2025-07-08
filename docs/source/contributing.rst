@@ -83,12 +83,12 @@ See the `Sphinx documentation <https://www.sphinx-doc.org/en/master/usage/restru
 
 Please follow these guidelines:
 
-- Each parameter and return value must be properly documented with its type, using inline type annotations in the ``:param`` and ``:return`` fields, as shown below:
+- Each parameter and return must be properly descreibed, along with a type annotations for each ``:param`` field, as shown below:
 
   .. code-block:: rest
 
       :param <type> <name>: Description of the parameter.
-      :return <type>: Description of the return value.
+      :return: Description of the return value.
 
 - Docstrings can be split into multiple sections using the horizontal separator ``|sep|``, with section titles introduced by ``:Title:``.
 
@@ -96,7 +96,7 @@ Please follow these guidelines:
 
 - Use ``:math:`` for inline LaTeX-style mathematics, and ``.. math::`` for block equations.
 
-- To include remarks or tips, use the ``.. note::`` directive.
+- To include remarks, warnings, or tips, use the ``.. note::`` directive.
 
 - To cite a paper:
 
@@ -138,7 +138,7 @@ Below is a minimal working example of a typical docstring that includes all thes
         :param int out_channels: number of output channels.
         :param str pretrained: path to pretrained weights or 'download'.
         """
-        def __init__(self, in_channels, out_channels, pretrained=None):
+        def __init__(self, in_channels: int, out_channels: int, pretrained: bool = None):
             pass
 
 
