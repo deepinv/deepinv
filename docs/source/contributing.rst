@@ -43,8 +43,10 @@ check the following points:
   ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.
   Learn more `here <https://realpython.com/pytest-python-testing/>`__.
   Your code coverage will automatically be checked using ``codecov``.
-- **Docs**: the documentation is updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
+- **Docs**: the documentation and docstrings are updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
   and built with `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_.
+  Please refer to the docstring guidelines below.
+  Your documentation should be added to: a) docstring, b) API reference, c) User Guide, d) Examples (optional).
   After making the desired changes, check the documentation by installing
   ``sphinx`` and building the docs by running one of the commands in the table below in the ``docs`` directory.
   Note that if the build process fails, supplementary additional libraries may need to be manually installed
