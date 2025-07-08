@@ -334,4 +334,3 @@ dinv.utils.plot(
     titles=["Linear", "Reconstruction", "Ground truth"],
     suptitle="Reconstruction results",
 )
-

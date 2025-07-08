@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim import ProximalGradientDescent
 from deepinv.utils.demo import get_data_home
+from deepinv.models.utils import get_weights_url
 
 # %%
 # Setup paths for data loading and results.
@@ -69,13 +70,13 @@ test_base_dataset = datasets.MNIST(
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
-# Generate the compressed sensing measurement operator with 10x under-sampling factor.
+# Generate the compressed sensing measurement operator with 5x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
+    m=157, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LISTA"
 n_images_max = (
-    1000 if torch.cuda.is_available() else 200
+    5000 if torch.cuda.is_available() else 200
 )  # maximal number of images used for training
 measurement_dir = DATA_DIR / train_dataset_name / operation
 generated_datasets_path = dinv.datasets.generate_dataset(
@@ -122,7 +123,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 
 # Select the data fidelity term
 data_fidelity = L2()
-max_iter = 30 if torch.cuda.is_available() else 10  # Number of unrolled iterations
+max_iter = 10  # Number of unrolled iterations
 stepsize = [torch.ones(1, device=device)] * max_iter  # initialization of the stepsizes.
 # A distinct stepsize is trained for each iteration.
 
@@ -155,7 +156,7 @@ prior = [
 g_param = [
     torch.ones(1, 3, 3, device=device)
     * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
-] * max_iter  # A distinct lamb is trained for each iteration.
+] * max_iter  # A distinct regularization parameter is trained for each iteration.
 
 trainable_params = [
     "stepsize",
@@ -183,8 +184,8 @@ model = ProximalGradientDescent(
 #
 
 # Training parameters
-epochs = 5 if torch.cuda.is_available() else 3
-learning_rate = 0.1
+epochs = 10 if torch.cuda.is_available() else 3
+learning_rate = 1e-2
 
 # Choose optimizer and scheduler
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -197,8 +198,8 @@ verbose = True
 wandb_vis = False  # plot curves and images in Weight&Bias
 
 # Batch sizes and data loaders
-train_batch_size = 64 if torch.cuda.is_available() else 2
-test_batch_size = 64 if torch.cuda.is_available() else 8
+train_batch_size = 128 if torch.cuda.is_available() else 2
+test_batch_size = 128 if torch.cuda.is_available() else 8
 
 train_dataloader = DataLoader(
     train_dataset, batch_size=train_batch_size, num_workers=num_workers, shuffle=True
@@ -206,6 +207,16 @@ train_dataloader = DataLoader(
 test_dataloader = DataLoader(
     test_dataset, batch_size=test_batch_size, num_workers=num_workers, shuffle=False
 )
+
+# If working on CPU, start with a pretrained model to reduce training time
+if not torch.cuda.is_available():
+    file_name = "ckp_10_demo_LISTA.pth.tar"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
+    optimizer.load_state_dict(ckpt["optimizer"])
 
 # %%
 # Train the network.
@@ -230,6 +241,7 @@ trainer = dinv.Trainer(
 )
 
 model = trainer.train()
+
 
 # %%
 # Test the network.
@@ -257,5 +269,5 @@ backprojected = physics.A_adjoint(y)
 dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
-    suptitle="Reconstruction results",
+    suptitle="Reconstruction results"
 )

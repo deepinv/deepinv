@@ -325,8 +325,8 @@ class BaseOptim(Reconstructor):
                             for el in param_value
                         ]
                     )
-            self.init_params_algo = nn.ParameterDict(self.init_params_algo)
-            self.params_algo = self.init_params_algo.copy()
+            self.params_algo = nn.ParameterDict(self.init_params_algo)
+            self.init_params_algo = self.params_algo.copy()
             # The prior (list of instances of :class:`deepinv.optim.Prior`), data_fidelity and bremgna_potentials are converted to a `nn.ModuleList` to be trainable.
             self.prior = nn.ModuleList(self.prior) if self.prior else None
             self.data_fidelity = (
