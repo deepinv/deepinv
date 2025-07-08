@@ -137,16 +137,9 @@ If you use DeepInverse in your research, please cite the following paper (availa
 Star history
 ------------
 
-.. raw:: html
-
-   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
-    <picture>
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
-    </picture>
-   </a>
-
+.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :alt: Star History Chart
+   :target: https://www.star-history.com/#deepinv/deepinv&Date
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg

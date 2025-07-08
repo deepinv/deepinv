@@ -5,8 +5,20 @@ This change log is for the `main` branch. It contains changes for each release, 
 
 
 Current
-----------------
+-------
 
+New Features
+^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.2
+------
 New Features
 ^^^^^^^^^^^^
 - Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
@@ -24,7 +36,9 @@ Fixed
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 - Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
 - Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)  
-- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)  
+- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)
+
+  
 
 v0.3.1
 ----------------
