@@ -117,19 +117,19 @@ bibliography: paper.bib
 
 # Statement of Need
 
-Deep neural networks have become ubiquitous in various imaging inverse problems. Despite the ever-increasing research effort, most learning-based algorithms are built from scratch, are hard to generalize beyond their specific training setting, and the reported results are often hard to reproduce. `deepinv` overcomes these limitations by providing a modular unified framework, leveraging the popular PyTorch deep learning library [@paszke2019pytorch].
-For our audience of researchers (experts in optimization, deep learning etc.), practitioners (biologists, physicists etc.) and imaging software engineers, `deepinv` is:
+Deep neural networks have become ubiquitous in various imaging inverse problems. Despite the ever-increasing research effort, most learning-based algorithms are built from scratch, are hard to generalize beyond their specific training setting, and the reported results are often hard to reproduce. DeepInverse overcomes these limitations by providing a modular unified framework, leveraging the popular PyTorch deep learning library [@paszke2019pytorch].
+For our audience of researchers (experts in optimization, deep learning etc.), practitioners (biologists, physicists etc.) and imaging software engineers, DeepInverse is:
 
 1. **Accelerating research** by enabling efficient testing, deployment and transfer
 of new ideas across imaging domains;
 2. Enlarging the **adoption of deep learning in inverse problems** by lowering the entrance bar to new users;
 3. Enhancing **research reproducibility** via a common modular framework of problems and algorithms.
 
-To the best of our knowledge, `deepinv` is the only library with a strong focus and wide set of modern learning-based methods across domains.
+To the best of our knowledge, DeepInverse is the only library with a strong focus and wide set of modern learning-based methods across domains.
 SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] focus on optimization-based methods.
 CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification.
-ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain operators. 
-MATLAB libraries ([@soubies2019pocket], IR Tools [@gazzola2019ir]) are restricted to handcrafted methods without automatic differentiation.
+ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain linear operators. 
+MATLAB libraries [@soubies2019pocket] [@gazzola2019ir] are restricted to handcrafted methods without automatic differentiation.
 
 ![Schematic of the modular DeepInverse framework.\label{fig:schematic}](../docs/source/figures/deepinv_schematic.png)
 
@@ -143,15 +143,15 @@ where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 $N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `y = physics(x, **params)`, unifying the wide variety of forward operators across various domains. 
 
-The optional physics `params` $\xi$ allows for advanced problems, including calibration,
-blind inverse problems [@debarnot2024deep] [@chung2023parallel], codesign [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
+The library crucially introduces optional physics `params` $\xi$, allowing for advanced problems, including calibration,
+blind inverse problems [@debarnot2024deep] [@chung2023parallel], co-design [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
 
 The current implemented physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
 
 
 # Reconstruction Methods
 
-`deepinv` unifies the wide variety of commonly-used imaging solvers in the literature:
+DeepInverse unifies the wide variety of commonly-used imaging solvers in the literature:
 \begin{equation} \label{eq:solver}
 \hat{x} = \operatorname{R}_{\theta}(y, A_{\xi}, \sigma)
 \end{equation}
@@ -187,7 +187,7 @@ such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$. Sampling
   - Artifact removal models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$, which simply backproject $y$ to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
   
   - Generative networks [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
-that add a latent $z$ to a generator network $\operatorname{G}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
+that add a latent $z$ to a generator network $\operatorname{R}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
 
   - Foundation models [@terris2025ram], trained end-to-end across a wide variety of $A_{\xi},N_{\sigma}$, and can be finetuned to new problems.
 
@@ -197,23 +197,17 @@ Reconstruction networks $\operatorname{R}_{\theta}$ can be trained using the mod
 
 ## Losses
 
-The [`loss` module](https://deepinv.github.io/deepinv/user_guide/training/loss.html) framework unifies training loss functions that are widely used across various domains:
-
-\begin{equation} \label{eq:loss}
-l = \mathcal{L}\left(\hat{x}, x, y, A_{\xi}, \operatorname{R}_{\theta}\right).
-\end{equation}
-
-The library of losses `loss(x_hat, x, y, physics, model)` is enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
+The [`loss` module](https://deepinv.github.io/deepinv/user_guide/training/loss.html) framework unifies training loss functions that are widely used across various domains. Losses are written as `loss(x_hat, x, y, physics, model)` and are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/training/loss.html):
 
 - Supervised loss between $x$ and $y$;
-- Self-supervised losses which only use $y$ [@wang2025benchmarking] [@monroy2025gr2r];
+- Self-supervised losses which only use $y$ [@yaman2020self] [@wang2025benchmarking];
 - Network regularization losses [@pesquet2021learning];
 - Adversarial losses [@bora2017compressed] [@bora2018ambientgan].
 
-The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements transforms $\tilde{x}=T_g x$ for data augmentation and equivariance [@chen2023imaging] [@wang2024perspective].
+The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/transforms.html) implements geometric image transforms for data augmentation and equivariance [@chen2023imaging] [@wang2024perspective].
 
 ## Datasets
-The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics.
+The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics $A_{\xi_i}$.
 
 # Evaluation
 The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods using `Trainer.test` or for training.
@@ -223,7 +217,7 @@ These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_h
 
 ### Coding Practices
 
-`deepinv` uses modern test-driven Python.
+DeepInverse is written in Python following modern test-driven practices.
 The code is unit-, integration- and performance-tested using `pytest` and verified using `codecov`,
 and is compliant with PEP8 using `black`. We adopt an object-oriented framework
 where base classes provide abstract functionality and interfaces,
