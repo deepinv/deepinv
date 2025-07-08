@@ -269,5 +269,5 @@ backprojected = physics.A_adjoint(y)
 dinv.utils.plot(
     [backprojected, rec, test_sample],
     titles=["Linear", "Reconstruction", "Ground truth"],
-    suptitle="Reconstruction results"
+    suptitle="Reconstruction results",
 )

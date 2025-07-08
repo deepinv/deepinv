@@ -1,4 +1,3 @@
-
 r"""
 Unfolded Chambolle-Pock for constrained image inpainting
 ====================================================================================================
@@ -312,12 +311,12 @@ model_new.load_state_dict(torch.load(CKPT_DIR / operation / "model.pth"))
 model_new.eval()
 
 
-# Test the model and check that the results are the same as before saving. 
+# Test the model and check that the results are the same as before saving.
 dinv.training.test(
     model_new, test_dataloader, physics=physics, device=device, show_progress_bar=False
 )
 
-# Plot the results 
+# Plot the results
 test_sample, _ = next(iter(test_dataloader))
 model.eval()
 test_sample = test_sample.to(device)
