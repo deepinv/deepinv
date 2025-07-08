@@ -152,9 +152,9 @@ prior = [
 # and that it is necessary that the dimension of the thresholding parameter matches that of :math:`g_{i, j}`.
 
 # Unrolled optimization algorithm parameters
-lambda_reg = [
+g_param = [
     torch.ones(1, 3, 3, device=device)
-    * 0.01  # initialization of the regularization parameter. One thresholding parameter per wavelet sub-band and level.
+    * 0.01  # initialization of the Wavelet regularization parameter. One thresholding parameter per wavelet sub-band and level.
 ] * max_iter  # A distinct lamb is trained for each iteration.
 
 
@@ -167,7 +167,7 @@ trainable_params = [
 model = unfolded_builder(
     iteration="PGD",
     stepsize=stepsize,
-    lambda_reg=lambda_reg,
+    g_param=g_param,
     trainable_params=trainable_params,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
