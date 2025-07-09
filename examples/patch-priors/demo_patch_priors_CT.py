@@ -265,5 +265,3 @@ plot(
     ],
     ["Ground truth", "Filtered Backprojection", "EPLL", "PatchNR"],
 )
-
- 

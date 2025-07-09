@@ -195,5 +195,3 @@ trainer.test(test_dataloader)
 
 model.eval_split_input = False
 trainer.test(test_dataloader)
-
- 

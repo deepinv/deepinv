@@ -408,5 +408,3 @@ plot(
 #       model = dinv.sampling.DiffPIR(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
-
- 

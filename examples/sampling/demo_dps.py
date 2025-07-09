@@ -357,5 +357,3 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 #       model = dinv.sampling.DPS(dinv.models.DiffUNet(), data_fidelity=dinv.optim.data_fidelity.L2())
 #       xhat = model(y, physics)
 #
-
- 

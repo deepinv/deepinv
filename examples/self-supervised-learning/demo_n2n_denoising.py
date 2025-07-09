@@ -187,5 +187,3 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
-
- 

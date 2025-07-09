@@ -137,6 +137,3 @@ dinv.utils.plot(
 loss = dinv.loss.EILoss(
     transform=dinv.transform.projective.Affine() | dinv.transform.projective.Euclidean()
 )
-
-
- 

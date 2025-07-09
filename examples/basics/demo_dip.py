@@ -110,6 +110,3 @@ print(f"DIP PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
 
 # plot results
 plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])
-
-
- 

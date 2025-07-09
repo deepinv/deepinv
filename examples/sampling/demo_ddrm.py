@@ -144,5 +144,3 @@ plot(
         "abs. error",
     ],
 )
-
- 

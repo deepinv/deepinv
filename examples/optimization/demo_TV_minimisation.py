@@ -187,4 +187,3 @@ plot(
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
-
