@@ -199,6 +199,7 @@ trainer = dinv.Trainer(
     compare_no_learning=True,
     no_learning_method="A_dagger",
     show_progress_bar=False,
+    device="cpu",
 )
 
 trainer.train()
