@@ -96,7 +96,7 @@ cost_wv = prior(y)
 print(f"Cost wavelet: g(y) = {cost_wv.item():.2f}")
 
 # Apply the proximal operator of the wavelet prior
-x_wv = prior.prox(y, gamma=0.1)
+x_wv = prior.prox(y, ths=0.1)
 cost_wv_prox = prior(x_wv)
 
 # %%

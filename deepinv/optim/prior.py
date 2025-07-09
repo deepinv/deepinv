@@ -407,7 +407,7 @@ class WaveletPrior(Prior):
         else:
             return list_norm
 
-    def prox(self, x, ths, *args, gamma=0.1, **kwargs):
+    def prox(self, x, *args, ths=0.1, gamma=1., **kwargs):
         r"""Compute the proximity operator of the wavelet prior with the denoiser :class:`~deepinv.models.WaveletDenoiser`.
         Only detail coefficients are thresholded.
 
