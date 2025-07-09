@@ -113,7 +113,7 @@ bibliography: paper.bib
 
 # Summary
 
-[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all the steps to simulate acquisition and perform image reconstruction using deep learning for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
+[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all image reconstruction steps, including the efficient implementation of forward operators, the definition and resolution of variational problems and the design, training of advanced neural network architectures, for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
 
 # Statement of Need
 
@@ -143,7 +143,7 @@ where $x\in\mathcal{X}$ is an image, $y\in\mathcal{Y}$ are the measurements, $A_
 deterministic (linear or non-linear) operator capturing the physics of the acquisition and
 $N_{\sigma}\colon\mathcal{Y}\mapsto \mathcal{Y}$ is a noise model parameterized by $\sigma$. The [`physics` module](https://deepinv.github.io/deepinv/user_guide/physics/intro.html) provides a scalable and modular framework, writing the forward operation as `y = physics(x, **params)`, unifying the wide variety of forward operators across various domains. 
 
-The library crucially introduces optional physics `params` $\xi$, allowing for advanced problems, including calibration,
+The library crucially introduces optional physics `params` $(\xi,\sigma)$, allowing for advanced problems, including calibration,
 blind inverse problems [@debarnot2024deep] [@chung2023parallel], co-design [@lazarus2019sparkling] [@nehme2020deepstorm3d], and robust training [@gossard2024training] [@terris2023meta].
 
 The current implemented physics, noise models, parameters $\xi$ and tools for manipulating them are enumerated in the [documentation](https://deepinv.github.io/deepinv/user_guide/physics/physics.html).
@@ -159,7 +159,7 @@ where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional tr
 
 - **Optimization-based** methods [@chambolle2016introduction] solve
 \begin{equation} \label{eq:var}
-\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \operatorname{argmin}_{x} f_{\sigma}(y,A_{\xi}(x)) + g(x).
+\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) \in \underset{x}{\operatorname{argmin}} f_{\sigma}(y,A_{\xi}(x)) + g(x).
 \end{equation}
 
   The [`optim` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/optimization.html) implements classical data fidelity terms $f_{\sigma}\colon\mathcal{Y} \times \mathcal{Y} \mapsto \mathbb{R}$ and a variety of regularization priors $g\colon\mathcal{X}\mapsto\mathbb{R}$, including:
@@ -174,22 +174,22 @@ where $\operatorname{R}_{\theta}$ is a reconstruction algorithm with optional tr
 
 - **Sampling-based** methods defined by differential equations:
 \begin{equation}
-x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{R}_{\theta}, A_{\xi}, \sigma) \text{ for } t=0,\dots,T-1,
+x_{t+1} \sim p(x_{t+1}|x_t, y, \operatorname{D}_{\sigma}, A_{\xi}, \sigma) \text{ for } t=0,\dots,T-1,
 \end{equation} 
 such that $x_{T}$ is approximately sampled from the posterior $p(x|y)$. Sampling multiple times enables uncertainty quantification.
 
-  The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements generalised, modular frameworks for:
+  The [`sampling` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/sampling.html) implements generalized, modular frameworks for:
   - Diffusion model posterior sampling [@chung2022diffusion] [@kawar2022denoising] [@zhu2023denoising];
   - Langevin-type algorithms [@laumont2022bayesian] [@pereyra2020skrock] that sample using Markov Chain Monte Carlo.
 
 - **Non-iterative**: The [`models` module](https://deepinv.github.io/deepinv/user_guide/reconstruction/introduction.html) implements:
   
-  - Artifact removal models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$, which simply backproject $y$ to the image domain and apply a denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
+  - Artifact removal models $\operatorname{R}_{\theta}(y, A_{\xi}, \sigma) = \operatorname{D}_{\sigma}(A_{\xi}^{\top}y)$, which simply backproject $y$ to the image domain and apply an image-to-image denoiser $\operatorname{D}_{\sigma}$ [@jin2017deep];
   
-  - Generative networks [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
-that add a latent $z$ to a generator network $\operatorname{R}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
+  - Conditional/unconditional generative networks [@bora2018ambientgan] [@bendel2023gan] [@ulyanov2018deep]
+that add a latent $z$ to a generator $\operatorname{R}_{\theta}(y,z)\colon\mathcal{Y}\times\mathcal{Z}\mapsto \mathcal{X}$;
 
-  - Foundation models [@terris2025ram], trained end-to-end across a wide variety of $A_{\xi},N_{\sigma}$, and can be finetuned to new problems.
+  - Foundation models [@terris2025ram], trained end-to-end across a wide variety of $(A_{\xi},N_{\sigma})$, and can be finetuned to new problems.
 
 # Training
 
@@ -210,8 +210,8 @@ The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/t
 The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics $A_{\xi_i}$.
 
 # Evaluation
-The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods using `Trainer.test` or for training.
-These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective], including distortion [@wang2004image] [@zhang2018unreasonable] and perceptual [@blau2018perception] [@mittal2012making] metrics.
+The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods using `Trainer.test`.
+These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective], including distortion [@zhang2018unreasonable] and perceptual [@blau2018perception] metrics.
 
 # Philosophy
 
