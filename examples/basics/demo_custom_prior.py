@@ -189,7 +189,4 @@ test(
 )
 
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

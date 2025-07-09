@@ -358,7 +358,4 @@ plot(imgs, titles=["measurement", "model output", "groundtruth"])
 #       xhat = model(y, physics)
 #
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

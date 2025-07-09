@@ -100,7 +100,4 @@ plot(
     ["Ground truth", "Observation", "EPLL"],
 )
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

@@ -409,7 +409,4 @@ plot(
 #       xhat = model(y, physics)
 #
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

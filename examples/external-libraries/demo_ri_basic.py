@@ -370,7 +370,4 @@ if plot_convergence_metrics:
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

@@ -188,7 +188,3 @@ plot(
 if plot_convergence_metrics:
     plot_curves(metrics)
 
-# %%
-# :References:
-#
-#    .. footbibliography::

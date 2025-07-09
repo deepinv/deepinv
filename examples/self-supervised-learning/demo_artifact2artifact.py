@@ -243,7 +243,4 @@ model = trainer.train()
 trainer.plot_images = True
 trainer.test(test_dataloader)
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

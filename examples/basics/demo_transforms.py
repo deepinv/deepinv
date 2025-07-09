@@ -139,7 +139,4 @@ loss = dinv.loss.EILoss(
 )
 
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 

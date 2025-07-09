@@ -100,7 +100,4 @@ plt.tight_layout()
 plt.show()
 
 
-# %%
-# :References:
-#
-#    .. footbibliography::
+ 
