@@ -296,7 +296,7 @@ def plot(
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12, wrap=True)
+        plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
@@ -308,7 +308,7 @@ def plot(
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, wrap=True)
+                axs[r, i].set_title(titles[i], wrap=True)
             axs[r, i].axis("off")
 
     if tight:
@@ -405,7 +405,7 @@ def scatter_plot(
     )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -414,7 +414,7 @@ def scatter_plot(
                 xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
             )
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i])
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
