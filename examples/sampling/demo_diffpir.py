@@ -7,6 +7,7 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 :class:`deepinv.sampling.DiffPIR`.
 """
 
+# %%
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -175,7 +176,7 @@ y_denoised = model(y, sigmas[t_temp] / 2.0)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
-x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=1 / sigmas[t])
+x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(device))
 
 imgs = [y, y_denoised, x_prox]
 plot(
