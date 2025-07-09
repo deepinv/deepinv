@@ -29,6 +29,7 @@ Contents:
 
 """
 
+# %%
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader

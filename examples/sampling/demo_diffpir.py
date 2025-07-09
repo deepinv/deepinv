@@ -7,7 +7,6 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 :class:`deepinv.sampling.DiffPIR`.
 """
 
-# %%
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -16,11 +15,6 @@ import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_example
-
-# Use matplotlib config from deepinv to get nice plots
-from deepinv.utils.plotting import config_matplotlib
-
-config_matplotlib()
 
 # %%
 # Generate an inverse problem

@@ -193,7 +193,7 @@ def plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="none",
     cbar=False,
     dpi=1200,
@@ -256,7 +256,10 @@ def plot(
     :param bool return_axs: return the axs object.
     """
     # Use the matplotlib config from deepinv
-    config_matplotlib(fontsize=fontsize)
+    if fontsize is not None:
+        config_matplotlib(fontsize=fontsize)
+    else:
+        config_matplotlib()
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -351,7 +354,7 @@ def scatter_plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=9,
     s=0.1,
     linewidths=1.5,
     color="b",
@@ -912,7 +915,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=9,
     interpolation="nearest",
 ):
     r"""
