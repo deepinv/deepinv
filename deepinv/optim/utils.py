@@ -85,7 +85,6 @@ def least_squares(
         parallel_dim = [parallel_dim]
 
     if solver == "lsqr":  # rectangular solver
-
         if gamma is not None:
             eta = 1 / gamma
         else:
@@ -134,7 +133,7 @@ def least_squares(
                 eta = 1 / gamma
             else:
                 eta = 0
-            
+
             x = conjugate_gradient(
                 A=H,
                 b=b,
