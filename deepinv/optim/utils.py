@@ -130,9 +130,16 @@ def least_squares(
                     b = Aty
 
         if solver == "CG":
+            if gamma is not None:
+                eta = 1 / gamma
+            else:
+                eta = 0
+            
             x = conjugate_gradient(
                 A=H,
                 b=b,
+                x0=z,
+                eta=eta,
                 init=init,
                 max_iter=max_iter,
                 tol=tol,
@@ -185,6 +192,8 @@ def dot(a, b, dim):
 def conjugate_gradient(
     A: Callable,
     b: torch.Tensor,
+    x0: torch.Tensor = None,
+    eta: float = 0.0,
     max_iter: float = 1e2,
     tol: float = 1e-5,
     eps: float = 1e-8,
@@ -195,12 +204,14 @@ def conjugate_gradient(
     """
     Standard conjugate gradient algorithm.
 
-    It solves the linear system :math:`Ax=b`, where :math:`A` is a (square) linear operator and :math:`b` is a tensor.
+    It solves the linear system :math:`Ax = b`, where :math:`A` is a (square) linear operator, :math:`b` is a tensor. Possibility to add least-squares regularization by setting :math:`\eta > 0` and providing a prior estimate :math:`x0`, in this case the function solves the linear system :math:`(A + \eta Id) x = b + \eta x_0`
 
     For more details see: http://en.wikipedia.org/wiki/Conjugate_gradient_method
 
     :param Callable A: Linear operator as a callable function, has to be square!
     :param torch.Tensor b: input tensor of shape (B, ...)
+    :param float eta: damping parameter :math:`eta \geq 0`.
+    :param None, torch.Tensor x0: Optional :math:`x_0` of shape (B, ...) or scalar.
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
@@ -226,13 +237,19 @@ def conjugate_gradient(
     else:
         x = zeros_like(b)
 
-    r = b - A(x)
+    if eta > 0 and x0 is not None:
+        b = b + eta * x0
+        H = lambda x: A(x) + eta * x
+    else:
+        H = A
+
+    r = b - H(x)
     p = r
     rsold = dot(r, r, dim=dim).real
     flag = True
     tol = dot(b, b, dim=dim).real * (tol**2)
     for _ in range(int(max_iter)):
-        Ap = A(p)
+        Ap = H(p)
         alpha = rsold / (dot(p, Ap, dim=dim) + eps)
         x = x + p * alpha
         r = r - Ap * alpha
