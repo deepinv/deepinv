@@ -750,7 +750,7 @@ def optim_builder(
         Since 0.3.1, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
         ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
 
-    :param str, deepinv.optim.optim_iterator.OptimIterator iteration: either the name of the algorithm to be used,
+    :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
         or directly an optim iterator.
         If an algorithm name (string), should be either ``"GD"`` (gradient descent),
         ``"PGD"`` (proximal gradient descent), ``"ADMM"`` (ADMM),
