@@ -54,7 +54,7 @@ class R2RLoss(Loss):
     The loss was first introduced by :footcite:t:`pang2021recorrupted`
     for the specific case of Gaussian noise, formalizing the Noise2Noisier loss from :footcite:t:`moran2020noisier2noise`,
     such that it is statistically equivalent to the supervised loss function defined on noisy/clean image pairs.
-    The loss was later extended to other exponential family noise distributions by :footcite:t:`monroy2024generalized`, including Poisson,
+    The loss was later extended to other exponential family noise distributions by :footcite:t:`monroy2025generalized`, including Poisson,
     Gamma and Binomial noise distributions.
 
     .. warning::

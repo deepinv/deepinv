@@ -214,10 +214,6 @@ class DCGANGenerator(nn.Module):
     :param int nz: latent dimension, defaults to 100
     :param int ngf: hidden layer size, defaults to 64
     :param int nc: number of image output channels, defaults to 3
-
-    |sep|
-
-
     """
 
     def __init__(

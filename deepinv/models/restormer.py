@@ -48,10 +48,6 @@ class Restormer(Denoiser):
         To obtain good performance on a broad range of noise levels, even with limited noise levels during training, it is recommended to remove all additive constants by setting :
         ``LayerNorm_type='BiasFree'`` and ``bias=False``
         (`Robust And Interpretable Bling Image Denoising Via Bias-Free Convolutional Neural Networks <https://arxiv.org/abs/1906.05478>`_).
-
-    |sep|
-
-
     """
 
     def __init__(

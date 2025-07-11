@@ -23,10 +23,6 @@ class PDNet_PrimalBlock(nn.Module):
     :param int depth: number of convolutional layers in the block. Default: 3.
     :param bool bias: whether to use bias in convolutional layers. Default: True.
     :param int nf: number of features in the convolutional layers. Default: 32.
-
-    :References:
-
-    .. footbibliography::
     """
 
     def __init__(self, in_channels=6, out_channels=5, depth=3, bias=True, nf=32):

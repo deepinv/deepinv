@@ -27,10 +27,6 @@ class GSPnP(Denoiser):
     :param bool detach: If `True`, the denoiser output will be detached from the computation graph.
         Setting this to `False` allows one to compute the gradient of the denoiser output with respect to the input, it is necessary in training.
         Default is `True`.
-
-    |sep|
-
-
     """
 
     def __init__(self, denoiser, alpha: float = 1.0, detach: bool = True):
@@ -115,10 +111,6 @@ def GSDRUNet(
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
-
-    |sep|
-
-
     """
     from deepinv.models.drunet import DRUNet
 

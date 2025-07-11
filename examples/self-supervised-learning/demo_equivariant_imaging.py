@@ -119,7 +119,7 @@ model = MoDL()
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
 # The EI loss requires a group of transformations to be defined. The forward model should not be equivariant to
-# these transformations :footcite:t:`JMLR:v24:22-0315`.
+# these transformations :footcite:t:`tachella2023sensing`.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #

@@ -107,10 +107,6 @@ class BurgEntropy(Bregman):
 
     The corresponding Bregman divergence is the Itakura-Saito distance :math:`D(x,y) = \sum_i x_i / y_i - \log(x_i / y_i) - 1`.
     As shown in :footcite:t:`Bolte2016descent`, it is the Bregman potential to use for performing mirror descent on the Poisson likelihood :class:`deepinv.optim.data_fidelity.PoissonLikelihood`.
-
-    |sep|
-
-
     """
 
     def __init__(self):

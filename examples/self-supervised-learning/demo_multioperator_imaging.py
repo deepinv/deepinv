@@ -127,7 +127,7 @@ model = model.to(device)
 # --------------------------------------------
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the multi-operator imaging loss (MOI).
-# Necessary and sufficient conditions on the number of operators and measurements are described in :footcite:t:`JMLR:v24:22-0315`.
+# Necessary and sufficient conditions on the number of operators and measurements are described in :footcite:t:`tachella2023sensing`.
 #
 # .. note::
 #

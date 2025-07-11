@@ -9,10 +9,6 @@ The DDRM method requires that:
 
 * The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
-
-:References:
-
-.. footbibliography::
 """
 
 import deepinv as dinv

@@ -37,10 +37,6 @@ class VarNet(ArtifactRemoval, MRIMixin):
     :param int num_cascades: number of unrolled iterations ('cascades').
     :param str mode: if 'varnet', perform iterates on the images x as in original VarNet.
         If 'e2e-varnet', perform iterates on the kspace y as in the E2E-VarNet.
-
-    |sep|
-
-
     """
 
     def __init__(

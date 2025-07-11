@@ -38,10 +38,6 @@ class TVDenoiser(Denoiser):
     .. warning::
         For using TV as a prior for Plug and Play algorithms, it is recommended to use the class
         :class:`~deepinv.optim.prior.TVPrior` instead. In particular, it allows to evaluate TV.
-
-    |sep|
-
-
     """
 
     def __init__(
