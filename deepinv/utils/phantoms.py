@@ -53,6 +53,10 @@ class RandomPhantomDataset(Dataset):
         self.size = size
         self.n_data = n_data
         self.transform = transform
+        if length == np.inf:
+            raise ValueError(
+                "Length cannot be infinite. Please specify a finite length."
+            )
         self.length = int(length)
 
     def __len__(self):
