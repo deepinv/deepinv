@@ -385,7 +385,10 @@ class DiffUNet(Denoiser):
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an `(N, C, ...)` Tensor of outputs.
+        :return: an `(N, 2*C, ...)` Tensor of outputs, where the first C
+            channels are the noise estimates and the remaining C are the per-pixel
+            variances, as in the original implementation:
+            https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/gaussian_diffusion.py#L263
         """
         assert (y is not None) == (
             self.num_classes is not None
