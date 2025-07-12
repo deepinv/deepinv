@@ -68,7 +68,7 @@ class UNet(Denoiser):
     :param bool cat: use skip-connections between intermediate levels.
     :param bool bias: use learnable biases.
     :param bool, str batch_norm: if False, no batchnorm applied, if ``True``, use :class:`torch.nn.BatchNorm2d`,
-        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2019robust`.
+        if ``batch_norm="biasfree"``, use ``BFBatchNorm2d`` from :footcite:t:`mohan2020robust`.
     :param int scales: Number of downsampling steps used in the U-Net. The options are 2,3,4 and 5.
         The number of trainable parameters increases with the scale.
     """
