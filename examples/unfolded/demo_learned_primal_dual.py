@@ -17,7 +17,7 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.unfolded import unfolded_builder
+from deepinv.optim import BaseOptim
 from deepinv.utils.phantoms import RandomPhantomDataset, SheppLoganDataset
 from deepinv.optim.optim_iterators import CPIteration, fStep, gStep
 from deepinv.models import PDNet_PrimalBlock, PDNet_DualBlock
@@ -120,6 +120,11 @@ class gStepPDNet(gStep):
         return cur_prior.prox(x, w)
 
 
+class PDNet_optim(BaseOptim):
+    def __init__(self, **kwargs):
+        super(PDNet_optim, self).__init__(PDNetIteration(), **kwargs)
+
+
 # %%
 # Define the trainable prior and data fidelity terms.
 # ---------------------------------------------------
@@ -206,9 +211,10 @@ def custom_output(X):
 # that using a filtered gradient can improve both the training speed and reconstruction quality significantly.
 # Following this approach, we use the filtered backprojection instead of the adjoint operator in the primal step.
 
-model = unfolded_builder(
-    iteration=PDNetIteration(),
+model = PDNet_optim(
+    unfold=True,
     params_algo={"K": physics.A, "K_adjoint": physics.A_dagger, "beta": 0.0},
+    trainable_params=[],
     data_fidelity=data_fidelity,
     prior=prior,
     max_iter=max_iter,
