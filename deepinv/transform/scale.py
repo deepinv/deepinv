@@ -39,8 +39,7 @@ class Scale(Transform):
     by reflections. Additionally, resampling is performed
     using bicubic interpolation.
 
-    See the paper `Self-Supervised Learning for Image Super-Resolution and Deblurring <https://arxiv.org/abs/2312.11232>`_
-    for more details.
+    See the paper :footcite:t:`scanvic2023self` for more details.
 
     Note each image in the batch is transformed independently.
 
@@ -49,6 +48,8 @@ class Scale(Transform):
     :param str mode: interpolation mode for grid sampling
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
+
     """
 
     def __init__(

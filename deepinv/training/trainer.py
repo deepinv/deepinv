@@ -190,7 +190,6 @@ class Trainer:
     :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
-
     """
 
     model: torch.nn.Module

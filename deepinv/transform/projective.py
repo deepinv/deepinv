@@ -78,7 +78,7 @@ def apply_homography(
 
     The input image can be a torch Tensor, in which case ``kornia`` is used to perform the transformation, or a PIL Image where PIL transform is used.
 
-    Following https://arxiv.org/abs/2403.09327, we assume principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
+    Following :footcite:t:`wang2024perspective`, we assume principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
 
     :param torch.Tensor | Image.Image im: Input if tensor, image of shape (B,C,H,W), otherwise a PIL image.
     :param float theta_x: tilt angle in degrees, defaults to 0.
@@ -95,6 +95,8 @@ def apply_homography(
     :param bool verbose: if True, print homography matrix, defaults to False
     :param str device: torch device, defaults to "cpu"
     :return torch.Tensor | Image.Image: transformed image.
+
+
     """
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
@@ -162,8 +164,7 @@ class Homography(Transform):
 
     The homography is parameterised by
     geometric parameters. By fixing these parameters, subgroup transformations are
-    retrieved, see Wang et al. "Perspective-Equivariant Imaging: an Unsupervised
-    Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
+    retrieved, see :footcite:t:`wang2024perspective`.
 
     For example, setting x_stretch_factor_min = y_stretch_factor_min = zoom_factor_min = 1,
     theta_max = theta_z_max = skew_max = 0 gives a pure translation.
@@ -404,8 +405,7 @@ class PanTiltRotate(Homography):
     """Random 3D camera rotation image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the 3D camera rotation,
-    or "pan+tilt+rotate" subgroup from Wang et al. "Perspective-Equivariant Imaging: an
-    Unsupervised Framework for Multispectral Pansharpening" https://arxiv.org/abs/2403.09327
+    or "pan+tilt+rotate" subgroup from :footcite:t:`wang2024perspective`.
 
     The transformations simulate panning, tilting or rotating the camera, leading to a
     "perspective" effect. The subgroup is isomorphic to SO(3).
@@ -432,6 +432,7 @@ class PanTiltRotate(Homography):
     :param str device: torch device, defaults to "cpu".
     :param n_trans: number of transformed versions generated per input image, defaults to 1.
     :param torch.Generator rng: random number generator, if None, use torch.Generator(), defaults to None
+
     """
 
     def _get_params(self, x: torch.Tensor) -> dict:

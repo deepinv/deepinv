@@ -9,7 +9,7 @@ class DnCNN(Denoiser):
     r"""
     DnCNN convolutional denoiser.
 
-    The architecture was introduced in https://arxiv.org/abs/1608.03981 and is composed of a series of
+    The architecture was introduced by :footcite:t:`zhang2017beyond` and is composed of a series of
     convolutional layers with ReLU activation functions. The number of layers can be specified by the user. Unlike the
     original paper, this implementation does not include batch normalization layers.
 
@@ -24,8 +24,7 @@ class DnCNN(Denoiser):
     :param str, None pretrained: use a pretrained network. If ``pretrained=None``, the weights will be initialized at random
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (only available for architecture with depth 20, 64 channels and biases).
-        It is possible to download weights trained via the regularization method in https://epubs.siam.org/doi/abs/10.1137/20M1387961
-        using ``pretrained='download_lipschitz'``.
+        It is possible to download weights trained via the regularization method in :footcite:t:`pesquet2021learning`, using ``pretrained='download_lipschitz'``.
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param str device: gpu or cpu.
