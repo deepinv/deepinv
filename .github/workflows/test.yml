@@ -26,28 +26,28 @@ jobs:
         include:
           # Ubuntu tests
           - os: ubuntu-latest
-            version_python: 3.10
+            version_python: "3.10"
             extra: dataset,denoisers,test
             name: "ubuntu py3.10 all dependencies"
           - os: ubuntu-latest
-            version_python: 3.11
+            version_python: "3.11"
             extra: dataset,denoisers,test
             name: "ubuntu py3.11 all dependencies"
           - os: ubuntu-latest
-            version_python: 3.12
+            version_python: "3.12"
             extra: dataset,denoisers,test
             name: "ubuntu py3.12 all dependencies"
           # Windows tests
           - os: windows-latest
-            version_python: 3.10
+            version_python: "3.10"
             extra: dataset,denoisers,test
             name: "windows py3.10 all dependencies"
           - os: windows-latest
-            version_python: 3.11
+            version_python: "3.11"
             extra: dataset,denoisers,test
             name: "windows py3.11 all dependencies"
           - os: windows-latest
-            version_python: 3.12
+            version_python: "3.12"
             extra: dataset,denoisers,test
             name: "windows py3.12 all dependencies"
     env:
