@@ -31,7 +31,7 @@ class Downsampling(LinearPhysics):
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
         , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
-    :param tuple[int] img_size: size of the input image
+    :param tuple[int] img_size: size of the input image `(C, H, W)`. Overridden by input data size.
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -67,11 +67,12 @@ class Downsampling(LinearPhysics):
         super().__init__(**kwargs)
         assert isinstance(factor, int), "downsampling factor should be an integer"
 
+        self.imsize = img_size
         self.padding = padding
         self.device = device
 
         self.register_buffer("filter", None)
-        self.update_parameters(imsize=img_size, filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
         self.to(device)
 
     def A(self, x, filter=None, factor=None, **kwargs):
@@ -88,9 +89,8 @@ class Downsampling(LinearPhysics):
             If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
 
         """
-        self.update_parameters(
-            imsize=x.shape[-3:], filter=filter, factor=factor, **kwargs
-        )
+        self.imsize = x.shape[-3:]
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
@@ -116,19 +116,23 @@ class Downsampling(LinearPhysics):
         if factor is not None:
             self.factor = self.check_factor(factor)
 
-        imsize = (y.shape[-3], y.shape[-2] * self.factor, y.shape[-1] * self.factor)
+        self.imsize = (
+            y.shape[-3],
+            y.shape[-2] * self.factor,
+            y.shape[-1] * self.factor,
+        )
 
-        self.update_parameters(imsize=imsize, filter=filter, factor=factor, **kwargs)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             if self.padding == "valid":
                 imsize = (
-                    imsize[0],
-                    imsize[1] - self.filter.shape[-2] + 1,
-                    imsize[2] - self.filter.shape[-1] + 1,
+                    self.imsize[0],
+                    self.imsize[1] - self.filter.shape[-2] + 1,
+                    self.imsize[2] - self.filter.shape[-1] + 1,
                 )
             else:
-                imsize = imsize[:3]
+                imsize = self.imsize[:3]
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
@@ -198,7 +202,6 @@ class Downsampling(LinearPhysics):
 
     def update_parameters(
         self,
-        imsize,
         filter: Tensor = None,
         factor: Union[int, float, Tensor] = None,
         **kwargs,
@@ -206,7 +209,6 @@ class Downsampling(LinearPhysics):
         r"""
         Updates the current filter and/or factor.
 
-        :param tuple[int] imsize: image size `(C, H, W)`. Used for filter calculation.
         :param torch.Tensor filter: New filter to be applied to the input image.
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
         """
@@ -237,7 +239,7 @@ class Downsampling(LinearPhysics):
         if self.filter is not None:
             self.register_buffer(
                 "Fh",
-                filter_fft_2d(self.filter, imsize, real_fft=False).to(self.device),
+                filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device),
             )
             self.register_buffer("Fhc", torch.conj(self.Fh))
             self.register_buffer("Fh2", self.Fhc * self.Fh)
