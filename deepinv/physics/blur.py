@@ -168,6 +168,17 @@ class Downsampling(LinearPhysics):
         if factor is not None:
             if isinstance(factor, (int, float)):
                 self.factor = int(factor)
+            elif isinstance(factor, Tensor):
+                if factor.ndim > 1:
+                    raise ValueError("Factor tensor must be 1D.")
+                elif len(torch.unique(factor)) > 1:
+                    raise ValueError(
+                        f"Downsampling only supports one factor per batch, but got factors {torch.unique(factor).tolist()}."
+                    )
+                elif factor.ndim == 1:
+                    factor = factor[0]
+
+                self.factor = int(factor.item())
             else:
                 raise ValueError(
                     f"Factor must be an integer, got {factor} of type {type(factor)}."
