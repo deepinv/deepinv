@@ -42,6 +42,10 @@ To install the latest stable release of ``deepinv``, you can simply do:
 
     pip install deepinv
 
+    # or using uv for faster installation
+
+    uv pip install deepinv
+
 You can also install the latest version of ``deepinv`` directly from github:
 
 .. code-block:: bash
