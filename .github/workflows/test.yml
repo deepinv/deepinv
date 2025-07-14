@@ -63,6 +63,17 @@ jobs:
         run: |
           pip install .[${{ matrix.extra }}]
 
+      # For debugging purposes
+      - name: Check Python version
+        run: python3 --version
+
+      - name: Check installed packages
+        run: pip list
+
+      - name: Test importing numpy
+        run: python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
+      # ----------------------------
+
       - name: Test with pytest and generate coverage report
         run: |
           python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
