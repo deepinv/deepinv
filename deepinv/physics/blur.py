@@ -212,7 +212,7 @@ class Downsampling(LinearPhysics):
         :param torch.Tensor filter: New filter to be applied to the input image.
         :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
         """
-        if factor is not None and filter is None:
+        if factor is not None and filter is None and self.filter is not None:
             warn(
                 "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
             )
