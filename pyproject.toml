@@ -28,7 +28,7 @@ dependencies = [
     "matplotlib",
     "hdf5storage",
     "tqdm",
-    "torch<2.7",
+    "torch>=2.2.0", 
     "torchvision",
     "torchmetrics",
     "einops",
