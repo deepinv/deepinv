@@ -15,7 +15,7 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 #
 # .. note::
 #           We work with an image of size 64 x 64 to reduce the computational time of this example.
-#           The algorithm works best with images of size 256 x 256.
+#           The DiffUNet we use in the algorithm works best with images of size 256 x 256.
 #
 
 import numpy as np
@@ -80,7 +80,7 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 #
 # .. math::
 #
-#           \mathbf{x}_t = \sqrt{\beta_t}\mathbf{x}_{t-1} + \sqrt{1 - \beta_t}\mathbf{\epsilon}
+#           \mathbf{x}_t = \sqrt{1 - \beta_t}\mathbf{x}_{t-1} + \sqrt{\beta_t}\mathbf{\epsilon}
 #
 #           \mathbf{x}_t = \sqrt{\bar\alpha_t}\mathbf{x}_0 + \sqrt{1 - \bar\alpha_t}\mathbf{\epsilon}
 #
@@ -207,7 +207,7 @@ plot(
 # we first have to enable the gradient computation by ``tensor.requires_grad_()``
 #
 # .. note::
-#           The diffPIR algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers
+#           The DPS algorithm assumes that the images are in the range [-1, 1], whereas standard denoisers
 #           usually output images in the range [0, 1]. This is why we rescale the images before applying the steps.
 
 
