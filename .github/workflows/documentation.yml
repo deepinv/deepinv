@@ -48,7 +48,18 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: _build/
-          destination_dir: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
+          destination_dir: ${{ github.event_name == 'pull_request' && format('pr-preview/pr-{0}', github.event.pull_request.number) || '' }}
           keep_files: true
           enable_jekyll: false
           force_orphan: false
+      - name: Comment on PR with preview URL
+              if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+              uses: actions/github-script@v7
+              with:
+                script: |
+                  const prNumber = ${{ github.event.number }};
+                  const previewUrl = `https://deepinv.github.io/pr-preview/pr-${prNumber}/`;
+                  await github.rest.issues.createComment({
+                    ...context.issue,
+                    body: `Documentation preview for PR #${prNumber} available at: ${previewUrl}`
+                  });

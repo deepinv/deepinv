@@ -3,6 +3,9 @@ Thank you for contributing to DeepInverse!
 
 Please refer to our [contributing guidelines](https://deepinv.github.io/deepinv/contributing.html) for full instructions on how to contribute, including writing tests, documentation and code style.
 
+Once the GitHub tests have been approved by a maintainer (only required for first time contributors), and the automatic Build docs GitHub action
+has run successfully, you can check the generated docs online at `https://deepinv.github.io/deepinv/pr-preview/pr-N/`where `N` is the PR number.
+
 ### Checks to be done before submitting your PR
 
 - [ ] `python3 -m pytest deepinv/tests` runs successfully.
