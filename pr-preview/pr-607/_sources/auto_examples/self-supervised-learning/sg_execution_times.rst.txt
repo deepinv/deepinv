@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**02:43.511** total execution time for 9 files **from auto_examples/self-supervised-learning**:
+**02:46.454** total execution time for 9 files **from auto_examples/self-supervised-learning**:
 
 .. container::
 
@@ -33,29 +33,29 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` (``demo_ei_transforms.py``)
-     - 02:14.141
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``demo_equivariant_imaging.py``)
-     - 00:11.821
+     - 02:13.217
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``demo_splitting_loss.py``)
-     - 00:09.988
+     - 00:13.263
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``demo_equivariant_imaging.py``)
+     - 00:11.863
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_multioperator_imaging.py` (``demo_multioperator_imaging.py``)
-     - 00:03.104
+     - 00:03.353
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_unsure.py` (``demo_unsure.py``)
-     - 00:01.648
+     - 00:01.699
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` (``demo_artifact2artifact.py``)
-     - 00:01.249
+     - 00:01.302
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``demo_sure_denoising.py``)
-     - 00:00.570
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
-     - 00:00.501
+     - 00:00.644
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``demo_r2r_denoising.py``)
-     - 00:00.490
+     - 00:00.565
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
+     - 00:00.548
      - 0.0

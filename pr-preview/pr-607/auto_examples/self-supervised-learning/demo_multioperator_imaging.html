@@ -669,7 +669,9 @@ for 100 epochs.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/demo/resolve/main/demo_moi_ckp_10.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/demo_moi_ckp_10.pth
 
   0%|          | 0.00/23.8M [00:00&lt;?, ?B/s]
-100%|██████████| 23.8M/23.8M [00:00&lt;00:00, 272MB/s]
+ 44%|████▍     | 10.5M/23.8M [00:00&lt;00:00, 110MB/s]
+ 88%|████████▊ | 21.0M/23.8M [00:00&lt;00:00, 103MB/s]
+100%|██████████| 23.8M/23.8M [00:00&lt;00:00, 111MB/s]
 </pre></div>
 </div>
 </section>
@@ -715,8 +717,8 @@ for 100 epochs.</p>
 <li><img src="../../_images/sphx_glr_demo_multioperator_imaging_002.png" srcset="../../_images/sphx_glr_demo_multioperator_imaging_002.png" alt="Ground truth, Measurement, Reconstruction" class = "sphx-glr-multi-img"/></li>
 </ul>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 2069441 trainable parameters
-Train epoch 0: MCLoss=0.001, MOILoss=0.001, TotalLoss=0.001, PSNR=17.408
-Eval epoch 0: PSNR=13.087
+Train epoch 0: MCLoss=0.001, MOILoss=0.001, TotalLoss=0.001, PSNR=17.785
+Eval epoch 0: PSNR=15.03
 Best model saved at epoch 1
 </pre></div>
 </div>
@@ -726,15 +728,15 @@ Best model saved at epoch 1
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.test" title="deepinv.Trainer.test" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">test</span></a><span class="p">(</span><a href="https://docs.python.org/3.9/library/stdtypes.html#list" title="builtins.list" class="sphx-glr-backref-module-builtins sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
 </pre></div>
 </div>
-<img src="../../_images/sphx_glr_demo_multioperator_imaging_003.png" srcset="../../_images/sphx_glr_demo_multioperator_imaging_003.png" alt="Ground truth, Measurement, No learning, Reconstruction" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=13.087, PSNR no learning=13.689
+<img src="../../_images/sphx_glr_demo_multioperator_imaging_003.png" srcset="../../_images/sphx_glr_demo_multioperator_imaging_003.png" alt="Ground truth, Measurement, No learning, Reconstruction" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=15.03, PSNR no learning=13.689
 Test results:
 PSNR no learning: 13.689 +- 2.375
-PSNR: 13.087 +- 2.389
+PSNR: 15.030 +- 2.308
 
-{&#39;PSNR no learning&#39;: np.float64(13.68945770263672), &#39;PSNR no learning_std&#39;: np.float64(2.375037058737495), &#39;PSNR&#39;: np.float64(13.086886596679687), &#39;PSNR_std&#39;: np.float64(2.3889957247414757)}
+{&#39;PSNR no learning&#39;: np.float64(13.68945770263672), &#39;PSNR no learning_std&#39;: np.float64(2.375037058737495), &#39;PSNR&#39;: np.float64(15.030397033691406), &#39;PSNR_std&#39;: np.float64(2.308480876011994)}
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.104 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.353 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-self-supervised-learning-demo-multioperator-imaging-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/8c415d2c1c1749a7f5be2026c4d75e8b/demo_multioperator_imaging.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_multioperator_imaging.ipynb</span></code></a></p>
