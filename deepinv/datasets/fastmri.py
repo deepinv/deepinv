@@ -33,7 +33,7 @@ from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.utils.demo import get_image_url
-from deepinv.physics.generator.mri import BaseMaskGenerator
+from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
 from deepinv.physics.mri import MultiCoilMRI, MRIMixin
 
 
@@ -197,6 +197,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     :param str, int, tuple slice_index: if `"all"`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,
         if ``int`` or `tuple[int]`, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
         middle slice, if `"random"`, select random slice. Defaults to `"all"`.
+    :param Union[str, pathlib.Path] target_root: if specified, reads targets from files from this folder rather than root, assuming identical file structure. Defaults to None.
     :param Callable transform: optional transform function taking in (multicoil) kspace of shape (2, (N,) H, W) and targets of shape (1, H, W).
 
     .. seealso::
@@ -326,6 +327,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
         slice_index: Union[str, int] = "all",
         subsample_volumes: Optional[float] = 1.0,
+        target_root: Optional[Union[str, Path]] = None,
         transform: Optional[Callable] = None,
         filter_id: Optional[Callable] = None,
         rng: Optional[torch.Generator] = None,
@@ -335,6 +337,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
+        self.target_root = target_root
 
         if not os.path.isdir(root):
             raise ValueError(
@@ -435,22 +438,30 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                 torch.from_numpy(hf["kspace"][slice_ind]).unsqueeze(0)
             ).squeeze(0)
 
-            if any("reconstruction" in key for key in hf.keys()):
-                # shape (1, H, W)
-                target = torch.from_numpy(
-                    hf[
+            def open_target(f):
+                return torch.from_numpy(
+                    f[
                         (
                             "reconstruction_esc"
-                            if "reconstruction_esc" in hf.keys()
+                            if "reconstruction_esc" in f.keys()
                             else "reconstruction_rss"
                         )
                     ][slice_ind]
-                ).unsqueeze(0)
+                ).unsqueeze(
+                    0
+                )  # shape (1, H, W)
+
+            if any("reconstruction" in key for key in hf.keys()):
+                target = open_target(hf)
+            elif self.target_root is not None:
+                with h5py.File(self.target_root / fname.name, "r") as hf2:
+                    target = open_target(hf2)
             else:
                 target = None
 
-        # TODO validate FastMRI provided mask shapes
-        params = {"mask": torch.as_tensor(hf["mask"])} if "mask" in hf else {}
+            params = (
+                {"mask": torch.as_tensor(hf["mask"])} if "mask" in hf else {}
+            )  # shape (W,)
 
         if self.transform is not None:
             target, kspace, params = self.transform(
@@ -516,13 +527,18 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         )
 
 
-class MRISliceTransform:
+class MRISliceTransform(MRIMixin):
     """
     FastMRI raw data preprocessing.
 
-    Preprocess raw kspace data by generating masks and/or estimating coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
-    To be used with :class:`deepinv.datasets.FastMRISliceDataset`.
-    See below for input and output shapes.
+    Preprocess raw kspace data:
+
+    * Optionally prewhiten kspace
+    * Normalise kspace
+    * Optionally generate mask/use existing mask
+    * Optionally estimate coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
+
+    To be used with :class:`deepinv.datasets.FastMRISliceDataset`. See below for input and output shapes.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
     :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
@@ -533,6 +549,8 @@ class MRISliceTransform:
         self,
         mask_generator: Optional[BaseMaskGenerator] = None,
         estimate_coil_maps: Union[bool, int] = False,
+        prewhiten: tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
+        normalise: bool = False,
     ):
         if (
             mask_generator is None
@@ -548,6 +566,8 @@ class MRISliceTransform:
 
         self.mask_generator = mask_generator
         self.estimate_coil_maps = estimate_coil_maps
+        self.prewhiten = prewhiten
+        self.normalise = normalise
 
     def generate_mask(
         self, kspace: torch.Tensor, seed: Union[str, int]
@@ -579,6 +599,46 @@ class MRISliceTransform:
             kspace.unsqueeze(0), calib_size=calib_size
         ).squeeze(0)
 
+    def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
+        # kspace of shape (2, (N,) H, W)
+        ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0)  # N, H, W complex
+
+        n = ksp[:, self.prewhiten[0], self.prewhiten[1]].flatten(-2)
+        n -= n.mean(axis=-1, keepdim=True)
+        cov = n @ n.H  # (N, N) complex
+
+        try:
+            ksp = ksp.flatten(-2)  # N, H*W
+            ksp = torch.linalg.solve(torch.linalg.cholesky(cov), ksp)
+            return self.from_torch_complex(
+                ksp.unflatten(-1, kspace.shape[-2:]).unsqueeze(0)
+            ).squeeze(
+                0
+            )  # 2,N,H,W
+        except torch.linalg.LinAlgError:
+            # Non-PSD due to ksp all zeros
+            return kspace
+
+    def normalise_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
+        # Extract ACS
+        acs = (
+            self.mask_generator.n_center
+            if self.estimate_coil_maps == True
+            else self.estimate_coil_maps
+        )
+        H, W = kspace.shape[-2:]
+        mask = torch.zeros_like(kspace)
+        mask[
+            ...,
+            H // 2 - acs // 2 : H // 2 + ceildiv(acs, 2),
+            W // 2 - acs // 2 : W // 2 + ceildiv(acs, 2),
+        ] = 1
+
+        # Normalise by percentile of RSS of ACS
+        return kspace / self.rss(
+            self.kspace_to_im((kspace * mask).unsqueeze(0))
+        ).quantile(0.99)
+
     def __call__(
         self,
         target: torch.Tensor,
@@ -595,13 +655,29 @@ class MRISliceTransform:
         :param Union[str, int] seed: optional random seed for generating mask, defaults to None
         :return: target, kspace, params, where params is dict containing `mask` (of shape (C, H, W)) and/or `coil_maps` (of shape (N, H, W) and complex dtype).
         """
+
+        # Pre-whiten
+        if self.prewhiten:
+            kspace = self.prewhiten_kspace(kspace)
+
+        # Normalise kspace
+        if self.normalise:
+            kspace = self.normalise_kspace(kspace)
+
         params = {}
         if mask is not None:
+            mask = (
+                mask.unsqueeze(0).repeat(kspace.shape[-2], 1).unsqueeze(0)
+            )  # (W,) -> (1, H, W)
             params["mask"] = mask
         if self.mask_generator is not None:
             params["mask"] = self.generate_mask(kspace, seed)
-            kspace = kspace * params["mask"]
+            kspace = kspace * params["mask"]  # TODO remove signed zeros
         if self.estimate_coil_maps:
             params["coil_maps"] = self.generate_maps(kspace)
 
+        # target 2, H, W float32
+        # kspace 2, N, H, W float32
+        # mask 1, H, W float32
+        # maps N, H, W complex64
         return target, kspace, params
