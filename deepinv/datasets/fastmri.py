@@ -337,7 +337,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
-        self.target_root = Path(target_root)
+        self.target_root = Path(target_root) if target_root is not None else None
 
         if not os.path.isdir(root):
             raise ValueError(
@@ -468,12 +468,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                 target, kspace, seed=str(fname) + str(slice_ind), **params
             )
 
-        out = (
-            (() if target is None else (target,))
-            + (kspace,)
-            + ((params,) if params else ())
+        return (target if target is not None else torch.nan, kspace) + (
+            (params,) if params else ()
         )
-        return out if len(out) > 1 else out[0]
 
     def save_simple_dataset(
         self,
@@ -549,8 +546,8 @@ class MRISliceTransform(MRIMixin):
         self,
         mask_generator: Optional[BaseMaskGenerator] = None,
         estimate_coil_maps: Union[bool, int] = False,
-        prewhiten: tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
-        normalise: bool = True,
+        prewhiten: tuple[slice, slice] = False,
+        normalise: bool = False,
     ):
         if (
             mask_generator is None
@@ -567,7 +564,17 @@ class MRISliceTransform(MRIMixin):
         self.mask_generator = mask_generator
         self.estimate_coil_maps = estimate_coil_maps
         self.prewhiten = prewhiten
+        if self.prewhiten is True:
+            self.prewhiten = (slice(0, 30), slice(0, 30))
         self.normalise = normalise
+
+    def get_acs(self):
+        # TODO if num_low_frequency present in hf.attrs.keys(), then use this as acc on the fly instead
+        return (
+            self.mask_generator.n_center
+            if self.estimate_coil_maps == True
+            else self.estimate_coil_maps
+        )
 
     def generate_mask(
         self, kspace: torch.Tensor, seed: Union[str, int]
@@ -590,13 +597,8 @@ class MRISliceTransform(MRIMixin):
         :param torch.Tensor kspace: input kspace of shape (2, N, H, W)
         :return: estimated coil maps of shape (N, H, W) and complex dtype
         """
-        calib_size = (
-            self.mask_generator.n_center
-            if self.estimate_coil_maps == True
-            else self.estimate_coil_maps
-        )
         return MultiCoilMRI.estimate_coil_maps(
-            kspace.unsqueeze(0), calib_size=calib_size
+            kspace.unsqueeze(0), calib_size=self.get_acs()
         ).squeeze(0)
 
     def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
@@ -620,12 +622,7 @@ class MRISliceTransform(MRIMixin):
             return kspace
 
     def normalise_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
-        # Extract ACS
-        acs = (
-            self.mask_generator.n_center
-            if self.estimate_coil_maps == True
-            else self.estimate_coil_maps
-        )
+        acs = self.get_acs()
         H, W = kspace.shape[-2:]
         mask = torch.zeros_like(kspace)
         mask[
