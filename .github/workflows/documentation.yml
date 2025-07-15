@@ -16,6 +16,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   docs:
@@ -29,14 +30,12 @@ jobs:
 
       - name: Comment on PR with preview URL
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        permissions:
-          pull-requests: write
         steps:
           - uses: mshick/add-pr-comment@v2
             with:
               message: |
                 Documentation preview for this PR at format('https://deepinv.github.io/pr-preview/pr-preview/pr-{0}', github.event.pull_request.number)
-                
+
       - name: Install deepinv and its dependencies
         run: |
           pip install -e .[dataset,denoisers,doc]
