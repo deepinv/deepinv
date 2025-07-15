@@ -53,13 +53,13 @@ jobs:
           enable_jekyll: false
           force_orphan: false
       - name: Comment on PR with preview URL
-              if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-              uses: actions/github-script@v7
-              with:
-                script: |
-                  const prNumber = ${{ github.event.number }};
-                  const previewUrl = `https://deepinv.github.io/pr-preview/pr-${prNumber}/`;
-                  await github.rest.issues.createComment({
-                    ...context.issue,
-                    body: `Documentation preview for PR #${prNumber} available at: ${previewUrl}`
-                  });
+        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ github.event.number }};
+            const previewUrl = `https://deepinv.github.io/pr-preview/pr-${prNumber}/`;
+            await github.rest.issues.createComment({
+              ...context.issue,
+              body: `Documentation preview for PR #${prNumber} available at: ${previewUrl}`
+            });
