@@ -28,13 +28,12 @@ jobs:
           python-version: 3.12
           cache: 'pip' # caching pip dependencies
 
-      - name: Comment on PR with preview URL
+      - name: Comment on PR with preview url
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        steps:
-          - uses: mshick/add-pr-comment@v2
-            with:
-              message: |
-                Documentation preview for this PR at format('https://deepinv.github.io/pr-preview/pr-preview/pr-{0}', github.event.pull_request.number)
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message: |
+            Documentation preview for this PR at format('https://deepinv.github.io/pr-preview/pr-preview/pr-{0}', github.event.pull_request.number)
 
       - name: Install deepinv and its dependencies
         run: |
