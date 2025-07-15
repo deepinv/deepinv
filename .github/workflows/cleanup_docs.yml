@@ -17,7 +17,7 @@ jobs:
 
     - name: Remove PR folder
       run: |
-        PR_DIR="pr-${{ github.event.pull_request.number }}"
+        PR_DIR="pr-preview/pr-${{ github.event.pull_request.number }}"
         if [ -d "$PR_DIR" ]; then
           rm -rf "$PR_DIR"
           echo "Removed $PR_DIR"
