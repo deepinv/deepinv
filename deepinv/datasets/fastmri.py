@@ -664,7 +664,7 @@ class MRISliceTransform(MRIMixin):
         params = {}
         if mask is not None:
             mask = (
-                mask.unsqueeze(0).repeat(kspace.shape[-2], 1).unsqueeze(0)
+                mask.unsqueeze(0).repeat(kspace.shape[-2], 1).unsqueeze(0).float()
             )  # (W,) -> (1, H, W)
             params["mask"] = mask
         if self.mask_generator is not None:
