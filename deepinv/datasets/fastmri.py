@@ -337,7 +337,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
-        self.target_root = target_root
+        self.target_root = Path(target_root)
 
         if not os.path.isdir(root):
             raise ValueError(
@@ -550,7 +550,7 @@ class MRISliceTransform(MRIMixin):
         mask_generator: Optional[BaseMaskGenerator] = None,
         estimate_coil_maps: Union[bool, int] = False,
         prewhiten: tuple[slice, slice] = (slice(0, 30), slice(0, 30)),
-        normalise: bool = False,
+        normalise: bool = True,
     ):
         if (
             mask_generator is None
