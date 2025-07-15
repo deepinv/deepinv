@@ -28,7 +28,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
 
       - name: Comment on PR with preview url
-      - uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@v2
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         with:
           message: |
