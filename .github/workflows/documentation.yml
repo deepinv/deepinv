@@ -27,6 +27,16 @@ jobs:
           python-version: 3.12
           cache: 'pip' # caching pip dependencies
 
+      - name: Comment on PR with preview URL
+        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+        permissions:
+          pull-requests: write
+        steps:
+          - uses: mshick/add-pr-comment@v2
+            with:
+              message: |
+                Documentation preview for this PR at format('https://deepinv.github.io/pr-preview/pr-preview/pr-{0}', github.event.pull_request.number)
+                
       - name: Install deepinv and its dependencies
         run: |
           pip install -e .[dataset,denoisers,doc]
@@ -52,36 +62,3 @@ jobs:
           keep_files: true
           enable_jekyll: false
           force_orphan: false      
-      - name: Comment on PR with preview URL
-        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = ${{ github.event.number }};
-            const previewUrl = `https://deepinv.github.io/pr-preview/pr-${prNumber}/`;
-            const message = `Documentation preview for PR #${prNumber} available at: ${previewUrl}`;
-            
-            // Try to find an existing comment from this action
-            const comments = await github.rest.issues.listComments({
-              ...context.issue,
-            });
-            
-            const existingComment = comments.data.find(comment => 
-              comment.user.login === 'github-actions[bot]' && 
-              comment.body.includes('Documentation preview for PR #')
-            );
-            
-            if (existingComment) {
-              // Update existing comment
-              await github.rest.issues.updateComment({
-                ...context.issue,
-                comment_id: existingComment.id,
-                body: message
-              });
-            } else {
-              // Create new comment
-              await github.rest.issues.createComment({
-                ...context.issue,
-                body: message
-              });
-            }
