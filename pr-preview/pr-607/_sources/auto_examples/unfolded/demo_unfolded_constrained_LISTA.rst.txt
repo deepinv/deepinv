@@ -126,7 +126,7 @@ We work with images of size 32x32 if no GPU is available, else 128x128.
  .. code-block:: none
 
     Downloading datasets/CBSD68.zip
-      0%|          | 0.00/19.8M [00:00<?, ?iB/s]     33%|███▎      | 6.51M/19.8M [00:00<00:00, 65.1MiB/s]     74%|███████▍  | 14.6M/19.8M [00:00<00:00, 74.0MiB/s]    100%|██████████| 19.8M/19.8M [00:00<00:00, 77.5MiB/s]
+      0%|          | 0.00/19.8M [00:00<?, ?iB/s]     45%|████▍     | 8.85M/19.8M [00:00<00:00, 88.5MiB/s]     97%|█████████▋| 19.2M/19.8M [00:00<00:00, 97.5MiB/s]    100%|██████████| 19.8M/19.8M [00:00<00:00, 96.3MiB/s]
     CBSD68 dataset downloaded in datasets
 
 
@@ -495,7 +495,7 @@ To check that the loading is performed correctly, we use new variables for the i
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 33.139 seconds)
+   **Total running time of the script:** (0 minutes 31.755 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py:

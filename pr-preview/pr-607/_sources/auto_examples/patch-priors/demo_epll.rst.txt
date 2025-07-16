@@ -73,7 +73,7 @@ is included in the demo for limited-angle CT with patch priors.
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/EPLL/resolve/main/GMM_BSDS_color2.pt?download=true" to /home/runner/.cache/torch/hub/checkpoints/GMM_BSDS_color2.pt
-      0%|          | 0.00/35.7M [00:00<?, ?B/s]     37%|███▋      | 13.2M/35.7M [00:00<00:00, 136MB/s]     79%|███████▉  | 28.1M/35.7M [00:00<00:00, 148MB/s]    100%|██████████| 35.7M/35.7M [00:00<00:00, 167MB/s]
+      0%|          | 0.00/35.7M [00:00<?, ?B/s]     85%|████████▌ | 30.5M/35.7M [00:00<00:00, 319MB/s]    100%|██████████| 35.7M/35.7M [00:00<00:00, 325MB/s]
 
 
 
@@ -230,7 +230,7 @@ by two values and optimized a constant factor via grid search.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 52.857 seconds)
+   **Total running time of the script:** (1 minutes 45.015 seconds)
 
 
 .. _sphx_glr_download_auto_examples_patch-priors_demo_epll.py:

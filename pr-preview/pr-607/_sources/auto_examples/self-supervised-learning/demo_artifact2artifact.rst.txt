@@ -412,7 +412,7 @@ increase the number of epochs.
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/measplit/resolve/main/demo_artifact2artifact_mri.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/demo_artifact2artifact_mri.pth
-      0%|          | 0.00/2.16M [00:00<?, ?B/s]    100%|██████████| 2.16M/2.16M [00:00<00:00, 94.6MB/s]
+      0%|          | 0.00/2.16M [00:00<?, ?B/s]    100%|██████████| 2.16M/2.16M [00:00<00:00, 158MB/s]
     The model has 187019 trainable parameters
     Train epoch 0: TotalLoss=0.001, PSNR=34.176, SSIM=0.876
 
@@ -459,7 +459,7 @@ Test the model
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.302 seconds)
+   **Total running time of the script:** (0 minutes 1.160 seconds)
 
 
 .. _sphx_glr_download_auto_examples_self-supervised-learning_demo_artifact2artifact.py:

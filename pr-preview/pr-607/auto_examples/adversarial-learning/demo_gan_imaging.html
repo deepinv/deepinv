@@ -594,18 +594,18 @@ using <a class="reference internal" href="../../api/stubs/deepinv.datasets.gener
 </pre></div>
 </div>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/135388067 [00:00&lt;?, ?it/s]
- 17%|█▋        | 21.6M/129M [00:00&lt;00:00, 226MB/s]
- 33%|███▎      | 43.1M/129M [00:00&lt;00:00, 226MB/s]
- 53%|█████▎    | 68.6M/129M [00:00&lt;00:00, 244MB/s]
- 79%|███████▉  | 102M/129M [00:00&lt;00:00, 287MB/s]
-100%|██████████| 129M/129M [00:00&lt;00:00, 279MB/s]
+ 14%|█▍        | 18.6M/129M [00:00&lt;00:00, 195MB/s]
+ 32%|███▏      | 41.1M/129M [00:00&lt;00:00, 219MB/s]
+ 57%|█████▋    | 73.7M/129M [00:00&lt;00:00, 275MB/s]
+ 84%|████████▍ | 109M/129M [00:00&lt;00:00, 313MB/s]
+100%|██████████| 129M/129M [00:00&lt;00:00, 296MB/s]
 
 Extracting:   0%|          | 0/101 [00:00&lt;?, ?it/s]
-Extracting:  21%|██        | 21/101 [00:00&lt;00:00, 199.52it/s]
-Extracting:  47%|████▋     | 47/101 [00:00&lt;00:00, 231.58it/s]
-Extracting:  70%|███████   | 71/101 [00:00&lt;00:00, 222.35it/s]
-Extracting:  93%|█████████▎| 94/101 [00:00&lt;00:00, 216.62it/s]
-Extracting: 100%|██████████| 101/101 [00:00&lt;00:00, 217.41it/s]
+Extracting:  21%|██        | 21/101 [00:00&lt;00:00, 201.80it/s]
+Extracting:  47%|████▋     | 47/101 [00:00&lt;00:00, 234.08it/s]
+Extracting:  70%|███████   | 71/101 [00:00&lt;00:00, 224.88it/s]
+Extracting:  93%|█████████▎| 94/101 [00:00&lt;00:00, 217.70it/s]
+Extracting: 100%|██████████| 101/101 [00:00&lt;00:00, 217.30it/s]
 Dataset has been successfully downloaded.
 Dataset has been saved at measurments/dinv_dataset0.h5
 </pre></div>
@@ -709,8 +709,7 @@ To train from scratch, simply comment out the model loading code and increase th
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/deblurgan_model.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/deblurgan_model.pth
 
   0%|          | 0.00/12.7M [00:00&lt;?, ?B/s]
- 72%|███████▏  | 9.12M/12.7M [00:00&lt;00:00, 94.7MB/s]
-100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 92.0MB/s]
+100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 238MB/s]
 The model has 444867 trainable parameters
 /home/runner/work/deepinv/deepinv/deepinv/training/adversarial.py:166: UserWarning: optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`.
   warnings.warn(
@@ -789,7 +788,7 @@ and fine-tune here for a quick demo with 1 epoch.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/uair_model.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/uair_model.pth
 
   0%|          | 0.00/12.7M [00:00&lt;?, ?B/s]
-100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 242MB/s]
+100%|██████████| 12.7M/12.7M [00:00&lt;00:00, 269MB/s]
 The model has 444867 trainable parameters
 Train epoch 0: TotalLoss=0.144, PSNR=24.253
 Eval epoch 0: PSNR=23.978
@@ -885,8 +884,8 @@ and fine-tune here for a quick demo with 1 epoch.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/adversarial-demo/resolve/main/csgm_model.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/csgm_model.pth
 
   0%|          | 0.00/49.3M [00:00&lt;?, ?B/s]
- 65%|██████▌   | 32.2M/49.3M [00:00&lt;00:00, 338MB/s]
-100%|██████████| 49.3M/49.3M [00:00&lt;00:00, 343MB/s]
+ 70%|██████▉   | 34.4M/49.3M [00:00&lt;00:00, 360MB/s]
+100%|██████████| 49.3M/49.3M [00:00&lt;00:00, 372MB/s]
 The model has 3608000 trainable parameters
 Train epoch 0: TotalLoss=0.007, PSNR=9.136
 </pre></div>
@@ -907,7 +906,7 @@ PSNR: 10.250 +- 1.120
 {&#39;PSNR no learning&#39;: np.float64(23.110940551757814), &#39;PSNR no learning_std&#39;: np.float64(2.7325177722415908), &#39;PSNR&#39;: np.float64(10.24966812133789), &#39;PSNR_std&#39;: np.float64(1.1202718281006854)}
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (1 minutes 24.779 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (1 minutes 22.036 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-adversarial-learning-demo-gan-imaging-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/2f3e20ed263cc3e5c7e770603c2bda28/demo_gan_imaging.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_gan_imaging.ipynb</span></code></a></p>

@@ -269,7 +269,7 @@ Necessary and sufficient conditions on the number of operators and measurements 
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/demo/resolve/main/demo_moi_ckp_10.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/demo_moi_ckp_10.pth
-      0%|          | 0.00/23.8M [00:00<?, ?B/s]     44%|████▍     | 10.5M/23.8M [00:00<00:00, 110MB/s]     88%|████████▊ | 21.0M/23.8M [00:00<00:00, 103MB/s]    100%|██████████| 23.8M/23.8M [00:00<00:00, 111MB/s]
+      0%|          | 0.00/23.8M [00:00<?, ?B/s]    100%|█████████▉| 23.8M/23.8M [00:00<00:00, 200MB/s]    100%|██████████| 23.8M/23.8M [00:00<00:00, 199MB/s]
 
 
 
@@ -347,8 +347,8 @@ Train the network
  .. code-block:: none
 
     The model has 2069441 trainable parameters
-    Train epoch 0: MCLoss=0.001, MOILoss=0.001, TotalLoss=0.001, PSNR=17.785
-    Eval epoch 0: PSNR=15.03
+    Train epoch 0: MCLoss=0.001, MOILoss=0.001, TotalLoss=0.001, PSNR=19.267
+    Eval epoch 0: PSNR=16.894
     Best model saved at epoch 1
 
 
@@ -379,19 +379,19 @@ Test the network
 
  .. code-block:: none
 
-    Eval epoch 0: PSNR=15.03, PSNR no learning=13.689
+    Eval epoch 0: PSNR=16.894, PSNR no learning=13.689
     Test results:
     PSNR no learning: 13.689 +- 2.375
-    PSNR: 15.030 +- 2.308
+    PSNR: 16.894 +- 2.341
 
-    {'PSNR no learning': np.float64(13.68945770263672), 'PSNR no learning_std': np.float64(2.375037058737495), 'PSNR': np.float64(15.030397033691406), 'PSNR_std': np.float64(2.308480876011994)}
+    {'PSNR no learning': np.float64(13.68945770263672), 'PSNR no learning_std': np.float64(2.3750396285973236), 'PSNR': np.float64(16.893817138671874), 'PSNR_std': np.float64(2.3407881503467807)}
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.353 seconds)
+   **Total running time of the script:** (0 minutes 3.037 seconds)
 
 
 .. _sphx_glr_download_auto_examples_self-supervised-learning_demo_multioperator_imaging.py:

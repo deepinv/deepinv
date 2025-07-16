@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**02:46.454** total execution time for 9 files **from auto_examples/self-supervised-learning**:
+**02:39.005** total execution time for 9 files **from auto_examples/self-supervised-learning**:
 
 .. container::
 
@@ -33,29 +33,29 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` (``demo_ei_transforms.py``)
-     - 02:13.217
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``demo_splitting_loss.py``)
-     - 00:13.263
+     - 02:10.630
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``demo_equivariant_imaging.py``)
-     - 00:11.863
+     - 00:11.281
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``demo_splitting_loss.py``)
+     - 00:09.841
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_multioperator_imaging.py` (``demo_multioperator_imaging.py``)
-     - 00:03.353
+     - 00:03.037
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_unsure.py` (``demo_unsure.py``)
-     - 00:01.699
+     - 00:01.572
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` (``demo_artifact2artifact.py``)
-     - 00:01.302
+     - 00:01.160
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``demo_sure_denoising.py``)
-     - 00:00.644
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``demo_r2r_denoising.py``)
-     - 00:00.565
+     - 00:00.583
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
-     - 00:00.548
+     - 00:00.470
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``demo_r2r_denoising.py``)
+     - 00:00.432
      - 0.0

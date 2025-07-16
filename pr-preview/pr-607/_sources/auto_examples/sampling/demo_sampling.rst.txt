@@ -108,7 +108,7 @@ This example uses inpainting as the forward operator and Gaussian noise as the n
  .. code-block:: none
 
 
-    <torch._C.Generator object at 0x7f3512f5a9d0>
+    <torch._C.Generator object at 0x7f5ad91e7050>
 
 
 
@@ -178,7 +178,7 @@ stabilize the sampling algorithm.
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/dncnn_sigma2_lipschitz_color.pth
-      0%|          | 0.00/2.56M [00:00<?, ?B/s]    100%|██████████| 2.56M/2.56M [00:00<00:00, 67.9MB/s]
+      0%|          | 0.00/2.56M [00:00<?, ?B/s]    100%|██████████| 2.56M/2.56M [00:00<00:00, 184MB/s]
 
 
 
@@ -287,7 +287,7 @@ We compare the posterior mean with a simple linear reconstruction.
 
  .. code-block:: none
 
-      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 94.64it/s]    100%|██████████| 10/10 [00:00<00:00, 94.36it/s]
+      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 96.94it/s]    100%|██████████| 10/10 [00:00<00:00, 96.80it/s]
     Linear reconstruction PSNR: 8.79 dB
     Posterior mean PSNR: 8.92 dB
 
@@ -297,7 +297,7 @@ We compare the posterior mean with a simple linear reconstruction.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.432 seconds)
+   **Total running time of the script:** (0 minutes 0.274 seconds)
 
 
 .. _sphx_glr_download_auto_examples_sampling_demo_sampling.py:
