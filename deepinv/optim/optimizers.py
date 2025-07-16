@@ -841,6 +841,7 @@ class ADMM(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of ADMM parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the ADMM parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -857,16 +858,18 @@ class ADMM(BaseOptim):
         trainable_params=None,
         g_first=False,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
         # add an unfolded mode for DEQ
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-            "beta": beta,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
         super(ADMM, self).__init__(
             ADMMIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -925,6 +928,7 @@ class DRS(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of DRS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "beta"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the DRS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -941,15 +945,17 @@ class DRS(BaseOptim):
         unfold=False,
         trainable_params=None,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-            "beta": beta,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "beta": beta,
+            }
         super(DRS, self).__init__(
             DRSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1002,6 +1008,7 @@ class GradientDescent(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of GD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the GD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -1023,14 +1030,16 @@ class GradientDescent(BaseOptim):
         DEQ_beta_anderson_acc_backward=0.5,
         DEQ_eps_anderson_acc_backward=1e-6,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(GradientDescent, self).__init__(
             GDIteration(F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1094,6 +1103,7 @@ class HQS(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of HQS parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the HQS parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -1116,14 +1126,16 @@ class HQS(BaseOptim):
         DEQ_beta_anderson_acc_backward=0.5,
         DEQ_eps_anderson_acc_backward=1e-6,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(HQS, self).__init__(
             HQSIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1184,6 +1196,7 @@ class ProximalGradientDescent(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PGD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the PGD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -1206,14 +1219,16 @@ class ProximalGradientDescent(BaseOptim):
         DEQ_beta_anderson_acc_backward=0.5,
         DEQ_eps_anderson_acc_backward=1e-6,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(ProximalGradientDescent, self).__init__(
             PGDIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1273,6 +1288,7 @@ class FISTA(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of FISTA parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param", "a"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the FISTA parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg`, `g_param` and `a`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -1290,14 +1306,16 @@ class FISTA(BaseOptim):
         trainable_params=None,
         F_fn=None,
         device=torch.device("cpu"),
+        params_algo=None,
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-            "a": a,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+                "a": a,
+            }
         super(FISTA, self).__init__(
             FISTAIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
@@ -1344,6 +1362,7 @@ class MirrorDescent(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of MD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the MD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
     """
 
@@ -1359,14 +1378,16 @@ class MirrorDescent(BaseOptim):
         unfold=False,
         trainable_params=None,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(MirrorDescent, self).__init__(
             MDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
@@ -1414,8 +1435,8 @@ class ProximalMirrorDescent(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PMD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "g_param"]``. Default: None, which means that all parameters are trainable if ``unfold`` is True. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the PMD parameters in a dictionary. This will overwrite the parameters in the arguments `stepsize`, `lambda_reg` and `g_param`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
-
     """
 
     def __init__(
@@ -1430,14 +1451,16 @@ class ProximalMirrorDescent(BaseOptim):
         unfold=False,
         trainable_params=None,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "g_param": g_param,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "g_param": g_param,
+            }
         super(ProximalMirrorDescent, self).__init__(
             PMDIteration(F_fn=F_fn, bregman_potential=bregman_potential),
             data_fidelity=data_fidelity,
@@ -1507,8 +1530,8 @@ class PrimalDualCP(BaseOptim):
     :param bool unfold: whether to unfold the algorithm or not. Default: ``False``.
     :param list trainable_params: list of PD parameters to be trained if ``unfold`` is True. To choose between ``["lambda", "stepsize", "stepsize_dual", "g_param", "beta"]``. For no trainable parameters, set to an empty list.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
+    :param dict params_algo: optionally, directly provide the PD parameters in a dictionary. This will overwrite the parameters in the arguments `K`, `K_adjoint`, `stepsize`, `lambda_reg`, `stepsize_dual`, `g_param`, `beta`.
     :param torch.device device: device to use for the algorithm. Default: ``torch.device("cpu")``.
-
     """
 
     def __init__(
@@ -1527,18 +1550,20 @@ class PrimalDualCP(BaseOptim):
         trainable_params=["lambda", "stepsize", "stepsize_dual", "g_param", "beta"],
         g_first=False,
         F_fn=None,
+        params_algo=None,
         device=torch.device("cpu"),
         **kwargs,
     ):
-        params_algo = {
-            "lambda": lambda_reg,
-            "stepsize": stepsize,
-            "stepsize_dual": stepsize_dual,
-            "g_param": g_param,
-            "beta": beta,
-            "K": K,
-            "K_adjoint": K_adjoint,
-        }
+        if params_algo is None:
+            params_algo = {
+                "lambda": lambda_reg,
+                "stepsize": stepsize,
+                "stepsize_dual": stepsize_dual,
+                "g_param": g_param,
+                "beta": beta,
+                "K": K,
+                "K_adjoint": K_adjoint,
+            }
         super(PrimalDualCP, self).__init__(
             CPIteration(g_first=g_first, F_fn=F_fn),
             data_fidelity=data_fidelity,
