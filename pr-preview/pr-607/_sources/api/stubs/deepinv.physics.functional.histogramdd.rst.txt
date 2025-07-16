@@ -1,9 +1,0 @@
-﻿histogramdd
-===========
-
-.. currentmodule:: deepinv.physics.functional
-
-.. autofunction:: histogramdd
-
-.. minigallery:: deepinv.physics.functional.histogramdd
-    :add-heading: Examples using ``histogramdd``:
