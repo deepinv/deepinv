@@ -16,7 +16,7 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
+  pull-requests: write  
 
 jobs:
   docs:
@@ -68,4 +68,3 @@ jobs:
           message: |
             📄 The documentation for this PR has been built and is available for download as an artifact here:
             👉 [Download built documentation](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
-🧾
