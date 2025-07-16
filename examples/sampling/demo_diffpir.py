@@ -287,7 +287,6 @@ list_sigmas_algo = [sigmas[seq[i]].cpu().item() for i in range(max_iter)]
 list_rhos_algo = [rhos[seq[i]].cpu().item() for i in range(max_iter)]
 
 plt.figure(figsize=(6, 3))
-plt.rcParams.update({"font.size": 9})
 plt.subplot(121)
 plt.plot(
     2 / torch.tensor(list_rhos_algo).cpu().numpy()
