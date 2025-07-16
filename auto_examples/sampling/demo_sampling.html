@@ -548,7 +548,7 @@ from incomplete and noisy measurements.</p>
 <a href="https://docs.pytorch.org/docs/stable/generated/torch.manual_seed.html#torch.manual_seed" title="torch.manual_seed" class="sphx-glr-backref-module-torch sphx-glr-backref-type-py-function"><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span></a><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;torch._C.Generator object at 0x7fe5e98eaa30&gt;
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;torch._C.Generator object at 0x7f0f2f4e3b90&gt;
 </pre></div>
 </div>
 </section>
@@ -585,8 +585,7 @@ stabilize the sampling algorithm.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/dncnn_sigma2_lipschitz_color.pth
 
   0%|          | 0.00/2.56M [00:00&lt;?, ?B/s]
- 20%|█▉        | 512k/2.56M [00:00&lt;00:00, 5.01MB/s]
-100%|██████████| 2.56M/2.56M [00:00&lt;00:00, 16.5MB/s]
+100%|██████████| 2.56M/2.56M [00:00&lt;00:00, 87.6MB/s]
 </pre></div>
 </div>
 </section>
@@ -648,13 +647,13 @@ We compare the posterior mean with a simple linear reconstruction.</p>
 </pre></div>
 </div>
 <img src="../../_images/sphx_glr_demo_sampling_001.png" srcset="../../_images/sphx_glr_demo_sampling_001.png" alt="measurement, ground truth, post. mean, post. std, abs. error" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/10 [00:00&lt;?, ?it/s]
-100%|██████████| 10/10 [00:00&lt;00:00, 96.18it/s]
-100%|██████████| 10/10 [00:00&lt;00:00, 95.98it/s]
+ 90%|█████████ | 9/10 [00:00&lt;00:00, 86.15it/s]
+100%|██████████| 10/10 [00:00&lt;00:00, 86.56it/s]
 Linear reconstruction PSNR: 8.79 dB
 Posterior mean PSNR: 8.92 dB
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.706 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.403 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-sampling-demo-sampling-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/5a89e1000770b922d57eed794f82857e/demo_sampling.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_sampling.ipynb</span></code></a></p>

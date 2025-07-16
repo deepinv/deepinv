@@ -483,7 +483,7 @@ values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gra
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 8.419 seconds)
+   **Total running time of the script:** (0 minutes 10.039 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unfolded_demo_custom_prior_unfolded.py:

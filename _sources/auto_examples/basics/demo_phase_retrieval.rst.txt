@@ -465,7 +465,7 @@ We can also use the Plug-and-Play (PnP) framework to incorporate denoisers as re
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray_finetune_26k.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/drunet_deepinv_gray_finetune_26k.pth
-      0%|          | 0.00/125M [00:00<?, ?B/s]      2%|▏         | 2.12M/125M [00:00<00:05, 22.2MB/s]     13%|█▎        | 16.4M/125M [00:00<00:01, 96.8MB/s]     27%|██▋       | 33.8M/125M [00:00<00:00, 136MB/s]      44%|████▍     | 55.0M/125M [00:00<00:00, 170MB/s]     62%|██████▏   | 77.2M/125M [00:00<00:00, 188MB/s]     79%|███████▉  | 98.1M/125M [00:00<00:00, 199MB/s]     96%|█████████▌| 119M/125M [00:00<00:00, 204MB/s]     100%|██████████| 125M/125M [00:00<00:00, 176MB/s]
+      0%|          | 0.00/125M [00:00<?, ?B/s]     24%|██▍       | 30.1M/125M [00:00<00:00, 316MB/s]     54%|█████▎    | 66.9M/125M [00:00<00:00, 357MB/s]     81%|████████  | 101M/125M [00:00<00:00, 344MB/s]     100%|██████████| 125M/125M [00:00<00:00, 331MB/s]
 
 
 
@@ -557,7 +557,7 @@ In conclusion, gradient descent with random intialization provides a poor recons
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 34.327 seconds)
+   **Total running time of the script:** (0 minutes 37.659 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_phase_retrieval.py:

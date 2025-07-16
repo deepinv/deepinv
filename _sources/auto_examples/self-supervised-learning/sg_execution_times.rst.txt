@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**02:44.236** total execution time for 9 files **from auto_examples/self-supervised-learning**:
+**02:49.923** total execution time for 9 files **from auto_examples/self-supervised-learning**:
 
 .. container::
 
@@ -33,29 +33,29 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py` (``demo_ei_transforms.py``)
-     - 02:11.729
+     - 02:20.104
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py` (``demo_equivariant_imaging.py``)
-     - 00:12.112
+     - 00:11.937
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_splitting_loss.py` (``demo_splitting_loss.py``)
-     - 00:11.707
+     - 00:09.951
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_multioperator_imaging.py` (``demo_multioperator_imaging.py``)
-     - 00:03.422
+     - 00:03.357
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_unsure.py` (``demo_unsure.py``)
-     - 00:01.633
+     - 00:01.732
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_artifact2artifact.py` (``demo_artifact2artifact.py``)
-     - 00:01.489
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``demo_sure_denoising.py``)
-     - 00:00.768
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
-     - 00:00.695
+     - 00:01.256
      - 0.0
    * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_r2r_denoising.py` (``demo_r2r_denoising.py``)
-     - 00:00.681
+     - 00:00.547
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_sure_denoising.py` (``demo_sure_denoising.py``)
+     - 00:00.544
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_n2n_denoising.py` (``demo_n2n_denoising.py``)
+     - 00:00.496
      - 0.0

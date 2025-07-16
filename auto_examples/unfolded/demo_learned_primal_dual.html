@@ -781,31 +781,34 @@ Following this approach, we use the filtered backprojection instead of the adjoi
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>The model has 75595 trainable parameters
 /home/runner/work/deepinv/deepinv/deepinv/training/trainer.py:461: UserWarning: Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x.
   warnings.warn(
-Train epoch 0: TotalLoss=0.002, PSNR=27.826
-Eval epoch 0: PSNR=19.03
+Train epoch 0: TotalLoss=0.003, PSNR=26.768
+Eval epoch 0: PSNR=19.472
 Best model saved at epoch 1
-Train epoch 1: TotalLoss=0.003, PSNR=25.799
-Eval epoch 1: PSNR=19.568
+Train epoch 1: TotalLoss=0.002, PSNR=26.083
+Eval epoch 1: PSNR=19.699
 Best model saved at epoch 2
-Train epoch 2: TotalLoss=0.002, PSNR=28.823
-Eval epoch 2: PSNR=19.522
-Train epoch 3: TotalLoss=0.002, PSNR=27.298
-Eval epoch 3: PSNR=19.821
+Train epoch 2: TotalLoss=0.002, PSNR=28.888
+Eval epoch 2: PSNR=19.737
+Best model saved at epoch 3
+Train epoch 3: TotalLoss=0.001, PSNR=28.64
+Eval epoch 3: PSNR=19.912
 Best model saved at epoch 4
-Train epoch 4: TotalLoss=0.002, PSNR=29.943
-Eval epoch 4: PSNR=19.631
-Train epoch 5: TotalLoss=0.001, PSNR=29.414
-Eval epoch 5: PSNR=19.808
-Train epoch 6: TotalLoss=0.002, PSNR=29.549
-Eval epoch 6: PSNR=20.026
-Best model saved at epoch 7
-Train epoch 7: TotalLoss=0.001, PSNR=30.691
-Eval epoch 7: PSNR=20.111
+Train epoch 4: TotalLoss=0.001, PSNR=29.821
+Eval epoch 4: PSNR=19.945
+Best model saved at epoch 5
+Train epoch 5: TotalLoss=0.001, PSNR=31.735
+Eval epoch 5: PSNR=19.806
+Train epoch 6: TotalLoss=0.001, PSNR=30.678
+Eval epoch 6: PSNR=19.878
+Train epoch 7: TotalLoss=0.001, PSNR=29.661
+Eval epoch 7: PSNR=20.025
 Best model saved at epoch 8
-Train epoch 8: TotalLoss=0.001, PSNR=31.542
-Eval epoch 8: PSNR=20.091
-Train epoch 9: TotalLoss=0.001, PSNR=30.644
-Eval epoch 9: PSNR=20.084
+Train epoch 8: TotalLoss=0.001, PSNR=30.457
+Eval epoch 8: PSNR=20.066
+Best model saved at epoch 9
+Train epoch 9: TotalLoss=0.001, PSNR=30.754
+Eval epoch 9: PSNR=20.075
+Best model saved at epoch 10
 </pre></div>
 </div>
 </section>
@@ -814,15 +817,15 @@ Eval epoch 9: PSNR=20.084
 <div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><a href="https://deepinv.github.io/deepinv/api/stubs/deepinv.Trainer.html#deepinv.Trainer.test" title="deepinv.Trainer.test" class="sphx-glr-backref-module-deepinv sphx-glr-backref-type-py-method"><span class="n">trainer</span><span class="o">.</span><span class="n">test</span></a><span class="p">(</span><a href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="torch.utils.data.DataLoader" class="sphx-glr-backref-module-torch-utils-data sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">test_dataloader</span></a><span class="p">)</span>
 </pre></div>
 </div>
-<img src="../../_images/sphx_glr_demo_learned_primal_dual_011.png" srcset="../../_images/sphx_glr_demo_learned_primal_dual_011.png" alt="PSNR, residual" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=20.1, PSNR no learning=-41.611
+<img src="../../_images/sphx_glr_demo_learned_primal_dual_011.png" srcset="../../_images/sphx_glr_demo_learned_primal_dual_011.png" alt="PSNR, residual" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Eval epoch 0: PSNR=20.093, PSNR no learning=-41.611
 Test results:
 PSNR no learning: -41.611 +- 0.000
-PSNR: 20.100 +- 0.000
+PSNR: 20.093 +- 0.000
 
-{&#39;PSNR no learning&#39;: np.float64(-41.61101531982422), &#39;PSNR no learning_std&#39;: 0, &#39;PSNR&#39;: np.float64(20.100481033325195), &#39;PSNR_std&#39;: 0}
+{&#39;PSNR no learning&#39;: np.float64(-41.61101531982422), &#39;PSNR no learning_std&#39;: 0, &#39;PSNR&#39;: np.float64(20.092987060546875), &#39;PSNR_std&#39;: 0}
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 5.181 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 5.807 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-unfolded-demo-learned-primal-dual-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/efd340f322404f947b6ce19444834905/demo_learned_primal_dual.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_learned_primal_dual.ipynb</span></code></a></p>

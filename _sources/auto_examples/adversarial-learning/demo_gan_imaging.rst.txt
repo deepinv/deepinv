@@ -137,8 +137,8 @@ using :func:`deepinv.datasets.generate_dataset`.
 
  .. code-block:: none
 
-      0%|          | 0/135388067 [00:00<?, ?it/s]      2%|▏         | 2.56M/129M [00:00<00:04, 26.7MB/s]     19%|█▉        | 25.1M/129M [00:00<00:00, 149MB/s]      42%|████▏     | 54.1M/129M [00:00<00:00, 220MB/s]     65%|██████▍   | 83.6M/129M [00:00<00:00, 255MB/s]     88%|████████▊ | 113M/129M [00:00<00:00, 275MB/s]     100%|██████████| 129M/129M [00:00<00:00, 244MB/s]
-    Extracting:   0%|          | 0/101 [00:00<?, ?it/s]    Extracting:  21%|██        | 21/101 [00:00<00:00, 202.07it/s]    Extracting:  48%|████▊     | 48/101 [00:00<00:00, 238.38it/s]    Extracting:  71%|███████▏  | 72/101 [00:00<00:00, 223.88it/s]    Extracting:  94%|█████████▍| 95/101 [00:00<00:00, 216.40it/s]    Extracting: 100%|██████████| 101/101 [00:00<00:00, 219.13it/s]
+      0%|          | 0/135388067 [00:00<?, ?it/s]     22%|██▏       | 28.5M/129M [00:00<00:00, 299MB/s]     49%|████▊     | 62.9M/129M [00:00<00:00, 335MB/s]     74%|███████▍  | 95.5M/129M [00:00<00:00, 338MB/s]     99%|█████████▉| 128M/129M [00:00<00:00, 336MB/s]     100%|██████████| 129M/129M [00:00<00:00, 333MB/s]
+    Extracting:   0%|          | 0/101 [00:00<?, ?it/s]    Extracting:  20%|█▉        | 20/101 [00:00<00:00, 197.35it/s]    Extracting:  44%|████▎     | 44/101 [00:00<00:00, 218.45it/s]    Extracting:  68%|██████▊   | 69/101 [00:00<00:00, 224.32it/s]    Extracting:  91%|█████████ | 92/101 [00:00<00:00, 217.69it/s]    Extracting: 100%|██████████| 101/101 [00:00<00:00, 214.34it/s]
     Dataset has been successfully downloaded.
     Dataset has been saved at measurments/dinv_dataset0.h5
 
@@ -311,7 +311,7 @@ To train from scratch, simply comment out the model loading code and increase th
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/adversarial-demo/resolve/main/deblurgan_model.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/deblurgan_model.pth
-      0%|          | 0.00/12.7M [00:00<?, ?B/s]      7%|▋         | 896k/12.7M [00:00<00:01, 8.71MB/s]    100%|██████████| 12.7M/12.7M [00:00<00:00, 70.1MB/s]
+      0%|          | 0.00/12.7M [00:00<?, ?B/s]    100%|██████████| 12.7M/12.7M [00:00<00:00, 190MB/s]
     The model has 444867 trainable parameters
     /home/runner/work/deepinv/deepinv/deepinv/training/adversarial.py:166: UserWarning: optimizer_step_multi_dataset parameter of Trainer is should be set to `False` when using adversarial trainer. Automatically setting it to `False`.
       warnings.warn(
@@ -447,7 +447,7 @@ and fine-tune here for a quick demo with 1 epoch.
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/adversarial-demo/resolve/main/uair_model.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/uair_model.pth
-      0%|          | 0.00/12.7M [00:00<?, ?B/s]      8%|▊         | 1.00M/12.7M [00:00<00:01, 10.4MB/s]    100%|██████████| 12.7M/12.7M [00:00<00:00, 74.1MB/s]
+      0%|          | 0.00/12.7M [00:00<?, ?B/s]    100%|██████████| 12.7M/12.7M [00:00<00:00, 191MB/s]
     The model has 444867 trainable parameters
     Train epoch 0: TotalLoss=0.144, PSNR=24.253
     Eval epoch 0: PSNR=23.978
@@ -606,7 +606,7 @@ and fine-tune here for a quick demo with 1 epoch.
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/adversarial-demo/resolve/main/csgm_model.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/csgm_model.pth
-      0%|          | 0.00/49.3M [00:00<?, ?B/s]      2%|▏         | 1.12M/49.3M [00:00<00:04, 11.7MB/s]     38%|███▊      | 18.5M/49.3M [00:00<00:00, 111MB/s]      67%|██████▋   | 33.2M/49.3M [00:00<00:00, 128MB/s]     97%|█████████▋| 47.8M/49.3M [00:00<00:00, 137MB/s]    100%|██████████| 49.3M/49.3M [00:00<00:00, 125MB/s]
+      0%|          | 0.00/49.3M [00:00<?, ?B/s]     15%|█▌        | 7.50M/49.3M [00:00<00:00, 78.0MB/s]     38%|███▊      | 18.9M/49.3M [00:00<00:00, 102MB/s]      90%|█████████ | 44.5M/49.3M [00:00<00:00, 177MB/s]    100%|██████████| 49.3M/49.3M [00:00<00:00, 159MB/s]
     The model has 3608000 trainable parameters
     Train epoch 0: TotalLoss=0.007, PSNR=9.136
 
@@ -648,7 +648,7 @@ running the optimisation for longer.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 24.206 seconds)
+   **Total running time of the script:** (1 minutes 25.720 seconds)
 
 
 .. _sphx_glr_download_auto_examples_adversarial-learning_demo_gan_imaging.py:

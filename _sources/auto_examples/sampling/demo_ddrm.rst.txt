@@ -212,7 +212,7 @@ We compare the posterior mean with a simple linear reconstruction.
 
  .. code-block:: none
 
-      0%|          | 0/9 [00:00<?, ?it/s]     33%|███▎      | 3/9 [00:00<00:00, 26.20it/s]     67%|██████▋   | 6/9 [00:00<00:00, 26.39it/s]    100%|██████████| 9/9 [00:00<00:00, 26.46it/s]    100%|██████████| 9/9 [00:00<00:00, 26.40it/s]
+      0%|          | 0/9 [00:00<?, ?it/s]     33%|███▎      | 3/9 [00:00<00:00, 24.65it/s]     67%|██████▋   | 6/9 [00:00<00:00, 24.72it/s]    100%|██████████| 9/9 [00:00<00:00, 25.09it/s]    100%|██████████| 9/9 [00:00<00:00, 24.96it/s]
     Linear reconstruction PSNR: 8.79 dB
     Diffusion PSNR: 22.76 dB
 
@@ -295,7 +295,7 @@ We compare the posterior mean with a simple linear reconstruction.
 
  .. code-block:: none
 
-      0%|          | 0/10 [00:00<?, ?it/s]     10%|█         | 1/10 [00:00<00:03,  2.56it/s]     20%|██        | 2/10 [00:00<00:03,  2.62it/s]     30%|███       | 3/10 [00:01<00:02,  2.62it/s]     40%|████      | 4/10 [00:01<00:02,  2.61it/s]     50%|█████     | 5/10 [00:01<00:01,  2.62it/s]     60%|██████    | 6/10 [00:02<00:01,  2.61it/s]     70%|███████   | 7/10 [00:02<00:01,  2.62it/s]     80%|████████  | 8/10 [00:03<00:00,  2.63it/s]     90%|█████████ | 9/10 [00:03<00:00,  2.61it/s]    100%|██████████| 10/10 [00:03<00:00,  2.62it/s]    100%|██████████| 10/10 [00:03<00:00,  2.62it/s]
+      0%|          | 0/10 [00:00<?, ?it/s]     10%|█         | 1/10 [00:00<00:03,  2.42it/s]     20%|██        | 2/10 [00:00<00:03,  2.42it/s]     30%|███       | 3/10 [00:01<00:02,  2.44it/s]     40%|████      | 4/10 [00:01<00:02,  2.41it/s]     50%|█████     | 5/10 [00:02<00:02,  2.42it/s]     60%|██████    | 6/10 [00:02<00:01,  2.42it/s]     70%|███████   | 7/10 [00:02<00:01,  2.44it/s]     80%|████████  | 8/10 [00:03<00:00,  2.46it/s]     90%|█████████ | 9/10 [00:03<00:00,  2.46it/s]    100%|██████████| 10/10 [00:04<00:00,  2.47it/s]    100%|██████████| 10/10 [00:04<00:00,  2.45it/s]
     Iteration 9, current converge crit. = 9.45E-03, objective = 1.00E-01 
     Linear reconstruction PSNR: 8.79 dB
     Posterior mean PSNR: 22.12 dB
@@ -306,7 +306,7 @@ We compare the posterior mean with a simple linear reconstruction.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 4.631 seconds)
+   **Total running time of the script:** (0 minutes 4.834 seconds)
 
 
 .. _sphx_glr_download_auto_examples_sampling_demo_ddrm.py:

@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**01:46.856** total execution time for 6 files **from auto_examples/unfolded**:
+**01:59.447** total execution time for 6 files **from auto_examples/unfolded**:
 
 .. container::
 
@@ -33,20 +33,20 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_unfolded_demo_LISTA.py` (``demo_LISTA.py``)
-     - 00:47.242
+     - 00:55.130
      - 0.0
    * - :ref:`sphx_glr_auto_examples_unfolded_demo_unfolded_constrained_LISTA.py` (``demo_unfolded_constrained_LISTA.py``)
-     - 00:33.120
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_unfolded_demo_DEQ.py` (``demo_DEQ.py``)
-     - 00:09.259
+     - 00:35.194
      - 0.0
    * - :ref:`sphx_glr_auto_examples_unfolded_demo_custom_prior_unfolded.py` (``demo_custom_prior_unfolded.py``)
-     - 00:08.419
+     - 00:10.039
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_unfolded_demo_DEQ.py` (``demo_DEQ.py``)
+     - 00:09.902
      - 0.0
    * - :ref:`sphx_glr_auto_examples_unfolded_demo_learned_primal_dual.py` (``demo_learned_primal_dual.py``)
-     - 00:05.181
+     - 00:05.807
      - 0.0
    * - :ref:`sphx_glr_auto_examples_unfolded_demo_vanilla_unfolded.py` (``demo_vanilla_unfolded.py``)
-     - 00:03.635
+     - 00:03.374
      - 0.0
