@@ -128,8 +128,8 @@ Load mini demo knee and brain datasets (original data is 320x320 but we resize t
 
  .. code-block:: none
 
-      0%|          | 0/820529 [00:00<?, ?it/s]    100%|██████████| 801k/801k [00:00<00:00, 80.2MB/s]
-      0%|          | 0/820534 [00:00<?, ?it/s]    100%|██████████| 801k/801k [00:00<00:00, 55.2MB/s]
+      0%|          | 0/820529 [00:00<?, ?it/s]    100%|██████████| 801k/801k [00:00<00:00, 65.6MB/s]
+      0%|          | 0/820534 [00:00<?, ?it/s]    100%|██████████| 801k/801k [00:00<00:00, 69.5MB/s]
 
 
 
@@ -409,7 +409,7 @@ To improve results in the case of this very short training, we start training fr
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/demo/resolve/main/demo_tour_mri.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/demo_tour_mri.pth
-      0%|          | 0.00/37.4k [00:00<?, ?B/s]    100%|██████████| 37.4k/37.4k [00:00<00:00, 15.4MB/s]
+      0%|          | 0.00/37.4k [00:00<?, ?B/s]    100%|██████████| 37.4k/37.4k [00:00<00:00, 165MB/s]
     The model has 2376 trainable parameters
     Train epoch 0: TotalLoss=0.0, PSNR=30.972
 
@@ -509,8 +509,8 @@ The raw multi-coil FastMRI data is provided as pairs of ``(x, y)`` where
 
  .. code-block:: none
 
-      0%|          | 0/58754328 [00:00<?, ?it/s]     20%|██        | 11.4M/56.0M [00:00<00:00, 118MB/s]     40%|████      | 22.7M/56.0M [00:00<00:00, 113MB/s]     87%|████████▋ | 48.6M/56.0M [00:00<00:00, 183MB/s]    100%|██████████| 56.0M/56.0M [00:00<00:00, 174MB/s]
-      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00, 1211.53it/s]
+      0%|          | 0/58754328 [00:00<?, ?it/s]     55%|█████▌    | 30.9M/56.0M [00:00<00:00, 324MB/s]    100%|██████████| 56.0M/56.0M [00:00<00:00, 341MB/s]
+      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00, 1285.02it/s]
     Shapes: torch.Size([1, 1, 213, 213]) torch.Size([1, 2, 4, 512, 213])
 
 
@@ -790,9 +790,9 @@ including ground truth images, undersampled kspace, and associated masks:
 
  .. code-block:: none
 
-      0%|          | 0/24695321 [00:00<?, ?it/s]    100%|██████████| 23.6M/23.6M [00:00<00:00, 255MB/s]
-    Extracting:   0%|          | 0/10 [00:00<?, ?it/s]    Extracting: 100%|██████████| 10/10 [00:00<00:00, 130.26it/s]
-      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00,  6.52it/s]    100%|██████████| 1/1 [00:00<00:00,  6.51it/s]
+      0%|          | 0/24695321 [00:00<?, ?it/s]    100%|██████████| 23.6M/23.6M [00:00<00:00, 258MB/s]
+    Extracting:   0%|          | 0/10 [00:00<?, ?it/s]    Extracting: 100%|██████████| 10/10 [00:00<00:00, 129.40it/s]
+      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00,  6.68it/s]    100%|██████████| 1/1 [00:00<00:00,  6.66it/s]
 
         Ground truth: torch.Size([1, 2, 12, 512, 256]) (B, C, T, H, W)
         Measurements: torch.Size([1, 2, 12, 512, 256])
@@ -840,7 +840,7 @@ generate random time-varying masks:
 
  .. code-block:: none
 
-      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00,  6.76it/s]    100%|██████████| 1/1 [00:00<00:00,  6.74it/s]
+      0%|          | 0/1 [00:00<?, ?it/s]    100%|██████████| 1/1 [00:00<00:00,  7.03it/s]    100%|██████████| 1/1 [00:00<00:00,  7.02it/s]
 
 
 
@@ -882,7 +882,7 @@ reconstruction ``x_zf`` (and crop to square for better visibility):
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.520 seconds)
+   **Total running time of the script:** (0 minutes 3.198 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_tour_mri.py:

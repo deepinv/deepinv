@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**01:25.720** total execution time for 1 file **from auto_examples/adversarial-learning**:
+**01:22.430** total execution time for 1 file **from auto_examples/adversarial-learning**:
 
 .. container::
 
@@ -33,5 +33,5 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` (``demo_gan_imaging.py``)
-     - 01:25.720
+     - 01:22.430
      - 0.0

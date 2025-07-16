@@ -293,7 +293,7 @@ require the forward operator to be decomposable.
  .. code-block:: none
 
     Elapsed time for LinearPhysics: 0.01 seconds
-    Elapsed time for DecomposablePhysics: 2.06e-03 seconds
+    Elapsed time for DecomposablePhysics: 2.04e-03 seconds
 
 
 
@@ -301,7 +301,7 @@ require the forward operator to be decomposable.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.121 seconds)
+   **Total running time of the script:** (0 minutes 0.124 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_physics.py:

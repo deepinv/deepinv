@@ -390,7 +390,7 @@ See e.g. Gu and Sheppard, JMO, 1991  - Eq. (6) https://doi.org/10.1080/095003491
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 5.493 seconds)
+   **Total running time of the script:** (0 minutes 4.983 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_microscopy_3d.py:

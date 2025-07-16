@@ -175,8 +175,8 @@ impose on the unknown image set :math:`x\in X`.
 
  .. code-block:: none
 
-      0%|          | 0/135388067 [00:00<?, ?it/s]     22%|██▏       | 28.1M/129M [00:00<00:00, 295MB/s]     46%|████▌     | 59.3M/129M [00:00<00:00, 313MB/s]     72%|███████▏  | 92.9M/129M [00:00<00:00, 331MB/s]     97%|█████████▋| 126M/129M [00:00<00:00, 336MB/s]     100%|██████████| 129M/129M [00:00<00:00, 330MB/s]
-    Extracting:   0%|          | 0/101 [00:00<?, ?it/s]    Extracting:  21%|██        | 21/101 [00:00<00:00, 194.85it/s]    Extracting:  46%|████▌     | 46/101 [00:00<00:00, 223.55it/s]    Extracting:  68%|██████▊   | 69/101 [00:00<00:00, 221.36it/s]    Extracting:  91%|█████████ | 92/101 [00:00<00:00, 212.77it/s]    Extracting: 100%|██████████| 101/101 [00:00<00:00, 210.82it/s]
+      0%|          | 0/135388067 [00:00<?, ?it/s]     13%|█▎        | 16.2M/129M [00:00<00:00, 156MB/s]     39%|███▉      | 51.0M/129M [00:00<00:00, 274MB/s]     68%|██████▊   | 87.4M/129M [00:00<00:00, 322MB/s]     94%|█████████▍| 121M/129M [00:00<00:00, 335MB/s]     100%|██████████| 129M/129M [00:00<00:00, 314MB/s]
+    Extracting:   0%|          | 0/101 [00:00<?, ?it/s]    Extracting:  21%|██        | 21/101 [00:00<00:00, 203.61it/s]    Extracting:  48%|████▊     | 48/101 [00:00<00:00, 240.13it/s]    Extracting:  72%|███████▏  | 73/101 [00:00<00:00, 224.41it/s]    Extracting:  95%|█████████▌| 96/101 [00:00<00:00, 220.37it/s]    Extracting: 100%|██████████| 101/101 [00:00<00:00, 223.42it/s]
     Dataset has been successfully downloaded.
 
 
@@ -282,7 +282,7 @@ epochs:
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/ei/resolve/main/Urban100_inpainting_homography_model.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/Urban100_inpainting_homography_model.pth
-      0%|          | 0.00/7.90M [00:00<?, ?B/s]    100%|██████████| 7.90M/7.90M [00:00<00:00, 233MB/s]
+      0%|          | 0.00/7.90M [00:00<?, ?B/s]    100%|██████████| 7.90M/7.90M [00:00<00:00, 243MB/s]
 
 
 
@@ -290,7 +290,7 @@ epochs:
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (2 minutes 20.104 seconds)
+   **Total running time of the script:** (2 minutes 10.760 seconds)
 
 
 .. _sphx_glr_download_auto_examples_self-supervised-learning_demo_ei_transforms.py:

@@ -341,8 +341,8 @@ which is evident in the PSNR of the posterior mean.
 
  .. code-block:: none
 
-      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 442.73it/s]
-      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 395.12it/s]
+      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 469.01it/s]
+      0%|          | 0/10 [00:00<?, ?it/s]    100%|██████████| 10/10 [00:00<00:00, 410.20it/s]
     Linear reconstruction PSNR: 15.66 dB
     ULA posterior mean PSNR: 17.47 dB
     PreconULA posterior mean PSNR: 23.28 dB
@@ -353,7 +353,7 @@ which is evident in the PSNR of the posterior mean.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.140 seconds)
+   **Total running time of the script:** (0 minutes 0.133 seconds)
 
 
 .. _sphx_glr_download_auto_examples_sampling_demo_custom_kernel.py:
