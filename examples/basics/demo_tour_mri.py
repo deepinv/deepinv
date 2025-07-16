@@ -97,9 +97,9 @@ physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
 dinv.utils.plot(
     {
-        "x": (x := next(iter(DataLoader(knee_dataset))).to(device)),
+        "x": (x := next(iter(DataLoader(knee_dataset)))),
         "mask": mask,
-        "y": physics(x).clamp(-1, 1),
+        "y": physics(x.to(device)).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
