@@ -89,6 +89,7 @@ class PanNet(nn.Module):
         self.scale_factor = scale_factor
         self.hrms_shape = hrms_shape
         self.device = device
+
         self.upsampler = self.create_sampler("up", self.hrms_shape)
 
         self.boxblur = Blur(
@@ -119,7 +120,7 @@ class PanNet(nn.Module):
                 stride=1,
                 padding=1,
             ),
-        )
+        ).to(self.device)
 
     def create_sampler(
         self, direction: str, hr_shape: tuple, noise_gain: float = 0.0
