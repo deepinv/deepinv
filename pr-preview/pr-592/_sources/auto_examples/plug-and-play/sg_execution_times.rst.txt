@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:36.677** total execution time for 5 files **from auto_examples/plug-and-play**:
+**00:37.713** total execution time for 5 files **from auto_examples/plug-and-play**:
 
 .. container::
 
@@ -33,17 +33,17 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_RED_GSPnP_SR.py` (``demo_RED_GSPnP_SR.py``)
-     - 00:15.626
+     - 00:15.637
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_custom_optim.py` (``demo_PnP_custom_optim.py``)
-     - 00:07.953
+     - 00:08.165
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_mirror_descent.py` (``demo_PnP_mirror_descent.py``)
-     - 00:07.655
+     - 00:07.694
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_DPIR_deblur.py` (``demo_PnP_DPIR_deblur.py``)
-     - 00:03.630
+     - 00:04.434
      - 0.0
    * - :ref:`sphx_glr_auto_examples_plug-and-play_demo_vanilla_PnP.py` (``demo_vanilla_PnP.py``)
-     - 00:01.814
+     - 00:01.784
      - 0.0

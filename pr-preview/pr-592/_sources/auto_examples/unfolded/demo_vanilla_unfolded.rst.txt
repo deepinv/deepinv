@@ -168,10 +168,10 @@ We use the Downsampling class from the physics module to generate a dataset of l
  .. code-block:: none
 
     Downloading datasets/CBSD500.zip
-      0%|          | 0.00/71.0M [00:00<?, ?iB/s]     14%|█▍        | 10.1M/71.0M [00:00<00:00, 101MiB/s]     29%|██▉       | 20.8M/71.0M [00:00<00:00, 105MiB/s]     45%|████▍     | 31.7M/71.0M [00:00<00:00, 106MiB/s]     60%|█████▉    | 42.4M/71.0M [00:00<00:00, 107MiB/s]     75%|███████▌  | 53.3M/71.0M [00:00<00:00, 107MiB/s]     90%|█████████ | 64.1M/71.0M [00:00<00:00, 108MiB/s]    100%|██████████| 71.0M/71.0M [00:00<00:00, 107MiB/s]
+      0%|          | 0.00/71.0M [00:00<?, ?iB/s]     12%|█▏        | 8.57M/71.0M [00:00<00:00, 85.7MiB/s]     25%|██▌       | 18.0M/71.0M [00:00<00:00, 90.6MiB/s]     38%|███▊      | 27.3M/71.0M [00:00<00:00, 91.9MiB/s]     52%|█████▏    | 36.9M/71.0M [00:00<00:00, 93.4MiB/s]     65%|██████▌   | 46.4M/71.0M [00:00<00:00, 93.9MiB/s]     79%|███████▊  | 55.8M/71.0M [00:00<00:00, 94.1MiB/s]     92%|█████████▏| 65.3M/71.0M [00:00<00:00, 94.5MiB/s]    100%|██████████| 71.0M/71.0M [00:00<00:00, 93.9MiB/s]
     CBSD500 dataset downloaded in datasets
     Downloading datasets/set3c.zip
-      0%|          | 0.00/385k [00:00<?, ?iB/s]    100%|██████████| 385k/385k [00:00<00:00, 42.1MiB/s]
+      0%|          | 0.00/385k [00:00<?, ?iB/s]    100%|██████████| 385k/385k [00:00<00:00, 47.1MiB/s]
     set3c dataset downloaded in datasets
     Dataset has been saved at measurements/CBSD500/super-resolution/demo_unfolded_sr0.h5
 
@@ -411,7 +411,7 @@ values. Note that ``g_param`` corresponds to :math:`\lambda` in the proximal gra
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 5.988 seconds)
+   **Total running time of the script:** (0 minutes 5.772 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unfolded_demo_vanilla_unfolded.py:

@@ -107,7 +107,7 @@ We work with images of size 32x32 if no GPU is available, else 128x128.
  .. code-block:: none
 
     Downloading datasets/CBSD68.zip
-      0%|          | 0.00/19.8M [00:00<?, ?iB/s]     52%|█████▏    | 10.3M/19.8M [00:00<00:00, 103MiB/s]    100%|██████████| 19.8M/19.8M [00:00<00:00, 106MiB/s]
+      0%|          | 0.00/19.8M [00:00<?, ?iB/s]     46%|████▌     | 9.11M/19.8M [00:00<00:00, 91.1MiB/s]     95%|█████████▍| 18.7M/19.8M [00:00<00:00, 93.9MiB/s]    100%|██████████| 19.8M/19.8M [00:00<00:00, 93.9MiB/s]
     CBSD68 dataset downloaded in datasets
 
 
@@ -328,7 +328,7 @@ The testing function will compute test_psnr metrics and plot and save the result
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 7.252 seconds)
+   **Total running time of the script:** (0 minutes 7.165 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_train_inpainting.py:

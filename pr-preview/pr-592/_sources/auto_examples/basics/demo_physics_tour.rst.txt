@@ -77,7 +77,7 @@ This example uses an image of the CBSD68 dataset.
     /home/runner/work/deepinv/deepinv/examples/basics/demo_physics_tour.py:28: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
       x = torch.tensor(x, device=device, dtype=torch.float)
 
-    <torch._C.Generator object at 0x7fca64fdae30>
+    <torch._C.Generator object at 0x7fe70385e0b0>
 
 
 
@@ -524,7 +524,7 @@ The downsampling class :class:`deepinv.physics.Downsampling` is associated with 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 4.229 seconds)
+   **Total running time of the script:** (0 minutes 4.184 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_physics_tour.py:

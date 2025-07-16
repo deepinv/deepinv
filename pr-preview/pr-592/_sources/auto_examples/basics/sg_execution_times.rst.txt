@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**03:50.697** total execution time for 19 files **from auto_examples/basics**:
+**03:41.269** total execution time for 19 files **from auto_examples/basics**:
 
 .. container::
 
@@ -33,59 +33,59 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_basics_demo_denoiser_tour.py` (``demo_denoiser_tour.py``)
-     - 01:29.220
+     - 01:23.185
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py` (``demo_optimizing_physics_parameter.py``)
-     - 00:53.638
+     - 00:52.515
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_phase_retrieval.py` (``demo_phase_retrieval.py``)
-     - 00:37.810
+     - 00:37.621
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` (``demo_remote_sensing.py``)
-     - 00:08.541
+     - 00:08.521
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_train_inpainting.py` (``demo_train_inpainting.py``)
-     - 00:07.252
+     - 00:07.165
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_ptychography.py` (``demo_ptychography.py``)
-     - 00:06.496
+     - 00:06.332
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_transforms.py` (``demo_transforms.py``)
-     - 00:05.583
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_basics_demo_microscopy_3d.py` (``demo_microscopy_3d.py``)
-     - 00:04.969
+     - 00:05.370
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_physics_tour.py` (``demo_physics_tour.py``)
-     - 00:04.229
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_basics_demo_spc.py` (``demo_spc.py``)
-     - 00:03.357
+     - 00:04.184
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` (``demo_tour_mri.py``)
-     - 00:03.271
+     - 00:03.877
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_microscopy_3d.py` (``demo_microscopy_3d.py``)
+     - 00:03.755
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_spc.py` (``demo_spc.py``)
+     - 00:03.313
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_hf_dataset.py` (``demo_hf_dataset.py``)
-     - 00:02.143
+     - 00:01.312
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_blur_tour.py` (``demo_blur_tour.py``)
-     - 00:01.224
+     - 00:01.241
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_custom_prior.py` (``demo_custom_prior.py``)
-     - 00:01.147
+     - 00:01.141
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_dip.py` (``demo_dip.py``)
-     - 00:01.143
-     - 0.0
-   * - :ref:`sphx_glr_auto_examples_basics_demo_lidar.py` (``demo_lidar.py``)
-     - 00:00.227
+     - 00:01.055
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_dataset.py` (``demo_dataset.py``)
-     - 00:00.224
+     - 00:00.274
+     - 0.0
+   * - :ref:`sphx_glr_auto_examples_basics_demo_lidar.py` (``demo_lidar.py``)
+     - 00:00.222
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_physics.py` (``demo_physics.py``)
-     - 00:00.122
+     - 00:00.118
      - 0.0
    * - :ref:`sphx_glr_auto_examples_basics_demo_loading.py` (``demo_loading.py``)
-     - 00:00.100
+     - 00:00.070
      - 0.0

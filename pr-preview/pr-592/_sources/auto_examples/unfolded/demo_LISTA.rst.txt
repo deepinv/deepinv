@@ -332,7 +332,7 @@ number of epochs, optimizer (Adam) and its hyperparameters, and the train and te
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/demo/resolve/main/ckp_10_demo_LISTA.pth.tar?download=true" to /home/runner/.cache/torch/hub/checkpoints/ckp_10_demo_LISTA.pth.tar
-      0%|          | 0.00/27.9k [00:00<?, ?B/s]    100%|██████████| 27.9k/27.9k [00:00<00:00, 94.5MB/s]
+      0%|          | 0.00/27.9k [00:00<?, ?B/s]    100%|██████████| 27.9k/27.9k [00:00<00:00, 50.7MB/s]
 
 
 
@@ -446,7 +446,7 @@ and `GT` shows the ground truth.
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 28.012 seconds)
+   **Total running time of the script:** (0 minutes 24.814 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unfolded_demo_LISTA.py:

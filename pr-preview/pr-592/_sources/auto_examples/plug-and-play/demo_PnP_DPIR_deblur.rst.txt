@@ -121,7 +121,7 @@ In this example, we use the Set3C dataset and a motion blur kernel from
 
     Levin09.npy degradation downloaded in degradations/kernels
     Downloading datasets/set3c.zip
-      0%|          | 0.00/385k [00:00<?, ?iB/s]    100%|██████████| 385k/385k [00:00<00:00, 48.2MiB/s]
+      0%|          | 0.00/385k [00:00<?, ?iB/s]    100%|██████████| 385k/385k [00:00<00:00, 47.6MiB/s]
     set3c dataset downloaded in datasets
 
 
@@ -301,12 +301,12 @@ The test function evaluates the model on the test dataset and computes the metri
  .. code-block:: none
 
     Downloading: "https://download.pytorch.org/models/alexnet-owt-7be5be79.pth" to /home/runner/.cache/torch/hub/checkpoints/alexnet-owt-7be5be79.pth
-      0%|          | 0.00/233M [00:00<?, ?B/s]     13%|█▎        | 30.2M/233M [00:00<00:00, 317MB/s]     27%|██▋       | 62.9M/233M [00:00<00:00, 331MB/s]     41%|████      | 95.6M/233M [00:00<00:00, 337MB/s]     55%|█████▍    | 128M/233M [00:00<00:00, 335MB/s]      69%|██████▉   | 161M/233M [00:00<00:00, 338MB/s]     83%|████████▎ | 193M/233M [00:00<00:00, 338MB/s]     97%|█████████▋| 225M/233M [00:00<00:00, 337MB/s]    100%|██████████| 233M/233M [00:00<00:00, 336MB/s]
+      0%|          | 0.00/233M [00:00<?, ?B/s]      7%|▋         | 16.6M/233M [00:00<00:01, 174MB/s]     16%|█▌        | 36.6M/233M [00:00<00:01, 195MB/s]     24%|██▍       | 56.4M/233M [00:00<00:00, 200MB/s]     32%|███▏      | 75.5M/233M [00:00<00:00, 199MB/s]     41%|████      | 94.6M/233M [00:00<00:00, 178MB/s]     49%|████▊     | 114M/233M [00:00<00:00, 184MB/s]      57%|█████▋    | 134M/233M [00:00<00:00, 193MB/s]     66%|██████▌   | 154M/233M [00:00<00:00, 199MB/s]     76%|███████▌  | 177M/233M [00:00<00:00, 210MB/s]     85%|████████▍ | 198M/233M [00:01<00:00, 213MB/s]     95%|█████████▍| 221M/233M [00:01<00:00, 221MB/s]    100%|██████████| 233M/233M [00:01<00:00, 205MB/s]
     Downloading: "https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/LPIPS_v0.1_alex-df73285e.pth" to /home/runner/.cache/torch/hub/pyiqa/LPIPS_v0.1_alex-df73285e.pth
 
-      0%|          | 0.00/5.87k [00:00<?, ?B/s]    100%|██████████| 5.87k/5.87k [00:00<00:00, 40.8MB/s]
+      0%|          | 0.00/5.87k [00:00<?, ?B/s]    100%|██████████| 5.87k/5.87k [00:00<00:00, 39.1MB/s]
     Loading pretrained model LPIPS from /home/runner/.cache/torch/hub/pyiqa/LPIPS_v0.1_alex-df73285e.pth
-      0%|                                                                                                                           | 0/1 [00:00<?, ?it/s]    Test:   0%|                                                                                                                     | 0/1 [00:00<?, ?it/s]    Test:   0%|                                           | 0/1 [00:01<?, ?it/s, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]    Test: 100%|███████████████████████████████████| 1/1 [00:01<00:00,  1.78s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]    Test: 100%|███████████████████████████████████| 1/1 [00:01<00:00,  1.78s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
+      0%|                                                                                                                           | 0/1 [00:00<?, ?it/s]    Test:   0%|                                                                                                                     | 0/1 [00:00<?, ?it/s]    Test:   0%|                                           | 0/1 [00:01<?, ?it/s, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]    Test: 100%|███████████████████████████████████| 1/1 [00:01<00:00,  1.77s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]    Test: 100%|███████████████████████████████████| 1/1 [00:01<00:00,  1.77s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
     Test results:
     PSNR no learning: 4.187 +- 1.447
     PSNR: 30.165 +- 2.016
@@ -320,7 +320,7 @@ The test function evaluates the model on the test dataset and computes the metri
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 3.630 seconds)
+   **Total running time of the script:** (0 minutes 4.434 seconds)
 
 
 .. _sphx_glr_download_auto_examples_plug-and-play_demo_PnP_DPIR_deblur.py:

@@ -84,7 +84,7 @@ This example uses an image of Lionel Messi from Wikipedia.
  .. code-block:: none
 
 
-    <torch._C.Generator object at 0x7fca64fdae30>
+    <torch._C.Generator object at 0x7fe70385e0b0>
 
 
 
@@ -227,7 +227,7 @@ While this phenomenon is not yet well understood, there has been some efforts to
 
  .. code-block:: none
 
-      0%|          | 0/100 [00:00<?, ?it/s]     11%|█         | 11/100 [00:00<00:00, 102.91it/s]     22%|██▏       | 22/100 [00:00<00:00, 106.36it/s]     33%|███▎      | 33/100 [00:00<00:00, 107.50it/s]     45%|████▌     | 45/100 [00:00<00:00, 108.55it/s]     56%|█████▌    | 56/100 [00:00<00:00, 109.00it/s]     68%|██████▊   | 68/100 [00:00<00:00, 109.35it/s]     79%|███████▉  | 79/100 [00:00<00:00, 109.45it/s]     90%|█████████ | 90/100 [00:00<00:00, 109.55it/s]    100%|██████████| 100/100 [00:00<00:00, 108.89it/s]
+      0%|          | 0/100 [00:00<?, ?it/s]     11%|█         | 11/100 [00:00<00:00, 106.27it/s]     23%|██▎       | 23/100 [00:00<00:00, 110.28it/s]     35%|███▌      | 35/100 [00:00<00:00, 111.25it/s]     47%|████▋     | 47/100 [00:00<00:00, 111.43it/s]     59%|█████▉    | 59/100 [00:00<00:00, 106.28it/s]     70%|███████   | 70/100 [00:00<00:00, 106.14it/s]     82%|████████▏ | 82/100 [00:00<00:00, 108.27it/s]     94%|█████████▍| 94/100 [00:00<00:00, 109.31it/s]    100%|██████████| 100/100 [00:00<00:00, 108.97it/s]
     Linear reconstruction PSNR: 8.80 dB
     DIP PSNR: 19.24 dB
 
@@ -237,7 +237,7 @@ While this phenomenon is not yet well understood, there has been some efforts to
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 1.143 seconds)
+   **Total running time of the script:** (0 minutes 1.055 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_dip.py:

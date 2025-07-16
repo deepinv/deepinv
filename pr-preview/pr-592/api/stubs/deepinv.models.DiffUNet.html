@@ -807,11 +807,17 @@ and a <a class="reference external" href="https://arxiv.org/abs/2105.05233">larg
 <p>A pretrained network for (in_channels=out_channels=3)
 can be downloaded via setting <code class="docutils literal notranslate"><span class="pre">pretrained='download'</span></code>.</p>
 <p>The network can handle images of size <span class="math notranslate nohighlight">\(2^{n_1}\times 2^{n_2}\)</span> with <span class="math notranslate nohighlight">\(n_1,n_2 \geq 5\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The weights available for download are pretrained on 256x256 images,
+thus generation is likely to fail for different image sizes
+(see <a class="github reference external" href="https://github.com/deepinv/deepinv/issues/602">deepinv/deepinv#602</a>).</p>
+</div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This model has 2 forward modes:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">forward_diffuse</span></code>: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forward_diffusion</span></code>: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forward_denoise</span></code>: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.</p></li>
 </ul>
 </div>
