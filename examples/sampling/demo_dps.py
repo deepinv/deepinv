@@ -89,24 +89,8 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 num_train_timesteps = 1000  # Number of timesteps used during training
 
 
-def get_betas(
-    beta_start=0.1 / 1000, beta_end=20 / 1000, num_train_timesteps=num_train_timesteps
-):
-    betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
-    betas = torch.from_numpy(betas).to(device)
-
-    return betas
-
-
-# Utility function to let us easily retrieve \bar\alpha_t
-def compute_alpha(beta, t):
-    beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
-    a = (1 - beta).cumprod(dim=0).index_select(0, t + 1).view(-1, 1, 1, 1)
-    return a
-
-
-betas = get_betas()
-
+betas = torch.linspace(1e-4, 1e-2, num_train_timesteps).to(device)
+alphas = (1 - betas).cumprod(dim=0)
 
 # %%
 # The DPS algorithm
@@ -157,8 +141,8 @@ betas = get_betas()
 #
 
 
-t = torch.ones(1, device=device) * 200  # choose some arbitrary timestep
-at = compute_alpha(betas, t.long())
+t = 200  # choose some arbitrary timestep
+at = alphas[t]
 sigmat = (1 - at).sqrt() / at.sqrt()
 
 x0 = x_true
@@ -216,9 +200,8 @@ x0 = x_true * 2.0 - 1.0  # [0, 1] -> [-1, 1]
 data_fidelity = L2()
 
 # xt ~ q(xt|x0)
-i = 200  # choose some arbitrary timestep
-t = (torch.ones(1) * i).to(device)
-at = compute_alpha(betas, t.long())
+t = 200  # choose some arbitrary timestep
+at = alphas[t]
 sigma_cur = (1 - at).sqrt() / at.sqrt()
 xt = x0 + sigma_cur * torch.randn_like(x0)
 
@@ -284,9 +267,9 @@ skip = num_train_timesteps // num_steps
 batch_size = 1
 eta = 1.0
 
-seq = range(0, num_train_timesteps, skip)
-seq_next = [-1] + list(seq[:-1])
-time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+# seq = range(0, num_train_timesteps, skip)
+# seq_next = [-1] + list(seq[:-1])
+# time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 
 # measurement
 x0 = x_true * 2.0 - 1.0
@@ -299,12 +282,9 @@ x = torch.randn_like(x0)
 xs = [x]
 x0_preds = []
 
-for i, j in tqdm(time_pairs):
-    t = (torch.ones(batch_size) * i).to(device)
-    next_t = (torch.ones(batch_size) * j).to(device)
-
-    at = compute_alpha(betas, t.long())
-    at_next = compute_alpha(betas, next_t.long())
+for t in tqdm(reversed(range(0, num_train_timesteps, skip))):
+    at = alphas[t]
+    at_next = alphas[t - skip] if t - skip >=0 else torch.tensor(1)
 
     xt = xs[-1].to(device)
 
