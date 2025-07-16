@@ -64,10 +64,3 @@ from .distance import (
     LogPoissonLikelihoodDistance,
     ZeroDistance,
 )
-from .deep_equilibrium import (
-    DEQ_builder,
-    BaseDEQ,
-    DEQ_GradientDescent,
-    DEQ_HQS,
-    DEQ_ProximalGradientDescent,
-)
