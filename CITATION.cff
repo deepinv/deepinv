@@ -56,7 +56,7 @@ authors:
     given-names: "Romain"
   - family-names: "Weiss"
     given-names: "Pierre"
-version: "0.3.0"
+version: "0.3.2"
 doi: "https://doi.org/10.48550/arXiv.2505.20160"
 date-released: 2023-06-30
 repository-code: "https://github.com/deepinv/deepinv"
