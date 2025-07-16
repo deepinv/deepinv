@@ -16,6 +16,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   docs:
@@ -41,12 +42,20 @@ jobs:
           # Run doctest with sphinx, to get the extra IGNORE_OUTPUT primitive
           # using plot_gallery=0 to avoid building examples
           sphinx-build -M doctest docs/source/ docs/build/ -D plot_gallery=0 -v $_doctest_files
-      - name: Deploy
+      - name: Deploy PR Docs to gh-pages
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'pull_request' }}
         with:
-          publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
           publish_dir: _build/
-          force_orphan: true
+          destination_dir: ${{ github.event_name == 'pull_request' && format('pr-preview/pr-{0}', github.event.pull_request.number) || '' }}
+          keep_files: true
           enable_jekyll: false
+          force_orphan: false      
+      - name: Comment on PR with preview url
+        uses: mshick/add-pr-comment@v2
+        if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
+        with:
+          message: |
+            Documentation preview for this PR at ${{ format('https://deepinv.github.io/deepinv/pr-preview/pr-{0}', github.event.pull_request.number) }}

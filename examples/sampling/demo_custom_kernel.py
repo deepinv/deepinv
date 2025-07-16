@@ -9,11 +9,10 @@ to accelerate the sampling.
 
 """
 
+import torch
+from typing import Any
 import deepinv as dinv
 from deepinv.utils.plotting import plot
-import torch
-from deepinv.sampling import ULA
-import numpy as np
 from deepinv.utils.demo import load_url_image
 
 # %%
@@ -63,7 +62,7 @@ y = physics(x)
 # which takes into account the singular value decomposition
 # of the forward operator, :math:`A=USV^{\top}`, in order to accelerate the sampling.
 #
-# We modify the standard ULA iteration (see :class:`deepinv.sampling.ULA`) defined as
+# We modify the standard ULA iteration (see :class:`deepinv.sampling.ULAIterator`) defined as
 #
 # .. math::
 #
@@ -84,77 +83,41 @@ y = physics(x)
 # We exploit the methods of :class:`deepinv.physics.DecomposablePhysics` to compute the matrix-vector products
 # with :math:`V` and :math:`V^{\top}` efficiently. Note that computing the matrix-vector product with :math:`R` and
 # :math:`S` is trivial since they are diagonal matrices.
+# See :class:`deepinv.sampling.BaseSampling` for more details on how to create new iterators.
 
 
-class PULAIterator(torch.nn.Module):
-    def __init__(self, step_size, sigma, alpha=1, epsilon=0.01):
-        super().__init__()
-        self.step_size = step_size
-        self.alpha = alpha
-        self.noise_std = np.sqrt(2 * step_size)
-        self.sigma = sigma
-        self.epsilon = epsilon
+class PreconULAIterator(dinv.sampling.SamplingIterator):
+    def __init__(self, algo_params):
+        super().__init__(algo_params)
 
-    def forward(self, x, y, physics, likelihood, prior):
+    def forward(self, X, y, physics, data_fidelity, prior, iteration) -> dict[str, Any]:
+        x = X["x"]
         x_bar = physics.V_adjoint(x)
         y_bar = physics.U_adjoint(y)
 
-        step_size = self.step_size / (self.epsilon + physics.mask.pow(2))
+        step_size = self.algo_params["step_size"] / (
+            self.algo_params["epsilon"] + physics.mask.pow(2)
+        )
 
         noise = torch.randn_like(x_bar)
-        sigma2_noise = 1 / likelihood.norm
+        sigma2_noise = 1 / data_fidelity.norm
         lhood = -(physics.mask.pow(2) * x_bar - physics.mask * y_bar) / sigma2_noise
-        lprior = -physics.V_adjoint(prior.grad(x, self.sigma)) * self.alpha
-
-        return x + physics.V(
-            step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise
+        lprior = (
+            -physics.V_adjoint(prior.grad(x, self.algo_params["sigma"]))
+            * self.algo_params["alpha"]
         )
 
-
-# %%
-# Build Sampler class
-# -------------------
-#
-# Using our custom iterator, we can build a sampler class by inheriting from the base class
-# :class:`deepinv.sampling.MonteCarlo`.
-# The base class takes care of the sampling procedure
-# (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
-# providing a convenient interface to the user.
-
-
-class PreconULA(dinv.sampling.MonteCarlo):
-    def __init__(
-        self,
-        prior,
-        data_fidelity,
-        sigma,
-        step_size,
-        max_iter=1e3,
-        thinning=1,
-        burnin_ratio=0.1,
-        clip=(-1, 2),
-        verbose=True,
-    ):
-        # generate an iterator
-        iterator = PULAIterator(step_size=step_size, sigma=sigma)
-        # set the params of the base class
-        super().__init__(
-            iterator,
-            prior,
-            data_fidelity,
-            max_iter=max_iter,
-            thinning=thinning,
-            burnin_ratio=burnin_ratio,
-            clip=clip,
-            verbose=verbose,
-        )
+        return {
+            "x": x
+            + physics.V(step_size * (lhood + lprior) + (2 * step_size).sqrt() * noise)
+        }
 
 
 # %%
 # Define the prior
 # ----------------
 #
-# The score a distribution can be approximated using a plug-and-play denoiser via the
+# The score of a distribution can be approximated using a plug-and-play denoiser via the
 # :class:`deepinv.optim.ScorePrior` class.
 #
 # .. math::
@@ -167,39 +130,59 @@ class PreconULA(dinv.sampling.MonteCarlo):
 prior = dinv.optim.ScorePrior(denoiser=dinv.models.MedianFilter())
 
 # %%
-# Create the preconditioned and standard ULA samplers
-# ---------------------------------------------------
-# We create the preconditioned and standard ULA samplers using
-# the same hyperparameters (step size, number of iterations, etc.).
-
-step_size = 0.5 * (sigma**2)
-iterations = int(1e2) if torch.cuda.is_available() else 10
-g_param = 0.1
+# Build our sampler
+# -------------------
+#
+# Using our custom iterator, we can build a sampler class by calling :func:`deepinv.sampling.sampling_builder`
+# This function returns an instance of :class:`deepinv.sampling.BaseSampling` which takes care of the sampling procedure
+# (calculating mean and variance, taking into account sample thinning and burnin iterations, etc),
+# providing a convenient interface to the user.
 
 # load Gaussian Likelihood
 likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 
-pula = PreconULA(
-    prior=prior,
-    data_fidelity=likelihood,
+iterations = int(1e2) if torch.cuda.is_available() else 10
+
+# shared ULA/ PreconULA params
+step_size = 0.5 * (sigma**2)
+denoiser_sigma = 0.1
+
+# parameters for PreconULA
+params_preconula = {
+    "step_size": step_size,
+    "sigma": denoiser_sigma,
+    "alpha": 1.0,
+    "epsilon": 0.01,
+}
+
+# build our PreconULA sampler
+preconula = dinv.sampling.sampling_builder(
+    PreconULAIterator(params_preconula),
+    likelihood,
+    prior,
     max_iter=iterations,
-    step_size=step_size,
-    thinning=1,
     burnin_ratio=0.1,
+    thinning=1,
     verbose=True,
-    sigma=g_param,
 )
 
+# parameters for ULA
+params_ula = {
+    "step_size": step_size,
+    "sigma": denoiser_sigma,
+    "alpha": 1.0,
+}
 
-ula = ULA(
-    prior=prior,
-    data_fidelity=likelihood,
+# build our ULA sampler
+ula = dinv.sampling.sampling_builder(
+    "ULA",
+    likelihood,
+    prior,
+    params_algo=params_ula,
     max_iter=iterations,
-    step_size=step_size,
-    thinning=1,
     burnin_ratio=0.1,
+    thinning=1,
     verbose=True,
-    sigma=g_param,
 )
 
 # %%
@@ -216,9 +199,9 @@ ula = ULA(
 #   (e.g. which inherit from :class:`deepinv.physics.DecomposablePhysics`) and the noise to be Gaussian,
 #   whereas ULA is more general.
 
-ula_mean, ula_var = ula(y, physics)
+ula_mean, ula_var = ula.sample(y, physics)
 
-pula_mean, pula_var = pula(y, physics)
+preconula_mean, preconula_var = preconula.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)
@@ -227,9 +210,9 @@ x_lin = physics.A_adjoint(y)
 print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
 print(f"ULA posterior mean PSNR: {dinv.metric.PSNR()(x, ula_mean).item():.2f} dB")
 print(
-    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, pula_mean).item():.2f} dB"
+    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, preconula_mean).item():.2f} dB"
 )
 
 # plot results
-imgs = [x_lin, x, ula_mean, pula_mean]
+imgs = [x_lin, x, ula_mean, preconula_mean]
 plot(imgs, titles=["measurement", "ground truth", "ULA", "PreconULA"])

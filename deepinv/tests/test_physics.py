@@ -1052,7 +1052,17 @@ def test_reset_noise(device):
 @pytest.mark.parametrize("parallel_computation", [True, False])
 @pytest.mark.parametrize("fan_beam", [True, False])
 @pytest.mark.parametrize("circle", [True, False])
-def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
+@pytest.mark.parametrize("adjoint_via_backprop", [True, False])
+@pytest.mark.parametrize("fbp_interpolate_boundary", [True, False])
+def test_tomography(
+    normalize,
+    parallel_computation,
+    fan_beam,
+    circle,
+    adjoint_via_backprop,
+    fbp_interpolate_boundary,
+    device,
+):
     r"""
     Tests tomography operator which does not have a numerically precise adjoint.
 
@@ -1066,10 +1076,14 @@ def test_tomography(normalize, parallel_computation, fan_beam, circle, device):
         circle=circle,
         fan_beam=fan_beam,
         normalize=normalize,
+        adjoint_via_backprop=adjoint_via_backprop,
+        fbp_interpolate_boundary=fbp_interpolate_boundary,
         parallel_computation=parallel_computation,
     )
 
     x = torch.randn(imsize, device=device).unsqueeze(0)
+    if adjoint_via_backprop:
+        assert physics.adjointness_test(x).abs() < 0.001
     r = physics.A_adjoint(physics.A(x)) * torch.pi / (2 * len(physics.radon.theta))
     y = physics.A(r)
     error = (physics.A_dagger(y) - r).flatten().mean().abs()

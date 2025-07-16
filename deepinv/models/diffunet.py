@@ -26,11 +26,17 @@ class DiffUNet(Denoiser):
 
     The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.
 
+    .. note::
+
+        The weights available for download are pretrained on 256x256 images,
+        thus generation is likely to fail for different image sizes
+        (see https://github.com/deepinv/deepinv/issues/602).
+
     .. warning::
 
         This model has 2 forward modes:
 
-        * ``forward_diffuse``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
+        * ``forward_diffusion``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
         * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.
 
 
@@ -385,7 +391,10 @@ class DiffUNet(Denoiser):
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an `(N, C, ...)` Tensor of outputs.
+        :return: an `(N, 2*C, ...)` Tensor of outputs, where the first C
+            channels are the noise estimates and the remaining C are the per-pixel
+            variances, as in the original implementation:
+            https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/gaussian_diffusion.py#L263
         """
         assert (y is not None) == (
             self.num_classes is not None
