@@ -25,7 +25,8 @@ class DiffUNet(Denoiser):
     can be downloaded via setting ``pretrained='download'``.
 
     The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.
-    .. note 
+
+    .. note:: 
         The weights available for download are pretrained on 256x256 images, 
         thus generation is likely to fail for different image sizes 
         (see https://github.com/deepinv/deepinv/issues/602).
