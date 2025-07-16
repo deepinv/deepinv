@@ -26,11 +26,17 @@ class DiffUNet(Denoiser):
 
     The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.
 
+    .. note::
+
+        The weights available for download are pretrained on 256x256 images,
+        thus generation is likely to fail for different image sizes
+        (see https://github.com/deepinv/deepinv/issues/602).
+
     .. warning::
 
         This model has 2 forward modes:
 
-        * ``forward_diffuse``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
+        * ``forward_diffusion``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
         * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.
 
 
