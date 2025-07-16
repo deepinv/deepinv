@@ -1,12 +1,16 @@
 :html_theme.sidebar_secondary.remove:
 
-How to Contribute
-=================
-
+Contributing to DeepInverse
+===========================
 
 DeepInverse is a community-driven project and welcomes contributions of all forms.
-We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
+We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
+
+View our active list of contributors `here <https://github.com/deepinv/deepinv/graphs/contributors>`__.
+
+How to Contribute
+-----------------
 
 Make sure that you download all the required dependencies for testing
 by running in the root directory of the repository:
@@ -16,22 +20,31 @@ by running in the root directory of the repository:
     pip install .[test,dataset,denoisers,doc]
 
 
-We will acknowledge all contributors in the documentation and in the source code. Significant contributions
+We acknowledge all contributors in the documentation and in the source code. Significant contributions
 will also be taken into account when deciding on the authorship of future publications.
 
-The preferred way to contribute to ``deepinv`` is to fork the `main
+Please contribute to ``deepinv`` by forking the `main
 repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR). When preparing the PR, please make sure to
 check the following points:
 
-- The code is compliant with the `black <https://github.com/psf/black>`_ style. This can be done easily
-  by installing the black library and running ``black .`` in the root directory of the repository after
+- **Code quality**: your code is compliant with PEP8 and the `black <https://black.readthedocs.io>`_ style. This can be done easily
+  by installing the ``black`` library and running ``black .`` in the root directory of the repository after
   making the desired changes.
-- The automatic tests pass on your local machine. This can be done by running ``python -m pytest deepinv/tests``
-  in the root directory of the repository after making the desired changes.
-- The documentation is updated if necessary.
-  After making the desired changes, this can be done in the directory
-  ``docs`` by running one of the commands in the table below.
+- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using a partial `ruff <https://docs.astral.sh/ruff/>`_ checker.
+- **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,
+  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behaviour),
+  following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
+  All existing tests should pass on your local machine. This can be done by installing ``pytest`` and running
+  ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.
+  Learn more `here <https://realpython.com/pytest-python-testing/>`__.
+  Your code coverage will automatically be checked using ``codecov``.
+- **Docs**: the documentation is updated if necessary. Our documentation is written in `reST <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_ 
+  and built with `sphinx <https://www.sphinx-doc.org/en/master/usage/installation.html>`_.
+  After making the desired changes, check the documentation by installing
+  ``sphinx`` and building the docs by running one of the commands in the table below in the ``docs`` directory.
+  Note that if the build process fails, supplementary additional libraries may need to be manually installed
+  (e.g. ``sphinx-gallery``): please follow instructions in the log.
 
 .. list-table::
    :widths: 40 50
@@ -50,11 +63,16 @@ check the following points:
    * - ``make clean-win``
      - Cleans the documentation files (Windows OS)
 
+Finding Help
+------------
+
 If you are not familiar with the GitHub contribution workflow, you can also open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_ and also ask any question in our discord server
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. We will then try to address the issue as soon as possible.
-You can also send an email to any of the main developers with your questions or ideas.
+You can also send an email to any of the `maintainers <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_ with your questions or ideas.
 
+Learn more about our code philosophy in the paper:
+`DeepInverse: A Python package for solving imaging inverse problems with deep learning <https://arxiv.org/abs/2505.20160>`_.
 
 Contributing new datasets
 --------------------------
