@@ -39,7 +39,7 @@ def _get_freer_gpu_system(hide_warnings=False):
     :return tuple (device, idx, mem): cuda device,  index and its free memory in GB:
     """
 
-    env = os.environ.copy() # do not to change environment in any case
+    env = os.environ.copy()  # do not to change environment in any case
     if (
         "CUDA_DEVICE_ORDER" not in env.keys()
         or env.get("CUDA_DEVICE_ORDER") != "PCI_BUS_ID"

@@ -22,7 +22,9 @@ Fixed
 - Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 - Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)  
-- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)  
+- Batching WaveletPrior and fix iwt (:gh:`530` by `Minh Hai Nguyen`_)
+- Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (:gh:`570` by `Fedor Goncharov`)
+
 v0.3.1
 ----------------
 
