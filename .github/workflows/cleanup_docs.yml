@@ -1,0 +1,34 @@
+name: Cleanup PR Docs on Close
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout gh-pages branch
+      uses: actions/checkout@v3
+      with:
+        ref: gh-pages
+        persist-credentials: true
+
+    - name: Remove PR folder
+      run: |
+        PR_DIR="pr-preview/pr-${{ github.event.pull_request.number }}"
+        if [ -d "$PR_DIR" ]; then
+          rm -rf "$PR_DIR"
+          echo "Removed $PR_DIR"
+        else
+          echo "No preview folder to remove."
+        fi
+
+    - name: Commit and push
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add -A
+        git commit -m "Clean up docs for PR #${{ github.event.pull_request.number }}" || echo "Nothing to commit"
+        git push
