@@ -48,10 +48,9 @@ jobs:
         with:
           name: documentation
           path: _build/
-          retention-days: 21  # Optional: Set retention period for artifacts
 
       # Log artifact URL 
-      - name: Log Artifact URL
+      - name: Link to generated docs here
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
