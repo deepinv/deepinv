@@ -881,3 +881,34 @@ def test_out_dir_collision_detection(
                 )
 
                 trainer.train()
+
+
+# Test that when training a denoiser, the model is unwrapped correctly at
+# the end of training.
+def test_denoiser_unwrap(dummy_dataset, imsize, device, dummy_model, tmpdir):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Denoising(
+        noise_model=dinv.physics.GaussianNoise(), device=device
+    )
+
+    model = dinv.models.DRUNet().to(device)
+
+    trainer = dinv.Trainer(
+        model,
+        device=device,
+        save_path=tmpdir,
+        verbose=True,
+        show_progress_bar=False,
+        physics=physics,
+        epochs=2,
+        losses=dinv.loss.SupLoss(),
+        optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+        train_dataloader=dataloader,
+        online_measurements=True,
+        check_grad=True,
+    )
+    model = trainer.train()
+
+    # Check that the model is unwrapped correctly
+    assert not hasattr(trainer.model, "backbone_net")
