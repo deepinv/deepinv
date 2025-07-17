@@ -33,7 +33,7 @@ jobs:
           pip install -e .[dataset,denoisers,doc]
       - name: Sphinx build
         run: |
-          sphinx-build -W docs/source _build
+          sphinx-build -W -D plot_gallery=0 docs/source _build
       - name: Run doctests
         run: |
           # Get all the RST files, excluding multigpu.rst
@@ -72,4 +72,4 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && github.event.action != 'closed' }}
         run: |
           echo "Documentation artifact URL: ${{ steps.upload-artifact.outputs.artifact-url }}"
-          echo "Nightly Link (if public): https://nightly.link/${{ github.repository }}/workflows/${{ github.workflow }}/${{ github.head_ref || github.ref_name }}/documentation.zip"
+          echo "Nightly Link (if public): https://nightly.link/${{ github.repository }}/workflows/build-doc-preview/${{ github.head_ref || github.ref_name }}/documentation.zip"
