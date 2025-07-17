@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**01:11.138** total execution time for 2 files **from auto_examples/external-libraries**:
+**01:11.893** total execution time for 2 files **from auto_examples/external-libraries**:
 
 .. container::
 
@@ -33,7 +33,7 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_external-libraries_demo_ri_basic.py` (``demo_ri_basic.py``)
-     - 01:11.138
+     - 01:11.893
      - 0.0
    * - :ref:`sphx_glr_auto_examples_external-libraries__demo_astra_tomography.py` (``_demo_astra_tomography.py``)
      - 00:00.000

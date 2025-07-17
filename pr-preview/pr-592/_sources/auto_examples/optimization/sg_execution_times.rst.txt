@@ -6,7 +6,7 @@
 
 Computation times
 =================
-**00:41.539** total execution time for 3 files **from auto_examples/optimization**:
+**00:43.429** total execution time for 3 files **from auto_examples/optimization**:
 
 .. container::
 
@@ -33,11 +33,11 @@ Computation times
      - Time
      - Mem (MB)
    * - :ref:`sphx_glr_auto_examples_optimization_demo_3D_wavelets.py` (``demo_3D_wavelets.py``)
-     - 00:32.161
+     - 00:34.065
      - 0.0
    * - :ref:`sphx_glr_auto_examples_optimization_demo_TV_minimisation.py` (``demo_TV_minimisation.py``)
-     - 00:06.598
+     - 00:06.578
      - 0.0
    * - :ref:`sphx_glr_auto_examples_optimization_demo_wavelet_prior.py` (``demo_wavelet_prior.py``)
-     - 00:02.779
+     - 00:02.786
      - 0.0

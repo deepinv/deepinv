@@ -565,7 +565,7 @@ In Proceedings of the IEEE conference on computer vision and pattern recognition
 Downloading datasets/set3c.zip
 
   0%|          | 0.00/385k [00:00&lt;?, ?iB/s]
-100%|██████████| 385k/385k [00:00&lt;00:00, 47.6MiB/s]
+100%|██████████| 385k/385k [00:00&lt;00:00, 47.3MiB/s]
 set3c dataset downloaded in datasets
 </pre></div>
 </div>
@@ -685,30 +685,26 @@ the denoising step is performed by a pretrained denoiser <a class="reference int
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://download.pytorch.org/models/alexnet-owt-7be5be79.pth&quot; to /home/runner/.cache/torch/hub/checkpoints/alexnet-owt-7be5be79.pth
 
   0%|          | 0.00/233M [00:00&lt;?, ?B/s]
-  7%|▋         | 16.6M/233M [00:00&lt;00:01, 174MB/s]
- 16%|█▌        | 36.6M/233M [00:00&lt;00:01, 195MB/s]
- 24%|██▍       | 56.4M/233M [00:00&lt;00:00, 200MB/s]
- 32%|███▏      | 75.5M/233M [00:00&lt;00:00, 199MB/s]
- 41%|████      | 94.6M/233M [00:00&lt;00:00, 178MB/s]
- 49%|████▊     | 114M/233M [00:00&lt;00:00, 184MB/s]
- 57%|█████▋    | 134M/233M [00:00&lt;00:00, 193MB/s]
- 66%|██████▌   | 154M/233M [00:00&lt;00:00, 199MB/s]
- 76%|███████▌  | 177M/233M [00:00&lt;00:00, 210MB/s]
- 85%|████████▍ | 198M/233M [00:01&lt;00:00, 213MB/s]
- 95%|█████████▍| 221M/233M [00:01&lt;00:00, 221MB/s]
-100%|██████████| 233M/233M [00:01&lt;00:00, 205MB/s]
+ 12%|█▏        | 28.4M/233M [00:00&lt;00:00, 297MB/s]
+ 26%|██▌       | 60.0M/233M [00:00&lt;00:00, 317MB/s]
+ 39%|███▉      | 90.9M/233M [00:00&lt;00:00, 320MB/s]
+ 52%|█████▏    | 122M/233M [00:00&lt;00:00, 323MB/s]
+ 66%|██████▌   | 153M/233M [00:00&lt;00:00, 316MB/s]
+ 79%|███████▊  | 183M/233M [00:00&lt;00:00, 314MB/s]
+ 92%|█████████▏| 214M/233M [00:00&lt;00:00, 315MB/s]
+100%|██████████| 233M/233M [00:00&lt;00:00, 317MB/s]
 Downloading: &quot;https://huggingface.co/chaofengc/IQA-PyTorch-Weights/resolve/main/LPIPS_v0.1_alex-df73285e.pth&quot; to /home/runner/.cache/torch/hub/pyiqa/LPIPS_v0.1_alex-df73285e.pth
 
 
   0%|          | 0.00/5.87k [00:00&lt;?, ?B/s]
-100%|██████████| 5.87k/5.87k [00:00&lt;00:00, 39.1MB/s]
+100%|██████████| 5.87k/5.87k [00:00&lt;00:00, 48.4MB/s]
 Loading pretrained model LPIPS from /home/runner/.cache/torch/hub/pyiqa/LPIPS_v0.1_alex-df73285e.pth
 
   0%|                                                                                                                           | 0/1 [00:00&lt;?, ?it/s]
 Test:   0%|                                                                                                                     | 0/1 [00:00&lt;?, ?it/s]
 Test:   0%|                                           | 0/1 [00:01&lt;?, ?it/s, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
-Test: 100%|███████████████████████████████████| 1/1 [00:01&lt;00:00,  1.77s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
-Test: 100%|███████████████████████████████████| 1/1 [00:01&lt;00:00,  1.77s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
+Test: 100%|███████████████████████████████████| 1/1 [00:01&lt;00:00,  1.80s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
+Test: 100%|███████████████████████████████████| 1/1 [00:01&lt;00:00,  1.80s/it, PSNR=30.2, PSNR no learning=4.19, LPIPS=0.00378, LPIPS no learning=0.402]
 Test results:
 PSNR no learning: 4.187 +- 1.447
 PSNR: 30.165 +- 2.016
@@ -718,7 +714,7 @@ LPIPS: 0.004 +- 0.003
 {&#39;PSNR no learning&#39;: np.float64(4.186646143595378), &#39;PSNR no learning_std&#39;: np.float64(1.4468237274226996), &#39;PSNR&#39;: np.float64(30.16461435953776), &#39;PSNR_std&#39;: np.float64(2.0164958180264647), &#39;LPIPS no learning&#39;: np.float64(0.4024091561635335), &#39;LPIPS no learning_std&#39;: np.float64(0.1336401602927466), &#39;LPIPS&#39;: np.float64(0.0037754916896422706), &#39;LPIPS_std&#39;: np.float64(0.002592722410522517)}
 </pre></div>
 </div>
-<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 4.434 seconds)</p>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 4.079 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-plug-and-play-demo-pnp-dpir-deblur-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/27365b4f1c4bfbe1cc5e089da624baf3/demo_PnP_DPIR_deblur.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_PnP_DPIR_deblur.ipynb</span></code></a></p>

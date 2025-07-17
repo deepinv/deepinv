@@ -507,31 +507,32 @@ We train the network using the library's train function.
     The model has 75594 trainable parameters
     /home/runner/work/deepinv/deepinv/deepinv/training/trainer.py:461: UserWarning: Generating online measurements from data x but dataloader returns tuples (x, ...). Discarding all data after x.
       warnings.warn(
-    Train epoch 0: TotalLoss=0.005, PSNR=24.305
-    Eval epoch 0: PSNR=19.308
+    Train epoch 0: TotalLoss=0.001, PSNR=28.748
+    Eval epoch 0: PSNR=19.331
     Best model saved at epoch 1
-    Train epoch 1: TotalLoss=0.003, PSNR=26.386
-    Eval epoch 1: PSNR=18.901
-    Train epoch 2: TotalLoss=0.003, PSNR=25.236
-    Eval epoch 2: PSNR=19.768
+    Train epoch 1: TotalLoss=0.002, PSNR=26.883
+    Eval epoch 1: PSNR=19.346
+    Best model saved at epoch 2
+    Train epoch 2: TotalLoss=0.001, PSNR=30.087
+    Eval epoch 2: PSNR=19.788
     Best model saved at epoch 3
-    Train epoch 3: TotalLoss=0.002, PSNR=28.671
-    Eval epoch 3: PSNR=19.756
-    Train epoch 4: TotalLoss=0.001, PSNR=28.758
-    Eval epoch 4: PSNR=19.681
-    Train epoch 5: TotalLoss=0.002, PSNR=27.779
-    Eval epoch 5: PSNR=19.841
+    Train epoch 3: TotalLoss=0.002, PSNR=28.773
+    Eval epoch 3: PSNR=19.665
+    Train epoch 4: TotalLoss=0.001, PSNR=30.24
+    Eval epoch 4: PSNR=19.645
+    Train epoch 5: TotalLoss=0.001, PSNR=30.755
+    Eval epoch 5: PSNR=19.977
     Best model saved at epoch 6
-    Train epoch 6: TotalLoss=0.001, PSNR=30.207
-    Eval epoch 6: PSNR=19.971
+    Train epoch 6: TotalLoss=0.001, PSNR=32.174
+    Eval epoch 6: PSNR=20.092
     Best model saved at epoch 7
-    Train epoch 7: TotalLoss=0.001, PSNR=31.337
-    Eval epoch 7: PSNR=20.038
+    Train epoch 7: TotalLoss=0.001, PSNR=31.618
+    Eval epoch 7: PSNR=20.138
     Best model saved at epoch 8
-    Train epoch 8: TotalLoss=0.001, PSNR=32.258
-    Eval epoch 8: PSNR=20.019
-    Train epoch 9: TotalLoss=0.001, PSNR=31.69
-    Eval epoch 9: PSNR=20.008
+    Train epoch 8: TotalLoss=0.001, PSNR=30.809
+    Eval epoch 8: PSNR=20.123
+    Train epoch 9: TotalLoss=0.001, PSNR=31.476
+    Eval epoch 9: PSNR=20.118
 
 
 
@@ -562,19 +563,19 @@ Test the network
 
  .. code-block:: none
 
-    Eval epoch 0: PSNR=20.028, PSNR no learning=-41.611
+    Eval epoch 0: PSNR=20.133, PSNR no learning=-41.611
     Test results:
     PSNR no learning: -41.611 +- 0.000
-    PSNR: 20.028 +- 0.000
+    PSNR: 20.133 +- 0.000
 
-    {'PSNR no learning': np.float64(-41.61101531982422), 'PSNR no learning_std': 0, 'PSNR': np.float64(20.027637481689453), 'PSNR_std': 0}
+    {'PSNR no learning': np.float64(-41.61101531982422), 'PSNR no learning_std': 0, 'PSNR': np.float64(20.133159637451172), 'PSNR_std': 0}
 
 
 
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 4.992 seconds)
+   **Total running time of the script:** (0 minutes 5.105 seconds)
 
 
 .. _sphx_glr_download_auto_examples_unfolded_demo_learned_primal_dual.py:

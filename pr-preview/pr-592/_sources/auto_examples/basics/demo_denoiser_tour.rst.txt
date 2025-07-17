@@ -228,13 +228,13 @@ You can then apply them by calling the model with the noisy image and the noise 
  .. code-block:: none
 
     Downloading: "https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_color.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/dncnn_sigma2_color.pth
-      0%|          | 0.00/2.56M [00:00<?, ?B/s]    100%|██████████| 2.56M/2.56M [00:00<00:00, 62.7MB/s]
+      0%|          | 0.00/2.56M [00:00<?, ?B/s]    100%|██████████| 2.56M/2.56M [00:00<00:00, 156MB/s]
     Downloading: "https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color_finetune_22k.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/drunet_deepinv_color_finetune_22k.pth
-      0%|          | 0.00/125M [00:00<?, ?B/s]      9%|▉         | 11.5M/125M [00:00<00:00, 120MB/s]     26%|██▋       | 33.0M/125M [00:00<00:00, 182MB/s]     42%|████▏     | 51.9M/125M [00:00<00:00, 189MB/s]     58%|█████▊    | 71.9M/125M [00:00<00:00, 197MB/s]     74%|███████▍  | 92.6M/125M [00:00<00:00, 204MB/s]     92%|█████████▏| 114M/125M [00:00<00:00, 211MB/s]     100%|██████████| 125M/125M [00:00<00:00, 202MB/s]
+      0%|          | 0.00/125M [00:00<?, ?B/s]     28%|██▊       | 34.4M/125M [00:00<00:00, 360MB/s]     57%|█████▋    | 71.1M/125M [00:00<00:00, 375MB/s]     88%|████████▊ | 110M/125M [00:00<00:00, 389MB/s]     100%|██████████| 125M/125M [00:00<00:00, 388MB/s]
     Downloading: "https://github.com/JingyunLiang/SwinIR/releases/download/v0.0/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth" to /home/runner/.cache/torch/hub/checkpoints/005_colorDN_DFWB_s128w8_SwinIR-M_noise15.pth
-      0%|          | 0.00/117M [00:00<?, ?B/s]     16%|█▋        | 19.1M/117M [00:00<00:00, 200MB/s]     34%|███▍      | 40.4M/117M [00:00<00:00, 213MB/s]     52%|█████▏    | 60.8M/117M [00:00<00:00, 191MB/s]     68%|██████▊   | 79.2M/117M [00:00<00:00, 188MB/s]     83%|████████▎ | 97.4M/117M [00:00<00:00, 149MB/s]     96%|█████████▌| 113M/117M [00:00<00:00, 148MB/s]     100%|██████████| 117M/117M [00:00<00:00, 166MB/s]
+      0%|          | 0.00/117M [00:00<?, ?B/s]     26%|██▌       | 30.1M/117M [00:00<00:00, 203MB/s]     55%|█████▍    | 64.4M/117M [00:00<00:00, 277MB/s]     87%|████████▋ | 102M/117M [00:00<00:00, 325MB/s]     100%|██████████| 117M/117M [00:00<00:00, 278MB/s]
     Downloading: "https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true" to /home/runner/.cache/torch/hub/checkpoints/scunet_color_real_psnr.pth
-      0%|          | 0.00/68.6M [00:00<?, ?B/s]     14%|█▍        | 9.75M/68.6M [00:00<00:00, 101MB/s]     39%|███▉      | 27.0M/68.6M [00:00<00:00, 147MB/s]     62%|██████▏   | 42.8M/68.6M [00:00<00:00, 155MB/s]     91%|█████████ | 62.2M/68.6M [00:00<00:00, 174MB/s]    100%|██████████| 68.6M/68.6M [00:00<00:00, 166MB/s]
+      0%|          | 0.00/68.6M [00:00<?, ?B/s]     39%|███▉      | 26.9M/68.6M [00:00<00:00, 282MB/s]     95%|█████████▌| 65.2M/68.6M [00:00<00:00, 352MB/s]    100%|██████████| 68.6M/68.6M [00:00<00:00, 344MB/s]
 
 
 
@@ -350,11 +350,11 @@ time and performances.
 
  .. code-block:: none
 
-    Denoiser DRUNet... done (8.76s)
-    Denoiser SCUNet... done (7.65s)
-    Denoiser DnCNN... done (1.58s)
-    Denoiser BM3D... done (23.94s)
-    Denoiser Wavelet... done (1.16s)
+    Denoiser DRUNet... done (8.65s)
+    Denoiser SCUNet... done (8.31s)
+    Denoiser DnCNN... done (1.71s)
+    Denoiser BM3D... done (23.85s)
+    Denoiser Wavelet... done (1.21s)
 
 
 
@@ -676,7 +676,7 @@ We can finally update our comparison with the adapted denoisers for DnCNN and Sw
 
  .. code-block:: none
 
-    Denoiser DnCNN (adapted)... done (1.55s)
+    Denoiser DnCNN (adapted)... done (2.00s)
 
 
 
@@ -729,7 +729,7 @@ and performances changes, with the deep denoisers performing the best
 
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (1 minutes 23.185 seconds)
+   **Total running time of the script:** (1 minutes 29.216 seconds)
 
 
 .. _sphx_glr_download_auto_examples_basics_demo_denoiser_tour.py:

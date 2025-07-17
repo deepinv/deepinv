@@ -581,10 +581,10 @@ You can download more data on the <a class="reference external" href="https://fa
 </pre></div>
 </div>
 <img src="../../_images/sphx_glr_demo_tour_mri_001.png" srcset="../../_images/sphx_glr_demo_tour_mri_001.png" alt="knee, brain" class = "sphx-glr-single-img"/><div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/820529 [00:00&lt;?, ?it/s]
-100%|██████████| 801k/801k [00:00&lt;00:00, 28.2MB/s]
+100%|██████████| 801k/801k [00:00&lt;00:00, 64.9MB/s]
 
   0%|          | 0/820534 [00:00&lt;?, ?it/s]
-100%|██████████| 801k/801k [00:00&lt;00:00, 27.3MB/s]
+100%|██████████| 801k/801k [00:00&lt;00:00, 74.8MB/s]
 </pre></div>
 </div>
 <p>Let’s start with single-coil MRI. We can define a constant Cartesian 4x
@@ -730,7 +730,7 @@ network with 2 cascades, and train with 2 images for 1 epoch.</p>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Downloading: &quot;https://huggingface.co/deepinv/demo/resolve/main/demo_tour_mri.pth?download=true&quot; to /home/runner/.cache/torch/hub/checkpoints/demo_tour_mri.pth
 
   0%|          | 0.00/37.4k [00:00&lt;?, ?B/s]
-100%|██████████| 37.4k/37.4k [00:00&lt;00:00, 6.21MB/s]
+100%|██████████| 37.4k/37.4k [00:00&lt;00:00, 22.3MB/s]
 The model has 2376 trainable parameters
 Train epoch 0: TotalLoss=0.0, PSNR=30.972
 </pre></div>
@@ -781,14 +781,12 @@ The raw multi-coil FastMRI data is provided as pairs of <code class="docutils li
 </pre></div>
 </div>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/58754328 [00:00&lt;?, ?it/s]
- 17%|█▋        | 9.25M/56.0M [00:00&lt;00:00, 96.7MB/s]
- 33%|███▎      | 18.5M/56.0M [00:00&lt;00:00, 92.1MB/s]
- 60%|██████    | 33.9M/56.0M [00:00&lt;00:00, 123MB/s]
- 92%|█████████▏| 51.4M/56.0M [00:00&lt;00:00, 146MB/s]
-100%|██████████| 56.0M/56.0M [00:00&lt;00:00, 136MB/s]
+ 29%|██▊       | 16.0M/56.0M [00:00&lt;00:00, 168MB/s]
+ 57%|█████▋    | 32.0M/56.0M [00:00&lt;00:00, 167MB/s]
+100%|██████████| 56.0M/56.0M [00:00&lt;00:00, 223MB/s]
 
   0%|          | 0/1 [00:00&lt;?, ?it/s]
-100%|██████████| 1/1 [00:00&lt;00:00, 1300.96it/s]
+100%|██████████| 1/1 [00:00&lt;00:00, 1454.84it/s]
 Shapes: torch.Size([1, 1, 213, 213]) torch.Size([1, 2, 4, 512, 213])
 </pre></div>
 </div>
@@ -959,15 +957,15 @@ including ground truth images, undersampled kspace, and associated masks:</p>
 </pre></div>
 </div>
 <div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>  0%|          | 0/24695321 [00:00&lt;?, ?it/s]
- 54%|█████▍    | 12.7M/23.6M [00:00&lt;00:00, 133MB/s]
-100%|██████████| 23.6M/23.6M [00:00&lt;00:00, 161MB/s]
+ 76%|███████▋  | 18.0M/23.6M [00:00&lt;00:00, 188MB/s]
+100%|██████████| 23.6M/23.6M [00:00&lt;00:00, 177MB/s]
 
 Extracting:   0%|          | 0/10 [00:00&lt;?, ?it/s]
-Extracting: 100%|██████████| 10/10 [00:00&lt;00:00, 129.27it/s]
+Extracting: 100%|██████████| 10/10 [00:00&lt;00:00, 135.81it/s]
 
   0%|          | 0/1 [00:00&lt;?, ?it/s]
-100%|██████████| 1/1 [00:00&lt;00:00,  6.99it/s]
-100%|██████████| 1/1 [00:00&lt;00:00,  6.98it/s]
+100%|██████████| 1/1 [00:00&lt;00:00,  7.04it/s]
+100%|██████████| 1/1 [00:00&lt;00:00,  7.03it/s]
 
     Ground truth: torch.Size([1, 2, 12, 512, 256]) (B, C, T, H, W)
     Measurements: torch.Size([1, 2, 12, 512, 256])
@@ -1015,7 +1013,7 @@ reconstruction <code class="docutils literal notranslate"><span class="pre">x_zf
 <span class="p">)</span>
 </pre></div>
 </div>
-<img src="../../_images/sphx_glr_demo_tour_mri_008.png" srcset="../../_images/sphx_glr_demo_tour_mri_008.png" alt="t=0, t=1, t=2, t=3, t=4" class = "sphx-glr-single-img"/><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.877 seconds)</p>
+<img src="../../_images/sphx_glr_demo_tour_mri_008.png" srcset="../../_images/sphx_glr_demo_tour_mri_008.png" alt="t=0, t=1, t=2, t=3, t=4" class = "sphx-glr-single-img"/><p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 3.403 seconds)</p>
 <div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-basics-demo-tour-mri-py">
 <div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
 <p><a class="reference download internal" download="" href="../../_downloads/f2853ae545d260202f535184e5951143/demo_tour_mri.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">demo_tour_mri.ipynb</span></code></a></p>
