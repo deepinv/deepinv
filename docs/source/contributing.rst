@@ -49,7 +49,7 @@ check the following points:
 .. tip::
 
   Once the GitHub tests have been approved by a maintainer (only required for first-time contributors), and the `Build Docs` GitHub action
-  has run successfully, you can check the generated docs online at https://deepinv.github.io/deepinv/pr-preview/pr-N/ where `N` is the PR number.
+  has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
 
 
 .. list-table::
