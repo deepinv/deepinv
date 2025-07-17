@@ -89,7 +89,7 @@ model = dinv.models.DiffUNet(large_model=False).to(device)
 num_train_timesteps = 1000  # Number of timesteps used during training
 
 
-betas = torch.linspace(1e-4, 1e-2, num_train_timesteps).to(device)
+betas = torch.linspace(1e-4, 2e-2, num_train_timesteps).to(device)
 alphas = (1 - betas).cumprod(dim=0)
 
 # %%
@@ -267,9 +267,6 @@ skip = num_train_timesteps // num_steps
 batch_size = 1
 eta = 1.0
 
-# seq = range(0, num_train_timesteps, skip)
-# seq_next = [-1] + list(seq[:-1])
-# time_pairs = list(zip(reversed(seq), reversed(seq_next)))
 
 # measurement
 x0 = x_true * 2.0 - 1.0
