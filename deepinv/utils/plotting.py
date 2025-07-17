@@ -665,6 +665,8 @@ def plot_inset(
         interpolation=interpolation,
         cbar=cbar,
         dpi=dpi,
+        fig=fig,
+        axs=axs,
         return_fig=True,
         return_axs=True,
     )
