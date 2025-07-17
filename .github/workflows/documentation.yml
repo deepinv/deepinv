@@ -20,7 +20,6 @@ permissions:
 
 jobs:
   docs:
-    name: Build and deploy documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
