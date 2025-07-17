@@ -1,0 +1,42 @@
+name: Comment Artifact URL for Fork PRs
+
+on:
+  workflow_run:
+    workflows: ["Build docs"]
+    types:
+      - completed
+
+permissions:
+  pull-requests: write  # Required to comment on PRs
+  actions: read        # Required to access artifacts
+
+jobs:
+  comment-artifact:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Get Artifact URL and Comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the workflow run's artifacts
+          ARTIFACTS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts")
+          
+          # Extract the artifact URL for 'documentation'
+          ARTIFACT_URL=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name == "documentation") | .archive_download_url')
+          
+          # Get the PR number
+          PR_NUMBER=$(echo "${{ github.event.workflow_run.pull_requests[0].number }}")
+          
+          if [ -n "$ARTIFACT_URL" ] && [ -n "$PR_NUMBER" ]; then
+            # Post the artifact URL as a PR comment
+            curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -X POST \
+              -d "{\"body\": \"📄 The documentation for this PR has been built and is available for download: [Download documentation]($ARTIFACT_URL)\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments"
+          else
+            echo "No documentation artifact or PR found."
+          fi
