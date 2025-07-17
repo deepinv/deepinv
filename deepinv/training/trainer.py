@@ -241,9 +241,10 @@ class Trainer:
     show_progress_bar: bool = True
 
     def setup_denoiser(self):
-        self.model = ArtifactRemoval(
-            backbone_net=self.model, mode="direct", device=self.device
-        )
+        if not isinstance(self.model, ArtifactRemoval):
+            self.model = ArtifactRemoval(
+                backbone_net=self.model, mode="direct", device=self.device
+            )
 
     def setup_train(self, train=True, **kwargs):
         r"""
