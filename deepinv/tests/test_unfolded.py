@@ -4,7 +4,6 @@ import torch
 import deepinv as dinv
 from deepinv.optim.prior import PnP, RED
 from deepinv.optim.data_fidelity import L2
-from deepinv.optim import DEQ_builder
 from deepinv import optim
 
 UNFOLDED_ALGO = [
