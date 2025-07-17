@@ -249,8 +249,8 @@ def plot(
         See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
         Default: none
     :param int dpi: DPI to save images.
-    :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
-    :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
@@ -633,8 +633,8 @@ def plot_inset(
         Default: none
     :param bool cbar: whether to add colorbar to the images.
     :param int dpi: DPI to save images.
-    :param None, Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
-    :param None, Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param list[str] labels: list of overlaid labels for each image, has to be same length as img_list.
     :param list, tuple label_loc: location or locations for label to be plotted on image, defaults to (.03, .03)
     :param list, tuple extract_loc: image location or locations for extract to be taken from, defaults to (0., 0.)
