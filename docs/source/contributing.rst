@@ -12,12 +12,14 @@ View our active list of contributors `here <https://github.com/deepinv/deepinv/g
 How to Contribute
 -----------------
 
+To contribute, you must install `deepinv` in editable mode
+so that all your changes are visible when you run workflows.
 Make sure that you download all the required dependencies for testing
 by running in the root directory of the repository:
 
 .. code-block:: bash
 
-    pip install .[test,dataset,denoisers,doc]
+    pip install -e .[test,dataset,denoisers,doc,lint]
 
 
 We acknowledge all contributors in the documentation and in the source code. Significant contributions
@@ -31,7 +33,7 @@ check the following points:
 - **Code quality**: your code is compliant with PEP8 and the `black <https://black.readthedocs.io>`_ style. This can be done easily
   by installing the ``black`` library and running ``black .`` in the root directory of the repository after
   making the desired changes.
-- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using a partial `ruff <https://docs.astral.sh/ruff/>`_ checker.
+- **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using a partial `ruff <https://docs.astral.sh/ruff/>`_ checker (see our `workflow for details <https://github.com/deepinv/deepinv/blob/main/.github/workflows/lint.yml>`_).
 - **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,
   including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behaviour),
   following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
@@ -49,7 +51,7 @@ check the following points:
 .. tip::
 
   Once the GitHub tests have been approved by a maintainer (only required for first-time contributors), and the `Build Docs` GitHub action
-  has run successfully, you can check the generated docs online at https://deepinv.github.io/deepinv/pr-preview/pr-N/ where `N` is the PR number.
+  has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
 
 
 .. list-table::

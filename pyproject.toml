@@ -14,18 +14,21 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 version = "0.3.2"
 dependencies = [
     "numpy",
     "matplotlib",
     "hdf5storage",
     "tqdm",
-    "torch<2.7",
+    "torch>=2.2.0", 
     "torchvision",
     "torchmetrics",
     "einops",
@@ -66,6 +69,11 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+]
+
+lint = [
+    "black",
+    "ruff"
 ]
 
 # optional dependencies for specific denoisers
