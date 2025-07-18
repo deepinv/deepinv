@@ -49,7 +49,6 @@ OPERATORS = [
     "down_resolution_reflect",
     "down_resolution_replicate",
     "down_resolution_constant",
-    "down_resolution_valid",
     "aliased_super_resolution",
     "fast_singlepixel",
     "fast_singlepixel_cake_cutting",
