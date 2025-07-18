@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 import deepinv as dinv
+from deepinv.utils import get_timestamp
 from dummy import DummyCircles, DummyModel
 from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
@@ -15,6 +16,8 @@ import math
 import io
 import contextlib
 import re
+import tempfile
+import os
 
 from conftest import no_plot
 
@@ -39,7 +42,7 @@ def physics(imsize, device):
 
 
 @pytest.mark.parametrize("no_learning", NO_LEARNING)
-def test_nolearning(imsize, physics, model, no_learning, device):
+def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
     y = torch.ones((1,) + imsize, device=device)
     trainer = dinv.Trainer(
         model=model,
@@ -49,6 +52,7 @@ def test_nolearning(imsize, physics, model, no_learning, device):
         physics=physics,
         compare_no_learning=True,
         no_learning_method=no_learning,
+        save_path=tmpdir,
     )
     x_hat = trainer.no_learning_inference(y, physics)
     assert (physics.A(x_hat) - y).pow(2).mean() < 0.1
@@ -124,6 +128,7 @@ def test_get_samples(
     use_physics_generator,
     online_measurements,
     rng,
+    tmpdir,
 ):
     # Dummy constant GT dataset
     class DummyDataset(Dataset):
@@ -215,6 +220,7 @@ def test_get_samples(
             if online_measurements and physics_generator is not None
             else None
         ),
+        save_path=tmpdir,
     )
 
     iterator = iter(dataloader)
@@ -530,6 +536,7 @@ def test_dataloader_formats(
     measurements,
     online_measurements,
     rng,
+    tmpdir,
 ):
     """Test dataloader return formats
 
@@ -604,6 +611,7 @@ def test_dataloader_formats(
         online_measurements=online_measurements,
         train_dataloader=dataloader,
         optimizer=optimizer,
+        save_path=tmpdir,
     )
     trainer.setup_train()
     x, y, physics = trainer.get_samples([iter(dataloader)], 0)
@@ -656,7 +664,7 @@ def test_dataloader_formats(
 @pytest.mark.parametrize("early_stop", [True, False])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps
+    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps, tmpdir
 ):
     torch.manual_seed(0)
     model = dummy_model
@@ -681,6 +689,7 @@ def test_early_stop(
         optimizer=optimizer,
         verbose=False,
         plot_images=True,
+        save_path=tmpdir,
     )
     with no_plot():
         trainer.train()
@@ -710,7 +719,7 @@ class ConstantLoss(dinv.loss.Loss):
         )
 
 
-def test_total_loss(dummy_dataset, imsize, device, dummy_model):
+def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
@@ -731,6 +740,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model):
         optimizer=torch.optim.AdamW(dummy_model.parameters(), lr=1),
         verbose=False,
         online_measurements=True,
+        save_path=tmpdir,
     )
 
     trainer.train()
@@ -747,7 +757,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model):
 # epoch 2, and so on. Then, we run the trainer while capturing the standard
 # output to get # the reported values for the gradient norms and compare them
 # to the expected values.
-def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
+def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
@@ -758,7 +768,7 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
     trainer = dinv.Trainer(
         model,
         device=device,
-        save_path="ckpts",
+        save_path=tmpdir,
         verbose=True,
         show_progress_bar=False,
         physics=physics,
@@ -812,3 +822,44 @@ def test_gradient_norm(dummy_dataset, imsize, device, dummy_model):
     expected_gradient_norms = [float(epoch) for epoch in range(1, trainer.epochs + 1)]
     expected_gradient_norms = torch.tensor(expected_gradient_norms)
     assert torch.allclose(gradient_norms, expected_gradient_norms, atol=1e-2)
+
+
+# Test output directory collision detection
+# It is difficult to deterministically trigger actual collisions so we mock the
+# get_timestamp function used in the implementation to make it return the same
+# value every time it is called. This forces a collision to occur and we make
+# sure that it is detected as it should.
+def test_out_dir_collision_detection(
+    dummy_dataset, imsize, device, dummy_model, tmpdir
+):
+    train_data, eval_data = dummy_dataset, dummy_dataset
+    dataloader = DataLoader(train_data, batch_size=2)
+    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+
+    backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
+    model = dinv.models.ArtifactRemoval(backbone).to(device)
+
+    timestamp = get_timestamp()
+
+    # NOTE: Due to the way it's imported in the trainer module we need to patch
+    # the importing module instead of the imported module.
+    with patch.object(dinv.training.trainer, "get_timestamp", return_value=timestamp):
+        with pytest.raises(FileExistsError, match=re.escape(timestamp)):
+            # Train twice
+            for _ in range(2):
+                trainer = dinv.Trainer(
+                    model,
+                    device=device,
+                    save_path=tmpdir,
+                    verbose=True,
+                    show_progress_bar=False,
+                    physics=physics,
+                    epochs=2,
+                    losses=dinv.loss.SupLoss(),
+                    optimizer=torch.optim.AdamW(model.parameters(), lr=1e-3),
+                    train_dataloader=dataloader,
+                    online_measurements=True,
+                    check_grad=True,
+                )
+
+                trainer.train()

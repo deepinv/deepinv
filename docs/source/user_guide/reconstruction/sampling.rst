@@ -172,7 +172,8 @@ Uncertainty quantification
 
 Diffusion methods obtain a single sample per call. If multiple samples are required, the
 :class:`deepinv.sampling.DiffusionSampler` can be used to convert a diffusion method into a sampler that
-obtains multiple samples to compute posterior statistics such as the mean or variance.
+obtains multiple samples to compute posterior statistics such as the mean or variance. 
+It uses the helper class :class:`deepinv.sampling.DiffusionIterator` to interface diffusion samplers with :class:`deepinv.sampling.BaseSampling`.
 
 .. _mcmc:
 
@@ -205,8 +206,47 @@ Unlike diffusion sampling methods, MCMC methods generally use a fixed noise leve
         p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
 
 
-All MCMC methods inherit from :class:`deepinv.sampling.MonteCarlo`.
-We also provide MCMC methods for sampling from the posterior distribution based on the unadjusted Langevin algorithm.
+All MCMC methods inherit from :class:`deepinv.sampling.BaseSampling`.
+The function :func:`deepinv.sampling.sampling_builder` returns an instance of :class:`deepinv.sampling.BaseSampling` with the
+optimization algorithm of choice, either a predefined one (``"SKRock"``, ``"ULA"``),
+or with a user-defined one (an instance of :class:`deepinv.sampling.SamplingIterator`). For example, we can use ULA with a score prior:
+
+::
+
+    model = dinv.sampling.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
+                                    params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
+    x_hat = model(y, physics)
+
+
+We provide a very flexible framework for MCMC algorithms, providing some predefined algorithms alongside making it easy to implement your own custom sampling algorithms.
+This is achieved by creating your own sampling iterator, which involves subclassing :class:`deepinv.sampling.SamplingIterator`. See :class:`deepinv.sampling.SamplingIterator` for a short example.
+
+A custom iterator needs to implement two methods:
+
+*   ``initialize_latent_variables(self, x_init, y, physics, data_fidelity, prior)``: This method sets up the initial state of your Markov chain. It receives the initial image estimate :math:`x_{\text{init}}`, measurements :math:`y`, the physics operator, data fidelity term, and prior. It should return a dictionary representing the initial state :math:`X_0`, which must include the image as ``{"x": x_init, ...}`` and can include any other latent variables your sampler requires. The default (non overridden) behavior is returning ``{"x":x_init}``
+
+*   ``forward(self, X, y, physics, data_fidelity, prior, iteration_number, **iterator_specific_params)``: This method defines a single step of your MCMC algorithm. It takes the previous state :math:`X` (a dictionary containing at least the previous image ``{"x": x, ...}``), measurements :math:`y`, the data fidelity, the prior, and returns the new state :math:`X_{next}` (again, a dictionary including ``{"x": x_next, ...}``). 
+
+
+Some predefined iterators are provided:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Algorithm
+     - Parameters
+
+   * - :class:`ULA <deepinv.sampling.ULAIterator>`
+     - ``"step_size"``, ``"alpha"``, ``"sigma"``
+
+   * - :class:`SKROCK <deepinv.sampling.SKRockIterator>`
+     - ``"step_size"``, ``"alpha"``, ``"inner_iter"``, ``"eta"``, ``"sigma"``
+
+   * - :class:`Diffusion <deepinv.sampling.DiffusionIterator>`
+     - No parameters, see the uncertainty quantification section above.
+
+
+Some legacy predefined classes are also provided:
 
 
 .. list-table:: MCMC methods

@@ -335,9 +335,16 @@ class Trainer:
         if train and self.check_grad:
             self.check_grad_val = AverageMeter("Gradient norm", ":.2e")
 
-        self.save_path = (
-            f"{self.save_path}/{get_timestamp()}" if self.save_path else None
-        )
+        if self.save_path:
+            # NOTE: Two separate training should not write to the same
+            # directory. For this reason, we make sure the directory does not
+            # already exist.
+            dir_path = f"{self.save_path}/{get_timestamp()}"
+            # Acquire the output directory (might fail with an exception)
+            os.makedirs(dir_path, exist_ok=False)
+            self.save_path = dir_path
+        else:
+            self.save_path = None
 
         # count the overall training parameters
         if self.verbose and train:

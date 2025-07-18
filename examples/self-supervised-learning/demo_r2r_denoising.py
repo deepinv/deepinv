@@ -53,11 +53,12 @@ test_dataset = datasets.MNIST(
 
 # %%
 # Generate a dataset of noisy images
-# ----------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
 #
 # Generate a dataset of noisy images corrupted by Poisson noise.
 # The predefined noise models in the physics module include Gaussian, Poisson, and Gamma noise.
 # Here, we use Poisson noise as an example, but you can also use Gaussian or Gamma noise.
+#
 # .. note::
 #
 #       We use a subset of the whole training set to reduce the computational load of the example.
@@ -66,18 +67,18 @@ test_dataset = datasets.MNIST(
 # defined physics
 predefined_noise_models = dict(
     gaussian=dinv.physics.GaussianNoise(sigma=0.1),
-    poisson=dinv.physics.PoissonNoise(gain=0.1),
+    poisson=dinv.physics.PoissonNoise(gain=0.5),
     gamma=dinv.physics.GammaNoise(l=10.0),
 )
 
-noise_name = "gamma"
+noise_name = "poisson"
 noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
 operation = f"{operation}_{noise_name}"
 
 # Use parallel dataloader if using a GPU to fasten training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
-num_workers = 4 if torch.cuda.is_available() else 0
+num_workers = 0 if torch.cuda.is_available() else 0
 
 n_images_max = (
     100 if torch.cuda.is_available() else 5
@@ -106,7 +107,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # We use a simple U-Net architecture with 2 scales as the denoiser network.
 
 model = dinv.models.ArtifactRemoval(
-    dinv.models.UNet(in_channels=1, out_channels=1, scales=2).to(device)
+    dinv.models.UNet(in_channels=1, out_channels=1, scales=2, residual=False).to(device)
 )
 
 
@@ -121,27 +122,26 @@ model = dinv.models.ArtifactRemoval(
 #
 
 epochs = 1  # choose training epochs
-learning_rate = 1e-3
-batch_size = 32 if torch.cuda.is_available() else 1
+learning_rate = 1e-4
+batch_size = 64 if torch.cuda.is_available() else 1
 
 # choose self-supervised training loss
 loss = dinv.loss.R2RLoss(noise_model=None)
 model = loss.adapt_model(model)  # important step!
 
 # choose optimizer and scheduler
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-8)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=int(epochs * 0.8) + 1)
 
 # # start with a pretrained model to reduce training time
 
-# if noise_name == "poisson":
-#     file_name = "ckp_10_demo_r2r_poisson.pth"
-#     url = get_weights_url(model_name="demo", file_name=file_name)
-#     ckpt = torch.hub.load_state_dict_from_url(
-#         url, map_location=lambda storage, loc: storage, file_name=file_name
-#     )
-#     # load a checkpoint to reduce training time
-#     model.load_state_dict(ckpt["state_dict"])
+if noise_name == "poisson":
+    file_name = "ckp_10_demo_r2r_poisson.pth"
+    url = get_weights_url(model_name="demo", file_name=file_name)
+    ckpt = torch.hub.load_state_dict_from_url(
+        url, map_location=lambda storage, loc: storage, file_name=file_name
+    )
+    model.load_state_dict(ckpt["state_dict"])
 
 # %%
 # Train the network
@@ -155,6 +155,7 @@ wandb_vis = False  # plot curves and images in Weight&Bias
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
+
 test_dataloader = DataLoader(
     test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False
 )
