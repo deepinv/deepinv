@@ -157,7 +157,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.
 
     The dataset is loaded as tuples `(x, y, params)` where:
-     
+
     * `y` are the kspace measurements of shape ``(2, (N,) H, W)`` where N is the optional coil dimension depending on whether the data is singlecoil or multicoil.
       Note this kspace will be fully-sampled for training/validation datasets, and will be masked for test/challenge sets.
     * `x` ("target") are the (cropped) magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
@@ -404,15 +404,21 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         """
         with h5py.File(fname, "r") as hf:
             shape = hf["kspace"].shape
-            metadata = {
-                "width": shape[-1],  # W
-                "height": shape[-2],  # H
-                "num_slices": shape[0],  # D (depth)
-            } | (
+            metadata = (
                 {
-                    "coils": shape[1],  # N (coils)
+                    "width": shape[-1],  # W
+                    "height": shape[-2],  # H
+                    "num_slices": shape[0],  # D (depth)
                 }
-                if len(shape) == 4
+                | (
+                    {
+                        "coils": shape[1],  # N (coils)
+                    }
+                    if len(shape) == 4
+                    else {}
+                )
+                | {"acs": int(hf.attrs["num_low_frequency"])}
+                if hasattr(hf.attrs, "num_low_frequency")
                 else {}
             )
 
@@ -434,6 +440,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         containing optionally mask and coil maps.
         """
         fname, slice_ind, metadata = self.samples[idx]
+        params = {}
 
         with h5py.File(fname, "r") as hf:
             # ((N,) H, W) dtype complex -> (2, (N,) H, W) real
@@ -441,7 +448,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                 torch.from_numpy(hf["kspace"][slice_ind]).unsqueeze(0)
             ).squeeze(0)
 
-            def open_target(f):
+            def open_target(f):  # shape (1, H, W)
                 return torch.from_numpy(
                     f[
                         (
@@ -450,9 +457,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                             else "reconstruction_rss"
                         )
                     ][slice_ind]
-                ).unsqueeze(
-                    0
-                )  # shape (1, H, W)
+                ).unsqueeze(0)
 
             if any("reconstruction" in key for key in hf.keys()):
                 target = open_target(hf)
@@ -462,13 +467,16 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
             else:
                 target = None
 
-            params = (
-                {"mask": torch.as_tensor(hf["mask"])} if "mask" in hf else {}
-            )  # shape (W,)
+            if "mask" in hf:
+                params = {"mask": torch.as_tensor(hf["mask"])}  # shape (W,)
 
         if self.transform is not None:
             target, kspace, params = self.transform(
-                target, kspace, seed=str(fname) + str(slice_ind), **params
+                target,
+                kspace,
+                seed=str(fname) + str(slice_ind),
+                metadata=metadata,
+                **params,
             )
 
         return (target if target is not None else torch.nan, kspace) + (
@@ -541,43 +549,50 @@ class MRISliceTransform(MRIMixin):
     To be used with :class:`deepinv.datasets.FastMRISliceDataset`. See below for input and output shapes.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
-    :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
-        If `int`, pass this as auto-calibration size to `ESPIRiT <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_. If `True`, use ACS size from `mask_generator`.
-    :param 
+    :param bool, int estimate_coil_maps: if `True`, estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
+    :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in metadata or in `mask_generator` attributes.
+    :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
+        defaults to using a 30x30 slice in the top left corner. Optionally set tuple of slices for custom location. Defaults to False.
+    :param bool normalise: if `True`, normalise kspace by 99th percentile of RSS reconstruction of kspace ACS block.
+        if `int` or `float`, normalise kspace by `normalise / kspace.max()`.
     """
 
     def __init__(
         self,
         mask_generator: Optional[BaseMaskGenerator] = None,
         estimate_coil_maps: Union[bool, int] = False,
+        acs: int = None,
         prewhiten: tuple[slice, slice] = False,
         normalise: bool = False,
     ):
-        if (
-            mask_generator is None
-            and estimate_coil_maps
-            and not (
-                isinstance(estimate_coil_maps, int)
-                and not isinstance(estimate_coil_maps, bool)
-            )
-        ):
-            raise ValueError(
-                "ACS size not specified. Either pass in mask_generator with fixed ACS size, or specify ACS size by passing int to estimate_coil_maps."
-            )
-
         self.mask_generator = mask_generator
         self.estimate_coil_maps = estimate_coil_maps
+        self.acs = acs
         self.prewhiten = prewhiten
         if self.prewhiten is True:
             self.prewhiten = (slice(0, 30), slice(0, 30))
         self.normalise = normalise
 
-    def get_acs(self):
-        # TODO if num_low_frequency present in hf.attrs.keys(), then use this as acc on the fly instead
-        return (
-            self.mask_generator.n_center
-            if self.estimate_coil_maps == True
-            else self.estimate_coil_maps
+    def get_acs(self, metadata: dict):
+        """Get number of low frequency lines for autocalibration.
+
+        First checks `acs` attribute. Then looks in `metadata["acs"]` if it the `acs` key is present in the data.
+        Then checks `mask_generator.n_center`. Finally, raises error if ACS not set anywhere.
+
+        :param dict metadata: metadata dictionary.
+        :return int: acs size
+        """
+        if self.acs is not None:
+            return self.acs
+
+        if "acs" in metadata:
+            return metadata["acs"]
+
+        if self.mask_generator is not None:
+            return self.mask_generator.n_center
+
+        raise ValueError(
+            "ACS size not specified. Either define fixed acs, or ensure metadata has acs attribute, orpass in  mask_generator with fixed ACS size."
         )
 
     def generate_mask(
@@ -595,18 +610,26 @@ class MRISliceTransform(MRIMixin):
             batch_size=0,
         )["mask"]
 
-    def generate_maps(self, kspace: torch.Tensor) -> torch.Tensor:
+    def generate_maps(self, kspace: torch.Tensor, metadata: dict = {}) -> torch.Tensor:
         """Estimate coil maps using :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
 
         :param torch.Tensor kspace: input kspace of shape (2, N, H, W)
+        :param dict metadata: optional metadata.
         :return: estimated coil maps of shape (N, H, W) and complex dtype
         """
         return MultiCoilMRI.estimate_coil_maps(
-            kspace.unsqueeze(0), calib_size=self.get_acs()
+            kspace.unsqueeze(0), calib_size=self.get_acs(metadata=metadata)
         ).squeeze(0)
 
     def prewhiten_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
-        # kspace of shape (2, (N,) H, W)
+        """Prewhiten kspace using Cholesky decomposition.
+
+        :param torch.Tensor kspace: input multicoil kspace of shape (2, N, H, W)
+        :return: whitened kspace.
+        """
+        if len(ksp.shape) < 4:
+            raise ValueError("kspace must be multicoil for prewhitening.")
+
         ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0)  # N, H, W complex
 
         n = ksp[:, self.prewhiten[0], self.prewhiten[1]].flatten(-2)
@@ -618,15 +641,25 @@ class MRISliceTransform(MRIMixin):
             ksp = torch.linalg.solve(torch.linalg.cholesky(cov), ksp)
             return self.from_torch_complex(
                 ksp.unflatten(-1, kspace.shape[-2:]).unsqueeze(0)
-            ).squeeze(
-                0
-            )  # 2,N,H,W
+            ).squeeze(0)
         except torch.linalg.LinAlgError:
-            # Non-PSD due to ksp all zeros
-            return kspace
+            return kspace  # Non-PSD due to ksp all zeros
 
-    def normalise_kspace(self, kspace: torch.Tensor) -> torch.Tensor:
-        acs = self.get_acs()
+    def normalise_kspace(
+        self, kspace: torch.Tensor, metadata: dict = {}
+    ) -> torch.Tensor:
+        """Normalise kspace by percentile of RSS of ACS.
+
+        :param torch.Tensor kspace: input kspace of shape (2, (N,) H, W)
+        :param dict metadata: optional metadata.
+        :return: whitened kspace.
+        """
+        if isinstance(self.normalise, (float, int)) and not isinstance(
+            self.normalise, bool
+        ):
+            return kspace / kspace.max() * self.normalise
+
+        acs = self.get_acs(metadata=metadata)
         H, W = kspace.shape[-2:]
         mask = torch.zeros_like(kspace)
         mask[
@@ -635,7 +668,6 @@ class MRISliceTransform(MRIMixin):
             W // 2 - acs // 2 : W // 2 + ceildiv(acs, 2),
         ] = 1
 
-        # Normalise by percentile of RSS of ACS
         return kspace / self.rss(
             self.kspace_to_im((kspace * mask).unsqueeze(0))
         ).quantile(0.99)
@@ -646,22 +678,24 @@ class MRISliceTransform(MRIMixin):
         kspace: torch.Tensor,
         mask: torch.Tensor = None,
         seed: Union[str, int] = None,
+        metadata: dict = {},
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor, dict]:
         """Call transform.
 
-        :param torch.Tensor target: target of shape (1, H, W)
-        :param torch.Tensor kspace: kspace of shape (2, (N,) H, W) where (N,) is optional multicoil
-        :param torch.Tensor mask: optional mask to load, defaults to None.
-        :param Union[str, int] seed: optional random seed for generating mask, defaults to None
-        :return: target, kspace, params, where params is dict containing `mask` (of shape (C, H, W)) and/or `coil_maps` (of shape (N, H, W) and complex dtype).
+        :param torch.Tensor target: target of shape (1, H, W), or nan.
+        :param torch.Tensor kspace: kspace of shape (2, (N,) H, W) where (N,) is optional multicoil, `float32` dtype
+        :param torch.Tensor mask: optional mask to load of shape (W,), defaults to None.
+        :param str, int seed: optional random seed for generating mask, defaults to None.
+        :param dict metadata: optional metadata dict.
+        :return: `x, y, params`, where params is dict containing
+            `mask` (of shape (C, H, W) of `float` dtype) and/or
+            `coil_maps` (of shape (N, H, W) and `complex64` dtype).
         """
 
-        # Pre-whiten
         if self.prewhiten:
             kspace = self.prewhiten_kspace(kspace)
 
-        # Normalise kspace
         if self.normalise:
             kspace = self.normalise_kspace(kspace)
 
@@ -677,8 +711,4 @@ class MRISliceTransform(MRIMixin):
         if self.estimate_coil_maps:
             params["coil_maps"] = self.generate_maps(kspace)
 
-        # target 2, H, W float32
-        # kspace 2, N, H, W float32
-        # mask 1, H, W float32
-        # maps N, H, W complex64
         return target, kspace, params
