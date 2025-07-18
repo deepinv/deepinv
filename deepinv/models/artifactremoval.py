@@ -78,6 +78,8 @@ class ArtifactRemoval(Reconstructor):
         """
         if hasattr(physics.noise_model, "sigma"):
             sigma = physics.noise_model.sigma
+        elif hasattr(physics.noise_model, "gain"):
+            sigma = physics.noise_model.gain
         else:
             sigma = None
 

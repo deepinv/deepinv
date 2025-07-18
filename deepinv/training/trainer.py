@@ -15,6 +15,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from torchvision.utils import save_image
 import inspect
+from deepinv.models import ArtifactRemoval, Denoiser
 
 
 @dataclass
@@ -70,8 +71,8 @@ class Trainer:
 
     :Basics:
 
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-        or any other custom reconstruction network.
+    :param deepinv.models.Reconstructor, deepinv.models.Denoiser, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
+        or any other custom reconstruction network. If the model is a ``Denoiser``, it will be wrapped in an :class:`ArtifactRemoval` model.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
         above for how we expect data to be provided.
@@ -233,6 +234,13 @@ class Trainer:
     verbose_individual_losses: bool = True
     show_progress_bar: bool = True
 
+    def setup_denoiser(self):
+        r""" "Wrap the Denoiser in an ArtifactRemoval"""
+        if not isinstance(self.model, ArtifactRemoval):
+            self.model = ArtifactRemoval(
+                backbone_net=self.model, mode="direct", device=self.device
+            )
+
     def setup_train(self, train=True, **kwargs):
         r"""
         Set up the training process.
@@ -366,6 +374,12 @@ class Trainer:
         self.save_folder_im = None
 
         _ = self.load_model()
+
+        if isinstance(self.model, Denoiser):
+            self.is_denoiser = True
+            self.setup_denoiser()
+        else:
+            self.is_denoiser = False
 
     def load_model(self, ckpt_pretrained: Union[str, Path] = None) -> dict:
         """Load model from checkpoint.
@@ -911,7 +925,11 @@ class Trainer:
         os.makedirs(str(self.save_path), exist_ok=True)
         state = state | {
             "epoch": epoch,
-            "state_dict": self.model.state_dict(),
+            "state_dict": (
+                self.model.backbone_net.state_dict()
+                if self.is_denoiser
+                else self.model.state_dict()
+            ),
             "loss": self.loss_history,
             "optimizer": self.optimizer.state_dict() if self.optimizer else None,
             "scheduler": self.scheduler.state_dict() if self.scheduler else None,
@@ -1157,6 +1175,9 @@ class Trainer:
             wandb.save("model.h5")
             wandb.finish()
 
+        if self.is_denoiser:
+            self.model = self.model.backbone_net
+
         return self.model
 
     def test(
@@ -1229,6 +1250,9 @@ class Trainer:
                 out[name + "_vals"] = l.vals
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
+
+        if self.is_denoiser:
+            self.model = self.model.backbone_net
 
         return out
 
