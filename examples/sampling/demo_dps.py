@@ -114,7 +114,7 @@ alphas = (1 - betas).cumprod(dim=0)
 #         \end{equation*}
 #
 # where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
-# :math:`\eta` is a hyperparameter in [0,], and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
+# :math:`\eta` is a hyperparameter in [0, 1], and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 #
 # .. math::
 #         \begin{equation*}
@@ -210,7 +210,7 @@ with torch.enable_grad():
     # Turn on gradient
     xt.requires_grad_()
 
-    # normalize to [0,1], denoise, and rescale to [-1, 1]
+    # normalize to [0, 1], denoise, and rescale to [-1, 1]
     x0_t = model(xt / 2 + 0.5, sigma_cur / 2) * 2 - 1
     # Log-likelihood
     ll = data_fidelity(x0_t, y, physics).sqrt().sum()
