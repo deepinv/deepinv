@@ -419,9 +419,11 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                     if len(shape) == 4
                     else {}
                 )
-                | {"acs": int(hf.attrs["num_low_frequency"])}
-                if hasattr(hf.attrs, "num_low_frequency")
-                else {}
+                | (
+                    {"acs": int(hf.attrs["num_low_frequency"])}
+                    if hasattr(hf.attrs, "num_low_frequency")
+                    else {}
+                )
             )
 
         return metadata
@@ -551,6 +553,8 @@ class MRISliceTransform(MRIMixin):
     To be used with :class:`deepinv.datasets.FastMRISliceDataset`. See below for input and output shapes.
 
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
+    :param bool seed_mask_generator: if `True`, generated mask for given kspace is **always** the same.
+        This should be `True` for test set. For supervised training, set to `False` for higher diversity in kspace undersampling.
     :param bool, int estimate_coil_maps: if `True`, estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
     :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in metadata or in `mask_generator` attributes.
     :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
@@ -562,12 +566,14 @@ class MRISliceTransform(MRIMixin):
     def __init__(
         self,
         mask_generator: Optional[BaseMaskGenerator] = None,
+        seed_mask_generator: bool = True,
         estimate_coil_maps: Union[bool, int] = False,
         acs: int = None,
         prewhiten: tuple[slice, slice] = False,
         normalise: bool = False,
     ):
         self.mask_generator = mask_generator
+        self.seed_mask_generator = seed_mask_generator
         self.estimate_coil_maps = estimate_coil_maps
         self.acs = acs
         self.prewhiten = prewhiten
@@ -607,7 +613,7 @@ class MRISliceTransform(MRIMixin):
         :return: mask of shape (C, H, W)
         """
         return self.mask_generator.step(
-            seed=seed,
+            seed=seed if self.seed_mask_generator else None,
             img_size=kspace.shape[-2:],
             batch_size=0,
         )["mask"]
