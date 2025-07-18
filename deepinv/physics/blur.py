@@ -1,7 +1,6 @@
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
-import numpy as np
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
@@ -211,16 +210,27 @@ class Upsampling(Downsampling):
 
     where :math:`S^T` is the adjoint of the subsampling operator and :math:`h` is a low-pass filter.
 
-    :param torch.Tensor, str, None filter: Upsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
-        , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param torch.Tensor, str, None filter: Upsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``,
+        ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
     :param tuple[int] img_size: size of the output image
     :param int factor: upsampling factor
     :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
     :param str device: cpu or cuda
     """
-    def __init__(self, img_size, filter=None, factor=2, padding="circular", device="cpu", **kwargs):
 
-        assert padding != "valid", "Padding 'valid' is not supported for Upsampling operator."
+    def __init__(
+        self,
+        img_size,
+        filter=None,
+        factor=2,
+        padding="circular",
+        device="cpu",
+        **kwargs,
+    ):
+
+        assert (
+            padding != "valid"
+        ), "Padding 'valid' is not supported for Upsampling operator."
 
         super().__init__(
             img_size=img_size,

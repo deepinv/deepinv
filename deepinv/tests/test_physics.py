@@ -385,7 +385,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=No
         factor = 2
         norm = 1.0 / factor**2
         p = dinv.physics.Upsampling(
-            img_size=(img_size[0], img_size[1]*factor, img_size[2]*factor),
+            img_size=(img_size[0], img_size[1] * factor, img_size[2] * factor),
             factor=factor,
             padding=padding,
             device=device,
@@ -619,6 +619,7 @@ def test_operators_adjointness(name, device, rng):
 
     assert error2 < 1e-3
 
+
 def test_upsampling(device, rng):
     r"""
     This function tests that the Upsampling and Downsampling operators are effectively adjoint to each other.
@@ -627,17 +628,20 @@ def test_upsampling(device, rng):
     does not support 'valid' padding.
     """
 
-    list_ops = ["down_resolution_circular",
-                 "down_resolution_reflect",
-                 "down_resolution_replicate",
-                 "down_resolution_constant"]
+    list_ops = [
+        "down_resolution_circular",
+        "down_resolution_reflect",
+        "down_resolution_replicate",
+        "down_resolution_constant",
+    ]
 
     for kernel in ["bilinear", "bicubic", "sinc", "gaussian"]:
         for name in list_ops:
             padding = name.split("_")[-1]  # get padding type from name
             physics, imsize, _, dtype = find_operator(name, device)
-            physics_adjoint, _, _, dtype = find_operator("super_resolution_"+padding, device, imsize=imsize)
-
+            physics_adjoint, _, _, dtype = find_operator(
+                "super_resolution_" + padding, device, imsize=imsize
+            )
 
             # physics.register_buffer("filter", None)
             physics.update_parameters(filter=kernel)
@@ -647,7 +651,12 @@ def test_upsampling(device, rng):
 
             factor = physics.factor
 
-            x = torch.randn((1, imsize[0], imsize[1], imsize[2]), device=device, dtype=dtype, generator=rng)
+            x = torch.randn(
+                (1, imsize[0], imsize[1], imsize[2]),
+                device=device,
+                dtype=dtype,
+                generator=rng,
+            )
 
             out = physics(x)
             assert out.shape == (1, imsize[0], imsize[1] * factor, imsize[2] * factor)
@@ -657,12 +666,16 @@ def test_upsampling(device, rng):
             assert err1 < 1e-6
 
             imsize_new = (*imsize[:1], imsize[1] * factor, imsize[2] * factor)
-            physics_adjoint, _, _, dtype = find_operator("super_resolution_"+padding, device, imsize=imsize_new)  # we need to redefine the adjoint operator with the new image size
+            physics_adjoint, _, _, dtype = find_operator(
+                "super_resolution_" + padding, device, imsize=imsize_new
+            )  # we need to redefine the adjoint operator with the new image size
 
             # physics_adjoint.register_buffer("filter", None)
             physics_adjoint.update_parameters(filter=kernel)
 
-            x = torch.randn(imsize_new, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+            x = torch.randn(
+                imsize_new, device=device, dtype=dtype, generator=rng
+            ).unsqueeze(0)
             y = physics_adjoint(x)
             err2 = (physics.A(y) - physics_adjoint.A_adjoint(y)).flatten().mean().abs()
             assert err2 < 1e-6
