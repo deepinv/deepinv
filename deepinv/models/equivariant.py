@@ -1,5 +1,4 @@
 from typing import Optional
-import torch
 from deepinv.transform import Transform, Rotate, Reflect
 from .base import Denoiser
 

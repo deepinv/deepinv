@@ -1,6 +1,5 @@
 from typing import Union, Optional
 
-import numpy as np
 import torch
 
 from deepinv.loss.loss import Loss

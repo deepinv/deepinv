@@ -1,4 +1,3 @@
-import torch
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer
 

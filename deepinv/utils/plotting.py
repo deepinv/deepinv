@@ -21,7 +21,6 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from PIL import Image
-import io
 
 
 def config_matplotlib(fontsize=17):

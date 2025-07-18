@@ -14,6 +14,7 @@ Additionally, this operator exclusively supports CUDA operations, so running the
 # %%
 import deepinv as dinv
 from pathlib import Path
+import importlib
 import torch
 
 from deepinv.optim.data_fidelity import L2
@@ -23,13 +24,12 @@ from deepinv.utils.demo import load_torch_url
 from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 
-try:
-    import astra
+if importlib.util.find_spec("astra") is not None:
     from deepinv.physics import TomographyWithAstra
-except ModuleNotFoundError as e:
+else:
     raise ModuleNotFoundError(
         "The TomographyWithAstra operator runs with astra backend"
-    ) from e
+    )
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
