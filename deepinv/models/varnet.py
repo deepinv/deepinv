@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from typing import Union
 from warnings import warn
 
 import torch
@@ -10,9 +10,6 @@ from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
 from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
-
-if TYPE_CHECKING:
-    pass
 
 
 class VarNet(ArtifactRemoval, MRIMixin):
