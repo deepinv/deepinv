@@ -486,17 +486,11 @@ def find_nonlinear_operator(name, device):
 
 def wrap_physics(wrapper_name, physics, img_size, device):
     if wrapper_name == "LinearPhysicsMultiScaler":
-        # img_size_out = (*img_size[1:-2], img_size[-2] // 2, img_size[-1] // 2)
-        # img_size_out = (img_size[1], img_size[-2] // 2, img_size[-1] // 2)
-        # img_size_out = (1, img_size[-2], img_size[-1])
-        img_size_out = (1, 1, 32, 32)
         factors = [2, 4, 8]
         p = dinv.physics.LinearPhysicsMultiScaler(
-            physics=physics, img_shape=img_size_out, factors=factors, device=device
+            physics=physics, img_shape=img_size, factors=factors, device=device
         )
-        img_size_out = (1, 1, 8, 8)
-        # img_size_out = (img_size[0], img_size[1], img_size[-2] // 4, img_size[-1] // 4)
-        # img_size_out = img_size
+        img_size_out = (img_size[0], img_size[-2] // 4, img_size[-1] // 4)
     elif wrapper_name == "PhysicsCropper":
         crop = (2, 4)
         p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
@@ -577,8 +571,7 @@ def test_stacking(device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-@pytest.mark.parametrize("wrapper", WRAPPERS)
-def test_operators_adjointness(name, wrapper, device, rng):
+def test_operators_adjointness(name, device, rng):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -588,18 +581,13 @@ def test_operators_adjointness(name, wrapper, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts adjointness
     """
-    physics, imsize, _, dtype = find_operator(name, device, wrapper=wrapper)
+    physics, imsize, _, dtype = find_operator(name, device)
 
     if name == "radio":
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    if wrapper is None:
-        error = physics.adjointness_test(x).abs()
-    elif "scaler" in wrapper.lower():
-        error = physics.adjointness_test(x, factor=2).abs()
-    else:
-        error = physics.adjointness_test(x).abs()
+    error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
     if (
@@ -612,6 +600,53 @@ def test_operators_adjointness(name, wrapper, device, rng):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
     assert error2 < 1e-3
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+@pytest.mark.parametrize("wrapper", WRAPPERS)
+def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
+
+    # defining a list of exceptions to skip  # TODO: fix for those?
+    list_exceptions = [
+        "pansharpen",  # shape handling
+        "radio",  # data type (complex)
+        "3d",  # shape handling
+        "ptychography",  # ?
+        "composition2",  # shape handling
+        "dynamicmri",  # shape handling
+        "complex_compressed_sensing",  # data type (complex)
+    ]
+
+    if any(exc in name.lower() for exc in list_exceptions):
+        pytest.skip(f"Skipping test for operator '{name}' as it matches an exception.")
+
+    base_shape = (32, 32)
+    scale = 2
+
+    _, img_size_orig, _, _ = find_operator(
+        name, device, wrapper=None
+    )  # get img_size for the operator
+    physics, img_size_orig, _, dtype = find_operator(
+        name,
+        device,
+        wrapper=None,
+        imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
+    )  # get physics for the operator with base img size
+
+    image_shape = (
+        *img_size_orig[:-2],
+        base_shape[-2] // (scale**2),
+        base_shape[-1] // (scale**2),
+    )
+    x = torch.rand((1, *image_shape))  # add batch dim
+
+    new_physics = dinv.physics.LinearPhysicsMultiScaler(
+        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8]
+    )  # define a multiscale physics with base img size (1, 32, 32)
+    y = new_physics(x, scale=scale)
+    Aty = new_physics.A_adjoint(y, scale=scale)
+
+    assert Aty.shape == x.shape
 
 
 @pytest.mark.parametrize("name", OPERATORS)

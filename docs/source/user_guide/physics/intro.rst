@@ -233,7 +233,7 @@ Physics Wrappers
 Some wrappers are provided to adapt existing operators to a new problem.
 
 For example, given an operator :math:`A \column \mathbb{R}^N\to\mathbb{R}^M` and an image :math:`x\in\mathbb{R}^P` with :math:`P\neq N`, we need to resize the image to the operator's input size.
-This can be done with the :func:`deepinv.physics.LinearPhysicsMultiScaler` class:
+This can be done with the :class:`deepinv.physics.LinearPhysicsMultiScaler` class:
 
 .. doctest::
 
