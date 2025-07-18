@@ -92,7 +92,7 @@ class RadioInterferometry(LinearPhysics):
     def setWeight(self, w):
         self.dataWeight = w.to(self.device)
 
-    def A(self, x):
+    def A(self, x, **kwargs):
         r"""
         Applies the weighted NUFFT operator to the input image.
 
@@ -104,7 +104,7 @@ class RadioInterferometry(LinearPhysics):
             * self.dataWeight
         )
 
-    def A_adjoint(self, y):
+    def A_adjoint(self, y, **kwargs):
         r"""
         Applies the adjoint of the weighted NUFFT operator.
 

@@ -52,7 +52,7 @@ least squares problem.
     >>> # Forward operator, here inpainting
     >>> mask = torch.ones((1, 2, 2))
     >>> mask[0, 0, 0] = 0
-    >>> physics = dinv.physics.Inpainting(tensor_size=mask.shape, mask=mask)
+    >>> physics = dinv.physics.Inpainting(img_size=mask.shape, mask=mask)
     >>> # Generate data
     >>> x = torch.ones((1, 1, 2, 2))
     >>> y = physics(x)
@@ -164,6 +164,8 @@ which are used by most optimization algorithms.
      - :math:`N_0 (1^{\top} \exp(-\mu A(x))+ \mu \exp(-\mu y)^{\top}A(x))`
    * - :class:`deepinv.optim.AmplitudeLoss`
      - :math:`\sum_{i=1}^{m}{(\sqrt{|b_i^{\top} x|^2}-\sqrt{y_i})^2}`
+   * - :class:`deepinv.optim.ZeroFidelity`
+     - :math:`\datafid{x}{y} = 0`. 
 
 
 .. _priors:

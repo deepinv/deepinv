@@ -4,12 +4,84 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-
 Current
+-------
+
+New Features
+^^^^^^^^^^^^
+
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.2
+------
+New Features
+^^^^^^^^^^^^
+- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
+- Add `Physics.clone` (:gh:`534` by `Jérémy Scanvic`_)
+
+Changed
+^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+- Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
+- Update python version to 3.10+ (:gh:`605` by `Minh Hai Nguyen`_)
+
+Fixed
+^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+- Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
+- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)  
+- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)
+
+  
+
+v0.3.1
 ----------------
 
 New Features
 ^^^^^^^^^^^^
+
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_).
+
+Fixed
+^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
+- Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
+- Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
+- Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
+- Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
+- Improved code coverage by mocking datasets (:gh:`490` by `Jérémy Scanvic`_)
+
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
+- Upgrade deprecated typing.T types in the code base (:gh:`501` by `Jérémy Scanvic`_)
+
+v0.3
+----------------
+
+New Features
+^^^^^^^^^^^^
+- Added early-stopping callback for Trainer and best model saving (:gh:`437` by `Julian Tachella`_ and `Andrew Wang`_)
+- Add various generators for the physics module (downsampling, variable masks for inpainting, PoissonGaussian generators etc) (:gh:`384` by `Matthieu Terris`_)
+- Add minres least squared solver (:gh:`425` by `Sebastian Neumayer`_ and `Johannes Hertrich`_)
 - New least squared solvers (BiCGStab & LSQR) (:gh:`393` by `Julian Tachella`_)
 - Typehints are used automatically in the documentation (:gh:`379` by `Julian Tachella`_)
 - Add Ptychography operator in physics.phase_retrieval (:gh:`351` by `Victor Sechaud`_)
@@ -27,14 +99,30 @@ New Features
 - CMRxRecon dataset and generalised dataset metadata caching (:gh:`385` by `Andrew Wang`_)
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
+- MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
+- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_ and `Julian Tachella`_ )
+- Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
+- Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
+- Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)
+- Add test physics device transfer and differentiablity (:gh:`462` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
+- Fixed MRI noise bug in kernel of mask (:gh:`384` by `Matthieu Terris`_)
+- Support for multi-physics / multi-dataset during training fixed (:gh:`384` by `Matthieu Terris`_)
 - Fixed device bug (:gh:`415` by `Dongdong Chen`_)
 - Fixed hyperlinks throughout docs (:gh:`379` by `Julian Tachella`_)
 - Missing sigma normalization in L2Denoiser (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
 - Trainer discards checkpoint after loading (:gh:`385` by `Andrew Wang`_)
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
+- Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
+- Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
+- Fix device inconsistency in test_physics, physics classes and noise models (:gh:`462` by `Minh Hai Nguyen`_)
+
+
+- Fix Ptychography can not handle multi-channels input (:gh:`494` by `Minh Hai Nguyen`_)
+- Fix argument name (img_size, in_shape, ...) inconsistency  (:gh:`494` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -50,6 +138,12 @@ v0.2.2
 
 New Features
 ^^^^^^^^^^^^
+- Added NCNSpp, ADMUNet model and pretrained weights (by `Minh Hai Nguyen`_)
+- Added SDE class (DiffusionSDE (OU Process), VESDE) for image generation (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added SDE solvers (Euler, Heun) (by `Minh Hai Nguyen`_ and `Samuel Hurault`_)
+- Added example on image generation, working for NCNSpp, ADMUNet, DRUNet and DiffUNet (by `Minh Hai Nguyen`_ and `Mathieu Terris`_)
+- Added VP-SDE for image generation and posterior sampling (:gh:`434` by `Minh Hai Nguyen`_)
+
 - global path for datasets get_data_home() (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - New docs user guide (:gh:`347` by `Julian Tachella`_ and `Thomas Moreau`_)
 - Added UNSURE loss (:gh:`313` by `Julian Tachella`_)
@@ -113,8 +207,8 @@ New Features
 - Add k-t MRI mask generators using Gaussian, random uniform and equispaced sampling stratgies (:gh:`206` by `Andrew Wang`_)
 - Added Lidc-Idri buit-in datasets (:gh:`270` by Maxime SONG) - 12/07/2024
 - Added Flickr2k / LSDIR / Fluorescent Microscopy Denoising  buit-in datasets (:gh:`276` by Maxime SONG) - 15/07/2024
-- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`)
-- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`)
+- Added `rng` a random number generator to each `PhysicsGenerator` and a `seed` number argument to `step()` function (by `Minh Hai Nguyen`_)
+- Added an equivalent of `numpy.random.choice()` in torch, available in `deepinv.physics.functional.random_choice()` (by `Minh Hai Nguyen`_)
 - Added stride, shape in `PatchDataset` (:gh:`308` by apolychronou)
 
 Fixed
@@ -127,7 +221,7 @@ Fixed
 - Fixed averaging loss over epochs Trainer (:gh:`241` by Julian Tachella) - 11/06/2024
 - Fixed Trainer save_path timestamp problem on Windows (:gh:`245` by `Andrew Wang`_)
 - Fixed inpainting/SplittingLoss mask generation + more flexible tensor size handling + pixelwise masking (:gh:`267` by `Andrew Wang`_)
-- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`)
+- Fixed the `deepinv.physics.generator.ProductConvolutionBlurGenerator`, allowing for batch generation (previously does not work) by (`Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
@@ -280,7 +374,7 @@ Authors
 .. _Brayan Monroy: https://github.com/bemc22
 .. _Nils Laurent: https://nils-laurent.github.io/
 .. _Johannes Hertrich: https://johertrich.github.io/
-.. _Minh Hai Nguyen: https://fr.linkedin.com/in/minh-hai-nguyen-7120
+.. _Minh Hai Nguyen: https://mh-nguyen712.github.io/
 .. _Florian Sarron: https://fsarron.github.io/
 .. _Pierre Weiss: https://www.math.univ-toulouse.fr/~weiss/
 .. _Zhiyuan Hu: https://github.com/zhiyhu1605
@@ -289,3 +383,6 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
+.. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Romain Vo: https://github.com/romainvo

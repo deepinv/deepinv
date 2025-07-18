@@ -1,4 +1,4 @@
-from torch import Tensor, rand
+from torch import Tensor
 import torch.nn as nn
 from deepinv.physics import Physics, TimeMixin
 from deepinv.models.base import Reconstructor
@@ -20,7 +20,7 @@ class TimeAgnosticNet(Reconstructor, TimeMixin):
     >>> from deepinv.models import UNet, TimeAgnosticNet
     >>> model = UNet(scales=2)
     >>> model = TimeAgnosticNet(model)
-    >>> y = rand(1, 1, 4, 8, 8) # B,C,T,H,W
+    >>> y = torch.rand(1, 1, 4, 8, 8) # B,C,T,H,W
     >>> x_net = model(y, None)
     >>> x_net.shape == y.shape
     True
@@ -64,7 +64,7 @@ class TimeAveragingNet(
     >>> from deepinv.models import UNet, TimeAveragingNet
     >>> model = UNet(scales=2)
     >>> model = TimeAveragingNet(model)
-    >>> y = rand(1, 1, 4, 8, 8) # B,C,T,H,W
+    >>> y = torch.rand(1, 1, 4, 8, 8) # B,C,T,H,W
     >>> x_net = model(y, None)
     >>> x_net.shape # B,C,H,W
     torch.Size([1, 1, 8, 8])

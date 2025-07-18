@@ -26,11 +26,17 @@ class DiffUNet(Denoiser):
 
     The network can handle images of size :math:`2^{n_1}\times 2^{n_2}` with :math:`n_1,n_2 \geq 5`.
 
+    .. note::
+
+        The weights available for download are pretrained on 256x256 images,
+        thus generation is likely to fail for different image sizes
+        (see https://github.com/deepinv/deepinv/issues/602).
+
     .. warning::
 
         This model has 2 forward modes:
 
-        * ``forward_diffuse``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
+        * ``forward_diffusion``: in the first mode, the model takes a noisy image and a timestep as input and estimates the noise map in the input image. This mode is consistent with the original implementation from the authors, i.e. it assumes the same image normalization.
         * ``forward_denoise``: in the second mode, the model takes a noisy image and a noise level as input and estimates the noiseless underlying image in the input image. In this case, we assume that images have values in [0, 1] and a rescaling is performed under the hood.
 
 
@@ -292,12 +298,70 @@ class DiffUNet(Denoiser):
         :return: an `(N, C, ...)` Tensor of outputs. Either a noise map (if ``type_t='timestep'``) or a denoised image
                     (if ``type_t='noise_level'``).
         """
-        if type_t == "timestep":
-            return self.forward_diffusion(x, t, y=y)
-        elif type_t == "noise_level":
-            return self.forward_denoise(x, t, y=y)
+        if x.shape[-2] < 520 and x.shape[-1] < 520:
+            pad = (-x.size(-1) % 32, 0, -x.size(-2) % 32, 0)
+            x = torch.nn.functional.pad(x, pad, mode="circular")
+            if type_t == "timestep":
+                out = self.forward_diffusion(x, t, y=y)
+            elif type_t == "noise_level":
+                out = self.forward_denoise(x, t, y=y)
+            else:
+                raise ValueError('type_t must be either "timestep" or "noise_level"')
+            return out[..., pad[-2] :, pad[-4] :]
         else:
-            raise ValueError('type_t must be either "timestep" or "noise_level"')
+            return self.patch_forward(x, t, y=y, type_t=type_t, patch_size=512)
+
+    def patch_forward(self, x, t, y=None, type_t="noise_level", patch_size=512):
+        r"""
+        Splits an image tensor into patches (without overlapping), applies the model to each patch, and reconstructs the full image.
+
+        :param x: Input low-quality image tensor of shape (B, C, H, W).
+        :param patch_size: Size of the patches to split into.
+        :param \*args: Additional positional arguments for the model.
+        :param \*\*kwargs: Additional keyword arguments for the model.
+
+        :return: Reconstructed image tensor.
+        """
+
+        pad_input = (-x.size(-1) % patch_size, 0, -x.size(-2) % patch_size, 0)
+        x = torch.nn.functional.pad(x, pad_input, mode="circular")
+
+        B, C, H, W = x.shape
+
+        # Calculate number of patches needed
+        h_patches = int((H + patch_size - 1) // patch_size)  # Ceiling division
+        w_patches = int((W + patch_size - 1) // patch_size)
+
+        # Pad image to fit exactly into patches if necessary
+        pad_h = int(h_patches * patch_size - H)
+        pad_w = int(w_patches * patch_size - W)
+        x_padded = F.pad(x, (pad_h, 0, pad_w, 0), mode="circular")
+
+        # Process patches
+        E_padded = torch.zeros(B, C, H + pad_h, W + pad_w).type_as(x)
+
+        for i in range(h_patches):
+            for j in range(w_patches):
+                h_start = int(i * patch_size)
+                w_start = int(j * patch_size)
+                patch = x_padded[
+                    ..., h_start : h_start + patch_size, w_start : w_start + patch_size
+                ]
+
+                # Apply model to the patch
+                E_patch = self.forward(patch, t, y=y, type_t=type_t)
+
+                # Place processed patch in the output tensor
+                E_padded[
+                    ...,
+                    h_start : (h_start + patch_size),
+                    w_start : (w_start + patch_size),
+                ] = E_patch
+
+        # Crop back to original size
+        E = E_padded[..., :H, :W]
+
+        return E[..., pad_input[-2] :, pad_input[-4] :]
 
     def convert_to_fp16(self):
         """
@@ -327,7 +391,10 @@ class DiffUNet(Denoiser):
         :param x: an [N x C x ...] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
         :param y: an [N] Tensor of labels, if class-conditional. Default=None.
-        :return: an `(N, C, ...)` Tensor of outputs.
+        :return: an `(N, 2*C, ...)` Tensor of outputs, where the first C
+            channels are the noise estimates and the remaining C are the per-pixel
+            variances, as in the original implementation:
+            https://github.com/openai/guided-diffusion/blob/main/guided_diffusion/gaussian_diffusion.py#L263
         """
         assert (y is not None) == (
             self.num_classes is not None
@@ -335,7 +402,6 @@ class DiffUNet(Denoiser):
 
         hs = []
         emb = self.time_embed(timestep_embedding(timesteps, self.model_channels))
-
         if self.num_classes is not None:
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
@@ -357,12 +423,12 @@ class DiffUNet(Denoiser):
         """
         Get the alpha sequences; this is necessary for mapping noise levels to timesteps when performing pure denoising.
         """
-        betas = np.linspace(beta_start, beta_end, num_train_timesteps, dtype=np.float32)
-        betas = torch.from_numpy(
-            betas
-        )  # .to(self.device) Removing this for now, can be done outside
+        betas = torch.linspace(
+            beta_start, beta_end, num_train_timesteps, dtype=torch.float32
+        )
+        # .to(self.device) Removing this for now, can be done outside
         alphas = 1.0 - betas
-        alphas_cumprod = np.cumprod(alphas.cpu(), axis=0)  # This is \overline{\alpha}_t
+        alphas_cumprod = torch.cumprod(alphas, dim=0)  # This is \overline{\alpha}_t
 
         # Useful sequences deriving from alphas_cumprod
         sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
@@ -380,12 +446,9 @@ class DiffUNet(Denoiser):
 
     def find_nearest(self, array, value):
         """
-        Find the argmin of the nearest value in an array.
+        Find the argmin of the nearest value in a tensor.
         """
-        array = np.asarray(array)
-        if isinstance(value, torch.Tensor):
-            value = np.asarray(value.cpu())
-        idx = (np.abs(array - value)).argmin()
+        idx = (torch.abs(array[:, None] - value[None, :])).argmin(dim=0)
         return idx
 
     def forward_denoise(self, x, sigma, y=None):
@@ -407,9 +470,10 @@ class DiffUNet(Denoiser):
         :param torch.Tensor y: an (N) Tensor of labels, if class-conditional. Default=None.
         :return: an `(N, C, ...)` Tensor of outputs.
         """
-        if sigma is not torch.tensor:
-            sigma = torch.tensor(sigma).to(x.device)
 
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
         alpha = 1 / (1 + 4 * sigma**2)
         x = alpha.sqrt() * (2 * x - 1)
         sigma = sigma * alpha.sqrt()
@@ -422,16 +486,16 @@ class DiffUNet(Denoiser):
         ) = self.get_alpha_prod()
 
         timesteps = self.find_nearest(
-            sqrt_1m_alphas_cumprod, sigma * 2
+            sqrt_1m_alphas_cumprod.to(x.device), sigma.squeeze(dim=(1, 2, 3)) * 2
         )  # Factor 2 because image rescaled in [-1, 1]
 
-        noise_est_sample_var = self.forward_diffusion(
-            x, torch.tensor([timesteps]).to(x.device), y=y
-        )
+        timesteps = timesteps.to(x.device)
+        noise_est_sample_var = self.forward_diffusion(x, timesteps, y=y)
         noise_est = noise_est_sample_var[:, :3, ...]
-        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod[timesteps]
+        denoised = (x - noise_est * sigma * 2) / sqrt_alphas_cumprod.to(x.device)[
+            timesteps
+        ].view(-1, 1, 1, 1)
         denoised = denoised.clamp(-1, 1)
-
         return (denoised + 1) / 2
 
 

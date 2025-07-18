@@ -6,6 +6,7 @@ import torch
 
 import torch
 from torch import Tensor
+import numpy as np
 
 from deepinv.datasets import (
     DIV2K,
@@ -17,13 +18,29 @@ from deepinv.datasets import (
     Kohler,
     FastMRISliceDataset,
     SimpleFastMRISliceDataset,
+    MRISliceTransform,
     CMRxReconSliceDataset,
     NBUDataset,
+    LidcIdriSliceDataset,
+    Flickr2kHR,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
+
+from unittest.mock import patch
+import unittest.mock as mock
+import io
+
+
+def get_dummy_pil_png_image():
+    """Generates a dummy PIL image for testing."""
+    im = PIL.Image.new("RGB", (128, 128), color=(0, 0, 0))
+    buffer = io.BytesIO()
+    im.save(buffer, format="PNG")
+    buffer.seek(0)
+    return PIL.PngImagePlugin.PngImageFile(buffer)
 
 
 @pytest.fixture
@@ -81,25 +98,70 @@ def test_load_urban100_dataset(download_urban100):
 @pytest.fixture
 def download_set14():
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "Set14"
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = "Set14"
 
-    # Download Set14 raw dataset
-    Set14HR(tmp_data_dir, download=True)
+        # Download Set14 raw dataset
+        Set14HR(tmp_data_dir, download=True)
 
-    # This will return control to the test function
-    yield tmp_data_dir
+        # This will return control to the test function
+        yield tmp_data_dir
 
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(Set14HR, "check_dataset_exists", return_value=True),
+            patch.object(
+                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Set14 dataset download is temporarily unavailable.")
-def test_load_set14_dataset(download_set14):
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_set14_dataset(download_set14, transform):
     """Check that dataset contains 14 PIL images."""
-    dataset = Set14HR(download_set14, download=False)
+    dataset = Set14HR(download_set14, transform=transform, download=False)
     assert (
         len(dataset) == 14
     ), f"Dataset should have been of len 14, instead got {len(dataset)}."
+    assert (
+        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
+    ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def download_flickr2khr():
+    """Download or mock Flickr2kHR before testing"""
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = "Flickr2kHR"
+
+        # Download Set14 raw dataset
+        Flickr2kHR(tmp_data_dir, download=True)
+
+        # This will return control to the test function
+        yield tmp_data_dir
+
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(Flickr2kHR, "check_dataset_exists", return_value=True),
+            patch.object(
+                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
+
+
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_Flickr2kHR_dataset(download_flickr2khr, transform):
+    """Test the dataset"""
+    dataset = Flickr2kHR(download_flickr2khr, transform=transform, download=False)
+    assert len(dataset) == 100, f"The dataset should have 100 images"
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
@@ -145,69 +207,85 @@ def test_load_cbsd68_dataset(download_cbsd68):
 @pytest.fixture
 def download_Kohler():
     """Download the Köhler dataset before a test and remove it after completion."""
-    root = "Kohler"
-    Kohler.download(root)
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        root = "Kohler"
+        Kohler.download(root)
 
-    # Return the control flow to the test function
-    yield root
+        # Return the control flow to the test function
+        yield root
 
-    # Clean up the created directory
-    shutil.rmtree(root)
+        # Clean up the created directory
+        shutil.rmtree(root)
+    else:
+        with patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Downloading Kohler dataset is unreliable for testing.")
-def test_load_Kohler_dataset(download_Kohler):
+@pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
+@pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_Kohler_dataset(download_Kohler, frames, ordering, transform):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
     dataset = Kohler(
-        root=root, frames="middle", ordering="printout_first", download=False
+        root=root, frames=frames, ordering=ordering, transform=transform, download=False
     )
-    x1, y1 = dataset.get_item(1, 1, "middle")
-    x2, y2 = dataset[0]
 
     assert (
         len(dataset) == 48
     ), f"The dataset should have been of len 48, instead got {len(dataset)}."
 
-    assert (
-        type(x1) == PIL.PngImagePlugin.PngImageFile
-    ), "The sharp frame is unexpectedly not a PIL image."
+    data_points = [dataset[0], dataset.get_item(1, 1, frames)]
 
-    assert (
-        type(y1) == PIL.PngImagePlugin.PngImageFile
-    ), "The blurry frame is unexpectedly not a PIL image."
+    for sharp_frame, blurry_shot in data_points:
+        if frames != "all":
+            assert (
+                type(sharp_frame) == PIL.PngImagePlugin.PngImageFile
+            ), "The sharp frame is unexpectedly not a PIL image."
+        else:
+            assert isinstance(
+                sharp_frame, list
+            ), "The sharp frames are unexpectedly not a list."
 
-    assert (
-        type(x2) == PIL.PngImagePlugin.PngImageFile
-    ), "The sharp frame is unexpectedly not a PIL image."
-
-    assert (
-        type(y2) == PIL.PngImagePlugin.PngImageFile
-    ), "The blurry frame is unexpectedly not a PIL image."
+        assert (
+            type(blurry_shot) == PIL.PngImagePlugin.PngImageFile
+        ), "The blurry frame is unexpectedly not a PIL image."
 
 
+@pytest.fixture
 def download_lsdir():
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "LSDIR"
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = "LSDIR"
 
-    # Download LSDIR raw dataset
-    LsdirHR(tmp_data_dir, mode="val", download=True)
+        # Download LSDIR raw dataset
+        LsdirHR(tmp_data_dir, mode="val", download=True)
 
-    # This will return control to the test function
-    yield tmp_data_dir
+        # This will return control to the test function
+        yield tmp_data_dir
 
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(
+                os, "listdir", return_value=[f"{i}.png" for i in range(1, 251)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Skipping this test for now, url links are not working")
-def test_load_lsdir_dataset(download_lsdir):
+@pytest.mark.parametrize("mode", ["train", "val"])
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+def test_load_lsdir_dataset(download_lsdir, mode, transform):
     """Check that dataset contains 250 PIL images."""
-    dataset = LsdirHR(download_lsdir, mode="val", download=False)
-    assert (
-        len(dataset) == 250
-    ), f"Dataset should have been of len 250, instead got {len(dataset)}."
+    dataset = LsdirHR(download_lsdir, mode=mode, transform=transform, download=False)
+    if mode == "val":
+        assert (
+            len(dataset) == 250
+        ), f"Dataset should have been of len 250, instead got {len(dataset)}."
     assert (
         type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
@@ -216,32 +294,101 @@ def test_load_lsdir_dataset(download_lsdir):
 @pytest.fixture
 def download_fmd():
     """Downloads dataset for tests and removes it after test executions."""
-    tmp_data_dir = "FMD"
+    if not os.environ.get("DEEPINV_MOCK_TESTS", False):
+        tmp_data_dir = "FMD"
 
-    # indicates which subsets we want to download
-    types = ["TwoPhoton_BPAE_R"]
+        # indicates which subsets we want to download
+        types = ["TwoPhoton_BPAE_R"]
 
-    # Download FMD raw dataset
-    FMD(tmp_data_dir, img_types=types, download=True)
+        # Download FMD raw dataset
+        FMD(tmp_data_dir, img_types=types, download=True)
 
-    # This will return control to the test function
-    yield tmp_data_dir
+        # This will return control to the test function
+        yield tmp_data_dir
 
-    # After the test function complete, any code after the yield statement will run
-    shutil.rmtree(tmp_data_dir)
+        # After the test function complete, any code after the yield statement will run
+        shutil.rmtree(tmp_data_dir)
+    else:
+        with (
+            patch.object(
+                os, "listdir", return_value=[f"{i}.png" for i in range(1, 51)]
+            ),
+            patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
+        ):
+            yield "/dummy"
 
 
-@pytest.mark.skip(reason="Downloading FMD dataset is unreliable for testing.")
-def test_load_fmd_dataset(download_fmd):
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+@pytest.mark.parametrize("target_transform", [None, lambda x: x])
+def test_load_fmd_dataset(download_fmd, transform, target_transform):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
     types = ["TwoPhoton_BPAE_R"]
-    dataset = FMD(download_fmd, img_types=types, download=True)
+    dataset = FMD(
+        download_fmd,
+        img_types=types,
+        transform=transform,
+        target_transform=target_transform,
+        download=False,
+    )
     assert (
         len(dataset) == 5000
     ), f"Dataset should have been of len 5000, instead got {len(dataset)}."
     assert (
         type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
     ), "Dataset image should have been a PIL image."
+
+
+@pytest.fixture
+def mock_lidc_idri():
+    """Mock the LIDC-IDRI dataset"""
+    if os.environ.get("DEEPINV_MOCK_TESTS", False):
+        import pandas as pd
+        import pydicom
+
+        data = [["CT", f"Dummy_ID_{i}", f"/dummy/Scan{i}"] for i in range(1, 1019)]
+        dummy_df = pd.DataFrame(
+            data, columns=["Modality", "Subject ID", "File Location"]
+        )
+        # Generated using pydicomgenerator
+        # https://github.com/sjoerdk/dicomgenerator
+        dummy_dicom = pydicom.dcmread(
+            os.path.join(os.path.dirname(__file__), "dicomgenerator_dummy.dcm")
+        )
+
+        # NOTE: dicomgenerator_dummy.dcm lacks a TransferSyntaxUID attribute.
+        # We monkey patch it to make the test work.
+        dummy_dicom.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+
+        # NOTE: In lidc_idri, dcmread is imported from pydicom and stored to a variable.
+        # This means that it cannot be mocked by patching pydicom.dcmread. Instead,
+        # we patch the variable from the lidc_module directly.
+        with (
+            patch.object(os.path, "isdir", return_value=True),
+            patch.object(os.path, "exists", return_value=True),
+            patch.object(pd, "read_csv", return_value=dummy_df),
+            patch.object(os, "listdir", return_value=["Slice1.dcm", "Slice2.dcm"]),
+            # We use patch instead of patch.object to avoid cluttering the namespace.
+            patch("deepinv.datasets.lidc_idri.dcmread", return_value=dummy_dicom),
+        ):
+            yield "/dummy"
+    else:
+        pytest.skip(
+            "LIDC-IDRI dataset cannot be downloaded automatically and is not available for testing."
+        )
+
+
+# NOTE: The LIDC-IDRI needs to be downloaded manually.
+@pytest.mark.parametrize("transform", [None, lambda x: x])
+@pytest.mark.parametrize("hounsfield_units", [False, True])
+def test_load_lidc_idri_dataset(mock_lidc_idri, transform, hounsfield_units):
+    """Test the LIDC-IDRI dataset."""
+    dataset = LidcIdriSliceDataset(
+        root=mock_lidc_idri, transform=transform, hounsfield_units=hounsfield_units
+    )
+    assert len(dataset) >= 1018, f"Dataset should have at least 1018 elements."
+    assert (
+        type(dataset[0]) == np.ndarray
+    ), "Dataset image should have been a numpy array."
 
 
 @pytest.fixture
@@ -324,7 +471,8 @@ def test_FastMRISliceDataset(download_fastmri):
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
-    img_shape = (213, 213)
+    n_slices = 16
+    img_size = (213, 213)
 
     # Clean data shape
     rss_shape = (320, 320)
@@ -350,7 +498,7 @@ def test_FastMRISliceDataset(download_fastmri):
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
 
-    assert target1.shape == (1, *img_shape)
+    assert target1.shape == (1, *img_size)
     assert kspace1.shape == (2, n_coils, *kspace_shape)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
@@ -359,21 +507,69 @@ def test_FastMRISliceDataset(download_fastmri):
     physics = MultiCoilMRI(
         mask=torch.ones(kspace_shape),
         coil_maps=torch.ones(kspace_shape, dtype=torch.complex64),
-        img_size=img_shape,
+        img_size=img_size,
     )
     rss1 = physics.A_adjoint(kspace1.unsqueeze(0), rss=True, crop=True)
     assert torch.allclose(target1.unsqueeze(0), rss1)
 
     # Test singlecoil MRI mag works
-    physics = MRI(mask=torch.ones(kspace_shape), img_size=img_shape)
+    physics = MRI(mask=torch.ones(kspace_shape), img_size=img_size)
     mag1 = physics.A_adjoint(kspace1.unsqueeze(0)[:, :, 0], mag=True, crop=True)
     assert target1.unsqueeze(0).shape == mag1.shape
 
     # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
     x = subset[0]
-    assert len(subset) == 16  # 16 slices
+    assert len(subset) == n_slices
     assert x.shape == (2, *rss_shape)
+
+    # Test slicing returns correct num of slices
+    def num_slices(slice_index):
+        return len(
+            FastMRISliceDataset(
+                root=data_dir,
+                slice_index=slice_index,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            ).samples
+        )
+
+    assert (
+        num_slices("all"),
+        num_slices("middle"),
+        num_slices("middle+1"),
+        num_slices(0),
+        num_slices([0, 1]),
+        num_slices("random"),
+    ) == (n_slices, 1, 3, 1, 2, 1)
+
+    # Test raw data transform for estimating maps and generating masks
+    dataset = FastMRISliceDataset(
+        root=data_dir,
+        transform=MRISliceTransform(
+            mask_generator=GaussianMaskGenerator(kspace_shape, acc=4),
+            estimate_coil_maps=True,
+        ),
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )
+    x, y, params = dataset[0]
+    assert torch.all(y * params["mask"] == y)
+    assert 0.24 < params["mask"].mean() < 0.26
+    assert params["coil_maps"].shape == (n_coils, *kspace_shape)
+
+    # Test filter_id in FastMRI init
+    assert (
+        len(
+            FastMRISliceDataset(
+                root=data_dir,
+                filter_id=lambda s: "brain" in str(s.fname) and s.slice_ind < 3,
+                load_metadata_from_cache=True,
+                metadata_cache_file="fastmrislicedataset_cache.pkl",
+            )
+        )
+        == 3
+    )
 
 
 @pytest.fixture
@@ -397,9 +593,9 @@ def download_CMRxRecon():
 def test_CMRxReconSliceDataset(download_CMRxRecon):
     from math import prod
 
-    img_shape = (12, 512, 256)
+    img_size = (12, 512, 256)
 
-    physics_generator = GaussianMaskGenerator(img_shape)
+    physics_generator = GaussianMaskGenerator(img_size)
 
     data_dir = download_CMRxRecon
 
@@ -408,6 +604,7 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         root=data_dir,
         save_metadata_to_cache=True,
         metadata_cache_file="cmrxreconslicedataset_cache.pkl",
+        mask_dir=None,
         apply_mask=False,
     )
 
@@ -423,18 +620,21 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     target1, kspace1, params1 = dataset[0]
     target2, kspace2, params2 = dataset[1]
 
-    assert target1.shape == kspace1.shape == (2, *img_shape)
+    assert target1.shape == kspace1.shape == (2, *img_size)
     assert not torch.all(target1 == target2)
     assert not torch.all(kspace1 == kspace2)
     assert not torch.all(params1["mask"] == params2["mask"])
-    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+    assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test reproducibility
     _, _, params1_again = dataset[0]
     assert torch.all(params1_again["mask"] == params1["mask"])
 
     # Loaded kspace is directly compatible with deepinv physics
-    physics = DynamicMRI(img_size=img_shape)
+    physics = DynamicMRI(img_size=img_size)
     kspace1_dinv = physics(
         target1.unsqueeze(0), mask=params1["mask"].unsqueeze(0)
     ).squeeze(0)
@@ -448,7 +648,10 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         apply_mask=True,
     )
     target1, kspace1, params1 = dataset[0]
-    assert 0.2 < (kspace1 != 0).sum() / prod(kspace1.shape) < 0.3
+    assert torch.all(kspace1 * params1["mask"] == kspace1)  # kspace already masked
+    assert (
+        0.1 < params1["mask"].mean() < 0.26
+    )  # masked has correct acc (< 0.25 due to padding)
 
     # Test no apply mask
     dataset = CMRxReconSliceDataset(

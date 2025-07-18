@@ -2,7 +2,6 @@ from deepinv.physics.noise import GaussianNoise
 from deepinv.physics.forward import StackedLinearPhysics
 from deepinv.physics.blur import Downsampling
 from deepinv.physics.range import Decolorize
-from deepinv.optim.utils import conjugate_gradient
 from deepinv.utils.tensorlist import TensorList
 
 
@@ -33,6 +32,8 @@ class Pansharpen(StackedLinearPhysics):
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
         otherwise the blurred output has the same size as the image.
+    :param bool normalize: if ``True``, normalize the downsampling operator to have unit norm.
+    :param float eps: small value to avoid division by zero in the Brovey method.
 
     |sep|
 
@@ -65,6 +66,8 @@ class Pansharpen(StackedLinearPhysics):
         use_brovey=True,
         device="cpu",
         padding="circular",
+        normalize=False,
+        eps=1e-6,
         **kwargs,
     ):
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
@@ -72,6 +75,8 @@ class Pansharpen(StackedLinearPhysics):
         noise_color = noise_color if noise_color is not None else lambda x: x
         noise_gray = noise_gray if noise_gray is not None else lambda x: x
         self.use_brovey = use_brovey
+        self.normalize = normalize
+        self.eps = eps
 
         downsampling = Downsampling(
             img_size=img_size,
@@ -103,52 +108,13 @@ class Pansharpen(StackedLinearPhysics):
         """
 
         if self.use_brovey:
-            if self.downsampling.filter is not None:
+            if self.downsampling.filter is not None and not self.normalize:
                 factor = self.downsampling.factor**2
             else:
                 factor = 1
 
             x = self.downsampling.A_adjoint(y[0], **kwargs) * factor
-            x *= y[1] / x.mean(1, keepdim=True)
+            x = x * y[1] / (x.mean(1, keepdim=True) + self.eps)
             return x
         else:
             return super().A_dagger(y, **kwargs)
-
-
-# test code
-# if __name__ == "__main__":
-#     device = "cuda:0"
-#     import torch
-#     import torchvision
-#     import deepinv
-#
-#     device = "cuda:0"
-#
-#     x = torchvision.io.read_image("../../datasets/celeba/img_align_celeba/085307.jpg")
-#     x = x.unsqueeze(0).float().to(device) / 255
-#     x = torchvision.transforms.Resize((160, 180))(x)
-#
-#     class Toy(LinearPhysics):
-#         def __init__(self, **kwargs):
-#             super().__init__(**kwargs)
-#             self.A = lambda x: x * 2
-#             self.A_adjoint = lambda x: x * 2
-#
-#     sigma_noise = 0.1
-#     kernel = torch.zeros((1, 1, 15, 15), device=device)
-#     kernel[:, :, 7, :] = 1 / 15
-#     # physics = deepinv.physics.BlurFFT(img_size=x.shape[1:], filter=kernel, device=device)
-#     physics = Pansharpen(factor=8, img_size=x.shape[1:], device=device)
-#
-#     y = physics(x)
-#
-#     xhat2 = physics.A_adjoint(y)
-#     xhat1 = physics.A_dagger(y)
-#
-#     physics.compute_norm(x)
-#     physics.adjointness_test(x)
-#
-#     deepinv.utils.plot(
-#         [y[0], y[1], xhat2, xhat1, x],
-#         titles=["low res color", "high res gray", "A_adjoint", "A_dagger", "x"],
-#     )

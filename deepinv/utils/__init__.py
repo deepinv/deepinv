@@ -8,6 +8,7 @@ from .plotting import (
     plot_parameters,
     plot_inset,
     plot_videos,
+    save_videos,
     make_grid,
     wandb_imgs,
     wandb_plot_curves,
@@ -17,6 +18,7 @@ from .plotting import (
 )
 from .demo import (
     load_url_image,
+    load_example,
     load_image,
     load_dataset,
     load_degradation,

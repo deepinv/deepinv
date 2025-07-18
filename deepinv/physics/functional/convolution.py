@@ -25,7 +25,7 @@ def conv2d(
 
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
-    :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
+    :param padding: (options = ``valid``, ``circular``, ``replicate``, ``reflect``, ``constant``) If ``padding = 'valid'`` the output is smaller than the image (no padding), otherwise the output has the same size as the image.
         ``constant`` corresponds to zero padding or ``same`` in :func:`torch.nn.functional.conv2d`
     :return: (:class:`torch.Tensor`) : the output
 
@@ -82,8 +82,8 @@ def conv_transpose2d(
     If ``b = 1`` or ``c = 1``, then this function supports broadcasting as the same as `numpy <https://numpy.org/doc/stable/user/basics.broadcasting.html>`_. Otherwise, each channel of each image is convolved with the corresponding kernel.
 
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
-        If ``padding='valid'`` the blurred output is smaller than the image (no padding)
-        otherwise the blurred output has the same size as the image.
+        If ``padding='valid'`` the output is larger than the image (padding)
+        otherwise the output has the same size as the image.
 
     :return: (:class:`torch.Tensor`) : the output
     """
@@ -254,19 +254,19 @@ def conv_transpose2d_fft(
     filter_f = filter_fft_2d(filter, img_size, real_fft)
     y_f = fft.rfft2(y) if real_fft else fft.fft2(y)
 
-    return fft.irfft2(y_f * torch.conj(filter_f)).real
+    return fft.irfft2(y_f * torch.conj(filter_f), s=(H, W)).real
 
 
 def filter_fft_2d(filter, img_size, real_fft=True):
-    ph = int((filter.shape[2] - 1) / 2)
-    pw = int((filter.shape[3] - 1) / 2)
+    ph = int((filter.shape[-2] - 1) / 2)
+    pw = int((filter.shape[-1] - 1) / 2)
 
     filt2 = torch.zeros(
         tuple(filter.shape[:2]) + tuple(img_size[-2:]), device=filter.device
     )
 
-    filt2[..., : filter.shape[2], : filter.shape[3]] = filter
-    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(2, 3))
+    filt2[..., : filter.shape[-2], : filter.shape[-1]] = filter
+    filt2 = torch.roll(filt2, shifts=(-ph, -pw), dims=(-2, -1))
 
     return fft.rfft2(filt2) if real_fft else fft.fft2(filt2)
 

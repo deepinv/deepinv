@@ -351,7 +351,6 @@ class SurePGLoss(Loss):
     ):
         super(SurePGLoss, self).__init__()
         self.name = "SurePG"
-        # self.sure_loss_weight = sure_loss_weight
         self.sigma2 = sigma**2
         self.gain = gain
         self.tau1 = tau1

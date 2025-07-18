@@ -15,11 +15,11 @@ consists of sampled lines such that the whole measurement is a set of
 non-overlapping lines.
 
 For a description of how Artifact2Artifact constructs the loss, see
-:class:`deepinv.loss.Artifact2ArtifactLoss`.
+:class:`deepinv.loss.mri.Artifact2ArtifactLoss`.
 
 Note in our implementation, this is a special case of the generic
 splitting loss: see :class:`deepinv.loss.SplittingLoss` for more
-details. See :class:`deepinv.loss.Phase2PhaseLoss` for the related
+details. See :class:`deepinv.loss.mri.Phase2PhaseLoss` for the related
 Phase2Phase.
 
 """
@@ -31,8 +31,9 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils.demo import demo_mri_model, get_data_home
+from deepinv.utils import get_data_home
 from deepinv.models.utils import get_weights_url
+from deepinv.models import MoDL
 from deepinv.physics.generator import (
     GaussianMaskGenerator,
     BernoulliSplittingMaskGenerator,
@@ -171,12 +172,11 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture as an example of a model-based deep learning architecture
-# from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-# See :func:`deepinv.utils.demo.demo_mri_model` for details.
+# DnCNN architecture which was proposed in `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
+# See :class:`deepinv.models.MoDL` for details.
 #
 
-model = demo_mri_model(device=device)
+model = MoDL()
 
 
 # %%
@@ -189,7 +189,7 @@ model = demo_mri_model(device=device)
 # frame.
 #
 
-loss = dinv.loss.Artifact2ArtifactLoss(
+loss = dinv.loss.mri.Artifact2ArtifactLoss(
     (2, 4, H, H), split_size=1, dynamic_model=False, device=device
 )
 model = loss.adapt_model(model)
@@ -214,7 +214,7 @@ ckpt = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
 
-model.load_state_dict(ckpt["state_dict"])
+model.load_state_dict(ckpt["state_dict"], strict=False)
 optimizer.load_state_dict(ckpt["optimizer"])
 
 # Initialize the trainer
