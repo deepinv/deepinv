@@ -103,18 +103,18 @@ alphas = (1 - betas).cumprod(dim=0)
 # .. math::
 #         \begin{equation*}
 #         \begin{aligned}
-#         \widehat{\mathbf{x}}_{t} &= \denoiser{\mathbf{x}_t}{\sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}}
+#         \widehat{\mathbf{x}}_{0} (\mathbf{x}_t) &= \denoiser{\mathbf{x}_t}{\sqrt{1-\overline{\alpha}_t}/\sqrt{\overline{\alpha}_t}}
 #         \\
-#         \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{t}(\mathbf{x}_t) | \mathbf{y} ) \\
+#         \mathbf{g}_t &= \nabla_{\mathbf{x}_t} \log p( \widehat{\mathbf{x}}_{0}(\mathbf{x}_t) | \mathbf{y} ) \\
 #         \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
 #         \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
-#         + b_t \, \, \widehat{\mathbf{x}}_t
-#         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
+#         + b_t \, \, \widehat{\mathbf{x}}_0
+#         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t - \mathbf{g}_t,
 #         \end{aligned}
 #         \end{equation*}
 #
 # where :math:`\denoiser{\cdot}{\sigma}` is a denoising network for noise level :math:`\sigma`,
-# :math:`\eta` is a hyperparameter, and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
+# :math:`\eta` is a hyperparameter in [0,], and the constants :math:`\tilde{\sigma}_t, a_t, b_t` are defined as
 #
 # .. math::
 #         \begin{equation*}
@@ -177,14 +177,14 @@ plot(
 # .. math::
 #
 #           \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t|\mathbf{y}) \approx \nabla_{\mathbf{x}_t} \log p(\mathbf{x}_t)
-#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\widehat{\mathbf{x}}_{t})
+#           + \nabla_{\mathbf{x}_t} \log p(\mathbf{y}|\widehat{\mathbf{x}}_{0}(\mathbf{x_t}))
 #
 # Remarkably, we can now compute the latter term when we have Gaussian noise, as
 #
 # .. math::
 #
-#       \log p(\mathbf{y}|\hat{\mathbf{x}}_{t}) =
-#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_{t}\|_2^2}{2\sigma_y^2}.
+#       \log p(\mathbf{y}|\widehat{\mathbf{x}}_0(\mathbf{x_t})) =
+#       -\frac{\|\mathbf{y} - A\widehat{\mathbf{x}}_0((\mathbf{x_t})\|_2^2}{2\sigma_y^2}.
 #
 # Moreover, taking the gradient w.r.t. :math:`\mathbf{x}_t` can be performed through automatic differentiation.
 # Let's see how this can be done in PyTorch. Note that when we are taking the gradient w.r.t. a tensor,
