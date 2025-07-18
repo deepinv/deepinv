@@ -14,11 +14,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.unfolded import DEQ_builder
-from deepinv.training import train, test
+from deepinv.optim import ProximalGradientDescent
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 
@@ -130,20 +128,18 @@ stepsize = [1.0]  # stepsize of the algorithm
 sigma_denoiser = [0.03]  # noise level parameter of the denoiser
 jacobian_free = False  # does not perform Jacobian inversion.
 
-params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
-    "stepsize": stepsize,
-    "g_param": sigma_denoiser,
-}
 trainable_params = [
     "stepsize",
     "g_param",
 ]  # define which parameters from 'params_algo' are trainable
 
 # Define the unfolded trainable model.
-model = DEQ_builder(
-    iteration="PGD",  # For now DEQ is only possible with PGD, HQS and GD optimization algorithms.
-    params_algo=params_algo.copy(),
+model = ProximalGradientDescent(
+    DEQ=True,
     trainable_params=trainable_params,
+    stepsize=stepsize,
+    g_param=sigma_denoiser,
+    n_channels=n_channels,
     data_fidelity=data_fidelity,
     max_iter=max_iter,
     prior=prior,

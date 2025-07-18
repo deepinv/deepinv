@@ -1,5 +1,29 @@
 import torch
 import torch.nn as nn
+import warnings
+
+
+def objective_function(x, data_fidelity, prior, cur_params, y, physics):
+    r"""
+    Computes the objective function :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
+    and :math:`\regname` is a regularizer.
+
+    :param torch.Tensor x: Current iterate.
+    :param deepinv.optim.DataFidelity data_fidelity: Instance of the DataFidelity class defining the current data-fidelity.
+    :param deepinv.optim.prior prior: Instance of the Prior class defining the current prior.
+    :param dict cur_params: Dictionary containing the current parameters of the algorithm.
+    :param torch.Tensor y: Obervation.
+    :param deepinv.physics physics: Instance of the physics modeling the observation.
+    """
+    if prior is not None and prior.explicit_prior:
+        return data_fidelity(x, y, physics) + cur_params["lambda"] * prior(
+            x, cur_params["g_param"]
+        )
+    else:
+        warnings.warn(
+            "No explicit prior has been given to compute the objective function. Computing the data-fidelity term only."
+        )
+        return data_fidelity(x, y, physics)
 
 
 class OptimIterator(nn.Module):
@@ -8,7 +32,7 @@ class OptimIterator(nn.Module):
 
     An optim iterator is an object that implements a fixed point iteration for minimizing the sum of two functions
     :math:`F = f + \lambda \regname` where :math:`f` is a data-fidelity term  that will be modeled by an instance of physics
-    and g is a regularizer. The fixed point iteration takes the form
+    and :math:`\regname` is a regularizer. The fixed point iteration takes the form
 
     .. math::
         \qquad (x_{k+1}, z_{k+1}) = \operatorname{FixedPoint}(x_k, z_k, f, \regname, A, y, ...)
@@ -35,20 +59,19 @@ class OptimIterator(nn.Module):
 
     :param bool g_first: If True, the algorithm starts with a step on g and finishes with a step on f.
     :param F_fn: function that returns the function F to be minimized at each iteration. Default: None.
-    :param bool has_cost: If True, the function F is computed at each iteration. Default: False.
-     """
+    :param bool has_cost: If True, the cost function :math:`D` is computed at each iteration. Default: True.
+    """
 
-    def __init__(self, g_first=False, F_fn=None, has_cost=False, **kwargs):
+    def __init__(self, g_first=False, F_fn=None, has_cost=True, **kwargs):
         super(OptimIterator, self).__init__()
         self.g_first = g_first
-        self.F_fn = F_fn
         self.has_cost = has_cost
-        if self.F_fn is None:
-            self.has_cost = False
+        if F_fn is None and self.has_cost:
+            self.F_fn = objective_function
+        else:
+            self.F_fn = F_fn
         self.f_step = fStep(g_first=self.g_first)
         self.g_step = gStep(g_first=self.g_first)
-        self.requires_grad_g = False
-        self.requires_prox_g = False
 
     def relaxation_step(self, u, v, beta):
         r"""
@@ -85,14 +108,17 @@ class OptimIterator(nn.Module):
             )
             x = self.g_step(z, cur_prior, cur_params, *args, **kwargs)
         else:
-            z = self.g_step(x_prev, cur_prior, cur_params)
+            z = self.g_step(x_prev, cur_prior, cur_params, *args, **kwargs)
             x = self.f_step(
                 z, cur_data_fidelity, cur_params, y, physics, *args, **kwargs
             )
         x = self.relaxation_step(x, x_prev, cur_params["beta"], *args, **kwargs)
         F = (
             self.F_fn(x, cur_data_fidelity, cur_prior, cur_params, y, physics)
-            if self.has_cost
+            if self.F_fn is not None
+            and self.has_cost
+            and cur_data_fidelity is not None
+            and cur_prior is not None
             else None
         )
         return {"est": (x, z), "cost": F}

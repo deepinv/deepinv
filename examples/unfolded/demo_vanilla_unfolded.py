@@ -114,7 +114,7 @@ data_fidelity = L2()
 
 # Set up the trainable denoising prior
 # Here the prior model is common for all iterations
-prior = PnP(denoiser=dinv.models.DnCNN(depth=7, pretrained=None).to(device))
+prior = PnP(denoiser=dinv.models.DnCNN(depth=20, pretrained="download").to(device))
 
 # The parameters are initialized with a list of length max_iter, so that a distinct parameter is trained for each iteration.
 stepsize = [1] * max_iter  # stepsize of the algorithm
@@ -152,7 +152,7 @@ model = unfolded_builder(
 
 
 # training parameters
-epochs = 10 if torch.cuda.is_available() else 2
+epochs = 0 if torch.cuda.is_available() else 2
 learning_rate = 5e-4
 train_batch_size = 32 if torch.cuda.is_available() else 1
 test_batch_size = 3
