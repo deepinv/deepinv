@@ -16,8 +16,6 @@ import math
 import io
 import contextlib
 import re
-import tempfile
-import os
 
 from conftest import no_plot
 

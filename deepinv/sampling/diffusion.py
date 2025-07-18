@@ -3,10 +3,8 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor
 
-from typing import Dict, Any
 
 import deepinv.physics
-from deepinv.utils.plotting import plot
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 
