@@ -16,6 +16,7 @@ Changed
 Fixed
 ^^^^^
 
+- FastMRI dataset can load targets from different folder for test sets (:gh:`608` by `Andrew Wang`_)
 
 v0.3.2
 ------

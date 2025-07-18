@@ -149,33 +149,34 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
 
 class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
-    """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR image slices.
+    """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR kspace data.
 
     This dataset randomly selects 2D slices from a dataset of 3D MRI volumes.
     This class considers one data sample as one slice of a MRI scan, thus slices of the same MRI scan are considered independently in the dataset.
 
     To download raw data, please go to the bottom of the page `https://fastmri.med.nyu.edu/` to download the brain/knee and train/validation/test volumes as ``h5`` files.
 
-    The dataset is loaded as tuples ``(x, y)`` where `y` are the kspace measurements of shape ``(2, (N,) H, W)``
-    where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
-    and `x` ("target") are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
-
-    If `transform` is used or `mask` exists in file, then also returns `params` dict containing e.g. `mask` and/or `coil_maps`.
+    The dataset is loaded as tuples `(x, y, params)` where:
+     
+    * `y` are the kspace measurements of shape ``(2, (N,) H, W)`` where N is the optional coil dimension depending on whether the data is singlecoil or multicoil.
+      Note this kspace will be fully-sampled for training/validation datasets, and will be masked for test/challenge sets.
+    * `x` ("target") are the (cropped) magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
+      If target is not present in the data (i.e. challenge/test set), then `x` will be returned as `torch.nan`. Optionally set `target_root` to load targets from a different directory.
+    * `params` is a dict containing parameters `mask` and/or `coil_maps`.
+      Note `mask` will be automatically loaded if it is present (i.e. challenge/test set).
+      Otherwise, you can generate masks and/or estimate coil maps using :class:`deepinv.datasets.fastmri.MRISliceTransform`.
 
     .. tip::
 
         ``x`` and ``y`` are related by :meth:`deepinv.physics.MRI.A_adjoint` or :meth:`deepinv.physics.MultiCoilMRI.A_adjoint`
         depending on if ``y`` are multicoil or not, with ``crop=True, rss=True``.
 
-    See the `fastMRI README <https://github.com/facebookresearch/fastMRI/blob/main/fastmri/data/README.md>`_ for more details.
-
-    **Raw data file structure:** ::
+    **Raw data file structure:** (each file contains the k-space data and some metadata related to the scan) ::
 
         self.root --- file1000005.h5
                    |
-                   -- xxxxxxxxxxx.h5
+                   -- xxxxxxxxxxx.h5.
 
-    Each file contains the k-space data, reconstructed images and some metadata related to the scan.
     When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.
 
     .. note::
@@ -188,17 +189,19 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
         By using this dataset, you confirm that you have agreed to and signed the `FastMRI data use agreement <https://fastmri.med.nyu.edu/>`_.
 
+    See the `fastMRI README <https://github.com/facebookresearch/fastMRI/blob/main/fastmri/data/README.md>`_ for more details.
 
-    :param Union[str, pathlib.Path] root: Path to the dataset.
+    :param str, pathlib.Path root: Path to the dataset.
+    :param str, pathlib.Path target_root: if specified, reads targets from files from this folder rather than root, assuming identical file structure. Defaults to None.
     :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
     :param bool save_metadata_to_cache: Whether to cache dataset metadata.
-    :param Union[str, pathlib.Path] metadata_cache_file: A file used to cache dataset information for faster load times.
+    :param str, pathlib.Path metadata_cache_file: A file used to cache dataset information for faster load times.
     :param float subsample_volumes: (optional) proportion of volumes to be randomly subsampled (float between 0 and 1).
     :param str, int, tuple slice_index: if `"all"`, keep all slices per volume, if ``int``, keep only that indexed slice per volume,
         if ``int`` or `tuple[int]`, index those slices, if `"middle"`, keep the middle slice, if `"middle+i"`, keep :math:`2i+1` about
         middle slice, if `"random"`, select random slice. Defaults to `"all"`.
-    :param Union[str, pathlib.Path] target_root: if specified, reads targets from files from this folder rather than root, assuming identical file structure. Defaults to None.
     :param Callable transform: optional transform function taking in (multicoil) kspace of shape (2, (N,) H, W) and targets of shape (1, H, W).
+        Defaults to :class:`deepinv.datasets.fastmri.MRISliceTransform`.
 
     .. seealso::
 
@@ -322,18 +325,18 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
     def __init__(
         self,
         root: Union[str, Path],
+        target_root: Optional[Union[str, Path]] = None,
         load_metadata_from_cache: bool = False,
         save_metadata_to_cache: bool = False,
         metadata_cache_file: Union[str, Path] = "dataset_cache.pkl",
         slice_index: Union[str, int] = "all",
         subsample_volumes: Optional[float] = 1.0,
-        target_root: Optional[Union[str, Path]] = None,
         transform: Optional[Callable] = None,
         filter_id: Optional[Callable] = None,
         rng: Optional[torch.Generator] = None,
     ) -> None:
         self.root = root
-        self.transform = transform
+        self.transform = transform if transform is not None else MRISliceTransform()
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
@@ -531,8 +534,8 @@ class MRISliceTransform(MRIMixin):
     Preprocess raw kspace data:
 
     * Optionally prewhiten kspace
-    * Normalise kspace
-    * Optionally generate mask/use existing mask
+    * Optionally normalise kspace
+    * Optionally generate mask/load existing mask (i.e. for challenge/test sets)
     * Optionally estimate coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
 
     To be used with :class:`deepinv.datasets.FastMRISliceDataset`. See below for input and output shapes.
@@ -540,6 +543,7 @@ class MRISliceTransform(MRIMixin):
     :param deepinv.physics.generator.BaseMaskGenerator mask_generator: optional mask generator for simulating masked measurements retrospectively.
     :param bool, int estimate_coil_maps: if `True` or `int`,  estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
         If `int`, pass this as auto-calibration size to `ESPIRiT <https://onlinelibrary.wiley.com/doi/10.1002/mrm.24751>`_. If `True`, use ACS size from `mask_generator`.
+    :param 
     """
 
     def __init__(
