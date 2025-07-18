@@ -1,9 +1,0 @@
-﻿ones\_like
-==========
-
-.. currentmodule:: deepinv.utils
-
-.. autofunction:: ones_like
-
-.. minigallery:: deepinv.utils.ones_like
-    :add-heading: Examples using ``ones_like``:
