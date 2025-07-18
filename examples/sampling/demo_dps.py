@@ -265,7 +265,7 @@ num_steps = 200
 skip = num_train_timesteps // num_steps
 
 batch_size = 1
-eta = 1.0
+eta = 1.0  # DDPM scheme; use eta < 1 for DDIM
 
 
 # measurement
@@ -281,7 +281,9 @@ x0_preds = []
 
 for t in tqdm(reversed(range(0, num_train_timesteps, skip))):
     at = alphas[t]
-    at_next = alphas[t - skip] if t - skip >=0 else torch.tensor(1)
+    at_next = alphas[t - skip] if t - skip >= 0 else torch.tensor(1)
+    # we cannot use bt = betas[t] if skip > 1:
+    bt = 1 - at / at_next
 
     xt = xs[-1].to(device)
 
@@ -301,13 +303,13 @@ for t in tqdm(reversed(range(0, num_train_timesteps, skip))):
     norm_grad = torch.autograd.grad(outputs=l2_loss, inputs=xt)[0]
     norm_grad = norm_grad.detach()
 
-    sigma_tilde = ((1 - at / at_next) * (1 - at_next) / (1 - at)).sqrt() * eta
+    sigma_tilde = (bt * (1 - at_next) / (1 - at)).sqrt() * eta
     c2 = ((1 - at_next) - sigma_tilde**2).sqrt()
 
     # 3. noise step
     epsilon = torch.randn_like(xt)
 
-    # 4. DDPM(IM) step
+    # 4. DDIM(PM) step
     xt_next = (
         (at_next.sqrt() - c2 * at.sqrt() / (1 - at).sqrt()) * x0_t
         + sigma_tilde * epsilon
