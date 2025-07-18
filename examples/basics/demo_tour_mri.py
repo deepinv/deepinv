@@ -29,6 +29,7 @@ Contents:
 
 """
 
+# %%
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
@@ -98,7 +99,7 @@ dinv.utils.plot(
     {
         "x": (x := next(iter(DataLoader(knee_dataset)))),
         "mask": mask,
-        "y": physics(x).clamp(-1, 1),
+        "y": physics(x.to(device)).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
