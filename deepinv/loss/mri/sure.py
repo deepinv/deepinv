@@ -6,7 +6,7 @@ import torch
 
 from deepinv.physics.mri import MRI, MRIMixin
 from deepinv.physics.inpainting import Inpainting
-from deepinv.loss.sure import SureGaussianLoss
+from deepinv.loss.sure import SureGaussianLoss, mc_div
 from deepinv.models.artifactremoval import ArtifactRemoval
 
 if TYPE_CHECKING:
@@ -81,15 +81,7 @@ class ENSURELoss(SureGaussianLoss):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module f: Reconstruction network.
         """
-        b = torch.empty_like(y).normal_(generator=self.rng)
-        u = physics.A_adjoint(y) + b * self.tau
-
-        if isinstance(f, ArtifactRemoval):
-            x2 = f.backbone_inference(u, physics, None)
-        else:
-            x2 = f(physics.A(u), physics)
-
-        return (b * (x2 - x_net) / self.tau).reshape(y.size(0), -1).mean(1)
+        return mc_div(physics(x_net), y, f, physics, tau=self.tau, rng=self.rng)
 
     def forward(
         self, y: Tensor, x_net: Tensor, physics: Physics, model: Reconstructor, **kwargs
