@@ -10,13 +10,15 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
 
-- FastMRI dataset can load targets from different folder for test sets (:gh:`608` by `Andrew Wang`_)
+- Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
 
 v0.3.2
 ------
