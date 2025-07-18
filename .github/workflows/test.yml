@@ -24,17 +24,34 @@ jobs:
     strategy:
       matrix:
         include:
-          # Test with all dependencies
+          # Ubuntu tests
           - os: ubuntu-latest
-            version_python: 3.9
+            version_python: "3.10"
             extra: dataset,denoisers,test
-            name: "ubuntu all dependencies"
-          # Test with all dependencies
+            name: "ubuntu py3.10 all dependencies"
+          - os: ubuntu-latest
+            version_python: "3.11"
+            extra: dataset,denoisers,test
+            name: "ubuntu py3.11 all dependencies"
+          - os: ubuntu-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test
+            name: "ubuntu py3.12 all dependencies"
+          # Windows tests
           - os: windows-latest
-            version_python: 3.9
+            version_python: "3.10"
             extra: dataset,denoisers,test
-            name: "windows all dependencies"
-
+            name: "windows py3.10 all dependencies"
+          - os: windows-latest
+            version_python: "3.11"
+            extra: dataset,denoisers,test
+            name: "windows py3.11 all dependencies"
+          - os: windows-latest
+            version_python: "3.12"
+            extra: dataset,denoisers,test
+            name: "windows py3.12 all dependencies"
+    env:
+      DEEPINV_MOCK_TESTS: "True"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v5
@@ -46,14 +63,23 @@ jobs:
         run: |
           pip install .[${{ matrix.extra }}]
 
+      # For debugging purposes
+      - name: Check Python version
+        run: python3 --version
+
+      - name: Check installed packages
+        run: pip list
+
+      - name: Test importing numpy
+        run: python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
+      # ----------------------------
+
       - name: Test with pytest and generate coverage report
         run: |
-          python3 -m pytest --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+          python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
-
-

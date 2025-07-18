@@ -4,7 +4,7 @@
    :align: center
 
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|   
 
 
 Introduction
@@ -41,6 +41,10 @@ To install the latest stable release of ``deepinv``, you can simply do:
 .. code-block:: bash
 
     pip install deepinv
+
+    # or using uv for faster installation
+
+    uv pip install deepinv
 
 You can also install the latest version of ``deepinv`` directly from github:
 
@@ -94,12 +98,13 @@ Contributing
 ------------
 
 DeepInverse is a community-driven project and welcomes contributions of all forms.
-We are ultimately aiming for a comprehensive library of inverse problems and deep learning,
+We are building a comprehensive library of inverse problems and deep learning,
 and we need your help to get there!
-The preferred way to contribute to ``deepinv`` is to fork the `main
+
+Please contribute to ``deepinv`` by forking the `main
 repository <https://github.com/deepinv/deepinv/>`_ on GitHub,
 then submit a "Pull Request" (PR). See our `contributing guide <https://deepinv.github.io/deepinv/contributing.html>`_
-for more details.
+for full instructions on how to contribute.
 
 
 Finding help
@@ -109,6 +114,37 @@ If you have any questions or suggestions, please join the conversation in our
 `Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers is to open an issue on the
 `issue tracker <https://github.com/deepinv/deepinv/issues>`_.
 
+Maintainers
+-----------
+
+View our current and former maintainers, and how to get in touch, at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
+
+Citation
+--------
+If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
+
+
+.. code-block:: bash
+
+    @software{tachella2025deepinverse,
+          title={DeepInverse: A Python package for solving imaging inverse problems with deep learning},
+          author={Julián Tachella and Matthieu Terris and Samuel Hurault and Andrew Wang and Dongdong Chen and Minh-Hai Nguyen and Maxime Song and Thomas Davies and Leo Davy and Jonathan Dong and Paul Escande and Johannes Hertrich and Zhiyuan Hu and Tobías I. Liaudat and Nils Laurent and Brett Levac and Mathurin Massias and Thomas Moreau and Thibaut Modrzyk and Brayan Monroy and Sebastian Neumayer and Jérémy Scanvic and Florian Sarron and Victor Sechaud and Georg Schramm and Romain Vo and Pierre Weiss},
+          year={2025},
+          eprint={2505.20160},
+          archivePrefix={arXiv},
+          primaryClass={eess.IV},
+          url={https://arxiv.org/abs/2505.20160},
+    }
+
+
+Star history
+------------
+
+.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :alt: Star History Chart
+   :target: https://www.star-history.com/#deepinv/deepinv&Date
+
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -116,11 +152,13 @@ If you have any questions or suggestions, please join the conversation in our
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
-   :target: https://www.python.org/downloads/release/python-390/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+   :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
-.. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
+.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
+   :target: https://pypistats.org/packages/deepinv
+.. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/1XhCO5S1dYN3eKm4NEkczzVU7ZLBuE42J

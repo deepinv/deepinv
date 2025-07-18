@@ -45,7 +45,7 @@ x = load_url_image(url=url, img_size=32).to(device)
 # This example uses inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
+physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
@@ -94,7 +94,7 @@ prior = dinv.optim.ScorePrior(
 # --------------------------------------------------------------
 #
 # Here we use the Unadjusted Langevin Algorithm (ULA) to sample from the posterior defined in
-# :class:`deepinv.sampling.ULA`.
+# :class:`deepinv.sampling.ULAIterator`.
 # The hyperparameter ``step_size`` controls the step size of the MCMC sampler,
 # ``regularization`` controls the strength of the prior and
 # ``iterations`` controls the number of iterations of the sampler.
@@ -102,14 +102,19 @@ prior = dinv.optim.ScorePrior(
 regularization = 0.9
 step_size = 0.01 * (sigma**2)
 iterations = int(5e3) if torch.cuda.is_available() else 10
-f = dinv.sampling.ULA(
+params = {
+    "step_size": step_size,
+    "alpha": regularization,
+    "sigma": sigma_denoiser,
+}
+f = dinv.sampling.sampling_builder(
+    "ULA",
     prior=prior,
     data_fidelity=likelihood,
     max_iter=iterations,
-    alpha=regularization,
-    step_size=step_size,
+    params_algo=params,
+    thinning=1,
     verbose=True,
-    sigma=sigma_denoiser,
 )
 
 # %%
@@ -126,7 +131,7 @@ y = physics(x)
 # The sampling algorithm returns the posterior mean and variance.
 # We compare the posterior mean with a simple linear reconstruction.
 
-mean, var = f(y, physics)
+mean, var = f.sample(y, physics)
 
 # compute linear inverse
 x_lin = physics.A_adjoint(y)

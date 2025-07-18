@@ -46,8 +46,7 @@ class BM3D(Denoiser):
 
         out = torch.zeros_like(x)
 
-        if not torch.is_tensor(sigma):
-            sigma = torch.tensor(sigma).repeat(x.shape[0])
+        sigma = self._handle_sigma(sigma, batch_size=x.size(0))
 
         for i in range(x.shape[0]):
             out[i, :, :, :] = array2tensor(

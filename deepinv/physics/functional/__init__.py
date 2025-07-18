@@ -19,7 +19,8 @@ from .multiplier import (
 
 from .hist import histogram, histogramdd
 from .downsampling import downsample
-from .radon import Radon, IRadon, RampFilter
+from .radon import Radon, IRadon, RampFilter, ApplyRadon
 from .interp import ThinPlateSpline
 from .rand import random_choice
 from .dst import dst1
+from .astra import XrayTransform

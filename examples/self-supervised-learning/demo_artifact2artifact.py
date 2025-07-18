@@ -214,7 +214,7 @@ ckpt = torch.hub.load_state_dict_from_url(
     url, map_location=lambda storage, loc: storage, file_name=file_name
 )
 
-model.load_state_dict(ckpt["state_dict"])
+model.load_state_dict(ckpt["state_dict"], strict=False)
 optimizer.load_state_dict(ckpt["optimizer"])
 
 # Initialize the trainer

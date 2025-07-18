@@ -1,7 +1,6 @@
-from typing import Dict
 import torch
 import torch.nn as nn
-from typing import List, Union
+from typing import Union
 import warnings
 from hashlib import sha256
 
@@ -75,7 +74,7 @@ class PhysicsGenerator(nn.Module):
                 device
             ), f"The random generator is not on the same device as the Physics Generator. Got random generator on {rng.device} and the Physics Generator named {self.__class__.__name__} on {self.device}."
             self.rng = rng
-        self.initial_random_state = self.rng.get_state()
+        self.register_buffer("initial_random_state", self.rng.get_state().to(device))
 
         # Set attributes
         for k, v in kwargs.items():
@@ -197,8 +196,8 @@ class GeneratorMixture(PhysicsGenerator):
 
     def __init__(
         self,
-        generators: List[PhysicsGenerator],
-        probs: List[float],
+        generators: list[PhysicsGenerator],
+        probs: list[float],
         rng: torch.Generator = None,
     ) -> None:
         super().__init__(rng=rng)
