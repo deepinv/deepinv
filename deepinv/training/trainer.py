@@ -1263,6 +1263,9 @@ class Trainer:
             if self.verbose:
                 print(f"{name}: {l.avg:.3f} +- {l.std:.3f}")
 
+        if self.is_denoiser:
+            self.model = self.model.backbone_net
+
         return out
 
 
