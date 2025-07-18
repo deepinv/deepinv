@@ -23,9 +23,25 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PIL import Image
 import io
 
+_DEFAULT_PLOT_FONTSIZE = 17
+
+
+def set_default_plot_fontsize(fontsize: int):
+    """Set global default fontsize for DeepInv plots."""
+    global _DEFAULT_PLOT_FONTSIZE
+    _DEFAULT_PLOT_FONTSIZE = fontsize
+
+
+def get_default_plot_fontsize() -> int:
+    """Get global default fontsize for DeepInv plots."""
+    return _DEFAULT_PLOT_FONTSIZE
+
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+
     plt.rcParams["font.size"] = fontsize
     plt.rcParams["axes.titlesize"] = fontsize
     plt.rcParams["figure.titlesize"] = fontsize
@@ -260,10 +276,7 @@ def plot(
     :param bool return_axs: return the axs object.
     """
     # Use the matplotlib config from deepinv
-    if fontsize is not None:
-        config_matplotlib(fontsize=fontsize)
-    else:
-        config_matplotlib()
+    config_matplotlib(fontsize=fontsize)
 
     if save_dir:
         save_dir = Path(save_dir)

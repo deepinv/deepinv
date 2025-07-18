@@ -18,10 +18,9 @@ logger = logging.getLogger(__name__)
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
-from deepinv.utils.plotting import config_matplotlib
+from deepinv.utils.plotting import set_default_plot_fontsize
 
-config_matplotlib(fontsize=9)
-
+set_default_plot_fontsize(9)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
