@@ -225,3 +225,43 @@ can be done by multiplying the operators:
     >>> y = physics(x) # equivalent to y = physics2(physics1.A(x))
     >>> print(y.shape)
     torch.Size([1, 1, 4, 4])
+
+.. _physics_wrappers:
+Physics Wrappers
+^^^^^^^^^^^^^^^^
+
+Some wrappers are provided to adapt existing operators to a new problem.
+
+For example, given an operator :math:`A \column \mathbb{R}^N\to\mathbb{R}^M` and an image :math:`x\in\mathbb{R}^P` with :math:`P\neq N`, we need to resize the image to the operator's input size.
+This can be done with the :func:`deepinv.physics.LinearPhysicsMultiScaler` class:
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> x = torch.rand((1, 1, 8, 8))  # define an image 4 times smaller than the physics input size (scale = 2)
+    >>> new_physics = dinv.physics.LinearPhysicsMultiScaler(physics, (1, 32, 32), factors=[2, 4, 8])  # define a multiscale physics with base img size (1, 32, 32)
+    >>> y = new_physics(x, scale=2)  # compute the measurements with the new physics
+    >>> print(y.shape)
+    torch.Size([1, 1, 32, 32])
+    >>> Aty = new_physics.A_adjoint(y, scale=2)  # compute the adjoint operator
+    >>> print(Aty.shape)
+    torch.Size([1, 1, 8, 8])  # the output is the same size as the input image
+
+
+Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads the input image to the operator's input size.
+
+.. doctest::
+
+    >>> import torch
+    >>> import deepinv as dinv
+    >>> physics = dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=dinv.physics.blur.gaussian_blur(.2))
+    >>> x = torch.rand((1, 1, 18, 21))  # define an image 4 times smaller than the physics input size (scale = 2)
+    >>> new_physics = dinv.physics.PhysicsCropper(physics)  # define a padded physics
+    >>> y = new_physics(x)  # compute the measurements with padding
+    >>> print(y.shape)
+    torch.Size([1, 1, 32, 32])
+    >>> Aty = new_physics.A_adjoint(y)  # compute the adjoint operator with padding
+    >>> print(Aty.shape)
+    torch.Size([1, 1, 18, 21])  # the output is the same size as the input image

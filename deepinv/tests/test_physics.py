@@ -90,7 +90,14 @@ NOISES = [
 ]
 
 
-def find_operator(name, device, imsize=None, get_physics_param=False):
+WRAPPERS = [
+    None,
+    "LinearPhysicsMultiScaler",
+    "PhysicsCropper",
+]
+
+
+def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=None):
     r"""
     Chooses operator
 
@@ -441,6 +448,10 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
         params = ["probe", "shifts"]
     else:
         raise Exception("The inverse problem chosen doesn't exist")
+
+    if wrapper is not None:
+        p, img_size = wrap_physics(wrapper, p, img_size, device)
+
     if not get_physics_param:
         return p, img_size, norm, dtype
     else:
@@ -471,6 +482,34 @@ def find_nonlinear_operator(name, device):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
+
+
+def wrap_physics(wrapper_name, physics, img_size, device):
+    if wrapper_name == "LinearPhysicsMultiScaler":
+        # img_size_out = (*img_size[1:-2], img_size[-2] // 2, img_size[-1] // 2)
+        # img_size_out = (img_size[1], img_size[-2] // 2, img_size[-1] // 2)
+        # img_size_out = (1, img_size[-2], img_size[-1])
+        img_size_out = (1, 1, 32, 32)
+        factors = [2, 4, 8]
+        p = dinv.physics.LinearPhysicsMultiScaler(
+            physics=physics, img_shape=img_size_out, factors=factors, device=device
+        )
+        img_size_out = (1, 1, 8, 8)
+        # img_size_out = (img_size[0], img_size[1], img_size[-2] // 4, img_size[-1] // 4)
+        # img_size_out = img_size
+    elif wrapper_name == "PhysicsCropper":
+        crop = (2, 4)
+        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
+        img_size_out = (
+            *img_size[:-2],
+            img_size[-2] + crop[-2],
+            img_size[-1] + crop[-1],
+        )
+    else:
+        raise Exception(
+            f"The wrapper {wrapper_name} is not in the `wrap_physics` function"
+        )
+    return p, img_size_out
 
 
 def find_phase_retrieval_operator(name, device):
@@ -538,7 +577,8 @@ def test_stacking(device):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-def test_operators_adjointness(name, device, rng):
+@pytest.mark.parametrize("wrapper", WRAPPERS)
+def test_operators_adjointness(name, wrapper, device, rng):
     r"""
     Tests if a linear forward operator has a well defined adjoint.
     Warning: Only test linear operators, non-linear ones will fail the test.
@@ -548,13 +588,18 @@ def test_operators_adjointness(name, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :return: asserts adjointness
     """
-    physics, imsize, _, dtype = find_operator(name, device)
+    physics, imsize, _, dtype = find_operator(name, device, wrapper=wrapper)
 
     if name == "radio":
         dtype = torch.cfloat
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
-    error = physics.adjointness_test(x).abs()
+    if wrapper is None:
+        error = physics.adjointness_test(x).abs()
+    elif "scaler" in wrapper.lower():
+        error = physics.adjointness_test(x, factor=2).abs()
+    else:
+        error = physics.adjointness_test(x).abs()
     assert error < 1e-3
 
     if (

@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import deepinv as dinv
-from deepinv.physics import MultiScaleLinearPhysics, Pad
+from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
 from deepinv.models.base import Reconstructor
 
@@ -176,7 +176,7 @@ class RAM(Reconstructor):
         :param torch.Tensor y: measurements
         """
         img_channels = x0.shape[1]
-        physics = MultiScaleLinearPhysics(physics, x0.shape[-3:], device=x0.device)
+        physics = LinearPhysicsMultiScaler(physics, x0.shape[-3:], device=x0.device)
 
         if self.separate_head and img_channels not in self.in_channels:
             raise ValueError(
@@ -229,7 +229,7 @@ class RAM(Reconstructor):
 
         x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
-        physics = Pad(physics, pad)
+        physics = PhysicsCropper(physics, pad)
 
         x_in = physics.A_adjoint(y)
 

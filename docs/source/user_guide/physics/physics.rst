@@ -110,6 +110,27 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
 
+.. _wrapper_list:
+Wrappers
+~~~~~~~~~
+Wrappers are operators that can be used to adapt existing operators to a new problem.
+
+.. list-table:: Wrappers
+    :header-rows: 1
+
+    * - **Family**
+      - **Operators**
+
+    * - Multicale
+      -
+         | :class:`deepinv.physics.PhysicsMultiScaler`
+         | :class:`deepinv.physics.LinearPhysicsMultiScaler`
+
+    * - Padding
+      -
+         | :class:`deepinv.physics.PhysicsCropper`
+
+
 .. _noise_list:
 
 Noise distributions
