@@ -110,15 +110,12 @@ test_dataloader = DataLoader(
 
 def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
     if model is None:
-        model = dinv.models.ArtifactRemoval(
-            dinv.models.UNet(
-                in_channels=3,
-                out_channels=3,
-                scales=2,
-                circular_padding=True,
-                batch_norm=False,
-            ),
-            mode="direct",
+        model = dinv.models.UNet(
+            in_channels=3,
+            out_channels=3,
+            scales=2,
+            circular_padding=True,
+            batch_norm=False,
         ).to(device)
 
     if D is None:
@@ -382,3 +379,5 @@ G = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
