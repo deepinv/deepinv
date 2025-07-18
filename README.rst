@@ -42,6 +42,10 @@ To install the latest stable release of ``deepinv``, you can simply do:
 
     pip install deepinv
 
+    # or using uv for faster installation
+
+    uv pip install deepinv
+
 You can also install the latest version of ``deepinv`` directly from github:
 
 .. code-block:: bash
@@ -148,8 +152,8 @@ Star history
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
-   :target: https://www.python.org/downloads/release/python-390/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+   :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
 .. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
