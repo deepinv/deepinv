@@ -16,12 +16,15 @@ def imsize():
 
 
 def choose_adversarial_combo(combo_name, imsize, device):
-    unet = dinv.models.UNet(
-        in_channels=imsize[0],
-        out_channels=imsize[0],
-        scales=2,
-        circular_padding=True,
-        batch_norm=False,
+    unet = dinv.models.ArtifactRemoval(
+        dinv.models.UNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            scales=2,
+            circular_padding=True,
+            batch_norm=False,
+        ),
+        mode="direct",
     ).to(device)
 
     csgm_generator = dinv.models.CSGMGenerator(

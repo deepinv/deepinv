@@ -35,6 +35,7 @@ instead.
 
 """
 
+# %%
 from pathlib import Path
 
 import torch
@@ -49,7 +50,7 @@ from deepinv.utils.demo import get_data_home
 from deepinv.physics.generator import MotionBlurGenerator
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-
+device = "cpu"
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurments"
 ORGINAL_DATA_DIR = get_data_home() / "Urban100"
@@ -109,12 +110,15 @@ test_dataloader = DataLoader(
 
 def get_models(model=None, D=None, lr_g=1e-4, lr_d=1e-4, device=device):
     if model is None:
-        model = dinv.models.UNet(
-            in_channels=3,
-            out_channels=3,
-            scales=2,
-            circular_padding=True,
-            batch_norm=False,
+        model = dinv.models.ArtifactRemoval(
+            dinv.models.UNet(
+                in_channels=3,
+                out_channels=3,
+                scales=2,
+                circular_padding=True,
+                batch_norm=False,
+            ),
+            mode="direct",
         ).to(device)
 
     if D is None:
