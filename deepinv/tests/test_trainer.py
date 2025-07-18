@@ -724,7 +724,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
     eval_dataloader = DataLoader(eval_data, batch_size=2)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     losses = [
         ConstantLoss(1 / 2, device),
@@ -761,7 +761,7 @@ def test_total_loss(dummy_dataset, imsize, device, dummy_model, tmpdir):
 def test_gradient_norm(dummy_dataset, imsize, device, dummy_model, tmpdir):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
     model = dinv.models.ArtifactRemoval(backbone).to(device)
@@ -835,7 +835,7 @@ def test_out_dir_collision_detection(
 ):
     train_data, eval_data = dummy_dataset, dummy_dataset
     dataloader = DataLoader(train_data, batch_size=2)
-    physics = dinv.physics.Inpainting(tensor_size=imsize, device=device, mask=0.5)
+    physics = dinv.physics.Inpainting(img_size=imsize, device=device, mask=0.5)
 
     backbone = dinv.models.UNet(in_channels=3, out_channels=3, scales=2)
     model = dinv.models.ArtifactRemoval(backbone).to(device)

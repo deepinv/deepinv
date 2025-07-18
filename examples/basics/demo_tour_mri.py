@@ -8,9 +8,8 @@ available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:
 -  Physics: :class:`deepinv.physics.MRI`,
    :class:`deepinv.physics.MultiCoilMRI`,
    :class:`deepinv.physics.DynamicMRI`
--  Datasets: the full `FastMRI <https://fastmri.med.nyu.edu>`__ dataset
-   :class:`deepinv.datasets.FastMRISliceDataset` and a lightweight,
-   easy-to-use subset
+-  Datasets: raw kspace with the `FastMRI <https://fastmri.med.nyu.edu>`__ dataset
+   :class:`deepinv.datasets.FastMRISliceDataset` and an in-memory easy-to-use version
    :class:`deepinv.datasets.SimpleFastMRISliceDataset`
 -  Models: :class:`deepinv.models.VarNet`
    (`VarNet <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`__/`E2E-VarNet <https://arxiv.org/abs/2004.06688>`__),
@@ -109,7 +108,10 @@ print("Shapes:", x.shape, physics.mask.shape)
 # for training and brains for testing.
 #
 # We can also use the physics generator to randomly sample a new mask per
-# sample, and save the masks alongside the measurements:
+# sample, and save the masks alongside the measurements.
+#
+# Note that you could alternatively train using `online_measurements`, where you can generate
+# random measurements on the fly.
 #
 
 dataset_path = dinv.datasets.generate_dataset(
@@ -132,12 +134,18 @@ test_dataset = dinv.datasets.HDF5Dataset(
     dataset_path, split="test", load_physics_generator_params=True
 )
 
+train_dataloader = DataLoader(train_dataset)
+iterator = iter(train_dataloader)
+
+x0, y0, params0 = next(iterator)
+x1, y1, params1 = next(iterator)
+
 dinv.utils.plot(
     {
-        "x0": train_dataset[0][0],
-        "mask0": train_dataset[0][2]["mask"],
-        "x1": train_dataset[1][0],
-        "mask1": train_dataset[1][2]["mask"],
+        "x0": x0,
+        "mask0": params0["mask"],
+        "x1": x1,
+        "mask1": params1["mask"],
     }
 )
 
@@ -212,7 +220,7 @@ trainer = dinv.Trainer(
     model=model,
     physics=physics,
     optimizer=torch.optim.Adam(model.parameters()),
-    train_dataloader=(train_dataloader := DataLoader(train_dataset)),
+    train_dataloader=train_dataloader,
     metrics=dinv.metric.PSNR(complex_abs=True),
     epochs=1,
     show_progress_bar=False,
@@ -253,9 +261,10 @@ _ = trainer.test(DataLoader(test_dataset))
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # It is also possible to use the raw data directly.
-# The raw multi-coil FastMRI data is provided as pairs of ``(x, y)`` where
+# The raw multi-coil FastMRI train/validation data is provided as pairs of ``(x, y)`` where
 # ``y`` are the fully-sampled k-space measurements of arbitrary size, and
 # ``x`` are the cropped root-sum-square (RSS) magnitude reconstructions.
+# Let's download a sample volume and check out its middle slice.
 #
 
 dinv.datasets.download_archive(
@@ -269,13 +278,13 @@ dataset = dinv.datasets.FastMRISliceDataset(
 
 x, y = next(iter(DataLoader(dataset)))
 
-print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
-
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
 
+print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
+
 # %%
-# We can relate ``x`` and ``y`` using our
+# Note that we can relate ``x`` and fully-sampled ``y`` using our
 # :class:`deepinv.physics.MultiCoilMRI` (note that since we are not
 # provided with the ground-truth coil-maps, we can only perform the
 # adjoint operator).
@@ -292,91 +301,97 @@ x_rss = physics.A_adjoint(y, rss=True, crop=True)
 
 assert torch.allclose(x, x_rss)
 
+# %%
+# We can also pre-estimate coil sensitivity maps using ESPIRiT from the raw data.
+#
+
+dataset = dinv.datasets.FastMRISliceDataset(
+    dinv.utils.get_data_home() / "brain",
+    slice_index="middle",
+    transform=dinv.datasets.MRISliceTransform(
+        estimate_coil_maps=True,
+        acs=5,  # Num. low frequency, set to 5 for speed
+    ),
+)
+
+x, y, params = next(iter(DataLoader(dataset)))
+
+physics.update(**params)
+
+dinv.utils.plot(
+    {"x": x, "maps0": physics.coil_maps[:, 0], "maps1": physics.coil_maps[:, 1]}
+)
 
 # %%
 # 4. Train using raw data
 # ~~~~~~~~~~~~~~~~~~~~~~~
 #
-# We now use a mask generator to generate acceleration masks **on-the-fly**
-# (online) during training. We use the E2E-VarNet model designed for
-# multicoil MRI. We do not perform coil sensitivity map estimation and
-# simply assume they are flat as above. To do this yourself, pass a model
-# as the ``sensitivity_model`` parameter.
+# For training with multicoil raw data, we can simulate random masks **on-the-fly**:
 #
 
-physics_generator = dinv.physics.generator.GaussianMaskGenerator(
-    img_size=kspace_shape, acceleration=4, rng=rng, device=device
+dataset = dinv.datasets.FastMRISliceDataset(
+    dinv.utils.get_data_home() / "brain",
+    slice_index="middle",
+    transform=dinv.datasets.MRISliceTransform(
+        mask_generator=dinv.physics.generator.GaussianMaskGenerator(
+            img_size=kspace_shape, acceleration=4, rng=rng, device=device
+        ),
+        seed_mask_generator=False,  # More diversity during training
+    ),
 )
+
+# %%
+#
+# Note if the data is already undersampled raw kspace data (e.g. FastMRI test set)
+# you can also easily directly load it and their associated masks for testing or training
+# (optionally specify separate target folder if targets are in a different folder):
+#
+# ::
+#
+#         dataset = dinv.datasets.FastMRISliceDataset(
+#             root=root,
+#             target_root=target_root,
+#             transform=dinv.datasets.MRISliceTransform()
+#         )
+#
+# We use the E2E-VarNet model designed for
+# multicoil MRI. For this example, we do not perform joint coil sensitivity map estimation and
+# simply assume they are flat. If you want to estimate the maps, either pass a model
+# as the ``sensitivity_model`` parameter, or use a different model which uses precomputed maps.
+#
 
 model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(device)
 
-
 # %%
-# Note that we require overriding the base
-# :class:`deepinv.Trainer` to deal with raw measurements, as we
-# do not want to generate k-space measurements, only mask it.
-#
-# .. note ::
-#
-#    We require `loop_random_online_physics=True` and `shuffle=False` in the dataloader to ensure that each image is always matched with the same random mask at each iteration.
-#
-
-
-class RawFastMRITrainer(dinv.Trainer):
-    def get_samples_online(self, iterators, g):
-        # Get data
-        x, y = next(iterators[g])
-        x, y = x.to(self.device), y.to(self.device)
-
-        # Get physics
-        physics = self.physics[g]
-
-        # Generate random mask
-        params = self.physics_generator[g].step(
-            batch_size=y.size(0), img_size=y.shape[-2:]
-        )
-
-        # Generate measurements directly from raw measurements
-        y *= params["mask"]
-
-        physics.update(**params)
-
-        return x, y, physics
-
-
-# %%
-# We also need to modify the metrics used to crop the model output when
+# We also need to modify the metrics used to crop the model output and take the magnitude when
 # comparing to the cropped magnitude RSS targets:
 #
 
-transform = torchvision.transforms.Compose(
-    [
-        torchvision.transforms.CenterCrop(x.shape[-2:]),
-        dinv.metric.functional.complex_abs,
-    ]
-)
 
-
-class CropMSE(dinv.metric.MSE):
-    def forward(self, x_net=None, x=None, *args, **kwargs):
-        return super().forward(transform(x_net), x, *args, **kwargs)
+def crop(x_net, x):
+    """Crop to GT shape then take magnitude."""
+    return dinv.physics.MRIMixin().rss(
+        dinv.physics.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
+    )
 
 
 class CropPSNR(dinv.metric.PSNR):
     def forward(self, x_net=None, x=None, *args, **kwargs):
-        return super().forward(transform(x_net), x, *args, **kwargs)
+        return super().forward(crop(x_net, x), x, *args, **kwargs)
 
 
-trainer = RawFastMRITrainer(
+class CropMSE(dinv.metric.MSE):
+    def forward(self, x_net=None, x=None, *args, **kwargs):
+        return super().forward(crop(x_net, x), x, *args, **kwargs)
+
+
+trainer = dinv.Trainer(
     model=model,
     physics=physics,
-    physics_generator=physics_generator,
-    online_measurements=True,
-    loop_random_online_physics=True,
     losses=dinv.loss.SupLoss(metric=CropMSE()),
     metrics=CropPSNR(),
     optimizer=torch.optim.Adam(model.parameters()),
-    train_dataloader=DataLoader(dataset, shuffle=False),
+    train_dataloader=DataLoader(dataset),
     epochs=1,
     save_path=None,
     show_progress_bar=False,

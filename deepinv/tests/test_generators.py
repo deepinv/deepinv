@@ -246,10 +246,9 @@ def test_downsampling_generator(num_channels, device, dtype):
     This test is different from the above ones because we do not generate a random kernel at each iteration, but
     we sample from a list.
     """
-    size = (
-        32,
-        32,
-    )  # we need sufficiently large sizes to ensure well definedness of the operation
+    # we need sufficiently large sizes to ensure well definedness of the operation
+    size = (32, 32)
+
     physics = dinv.physics.Downsampling(
         img_size=(num_channels, size[0], size[1]),
         device=device,
@@ -260,7 +259,7 @@ def test_downsampling_generator(num_channels, device, dtype):
         "DownsamplingGenerator", size, num_channels, device, dtype
     )
 
-    batch_size = 2
+    batch_size = 1  # Must be 1 as filters with different shapes can't be batched
     params = generator.step(batch_size=batch_size, seed=0)
 
     x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
