@@ -18,10 +18,10 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 
 General reconstruction models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We provide the following list of deep artifact removal architectures.
+We provide the following list of multiphysics reconstruction models.
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
-.. list-table:: Deep denoisers
+.. list-table:: Multiphysics reconstruction models
    :widths: 15 25 15 15 10
    :header-rows: 1
 

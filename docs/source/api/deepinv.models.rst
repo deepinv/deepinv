@@ -60,6 +60,7 @@ Deep Denoisers
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp
    deepinv.models.DScCP
+   deepinv.models.RAM
 
 
 Denoisers Utils
