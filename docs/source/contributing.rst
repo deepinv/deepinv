@@ -44,7 +44,13 @@ check the following points:
   After making the desired changes, check the documentation by installing
   ``sphinx`` and building the docs by running one of the commands in the table below in the ``docs`` directory.
   Note that if the build process fails, supplementary additional libraries may need to be manually installed
-  (e.g. ``sphinx-gallery``): please follow instructions in the log.
+  (e.g. ``sphinx-gallery``): please follow instructions in the log. 
+
+.. tip::
+
+  Once the GitHub tests have been approved by a maintainer (only required for first-time contributors), and the `Build Docs` GitHub action
+  has run successfully, you can download the documentation as a zip file from the `Actions page <https://github.com/deepinv/deepinv/actions/workflows/documentation.yml>`_. Look for the workflow run corresponding to your pull request.
+
 
 .. list-table::
    :widths: 40 50

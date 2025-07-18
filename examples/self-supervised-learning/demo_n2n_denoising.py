@@ -51,7 +51,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we use the MNIST dataset as the base image dataset.
 #
 
-operation = "denoising"
+operation = "denoising_n2n"
 train_dataset_name = "MNIST"
 
 transform = transforms.Compose([transforms.ToTensor()])
