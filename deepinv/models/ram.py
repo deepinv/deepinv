@@ -7,10 +7,10 @@ import torch.nn.functional as F
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
-from deepinv.models.base import Reconstructor
+from deepinv.models.base import Reconstructor, Denoiser
 
 
-class RAM(Reconstructor):
+class RAM(Reconstructor, Denoiser):
     r"""
     Reconstruct Anything Model.
 
@@ -109,10 +109,10 @@ class RAM(Reconstructor):
             )
         return value_map
 
-    def base_conditioning(self, x, sigma, gamma):
+    def base_conditioning(self, x, sigma, gain):
         noise_level_map = self.constant2map(sigma, x)
-        gamma_map = self.constant2map(gamma, x)
-        return torch.cat((x, noise_level_map, gamma_map), 1)
+        gain_map = self.constant2map(gain, x)
+        return torch.cat((x, noise_level_map, gain_map), 1)
 
     def realign_input(self, x, physics, y):
         r"""
@@ -165,7 +165,7 @@ class RAM(Reconstructor):
 
         return model_input
 
-    def forward_unet(self, x0, sigma=None, gamma=None, physics=None, y=None):
+    def forward_unet(self, x0, sigma=None, gain=None, physics=None, y=None):
         r"""
         Forward pass of the UNet model.
 
@@ -186,7 +186,7 @@ class RAM(Reconstructor):
         if y is not None:
             x0 = self.realign_input(x0, physics, y)
 
-        x0 = self.base_conditioning(x0, sigma, gamma)
+        x0 = self.base_conditioning(x0, sigma, gain)
 
         x1 = self.m_head(x0)
 
@@ -214,7 +214,7 @@ class RAM(Reconstructor):
 
         return x
 
-    def forward(self, y=None, physics=None):
+    def forward(self, y, physics=None, sigma=None, gain=None):
         r"""
         Reconstructs a signal estimate from measurements y
 
@@ -222,9 +222,17 @@ class RAM(Reconstructor):
         :param deepinv.physics.Physics physics: forward operator
         :return: torch.Tensor: reconstructed signal estimate
         """
+        assert (
+            physics is not None or sigma is not None or gain is not None
+        ), "Either physics, sigma or gain must be provided to the RAM model."
+
         if physics is None:
+            gain = 1e-3 if gain is None else gain
+            sigma = self.sigma_threshold if sigma is None else sigma
+
             physics = dinv.physics.Denoising(
-                noise_model=dinv.physics.GaussianNoise(sigma=0.0), device=y.device
+                noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
+                device=y.device,
             )
 
         x_temp = physics.A_adjoint(y)
@@ -236,13 +244,14 @@ class RAM(Reconstructor):
         sigma = (
             physics.noise_model.sigma if hasattr(physics.noise_model, "sigma") else 1e-3
         )
-        sigma = torch.tensor(max(sigma, self.sigma_threshold), device=y.device)
-        gamma = (
+        sigma = self._handle_sigma(max(sigma, self.sigma_threshold))
+
+        gain = (
             physics.noise_model.gain if hasattr(physics.noise_model, "gain") else 1e-3
         )
-        gamma = torch.tensor(max(gamma, 1e-3), device=y.device)
+        gain = self._handle_sigma(max(gain, 1e-3))
 
-        out = self.forward_unet(x_in, sigma=sigma, gamma=gamma, physics=physics, y=y)
+        out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
         out = physics.remove_pad(out)
 

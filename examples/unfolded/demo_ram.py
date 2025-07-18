@@ -50,6 +50,39 @@ dinv.utils.plot(
 )
 
 # %%
+# This model was also trained on various denoising problems, in particular on Poisson-Gaussian denoising.
+
+sigma, gain = 0.2, 0.5
+physics = dinv.physics.Denoising(
+    noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
+    device=device,
+)
+
+# generate measurement
+y = physics(x)
+
+# run inference
+with torch.no_grad():
+    x_hat = model(y, physics=physics)
+    # or alternatively, we can use the model without physics:
+    # x_hat = model(y, sigma=sigma, gain=gain)
+
+# compute PSNR
+in_psnr = dinv.metric.PSNR()(x, y).item()
+out_psnr = dinv.metric.PSNR()(x, x_hat).item()
+
+# plot
+dinv.utils.plot(
+    [x, y, x_hat],
+    [
+        "Original",
+        "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
+        "Reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
+    ],
+    figsize=(8, 3),
+)
+
+# %%
 # This model is not trained on all degradations, so it may not perform well on all inverse problems.
 # For instance, it is not trained on image demosaicing. Applying it to a demosaicing problem will yield poor results,
 # as shown in the following example:
