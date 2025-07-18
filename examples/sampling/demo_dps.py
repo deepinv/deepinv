@@ -109,7 +109,7 @@ alphas = (1 - betas).cumprod(dim=0)
 #         \mathbf{\varepsilon}_t &= \mathcal{N}(0, \mathbf{I}) \\
 #         \mathbf{x}_{t-1} &= a_t \,\, \mathbf{x}_t
 #         + b_t \, \, \widehat{\mathbf{x}}_0
-#         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t - \mathbf{g}_t,
+#         + \tilde{\sigma}_t \, \, \mathbf{\varepsilon}_t + \mathbf{g}_t,
 #         \end{aligned}
 #         \end{equation*}
 #
