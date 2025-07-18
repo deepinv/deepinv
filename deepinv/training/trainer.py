@@ -71,8 +71,8 @@ class Trainer:
 
     :Basics:
 
-    :param deepinv.models.Reconstructor, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
-        or any other custom reconstruction network.
+    :param deepinv.models.Reconstructor, deepinv.models.Denoiser, torch.nn.Module model: Reconstruction network, which can be :ref:`any reconstruction network <reconstructors>`.
+        or any other custom reconstruction network. If the model is a ``Denoiser``, it will be wrapped in an :class:`ArtifactRemoval` model.
     :param deepinv.physics.Physics, list[deepinv.physics.Physics] physics: :ref:`Forward operator(s) <physics_list>`.
     :param torch.utils.data.DataLoader, list[torch.utils.data.DataLoader] train_dataloader: Train data loader(s), see options 1 to 3
         above for how we expect data to be provided.
@@ -235,6 +235,7 @@ class Trainer:
     show_progress_bar: bool = True
 
     def setup_denoiser(self):
+        r""" "Wrap the Denoiser in an ArtifactRemoval"""
         if not isinstance(self.model, ArtifactRemoval):
             self.model = ArtifactRemoval(
                 backbone_net=self.model, mode="direct", device=self.device
