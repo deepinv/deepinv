@@ -71,6 +71,11 @@ doc = [
     "sphinx_sitemap<2.7.0",
 ]
 
+lint = [
+    "black",
+    "ruff"
+]
+
 # optional dependencies for specific denoisers
 denoisers = [
     "bm3d",
