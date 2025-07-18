@@ -14,9 +14,7 @@ ULA obtains samples by running the following iteration:
 where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\eta` is the step size and
 :math:`\alpha` is a parameter controlling the regularization.
 
-The PnP-ULA method is described in the paper `"Bayesian imaging using Plug & Play priors: when Langevin meets Tweedie
-" <https://arxiv.org/abs/2103.04715>`_.
-
+The PnP-ULA method is described in the paper :footcite:t:`laumont2022bayesian`.
 """
 
 import deepinv as dinv
@@ -80,8 +78,7 @@ likelihood = dinv.optim.data_fidelity.L2(sigma=sigma)
 # The hyperparameter ``sigma_denoiser`` (:math:`sigma`) controls the strength of the prior.
 #
 # In this example, we use a pretrained DnCNN model using the :class:`deepinv.loss.FNEJacobianSpectralNorm` loss,
-# which makes sure that the denoiser is firmly non-expansive (see
-# `"Building firmly nonexpansive convolutional neural networks" <https://hal.science/hal-03139360>`_), and helps to
+# which makes sure that the denoiser is firmly non-expansive (see :footcite:t:`terris2020building`), and helps to
 # stabilize the sampling algorithm.
 
 sigma_denoiser = 2 / 255

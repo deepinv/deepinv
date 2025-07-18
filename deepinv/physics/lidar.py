@@ -7,7 +7,7 @@ class SinglePhotonLidar(Physics):
     r"""
     Single photon lidar operator for depth ranging.
 
-    See https://ieeexplore.ieee.org/abstract/document/9127841 for a review of this imaging method.
+    See :footcite:t:`rapp2020advances` for a review of this imaging method.
 
     The forward operator is given by
 
@@ -28,6 +28,8 @@ class SinglePhotonLidar(Physics):
     :param str device: Device to use (gpu or cpu).
     :param torch.Generator rng: (optional) a pseudorandom random number generator for
         the Poisson noise model :class:`deepinv.physics.PoissonNoise`
+
+
     """
 
     def __init__(self, sigma=1.0, bins=50, device="cpu", rng: torch.Generator = None):

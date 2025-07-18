@@ -13,11 +13,11 @@ from .utils import get_weights_url
 
 
 class NCSNpp(Denoiser):
-    r"""Re-implementation of the DDPM++ and NCSN++ architectures from the paper: `Score-Based Generative Modeling through Stochastic Differential Equations <https://arxiv.org/abs/2011.13456>`_.
+    r"""Implementation of the DDPM++ and NCSN++ architectures.
 
-    Equivalent to the original implementation by Song et al., available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
+    Equivalent to the original implementation by :footcite:t:`song2020score`, available at `the official implementation <https://github.com/yang-song/score_sde_pytorch>`_.
 
-    The model is also pre-conditioned by the method described in the paper `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+    The model is also pre-conditioned by the method described in :footcite:t:`karras2022elucidating`.
 
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections of scale :math:`\sqrt{0.5}`.
     The model also supports an additional class condition model.
@@ -49,6 +49,8 @@ class NCSNpp(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+
+
 
     """
 

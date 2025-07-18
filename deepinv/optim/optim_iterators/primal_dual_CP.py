@@ -7,9 +7,8 @@ class CPIteration(OptimIterator):
     r"""
     Iterator for Chambolle-Pock.
 
-    Class for a single iteration of the `Chambolle-Pock <https://hal.science/hal-00490826/document>`_ Primal-Dual (PD)
-    algorithm for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
-    Our implementation corresponds to Algorithm 1 of `<https://hal.science/hal-00490826/document>`_.
+    Class for a single iteration of the Chambolle-Pock Primal-Dual (PD) algorithm :footcite:t:`chambolle2011first` for minimising :math:`F(Kx) + \lambda G(x)` or :math:`\lambda F(x) + G(Kx)` for generic functions :math:`F` and :math:`G`.
+    Our implementation corresponds to Algorithm 1 of :footcite:t:`chambolle2011first`.
 
     If the attribute ``g_first`` is set to ``False`` (by default), the iteration is given by
 

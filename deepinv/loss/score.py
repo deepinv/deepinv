@@ -8,8 +8,9 @@ class ScoreLoss(Loss):
     r"""
     Learns score of distribution in the context of Noise2Score.
 
-    Approximates the score of the measurement distribution :math:`S(y)\approx \nabla \log p(y)`
-    https://proceedings.neurips.cc/paper_files/paper/2021/file/077b83af57538aa183971a2fe0971ec1-Paper.pdf.
+    Proposed by :footcite:t:`kim2021noise2score`.
+
+    Approximates the score of the measurement distribution :math:`S(y)\approx \nabla \log p(y)`.
 
     The score loss is defined as
 
@@ -72,6 +73,7 @@ class ScoreLoss(Loss):
         >>> l = loss(model)
         >>> print(l.item() > 0)
         True
+
     """
 
     def __init__(self, noise_model=None, total_batches=1000, delta=(0.001, 0.1)):

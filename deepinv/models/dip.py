@@ -18,7 +18,7 @@ class ConvDecoder(nn.Module):
     r"""
     Convolutional decoder network.
 
-    The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
+    The architecture was introduced by :footcite:t:`darestani2021accelerated`,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
@@ -26,6 +26,7 @@ class ConvDecoder(nn.Module):
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
+
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
@@ -98,9 +99,7 @@ class DeepImagePrior(Reconstructor):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-    <https://arxiv.org/abs/1711.10925>`_, and reconstructs
-    an image by minimizing the loss function
+    This method, introduced by :footcite:t:`ulyanov2018deep`, reconstructs an image by minimizing the loss function
 
     .. math::
 
@@ -127,7 +126,6 @@ class DeepImagePrior(Reconstructor):
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
-
     """
 
     @_deprecated_alias(input_size="img_size")

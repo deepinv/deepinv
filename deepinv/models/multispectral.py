@@ -63,7 +63,7 @@ class ResNet(nn.Module):
 class PanNet(nn.Module):
     """PanNet architecture for pan-sharpening.
 
-    PanNet neural network from Yang et al. `PanNet: A Deep Network Architecture for Pan-Sharpening <https://ieeexplore.ieee.org/document/8237455/>`_, ICCV 2017.
+    PanNet neural network from :footcite:t:`yang2017pannet`.
 
     Takes input measurements as a :class:`deepinv.utils.TensorList` with elements (MS, PAN),
     where MS is the low-resolution multispectral image of shape (B, C, H, W) and PAN is the
@@ -74,6 +74,8 @@ class PanNet(nn.Module):
     :param int scale_factor: pansharpening downsampling ratio HR/LR, defaults to 4
     :param int highpass_kernel_size: square kernel size for extracting high-frequency features, defaults to 5
     :param str device: torch device, defaults to "cpu"
+
+
     """
 
     def __init__(

@@ -120,8 +120,7 @@ class SureGaussianLoss(Loss):
     Monte Carlo approximation of the divergence.
 
     This loss approximates the divergence of :math:`A\inverse{y}` (in the original SURE loss)
-    using the Monte Carlo approximation in
-    https://ieeexplore.ieee.org/abstract/document/4099398/
+    using the Monte Carlo approximation in :footcite:t:`luisier2007new`.
 
     If the measurement data is truly Gaussian with standard deviation :math:`\sigma`,
     this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
@@ -134,7 +133,7 @@ class SureGaussianLoss(Loss):
 
     .. note::
 
-        If the noise level is unknown, the loss can be adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985,
+        If the noise level is unknown, the loss can be adapted to the UNSURE loss introduced by :footcite:t:`tachella2024unsure`,
         which also learns the noise level.
 
     :param float sigma: Standard deviation of the Gaussian noise.
@@ -143,7 +142,7 @@ class SureGaussianLoss(Loss):
         the performance of the loss. If 'A_dagger', the pseudo-inverse of the forward operator is used.
         Otherwise the metric should be a linear operator that approximates the pseudo-inverse of the forward operator
         such as :func:`deepinv.physics.LinearPhysics.prox_l2` with large :math:`\gamma`. By default, the identity is used.
-    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985
+    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced by :footcite:t:`tachella2024unsure`
         where the noise level :math:`\sigma` is also learned (the input value is used as initialization).
     :param float step_size: Step size for the gradient ascent of the noise level if unsure is ``True``.
     :param float momentum: Momentum for the gradient ascent of the noise level if unsure is ``True``.
@@ -231,7 +230,7 @@ class SurePoissonLoss(Loss):
     :math:`b` is a Bernoulli random variable taking values of -1 and 1 each with a probability of 0.5,
     :math:`\tau` is a small positive number, and :math:`\odot` is an elementwise multiplication.
 
-    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
+    See :footcite:t:`le2014unbiased` for details.
     If the measurement data is truly Poisson
     this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
@@ -312,7 +311,7 @@ class SurePGLoss(Loss):
     this loss is an unbiased estimator of the mean squared loss :math:`\frac{1}{m}\|u-A\inverse{y}\|_2^2`
     where :math:`z` is the noiseless measurement.
 
-    See https://ieeexplore.ieee.org/abstract/document/6714502/ for details.
+    See :footcite:t:`le2014unbiased` for details.
 
     .. warning::
 
@@ -321,7 +320,7 @@ class SurePGLoss(Loss):
 
     .. note::
 
-        If the noise levels are unknown, the loss can be adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985,
+        If the noise levels are unknown, the loss can be adapted to the UNSURE loss introduced by :footcite:t:`tachella2024unsure`,
         which also learns the noise levels.
 
     :param float sigma: Standard deviation of the Gaussian noise.
@@ -330,7 +329,7 @@ class SurePGLoss(Loss):
     :param float tau2: Approximation constant for the second derivative.
     :param bool second_derivative: If ``False``, the last term in the loss (approximating the second derivative) is removed
         to speed up computations, at the cost of a possibly inexact loss. Default ``True``.
-    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced in https://arxiv.org/abs/2409.01985
+    :param bool unsure: If ``True``, the loss is adapted to the UNSURE loss introduced by :footcite:t:`tachella2024unsure`
         where :math:`\gamma` and :math:`\sigma^2` are also learned (their input value is used as initialization).
     :param tuple[float] step_size: Step size for the gradient ascent of the noise levels if unsure is ``True``.
     :param tuple[float] momentum: Momentum for the gradient ascent of the noise levels if unsure is ``True``.

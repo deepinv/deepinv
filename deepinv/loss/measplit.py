@@ -32,10 +32,8 @@ class SplittingLoss(Loss):
         or :class:`deepinv.physics.MRI`,
         the splitting masks will be subsets of the physics' mask such that :math:`M_1+M_2=M_{A}`
 
-    This loss was used for MRI in `Yaman et al. Self-supervised learning of physics-guided reconstruction neural
-    networks without fully sampled reference data <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_ (SSDU) for MRI,
-    `Hendriksen et al. <https://arxiv.org/abs/2001.11801>`_ (Noise2Inverse) for CT, as well as numerous other papers. Note we use implement the
-    `multi-mask strategy proposed by Yaman et al. <https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/10.1002/nbm.4798>`_.
+    This loss was used for MRI in SSDU :footcite:t:`yaman2020self` for MRI, Noise2Inverse :footcite:t:`hendriksen2020noise2inverse` for CT, as well as numerous other papers.
+    Note we implement the multi-mask strategy proposed by :footcite:t:`yaman2020self`.
 
 
     By default, the error is computed using the MSE metric, however any appropriate metric can be used.
@@ -53,7 +51,7 @@ class SplittingLoss(Loss):
 
     .. note::
 
-        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in `SSDU <https://pubmed.ncbi.nlm.nih.gov/32614100/>`_.
+        To disable measurement splitting (and use the full input) at evaluation time, set ``eval_split_input=False``. This is done in SSDU :footcite:t:`yaman2020self`.
 
     .. seealso::
 
@@ -357,11 +355,10 @@ class Neighbor2Neighbor(Loss):
     r"""
     Neighbor2Neighbor loss.
 
-    Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
-    map (see details in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-    <https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_).
+    Implements the self-supervised Neighbor2Neighbor loss :footcite:t:`huang2021neighbor2neighbor`.
 
-    The self-supervised loss is computed as:
+    Splits the noisy measurements using two masks :math:`A_1` and :math:`A_2`, each choosing a different neighboring
+    map (see details in :footcite:t:`huang2021neighbor2neighbor`). The self-supervised loss is computed as:
 
     .. math::
 
@@ -378,6 +375,8 @@ class Neighbor2Neighbor(Loss):
     :param Metric, torch.nn.Module metric: metric used for computing data consistency,
         which is set as the mean squared error by default.
     :param float gamma: regularization parameter :math:`\gamma`.
+
+
     """
 
     def __init__(
