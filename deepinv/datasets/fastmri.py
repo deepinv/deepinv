@@ -213,6 +213,8 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
 
     |sep|
 
+    For examples using raw data, see :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py`.
+
     :Examples:
 
         Instantiate dataset with sample data (from a demo multicoil brain volume):
