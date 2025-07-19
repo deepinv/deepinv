@@ -90,6 +90,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
         >>> physics = dinv.physics.BlurFFT(img_size=(1, 32, 32), filter=dinv.physics.blur.gaussian_blur(.2))
         >>> x = torch.rand((1, 1, 8, 8))  # define an image 4 times smaller than the physics input size (scale = 2)
         >>> new_physics = dinv.physics.LinearPhysicsMultiScaler(physics, (1, 32, 32), factors=[2, 4, 8])  # define a multiscale physics with base img size (1, 32, 32)
+        >>> y = new_physics(x, scale=2)  # applying physics at scale 2
         >>> print(y.shape)
         torch.Size([1, 1, 32, 32])
 
