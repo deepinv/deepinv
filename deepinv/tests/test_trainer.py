@@ -665,7 +665,14 @@ def test_dataloader_formats(
 @pytest.mark.parametrize("early_stop", [True, False])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    non_blocking_plots, dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps, tmpdir
+    non_blocking_plots,
+    dummy_dataset,
+    imsize,
+    device,
+    dummy_model,
+    early_stop,
+    max_batch_steps,
+    tmpdir,
 ):
     torch.manual_seed(0)
     model = dummy_model

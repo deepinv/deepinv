@@ -288,7 +288,9 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng):
+def test_losses(
+    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
+):
     # choose training losses
     loss = choose_loss(loss_name, rng)
 
