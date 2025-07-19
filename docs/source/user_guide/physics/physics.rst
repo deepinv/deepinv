@@ -111,6 +111,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
 
 .. _wrapper_list:
+
 Wrappers
 ~~~~~~~~~
 Wrappers are operators that can be used to adapt existing operators to a new problem.

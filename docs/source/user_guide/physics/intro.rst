@@ -227,6 +227,7 @@ can be done by multiplying the operators:
     torch.Size([1, 1, 4, 4])
 
 .. _physics_wrappers:
+
 Physics Wrappers
 ^^^^^^^^^^^^^^^^
 
