@@ -22,15 +22,15 @@ class NoiseModel(nn.Module):
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
-            # NOTE: Counter-intuitively, the random state of the generator
-            # needs to **not** be registered as a buffer and to **not**
-            # be moved to a cuda device. The reason behind this is that 1)
-            # Generator.get_state returns a state that is always on the CPU no
-            # matter the device of the generator and 2) that Generator.set_state
-            # expects a state that is on the CPU. For this reason, we cannot
-            # store it as a buffer as buffers are automatically moved when
-            # calling Module.to.
-            self.initial_random_state = rng.get_state()
+            # NOTE: There is no use in moving RNG states from one device to another
+            # as Generator.set_state only supports inputs living on the CPU. Yet,
+            # by registering the initial random state as a buffer, it might be
+            # moved to another device. This might hinder performance as the tensor
+            # will need to be moved back to the CPU if it needs to be used later.
+            # We could fix that by letting it be a regular class attribute instead
+            # of a buffer but it would prevent it from being included in the
+            # state dicts which is undesirable.
+            self.register_buffer("initial_random_state", rng.get_state())
 
     def forward(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
         r"""
@@ -79,7 +79,8 @@ class NoiseModel(nn.Module):
         Reset the random number generator to its initial state.
         """
         if self.rng is not None:
-            self.rng.set_state(self.initial_random_state)
+            # NOTE: Generator.set_state expects a tensor living on the CPU.
+            self.rng.set_state(self.initial_random_state.cpu())
         else:
             warnings.warn(
                 "Cannot reset state for random number generator because it was not initialized. This is ignored."
