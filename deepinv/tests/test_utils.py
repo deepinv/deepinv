@@ -128,16 +128,16 @@ def test_tensordict_append(tensorlist):
 # shape we use the input tensor list shape as the value for that parameter. By
 # default we use the tensor list itself for every optional parameter.
 def test_tensorlist_methods(tensorlist):
-    tensorlist, _ = tensorlist
+    x, y = tensorlist
     parameter_map = {
-        "shape": tensorlist.shape,
+        "shape": x.shape,
         "dim": 0,
-        "device": tensorlist[0].device,
-        "dtype": tensorlist[0].dtype,
+        "device": x[0].device,
+        "dtype": x[0].dtype,
     }
 
     for method_name, method in inspect.getmembers(
-        tensorlist, predicate=inspect.ismethod
+        x, predicate=inspect.ismethod
     ):
         # Ignore dunder methods
         if method_name.startswith("__") and method_name.endswith("__"):
@@ -151,7 +151,7 @@ def test_tensorlist_methods(tensorlist):
 
         # Use the tensor list itself for every required argument
         args = [
-            parameter_map[p.name] if p.name in parameter_map else tensorlist
+            parameter_map[p.name] if p.name in parameter_map else x
             for p in sig.parameters.values()
             # Both conditions are needed to deal with *args and **kwargs
             # but also not to include parameters that are not required
@@ -161,8 +161,8 @@ def test_tensorlist_methods(tensorlist):
 
         # Test that the method does not raise any exception
         # NOTE: We run the method on a copy of the object to avoid side effects
-        tensorlist_copy = copy.deepcopy(tensorlist)
-        _ = getattr(tensorlist_copy, method_name)(*args)
+        x_copy = copy.deepcopy(x)
+        _ = getattr(x_copy, method_name)(*args)
 
 
 @pytest.mark.parametrize("shape", [(1, 1, 3, 3), (1, 1, 5, 5)])
