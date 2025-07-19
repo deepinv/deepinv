@@ -258,11 +258,11 @@ Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads
     >>> import torch
     >>> import deepinv as dinv
     >>> physics = dinv.physics.BlurFFT(img_size=(1, 16, 16), filter=dinv.physics.blur.gaussian_blur(.2))
-    >>> x = torch.rand((1, 1, 18, 21))  # define an image 4 times smaller than the physics input size (scale = 2)
+    >>> x = torch.rand((1, 1, 18, 21))  # define an input image larger than the physics input size
     >>> new_physics = dinv.physics.PhysicsCropper(physics, crop=(2,5))  # define a padded physics
-    >>> y = new_physics(x)  # compute the measurements with padding
+    >>> y = new_physics(x)  # compute the measurements with cropping
     >>> print(y.shape)
     torch.Size([1, 1, 16, 16])
-    >>> Aty = new_physics.A_adjoint(y)  # compute the adjoint operator with padding
+    >>> Aty = new_physics.A_adjoint(y)  # compute the adjoint operator with cropping
     >>> print(Aty.shape)
     torch.Size([1, 1, 18, 21])  # the output is the same size as the input image
