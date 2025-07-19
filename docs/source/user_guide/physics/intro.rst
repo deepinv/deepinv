@@ -247,8 +247,8 @@ This can be done with the :class:`deepinv.physics.LinearPhysicsMultiScaler` clas
     >>> print(y.shape)
     torch.Size([1, 1, 32, 32])
     >>> Aty = new_physics.A_adjoint(y, scale=2)  # compute the adjoint operator
-    >>> print(Aty.shape)
-    torch.Size([1, 1, 8, 8])  # the output is the same size as the input image
+    >>> print(Aty.shape)  # the output is the same size as the input image
+    torch.Size([1, 1, 8, 8])
 
 
 Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads the input image to the operator's input size.
@@ -264,5 +264,5 @@ Another example is the :class:`deepinv.physics.PhysicsCropper` class, which pads
     >>> print(y.shape)
     torch.Size([1, 1, 16, 16])
     >>> Aty = new_physics.A_adjoint(y)  # compute the adjoint operator with cropping
-    >>> print(Aty.shape)
-    torch.Size([1, 1, 18, 21])  # the output is the same size as the input image
+    >>> print(Aty.shape)  # the output is the same size as the input image
+    torch.Size([1, 1, 18, 21])
