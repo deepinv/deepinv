@@ -136,9 +136,7 @@ def test_tensorlist_methods(tensorlist):
         "dtype": x[0].dtype,
     }
 
-    for method_name, method in inspect.getmembers(
-        x, predicate=inspect.ismethod
-    ):
+    for method_name, method in inspect.getmembers(x, predicate=inspect.ismethod):
         # Ignore dunder methods
         if method_name.startswith("__") and method_name.endswith("__"):
             continue
