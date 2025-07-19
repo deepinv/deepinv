@@ -20,16 +20,7 @@ import torchvision.transforms as transforms
 import PIL
 import io
 import copy
-
-
-@pytest.fixture
-def non_interactive_matplotlib():
-    # Use a non-interactive backend to avoid blocking tests
-    current_backend = matplotlib.get_backend()
-    matplotlib.use("agg")
-    yield
-    # Restore the original backend
-    matplotlib.use(current_backend)
+from conftest import non_blocking_plots
 
 
 @pytest.fixture
@@ -725,4 +716,4 @@ def test_load_image(
 
 
 # Module-level fixtures
-pytestmark = [pytest.mark.usefixtures("non_interactive_matplotlib")]
+pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]
