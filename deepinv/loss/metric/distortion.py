@@ -150,7 +150,8 @@ class SSIM(Metric):
     tensor([1., 1., 1.])
 
     :param bool multiscale: if ``True``, computes the multiscale SSIM. Default: ``False``.
-    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of the ground truth image x.
+    :param float min_pixel: minimum pixel value. If None, uses min pixel value of the ground truth image x.
     :param dict torchmetric_kwargs: kwargs for torchmetrics SSIM as dict. See https://lightning.ai/docs/torchmetrics/stable/image/structural_similarity.html
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
@@ -160,7 +161,12 @@ class SSIM(Metric):
     """
 
     def __init__(
-        self, multiscale=False, max_pixel=1.0, torchmetric_kwargs: dict = {}, **kwargs
+        self,
+        multiscale=False,
+        max_pixel=1.0,
+        min_pixel=0.0,
+        torchmetric_kwargs: dict = {},
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.ssim = (
@@ -170,15 +176,44 @@ class SSIM(Metric):
         )
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
+        self.min_pixel = min_pixel
         self.lower_better = False
 
     def invert_metric(self, m):
         return 1.0 - m
 
     def metric(self, x_net, x, *args, **kwargs):
-        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
+        max_pixel = (
+            self.max_pixel
+            if self.max_pixel is not None
+            else x.amax(dim=tuple(range(1, x.ndim)))
+        )
+        min_pixel = (
+            self.min_pixel
+            if self.min_pixel is not None
+            else x.amin(dim=tuple(range(1, x.ndim)))
+        )
+        data_range = max_pixel - min_pixel
+        if self.max_pixel is None or self.min_pixel is None:
+            return torch.cat(
+                [
+                    self.ssim(
+                        x_net[i : i + 1],
+                        x[i : i + 1],
+                        data_range=data_range[i].item(),
+                        reduction="none",
+                        **self.torchmetric_kwargs,
+                    )
+                    for i in range(x.shape[0])
+                ],
+                0,
+            )
         return self.ssim(
-            x_net, x, data_range=max_pixel, reduction="none", **self.torchmetric_kwargs
+            x_net,
+            x,
+            data_range=data_range,
+            reduction="none",
+            **self.torchmetric_kwargs,
         )
 
 
@@ -210,21 +245,32 @@ class PSNR(Metric):
     >>> m(x_net, x)
     tensor([80., 80., 80.])
 
-    :param float max_pixel: maximum pixel value. If None, uses max pixel value of x.
+    :param float max_pixel: maximum pixel value. If None, uses max pixel value of the ground truth image x.
+    :param float min_pixel: minimum pixel value. If None, uses min pixel value of the ground truth image x.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
     """
 
-    def __init__(self, max_pixel=1, **kwargs):
+    def __init__(self, max_pixel=1, min_pixel=0, **kwargs):
         super().__init__(**kwargs)
         self.max_pixel = max_pixel
+        self.min_pixel = min_pixel
         self.lower_better = False
 
     def metric(self, x_net, x, *args, **kwargs):
-        max_pixel = self.max_pixel if self.max_pixel is not None else x.max()
-        return cal_psnr(x_net, x, max_pixel=max_pixel)
+        max_pixel = (
+            self.max_pixel
+            if self.max_pixel is not None
+            else x.amax(dim=tuple(range(1, x.ndim)))
+        )
+        min_pixel = (
+            self.min_pixel
+            if self.min_pixel is not None
+            else x.amin(dim=tuple(range(1, x.ndim)))
+        )
+        return cal_psnr(x_net, x, max_pixel=max_pixel, min_pixel=min_pixel)
 
 
 class L1L2(Metric):

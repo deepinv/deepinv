@@ -3,7 +3,7 @@
 DeepInverse: a PyTorch library for imaging with deep learning
 =============================================================
 
-|Test Status| |Docs Status| |Python Version| |Black| |codecov| |discord| |colab|
+|Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
 
 DeepInverse is a PyTorch-based library for solving imaging inverse problems with deep learning.
 
@@ -39,6 +39,10 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
    community
 
 
+**Maintainers**
+
+View our current and former maintainers, and how to get in touch, at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
 **Citation**
 
 If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
@@ -55,12 +59,17 @@ If you use DeepInverse in your research, please cite the following paper (availa
           url={https://arxiv.org/abs/2505.20160},
     }
 
-**Lead Developers**
+**Star history**
 
-`Julian Tachella <https://tachella.github.io/>`_, `Dongdong Chen <http://dongdongchen.com/>`_,
-`Samuel Hurault <https://github.com/samuro95/>`_, `Matthieu Terris <https://matthieutrs.github.io>`_
-and `Andrew Wang <https://andrewwango.github.io/about>`_.
+.. raw:: html
 
+   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
+    <picture>
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
+    </picture>
+   </a>
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
@@ -69,11 +78,13 @@ and `Andrew Wang <https://andrewwango.github.io/about>`_.
    :target: https://github.com/deepinv/deepinv/actions/workflows/test.yml
 .. |Docs Status| image:: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml/badge.svg
    :target: https://github.com/deepinv/deepinv/actions/workflows/documentation.yml
-.. |Python Version| image:: https://img.shields.io/badge/python-3.9%2B-blue
-   :target: https://www.python.org/downloads/release/python-390/
+.. |Python Version| image:: https://img.shields.io/badge/python-3.10%2B-blue
+   :target: https://www.python.org/downloads/release/python-3100/
 .. |codecov| image:: https://codecov.io/gh/deepinv/deepinv/branch/main/graph/badge.svg?token=77JRvUhQzh
    :target: https://codecov.io/gh/deepinv/deepinv
-.. |discord| image:: https://dcbadge.vercel.app/api/server/qBqY5jKw3p?style=flat
+.. |pip install| image:: https://img.shields.io/pypi/dm/deepinv.svg?logo=pypi&label=pip%20install&color=fedcba
+   :target: https://pypistats.org/packages/deepinv
+.. |discord| image:: https://dcbadge.limes.pink/api/server/qBqY5jKw3p?style=flat
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/1XhCO5S1dYN3eKm4NEkczzVU7ZLBuE42J
