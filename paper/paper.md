@@ -113,7 +113,7 @@ bibliography: paper.bib
 
 # Summary
 
-[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all image reconstruction steps, including the efficient implementation of forward operators, the definition and resolution of variational problems and the design, training of advanced neural network architectures, for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
+[DeepInverse](https://deepinv.github.io/) is an open-source PyTorch-based library for imaging inverse problems. DeepInverse implements all steps for image reconstruction, including efficient forward operators, defining and solving variational problems and designing and training advanced neural networks, for a wide set of domains (medical imaging, astronomical imaging, remote sensing, computational photography, compressed sensing and more).
 
 # Statement of Need
 
@@ -125,7 +125,7 @@ of new ideas across imaging domains;
 2. Enlarging the **adoption of deep learning in inverse problems** by lowering the entrance bar to new users;
 3. Enhancing **research reproducibility** via a common modular framework of problems and algorithms.
 
-To the best of our knowledge, DeepInverse is the only library with a strong focus and wide set of modern learning-based methods across domains.
+To the best of our knowledge, DeepInverse is the only library with a strong focus on and a wide set of modern learning-based methods across domains.
 SCICO [@balke2022scico] and Pyxu [@simeoni2022pyxu] focus on optimization-based methods.
 CUQIpy [@riis2024cuqipy] focuses on Bayesian uncertainty quantification.
 ASTRA [@van2016astra], pytomography [@polson2025pytomography], TIGRE [@biguri2025tigre], ODL [@adler2018odl] and CIL [@jorgensen2021core] focus on tomography, sigpy [@ong2019sigpy] on magnetic resonance imaging, and PyLops [@ravasi2019pylops] on certain linear operators. 
@@ -151,7 +151,7 @@ The current implemented physics, noise models, parameters $\xi$ and tools for ma
 
 # Reconstruction Methods
 
-DeepInverse unifies the wide variety of commonly-used imaging solvers in the literature:
+DeepInverse unifies the wide variety of commonly-used imaging solvers in the literature, written as:
 \begin{equation} \label{eq:solver}
 \hat{x} = \operatorname{R}_{\theta}(y, A_{\xi}, \sigma)
 \end{equation}
@@ -210,7 +210,7 @@ The [`transform` module](https://deepinv.github.io/deepinv/user_guide/training/t
 The [`datasets` module](https://deepinv.github.io/deepinv/user_guide/training/datasets.html) implements a variety of domain-specific datasets that return ground-truth and measurements pairs $\{(x_i,y_i)\}_{i=1}^{N}$ and optional parameters $\xi_i$, and allows simulating paired datasets given $\{x_i\}_{i=1}^{N}$ and physics $A_{\xi_i}$.
 
 # Evaluation
-The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods using `Trainer.test`.
+The [`metric` module](https://deepinv.github.io/deepinv/user_guide/training/metric.html#metric) provides metrics for evaluating reconstruction methods.
 These are written as `m = metric(x_hat, x)` (full-reference), or `m = metric(x_hat)` (no-reference) [@yeganeh2012objective], including distortion [@zhang2018unreasonable] and perceptual [@blau2018perception] metrics.
 
 # Philosophy
