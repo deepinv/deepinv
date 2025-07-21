@@ -60,7 +60,6 @@ __all__ += ["training"]
 
 from deepinv.training import train, test, Trainer
 
-__all__ += ["train", "test", "Trainer"]
 
 # GLOBAL PROPERTY
 dtype = torch.float
