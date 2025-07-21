@@ -512,7 +512,7 @@ def test_get_freer_gpu(test_case, os_name, verbose):
 
         mock_mem_get_info.side_effect = mem_info_mock
 
-        device = deepinv.utils.get_freer_gpu(verbose)
+        device = deepinv.utils.get_freer_gpu(verbose=verbose)
         assert isinstance(device, torch.device), "Device should be a torch device."
         assert device.type == "cuda", "Device should be a CUDA device."
         if n_gpus == 0:

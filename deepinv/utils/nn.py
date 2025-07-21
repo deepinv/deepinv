@@ -69,7 +69,7 @@ def _get_freer_gpu_system(hide_warnings=False):
     return device, idx, mem
 
 
-def get_freer_gpu(use_torch_api=True, hide_warnings=False, verbose=True):
+def get_freer_gpu(verbose=True, use_torch_api=True, hide_warnings=False):
     """
     Returns the GPU device with the most free memory.
 
@@ -81,9 +81,9 @@ def get_freer_gpu(use_torch_api=True, hide_warnings=False, verbose=True):
     If system method is chosen and fails, the call falls back to using torch commands and a warning
     is printed. If no CUDA devices are detected, then `None` is returned.
 
+    :param bool verbose: print selected GPU index and memory
     :param bool use_torch_api: use torch commands if True, or Nvidia driver otherwise
     :param bool hide_warnings: supress all warnings for all methods
-    :param bool verbose: print selected GPU index and memory
     :return torch.device device: selected cuda device
 
     .. warning::
