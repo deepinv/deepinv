@@ -843,6 +843,11 @@ def test_phase_retrieval(name, device):
     # same outputes for x and -x
     assert torch.equal(physics(x), physics(-x))
 
+    # test A_dagger
+    y = physics(x)
+    x_hat = physics.A_dagger(y)
+    assert x.shape == x_hat.shape
+
 
 def test_phase_retrieval_Avjp(device):
     r"""
