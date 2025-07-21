@@ -11,7 +11,6 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-from conftest import non_blocking_plots
 
 LOSSES = [
     "sup",

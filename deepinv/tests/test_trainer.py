@@ -17,7 +17,6 @@ import io
 import contextlib
 import re
 
-from conftest import non_blocking_plots
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 

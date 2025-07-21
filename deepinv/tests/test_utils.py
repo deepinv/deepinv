@@ -6,21 +6,18 @@ import warnings
 import numpy as np
 import contextlib
 from contextlib import nullcontext
-import matplotlib
 import random
 import unittest.mock as mock
 from unittest.mock import patch
 import subprocess
 import os
 import inspect
-import itertools
 import pathlib
 import torchvision
 import torchvision.transforms as transforms
 import PIL
 import io
 import copy
-from conftest import non_blocking_plots
 
 
 @pytest.fixture

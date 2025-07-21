@@ -8,7 +8,6 @@ from dummy import DummyCircles
 import matplotlib
 import matplotlib.pyplot as plt
 import importlib
-from contextlib import contextmanager
 
 
 @pytest.fixture

@@ -4,7 +4,6 @@ import shutil
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
-from itertools import zip_longest
 from functools import partial
 from warnings import warn
 

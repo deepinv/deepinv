@@ -18,7 +18,6 @@ In this tutorial, we will go over the steps in the Diffusion Posterior Sampling 
 #           The DiffUNet we use in the algorithm works best with images of size 256 x 256.
 #
 
-import numpy as np
 import torch
 
 import deepinv as dinv
