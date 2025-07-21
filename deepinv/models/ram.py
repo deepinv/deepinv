@@ -220,6 +220,8 @@ class RAM(Reconstructor, Denoiser):
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
+        :param float, torch.Tensor sigma: Gaussian noise level
+        :param float, torch.Tensor gain: Poisson noise level
         :return: torch.Tensor: reconstructed signal estimate
         """
         assert (
