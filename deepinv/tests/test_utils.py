@@ -19,6 +19,9 @@ import PIL
 import io
 import copy
 
+# NOTE: It's used as a fixture.
+from conftest import non_blocking_plots  # noqa: F401
+
 
 @pytest.fixture
 def tensorlist():
