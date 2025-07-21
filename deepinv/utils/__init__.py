@@ -48,3 +48,4 @@ from .phantoms import (
     SheppLoganDataset as SheppLoganDataset,
 )
 from .patch_extractor import patch_extractor as patch_extractor
+from .parameters import get_GSPnP_params as get_GSPnP_params

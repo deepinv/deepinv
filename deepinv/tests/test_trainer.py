@@ -17,7 +17,7 @@ import io
 import contextlib
 import re
 
-from conftest import no_plot
+from conftest import non_blocking_plots
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 
@@ -473,7 +473,7 @@ def test_trainer_load_model(tmp_path):
     assert trainer.model.a == 1
 
 
-def test_trainer_test_metrics(device, rng):
+def test_trainer_test_metrics(non_blocking_plots, device, rng):
     N = 10
     dataloader = torch.utils.data.DataLoader(DummyCircles(N), batch_size=2)
     trainer = dinv.Trainer(
@@ -491,9 +491,9 @@ def test_trainer_test_metrics(device, rng):
         online_measurements=True,
         plot_images=True,
     )
-    with no_plot():
-        _ = trainer.train()
-        results = trainer.test(dataloader, log_raw_metrics=True)
+
+    _ = trainer.train()
+    results = trainer.test(dataloader, log_raw_metrics=True)
 
     assert len(results["PSNR_vals"]) == len(results["PSNR no learning_vals"]) == N
     assert np.isclose(np.mean(results["PSNR_vals"]), results["PSNR"])
@@ -526,6 +526,7 @@ def dummy_model(device):
 @pytest.mark.parametrize("online_measurements", [True, False])
 @pytest.mark.parametrize("generate_params", [True, False])
 def test_dataloader_formats(
+    non_blocking_plots,
     imsize,
     device,
     dummy_model,
@@ -654,15 +655,21 @@ def test_dataloader_formats(
             assert_x_none(x); assert_y_offline(y); assert_physics_unchanged(physics)
     # fmt: off
 
-    with no_plot():
-        # Check that the model is trained without errors
-        trainer.train()
+    # Check that the model is trained without errors
+    trainer.train()
 
 
 @pytest.mark.parametrize("early_stop", [True, False])
 @pytest.mark.parametrize("max_batch_steps", [3, 100000])
 def test_early_stop(
-    dummy_dataset, imsize, device, dummy_model, early_stop, max_batch_steps, tmpdir
+    non_blocking_plots,
+    dummy_dataset,
+    imsize,
+    device,
+    dummy_model,
+    early_stop,
+    max_batch_steps,
+    tmpdir,
 ):
     torch.manual_seed(0)
     model = dummy_model
@@ -689,20 +696,19 @@ def test_early_stop(
         plot_images=True,
         save_path=tmpdir,
     )
-    with no_plot():
-        trainer.train()
+    trainer.train()
 
-        metrics_history = trainer.eval_metrics_history["PSNR"]
-        if max_batch_steps == 3:
-            assert len(metrics_history) <= len(dataloader) * epochs
-        elif early_stop:
-            assert len(metrics_history) < epochs
-            last = metrics_history[-1]
-            best = max(metrics_history)
-            metrics = trainer.test(eval_dataloader)
-            assert metrics["PSNR"] < best and metrics["PSNR"] == last
-        else:
-            assert len(metrics_history) == epochs
+    metrics_history = trainer.eval_metrics_history["PSNR"]
+    if max_batch_steps == 3:
+        assert len(metrics_history) <= len(dataloader) * epochs
+    elif early_stop:
+        assert len(metrics_history) < epochs
+        last = metrics_history[-1]
+        best = max(metrics_history)
+        metrics = trainer.test(eval_dataloader)
+        assert metrics["PSNR"] < best and metrics["PSNR"] == last
+    else:
+        assert len(metrics_history) == epochs
 
 
 class ConstantLoss(dinv.loss.Loss):

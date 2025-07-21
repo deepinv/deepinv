@@ -11,7 +11,7 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-from conftest import no_plot
+from conftest import non_blocking_plots
 
 LOSSES = [
     "sup",
@@ -288,7 +288,9 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
+def test_losses(
+    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
+):
     # choose training losses
     loss = choose_loss(loss_name, rng)
 
@@ -326,13 +328,12 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    with no_plot():
-        # test the untrained model
-        initial_test = trainer.test(test_dataloader=test_dataloader)
+    # test the untrained model
+    initial_test = trainer.test(test_dataloader=test_dataloader)
 
-        # train the network
-        trainer.train()
-        final_test = trainer.test(test_dataloader=test_dataloader)
+    # train the network
+    trainer.train()
+    final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
