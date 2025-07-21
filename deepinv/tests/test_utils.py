@@ -458,7 +458,9 @@ def test_torch2cpu(input_shape):
 # make sure that the logic is right.
 @pytest.mark.parametrize("os_name", ["posix", "nt"])
 @pytest.mark.parametrize("verbose", [False, True])
-def test_get_freer_gpu(test_case, os_name, verbose):
+@pytest.mark.parametrize("use_torch_api", [False, True])
+@pytest.mark.parametrize("hide_warnings", [False, True])
+def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings):
     # The function get_freer_gpu is meant to return the torch.device associated
     # to the available GPU with the most free memory if there is one and
     # torch.device("cuda") as a fallback.
@@ -512,7 +514,9 @@ def test_get_freer_gpu(test_case, os_name, verbose):
 
         mock_mem_get_info.side_effect = mem_info_mock
 
-        device = deepinv.utils.get_freer_gpu(verbose=verbose)
+        device = deepinv.utils.get_freer_gpu(
+            verbose=verbose, use_torch_api=use_torch_api, hide_warnings=hide_warnings
+        )
         if n_gpus == 0:
             assert device is None, "The output should be None when no GPU is available."
         else:
