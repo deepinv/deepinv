@@ -25,7 +25,7 @@ See :ref:`docs <transform>` for full list.
 These were proposed in the papers:
 
 -  ``Shift``, ``Rotate``: :footcite:t:`chen2021equivariant`.
--  ``Scale``: :footcite:t:`scanvic2023self`.
+-  ``Scale``: :footcite:t:`scanvic2025scale`.
 -  ``Homography`` and the projective geometry framework: :footcite:t:`wang2024perspective`.
 
 """
