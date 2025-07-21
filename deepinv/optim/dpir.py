@@ -40,11 +40,12 @@ class DPIR(BaseOptim):
 
     :param float sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
+    :param deepinv.models.Denoiser denoiser: optional denoiser. If `None`, use a pretrained denoiser :class:`deepinv.models.DRUNet`.
     :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
     """
 
-    def __init__(self, sigma=0.1, device="cuda"):
-        prior = PnP(denoiser=DRUNet(pretrained="download", device=device))
+    def __init__(self, sigma=0.1, denoiser=None, device="cuda"):
+        prior = PnP(denoiser=DRUNet(pretrained="download", device=device) if denoiser is None else denoiser)
         sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(

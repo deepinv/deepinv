@@ -60,7 +60,7 @@ Composition and linear combinations of linear operators is still a linear operat
 
 More details can be found in the doc of each class.
 
-
+.. _parameter-dependent-operators:
 
 Parameter-dependent operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -111,7 +111,7 @@ One can also differentiate the parameter as:
 	>>> print(theta_2.grad.shape)
 	torch.Size([1, 1, 3, 3])
 
-and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_basics_demo_optimizing_physics_parameter.py`
+and optimize the parameter :math:`\theta`, as show in this example: :ref:`sphx_glr_auto_examples_physics_demo_optimizing_physics_parameter.py`
 
 .. _physics_generators:
 

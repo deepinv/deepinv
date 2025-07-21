@@ -187,6 +187,7 @@ sphinx_gallery_conf = {
     "subsection_order": ExplicitOrder(
         [
             "../../examples/basics",
+            "../../examples/physics",
             "../../examples/optimization",
             "../../examples/plug-and-play",
             "../../examples/sampling",

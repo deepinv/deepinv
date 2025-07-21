@@ -42,7 +42,7 @@ class NBUDataset(Dataset):
 
         Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
 
-    See :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` for example using
+    See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using
     this dataset with remote sensing inverse problems.
 
     |sep|

@@ -1,30 +1,9 @@
 :html_theme.sidebar_secondary.remove:
 
-DeepInverse: a PyTorch library for imaging with deep learning
+DeepInverse: a Python library for imaging with deep learning
 =============================================================
 
 |Test Status| |Docs Status| |Python Version| |Black| |codecov| |pip install| |discord| |colab|
-
-DeepInverse is a PyTorch-based library for solving imaging inverse problems with deep learning.
-
-Github repository: `<https://github.com/deepinv/deepinv>`_.
-
-
-**Featuring**
-
-* |:camera_with_flash:|  Large collection of :ref:`predefined imaging operators <physics>` (MRI, CT, deblurring, inpainting, etc.)
-* |:book:| :ref:`Training losses <loss>` for inverse problems (self-supervised learning, regularization, etc.).
-* |:boomerang:| Many :ref:`pretrained deep denoisers <denoisers>` which can be used for :ref:`plug-and-play restoration <iterative>`.
-* |:book:| Framework for :ref:`building datasets <datasets>` for inverse problems.
-* |:building_construction:| Easy-to-build :ref:`unfolded architectures <unfolded>` (ADMM, forward-backward, deep equilibrium, etc.).
-* |:microscope:| :ref:`Diffusion algorithms <sampling>` for image restoration and uncertainty quantification (Langevin, diffusion, etc.).
-* |:books:| A large number of well-explained :ref:`examples <examples>`, from basics to state-of-the-art methods.
-
-
-.. image:: figures/deepinv_schematic.png
-   :width: 1000
-   :align: center
-
 
 .. toctree::
    :maxdepth: 3
@@ -38,14 +17,83 @@ Github repository: `<https://github.com/deepinv/deepinv>`_.
    contributing
    community
 
+DeepInverse is an open-source PyTorch-based library for solving imaging inverse problems with deep learning. ``deepinv`` accelerates deep learning research across imaging domains, enhances research reproducibility via a common modular framework of problems and algorithms, and lowers the entrance bar to new practitioners.
 
-**Maintainers**
+.. image:: figures/deepinv_schematic.png
+   :width: 1000px
+   :alt: deepinv schematic
+   :align: center
 
-View our current and former maintainers, and how to get in touch, at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+Get started
+-----------
 
-**Citation**
+Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our :ref:`User Guide <user_guide>`. GitHub: `<https://github.com/deepinv/deepinv>`_.
 
-If you use DeepInverse in your research, please cite the following paper (available on `arXiv <https://arxiv.org/abs/2505.20160>`_):
+
+``deepinv`` features
+
+* A large framework of :ref:`predefined imaging operators <physics_intro>`
+* Many :ref:`state-of-the-art deep neural networks <reconstructors>`, including pretrained out-of-the-box :ref:`reconstruction models <pretrained-reconstructors>` and :ref:`denoisers <denoisers>`
+* Comprehensive frameworks for :ref:`plug-and-play restoration <iterative>`, :ref:`optimization <optim>` and :ref:`unfolded architectures <unfolded>`
+* :ref:`Training losses <loss>` for inverse problems
+* :ref:`Sampling algorithms and diffusion models <sampling>` for uncertainty quantification
+* A framework for :ref:`building datasets <datasets>` for inverse problems
+
+Install
+-------
+
+Install the latest stable release of ``deepinv``:
+
+.. code-block:: bash
+
+   pip install deepinv
+
+   # Or:
+
+   uv pip install deepinv # faster
+
+   # Or, for additional dependencies:
+
+   pip install deepinv[dataset,denoisers]
+
+Since ``deepinv`` is under active development, you can install the latest nightly version using:
+
+.. code-block:: bash
+
+   pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+   # Or, for updating:
+
+   pip install --upgrade --force-reinstall --no-deps git+https://github.com/deepinv/deepinv.git#egg=deepinv
+
+
+Contributing
+------------
+
+DeepInverse is a community-driven project and we encourage contributions of all forms.
+We are building a comprehensive library of inverse problems and deep learning,
+and we need your help to get there!
+
+Interested? Check out our :ref:`contributing guide <contributing>`.
+
+
+Finding help
+------------
+
+If you have any questions or suggestions, please join the conversation in our
+`Discord server <https://discord.gg/qBqY5jKw3p>`_. The recommended way to get in touch with the developers is to
+`open an issue <https://github.com/deepinv/deepinv/issues>`_.
+
+Maintainers
+-----------
+
+Get in touch with our maintainers at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+
+
+Citation
+--------
+If you use DeepInverse in your research, please cite `our paper on arXiv <https://arxiv.org/abs/2505.20160>`_:
+
 
 .. code-block:: bash
 
@@ -59,17 +107,12 @@ If you use DeepInverse in your research, please cite the following paper (availa
           url={https://arxiv.org/abs/2505.20160},
     }
 
-**Star history**
+Star history
+------------
 
-.. raw:: html
-
-   <a href="https://www.star-history.com/#deepinv/deepinv&Date">
-    <picture>
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date&theme=dark" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date" />
-    </picture>
-   </a>
+.. image:: https://api.star-history.com/svg?repos=deepinv/deepinv&type=Date
+   :alt: Star History Chart
+   :target: https://www.star-history.com/#deepinv/deepinv&Date
 
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg

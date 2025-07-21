@@ -1,4 +1,5 @@
 :html_theme.sidebar_secondary.remove:
+.. _contributing:
 
 Contributing to DeepInverse
 ===========================
