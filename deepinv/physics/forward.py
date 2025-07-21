@@ -398,7 +398,7 @@ class LinearPhysics(Physics):
         self,
         A=lambda x, **kwargs: x,
         A_adjoint=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
+        noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-4,
