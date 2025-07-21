@@ -2,7 +2,7 @@
 Reconstruct Anything Model (RAM) for solving inverse problems.
 ====================================================================================================
 
-This example shows how to use the RAM model method to solve inverse problems. The RAM model, described in
+This example shows how to use the RAM foundation model to solve inverse problems. The RAM model, described in
 the following `paper <https://arxiv.org/abs/2503.08915>`_, is a modified DRUNet architecture that is trained on
 a large number of inverse problems.
 """
@@ -83,8 +83,8 @@ dinv.utils.plot(
 )
 
 # %%
-# This model is not trained on all degradations, so it may not perform well on all inverse problems.
-# For instance, it is not trained on image demosaicing. Applying it to a demosaicing problem will yield poor results,
+# This model is not trained on all degradations, so it may not perform well on all inverse problems out-of-the-box.
+# For instance, it is not trained on image demosaicing. Applying it to a demosaicing problem out-of-the-box will yield poor results,
 # as shown in the following example:
 
 
@@ -156,23 +156,21 @@ y_train = physics_train(x_train)
 
 mc_loss = dinv.loss.R2RLoss()
 
-t = dinv.transform.Shift(shift_max=0.4)
-eq_loss = dinv.loss.EILoss(t, weight=0.1)
-
-losses = [mc_loss, eq_loss]
+losses = [
+    dinv.loss.R2RLoss(),
+    dinv.loss.EILoss(dinv.transform.Shift(shift_max=0.4), weight=0.1),
+]
 
 dataset = UnsupDataset(y_train)
 
-train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True)
+train_dataloader = torch.utils.data.DataLoader(dataset)
 
 # %%
 # In order to check the performance of the fine-tuned model, we will use a validation set.
 # We will use a small patch of another image. Note that this validation is also performed in an unsupervised manner,
 # so we will not use the ground truth validation image.
 y_val = physics_train(dinv.utils.load_example("leaves.png")[..., :64, :64].to(device))
-eval_dataloader = torch.utils.data.DataLoader(
-    UnsupDataset(y_val), batch_size=1, shuffle=True
-)
+eval_dataloader = torch.utils.data.DataLoader(UnsupDataset(y_val))
 
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
 

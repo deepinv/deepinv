@@ -4,6 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import einops
+
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
@@ -28,7 +30,6 @@ class RAM(Reconstructor, Denoiser):
         in_channels=[1, 2, 3],
         device=None,
         pretrained=True,
-        sigma_threshold=1e-3,
     ):
         super(RAM, self).__init__()
 
@@ -77,7 +78,7 @@ class RAM(Reconstructor, Denoiser):
 
         self.m_tail = OutTail(nc[0], in_channels)
 
-        self.sigma_threshold = sigma_threshold
+        self.sigma_threshold = 5e-3
 
         # load pretrained weights from hugging face
         if pretrained:
@@ -93,15 +94,22 @@ class RAM(Reconstructor, Denoiser):
 
         :param float value: constant value
         :param torch.Tensor x: input tensor
+        :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value
+        in the batch.
         """
+        # if isinstance(value, torch.Tensor):
+        #     if value.ndim > 0:
+        #         value_map = value.view(x.size(0), 1, 1, 1)
+        #         value_map = value_map.expand(-1, 1, x.size(2), x.size(3))
+
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:
                 value_map = value.view(x.size(0), 1, 1, 1)
                 value_map = value_map.expand(-1, 1, x.size(2), x.size(3))
             else:
-                value_map = torch.ones(
-                    (x.size(0), 1, x.size(2), x.size(3)), device=x.device
-                ) * value[None, None, None, None].to(x.device)
+                value_map = einops.repeat(
+                    value, "-> b 1 h w", b=x.size(0), h=x.size(2), w=x.size(3)
+                )
         else:
             value_map = (
                 torch.ones((x.size(0), 1, x.size(2), x.size(3)), device=x.device)
@@ -110,6 +118,14 @@ class RAM(Reconstructor, Denoiser):
         return value_map
 
     def base_conditioning(self, x, sigma, gain):
+        r"""
+        Stacks the sigma and gain value as additional channel dimensions to the input tensor.
+
+        :param torch.Tensor x: Input tensor
+        :param float sigma: Gaussian noise level
+        :param float gain: Poisson noise gain
+        :return torch.Tensor: Input tensor with additional channels for sigma and gain
+        """
         noise_level_map = self.constant2map(sigma, x)
         gain_map = self.constant2map(gain, x)
         return torch.cat((x, noise_level_map, gain_map), 1)
@@ -122,6 +138,7 @@ class RAM(Reconstructor, Denoiser):
         :param torch.Tensor x: Input tensor
         :param deepinv.physics.Physics physics: Physics model
         :param torch.Tensor y: Measurements
+        :return torch.Tensor: Realigned input tensor
         """
         if hasattr(physics, "factor"):
             f = physics.factor
@@ -224,9 +241,10 @@ class RAM(Reconstructor, Denoiser):
         :param float, torch.Tensor gain: Poisson noise level
         :return: torch.Tensor: reconstructed signal estimate
         """
-        assert (
-            physics is not None or sigma is not None or gain is not None
-        ), "Either physics, sigma or gain must be provided to the RAM model."
+        if physics is None and sigma is None and gain is None:
+            raise ValueError(
+                "Either physics, sigma or gain must be provided to the RAM model."
+            )
 
         if physics is None:
             gain = 1e-3 if gain is None else gain
@@ -243,14 +261,10 @@ class RAM(Reconstructor, Denoiser):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = (
-            physics.noise_model.sigma if hasattr(physics.noise_model, "sigma") else 1e-3
-        )
+        sigma = getattr(physics.noise_model, "sigma", 0.0)
         sigma = self._handle_sigma(max(sigma, self.sigma_threshold))
 
-        gain = (
-            physics.noise_model.gain if hasattr(physics.noise_model, "gain") else 1e-3
-        )
+        gain = getattr(physics.noise_model, "gain", 0.0)
         gain = self._handle_sigma(max(gain, 1e-3))
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
@@ -298,6 +312,15 @@ class BaseEncBlock(nn.Module):
         )
 
     def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
+        r"""
+        Forward pass of the encoding block.
+
+        :param torch.Tensor x: Input tensor
+        :param deepinv.physics.Physics physics: Physics
+        :param torch.Tensor y: Measurements
+        :param int img_channels: Number of input channels.
+        :param int scale: Scale factor for the encoding block.
+        """
         for i in range(len(self.enc)):
             x = self.enc[i](
                 x, physics=physics, y=y, img_channels=img_channels, scale=scale
@@ -321,7 +344,7 @@ def krylov_embeddings(y, p, factor, v=None, N=4, x_init=None):
     if x_init is None:
         x = p.A_adjoint(y)
     else:
-        x = x_init.clone()  # Extract the first img_channels
+        x = x_init.clone()
 
     norm = factor**2  # Precompute normalization factor
     AtA = lambda u: p.A_adjoint(p.A(u)) * norm  # Define the linear operator
@@ -493,6 +516,15 @@ class ResBlock(nn.Module):
         )
 
     def forward(self, x, physics=None, y=None, img_channels=None, scale=0):
+        r"""
+        Forward pass of the residual block.
+
+        :param torch.Tensor x: Input tensor
+        :param deepinv.physics.Physics physics: Physics
+        :param torch.Tensor y: Measurements
+        :param int img_channels: Number of input channels.
+        :param int scale: Scale factor for the encoding block.
+        """
         u = self.conv1(x)
         u = self.nl(u)
         u_2 = self.conv2(u)
