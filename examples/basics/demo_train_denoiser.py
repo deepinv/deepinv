@@ -2,7 +2,7 @@ r"""
 Training a denoiser.
 ====================================================================================================
 
-This example shows how to train a standard denoiser such as the DRUNet using the Trainer class.
+This example shows how to train a standard denoiser such as the [DRUNet by Zhang et al., (2020)](https://arxiv.org/abs/2008.13751)! using the :class:`deepinv.Trainer` class.
 
 
 """
@@ -28,7 +28,7 @@ torch.manual_seed(0)
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
-# Load base image datasets and degradation operators.
+# Load train and eval datasets
 # --------------------------------------------------------------------------------------------
 # In this example, we use the CBSD68 dataset for training and the set3c dataset for validation.
 # We work with images of size 32x32 if no GPU is available, else 128x128.
@@ -67,6 +67,7 @@ eval_dataloader = DataLoader(
 # A standard way to train such a denoiser is to use random noise levels during training, which
 # we achieve using a physics generator that samples noise levels uniformly between a minimum and maximum value.
 # We use the :class:`deepinv.physics.generator.SigmaGenerator` for Gaussian noise or the :class:`deepinv.physics.generator.GainGenerator` for Poisson noise.
+
 model = dinv.models.DRUNet(
     in_channels=3,
     out_channels=3,
@@ -92,13 +93,14 @@ physics = dinv.physics.Denoising(
 # --------------------------------------------------------
 # We train the model using the :class:`deepinv.Trainer` class.
 # We use the Mean Squared Error (MSE) loss function, which is standard for Gaussian denoising tasks.
-# We monitor the Peak Signal-to-Noise Ratio (PSNR) and Structural Similarity Index (SSIM) metrics during training.
+# We monitor the PSNR and SSIM metrics during training using :class:`deepinv.loss.metric.PSNR` and :class:`deepinv.loss.metric.SSIM`.
 #
 # .. note::
 #
 #       In this example, we only train for a few epochs to keep the training time short.
 #       The number of epochs and the batch size should be based on the available hardware and the size of the dataset.
 #
+
 verbose = True  # print training information
 wandb_vis = False  # plot curves and images in Weight&Bias
 
@@ -137,8 +139,6 @@ model = trainer.load_best_model()
 # --------------------------------------------
 # We can now test the trained network using the :func:`deepinv.test` function.
 #
-# The testing function will compute test_psnr metrics and plot and save the results.
+# Here the testing function will compute the PSNR and SSIM metrics on the evaluation dataset.
 
 trainer.test(eval_dataloader)
-
-# %%
