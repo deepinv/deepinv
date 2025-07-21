@@ -7,12 +7,22 @@ which attempts to recover a signal :math:`x` from measurements :math:`y`, (possi
 All reconstruction algorithms in the library inherit from the
 :class:`deepinv.models.Reconstructor` base class.
 
-Below we provide a summary of existing reconstruction methods, and a qualitative
-description of their reconstruction performance and speed.
+.. _pretrained-reconstructors:
 
-.. tip::
+Pretrained reconstructors
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-      Some methods do not require any training and can be quickly deployed in your problem.
+Some methods do not require any training and can be quickly deployed in your problem.
+
+TODO one liner demos here!!
+TODO check they work and doctest these
+
+x = load_example
+physics = ...
+y = physics(x)
+model = dinv.models.RAM()
+model = dinv.optim.DPIR(sigma=0.1)
+model = dinv.models...
 
 .. tip::
 
@@ -20,6 +30,11 @@ description of their reconstruction performance and speed.
       the library provides a :ref:`large set of self-supervised losses <self-supervised-losses>`
       which can learn from measurement data alone.
 
+Summary
+~~~~~~~
+
+Below we provide a summary of existing reconstruction methods, and a qualitative
+description of their reconstruction performance and speed.
 
 .. list-table:: Reconstruction methods
    :header-rows: 1

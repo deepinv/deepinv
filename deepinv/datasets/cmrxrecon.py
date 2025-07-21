@@ -41,7 +41,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     .. note::
 
         The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.
-        See :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` for example using this dataset.
+        See :ref:`sphx_glr_auto_examples_physics_demo_tour_mri.py` for example using this dataset.
 
     We provide one single downloadable demo sample, see example below on how to use this.
     Otherwise, download the full dataset from the `challenge website <https://cmrxrecon.github.io/>`_.
