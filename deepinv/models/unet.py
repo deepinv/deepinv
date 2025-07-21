@@ -245,7 +245,13 @@ class UNet(Denoiser):
 
     # Internal general forward algorithm for any supported number of scales
     def _forward_general(self, x, n_scales):
-        assert n_scales in [2, 3, 4, 5], f"Unexpected {n_scales=}, expected 2, 3, 4 or 5"
+        assert n_scales in [
+            2,
+            3,
+            4,
+            5,
+        ], f"Unexpected {n_scales=}, expected 2, 3, 4 or 5"
+
         # The variable feats_stack is a stack populated with the intermediate
         # feature maps as they are computed.
         # NOTE: We rely heavily on feats_stack being None being equivalent to
