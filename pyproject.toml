@@ -69,6 +69,7 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+    "sphinxcontrib.bibtex"
 ]
 
 lint = [

@@ -12,9 +12,9 @@ from deepinv.datasets.utils import (
 
 
 class Urban100HR(torch.utils.data.Dataset):
-    """Dataset for `Urban100 <https://paperswithcode.com/dataset/urban100>`_.
+    """Dataset for Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
-    The Urban100 dataset contains 100 images of urban scenes.
+    The Urban100 dataset :footcite:p:`huang2015single` contains 100 images of urban scenes.
     It is commonly used as a test set to evaluate the performance of super-resolution models.
 
 

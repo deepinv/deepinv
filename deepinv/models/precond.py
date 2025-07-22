@@ -8,8 +8,9 @@ from deepinv.models import Denoiser
 
 class EDMPrecond(Denoiser):
     r"""
-    Pre-conditioning of a denoiser, as proposed in the paper:
-    `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+    Pre-conditioning of a denoiser for diffusion models. 
+    
+    As proposed in the paper :footcite:t:`karras2022elucidating`.
 
     Given a neural network :math:`\tilde{\mathrm{F}}`, the denoiser :math:`\denoiser{x}{\sigma}` is defined for
     any noisy image :math:`x` and noise level :math:`\sigma` as follows:
@@ -26,6 +27,9 @@ class EDMPrecond(Denoiser):
         c_{\mathrm{in}}(\sigma) &= \frac{1}{\sqrt{\sigma^2 + \sigma_{\mathrm{pixel}}^2}}                     \\
         c_{\mathrm{noise}}(\sigma) &= \log(\sigma) / 4
         \end{align}
+
+    |sep|
+    
 
     """
 
