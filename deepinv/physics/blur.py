@@ -72,6 +72,7 @@ class Downsampling(LinearPhysics):
             raise ValueError("Downsampling factor must be an integer")
 
         self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
+        self.imsize_dynamic = (1, 1, 1)  # placeholder
         self.padding = padding
         self.device = device
 
