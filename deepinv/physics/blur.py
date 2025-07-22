@@ -194,7 +194,7 @@ class Downsampling(LinearPhysics):
                 raise ValueError("Factor tensor must be 1D.")
             elif len(torch.unique(factor)) > 1:
                 raise ValueError(
-                    f"Downsampling only supports one factor per batch, but got factors {torch.unique(factor).tolist()}."
+                    f"Downsampling only supports one unique factor per batch, but got factors {torch.unique(factor).tolist()}."
                 )
             elif factor.ndim == 1:
                 factor = factor[0]
@@ -226,6 +226,15 @@ class Downsampling(LinearPhysics):
             self.factor = self.check_factor(factor=factor)
 
         if filter is not None:
+            if isinstance(filter, list):
+                # Batched filter strings
+                if len(set(filter)) == 1 and isinstance(filter[0], str):
+                    filter = filter[0]
+                else:
+                    raise ValueError(
+                        f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
+                    )
+
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(self.device)
             elif filter == "gaussian":
