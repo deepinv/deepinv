@@ -18,7 +18,9 @@ from .multiplier import (
 )
 
 from .hist import histogram, histogramdd
-from .downsampling import downsample
+from .imresize.core import (
+    imresize as imresize,
+)  # submodule https://github.com/sanghyun-son/bicubic_pytorch
 from .radon import Radon, IRadon, RampFilter, ApplyRadon
 from .interp import ThinPlateSpline
 from .rand import random_choice

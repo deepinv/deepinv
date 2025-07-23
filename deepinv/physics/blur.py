@@ -14,6 +14,7 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint,
     conv3d_fft,
     conv_transpose3d_fft,
+    imresize,
 )
 
 
@@ -775,3 +776,48 @@ def bicubic_filter(factor=2):
     w = torch.outer(w, w)
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
+
+
+class DownsamplingMatlab(Downsampling):
+    """Downsampling with MATLAB imresize
+
+    Downsamples with default MATLAB imresize, using a bicubic kernel, antialiasing and reflect padding.
+
+    Code from https://github.com/sanghyun-son/bicubic_pytorch
+
+    :param int, float factor: downsampling factor
+    """
+
+    def __init__(self, factor: Union[int, float] = 2, **kwargs):
+        super().__init__(filter=None, factor=factor, **kwargs)
+
+    def A(self, x, factor: Union[int, float] = None, **kwargs):
+        """Downsample forward operator
+
+        :param torch.Tensor x: input image
+        :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+        """
+        self.update_parameters(factor=factor, **kwargs)
+        # Clone because of in-place ops
+        return imresize(
+            x.clone(),
+            scale=1 / self.factor,
+            antialiasing=True,
+            kernel="cubic",
+            padding_type="reflect",
+        )
+
+    def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
+        """Downsample adjoint operator
+
+        :param torch.Tensor y: input measurement
+        :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+        """
+        self.update_parameters(factor=factor, **kwargs)
+        return imresize(
+            y.clone(),
+            scale=self.factor,
+            antialiasing=True,
+            kernel="cubic",
+            padding_type="reflect",
+        )
