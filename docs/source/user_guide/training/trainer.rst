@@ -9,7 +9,7 @@ and testing :func:`deepinv.Trainer.test` a model, and can be used to save and lo
 
 .. seealso::
     
-    See :ref:`sphx_glr_auto_examples_basics_demo_train_inpainting.py` for a simple example of how to use the trainer.
+    See :ref:`sphx_glr_auto_examples_basics_demo_training.py` for a simple example of how to use the trainer.
 
     :class:`deepinv.Trainer`
         See here for full descriptions of options provided by Trainer and how you should provide your data.

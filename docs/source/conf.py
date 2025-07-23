@@ -5,7 +5,7 @@
 
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
-from sphinx_gallery.sorting import ExplicitOrder
+from sphinx_gallery.sorting import ExplicitOrder, _SortKey, ExampleTitleSortKey
 from sphinx_gallery.directives import ImageSg
 import sys
 import os
@@ -163,6 +163,29 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 add_module_names = True  # include the module path in the function name
 
+examples_order = {
+    "basics": [
+        "demo_quickstart.py",
+        "demo_custom_dataset.py",
+        "demo_custom_physics.py",
+        "demo_pretrained_model.py",
+        "demo_training.py",
+    ]
+}
+
+class MySortKey(_SortKey):
+    """
+    Sort examples by custom order set by examples_order, otherwise by titles
+    """
+    def __call__(self, filename):
+        parts = os.path.normpath(os.path.join(self.src_dir, filename)).split(os.sep)
+        if parts[-2] in examples_order:
+            try:
+                return examples_order[parts[-2]].index(parts[-1])
+            except ValueError:
+                return len(examples_order[parts[-2]]) + 1
+        else:
+            return ExampleTitleSortKey(self.src_dir)(filename)
 
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
@@ -192,11 +215,13 @@ sphinx_gallery_conf = {
             "../../examples/sampling",
             "../../examples/unfolded",
             "../../examples/patch-priors",
+            "../../examples/benchmarking",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
         ]
     ),
+    'within_subsection_order': MySortKey
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html
@@ -240,7 +265,6 @@ html_favicon = "figures/logo.ico"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
-    "quickstart": [],
     "contributing": [],
     "finding_help": [],
     "community": [],

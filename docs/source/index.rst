@@ -87,7 +87,7 @@ If you have any questions or suggestions, please join the conversation in our
 Maintainers
 -----------
 
-Get in touch with our maintainers at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 
 Citation
@@ -114,6 +114,9 @@ Star history
    :alt: Star History Chart
    :target: https://www.star-history.com/#deepinv/deepinv&Date
 
+Keywords: image processing, image reconstruction, imaging, computational imaging, inverse problems, deep learning, 
+mri, superresolution, computed tomography, plug-and-play, deblurring, diffusion models,
+unfolded, deep equilibrium models
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -131,3 +134,4 @@ Star history
    :target: https://discord.gg/qBqY5jKw3p
 .. |colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/drive/1XhCO5S1dYN3eKm4NEkczzVU7ZLBuE42J
+

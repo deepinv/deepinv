@@ -1,4 +1,4 @@
-"""
+r"""
 Creating your own dataset
 ====================================================================================================
 
@@ -21,7 +21,6 @@ from deepinv.utils.demo import load_dataset
 
 BASE_DIR = Path(".")
 DATA_DIR = BASE_DIR / "measurements"
-
 
 # %%
 # Load base image datasets

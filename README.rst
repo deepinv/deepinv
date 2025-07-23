@@ -78,7 +78,7 @@ If you have any questions or suggestions, please join the conversation in our
 Maintainers
 -----------
 
-Get in touch with our maintainers at `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
+Get in touch with our `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 
 
 Citation

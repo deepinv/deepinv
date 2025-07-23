@@ -1,8 +1,8 @@
 r"""
-A tour of blur operators
+Tour of blur operators
 ===================================================
 
-This example provides a tour of 2D blur operators in DeepInv.
+This example provides a tour of 2D blur operators in DeepInverse.
 In particular, we show how to use DiffractionBlurs (Fresnel diffraction), motion blurs and space varying blurs.
 
 """
