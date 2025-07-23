@@ -55,8 +55,12 @@ y = physics(x)
 # %%
 # DeepInverse implements
 # :ref:`many different types of physics <physics>` and noise
-# models across various imaging modalities. Some physics can also take
-# :ref:`physics parameters <parameter-dependent-operators>`.
+# models across various imaging modalities.
+# 
+# Most physics also take
+# :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.
+# You can easily use your own params by passing these into the `physics`,
+# or you can use a `generator`` to :ref:`generate random params <physics_generators>`.
 # 
 
 # Blur with Gaussian filter parameter
