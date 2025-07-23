@@ -531,7 +531,10 @@ class Trainer:
         physics = self.physics[g]
 
         if params is not None:
-            params = {k: p.to(self.device) for k, p in params.items()}
+            params = {
+                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                for k, p in params.items()
+            }
             physics.update(**params)
 
         return x, y, physics
