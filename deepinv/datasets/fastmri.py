@@ -705,7 +705,7 @@ class MRISliceTransform(MRIMixin):
             kspace = self.prewhiten_kspace(kspace)
 
         if self.normalise:
-            kspace = self.normalise_kspace(kspace)
+            kspace = self.normalise_kspace(kspace, metadata=metadata)
 
         params = {}
         if mask is not None:
@@ -717,6 +717,6 @@ class MRISliceTransform(MRIMixin):
             params["mask"] = self.generate_mask(kspace, seed)
             kspace = kspace * params["mask"]  # TODO remove signed zeros
         if self.estimate_coil_maps:
-            params["coil_maps"] = self.generate_maps(kspace)
+            params["coil_maps"] = self.generate_maps(kspace, metadata=metadata)
 
         return target, kspace, params
