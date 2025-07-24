@@ -210,7 +210,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
         target = None
 
-        # The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
+        # TODO The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
         # to a separate CMRxReconTransform in future.
 
         # Load mask
@@ -253,7 +253,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         # Normalise
         target = (target - target.mean()) / (target.std() + 1e-11)
 
-        kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)
+        kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0).float()
 
         if self.noise_model is not None:
             kspace = self.noise_model(kspace) * mask
