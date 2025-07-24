@@ -253,13 +253,13 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         # Normalise
         target = (target - target.mean()) / (target.std() + 1e-11)
 
-        kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0).float()
+        kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)
 
         if self.noise_model is not None:
             kspace = self.noise_model(kspace) * mask
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace, {"mask": mask.float()}
+            return target, kspace.float(), {"mask": mask.float()}
         else:
-            return target, kspace
+            return target, kspace.float()
