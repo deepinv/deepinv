@@ -17,7 +17,7 @@ class DiffUNet(Denoiser):
     This is the model with attention and timestep embeddings from :footcite:t:`choi2021ilvr`;
     code is adapted from https://github.com/jychoi118/ilvr_adm.
 
-    It is possible to choose the `standard model from :footcite:t:`choi2021ilvr` with 128 hidden channels per layer (trained on FFHQ)
+    It is possible to choose the standard model from :footcite:t:`choi2021ilvr` with 128 hidden channels per layer (trained on FFHQ)
     and a larger model :footcite:t:`dhariwal2021diffusion` with 256 hidden channels per layer (trained on ImageNet128).
 
     A pretrained network for (in_channels=out_channels=3)
