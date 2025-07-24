@@ -42,9 +42,11 @@ class Rotate(Transform):
         self.positive = positive
         if interpolation_mode is None:
             interpolation_mode = InterpolationMode.NEAREST
-            warn("The default interpolation mode will be changed to bilinear "
-            "interpolation in the near future. Please specify the interpolation "
-            "mode explicitly if you plan to keep using nearest interpolation.")
+            warn(
+                "The default interpolation mode will be changed to bilinear "
+                "interpolation in the near future. Please specify the interpolation "
+                "mode explicitly if you plan to keep using nearest interpolation."
+            )
         self.interpolation_mode = interpolation_mode
 
     def _get_params(self, x: torch.Tensor) -> dict:
