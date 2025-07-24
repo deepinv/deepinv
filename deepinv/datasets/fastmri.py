@@ -421,7 +421,7 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
                 )
                 | (
                     {"acs": int(hf.attrs["num_low_frequency"])}
-                    if hasattr(hf.attrs, "num_low_frequency")
+                    if "num_low_frequency" in hf.attrs
                     else {}
                 )
             )
