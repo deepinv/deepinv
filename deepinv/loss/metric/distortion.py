@@ -4,7 +4,6 @@ from functools import partial
 
 import torch
 from torch import Tensor
-from torch.nn import MSELoss, L1Loss
 from torchmetrics.functional.image import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,

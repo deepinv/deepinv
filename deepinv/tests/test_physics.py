@@ -9,7 +9,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
+from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI
 from deepinv.utils import TensorList
 
 

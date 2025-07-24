@@ -13,14 +13,13 @@ from deepinv.physics.noise import GaussianNoise, PoissonNoise
 
 from unittest.mock import patch
 import math
-import builtins
 import io
 import contextlib
 import re
-import tempfile
-import os
 
-from conftest import non_blocking_plots
+# NOTE: It's used as a fixture.
+from conftest import non_blocking_plots  # noqa: F401
+
 
 NO_LEARNING = ["A_dagger", "A_adjoint", "prox_l2", "y"]
 

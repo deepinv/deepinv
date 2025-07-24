@@ -3,7 +3,6 @@ from typing import Union
 import torch
 from deepinv.loss.loss import Loss
 from deepinv.loss.metric.metric import Metric
-from deepinv.transform.base import Transform
 
 
 class MCLoss(Loss):

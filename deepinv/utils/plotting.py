@@ -4,7 +4,6 @@ import shutil
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Union
-from itertools import zip_longest
 from functools import partial
 from warnings import warn
 
@@ -21,7 +20,6 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from PIL import Image
-import io
 
 
 def config_matplotlib(fontsize=17):

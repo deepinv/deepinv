@@ -31,7 +31,6 @@ and Hadamard spectrum.
 
 import torch
 from pathlib import Path
-import matplotlib.pyplot as plt
 import deepinv as dinv
 from deepinv.utils.demo import get_image_url, load_url_image
 from deepinv.utils.plotting import plot

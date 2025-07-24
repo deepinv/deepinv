@@ -20,7 +20,6 @@ In :footcite:t:`Bolte2016descent`, it is shown that, with this data-fidelity ter
 import deepinv as dinv
 from pathlib import Path
 import torch
-from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
 from deepinv.optim import optim_builder
