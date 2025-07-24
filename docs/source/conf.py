@@ -6,21 +6,27 @@
 # This is necessary for now but should not be in future version of sphinx_gallery
 # as a simple list of paths will be enough.
 from sphinx_gallery.sorting import ExplicitOrder
+from sphinx_gallery.directives import ImageSg
 import sys
 import os
+from sphinx.util import logging
+import doctest
+from importlib.metadata import metadata as importlib_metadata
+
+logger = logging.getLogger(__name__)
 
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, basedir)
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "deepinverse"
-copyright = "2024, deepinverse contributors"
-author = (
-    "Julian Tachella, Matthieu Terris, Samuel Hurault, Dongdong Chen and Andrew Wang"
-)
-release = "0.2"
+metadata = importlib_metadata("deepinv")
+project = str(metadata["Name"])
+copyright = "deepinverse contributors 2025"
+author = str(metadata["Author"])
+release = str(metadata["Version"])
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -36,14 +42,23 @@ extensions = [
     "sphinxemoji.sphinxemoji",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_sitemap",
+    "sphinxcontrib.bibtex",
 ]
+
+bibtex_bibfiles = ["refs.bib"]
+bibtex_default_style = "plain"
+bibtex_foot_reference_style = "foot"
 copybutton_exclude = ".linenos, .gp"
+bibtex_tooltips = True
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
+    "deepinv": ("https://deepinv.github.io/deepinv/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # for python3 type hints
@@ -53,7 +68,16 @@ autodoc_typehints_description_target = "documented"
 autodoc_preserve_defaults = True
 # Warn about broken links
 nitpicky = True
-
+# Create link to the API in the auto examples
+autodoc_inherit_docstrings = False
+# For bibtex
+bibtex_footbibliography_backrefs = True
+# for sitemap
+html_baseurl = "https://deepinv.github.io/deepinv/"
+# the default scheme makes for wrong urls so we specify it properly here
+# For more details, see:
+# https://sphinx-sitemap.readthedocs.io/en/v2.5.0/advanced-configuration.html
+sitemap_url_scheme = "{link}"
 
 ####  userguide directive ###
 from docutils import nodes
@@ -94,11 +118,99 @@ class UserGuideMacro(Directive):
         return [paragraph_node]
 
 
+class TolerantImageSg(ImageSg):
+    option_spec = ImageSg.option_spec.copy()
+    option_spec["ignore_missing"] = lambda x: True if x.lower() == "true" else False
+
+    def run(self):
+        image_path = self.arguments[0]
+        ignore_missing = self.options.get("ignore_missing", False)
+        full_path = os.path.join(basedir, "docs", "source", image_path.strip("/"))
+        if (not os.path.exists(full_path)) and ignore_missing:
+            logger.info(f"Ignoring missing image: {full_path}")
+            return []  # Return empty node list to skip rendering
+        return super().run()
+
+
+def process_docstring(app, what, name, obj, options, lines):
+    # Check if there is a footcite in the docstring
+    if any(":footcite:" in line for line in lines):
+        # Add the References section if not already present
+        if not any(":References:" in line for line in lines):
+            lines.append("")
+            lines.append("|sep|")
+            lines.append("")
+            lines.append(":References:")
+            lines.append("")
+            lines.append(".. footbibliography::")
+            lines.append("")
+
+
 def setup(app):
+    app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
+    app.add_directive("image-sg-ignore", TolerantImageSg)
+
+
+# ---------- doctest configuration -----------------------------------------
+# Add a IGNORE_RESULT option to skip some line output
+# From: https://stackoverflow.com/a/69780437/2642845
+
+IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
+
+OutputChecker = doctest.OutputChecker
+
+
+class CustomOutputChecker(OutputChecker):
+    def check_output(self, want, got, optionflags):
+        if IGNORE_RESULT & optionflags:
+            return True
+        return OutputChecker.check_output(self, want, got, optionflags)
+
+
+doctest.OutputChecker = CustomOutputChecker
+
+doctest_global_setup = """
+import torch
+import numpy as np
+try:
+    import astra
+except ImportError:
+    astra = None
+cuda_available = torch.cuda.is_available()
+"""
 
 
 #############################
+
+
+def add_references_block_to_examples():
+    print("🔧 add_references_block_to_examples() called")
+    for root, _, files in os.walk("../../examples"):
+        for fname in files:
+            if not fname.endswith(".py"):
+                continue
+            full_path = os.path.join(root, fname)
+
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Skip if already has a bibliography block
+            if "footbibliography" in content:
+                continue
+
+            # Add References block if footcite appears
+            if ":footcite:" in content:
+                references_block = (
+                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
+                )
+                content += references_block
+
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+
+add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -134,7 +246,7 @@ sphinx_gallery_conf = {
             "../../examples/patch-priors",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
-            "../../examples/advanced",
+            "../../examples/external-libraries",
         ]
     ),
 }
@@ -177,7 +289,8 @@ numfig_secnum_depth = 3
 
 html_theme = "pydata_sphinx_theme"
 html_favicon = "figures/logo.ico"
-html_static_path = []
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_sidebars = {  # pages with no sidebar
     "quickstart": [],
     "contributing": [],
@@ -208,4 +321,10 @@ rst_prolog = """
 .. |sep| raw:: html
 
    <hr />
+
 """
+
+napoleon_custom_sections = [
+    ("Reference", "params_style"),  # Sphinx ≥ 3.5
+    # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
+]

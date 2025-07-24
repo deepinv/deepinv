@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Union, List, Dict, Tuple
+from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
 from natsort import natsorted
@@ -11,7 +11,7 @@ from torch import Tensor
 import torch
 import torch.nn.functional as F
 
-from deepinv.datasets.fastmri import FastMRISliceDataset
+from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
 from deepinv.datasets.utils import loadmat
 from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
@@ -105,7 +105,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
         mask_generator: Optional[BaseMaskGenerator] = None,
         transform: Optional[Callable] = None,
-        pad_size: Tuple[int, int] = (512, 256),
+        pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
 
@@ -168,7 +168,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def _retrieve_metadata(
         self, fname: Union[str, Path, os.PathLike]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
@@ -190,7 +190,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             else {}
         )
 
-    def __getitem__(self, i: int) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
+    def __getitem__(self, i: int) -> tuple[Tensor, Tensor, dict[str, Tensor]]:
         """Get ith data sampe.
 
         :param int i: dataset index to get
@@ -208,6 +208,10 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         kspace = torch.from_numpy(np.stack((kspace.real, kspace.imag), axis=0))
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
+        target = None
+
+        # The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
+        # to a separate CMRxReconTransform in future.
 
         # Load mask
         if self.apply_mask:
@@ -224,11 +228,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
                     )
             else:
-                mask = self.mask_generator.step(
-                    seed=str(fname) + str(slice_ind),
-                    img_size=kspace.shape[-2:],
-                    batch_size=0,
-                )["mask"]
+                mask = MRISliceTransform(
+                    mask_generator=self.mask_generator
+                ).generate_mask(kspace, str(fname) + str(slice_ind))
         else:
             mask = torch.ones_like(kspace)
 

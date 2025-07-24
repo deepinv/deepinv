@@ -4,8 +4,7 @@ Self-supervised learning with Equivariant Imaging for MRI.
 
 This example shows you how to train a reconstruction network for an MRI inverse problem on a fully self-supervised way, i.e., using measurement data only.
 
-The equivariant imaging loss is presented in `"Equivariant Imaging: Learning Beyond the Range Space"
-<http://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`_.
+The equivariant imaging loss is presented in :footcite:t:`chen2021equivariant`.
 
 """
 
@@ -16,8 +15,9 @@ from torchvision import transforms
 
 import deepinv as dinv
 from deepinv.datasets import SimpleFastMRISliceDataset
-from deepinv.utils.demo import get_data_home, load_degradation, demo_mri_model
+from deepinv.utils import get_data_home, load_degradation
 from deepinv.models.utils import get_weights_url
+from deepinv.models import MoDL
 
 # %%
 # Setup paths for data loading and results.
@@ -104,12 +104,13 @@ test_dataset = dinv.datasets.HDF5Dataset(path=deepinv_datasets_path, train=False
 # Set up the reconstruction network
 # ---------------------------------------------------------------
 #
-# As a reconstruction network, we use an unrolled network (half-quadratic splitting)
-# with a trainable denoising prior based on the DnCNN architecture as an example
-# of a model-based deep learning architecture from `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-# See :func:`deepinv.utils.demo.demo_mri_model` for details.
+# As a (static) reconstruction network, we use an unrolled network
+# (half-quadratic splitting) with a trainable denoising prior based on the
+# DnCNN architecture which was proposed in `MoDL :footcite:t:`aggarwal2018modl`.
+# See :class:`deepinv.models.MoDL` for details.
+#
 
-model = demo_mri_model(device=device)
+model = MoDL()
 
 
 # %%
@@ -117,8 +118,8 @@ model = demo_mri_model(device=device)
 # --------------------------------------------
 # We choose a self-supervised training scheme with two losses: the measurement consistency loss (MC)
 # and the equivariant imaging loss (EI).
-# The EI loss requires a group of transformations to be defined. The forward model `should not be equivariant to
-# these transformations <https://www.jmlr.org/papers/v24/22-0315.html>`_.
+# The EI loss requires a group of transformations to be defined. The forward model should not be equivariant to
+# these transformations :footcite:t:`tachella2023sensing`.
 # Here we use the group of 4 rotations of 90 degrees, as the accelerated MRI acquisition is
 # not equivariant to rotations (while it is equivariant to translations).
 #

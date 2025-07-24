@@ -1,9 +1,9 @@
+import os
 import math
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
-from typing import List, Tuple, Union
-from itertools import zip_longest
+from typing import Union
 from functools import partial
 from warnings import warn
 
@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+from PIL import Image
 
 
 def config_matplotlib(fontsize=17):
@@ -39,7 +41,6 @@ def resize_pad_square_tensor(tensor, size):
     class SquarePad:
         def __call__(self, image):
             W, H = image.size
-            print(W, H)
             max_wh = np.max([W, H])
             hp = int((max_wh - W) / 2)
             vp = int((max_wh - H) / 2)
@@ -65,7 +66,7 @@ def torch2cpu(img):
     )
 
 
-def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
+def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"):
     r"""
     Prepare the images for plotting.
 
@@ -78,10 +79,15 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
     :returns: The images, the titles, the grid image, and the caption.
     """
     with torch.no_grad():
-        imgs = [x]
-        titles = ["Ground truth"]
-        caption = "From left to right: Ground truth, "
-        if y.shape == x.shape:
+        imgs = []
+        titles = []
+        caption = "From left to right: "
+        if x is not None:
+            imgs.append(x)
+            titles.append("Ground truth")
+            caption += "Ground truth, "
+
+        if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
@@ -91,14 +97,17 @@ def prepare_images(x, y, x_net, x_nl=None, rescale_mode="min_max"):
             titles.append("No learning")
             caption += "No learning, "
 
-        imgs.append(x_net)
-        titles.append("Reconstruction")
-        caption += "Reconstruction"
+        if x_net is not None:
+            imgs.append(x_net)
+            titles.append("Reconstruction")
+            caption += "Reconstruction"
 
-        vis_array = torch.cat(imgs, dim=0)
-        for i in range(len(vis_array)):
-            vis_array[i] = rescale_img(vis_array[i], rescale_mode=rescale_mode)
-        grid_image = make_grid(vis_array, nrow=y.shape[0])
+        vis_array = []
+        for img in imgs:
+            out = preprocess_img(img, rescale_mode=rescale_mode)
+            vis_array.append(out)
+        vis_array = torch.cat(vis_array)
+        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
@@ -176,6 +185,7 @@ def plot(
     max_imgs=4,
     rescale_mode="min_max",
     show=True,
+    close=False,
     figsize=None,
     suptitle=None,
     cmap="gray",
@@ -227,7 +237,8 @@ def plot(
     :param int max_imgs: maximum number of images to plot.
     :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
-    :param bool show: show the image plot.
+    :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
+    :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
@@ -235,8 +246,8 @@ def plot(
         See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
         Default: none
     :param int dpi: DPI to save images.
-    :param None, Figure: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
-    :param None, Axes: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
@@ -282,7 +293,7 @@ def plot(
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle, size=12, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
@@ -294,7 +305,7 @@ def plot(
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i], size=9, wrap=True)
             axs[r, i].axis("off")
 
     if tight:
@@ -308,13 +319,18 @@ def plot(
 
     if save_dir:
         plt.savefig(save_dir / "images.svg", dpi=dpi)
-        save_dir_i = Path(save_dir) / Path(titles[i])
-        save_dir_i.mkdir(parents=True, exist_ok=True)
         for i, row_imgs in enumerate(imgs):
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
+            save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_imgs):
+                # plt.imsave fails if img is not C-contiguous
+                img = np.ascontiguousarray(img)
                 plt.imsave(save_dir_i / (str(r) + ".png"), img, cmap=cmap)
     if show:
         plt.show()
+    if close:
+        plt.close(fig)
 
     if return_fig and return_axs:
         return fig, axs
@@ -406,7 +422,8 @@ def scatter_plot(
     if save_dir:
         plt.savefig(save_dir / "images.png", dpi=1200)
         for i, row_scatter in enumerate(scatters):
-            save_dir_i = Path(save_dir) / Path(titles[i])
+            row_dirname = titles[i] if titles is not None else str(i)
+            save_dir_i = Path(save_dir) / Path(row_dirname)
             save_dir_i.mkdir(parents=True, exist_ok=True)
             for r, img in enumerate(row_scatter):
                 plt.imsave(save_dir_i / Path(str(r) + ".png"), img, cmap=cmap)
@@ -434,6 +451,9 @@ def plot_curves(metrics, save_dir=None, show=True):
     fig, axs = plt.subplots(
         1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
     )
+    # NOTE: axs is not an array when a single metric is passed in
+    if isinstance(axs, plt.Axes):
+        axs = np.array([axs])
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
         if len(metric_val) > 0:
@@ -522,9 +542,10 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
     fig, ax = plt.subplots(figsize=(7, 7))
 
-    for key, value in zip(init_params.keys(), init_params.values()):
-        if not isinstance(value, Iterable):
-            init_params[key] = [value]
+    if init_params is not None:
+        for key, value in zip(init_params.keys(), init_params.values()):
+            if not isinstance(value, Iterable):
+                init_params[key] = [value]
 
     def get_param(param):
         if torch.is_tensor(param):
@@ -564,20 +585,31 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
 
 
 def plot_inset(
-    img_list: List[torch.Tensor],
-    titles: List[str] = None,
-    labels: List[str] = [],
-    label_loc: Union[Tuple, List] = (0.03, 0.03),
-    extract_loc: Union[Tuple, List] = (0.0, 0.0),
-    extract_size: float = 0.2,
-    inset_loc: Union[Tuple, List] = (0.0, 0.5),
-    inset_size: float = 0.4,
-    figsize: Tuple[int] = None,
+    img_list: list[torch.Tensor],
+    titles: list[str] = None,
     save_fn: str = None,
-    dpi: int = 1200,
+    save_dir=None,
+    tight=True,
+    max_imgs=4,
+    rescale_mode="min_max",
     show: bool = True,
-    return_fig: bool = False,
+    figsize: tuple[int] = None,
+    suptitle=None,
     cmap: str = "gray",
+    fontsize=17,
+    interpolation="none",
+    cbar=False,
+    dpi: int = 1200,
+    fig=None,
+    axs=None,
+    labels: list[str] = [],
+    label_loc: Union[tuple, list] = (0.03, 0.03),
+    extract_loc: Union[tuple, list] = (0.0, 0.0),
+    extract_size: float = 0.2,
+    inset_loc: Union[tuple, list] = (0.0, 0.5),
+    inset_size: float = 0.4,
+    return_fig: bool = False,
+    return_axs=False,
 ):
     r"""Plots a list of images with zoomed-in insets extracted from the images.
 
@@ -587,25 +619,62 @@ def plot_inset(
 
     Coordinates are fractions from 0-1, (0, 0) is the top left corner and (1, 1) is the bottom right corner.
 
-    :param list[torch.Tensor], torch.Tensor img_list: list of images to plot or single image.
-    :param list[str] titles: list of titles for each image, has to be same length as img_list.
+    :param list[torch.Tensor], dict[str,torch.Tensor], torch.Tensor img_list: list of images, single image,
+        or dict of titles: images to plot.
+    :param list[str], str, None titles: list of titles for each image, has to be same length as img_list.
+    :param None, str, pathlib.Path save_fn: path to save the plot as a single image (i.e. side-by-side).
+    :param None, str, pathlib.Path save_dir: path to save the plots as individual images.
+    :param bool tight: use tight layout.
+    :param int max_imgs: maximum number of images to plot.
+    :param str rescale_mode: rescale mode, either ``'min_max'`` (images are linearly rescaled between 0 and 1 using
+        their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
+    :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
+    :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param str suptitle: title of the figure.
+    :param str cmap: colormap to use for the images. Default: gray
+    :param int fontsize: fontsize for the plot. Default: 17
+    :param str interpolation: interpolation to use for the images.
+        See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details.
+        Default: none
+    :param bool cbar: whether to add colorbar to the images.
+    :param int dpi: DPI to save images.
+    :param None, matplotlib.figure.Figure fig: matplotlib Figure object to plot on. If None, create new Figure. Defaults to None.
+    :param None, matplotlib.axes.Axes axs: matplotlib Axes object to plot on. If None, create new Axes. Defaults to None.
     :param list[str] labels: list of overlaid labels for each image, has to be same length as img_list.
     :param list, tuple label_loc: location or locations for label to be plotted on image, defaults to (.03, .03)
     :param list, tuple extract_loc: image location or locations for extract to be taken from, defaults to (0., 0.)
     :param float extract_size: size of extract to be taken from image, defaults to 0.2
     :param list, tuple inset_loc: location or locations for inset to be plotted on image, defaults to (0., 0.5)
     :param float inset_size: size of inset to be plotted on image, defaults to 0.4
-    :param tuple[int] figsize: size of the figure.
-    :param str save_fn: filename for plot to be saved, if None, don't save, defaults to None
-    :param int dpi: DPI to save images.
-    :param bool show: show the image plot.
     :param bool return_fig: return the figure object.
+    :param bool return_axs: return the axs object.
     """
 
-    fig = plot(
-        img_list, titles, show=False, return_fig=True, cmap=cmap, figsize=figsize
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, axs = plot(
+        img_list=img_list,
+        titles=titles,
+        save_dir=save_dir,
+        tight=tight,
+        max_imgs=max_imgs,
+        rescale_mode=rescale_mode,
+        show=False,
+        close=False,
+        figsize=figsize,
+        suptitle=suptitle,
+        cmap=cmap,
+        fontsize=fontsize,
+        interpolation=interpolation,
+        cbar=cbar,
+        dpi=dpi,
+        fig=fig,
+        axs=axs,
+        return_fig=True,
+        return_axs=True,
     )
-    axs = fig.axes
     batch_size = img_list[0].shape[0]
 
     # Expand the locs over img_list and batch dimensions
@@ -620,84 +689,96 @@ def plot_inset(
     inset_locs = expand_locs(inset_loc, len(img_list) * batch_size)
     label_locs = expand_locs(label_loc, len(img_list) * batch_size)
 
-    for img, ax, label, extract_loc, inset_loc, label_loc in zip_longest(
-        [vol[[i]] for i in range(batch_size) for vol in img_list],
-        axs,
-        labels,
-        extract_locs,
-        inset_locs,
-        label_locs,
-    ):
-        _, _, h, w = img.shape
+    # Loop through all axes and apply the inset to each image
+    for r, row_axs in enumerate(axs):
+        for i, ax in enumerate(row_axs):
+            idx = i * batch_size + r
 
-        # Plot inset
-        axins = ax.inset_axes(
-            (inset_loc[0], 1 - inset_loc[1] - inset_size, inset_size, inset_size)
-        )
-        axins.imshow(
-            rescale_img(img)
-            .type(torch.float32)
-            .squeeze(0)
-            .permute(1, 2, 0)
-            .detach()
-            .cpu()
-            .numpy(),
-            cmap=cmap,
-        )
+            # Get the preprocessed image that's already been displayed in this axis
+            img = img_list[i][[r]]
+            img = preprocess_img(img, rescale_mode=rescale_mode)
 
-        # Set inset image according to extract
-        axins.set_xlim(extract_loc[0] * w, (extract_loc[0] + extract_size) * w)
-        axins.set_ylim((extract_loc[1] + extract_size) * h, extract_loc[1] * h)
-
-        # Inset borders
-        for spine in ["bottom", "top", "left", "right"]:
-            axins.spines[spine].set_color("lime")
-
-        axins.grid(False)
-        axins.set_xticks([])
-        axins.set_yticks([])
-
-        # Extract borders
-        ax.indicate_inset(
-            [
-                extract_loc[0] * w,
-                extract_loc[1] * h,
-                extract_size * w,
-                extract_size * h,
-            ],
-            edgecolor="red",
-        )
-
-        if label is not None:
-            ax.text(
-                label_loc[0],
-                1 - label_loc[1],
-                str(label),
-                fontsize="medium",
-                color="red",
-                ha="left",
-                va="top",
-                transform=ax.transAxes,
-                bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
+            loc_in = inset_locs[idx]
+            axins = ax.inset_axes(
+                (
+                    loc_in[0],
+                    1 - loc_in[1] - inset_size,
+                    inset_size,
+                    inset_size,
+                )
             )
+            axins.imshow(
+                img.squeeze(0).permute(1, 2, 0).cpu().numpy(),
+                cmap=cmap,
+                interpolation=interpolation,
+            )
+
+            h, w = img.shape[2], img.shape[3]
+            ex = extract_locs[idx]
+            axins.set_xlim(ex[0] * w, (ex[0] + extract_size) * w)
+            axins.set_ylim((ex[1] + extract_size) * h, ex[1] * h)
+
+            for spine in axins.spines.values():
+                spine.set_color("lime")
+            axins.set_xticks([])
+            axins.set_yticks([])
+            axins.grid(False)
+
+            ax.indicate_inset(
+                [
+                    ex[0] * w,
+                    ex[1] * h,
+                    extract_size * w,
+                    extract_size * h,
+                ],
+                edgecolor="red",
+            )
+
+            if labels is not None and i < len(labels):
+                lab = labels[i]
+                loc_lab = label_locs[idx]
+                ax.text(
+                    loc_lab[0],
+                    1 - loc_lab[1],
+                    str(lab),
+                    fontsize="medium",
+                    color="red",
+                    ha="left",
+                    va="top",
+                    transform=ax.transAxes,
+                    bbox=dict(boxstyle="square,pad=0", fc="white", ec="none"),
+                )
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
 
+    if save_dir:
+        save_dir = Path(save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save the whole figure
+        plt.savefig(save_dir / "inset_images.svg", dpi=dpi)
+
     if show:
         plt.show()
+
+    if return_axs and return_fig:
+        return fig, axs
 
     if return_fig:
         return fig
 
+    if return_axs:
+        return axs
+
 
 def plot_videos(
-    vid_list: Union[torch.Tensor, List[torch.Tensor]],
-    titles: Union[str, List[str]] = None,
+    vid_list: Union[torch.Tensor, list[torch.Tensor]],
+    titles: Union[str, list[str]] = None,
     time_dim: int = 2,
     rescale_mode: str = "min_max",
     display: bool = False,
-    figsize: Tuple[int] = None,
+    figsize: tuple[int] = None,
     dpi: int = None,
     save_fn: str = None,
     return_anim: bool = False,
@@ -710,11 +791,14 @@ def plot_videos(
     Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook.
     This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
 
-    vid_list can either be a video or a list of them. A video is defined as images of shape [B,C,H,W] augmented with a time dimension specified by ``time_dim``, e.g. of shape [B,C,T,H,W] and ``time_dim=2``. All videos must be same time-length.
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by `time_dim`, e.g. of shape `(B,C,T,H,W)` and `time_dim=2`. All videos must be same time-length.
 
     Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
 
     To display an interactive HTML video in an IPython notebook, use ``display=True``. Note IPython must be installed for this.
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+    To display an interactive HTML video in an IPython notebook, use `display=True`. Note IPython must be installed for this.
 
     |sep|
 
@@ -729,20 +813,25 @@ def plot_videos(
         >>> plot_videos([x, y], save_fn="vid.gif") # Save video as GIF
 
 
-    :param Union[torch.Tensor, List[torch.Tensor]] vid_list: video or list of videos as defined above.
-    :param Union[str, List[str]] titles: titles of images in frame, defaults to None.
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above.
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`.
     :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1.
-        After indexing this dimension, the resulting images should be of shape (B,C,H,W). Defaults to 2.
-    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
+        After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2.
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to `"min_max"`
     :param bool display: display an interactive HTML video in an IPython notebook, defaults to False
-    :param tuple[int], None figsize: size of the figure. If None, calculated from size of img list.
-    :param str save_fn: if not None, save the animation to this filename.
-        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to None
-    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to None
-    :param bool return_anim: return matplotlib animation object, defaults to False
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename.
+        File extension must be provided, note ``anim_writer`` might have to be specified. Defaults to `None`
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param str anim_writer: animation writer, see https://matplotlib.org/stable/users/explain/animations/animations.html#animation-writers, defaults to `None`
+    :param bool return_anim: return matplotlib animation object, defaults to `False`
     :param int dpi: DPI of saved videos.
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
-    :param plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
+    :param dict plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
@@ -755,6 +844,7 @@ def plot_videos(
             ],
             titles=titles,
             show=False,
+            close=True,
             rescale_mode=rescale_mode,
             return_fig=True,
             return_axs=True,
@@ -764,10 +854,19 @@ def plot_videos(
             **plot_kwargs,
         )
 
+    def init():
+        # fig, axs = animate(0)
+        # plt.gcf().set_visible(not plt.gcf().get_visible())
+        return tuple()
+
     fig, axs = animate(0)
+    # plt.gcf().set_visible(not plt.gcf().get_visible())
+    # fig, axs = plt.subplots()
+
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
+        init_func=init,
         frames=vid_list[0].shape[time_dim],
         **anim_kwargs,
     )
@@ -790,6 +889,73 @@ def plot_videos(
             return HTML(anim.to_jshtml())
         except ImportError:
             warn("IPython can't be found. Install it to use display=True. Skipping...")
+
+
+def save_videos(
+    vid_list: Union[torch.Tensor, list[torch.Tensor]],
+    titles: Union[str, list[str]] = None,
+    time_dim: int = 2,
+    rescale_mode: str = "min_max",
+    figsize: tuple[int] = None,
+    save_fn: str = None,
+    **plot_kwargs,
+):
+    r"""Saves an animation of a list of image sequences.
+
+    Plots videos as sequence of side-by-side frames, and saves animation (e.g. GIF) or displays as interactive HTML in notebook. This is useful for e.g. time-varying inverse problems. Individual frames are plotted with :func:`deepinv.utils.plot`
+    vid_list can either be a video or a list of them. A video is defined as images of shape `(B,C,H,W)` augmented with a time dimension specified by ``time_dim``, e.g. of shape `(B,C,T,H,W)` and ``time_dim=2``. All videos must be same time-length.
+
+    Per frame of the videos, this function calls :func:`deepinv.utils.plot`, see its params to see how the frames are plotted.
+
+    |sep|
+
+    :Examples:
+
+        Display list of image sequences live in a notebook:
+
+        >>> from deepinv.utils import save_videos
+        >>> x = torch.rand((1, 3, 5, 8, 8)) # B,C,T,H,W image sequence
+        >>> y = torch.rand((1, 3, 5, 16, 16))
+        >>> save_videos([x, y], save_fn="vid.gif") # Save video as GIF
+
+
+    :param Union[torch.Tensor, list[torch.Tensor]] vid_list: video or list of videos as defined above
+    :param Union[str, list[str]] titles: titles of images in frame, defaults to `None`
+    :param int time_dim: time dimension of the videos. All videos should have same length in this dimension, or length 1. After indexing this dimension, the resulting images should be of shape `(B,C,H,W)`. Defaults to 2
+    :param str rescale_mode: rescaling mode for :func:`deepinv.utils.plot`, defaults to "min_max"
+    :param tuple[int], None figsize: size of the figure. If `None`, calculated from size of img list.
+    :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
+    :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
+    """
+    if isinstance(vid_list, torch.Tensor):
+        vid_list = [vid_list]
+
+    for i, vid in enumerate(vid_list):
+        for t in range(vid.shape[time_dim]):
+            plot(
+                [vid.select(time_dim, t)],
+                titles=titles,
+                show=False,
+                close=True,
+                rescale_mode=rescale_mode,
+                figsize=figsize,
+                save_fn="frame_" + str(t) + ".png",
+                **plot_kwargs,
+            )
+            # hide the plot
+            plt.close()
+
+    # load all frames and save them as a gif
+    frames = []
+    for t in range(vid_list[0].shape[time_dim]):
+        frames.append(Image.open("frame_" + str(t) + ".png"))
+    frames[0].save(
+        save_fn, save_all=True, append_images=frames[1:], duration=100, loop=0
+    )
+
+    # remove all frames
+    for t in range(vid_list[0].shape[time_dim]):
+        os.remove("frame_" + str(t) + ".png")
 
 
 def plot_ortho3D(

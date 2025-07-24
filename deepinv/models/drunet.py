@@ -12,8 +12,7 @@ class DRUNet(Denoiser):
     r"""
     DRUNet denoiser network.
 
-    The network architecture is based on the paper
-    `Plug-and-Play Image Restoration with Deep Denoiser Prior <https://arxiv.org/abs/2008.13751>`_,
+    The network architecture is based on the paper :footcite:t:`zhang2021plug`.
     and has a U-Net like structure, with convolutional blocks in the encoder and decoder parts.
 
     The network takes into account the noise level of the input image, which is encoded as an additional input channel.
@@ -23,9 +22,8 @@ class DRUNet(Denoiser):
 
     :param int in_channels: number of channels of the input.
     :param int out_channels: number of channels of the output.
-    :param list nc: number of convolutional layers.
+    :param list[int,int,int,int] nc: number of channels per convolutional layer, the network has a fixed number of 4 scales with ``nb`` blocks per scale (default: ``[64,128,256,512]``).
     :param int nb: number of convolutional blocks per layer.
-    :param int nf: number of channels per convolutional layer.
     :param str act_mode: activation mode, "R" for ReLU, "L" for LeakyReLU "E" for ELU and "s" for Softplus.
     :param str downsample_mode: Downsampling mode, "avgpool" for average pooling, "maxpool" for max pooling, and
         "strideconv" for convolution with stride 2.

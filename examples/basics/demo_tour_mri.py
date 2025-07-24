@@ -13,10 +13,8 @@ available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:
    easy-to-use subset
    :class:`deepinv.datasets.SimpleFastMRISliceDataset`
 -  Models: :class:`deepinv.models.VarNet`
-   (`VarNet <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`__/`E2E-VarNet <https://arxiv.org/abs/2004.06688>`__),
-   :class:`deepinv.utils.demo.demo_mri_model` (a simple
-   `MoDL <https://ieeexplore.ieee.org/document/8434321>`__ unrolled
-   model)
+   (VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end`),
+   :class:`deepinv.models.MoDL` (a simple MoDL :footcite:t:`aggarwal2018modl` unrolled model)
 
 Contents:
 
@@ -33,7 +31,7 @@ import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
 
-device = dinv.utils.get_freer_gpu if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 rng = torch.Generator(device=device).manual_seed(0)
 
 
@@ -188,13 +186,13 @@ denoiser = dinv.models.DnCNN(
 
 # %%
 # These backbones can be used within specific MRI models, such as
-# `VarNet <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`__/`E2E-VarNet <https://arxiv.org/abs/2004.06688>`__
-# and `MoDL <https://ieeexplore.ieee.org/document/8434321>`__, for which we provide implementations:
+# VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end` and MoDL :footcite:t:`aggarwal2018modl`,
+# for which we provide implementations:
 #
 
 model = dinv.models.VarNet(denoiser, num_cascades=2, mode="varnet").to(device)
 
-model = dinv.utils.demo.demo_mri_model(denoiser, num_iter=2, device=device).to(device)
+model = dinv.models.MoDL(denoiser, num_iter=2).to(device)
 
 
 # %%
@@ -271,7 +269,7 @@ x, y = next(iter(DataLoader(dataset)))
 
 print("Shapes:", x.shape, y.shape)  # x (B, 1, W, W); y (B, C, N, H, W)
 
-img_shape, kspace_shape = x.shape[-2:], y.shape[-2:]
+img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
 
 # %%
@@ -282,7 +280,7 @@ n_coils = y.shape[2]
 #
 
 physics = dinv.physics.MultiCoilMRI(
-    img_size=img_shape,
+    img_size=img_size,
     mask=torch.ones(kspace_shape),
     coil_maps=torch.ones((n_coils,) + kspace_shape, dtype=torch.complex64),
     device=device,

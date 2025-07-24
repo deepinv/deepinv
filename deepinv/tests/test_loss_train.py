@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
-from deepinv.tests.dummy_datasets.datasets import DummyCircles
+from dummy import DummyCircles
 from deepinv.unfolded import unfolded_builder
 from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
 from deepinv.physics.generator import (
@@ -26,7 +26,7 @@ def test_generate_dataset(tmp_path, imsize, device, physics_name):
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
     if physics_name == "inpainting":
-        physics = Inpainting(mask=0.5, tensor_size=imsize, device=device)
+        physics = Inpainting(mask=0.5, img_size=imsize, device=device)
         y_shape = imsize
     elif physics_name == "pansharpen":  # proxy for StackedPhysics
         physics = Pansharpen(img_size=imsize, factor=2, device=device)
@@ -82,11 +82,11 @@ def test_generate_dataset_physics_generator(
     x_dataset = DummyDataset()
 
     if physics_combo == "single_physics_no_gen":
-        physics = Inpainting(tensor_size=imsize)
+        physics = Inpainting(img_size=imsize, mask=0.1)
         physics_generator = None
     elif physics_combo == "single_physics_with_gen":
         if phys_gen == "bernoulli_mask":
-            physics = Inpainting(tensor_size=imsize)
+            physics = Inpainting(img_size=imsize, mask=0.1)
             physics_generator = BernoulliSplittingMaskGenerator(imsize, 0.6)
         elif phys_gen == "sigma":
             physics = GaussianNoise()
@@ -220,12 +220,7 @@ def test_optim_algo(name_algo, imsize, device):
         1.0
     ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 
-    sigma_denoiser = [
-        0.01
-        * torch.ones(
-            level,
-        )
-    ] * max_iter
+    sigma_denoiser = [0.01 * torch.ones(1, level)] * max_iter
     params_algo = {  # wrap all the restoration parameters in a 'params_algo' dictionary
         "stepsize": stepsize,
         "g_param": sigma_denoiser,
@@ -267,7 +262,7 @@ def test_optim_algo(name_algo, imsize, device):
     train_dataset = DummyCircles(samples=N, imsize=imsize)
     test_dataset = DummyCircles(samples=N, imsize=imsize)
 
-    physics = dinv.physics.Inpainting(mask=0.5, tensor_size=imsize, device=device)
+    physics = dinv.physics.Inpainting(mask=0.5, img_size=imsize, device=device)
 
     train_dataloader = DataLoader(
         train_dataset, batch_size=2, num_workers=1, shuffle=True

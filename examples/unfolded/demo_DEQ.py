@@ -14,11 +14,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
-from deepinv.training import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 
@@ -203,11 +201,12 @@ trainer = dinv.Trainer(
     eval_dataloader=test_dataloader,
     save_path=str(CKPT_DIR / operation),
     verbose=verbose,
-    show_progress_bar=False,  # disable progress bar for better vis in sphinx gallery.
+    show_progress_bar=True,  # disable progress bar for better vis in sphinx gallery.
     wandb_vis=wandb_vis,  # training visualization can be done in Weight&Bias
 )
 
-model = trainer.train()
+trainer.train()
+model = trainer.load_best_model()  # load model with best validation PSNR
 
 # %%
 # Test the network

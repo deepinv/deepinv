@@ -1,7 +1,6 @@
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
-import numpy as np
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
@@ -64,44 +63,17 @@ class Downsampling(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.factor = factor
         assert isinstance(factor, int), "downsampling factor should be an integer"
-        # assert len(img_size) == 3, "img_size should be a tuple of length 3, C x H x W"
+
         self.imsize = img_size
         self.padding = padding
-        if isinstance(filter, torch.nn.Parameter):
-            self.filter = filter.requires_grad_(False).to(device)
-        if isinstance(filter, torch.Tensor):
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(device)
-        elif filter is None:
-            self.filter = filter
-        elif filter == "gaussian":
-            self.filter = torch.nn.Parameter(
-                gaussian_blur(sigma=(factor, factor)), requires_grad=False
-            ).to(device)
-        elif filter == "bilinear":
-            self.filter = torch.nn.Parameter(
-                bilinear_filter(self.factor), requires_grad=False
-            ).to(device)
-        elif filter == "bicubic":
-            self.filter = torch.nn.Parameter(
-                bicubic_filter(self.factor), requires_grad=False
-            ).to(device)
-        elif filter == "sinc":
-            self.filter = torch.nn.Parameter(
-                sinc_filter(self.factor, length=4 * self.factor), requires_grad=False
-            ).to(device)
-        else:
-            raise Exception("The chosen downsampling filter doesn't exist")
+        self.device = device
 
-        if self.filter is not None:
-            self.Fh = filter_fft_2d(self.filter, img_size, real_fft=False).to(device)
-            self.Fhc = torch.conj(self.Fh)
-            self.Fh2 = self.Fhc * self.Fh
-            self.Fhc = torch.nn.Parameter(self.Fhc, requires_grad=False)
-            self.Fh2 = torch.nn.Parameter(self.Fh2, requires_grad=False)
+        self.register_buffer("filter", None)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
+        self.to(device)
 
-    def A(self, x, filter=None, **kwargs):
+    def A(self, x, filter=None, factor=None, **kwargs):
         r"""
         Applies the downsampling operator to the input image.
 
@@ -109,16 +81,16 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
             x = conv2d(x, self.filter, padding=self.padding)
 
         x = x[:, :, :: self.factor, :: self.factor]  # downsample
+
         return x
 
-    def A_adjoint(self, y, filter=None, **kwargs):
+    def A_adjoint(self, y, filter=None, factor=None, **kwargs):
         r"""
         Adjoint operator of the downsampling operator.
 
@@ -126,8 +98,7 @@ class Downsampling(LinearPhysics):
         :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
         """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(filter, requires_grad=False)
+        self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         imsize = self.imsize
 
@@ -148,13 +119,15 @@ class Downsampling(LinearPhysics):
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
         if self.filter is not None:
-            x = conv_transpose2d(x, self.filter, padding=self.padding)
+            x = conv_transpose2d(
+                x, self.filter, padding=self.padding
+            )  # Note: this may be slow against x = conv_transpose2d_fft(x, self.filter) in the case of circular padding
+
         return x
 
     def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of
-        https://arxiv.org/abs/1510.00143.
+        If the padding is circular, it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """
@@ -182,6 +155,47 @@ class Downsampling(LinearPhysics):
             return (z_hat - r) * gamma
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
+
+    def update_parameters(self, filter=None, factor=None, **kwargs):
+        r"""
+        Updates the current filter and/or factor.
+
+        :param torch.Tensor filter: New filter to be applied to the input image.
+        :param int factor: New downsampling factor to be applied to the input image.
+        """
+        if factor is not None:
+            if isinstance(factor, (int, float)):
+                self.factor = int(factor)
+            else:
+                raise ValueError(
+                    f"Factor must be an integer, got {factor} of type {type(factor)}."
+                )
+
+        if filter is not None:
+            if isinstance(filter, torch.Tensor):
+                filter = filter.to(self.device)
+            elif filter == "gaussian":
+                filter = gaussian_blur(sigma=(self.factor, self.factor)).to(self.device)
+            elif filter == "bilinear":
+                filter = bilinear_filter(self.factor).to(self.device)
+            elif filter == "bicubic":
+                filter = bicubic_filter(self.factor).to(self.device)
+            elif filter == "sinc":
+                filter = sinc_filter(self.factor, length=4 * self.factor).to(
+                    self.device
+                )
+
+            self.register_buffer("filter", filter)
+
+        if self.filter is not None:
+            self.register_buffer(
+                "Fh",
+                filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device),
+            )
+            self.register_buffer("Fhc", torch.conj(self.Fh))
+            self.register_buffer("Fh2", self.Fhc * self.Fh)
+
+        super().update_parameters(**kwargs)
 
 
 class Blur(LinearPhysics):
@@ -241,7 +255,11 @@ class Blur(LinearPhysics):
         super().__init__(**kwargs)
         self.device = device
         self.padding = padding
-        self.update_parameters(filter=filter, **kwargs)
+        assert (
+            isinstance(filter, Tensor) or filter is None
+        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
+        self.register_buffer("filter", filter)
+        self.to(device)
 
     def A(self, x, filter=None, **kwargs):
         r"""
@@ -274,20 +292,6 @@ class Blur(LinearPhysics):
             return conv_transpose2d(y, filter=self.filter, padding=self.padding)
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
-
-    def update_parameters(self, filter=None, **kwargs):
-        r"""
-        Updates the current filter.
-
-        :param torch.Tensor filter: New filter to be applied to the input image.
-        """
-        if filter is not None:
-            self.filter = torch.nn.Parameter(
-                filter.to(self.device), requires_grad=False
-            )
-
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
 
 
 class BlurFFT(DecomposablePhysics):
@@ -333,21 +337,24 @@ class BlurFFT(DecomposablePhysics):
                   [0.0000, 0.0000, 0.0000]]]])
     """
 
-    def __init__(self, img_size, filter=None, device="cpu", **kwargs):
+    def __init__(self, img_size, filter: Tensor = None, device="cpu", **kwargs):
         super().__init__(**kwargs)
-        self.device = device
         self.img_size = img_size
+        assert (
+            isinstance(filter, Tensor) or filter is None
+        ), f"The filter must be a torch.Tensor or None, got filter of type {type(filter)}."
         self.update_parameters(filter=filter, **kwargs)
+        self.to(device)
 
-    def A(self, x, filter=None, **kwargs):
-        self.update_parameters(filter, **kwargs)
+    def A(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
+        self.update_parameters(filter=filter, **kwargs)
         return super().A(x)
 
-    def A_adjoint(self, x, filter=None, **kwargs):
-        self.update_parameters(filter, **kwargs)
+    def A_adjoint(self, x: Tensor, filter: Tensor = None, **kwargs) -> Tensor:
+        self.update_parameters(filter=filter, **kwargs)
         return super().A_adjoint(x)
 
-    def V_adjoint(self, x):
+    def V_adjoint(self, x: Tensor) -> Tensor:
         return torch.view_as_real(
             fft.rfft2(x, norm="ortho")
         )  # make it a true SVD (see J. Romberg notes)
@@ -367,28 +374,25 @@ class BlurFFT(DecomposablePhysics):
     def V(self, x):
         return fft.irfft2(torch.view_as_complex(x), norm="ortho", s=self.img_size[-2:])
 
-    def update_parameters(self, filter=None, **kwargs):
+    def update_parameters(self, filter: Tensor = None, **kwargs):
         r"""
         Updates the current filter.
 
         :param torch.Tensor filter: New filter to be applied to the input image.
         """
-        if filter is not None:
+        if filter is not None and isinstance(filter, Tensor):
             if self.img_size[0] > filter.shape[1]:
                 filter = filter.repeat(1, self.img_size[0], 1, 1)
-            self.filter = torch.nn.Parameter(filter, requires_grad=False).to(
-                self.device
-            )
-
-            mask = filter_fft_2d(filter, self.img_size).to(self.device)
-            self.angle = torch.angle(mask)
-            self.angle = torch.exp(-1.0j * self.angle).to(self.device)
+            mask = filter_fft_2d(filter, self.img_size)
+            angle = torch.angle(mask)
             mask = torch.abs(mask).unsqueeze(-1)
             mask = torch.cat([mask, mask], dim=-1)
-            self.mask = torch.nn.Parameter(mask, requires_grad=False)
 
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
+            self.register_buffer("filter", filter)
+            self.register_buffer("angle", torch.exp(-1.0j * angle))
+            self.register_buffer("mask", mask)
+
+        super().update_parameters(**kwargs)
 
 
 class SpaceVaryingBlur(LinearPhysics):
@@ -434,11 +438,19 @@ class SpaceVaryingBlur(LinearPhysics):
 
     """
 
-    def __init__(self, filters=None, multipliers=None, padding=None, **kwargs):
+    def __init__(
+        self,
+        filters: Tensor = None,
+        multipliers: Tensor = None,
+        padding: str = None,
+        device="cpu",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
             self.update_parameters(filters, multipliers, padding, **kwargs)
+        self.to(device)
 
     def A(
         self, x: Tensor, filters=None, multipliers=None, padding=None, **kwargs
@@ -492,7 +504,13 @@ class SpaceVaryingBlur(LinearPhysics):
         else:
             raise NotImplementedError("Method not implemented in product-convolution")
 
-    def update_parameters(self, filters=None, multipliers=None, padding=None, **kwargs):
+    def update_parameters(
+        self,
+        filters: Tensor = None,
+        multipliers: Tensor = None,
+        padding: str = None,
+        **kwargs,
+    ):
         r"""
         Updates the current parameters.
 
@@ -500,12 +518,13 @@ class SpaceVaryingBlur(LinearPhysics):
         :param torch.Tensor multipliers: Filters :math:`h_k`. Tensor of size (b, c, K, h, w). b in {1, B} and c in {1, C}, h<=H and w<=W
         :param padding: options = ``'valid'``, ``'circular'``, ``'replicate'``, ``'reflect'``.
         """
-        if filters is not None:
-            self.filters = torch.nn.Parameter(filters, requires_grad=False)
-        if multipliers is not None:
-            self.multipliers = torch.nn.Parameter(multipliers, requires_grad=False)
+        if filters is not None and isinstance(filters, Tensor):
+            self.register_buffer("filters", filters)
+        if multipliers is not None and isinstance(filters, Tensor):
+            self.register_buffer("multipliers", multipliers)
         if padding is not None:
             self.padding = padding
+        super().update_parameters(**kwargs)
 
 
 def gaussian_blur(sigma=(1, 1), angle=0):
@@ -567,7 +586,7 @@ def gaussian_blur(sigma=(1, 1), angle=0):
     return filt.unsqueeze(0).unsqueeze(0)
 
 
-def kaiser_window(beta, length):
+def kaiser_window(beta, length, device="cpu"):
     """Return the Kaiser window of length `length` and shape parameter `beta`."""
     if beta < 0:
         raise ValueError("beta must be greater than 0")
@@ -576,12 +595,12 @@ def kaiser_window(beta, length):
     if length == 1:
         return torch.tensor([1.0])
     half = (length - 1) / 2
-    n = torch.arange(length)
-    beta = torch.tensor(beta)
+    n = torch.arange(length, device=device)
+    beta = torch.tensor(beta, device=device)
     return torch.i0(beta * torch.sqrt(1 - ((n - half) / half) ** 2)) / torch.i0(beta)
 
 
-def sinc_filter(factor=2, length=11, windowed=True):
+def sinc_filter(factor=2, length=11, windowed=True, device="cpu"):
     r"""
     Anti-aliasing sinc filter multiplied by a Kaiser window.
 
@@ -606,9 +625,12 @@ def sinc_filter(factor=2, length=11, windowed=True):
     :param float factor: Downsampling factor.
     :param int length: Length of the filter.
     """
-    deltaf = 2 * (2 - 1.414213) / factor
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
 
-    n = torch.arange(length) - (length - 1) / 2
+    deltaf = 2 * (2 - 1.4142136) / factor
+
+    n = torch.arange(length, device=device) - (length - 1) / 2
     filter = torch.sinc(n / factor)
 
     if windowed:
@@ -620,7 +642,7 @@ def sinc_filter(factor=2, length=11, windowed=True):
         else:
             beta = 0.1102 * (A - 8.7)
 
-        filter = filter * kaiser_window(beta, length)
+        filter = filter * kaiser_window(beta, length, device=device)
 
     filter = filter.unsqueeze(0)
     filter = filter * filter.T
@@ -648,11 +670,13 @@ def bilinear_filter(factor=2):
 
     :param int factor: downsampling factor
     """
-    x = np.arange(start=-factor + 0.5, stop=factor, step=1) / factor
-    w = 1 - np.abs(x)
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
+    x = torch.arange(start=-factor + 0.5, end=factor, step=1) / factor
+    w = 1 - x.abs()
+    w = torch.outer(w, w)
+    w = w / torch.sum(w)
+    return w.unsqueeze(0).unsqueeze(0)
 
 
 def bicubic_filter(factor=2):
@@ -675,15 +699,13 @@ def bicubic_filter(factor=2):
 
     :param int factor: downsampling factor
     """
-    x = np.arange(start=-2 * factor + 0.5, stop=2 * factor, step=1) / factor
+    if isinstance(factor, torch.Tensor):
+        factor = factor.cpu().item()
+    x = torch.arange(start=-2 * factor + 0.5, end=2 * factor, step=1) / factor
     a = -0.5
-    x = np.abs(x)
-    w = ((a + 2) * np.power(x, 3) - (a + 3) * np.power(x, 2) + 1) * (x <= 1)
-    w += (
-        (a * np.power(x, 3) - 5 * a * np.power(x, 2) + 8 * a * x - 4 * a)
-        * (x > 1)
-        * (x < 2)
-    )
-    w = np.outer(w, w)
-    w = w / np.sum(w)
-    return torch.Tensor(w).unsqueeze(0).unsqueeze(0)
+    x = x.abs()
+    w = ((a + 2) * x.pow(3) - (a + 3) * x.pow(2) + 1) * (x <= 1)
+    w += (a * x.pow(3) - 5 * a * x.pow(2) + 8 * a * x - 4 * a) * (x > 1) * (x < 2)
+    w = torch.outer(w, w)
+    w = w / torch.sum(w)
+    return w.unsqueeze(0).unsqueeze(0)

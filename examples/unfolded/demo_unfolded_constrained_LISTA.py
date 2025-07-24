@@ -84,7 +84,7 @@ probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
+    img_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 
@@ -158,7 +158,7 @@ stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
 sigma_denoiser = [
-    0.01 * torch.ones(level, 3)
+    0.01 * torch.ones(1, level, 3)
 ] * max_iter  # thresholding parameters \sigma
 
 stepsize_dual = 1.0  # dual stepsize for Chambolle-Pock
@@ -286,7 +286,7 @@ prior_new = [
 stepsize = [
     1.0
 ] * max_iter  # initialization of the stepsizes. A distinct stepsize is trained for each iteration.
-sigma_denoiser = [0.01 * torch.ones(level, 3)] * max_iter
+sigma_denoiser = [0.01 * torch.ones(1, level, 3)] * max_iter
 stepsize_dual = 1.0  # stepsize for Chambolle-Pock
 
 params_algo_new = {

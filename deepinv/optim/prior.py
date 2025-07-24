@@ -149,7 +149,7 @@ class ScorePrior(Prior):
     .. note::
 
         If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
-        `Regularization by Denoising (RED) <https://arxiv.org/abs/1611.02862>`_ and doesn't require the normalization.
+        `Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn't require the normalization.
 
 
     .. note::
@@ -161,8 +161,6 @@ class ScorePrior(Prior):
         .. math::
 
             p_{\sigma}(x)=e^{- \inf_z \left(-\log p(z) + \frac{1}{2\sigma}\|x-z\|^2 \right)}.
-
-
     """
 
     def __init__(self, denoiser, *args, **kwargs):
@@ -177,7 +175,33 @@ class ScorePrior(Prior):
         :param torch.Tensor x: the input tensor.
         :param float sigma_denoiser: the noise level.
         """
-        return (1 / sigma_denoiser**2) * (x - self.denoiser(x, sigma_denoiser))
+        return self.stable_division(
+            x - self.denoiser(x, sigma_denoiser, *args, **kwargs), sigma_denoiser**2
+        )
+
+    def score(self, x, sigma_denoiser, *args, **kwargs):
+        r"""
+        Computes the score function :math:`\nabla \log p_\sigma`, using Tweedie's formula.
+
+        :param torch.Tensor x: the input tensor.
+        :param float sigma_denoiser: the noise level.
+        """
+        return self.stable_division(
+            self.denoiser(x, sigma_denoiser, *args, **kwargs) - x, sigma_denoiser**2
+        )
+
+    @staticmethod
+    def stable_division(a, b, epsilon: float = 1e-7):
+        if isinstance(b, torch.Tensor):
+            b = torch.where(
+                b.abs().detach() > epsilon,
+                b,
+                torch.full_like(b, fill_value=epsilon) * b.sign(),
+            )
+        elif isinstance(b, (float, int)):
+            b = max(epsilon, abs(b)) * np.sign(b)
+
+        return a / b
 
 
 class Tikhonov(Prior):
@@ -282,6 +306,7 @@ class WaveletPrior(Prior):
     :param float p: :math:`p`-norm of the prior. Default is 1.
     :param str device: device on which the wavelet transform is computed. Default is "cpu".
     :param int wvdim: dimension of the wavelet transform, can be either 2 or 3. Default is 2.
+    :param str mode: padding mode for the wavelet transform (default: "zero").
     :param float clamp_min: minimum value for the clamping. Default is None.
     :param float clamp_max: maximum value for the clamping. Default is None.
     """
@@ -293,6 +318,7 @@ class WaveletPrior(Prior):
         p=1,
         device="cpu",
         wvdim=2,
+        mode="zero",
         clamp_min=None,
         clamp_max=None,
         *args,
@@ -305,6 +331,7 @@ class WaveletPrior(Prior):
         self.wvdim = wvdim
         self.level = level
         self.device = device
+        self.mode = mode
 
         self.clamp_min = clamp_min
         self.clamp_max = clamp_max
@@ -334,6 +361,10 @@ class WaveletPrior(Prior):
                 non_linearity=self.non_linearity,
                 wvdim=self.wvdim,
             )
+        else:
+            raise ValueError(
+                f"wv should be a string (name of the wavelet) or a list of strings (list of wavelet names). Got {type(self.wv)} instead."
+            )
 
     def fn(self, x, *args, reduce=True, **kwargs):
         r"""
@@ -362,9 +393,15 @@ class WaveletPrior(Prior):
         :return: (:class:`torch.Tensor`) prior :math:`g(x)`.
         """
         list_dec = self.psi(x)
-        list_norm = torch.hstack([torch.norm(dec, p=self.p) for dec in list_dec])
+        list_norm = torch.cat(
+            [
+                torch.linalg.norm(dec, ord=self.p, dim=1, keepdim=True)
+                for dec in list_dec
+            ],
+            dim=1,
+        )
         if reduce:
-            return torch.sum(list_norm)
+            return torch.sum(list_norm, dim=1)
         else:
             return list_norm
 
@@ -383,12 +420,18 @@ class WaveletPrior(Prior):
             out = torch.clamp(out, max=self.clamp_max)
         return out
 
-    def psi(self, x, wavelet="db2", level=2, dimension=2):
+    def psi(self, x, *args, **kwargs):
         r"""
         Applies the (flattening) wavelet decomposition of x.
         """
         return self.WaveletDenoiser.psi(
-            x, wavelet=self.wv, level=self.level, dimension=self.wvdim
+            x,
+            wavelet=self.wv,
+            level=self.level,
+            dimension=self.wvdim,
+            mode=self.mode,
+            *args,
+            **kwargs,
         )
 
 
@@ -657,16 +700,22 @@ class L12Prior(Prior):
         :return torch.Tensor: proximity operator at :math:`x`.
         """
 
-        tau_gamma = torch.tensor(gamma)
-
-        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)
+        z = torch.norm(x, p=2, dim=self.l2_axis, keepdim=True)  # Compute the norm
+        z2 = torch.max(
+            z, gamma * torch.ones_like(z)
+        )  # Compute its max w.r.t. gamma at each point
+        z3 = torch.ones_like(z)  # Construct a mask of ones
+        mask_z = z > 0  # Find locations where z (hence x) is not already zero
+        z3[mask_z] = (
+            z3[mask_z] - gamma / z2[mask_z]
+        )  # If z < gamma -> z2 = gamma -> z3 -gamma/gamma =0  (threshold below gamma)
+        # Oth. z3 = 1- gamma/z2
+        z4 = torch.multiply(
+            x, z3
+        )  # All elems of x with norm < gamma are set 0; the others are z4 = x(1-gamma/|x|)
         # Creating a mask to avoid diving by zero
         # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
-        mask_z = z > 0
-        z[mask_z] = torch.max(z[mask_z], tau_gamma)
-        z[mask_z] = torch.tensor(1.0) - tau_gamma / z[mask_z]
-
-        return torch.multiply(z, x)
+        return z4
 
 
 class SeparablePrior(Prior):
@@ -708,7 +757,7 @@ class SeparablePrior(Prior):
         is applied. Each contribution is weighted by exp(separable_weights[coord]).
 
         :param torch.Tensor x: Input tensor.
-        
+
         :return torch.Tensor: value of :math:`f(x)` for each batch
         """
         # Exponentiate the (log-)weights.
@@ -748,7 +797,7 @@ class SeparablePrior(Prior):
         for coord, sliced_x in enumerate(torch.unbind(x, dim=self.separable_axis)):
             # Compute the prox for the current slice.
             prox_slice = self.prior.prox(
-                sliced_x, *args, gamma=gamma * eseparable_weights[coord],  **kwargs
+                sliced_x, *args, gamma=gamma * eseparable_weights[coord], **kwargs
             )
             # unsqueeze to restore the separable axis for later concatenation.
             prox_slices.append(prox_slice.unsqueeze(self.separable_axis))
@@ -760,7 +809,6 @@ class SeparablePrior(Prior):
         :return torch.Tensor: The value of :math:`f(x) = \sum_i w_i g(x_i)`
         """
         return self.fn(x, *args, **kwargs)
-
 
 
 class ListSeparablePrior(Prior):
@@ -778,14 +826,15 @@ class ListSeparablePrior(Prior):
     The separable weights (given in log-domain) are exponentiated to ensure positivity and scale the contributions of each slice.
 
     Expected input:
-      - :math:`x` a deepinv.utils.TensorList, i.e. a list of tensors of shape :math:`[x_1, \dots, x_I]` 
-    
+      - :math:`x` a deepinv.utils.TensorList, i.e. a list of tensors of shape :math:`[x_1, \dots, x_I]`
+
     """
+
     def __init__(self, prior, separable_weights, *args, **kwargs):
         """
         :param dinv.optim.Prior prior: a Prior defining the function :math:`g`
         :param torch.Tensor separable_weights: a tensor of weights (in log-domain) of same length as the TensorList :math:`x`.
-        
+
         Note: There is no separable_axis here because the separation is given by the list structure.
         """
         super().__init__(*args, **kwargs)
@@ -807,7 +856,7 @@ class ListSeparablePrior(Prior):
             eseparable_weights[j] * self.prior.fn(x_j, *args, **kwargs)
             for j, x_j in enumerate(x)
         ]
-        return torch.stack(f_list, dim=0).sum(dim=0)        
+        return torch.stack(f_list, dim=0).sum(dim=0)
 
     def prox(self, x, *args, gamma, **kwargs):
         """
@@ -816,9 +865,9 @@ class ListSeparablePrior(Prior):
         The prox is computed for each tensor in the deepinv.utils.TensorList. For each tensor in the list:
 
         .. math::
-        
+
             \operatorname{prox}_{\gamma * \exp(w) * g}(x_i)
-        
+
         is computed, and then returned as a deepinv.utils.TensorList.
 
         :param deepinv.utils.TensorList x: A list of input tensors.

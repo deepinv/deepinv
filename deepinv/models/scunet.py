@@ -275,8 +275,7 @@ class SCUNet(Denoiser):
     r"""
     SCUNet denoising network.
 
-    The Swin-Conv-UNet (SCUNet) denoising was introduced in `Practical Blind Denoising via Swin-Conv-UNet and
-    Data Synthesis <https://arxiv.org/abs/2203.13278>`_.
+    The Swin-Conv-UNet (SCUNet) denoising was introduced by :footcite:t:`zhang2023practical`.
 
     :param int in_nc: number of input channels. Default: 3.
     :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
@@ -290,7 +289,6 @@ class SCUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
-
     """
 
     def __init__(
@@ -475,12 +473,3 @@ class SCUNet(Denoiser):
         elif isinstance(m, nn.LayerNorm):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
-
-
-# if __name__ == '__main__':
-#     # torch.cuda.empty_cache()
-#     net = SCUNet(pretrained='download', device='cpu')
-#
-#     x = torch.randn((2, 3, 64, 128))
-#     x = net(x)
-#     print(x.shape)

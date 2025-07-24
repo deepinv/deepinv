@@ -65,7 +65,7 @@ probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
+    img_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 
@@ -165,7 +165,9 @@ trainer = dinv.Trainer(
     train_dataloader=train_dataloader,
     eval_dataloader=test_dataloader,
 )
-model = trainer.train()
+trainer.train()
+# load model with best validation PSNR
+model = trainer.load_best_model()
 
 # %%
 # Test the network

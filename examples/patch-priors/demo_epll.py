@@ -2,7 +2,7 @@ r"""
 Expected Patch Log Likelihood (EPLL) for Denoising and Inpainting
 ====================================================================================================
 
-In this example we use the expected patch log likelihood (EPLL) prior EPLL proposed in `"From learning models of natural image patches to whole image restoration" <https://ieeexplore.ieee.org/document/6126278>`_.
+In this example we use the expected patch log likelihood (EPLL) prior :footcite:t:`zoran2011learning`.
 for denoising and inpainting of natural images.
 To this end, we consider the inverse problem :math:`y = Ax+\epsilon`, where :math:`A` is either the identity (for denoising)
 or a masking operator (for inpainting) and :math:`\epsilon\sim\mathcal{N}(0,\sigma^2 I)` is white Gaussian noise with standard deviation :math:`\sigma`.
@@ -13,7 +13,7 @@ from deepinv.optim import EPLL
 from deepinv.physics import GaussianNoise, Denoising, Inpainting
 from deepinv.loss.metric import PSNR
 from deepinv.utils import plot
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -24,8 +24,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # on 50 mio patches extracted from the BSDS500 dataset. An example how to estimate the parameters of GMM
 # is included in the demo for limited-angle CT with patch priors.
 
-url = get_image_url("CBSD_0010.png")
-test_img = load_url_image(url, grayscale=False).to(device)
+test_img = load_example("CBSD_0010.png", grayscale=False).to(device)
 patch_size = 6
 model = EPLL(channels=test_img.shape[1], patch_size=patch_size, device=device)
 
@@ -71,7 +70,7 @@ plot(
 
 sigma = 0.01
 physics = Inpainting(
-    tensor_size=test_img[0].shape,
+    img_size=test_img[0].shape,
     mask=0.7,
     device=device,
     noise_model=GaussianNoise(sigma),

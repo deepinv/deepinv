@@ -4,8 +4,7 @@ Reconstructing an image using the deep image prior.
 
 This code shows how to reconstruct a noisy and incomplete image using the deep image prior.
 
-This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-<https://arxiv.org/abs/1711.10925>`_, and reconstructs
+This method is based on the paper "Deep Image Prior" :footcite:t:`ulyanov2018deep` and reconstructs
 an image by minimizing the loss function
 
 .. math::
@@ -48,7 +47,7 @@ torch.manual_seed(0)
 # We use image inpainting as the forward operator and Gaussian noise as the noise model.
 
 sigma = 0.1  # noise level
-physics = dinv.physics.Inpainting(mask=0.5, tensor_size=x.shape[1:], device=device)
+physics = dinv.physics.Inpainting(mask=0.5, img_size=x.shape[1:], device=device)
 physics.noise_model = dinv.physics.GaussianNoise(sigma=sigma)
 
 # %%
@@ -80,7 +79,7 @@ lr = 1e-2  # learning rate for the optimizer.
 channels = 64  # number of channels per layer in the decoder.
 in_size = [2, 2]  # size of the input to the decoder.
 backbone = dinv.models.ConvDecoder(
-    img_shape=x.shape[1:], in_size=in_size, channels=channels
+    img_size=x.shape[1:], in_size=in_size, channels=channels
 ).to(device)
 
 f = dinv.models.DeepImagePrior(
@@ -99,11 +98,7 @@ f = dinv.models.DeepImagePrior(
 # The good performance of DIP is somewhat surprising, since the network has many parameters and could potentially
 # overfit the noisy measurement data. However, the architecture acts as an implicit regularizer, providing good
 # reconstructions if the optimization is stopped early.
-# While this phenomenon is not yet well understood, there has been some efforts to explain it. For example, see
-# `"The Neural Tangent Link Between CNN Denoisers and Non-Local Filters"
-# <https://openaccess.thecvf.com/content/CVPR2021/html/Tachella_The_Neural_Tangent_Link_Between_CNN_Denoisers_and_Non-Local_Filters_CVPR_2021_paper.html>`_.
-
-
+# While this phenomenon is not yet well understood, there has been some efforts to explain it. For example, see :footcite:t:`tachella2021neural`.
 dip = f(y, physics)
 
 # compute linear inverse

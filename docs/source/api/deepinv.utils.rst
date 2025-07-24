@@ -18,6 +18,7 @@ Plotting
         deepinv.utils.plot_parameters
         deepinv.utils.plot_inset
         deepinv.utils.plot_videos
+        deepinv.utils.save_videos
         deepinv.utils.plot_ortho3D
 
 
@@ -52,6 +53,7 @@ Logging
    :nosignatures:
 
         deepinv.utils.AverageMeter
+        deepinv.utils.ProgressMeter
         deepinv.utils.get_timestamp
 
 Other
@@ -68,16 +70,8 @@ Other
     deepinv.utils.get_image_url
     deepinv.utils.get_degradation_url
     deepinv.utils.load_url_image
+    deepinv.utils.load_example
     deepinv.utils.load_image
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
     deepinv.utils.dirac_like
-    deepinv.utils.demo.demo_mri_model
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-    deepinv.utils.AverageMeter
-    deepinv.utils.ProgressMeter

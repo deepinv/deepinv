@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim import DataFidelity
-from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss
+from deepinv.optim.data_fidelity import L2, IndicatorL2, L1, AmplitudeLoss, ZeroFidelity
 from deepinv.optim.prior import Prior, PnP, RED
 from deepinv.optim.optimizers import optim_builder
 from deepinv.optim.optim_iterators import GDIteration
@@ -205,6 +205,45 @@ def test_data_fidelity_l1(device):
     )
 
 
+def test_data_fidelity_zero(device):
+    # Define two points
+    x = torch.Tensor([[[1], [4], [-0.5]]]).to(device)
+    y = torch.Tensor([[[1], [1], [1]]]).to(device)
+
+    data_fidelity = ZeroFidelity()
+    assert data_fidelity.d(x, y) == 0.0
+
+    A = torch.Tensor([[2, 0, 0], [0, -0.5, 0], [0, 0, 1]]).to(device)
+    A_forward = lambda v: A @ v
+    A_adjoint = lambda v: A.transpose(0, 1) @ v
+
+    # Define the physics model associated to this operator
+    physics = dinv.physics.LinearPhysics(A=A_forward, A_adjoint=A_adjoint)
+    assert data_fidelity(x, y, physics) == 0.0
+
+    # Check sub-differential
+    grad_manual = torch.zeros_like(x)
+    assert torch.allclose(data_fidelity.d.grad(x, y), grad_manual)
+
+    # Check prox
+    threshold = 0.5
+    prox_manual = x
+    assert torch.allclose(data_fidelity.d.prox(x, y, gamma=threshold), prox_manual)
+
+    # Testing that d.prox / d.grad and prox_d / grad_d are consistent
+    assert torch.allclose(
+        data_fidelity.d.prox(x, y, gamma=1.0),
+        data_fidelity.prox_d(x, y, physics, gamma=1.0),
+    )
+    assert torch.allclose(
+        data_fidelity.d.grad(x, y),
+        data_fidelity.grad_d(
+            x,
+            y,
+        ),
+    )
+
+
 def test_zero_prior():
     A = torch.eye(3, dtype=torch.float64)
 
@@ -242,7 +281,7 @@ def test_data_fidelity_amplitude_loss(device):
             (1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True
         )
         physics = dinv.physics.RandomPhaseRetrieval(
-            m=10, img_shape=(1, 3, 3), device=device
+            m=10, img_size=(1, 3, 3), device=device
         )
         loss = AmplitudeLoss()
         func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
@@ -463,9 +502,15 @@ def get_prior(prior_name, device="cpu"):
                 wv=["db1", "db4", "db8"], level=3, device=device
             )
     elif prior_name == "SeparablePrior":
-        prior = dinv.optim.prior.SeparablePrior(dinv.optim.prior.L1Prior(), separable_axis = 1, separable_weights=torch.zeros(3, device = device))
+        prior = dinv.optim.prior.SeparablePrior(
+            dinv.optim.prior.L1Prior(),
+            separable_axis=1,
+            separable_weights=torch.zeros(3, device=device),
+        )
     elif prior_name == "ListSeparablePrior":
-        prior = dinv.optim.prior.ListSeparablePrior(dinv.optim.prior.L1Prior(), separable_weights=torch.zeros(5, device = device))
+        prior = dinv.optim.prior.ListSeparablePrior(
+            dinv.optim.prior.L1Prior(), separable_weights=torch.zeros(5, device=device)
+        )
     return prior
 
 
@@ -478,7 +523,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "TVPrior",
         "WaveletPrior",
         "WaveletDictPrior",
-        "SeparablePrior"
+        "SeparablePrior",
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
@@ -845,7 +890,7 @@ def test_datafid_stacking(imsize, device):
     assert data_fid.grad(x, y2, physics) == -(y2[0] - y[0]) / 4 - (y2[1] - y[1])
 
 
-solvers = ["CG", "BiCGStab", "lsqr"]
+solvers = ["CG", "BiCGStab", "lsqr", "minres"]
 least_squares_physics = ["fftdeblur", "inpainting", "MRI", "super_resolution_circular"]
 
 
@@ -885,6 +930,52 @@ def test_least_square_solvers(device, solver, physics_name):
     loss.backward()
     if not "inpainting" in physics_name:
         assert y.grad.norm() > 0
+
+
+DTYPES = [torch.float32, torch.complex64]
+
+
+@pytest.mark.parametrize("solver", solvers)
+@pytest.mark.parametrize("dtype", DTYPES)
+def test_linear_system(device, solver, dtype):
+    # test the solution of linear systems with random matrices
+    batch_size = 4
+    dim = 32
+
+    mat = torch.randn((32, 32), dtype=dtype, device=device)
+    if solver == "CG":
+        # CG is only for hermite positive definite matrices
+        mat = mat.adjoint() @ mat
+    if solver == "minres" or solver == "BiCGStab":
+        # minres is only for hermite matrices
+        # bcgstab currently only works for symmetric matrices (even though it should also work for non-symmetric)
+        mat = mat + mat.adjoint()
+    if solver == "BiCGStab" and torch.is_complex(mat):
+        # bicgstab currently doesn't work for complex-valued systems
+        return
+    b = torch.randn((batch_size, 32), dtype=dtype, device=device)
+
+    A = lambda x: (mat @ x.T).T
+    AT = lambda x: (mat.adjoint() @ x.T).T
+
+    tol = 1e-3
+    if solver == "CG":
+        x = dinv.optim.utils.conjugate_gradient(A, b, tol=tol)
+    elif solver == "minres":
+        x = dinv.optim.utils.minres(A, b, tol=tol)
+    elif solver == "BiCGStab":
+        x = dinv.optim.utils.bicgstab(A, b, tol=tol)
+    elif solver == "lsqr":
+        x = dinv.optim.utils.lsqr(A, AT, b, tol=tol)[0]
+    else:
+        raise ValueError("Solver not found")
+
+    x_star = torch.linalg.solve(mat, b.T).T
+
+    # consider relative error
+    assert (
+        torch.sum(torch.abs(x - x_star) ** 2) / torch.sum(torch.abs(x_star) ** 2) < tol
+    )
 
 
 def test_condition_number(device):

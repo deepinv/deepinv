@@ -3,6 +3,7 @@ Plug-and-Play algorithm with Mirror Descent for Poisson noise inverse problems.
 ====================================================================================================
 
 This is a simple example to show how to use a mirror descent algorithm for solving an inverse problem with Poisson noise.
+See :footcite:t:`hurault2023convergent` for more details.
 
 The Mirror descent with RED denoiser writes
 
@@ -12,19 +13,18 @@ The Mirror descent with RED denoiser writes
 
 where :math:`\phi` is a convex Bergman potential, :math:`\distance{A(x)}{y}` is the data fidelity term and :math:`D_\sigma(x)` is a denoiser.
 
-In this example, we use the DnCNN denoiser. As the observation has been corrupted with Poisson noise, we use the :class:`deepinv.optim.PoissonLikelihood` data-fidelity term.
-In https://publications.ut-capitole.fr/id/eprint/25852/1/25852.pdf, it is shown that, with this data-fidelity term, the right Bregman potential to use is Burg's entropy :class:`deepinv.optim.bregman.BurgEntropy`.
+In this example, we use the DnCNN denoiser :footcite:t:`zhang2017beyond`. As the observation has been corrupted with Poisson noise, we use the :class:`deepinv.optim.PoissonLikelihood` data-fidelity term.
+In :footcite:t:`Bolte2016descent`, it is shown that, with this data-fidelity term, the right Bregman potential to use is Burg's entropy :class:`deepinv.optim.bregman.BurgEntropy`.
 """
 
 import deepinv as dinv
 from pathlib import Path
 import torch
-from torch.utils.data import DataLoader
 from deepinv.optim.data_fidelity import PoissonLikelihood
 from deepinv.optim.prior import RED
 from deepinv.optim import optim_builder
 from deepinv.optim.bregman import BurgEntropy
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot, plot_curves
 
 # %%
@@ -43,8 +43,7 @@ torch.manual_seed(0)
 
 img_size = 64
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
-url = get_image_url("butterfly.png")
-x_true = load_url_image(url=url, img_size=img_size).to(device)
+x_true = load_example("butterfly.png", img_size=img_size).to(device)
 x = x_true.clone()
 
 
