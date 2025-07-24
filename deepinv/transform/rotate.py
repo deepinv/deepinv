@@ -22,7 +22,7 @@ class Rotate(Transform):
     :param float multiples: angles are selected uniformly from :math:`\pm` multiples of ``multiples``. Default to 1 (i.e integers)
         When multiples is a multiple of 90, no interpolation is performed.
     :param bool positive: if True, only consider positive angles.
-    :param torchvision.transforms.InterpolationMode interpolation_mode: interpolation mode used for rotation, defaults to :class:`torchvision.transforms.InterpolationMode.NEAREST`.
+    :param torchvision.transforms.InterpolationMode interpolation_mode: interpolation mode used for rotation, defaults to ``torchvision.transforms.InterpolationMode.NEAREST``.
     :param int n_trans: number of transformed versions generated per input image.
     :param torch.Generator rng: random number generator, if ``None``, use :class:`torch.Generator`, defaults to ``None``
     """
