@@ -736,18 +736,16 @@ class SeparablePrior(Prior):
       - x: a tensor of shape [A, B, ..., I, ...] where the I-axis (indexed by separable_axis) contains the separable components.
     """
 
-    def __init__(self, prior, separable_axis, separable_weights, *args, **kwargs):
+    def __init__(self, prior, weights, dim, *args, **kwargs):
         """
         :param dinv.optim.Prior prior: a Prior defining the function :math:`g`
-
-        :param int separable_axis: index of the axis over which the prior is separable.
-
-        :param torch.Tensor separable_weights: a tensor of weights (in log-domain) for each slice along the separable axis.
+        :param torch.Tensor weights: a tensor of weights (in log-domain) for each slice along the separable axis.
+        :param int dim: index of the axis over which the prior is separable.
         """
         super().__init__(*args, **kwargs)
         self.prior = prior
-        self.separable_axis = separable_axis
-        self.separable_weights = separable_weights
+        self.weights = weights
+        self.dim = dim
 
     def fn(self, x, *args, **kwargs):
         """
@@ -764,8 +762,8 @@ class SeparablePrior(Prior):
         # NOTE: The weights are reparametrized to ensure positivity. It might
         # be better to avoid reparametrization and simply make things fail if
         # the weights are negative.
-        weights = torch.exp(self.separable_weights)
-        components = torch.split(x, 1, dim=self.separable_axis)
+        weights = torch.exp(self.weights)
+        components = torch.split(x, 1, dim=self.dim)
         # NOTE: The total is initialized to None but it is necessarily assigned
         # to a Tensor value in the loop below. Indeed, it is reassigned to a
         # Tensor value at each iteration and there is at least one iteration
@@ -796,12 +794,12 @@ class SeparablePrior(Prior):
         :param gamma: A step-size parameter (on :math:`\tau f`).
         :return torch.Tensor: :math:`\operatorname{prox}_{\tau f}(x)` of the same shape as :math:`x` after applying the proximity operator.
         """
-        dim = self.separable_axis
+        dim = self.dim
         input_components = torch.split(x, 1, dim=dim)
         # NOTE: The weights are reparametrized to ensure positivity. It might
         # be better to avoid reparametrization and simply make things fail if
         # the weights are negative.
-        weights = torch.exp(self.separable_weights)
+        weights = torch.exp(self.weights)
         output_components = []
         prox_fn = self.prior.prox
         for input_component, weight in zip(input_components, weights, strict=True):

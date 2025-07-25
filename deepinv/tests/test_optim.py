@@ -504,8 +504,8 @@ def get_prior(prior_name, device="cpu"):
     elif prior_name == "SeparablePrior":
         prior = dinv.optim.prior.SeparablePrior(
             dinv.optim.prior.L1Prior(),
-            separable_axis=1,
-            separable_weights=torch.zeros(3, device=device),
+            weights=torch.zeros(3, device=device),
+            dim=1,
         )
     elif prior_name == "ListSeparablePrior":
         prior = dinv.optim.prior.ListSeparablePrior(
