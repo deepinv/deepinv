@@ -515,12 +515,22 @@ def get_prior(prior_name, device="cpu"):
 
 
 @pytest.mark.parametrize("pnp_algo", ["PGD", "HQS", "DRS", "ADMM", "CP", "FISTA"])
-@pytest.mark.parametrize("prior_name", ["L1Prior", "L12Prior", "Tikhonov", "TVPrior", "WaveletPrior", "WaveletDictPrior", "SeparablePrior", "ListSeparablePrior"])
+@pytest.mark.parametrize(
+    "prior_name",
+    [
+        "L1Prior",
+        "L12Prior",
+        "Tikhonov",
+        "TVPrior",
+        "WaveletPrior",
+        "WaveletDictPrior",
+        "SeparablePrior",
+        "ListSeparablePrior",
+    ],
+)
 def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
     # 1. Generate a dummy dataset
-    dataloader = DataLoader(
-        dummy_dataset, batch_size=1, shuffle=False, num_workers=0
-    )
+    dataloader = DataLoader(dummy_dataset, batch_size=1, shuffle=False, num_workers=0)
     test_sample = next(iter(dataloader)).to(device)
 
     # 2. Set a physical experiment (here, deblurring)
