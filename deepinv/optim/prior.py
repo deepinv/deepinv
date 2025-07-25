@@ -759,17 +759,13 @@ class SeparablePrior(Prior):
         :return torch.Tensor: value of :math:`f(x)` for each batch
         """
         prior_fn = self.prior.fn
-        # NOTE: The weights are reparametrized to ensure positivity. It might
-        # be better to avoid reparametrization and simply make things fail if
-        # the weights are negative.
-        weights = torch.exp(self.weights)
         components = torch.split(x, 1, dim=self.dim)
         # NOTE: The total is initialized to None but it is necessarily assigned
         # to a Tensor value in the loop below. Indeed, it is reassigned to a
         # Tensor value at each iteration and there is at least one iteration
         # because torch.split always returns a non-empty tuple.
         total = None
-        for component, weight in zip(components, weights, strict=True):
+        for component, weight in zip(components, self.weights, strict=True):
             term = weight * prior_fn(component, *args, **kwargs)
             if total is None:
                 total = term
@@ -796,13 +792,9 @@ class SeparablePrior(Prior):
         """
         dim = self.dim
         input_components = torch.split(x, 1, dim=dim)
-        # NOTE: The weights are reparametrized to ensure positivity. It might
-        # be better to avoid reparametrization and simply make things fail if
-        # the weights are negative.
-        weights = torch.exp(self.weights)
         output_components = []
         prox_fn = self.prior.prox
-        for input_component, weight in zip(input_components, weights, strict=True):
+        for input_component, weight in zip(input_components, self.weights, strict=True):
             output_component = prox_fn(
                 input_component, *args, gamma=gamma * weight, **kwargs
             )
