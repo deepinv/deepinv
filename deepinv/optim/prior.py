@@ -791,18 +791,19 @@ class SeparablePrior(Prior):
         :param gamma: A step-size parameter (on :math:`\tau f`).
         :return torch.Tensor: :math:`\operatorname{prox}_{\tau f}(x)` of the same shape as :math:`x` after applying the proximity operator.
         """
-        eseparable_weights = torch.exp(self.separable_weights)
-        prox_slices = []
-        # torch.unbind splits the tensor along the separable_axis without squeezing that axis.
-        for coord, sliced_x in enumerate(torch.unbind(x, dim=self.separable_axis)):
-            # Compute the prox for the current slice.
-            prox_slice = self.prior.prox(
-                sliced_x, *args, gamma=gamma * eseparable_weights[coord], **kwargs
+        dim = self.separable_axis
+        input_components = torch.split(x, 1, dim=dim)
+        # NOTE: The weights are reparametrized to ensure positivity. It might
+        # be better to avoid reparametrization and simply make things fail if
+        # the weights are negative.
+        weights = torch.exp(self.separable_weights)
+        output_components = []
+        for input_component, weight in zip(input_components, weights, strict=True):
+            output_component = self.prior.prox(
+                input_component, *args, gamma=gamma * weight, **kwargs
             )
-            # unsqueeze to restore the separable axis for later concatenation.
-            prox_slices.append(prox_slice.unsqueeze(self.separable_axis))
-        # Concatenate all processed slices along the separable axis.
-        return torch.cat(prox_slices, dim=self.separable_axis)
+            output_components.append(output_component)
+        return torch.cat(output_components, dim=dim)
 
     def forward(self, x, *args, **kwargs):
         """
