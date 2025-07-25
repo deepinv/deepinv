@@ -3,6 +3,7 @@ import torch
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
+from warnings import warn
 
 
 class Rotate(Transform):
@@ -32,13 +33,20 @@ class Rotate(Transform):
         limits: float = 360.0,
         multiples: float = 1.0,
         positive: bool = False,
-        interpolation_mode: InterpolationMode = InterpolationMode.NEAREST,
+        interpolation_mode: InterpolationMode | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.limits = limits
         self.multiples = multiples
         self.positive = positive
+        if interpolation_mode is None:
+            interpolation_mode = InterpolationMode.NEAREST
+            warn(
+                "The default interpolation mode will be changed to bilinear "
+                "interpolation in the near future. Please specify the interpolation "
+                "mode explicitly if you plan to keep using nearest interpolation."
+            )
         self.interpolation_mode = interpolation_mode
 
     def _get_params(self, x: torch.Tensor) -> dict:
