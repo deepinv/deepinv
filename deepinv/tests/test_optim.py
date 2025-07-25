@@ -534,7 +534,7 @@ def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
         padding="circular",
         device=device,
     )
-    y = physics.A(test_sample)
+    y = physics(test_sample)
     max_iter = 1000
     # Note: results are better for sigma_denoiser=0.001, but it takes longer to run.
     # sigma_denoiser = torch.tensor([[0.1]])
