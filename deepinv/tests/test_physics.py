@@ -1199,10 +1199,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        if len(shift) != len(dim):
-            raise ValueError("len(shift) must match len(dim)")
-
-        for s, d in zip(shift, dim):
+        for s, d in zip(shift, dim, strict=True):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1358,7 +1355,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip(y_hat.x, y.x):
+                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1386,7 +1383,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics.A(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip(y_hat.x, y.x):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1473,7 +1470,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip(y1, y2):
+                    for y11, y22 in zip(y1, y2, strict=True):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5

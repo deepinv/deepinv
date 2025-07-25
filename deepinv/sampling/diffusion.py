@@ -281,8 +281,8 @@ class DiffPIR(Reconstructor):
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
 
-    
-        
+
+
     """
 
     def __init__(
@@ -617,7 +617,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+        time_pairs = list(zip(reversed(seq), reversed(seq_next), strict=True))
 
         # Initial sample from x_T
         x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)

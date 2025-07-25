@@ -505,7 +505,8 @@ def wandb_imgs(imgs, captions, n_plot):
 
 
 def wandb_plot_curves(metrics, batch_idx=0, step=0):
-    for metric_name, metric_val in zip(metrics.keys(), metrics.values()):
+    # NOTE: The zip iterator appears to be an unidiomatic version of `metrics.items()`.
+    for metric_name, metric_val in zip(metrics.keys(), metrics.values(), strict=True):
         if len(metric_val) > 0:
             batch_size, n_iter = len(metric_val), len(metric_val[0])
             wandb.log(
@@ -543,7 +544,8 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     fig, ax = plt.subplots(figsize=(7, 7))
 
     if init_params is not None:
-        for key, value in zip(init_params.keys(), init_params.values()):
+        # NOTE: The zip iterator appears to be an unidiomatic version of `metrics.items()`.
+        for key, value in zip(init_params.keys(), init_params.values(), strict=True):
             if not isinstance(value, Iterable):
                 init_params[key] = [value]
 
