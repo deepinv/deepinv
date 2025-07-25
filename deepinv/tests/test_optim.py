@@ -524,6 +524,7 @@ def test_priors_algo(pnp_algo, imsize, dummy_dataset, device):
         "WaveletPrior",
         "WaveletDictPrior",
         "SeparablePrior",
+        "ListSeparablePrior",
     ]:
         # 1. Generate a dummy dataset
         dataloader = DataLoader(
