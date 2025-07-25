@@ -760,19 +760,24 @@ class SeparablePrior(Prior):
 
         :return torch.Tensor: value of :math:`f(x)` for each batch
         """
-        # Exponentiate the (log-)weights.
-        eseparable_weights = torch.exp(self.separable_weights)
-        # Initialize f_total with zeros. Assumes the first dimension is the batch dimension.
-        f_total = torch.zeros(x.shape[0], device=x.device, dtype=x.dtype)
-        # Loop over the separable axis
-        for coord in range(x.shape[self.separable_axis]):
-            # Select the slice along the separable axis.
-            sliced_x = x.select(dim=self.separable_axis, index=coord)
-            # Add the weighted contribution of the prior applied to the slice.
-            f_total = f_total + eseparable_weights[coord] * self.prior.fn(
-                sliced_x, *args, **kwargs
-            )
-        return f_total
+        prior_fn = self.prior.fn
+        # NOTE: The weights are reparametrized to ensure positivity. It might
+        # be better to avoid reparametrization and simply make things fail if
+        # the weights are negative.
+        weights = torch.exp(self.separable_weights)
+        components = torch.split(x, 1, dim=self.separable_axis)
+        # NOTE: The total is initialized to None but it is necessarily assigned
+        # to a Tensor value in the loop below. Indeed, it is reassigned to a
+        # Tensor value at each iteration and there is at least one iteration
+        # because torch.split always returns a non-empty tuple.
+        total = None
+        for component, weight in zip(components, weights, strict=True):
+            term = weight * prior_fn(component, *args, **kwargs)
+            if total is None:
+                total = term
+            else:
+                total = total + term
+        return total
 
     def prox(self, x, *args, gamma, **kwargs):
         """
@@ -798,8 +803,9 @@ class SeparablePrior(Prior):
         # the weights are negative.
         weights = torch.exp(self.separable_weights)
         output_components = []
+        prox_fn = self.prior.prox
         for input_component, weight in zip(input_components, weights, strict=True):
-            output_component = self.prior.prox(
+            output_component = prox_fn(
                 input_component, *args, gamma=gamma * weight, **kwargs
             )
             output_components.append(output_component)
