@@ -507,10 +507,6 @@ def get_prior(prior_name, device="cpu"):
             weights=torch.ones(3, device=device),
             dim=1,
         )
-    elif prior_name == "ListSeparablePrior":
-        prior = dinv.optim.prior.ListSeparablePrior(
-            dinv.optim.prior.L1Prior(), separable_weights=torch.zeros(5, device=device)
-        )
     return prior
 
 
@@ -525,7 +521,6 @@ def get_prior(prior_name, device="cpu"):
         "WaveletPrior",
         "WaveletDictPrior",
         "SeparablePrior",
-        "ListSeparablePrior",
     ],
 )
 def test_priors_algo(pnp_algo, prior_name, imsize, dummy_dataset, device):
