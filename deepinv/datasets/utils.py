@@ -12,6 +12,7 @@ from tqdm.auto import tqdm
 from scipy.io import loadmat as scipy_loadmat
 from numpy import ndarray
 
+import torch
 from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module

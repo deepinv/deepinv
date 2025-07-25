@@ -15,7 +15,6 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 | Maintainer | Website | Affiliation | Email |
 |------|------|-------|-------|
 | Julián Tachella | [tachella.github.io](https://tachella.github.io/) | CNRS, ENS Lyon | [📧](mailto:julian.tachella@cnrs.fr) |
-| Matthieu Terris | [matthieutrs.github.io](https://matthieutrs.github.io) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
 | Samuel Hurault | [github.com/samuro95](https://github.com/samuro95/) | CNRS, ENS Paris | [📧](mailto:huraultsamuel@gmail.com) |
 | Andrew Wang | [andrewwango.github.io](https://andrewwango.github.io/about) | University of Edinburgh | [📧](mailto:andrew.wang@ed.ac.uk) |
 | Dongdong Chen | [dongdongchen.com](http://dongdongchen.com/) | Heriot-Watt University | [📧](mailto:d.chen@hw.ac.uk) |
@@ -26,6 +25,7 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 | Maintainer | Website | Affiliation | Email |
 |------|------|-------|-------|
+| Matthieu Terris | [matthieutrs.github.io](https://matthieutrs.github.io) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
 
 ## Responsibilities
 
