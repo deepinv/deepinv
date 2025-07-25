@@ -743,6 +743,7 @@ class SeparablePrior(Prior):
         """
         super().__init__(*args, **kwargs)
         self.prior = prior
+        self.explicit_prior = self.prior.explicit_prior
         self.weights = weights
         self.dim = dim
 
