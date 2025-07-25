@@ -1,0 +1,3 @@
+[submodule "deepinv/physics/functional/imresize"]
+	path = deepinv/physics/functional/imresize
+	url = https://github.com/thstkdgus35/bicubic_pytorch

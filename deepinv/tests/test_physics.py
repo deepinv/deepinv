@@ -1091,7 +1091,10 @@ def test_tomography(
     assert error < epsilon
 
 
-def test_downsampling_adjointness(device):
+@pytest.mark.parametrize(
+    "padding", ("valid", "constant", "circular", "reflect", "replicate")
+)
+def test_downsampling_adjointness(padding, device):
     r"""
     Tests downsampling+blur operator adjointness for various image and filter sizes
 
@@ -1115,26 +1118,22 @@ def test_downsampling_adjointness(device):
             [nchan_filt, 4, 3],
         )
 
-        paddings = ("valid", "constant", "circular", "reflect", "replicate")
+        for sim in size_im:
+            for sfil in size_filt:
+                x = torch.rand(1, *sim).to(device)
+                h = torch.rand(1, *sfil).to(device)
 
-        for pad in paddings:
-            for sim in size_im:
-                for sfil in size_filt:
-                    x = torch.rand(sim)[None].to(device)
-                    h = torch.rand(sfil)[None].to(device)
+                physics = dinv.physics.Downsampling(
+                    sim, filter=h, padding=padding, device=device
+                )
 
-                    physics = dinv.physics.Downsampling(
-                        sim, filter=h, padding=pad, device=device
-                    )
+                Ax = physics.A(x)
+                y = torch.rand_like(Ax)
+                Aty = physics.A_adjoint(y)
+                Axy = torch.sum(Ax * y)
+                Atyx = torch.sum(Aty * x)
 
-                    Ax = physics.A(x)
-                    y = torch.rand_like(Ax)
-                    Aty = physics.A_adjoint(y)
-
-                    Axy = torch.sum(Ax * y)
-                    Atyx = torch.sum(Aty * x)
-
-                    assert torch.abs(Axy - Atyx) < 1e-3
+                assert torch.abs(Axy - Atyx) < 1e-3
 
 
 def test_prox_l2_downsampling(device):
@@ -1165,6 +1164,22 @@ def test_prox_l2_downsampling(device):
                     )
 
                     assert torch.abs(x_prox1 - x_prox2).max() < 1e-2
+
+
+@pytest.mark.parametrize("imsize", ((8, 16),))  # must be even here
+@pytest.mark.parametrize("channels", (1, 2))
+@pytest.mark.parametrize("factor", (2, 4))
+def test_downsampling_imsize(imsize, channels, device, factor):
+    # Test downsampling can update imsize on the fly
+    x = torch.rand(1, channels, *imsize, device=device)
+    physics = dinv.physics.Downsampling(device=device, factor=factor)
+    assert physics(x).shape == (1, channels, imsize[0] // factor, imsize[1] // factor)
+    assert physics.A_adjoint(x).shape == (
+        1,
+        channels,
+        imsize[0] * factor,
+        imsize[1] * factor,
+    )
 
 
 def test_mri_fft():
@@ -1554,15 +1569,11 @@ def test_composed_linear_physics(device):
     # First physics
     mask_1 = torch.ones(img_size, device=device).unsqueeze(0)
     mask_1[..., 10:15, 13:17] = 0.0
-    physics_1 = dinv.physics.Inpainting(
-        tensor_size=img_size, mask=mask_1, device=device
-    )
+    physics_1 = dinv.physics.Inpainting(img_size=img_size, mask=mask_1, device=device)
     # Second physics
     mask_2 = torch.ones(img_size, device=device).unsqueeze(0)
     mask_2[..., 5:7, 9:13] = 0.0
-    physics_2 = dinv.physics.Inpainting(
-        tensor_size=img_size, mask=mask_2, device=device
-    )
+    physics_2 = dinv.physics.Inpainting(img_size=img_size, mask=mask_2, device=device)
 
     composed_physics = physics_1 * physics_2  # physics_1(physics_2(.))
     x = torch.randn(img_size, device=device).unsqueeze(0)

@@ -43,6 +43,9 @@ platforms = ["any"]
 [tool.setuptools.packages]
 find = { where = ["."] }
 
+[tool.black]
+force-exclude = 'imresize'
+
 [project.readme]
 file = "README.rst"
 content-type = "text/x-rst"
