@@ -96,9 +96,7 @@ physics_list = [
 # -----------------------------------------
 # Generate measurements using the physics models and reconstruct images using the adjoint operator.
 y_list = [physics(x) for physics in physics_list]
-x_list = [
-    physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)
-]
+x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)]
 
 # %%
 # Calculate PSNR
