@@ -112,3 +112,27 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+#####################################################################
+# Linting configuration with Ruff
+
+[tool.ruff]
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.9
+target-version = "py39"
+
+[tool.ruff.lint]
+
+select = [
+ # non-pep585-annotation
+ "UP006",
+ # unused imports
+ "F401"
+]
+
+exclude = [
+
+]

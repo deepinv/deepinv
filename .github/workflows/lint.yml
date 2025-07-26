@@ -20,4 +20,4 @@ jobs:
       - name: Install and run ruff
         run: |
           pip install ruff
-          ruff check --target-version "py39" --select "UP006"
+          ruff check 
