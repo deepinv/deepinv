@@ -120,8 +120,7 @@ class NBUDataset(Dataset):
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        assert len(self.ms_paths) == len(self.pan_paths), "Image dataset incomplete."
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths))
+        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 

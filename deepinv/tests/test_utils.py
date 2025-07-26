@@ -163,11 +163,11 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x)
+            for hi, xi in zip(h, x, strict=True)
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y):
+    for xi, hi, yi in zip(x, h, y, strict=True):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -199,7 +199,7 @@ def test_plot(
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
-    img_list = {k: v for k, v in zip(titles, img_list)}
+    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
     if not dict_img_list:

@@ -317,14 +317,22 @@ def test_trainer_physics_generator_params(
     if loop_random_online_physics:
         # Test measurements random but repeat every epoch
         assert len(set(trainer.ys)) == len(set(trainer.fs)) == N
-        assert all([a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
-        assert all([a == b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
+        assert all(
+            [a == b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:], strict=True)]
+        )
+        assert all(
+            [a == b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:], strict=True)]
+        )
     else:
         # Test measurements random but don't repeat
         # This is ok for supervised training but not self-supervised!
         assert len(set(trainer.ys)) == len(set(trainer.fs)) == N * 2
-        assert all([a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:])])
-        assert all([a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:])])
+        assert all(
+            [a != b for (a, b) in zip(trainer.ys[:N], trainer.ys[N:], strict=True)]
+        )
+        assert all(
+            [a != b for (a, b) in zip(trainer.fs[:N], trainer.fs[N:], strict=True)]
+        )
 
 
 def test_trainer_identity(imsize, rng, device):
