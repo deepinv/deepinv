@@ -24,7 +24,6 @@ from deepinv.physics import LogPoissonNoise
 from deepinv.optim import LogPoissonLikelihood
 
 try:
-    import astra
     from deepinv.physics import TomographyWithAstra
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
