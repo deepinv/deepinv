@@ -397,7 +397,10 @@ class BaseOptim(Reconstructor):
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
                 if self.custom_metrics is not None:
-                    for custom_metric_name, custom_metric_fn in self.custom_metrics.items():
+                    for (
+                        custom_metric_name,
+                        custom_metric_fn,
+                    ) in self.custom_metrics.items():
                         metrics[custom_metric_name][i].append(
                             custom_metric_fn(
                                 metrics[custom_metric_name], x_prev[i], x[i]
