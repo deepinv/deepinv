@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for separable priors as :class:`deepinv.optim.SeparablePrior` (:gh:`422` by `Leo Davy`_)
 
 Changed
 ^^^^^^^
@@ -36,7 +37,7 @@ Fixed
 - Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 - Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
-- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)  
+- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)
 - Batching WaveletPrior and fix iwt (:gh:`530` by `Minh Hai Nguyen`_)
 - Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (:gh:`570` by `Fedor Goncharov`_)
 
@@ -386,3 +387,4 @@ Authors
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
+.. _Leo Davy: https://perso.ens-lyon.fr/leo.davy

@@ -714,3 +714,94 @@ class L12Prior(Prior):
         # Creating a mask to avoid diving by zero
         # if an element of z is zero, then it is zero in x, therefore torch.multiply(z, x) is zero as well
         return z4
+
+
+class SeparablePrior(Prior):
+    """
+    Prior with separable structure along a specific axis of the input tensor.
+
+    Allows to extend the definition of a prior :math:`g` into a separable prior
+
+    .. math::
+
+        f(x) = \sum_i w_i g(x_i)
+
+    where :math:`x_i` is a slice of :math:`x` taken along the separable axis and :math:`w=(w_1,\dots, w_I)` is a tensor of weights.
+    The proximity operator of such an :math:`f` can be computed slice-by-slice and is the concatenation of :math:`\operatorname{prox}_{w_i g}(x_i)` along the separable axis.
+    The separable weights (given in log-domain) are exponentiated to ensure positivity and scale the contributions of each slice.
+
+    Expected input:
+      - x: a tensor of shape [A, B, ..., I, ...] where the I-axis (indexed by separable_axis) contains the separable components.
+    """
+
+    def __init__(self, prior, weights, dim, *args, **kwargs):
+        """
+        :param dinv.optim.Prior prior: a Prior defining the function :math:`g`
+        :param torch.Tensor weights: a tensor of weights (in log-domain) for each slice along the separable axis.
+        :param int dim: index of the axis over which the prior is separable.
+        """
+        super().__init__(*args, **kwargs)
+        self.prior = prior
+        self.explicit_prior = self.prior.explicit_prior
+        self.weights = weights
+        self.dim = dim
+
+    def fn(self, x, *args, **kwargs):
+        """
+        Compute the function value :math:`f(x)` as the weighted sum over slices.
+
+        For each coordinate along the separable_axis, a slice is taken and the base prior function
+        is applied. Each contribution is weighted by exp(separable_weights[coord]).
+
+        :param torch.Tensor x: Input tensor.
+
+        :return torch.Tensor: value of :math:`f(x)` for each batch
+        """
+        prior_fn = self.prior.fn
+        components = torch.split(x, 1, dim=self.dim)
+        # NOTE: The total is initialized to None but it is necessarily assigned
+        # to a Tensor value in the loop below. Indeed, it is reassigned to a
+        # Tensor value at each iteration and there is at least one iteration
+        # because torch.split always returns a non-empty tuple.
+        total = None
+        for component, weight in zip(components, self.weights, strict=True):
+            term = weight * prior_fn(component, *args, **kwargs)
+            if total is None:
+                total = term
+            else:
+                total = total + term
+        return total
+
+    def prox(self, x, *args, gamma, **kwargs):
+        """
+        Compute the proximity operator associated with :math:`f`.
+        Compute the proximity operator associated with :math:`f`.
+
+        The prox is computed slice-by-slice along the separable_axis. For each slice:
+
+        .. math::
+
+            \operatorname{prox}_{\gamma * \exp(w) * g}(x_slice)
+
+        is computed, and then the resulting slices are concatenated back along the separable_axis.
+
+        :param x: Input tensor.
+        :param gamma: A step-size parameter (on :math:`\tau f`).
+        :return torch.Tensor: :math:`\operatorname{prox}_{\tau f}(x)` of the same shape as :math:`x` after applying the proximity operator.
+        """
+        dim = self.dim
+        input_components = torch.split(x, 1, dim=dim)
+        output_components = []
+        prox_fn = self.prior.prox
+        for input_component, weight in zip(input_components, self.weights, strict=True):
+            output_component = prox_fn(
+                input_component, *args, gamma=gamma * weight, **kwargs
+            )
+            output_components.append(output_component)
+        return torch.cat(output_components, dim=dim)
+
+    def forward(self, x, *args, **kwargs):
+        """
+        :return torch.Tensor: The value of :math:`f(x) = \sum_i w_i g(x_i)`
+        """
+        return self.fn(x, *args, **kwargs)
