@@ -12,7 +12,7 @@ except:
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
-from deepinv.utils import patch_extractor, TensorList
+from deepinv.utils import patch_extractor
 
 
 class Prior(Potential):
