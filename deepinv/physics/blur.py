@@ -1,7 +1,6 @@
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
-import numpy as np
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics

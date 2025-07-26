@@ -24,9 +24,8 @@ Phase2Phase.
 
 """
 
-from pathlib import Path
 import torch
-from torch.utils.data import DataLoader, Subset
+from torch.utils.data import DataLoader
 from torchvision import transforms
 
 import deepinv as dinv

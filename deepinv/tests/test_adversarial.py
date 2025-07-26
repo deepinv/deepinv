@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.loss import adversarial
-from test_loss import dataset, physics
 
 ADVERSARIAL_COMBOS = ["DeblurGAN", "CSGM", "AmbientGAN", "UAIR"]
 

@@ -39,9 +39,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
-from torchvision.datasets.utils import download_and_extract_archive
 
 import deepinv as dinv
 from deepinv.loss import adversarial
