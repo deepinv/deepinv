@@ -134,5 +134,5 @@ select = [
 ]
 
 exclude = [
-
+    "__init__.py",
 ]
