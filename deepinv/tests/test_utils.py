@@ -163,11 +163,11 @@ def test_dirac_like(shape, length):
     y = deepinv.utils.TensorList(
         [
             deepinv.physics.functional.conv2d(xi, hi, padding="circular")
-            for hi, xi in zip(h, x)
+            for hi, xi in zip(h, x, strict=True)
         ]
     )
 
-    for xi, hi, yi in zip(x, h, y):
+    for xi, hi, yi in zip(x, h, y, strict=True):
         assert (
             hi.shape == xi.shape
         ), "Dirac delta should have the same shape as the input tensor."
@@ -199,7 +199,7 @@ def test_plot(
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
-    img_list = {k: v for k, v in zip(titles, img_list)}
+    img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
     if not dict_img_list:
@@ -458,7 +458,9 @@ def test_torch2cpu(input_shape):
 # make sure that the logic is right.
 @pytest.mark.parametrize("os_name", ["posix", "nt"])
 @pytest.mark.parametrize("verbose", [False, True])
-def test_get_freer_gpu(test_case, os_name, verbose):
+@pytest.mark.parametrize("use_torch_api", [False, True])
+@pytest.mark.parametrize("hide_warnings", [False, True])
+def test_get_freer_gpu(test_case, os_name, verbose, use_torch_api, hide_warnings):
     # The function get_freer_gpu is meant to return the torch.device associated
     # to the available GPU with the most free memory if there is one and
     # torch.device("cuda") as a fallback.
@@ -512,14 +514,14 @@ def test_get_freer_gpu(test_case, os_name, verbose):
 
         mock_mem_get_info.side_effect = mem_info_mock
 
-        device = deepinv.utils.get_freer_gpu(verbose)
-        assert isinstance(device, torch.device), "Device should be a torch device."
-        assert device.type == "cuda", "Device should be a CUDA device."
+        device = deepinv.utils.get_freer_gpu(
+            verbose=verbose, use_torch_api=use_torch_api, hide_warnings=hide_warnings
+        )
         if n_gpus == 0:
-            assert (
-                device.index is None
-            ), "Selected GPU index should be None when no GPUs are available."
+            assert device is None, "The output should be None when no GPU is available."
         else:
+            assert isinstance(device, torch.device), "Device should be a torch device."
+            assert device.type == "cuda", "Device should be a CUDA device."
             assert (
                 device.index == freer_gpu_index
             ), f"Selected GPU index should be {freer_gpu_index}."

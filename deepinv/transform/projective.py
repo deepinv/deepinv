@@ -285,6 +285,7 @@ class Homography(Transform):
                     skew,
                     stretch_x,
                     stretch_y,
+                    strict=True,
                 )
             ],
             dim=0,
