@@ -687,7 +687,6 @@ class L12Prior(Prior):
         More precisely, it computes
 
         .. math::
-
             \operatorname{prox}_{\gamma g}(x) = (1 - \frac{\gamma}{max{\Vert x \Vert_2,\gamma}}) x
 
 
