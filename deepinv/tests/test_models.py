@@ -29,6 +29,7 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "swinir",
     "tv",
     "unet",
+    "unet_bfbn",
     "waveletdict_hard",
     "waveletdict_topk",
     "dsccp",
@@ -58,6 +59,13 @@ def choose_denoiser(name, imsize):
 
     if name == "unet":
         out = dinv.models.UNet(in_channels=imsize[0], out_channels=imsize[0])
+    elif name == "unet_bfbn":
+        out = dinv.models.UNet(
+            in_channels=imsize[0],
+            out_channels=imsize[0],
+            bias=False,
+            batch_norm="biasfree",
+        )
     elif name == "drunet":
         out = dinv.models.DRUNet(in_channels=imsize[0], out_channels=imsize[0])
     elif name == "scunet":
