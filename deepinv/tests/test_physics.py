@@ -1876,3 +1876,10 @@ def test_clone(name, device):
     # Restore original values
     physics = saved_physics
     physics_clone = saved_physics_clone
+
+
+def test_physics_warn_extra_kwargs():
+    with pytest.warns(
+        UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
+    ):
+        dinv.physics.Denoising(sigma=0.5)
