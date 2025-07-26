@@ -22,6 +22,14 @@ class NoiseModel(nn.Module):
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
+            # NOTE: There is no use in moving RNG states from one device to another
+            # as Generator.set_state only supports inputs living on the CPU. Yet,
+            # by registering the initial random state as a buffer, it might be
+            # moved to another device. This might hinder performance as the tensor
+            # will need to be moved back to the CPU if it needs to be used later.
+            # We could fix that by letting it be a regular class attribute instead
+            # of a buffer but it would prevent it from being included in the
+            # state dicts which is undesirable.
             self.register_buffer("initial_random_state", rng.get_state())
 
     def forward(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
@@ -71,7 +79,8 @@ class NoiseModel(nn.Module):
         Reset the random number generator to its initial state.
         """
         if self.rng is not None:
-            self.rng.set_state(self.initial_random_state)
+            # NOTE: Generator.set_state expects a tensor living on the CPU.
+            self.rng.set_state(self.initial_random_state.cpu())
         else:
             warnings.warn(
                 "Cannot reset state for random number generator because it was not initialized. This is ignored."
@@ -511,10 +520,23 @@ class PoissonNoise(NoiseModel):
         self.to(x.device)
         gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
 
-        y = torch.poisson(
-            torch.clip(x / gain, min=0.0) if self.clip_positive else x / gain,
-            generator=self.rng,
-        )
+        if self.clip_positive:
+            z = torch.clip(x / gain, min=0.0)
+        else:
+            # NOTE: PyTorch operations are generally run asynchronously on CUDA
+            # devices and the underlying CUDA kernel under
+            # torch.poisson typically raises a CUDA-level assertion error
+            # when its input has negative entries. Those errors can't be
+            # recovered from using Python's exception system due to their
+            # asynchronous nature. For this reason we add a manual check if the
+            # RNG is on a CUDA device.
+            if self.rng is not None and self.rng.device.type == "cuda":
+                assert gain > 0, "Gain must be positive"
+                assert torch.all(x >= 0), "Input tensor must be non-negative"
+
+            z = x / gain
+
+        y = torch.poisson(z, generator=self.rng)
         if self.normalize:
             y = y * gain
         return y
@@ -618,6 +640,17 @@ class PoissonGaussianNoise(NoiseModel):
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
         else:
+            # NOTE: PyTorch operations are generally run asynchronously on CUDA
+            # devices and the underlying CUDA kernel under
+            # torch.poisson typically raises a CUDA-level assertion error
+            # when its input has negative entries. Those errors can't be
+            # recovered from using Python's exception system due to their
+            # asynchronous nature. For this reason we add a manual check if the
+            # RNG is on a CUDA device.
+            if self.rng is not None and self.rng.device.type == "cuda":
+                assert gain > 0, "Gain must be positive"
+                assert torch.all(x >= 0), "Input tensor must be non-negative"
+
             y = torch.poisson(x / gain, generator=self.rng) * gain
 
         y = y + self.randn_like(x) * sigma
