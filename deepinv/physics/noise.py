@@ -228,16 +228,30 @@ class GaussianNoise(NoiseModel):
         >>> y = batch_gaussian_noise(x)
         >>> assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), "Wrong standard deviation value for the first GaussianNoise."
 
-    :param float sigma: Standard deviation of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param float | torch.Tensor sigma: Standard deviation of the noise.
+    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
-    def __init__(self, sigma=0.1, rng: torch.Generator = None):
-        super().__init__(rng=rng)
+    def __init__(
+        self, sigma: float | torch.Tensor = 0.1, rng: torch.Generator | None = None
+    ):
+        # Infer the device and verify input consistency
+        if isinstance(sigma, torch.Tensor) and rng is not None:
+            assert (
+                sigma.device == rng.device
+            ), "The device of the sigma tensor should match the device of the random number generator."
+            device = sigma.device
+        elif isinstance(sigma, torch.Tensor):
+            device = sigma.device
+        elif isinstance(rng, torch.Generator):
+            device = rng.device
+        else:
+            device = "cpu"
 
-        self.register_buffer(
-            "sigma", self._float_to_tensor(sigma).to(getattr(rng, "device", "cpu"))
-        )
+        super().__init__(rng=rng)
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
 
     def __add__(self, other):
         r"""
