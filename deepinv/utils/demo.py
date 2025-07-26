@@ -13,7 +13,6 @@ import torchvision
 from torchvision import transforms
 
 
-
 def get_git_root():
     import git
 
