@@ -411,6 +411,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
+            **kwargs,
         )
         self.A_adj = A_adjoint
 
