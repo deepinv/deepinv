@@ -197,8 +197,7 @@ class BaseOptim(Reconstructor):
         # By default, each parameter in ``params_algo` is a list.
         # If given as a single number, we convert it to a list of 1 element.
         # If given as a list of more than 1 element, it should have lenght ``max_iter``.
-        # NOTE: The zip iterator appears to be an unidiomatic version of `metrics.items()`.
-        for key, value in zip(params_algo.keys(), params_algo.values(), strict=True):
+        for key, value in params_algo.items():
             if not isinstance(value, Iterable):
                 params_algo[key] = [value]
             else:
@@ -270,10 +269,7 @@ class BaseOptim(Reconstructor):
         """
         cur_params_dict = {
             key: value[it] if len(value) > 1 else value[0]
-            # NOTE: The zip iterator appears to be an unidiomatic version of `metrics.items()`.
-            for key, value in zip(
-                self.params_algo.keys(), self.params_algo.values(), strict=True
-            )
+            for key, value in self.params_algo.items()
         }
         return cur_params_dict
 
@@ -401,12 +397,7 @@ class BaseOptim(Reconstructor):
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
                 if self.custom_metrics is not None:
-                    # NOTE: The zip iterator appears to be an unidiomatic version of `metrics.items()`.
-                    for custom_metric_name, custom_metric_fn in zip(
-                        self.custom_metrics.keys(),
-                        self.custom_metrics.values(),
-                        strict=True,
-                    ):
+                    for custom_metric_name, custom_metric_fn in self.custom_metrics.items():
                         metrics[custom_metric_name][i].append(
                             custom_metric_fn(
                                 metrics[custom_metric_name], x_prev[i], x[i]
