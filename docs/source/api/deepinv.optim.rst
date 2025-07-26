@@ -76,7 +76,6 @@ Priors
    deepinv.optim.PatchNR
    deepinv.optim.L12Prior
    deepinv.optim.SeparablePrior
-   deepinv.optim.ListSeparablePrior
 
 Predefined models
 -----------------
