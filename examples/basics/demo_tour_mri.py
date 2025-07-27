@@ -10,7 +10,8 @@ available in DeepInverse for Magnetic Resonance Imaging (MRI) problems:
    :class:`deepinv.physics.DynamicMRI`
 -  Datasets: raw kspace with the `FastMRI <https://fastmri.med.nyu.edu>`__ dataset
    :class:`deepinv.datasets.FastMRISliceDataset` and an in-memory easy-to-use version
-   :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+   :class:`deepinv.datasets.SimpleFastMRISliceDataset`, and raw dynamic k-t-space data with the
+   `CMRxRecon <https://cmrxrecon.github.io>`__ dataset.
 -  Models: :class:`deepinv.models.VarNet`
    (VarNet :footcite:t:`hammernik2018learning`, E2E-VarNet :footcite:t:`sriram2020end`),
    :class:`deepinv.models.MoDL` (a simple MoDL :footcite:t:`aggarwal2018modl` unrolled model)

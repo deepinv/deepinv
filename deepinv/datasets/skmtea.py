@@ -10,7 +10,7 @@ from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.physics.mri import MRIMixin
 
 
-class SKMTEADataset(FastMRISliceDataset, MRIMixin):
+class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
     """SKM-TEA dataset for raw multicoil MRI kspace data.
 
     Wraps the SKM-TEA dataset proposed in :footcite:t:`desai2021skm`.
