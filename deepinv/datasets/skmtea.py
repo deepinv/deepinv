@@ -23,7 +23,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
     * `y` are the undersampled kspace measurements of shape ``(2, N, H, W)`` where N is the coil dimension.
     * `x` are the complex SENSE reconstructions from fully-sampled kspace of shape ``(2, H, W)``.
     * `params` is a dict containing parameters `mask` and `coil_maps` provided by the dataset, where `mask` are
-    elliptical Poisson disc undersampling masks and `coil_maps` are sensitivity maps estimated using JSENSE.
+      elliptical Poisson disc undersampling masks and `coil_maps` are sensitivity maps estimated using JSENSE.
 
     .. tip::
 
