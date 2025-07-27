@@ -133,15 +133,17 @@ class PhysicsCropper(LinearPhysics):
         self.crop = crop
 
     def A(self, x):
-        return self.base.A(x[..., self.crop[0] :, self.crop[1] :])
+        return self.base.A(self.remove_pad(x))
 
     def A_adjoint(self, y):
-        y = self.base.A_adjoint(y)
-        y = torch.nn.functional.pad(y, (self.crop[1], 0, self.crop[0], 0))
+        y = self.pad(self.base.A_adjoint(y))
         return y
 
     def remove_pad(self, x):
         return x[..., self.crop[0] :, self.crop[1] :]
+
+    def pad(self, x):
+        return torch.nn.functional.pad(x, (self.crop[1], 0, self.crop[0], 0))
 
     def update_parameters(self, **kwargs):
         self.base.update_parameters(**kwargs)
