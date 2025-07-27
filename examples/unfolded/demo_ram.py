@@ -90,7 +90,7 @@ dinv.utils.plot(
 
 # Define the Demosaicing physics
 physics = dinv.physics.Demosaicing(
-    img_size=(3, 256, 256), noise_model=dinv.physics.PoissonNoise(0.1), device=device
+    img_size=x.shape[1:], noise_model=dinv.physics.PoissonNoise(0.1), device=device
 )
 
 # generate measurement

@@ -225,12 +225,12 @@ class RAM(Reconstructor, Denoiser):
                 device=y.device,
             )
         else:
-            if hasattr(physics, 'noise_model'):
-                if hasattr(physics.noise_model, 'sigma'):
+            if hasattr(physics, "noise_model"):
+                if hasattr(physics.noise_model, "sigma"):
                     sigma = physics.noise_model.sigma
                 else:
                     sigma = 0.0
-                if hasattr(physics.noise_model, 'gain'):
+                if hasattr(physics.noise_model, "gain"):
                     gain = physics.noise_model.gain
                 else:
                     gain = 0.0

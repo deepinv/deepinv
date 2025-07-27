@@ -101,7 +101,7 @@ WRAPPERS = [
 ]
 
 
-def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=None):
+def find_operator(name, device, imsize=None, get_physics_param=False):
     r"""
     Chooses operator
 
@@ -423,11 +423,11 @@ def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=No
 
         # Reshape to [nb_points x 2]
         uv = uv.view(-1, 2)
-        uv = uv.to(device)
+        uv = uv.to(device, dtype=dtype)
 
         if "weighted" in name:
             dataWeight = torch.linspace(
-                0.01, 0.99, uv.shape[0], device=device
+                0.01, 0.99, uv.shape[0], device=device, dtype=dtype
             )  # take a non-trivial weight
         else:
             dataWeight = torch.tensor(
@@ -441,7 +441,7 @@ def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=No
             samples_loc=uv.permute((1, 0)),
             dataWeight=dataWeight,
             real_projection=False,
-            dtype=torch.float,
+            dtype=dtype,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
@@ -465,9 +465,6 @@ def find_operator(name, device, imsize=None, get_physics_param=False, wrapper=No
         params = ["probe", "shifts"]
     else:
         raise Exception("The inverse problem chosen doesn't exist")
-
-    if wrapper is not None:
-        p, img_size = wrap_physics(wrapper, p, img_size, device)
 
     if not get_physics_param:
         return p, img_size, norm, dtype
@@ -681,8 +678,10 @@ def test_upsampling(device, rng):
 
 
 @pytest.mark.parametrize("name", OPERATORS)
-@pytest.mark.parametrize("wrapper", WRAPPERS)
-def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
+def test_operator_multiscale_wrapper(name, device, rng):
+    r"""
+    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    """
 
     # defining a list of exceptions to skip  # TODO: fix for those?
     list_exceptions = [
@@ -702,12 +701,12 @@ def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
     scale = 2
 
     _, img_size_orig, _, _ = find_operator(
-        name, device, wrapper=None
+        name,
+        device,
     )  # get img_size for the operator
     physics, img_size_orig, _, dtype = find_operator(
         name,
         device,
-        wrapper=None,
         imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
     )  # get physics for the operator with base img size
 
@@ -716,24 +715,41 @@ def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
         base_shape[-2] // (scale**2),
         base_shape[-1] // (scale**2),
     )
-    x = torch.rand((1, *image_shape))  # add batch dim
+    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
 
-    # TODO: update so that all wrappers are tested
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
-        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8]
+        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
     )  # define a multiscale physics with base img size (1, 32, 32)
     y = new_physics(x, scale=scale)
     Aty = new_physics.A_adjoint(y, scale=scale)
 
     assert Aty.shape == x.shape
 
-    # next check that for each wrapper, the __getattr__ function works correctly
-    if wrapper is not None:
-        # check that all attributes of physics are the same as the wrapped physics
-        for attr in dir(physics):
-            assert hasattr(new_physics, attr), (
-                f"Attribute '{attr}' not found in wrapped physics '{wrapper}'"
-            )
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_operator_cropper(name, device, rng):
+    r"""
+    Tests if a linear physics operator can be wrapped with a crop wrapper.
+    """
+
+    physics, image_shape, _, dtype = find_operator(
+        name,
+        device,
+    )  # get physics for the operator with base img size
+
+    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    padding_shape = (2, 5)
+    x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
+
+    new_physics = dinv.physics.PhysicsCropper(
+        physics,
+        padding_shape,
+    )
+    y = new_physics(x_new)
+    Aty = new_physics.A_adjoint(y)
+
+    assert Aty.shape == x_new.shape
+
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_norm(name, device, rng):

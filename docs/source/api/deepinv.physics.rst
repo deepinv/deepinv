@@ -40,6 +40,7 @@ Operators
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
+   deepinv.physics.Upsampling
    deepinv.physics.MRI
    deepinv.physics.MRIMixin
    deepinv.physics.TimeMixin
