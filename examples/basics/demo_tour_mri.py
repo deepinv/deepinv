@@ -309,7 +309,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
     slice_index="middle",
     transform=dinv.datasets.MRISliceTransform(
         estimate_coil_maps=True,
-        acs=5,  # Num. low frequency, set to 5 for speed
+        acs=15,  # Num. low frequency, fix to 15
     ),
 )
 
@@ -336,6 +336,8 @@ dataset = dinv.datasets.FastMRISliceDataset(
             img_size=kspace_shape, acceleration=4, rng=rng, device=device
         ),
         seed_mask_generator=False,  # More diversity during training
+        estimate_coil_maps=False,  # Set to true if coil maps are not already set in physics.
+        # This will use ACS size from mask generator. If mask generator is None, then try find ACS size from metadata.
     ),
 )
 

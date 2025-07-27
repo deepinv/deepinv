@@ -556,7 +556,8 @@ class MRISliceTransform(MRIMixin):
     :param bool seed_mask_generator: if `True`, generated mask for given kspace is **always** the same.
         This should be `True` for test set. For supervised training, set to `False` for higher diversity in kspace undersampling.
     :param bool, int estimate_coil_maps: if `True`, estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
-    :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in `mask_generator` attributes or in metadata.
+    :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in `mask_generator` attributes (if exists)
+        or in metadata (only available for FastMRI test/challenge data). If unavailable, and ACS required, then raises error.
     :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
         defaults to using a 30x30 slice in the top left corner. Optionally set tuple of slices for custom location. Defaults to False.
     :param bool normalise: if `True`, normalise kspace by 99th percentile of RSS reconstruction of kspace ACS block.
