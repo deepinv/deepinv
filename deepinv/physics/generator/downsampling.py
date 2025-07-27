@@ -107,7 +107,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             [self.list_factors[int(i)] for i in factor_indices.tolist()]
         )
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
-        filters = [self.get_kernel(f_str, f) for f_str, f in zip(filters, factors)]
+        filters = [
+            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
+        ]
 
         if not all([f.shape == filters[0].shape for f in filters]):
             raise ValueError(

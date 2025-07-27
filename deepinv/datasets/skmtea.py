@@ -128,7 +128,7 @@ class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):
 
         total_padding = tuple(
             desired - current if desired is not None else 0
-            for current, desired in zip(x_shape, shape)
+            for current, desired in zip(x_shape, shape, strict=True)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.
