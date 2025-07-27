@@ -556,7 +556,7 @@ class MRISliceTransform(MRIMixin):
     :param bool seed_mask_generator: if `True`, generated mask for given kspace is **always** the same.
         This should be `True` for test set. For supervised training, set to `False` for higher diversity in kspace undersampling.
     :param bool, int estimate_coil_maps: if `True`, estimate coil maps using :func:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
-    :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in metadata or in `mask_generator` attributes.
+    :param int acs: optional number of low frequency lines for autocalibration. If `None`, look for acs lines in `mask_generator` attributes or in metadata.
     :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
         defaults to using a 30x30 slice in the top left corner. Optionally set tuple of slices for custom location. Defaults to False.
     :param bool normalise: if `True`, normalise kspace by 99th percentile of RSS reconstruction of kspace ACS block.
@@ -581,11 +581,13 @@ class MRISliceTransform(MRIMixin):
             self.prewhiten = (slice(0, 30), slice(0, 30))
         self.normalise = normalise
 
-    def get_acs(self, metadata: dict):
+    def get_acs(self, metadata: dict = {}):
         """Get number of low frequency lines for autocalibration.
 
-        First checks `acs` attribute. Then looks in `metadata["acs"]` if it the `acs` key is present in the data.
-        Then checks `mask_generator.n_center`. Finally, raises error if ACS not set anywhere.
+        First checks `acs` attribute.
+        Then checks `mask_generator.n_center`.
+        Then looks in `metadata["acs"]` if it the `acs` key is present in the data.
+        Finally, raises error if ACS not set anywhere.
 
         :param dict metadata: metadata dictionary.
         :return int: acs size
@@ -593,11 +595,11 @@ class MRISliceTransform(MRIMixin):
         if self.acs is not None:
             return self.acs
 
-        if "acs" in metadata:
-            return metadata["acs"]
-
         if self.mask_generator is not None:
             return self.mask_generator.n_center
+
+        if "acs" in metadata:
+            return metadata["acs"]
 
         raise ValueError(
             "ACS size not specified. Either define fixed acs, or ensure metadata has acs attribute, orpass in  mask_generator with fixed ACS size."
@@ -635,7 +637,7 @@ class MRISliceTransform(MRIMixin):
         :param torch.Tensor kspace: input multicoil kspace of shape (2, N, H, W)
         :return: whitened kspace.
         """
-        if len(ksp.shape) < 4:
+        if len(kspace.shape) < 4:
             raise ValueError("kspace must be multicoil for prewhitening.")
 
         ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0)  # N, H, W complex

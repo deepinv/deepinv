@@ -543,7 +543,7 @@ def test_FastMRISliceDataset(download_fastmri):
         num_slices("random"),
     ) == (n_slices, 1, 3, 1, 2, 1)
 
-    # Test raw data transform for estimating maps and generating masks
+    # Test raw data transform for estimating maps and generating masks, and test ACS
     dataset = FastMRISliceDataset(
         root=data_dir,
         transform=MRISliceTransform(
@@ -557,6 +557,22 @@ def test_FastMRISliceDataset(download_fastmri):
     assert torch.all(y * params["mask"] == y)
     assert 0.24 < params["mask"].mean() < 0.26
     assert params["coil_maps"].shape == (n_coils, *kspace_shape)
+    assert dataset.transform.get_acs() == 17  # ACS via mask generator
+
+    # Test prewhitening and normalising
+    dataset = FastMRISliceDataset(
+        root=data_dir,
+        transform=MRISliceTransform(
+            acs=11,  # set manually as fully-sampled data has no ACS metadata
+            prewhiten=True,
+            normalise=True,
+        ),
+        load_metadata_from_cache=True,
+        metadata_cache_file="fastmrislicedataset_cache.pkl",
+    )
+    assert dataset.transform.get_acs() == 11
+    assert 1 < dataset[0][1].max() < 100  # normalised
+    # TODO test prewhitening
 
     # Test filter_id in FastMRI init
     assert (
