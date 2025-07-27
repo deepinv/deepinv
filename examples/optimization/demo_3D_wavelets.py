@@ -10,7 +10,6 @@ bases, which does not admit a closed-form solution. We solve the denoising probl
 import deepinv as dinv
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -134,8 +133,7 @@ dinv.utils.plot(
 # :math:`\sum_{\ell=1}^{L}\lambda_i \|\Psi_{\ell} x\|_1`. In this case however, the proximal operator is not available in closed
 # form but can be computed numerically.
 #
-# A convenient algorithm in this situation is the Dykstra-like algorithm proposed in
-# `[Combettes, 2009] <https://pcombet.math.ncsu.edu/jca2.pdf>`_, writing
+# A convenient algorithm in this situation is the Dykstra-like algorithm proposed by :footcite:t:`combettes2009iterative`, writing
 #
 # .. math::
 #     \begin{equation}

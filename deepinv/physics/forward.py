@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Union
 import copy
 import inspect
-import itertools
 import collections.abc
 
 import torch
@@ -552,7 +551,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip(Au, V):
+            for au, v in zip(Au, V, strict=True):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:

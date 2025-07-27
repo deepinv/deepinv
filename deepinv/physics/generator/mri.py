@@ -292,7 +292,7 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     The mask is repeated across channels and randomly varies across batch dimension.
 
-    Algorithm taken from Schlemper et al. `A Deep Cascade of Convolutional Neural Networks for Dynamic MR Image Reconstruction <https://github.com/js3611/Deep-MRI-Reconstruction/blob/master/utils/compressed_sensing.py>`_.
+    Algorithm taken from :footcite:t:`schlemper2017deep`.
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 

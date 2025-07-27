@@ -21,7 +21,7 @@ class WeightedSplittingLoss(SplittingLoss):
     r"""
     K-Weighted Splitting Loss
 
-    Implements the K-weighted Noisier2Noise-SSDU loss from `Millard and Chiew <https://pmc.ncbi.nlm.nih.gov/articles/PMC7614963/>`_.
+    Implements the K-weighted Noisier2Noise-SSDU loss from :footcite:t:`millard2023theoretical`.
     The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx`,
     where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform.
     The loss is defined as follows, using notation from :class:`deepinv.loss.SplittingLoss`:
@@ -147,7 +147,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
     r"""
     Robust Weighted Splitting Loss
 
-    Implements the Robust-SSDU loss from `"Clean self-supervised MRI reconstruction from noisy, sub-sampled training data with Robust SSDU" <https://arxiv.org/abs/2210.01696>`_.
+    Implements the Robust-SSDU loss from :footcite:t:`millard2024clean`.
     The loss is designed for problems where measurements are observed as :math:`y_i=M_iAx+\epsilon`,
     where :math:`M_i` is a random mask, such as in :class:`MRI <deepinv.physics.MRI>` where `A` is the Fourier transform,
     and :math:`\epsilon` is Gaussian noise.
@@ -158,7 +158,7 @@ class RobustSplittingLoss(WeightedSplittingLoss):
         \mathcal{L}_\text{Robust-SSDU}=\mathcal{L}_\text{Weighted-SSDU}(\tilde{y};y) + \lVert(1+\frac{1}{\alpha^2}) M_1 M (\forw{\inverse{\tilde{y},A} - y}\rVert_2^2
 
     where :math:`\tilde{y}\sim\mathcal{N}(y,\alpha^2\sigma^2\mathbf{I})` is further noised (i.e. "noisier") measurement, and :math:`\alpha` is a hyperparameter.
-    This is derived from Eqs. 34 & 35 of the `paper <https://arxiv.org/abs/2210.01696>`_.
+    This is derived from Eqs. 34 & 35 of the paper :footcite:`millard2024clean`.
     At inference, the original measurement :math:`y` is used as input.
 
     .. note::
@@ -229,8 +229,7 @@ class Phase2PhaseLoss(SplittingLoss):
     r"""
     Phase2Phase loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `Phase2Phase: Respiratory Motion-Resolved Reconstruction of Free-Breathing Magnetic Resonance Imaging Using Deep Learning Without a Ground Truth for Improved Liver Imaging <https://journals.lww.com/investigativeradiology/abstract/2021/12000/phase2phase__respiratory_motion_resolved.4.aspx>`_
-    for free-breathing MRI.
+    Implements dynamic measurement splitting loss from :footcite:t:`eldeniz2021phase2phase` for free-breathing MRI.
     This is a special (temporal) case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
     Splits the dynamic measurements into even time frames ("phases") at model input and odd phases to use for constructing the loss.
@@ -416,8 +415,7 @@ class Artifact2ArtifactLoss(Phase2PhaseLoss):
     r"""
     Artifact2Artifact loss for dynamic data.
 
-    Implements dynamic measurement splitting loss from `RARE: Image Reconstruction using Deep Priors Learned without Ground Truth <https://arxiv.org/abs/1912.05854>`_
-    for free-breathing MRI.
+    Implements dynamic measurement splitting loss from :footcite:t:`liu2020rare` for free-breathing MRI.
     This is a special case of the generic splitting loss: see :class:`deepinv.loss.SplittingLoss` for more details.
 
     At model input, choose a random time-chunk from the dynamic measurements ("Artifact..."), and another random chunk for constructing the loss ("...2Artifact").
