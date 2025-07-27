@@ -1,26 +1,90 @@
-import torch
-import h5py
-import torch.nn.functional as F
 from typing import Sequence, Union, Callable
 from pathlib import Path
 from natsort import natsorted
 from tqdm import tqdm
-
+import h5py
+import numpy as np
+import torch
+import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.physics.mri import MRIMixin
 
+
 class SKMTEADataset(FastMRISliceDataset, MRIMixin):
+    """SKM-TEA dataset for raw multicoil MRI kspace data.
+
+    Wraps the SKM-TEA dataset proposed in :footcite:t:`desai2021skm`.
+    The dataset returns 2D slices from a dataset of 3D MRI volumes.
+
+    To download raw data as `h5` files, see the `SKM-TEA website <https://github.com/StanfordMIMI/skm-tea>`_.
+
+    The dataset is loaded as tuples `(x, y, params)` where:
+
+    * `y` are the undersampled kspace measurements of shape ``(2, N, H, W)`` where N is the coil dimension.
+    * `x` are the complex SENSE reconstructions from fully-sampled kspace of shape ``(2, H, W)``.
+    * `params` is a dict containing parameters `mask` and `coil_maps` provided by the dataset, where `mask` are
+    elliptical Poisson disc undersampling masks and `coil_maps` are sensitivity maps estimated using JSENSE.
+
+    .. tip::
+
+        The data can be directly related with :class:`deepinv.physics.MultiCoilMRI` ::
+
+            x, y, params = next(iter(DataLoader(SKMTEADataset())))
+            from deepinv.physics import MultiCoilMRI
+            physics = MultiCoilMRI(**params)
+            y1 = physics(x)
+
+        Then `y` and `y1` are almost identical.
+
+    **Raw data file structure:** (each file contains the k-space data and some metadata related to the scan) ::
+
+        self.root --- xxx0.h5
+                   |
+                   -- xxx1.h5.
+
+    When using this class, consider using the ``metadata_cache`` options to speed up class initialisation after the first initialisation.
+
+    :param str, pathlib.Path root: Path to the dataset.
+    :param int echo: which qDESS echo to use, defaults to 0.
+    :param int acc: acceleration of mask to load, choose from 4, 6, 8, 10, 12 or 16.
+    :param bool load_metadata_from_cache: Whether to load dataset metadata from cache.
+    :param bool save_metadata_to_cache: Whether to cache dataset metadata.
+    :param str, pathlib.Path metadata_cache_file: A file used to cache dataset information for faster load times.
+    :param Callable filter_id: optional function that takes `SliceSampleID` named tuple and returns whether this id should be included.
+
+    |sep|
+
+    :Examples:
+
+        Load data:
+
+        >>> from deepinv.datasets import SKMTEADataset
+        >>> from torch.utils.data import DataLoader
+        >>> dataset = SKMTEADataset(".")
+        >>> len(dataset) # Number of slices * number of volumes
+        512
+        >>> x, y, params = next(iter(DataLoader(dataset)))
+        >>> x.shape # (B, 2, H, W)
+        torch.Size([1, 2, 512, 160])
+        >>> y.shape # (B, 2, N, H, W) # N coils
+        torch.Size([1, 2, 8, 512, 160])
+
+    """
+
     def __init__(
-            self, 
-            root: str, 
-            echo: int = 0,
-            load_metadata_from_cache: bool = False,
-            save_metadata_to_cache: bool = False,
-            metadata_cache_file: Union[str, Path] = "skmtea_dataset_cache.pkl",
-            filter_id: Callable = None
-        ):
+        self,
+        root: str,
+        echo: int = 0,
+        acc: int = 6,
+        load_metadata_from_cache: bool = False,
+        save_metadata_to_cache: bool = False,
+        metadata_cache_file: Union[str, Path] = "skmtea_dataset_cache.pkl",
+        filter_id: Callable = None,
+    ):
+
         self.root = Path(root)
         self.echo = echo
+        self.acc = acc
 
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
@@ -36,7 +100,7 @@ class SKMTEADataset(FastMRISliceDataset, MRIMixin):
                         samples.append(self.SliceSampleID(fname, slice_ind, metadata))
 
             self.samples = samples
-    
+
         if filter_id is not None:
             self.samples = list(filter(filter_id, self.samples))
 
@@ -44,25 +108,27 @@ class SKMTEADataset(FastMRISliceDataset, MRIMixin):
     def _retrieve_metadata(fname):
         with h5py.File(fname, "r") as hf:
             shape = hf["kspace"].shape
-            metadata = (
-                {
-                    "num_slices": shape[0],
-                    "height": shape[1],
-                    "width": shape[2],
-                    "echos": shape[3],
-                    "coils": shape[4],
-                }
-            )
+            metadata = {
+                "num_slices": shape[0],
+                "height": shape[1],
+                "width": shape[2],
+                "echos": shape[3],
+                "coils": shape[4],
+            }
         return metadata
 
-    def meddlr_pad(self, x: torch.Tensor, shape: Sequence[int], mode="constant", value=0) -> torch.Tensor:
+    def zero_pad(
+        self, x: torch.Tensor, shape: Sequence[int], mode="constant", value=0
+    ) -> torch.Tensor:
+        """Perform zero padding.
+
+        Code taken from https://github.com/ad12/meddlr/blob/main/meddlr/ops/utils.py#L38
+        """
         x_shape = x.shape[1 : 1 + len(shape)]
-        assert all(
-            x_shape[i] <= shape[i] or shape[i] is None for i in range(len(shape))
-        ), f"Tensor spatial dimensions {x_shape} smaller than zero pad dimensions"
 
         total_padding = tuple(
-            desired - current if desired is not None else 0 for current, desired in zip(x_shape, shape)
+            desired - current if desired is not None else 0
+            for current, desired in zip(x_shape, shape)
         )
         # Adding no padding for terminal dimensions.
         # torch.nn.functional.pad pads dimensions in reverse order.
@@ -78,33 +144,44 @@ class SKMTEADataset(FastMRISliceDataset, MRIMixin):
         return F.pad(x, pad, mode=mode, value=value)
 
     def __getitem__(self, idx):
+        """Load SKM-TEA data.
+
+        Notation: `slice` is the slice dim, `H, W` are `y` and `z` kspace dims,
+        `N` is the coil dim, `E` is the echo dimension.
+
+        Raw data shapes and types:
+
+        * `x`: `(slice, H, W, N, 1)` complex
+        * `y`: `(slice, H, W, E, N)` complex
+        * `mask`: `(h, w)` bool where `h, w` are mask shape
+        * `maps`: `(slice, H, W, E, 1)` complex
+
+        Return data shapes and types, following convention in :class:`deepinv.physics.MultiCoilMRI`:
+
+        * `x`: `(2, H, W)` real
+        * `y`: `(2, N, H, W)` real
+        * `mask`: `(1, H, W)` real
+        * `maps`: `(N, H, W)` complex
+
+        """
         fname, slice_ind, metadata = self.samples[idx]
 
         with h5py.File(fname, "r") as f:
-            # Simulate 6x undersampled data
-            # kspace (x, ky, kz, #echos, #coils)
-            # image (x, ky, kz, #echos, #maps) - #maps = 1 for SKM-TEA
-            # maps (x, ky, kz, #coils, #maps) - maps are the same for both echos
+            x = torch.as_tensor(f["target"][[slice_ind], :, :, self.echo, 0])
+            y = torch.as_tensor(f["kspace"][[slice_ind], :, :, self.echo, :])
+            mask = torch.as_tensor(np.array(f[f"masks/poisson_{self.acc}.0x"]))
+            maps = torch.as_tensor(f["maps"][[slice_ind], :, :, :, 0])
 
-            kspace = torch.as_tensor(f["kspace"][[slice_ind], :, :, :, :])
-            maps = torch.as_tensor(f["maps"][[slice_ind], :, :, :, :])
-            mask = torch.as_tensor(f["masks/poisson_6.0x"][()]).unsqueeze(0)
-            img_gt = torch.as_tensor(f["target"][[slice_ind], :, :, :, :])
-        
-        mask = self.meddlr_pad(mask, kspace.shape[1:3]) * 1.0
+        mask = (
+            self.zero_pad(mask.unsqueeze(0), y.shape[1:3]) * 1.0
+        )  # (h, w) -> (1, H, W)
 
-        kspace = kspace * mask.unsqueeze(-1).unsqueeze(-1).type(kspace.dtype)
-        
-        kspace = kspace[:, :, :, self.echo, :] # 1, y, z, n complex
-        kspace = kspace.moveaxis(-1, 1) # 1, n, y, z complex
-        kspace = self.from_torch_complex(kspace).squeeze(0) # 2, n, y, z real
-        
-        assert img_gt.shape[4] == 1
-        img_gt = img_gt[:, :, :, self.echo, 0] # 1, y, z complex
-        img_gt = self.from_torch_complex(img_gt).squeeze(0) # 2, y, z real
+        y = y.moveaxis(-1, 1)  # (1, H, W, N) -> (1, N, H, W) complex
+        y = self.from_torch_complex(y)  # (1, N, H, W) complex -> (1, 2, N, H, W) real
+        y = y.squeeze(0) * mask.unsqueeze(0)
 
-        assert maps.shape[4] == 1
-        maps = maps[:, :, :, :, 0] # 1, y, z, n complex
-        maps = maps.moveaxis(-1, 1).squeeze(0) # n, y, z complex
-
-        return img_gt, kspace, {"mask": mask, "coil_maps": maps}
+        return (
+            self.from_torch_complex(x).squeeze(0),
+            y,
+            {"mask": mask, "coil_maps": maps.moveaxis(-1, 1).squeeze(0)},
+        )
