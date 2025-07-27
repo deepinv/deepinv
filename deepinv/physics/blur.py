@@ -3,7 +3,7 @@ import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
-from deepinv.physics.forward import Physics, LinearPhysics, DecomposablePhysics
+from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
