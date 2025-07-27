@@ -123,12 +123,12 @@ Wrappers are operators that can be used to adapt existing operators to a new pro
     * - **Family**
       - **Operators**
 
-    * - Multicale
+    * - Multiscale
       -
          | :class:`deepinv.physics.PhysicsMultiScaler`
          | :class:`deepinv.physics.LinearPhysicsMultiScaler`
 
-    * - Padding
+    * - Padding/Cropping
       -
          | :class:`deepinv.physics.PhysicsCropper`
 

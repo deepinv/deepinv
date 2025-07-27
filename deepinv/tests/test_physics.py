@@ -423,11 +423,11 @@ def find_operator(name, device, imsize=None, get_physics_param=False):
 
         # Reshape to [nb_points x 2]
         uv = uv.view(-1, 2)
-        uv = uv.to(device, dtype=dtype)
+        uv = uv.to(device)
 
         if "weighted" in name:
             dataWeight = torch.linspace(
-                0.01, 0.99, uv.shape[0], device=device, dtype=dtype
+                0.01, 0.99, uv.shape[0], device=device
             )  # take a non-trivial weight
         else:
             dataWeight = torch.tensor(
@@ -616,65 +616,63 @@ def test_operators_adjointness(name, device, rng):
     assert error2 < 1e-3
 
 
-def test_upsampling(device, rng):
+LIST_DOWN_OP = [
+    "down_resolution_circular",
+    "down_resolution_reflect",
+    "down_resolution_replicate",
+    "down_resolution_constant",
+]
+
+
+@pytest.mark.parametrize("name", LIST_DOWN_OP)
+@pytest.mark.parametrize("kernel", ["bilinear", "bicubic", "sinc", "gaussian"])
+def test_upsampling(device, rng, name, kernel):
     r"""
     This function tests that the Upsampling and Downsampling operators are effectively adjoint to each other.
 
     Note that the test does not hold when the padding is not 'valid', as the Upsampling operator
     does not support 'valid' padding.
     """
+    padding = name.split("_")[-1]  # get padding type from name
+    physics, imsize, _, dtype = find_operator(name, device)
+    physics_adjoint, _, _, dtype = find_operator(
+        "super_resolution_" + padding, device, imsize=imsize
+    )
 
-    list_ops = [
-        "down_resolution_circular",
-        "down_resolution_reflect",
-        "down_resolution_replicate",
-        "down_resolution_constant",
-    ]
+    # physics.register_buffer("filter", None)
+    physics.update_parameters(filter=kernel)
 
-    for kernel in ["bilinear", "bicubic", "sinc", "gaussian"]:
-        for name in list_ops:
-            padding = name.split("_")[-1]  # get padding type from name
-            physics, imsize, _, dtype = find_operator(name, device)
-            physics_adjoint, _, _, dtype = find_operator(
-                "super_resolution_" + padding, device, imsize=imsize
-            )
+    # physics_adjoint.register_buffer("filter", None)
+    physics_adjoint.update_parameters(filter=kernel)
 
-            # physics.register_buffer("filter", None)
-            physics.update_parameters(filter=kernel)
+    factor = physics.factor
 
-            # physics_adjoint.register_buffer("filter", None)
-            physics_adjoint.update_parameters(filter=kernel)
+    x = torch.randn(
+        (1, imsize[0], imsize[1], imsize[2]),
+        device=device,
+        dtype=dtype,
+        generator=rng,
+    )
 
-            factor = physics.factor
+    out = physics(x)
+    assert out.shape == (1, imsize[0], imsize[1] * factor, imsize[2] * factor)
 
-            x = torch.randn(
-                (1, imsize[0], imsize[1], imsize[2]),
-                device=device,
-                dtype=dtype,
-                generator=rng,
-            )
+    y = physics(x)
+    err1 = (physics.A_adjoint(y) - physics_adjoint(y)).flatten().mean().abs()
+    assert err1 < 1e-6
 
-            out = physics(x)
-            assert out.shape == (1, imsize[0], imsize[1] * factor, imsize[2] * factor)
+    imsize_new = (*imsize[:1], imsize[1] * factor, imsize[2] * factor)
+    physics_adjoint, _, _, dtype = find_operator(
+        "super_resolution_" + padding, device, imsize=imsize_new
+    )  # we need to redefine the adjoint operator with the new image size
 
-            y = physics(x)
-            err1 = (physics.A_adjoint(y) - physics_adjoint(y)).flatten().mean().abs()
-            assert err1 < 1e-6
+    # physics_adjoint.register_buffer("filter", None)
+    physics_adjoint.update_parameters(filter=kernel)
 
-            imsize_new = (*imsize[:1], imsize[1] * factor, imsize[2] * factor)
-            physics_adjoint, _, _, dtype = find_operator(
-                "super_resolution_" + padding, device, imsize=imsize_new
-            )  # we need to redefine the adjoint operator with the new image size
-
-            # physics_adjoint.register_buffer("filter", None)
-            physics_adjoint.update_parameters(filter=kernel)
-
-            x = torch.randn(
-                imsize_new, device=device, dtype=dtype, generator=rng
-            ).unsqueeze(0)
-            y = physics_adjoint(x)
-            err2 = (physics.A(y) - physics_adjoint.A_adjoint(y)).flatten().mean().abs()
-            assert err2 < 1e-6
+    x = torch.randn(imsize_new, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    y = physics_adjoint(x)
+    err2 = (physics.A(y) - physics_adjoint.A_adjoint(y)).flatten().mean().abs()
+    assert err2 < 1e-6
 
 
 @pytest.mark.parametrize("name", OPERATORS)

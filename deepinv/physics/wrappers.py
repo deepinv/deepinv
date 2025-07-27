@@ -17,8 +17,9 @@ class PhysicsMultiScaler(Physics):
 
     where :math:`U_{scale}` is the upsampling operator for the given scale and :math:`A_{base}` is the base physics operator.
 
-    By default, we assume that the factors for the different scales are [2, 4, 8]. The 0th scale corresponds to no upsampling,
-    the 1st scale corresponds to upsampling by a factor of 2, the 2nd scale corresponds to upsampling by a factor of 4, and so on.
+    By default, we assume that the factors for the different scales are [2, 4, 8].
+    The 1st scale corresponds to upsampling by a factor of 2, the 2nd scale corresponds to upsampling by a factor of 4, and so on.
+    The 0th scale corresponds to the base physics operator without upsampling.
 
     :param deepinv.physics.Physics physics: base physics operator.
     :param tuple img_shape: shape of the input image (C, H, W).
@@ -123,7 +124,7 @@ class PhysicsCropper(LinearPhysics):
     The adjoint operator is defined as :math:`\tilde{A}^{\top} = C^{\top} \circ A^{\top}` and :math:`C^{\top}` is a padding operator that pads the input tensor to the original size.
 
     :param deepinv.physics.LinearPhysics physics: base linear physics operator.
-    :param tuple pad: padding to apply to the input tensor, e.g., (pad_height, pad_width).
+    :param tuple crop: padding to apply to the input tensor, e.g., (pad_height, pad_width).
     """
 
     def __init__(self, physics, crop, dtype=None):
