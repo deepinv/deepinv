@@ -172,7 +172,7 @@ def least_squares(
 def dot(a, b, dim):
     if isinstance(a, TensorList):
         aux = 0
-        for ai, bi in zip(a.x, b.x):
+        for ai, bi in zip(a.x, b.x, strict=True):
             aux += (ai.conj() * bi).sum(
                 dim=dim, keepdim=True
             )  # performs batched dot product
@@ -445,7 +445,10 @@ def lsqr(
         if b_domain:
             if isinstance(v, TensorList):
                 return TensorList(
-                    [vi * alpha.view(bi_shape) for vi, bi_shape in zip(v, b_shape)]
+                    [
+                        vi * alpha.view(bi_shape)
+                        for vi, bi_shape in zip(v, b_shape, strict=True)
+                    ]
                 )
             else:
                 return v * alpha.view(b_shape)

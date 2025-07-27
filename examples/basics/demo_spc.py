@@ -31,7 +31,6 @@ and Hadamard spectrum.
 
 import torch
 from pathlib import Path
-import matplotlib.pyplot as plt
 import deepinv as dinv
 from deepinv.utils.demo import get_image_url, load_url_image
 from deepinv.utils.plotting import plot
@@ -97,7 +96,7 @@ physics_list = [
 # -----------------------------------------
 # Generate measurements using the physics models and reconstruct images using the adjoint operator.
 y_list = [physics(x) for physics in physics_list]
-x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list)]
+x_list = [physics.A_adjoint(y) for physics, y in zip(physics_list, y_list, strict=True)]
 
 # %%
 # Calculate PSNR
@@ -111,7 +110,7 @@ title_orderings = [o.replace("_", " ").title() for o in orderings]
 title_orderings[-1] = "XY"  # Special case for 'xy'
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values)
+    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
 ]
 
 # Print information about the SPC setup
@@ -174,14 +173,14 @@ model.eval()
 x_recon = []
 psnr_values = []
 
-for y, physics in zip(y_list, physics_list):
+for y, physics in zip(y_list, physics_list, strict=True):
     x_recon.append(model(y, physics))
     psnr_values.append(psnr_metric(x_recon[-1], x).item())
 
 # Update titles with PSNR values for the reconstructed images
 titles = ["Ground Truth"] + [
     f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values)
+    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
 ]
 
 # %%

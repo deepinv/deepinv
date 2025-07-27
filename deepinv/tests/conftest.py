@@ -6,8 +6,8 @@ import deepinv as dinv
 from dummy import DummyCircles
 
 import matplotlib
+import matplotlib.pyplot as plt
 import importlib
-from contextlib import contextmanager
 
 
 @pytest.fixture
@@ -58,19 +58,20 @@ def rng(device):
     return torch.Generator(device).manual_seed(0)
 
 
-@contextmanager
-def no_plot():
-    """Wrap any statement to send matplotlib calls to not display plots."""
+@pytest.fixture
+def non_blocking_plots():
+    """Make plots in a test non-blocking"""
     original_backend = matplotlib.get_backend()
     try:
+        # Use a non-interactive backend to avoid blocking the tests
         matplotlib.use("Agg", force=True)
-        import matplotlib.pyplot as plt
-
         plt.close("all")
+        # NOTE: Why do we reload matplotlib.pyplot?
         importlib.reload(plt)
         yield
     finally:
         plt.close("all")
+        # Restore the original backend
         matplotlib.use(original_backend, force=True)
         importlib.reload(plt)
 

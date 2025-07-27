@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def get_GSPnP_params(problem, noise_level_img):
     r"""
     Default parameters for the GSPnP Plug-and-Play algorithm.

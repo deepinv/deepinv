@@ -27,8 +27,7 @@ class NBUDataset(Dataset):
     For pan-sharpening problems, you can return pan-sharpening measurements by using ``return_pan=True``,
     outputting a :class:`deepinv.utils.TensorList` of ``(MS, PAN)`` where ``PAN`` are 1024x1024 panchromatic images.
 
-    This dataset was compiled in `A Large-Scale Benchmark Data Set for Evaluating Pansharpening Performance <https://ieeexplore.ieee.org/document/9082183>`_
-    and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
+    This dataset was compiled in :footcite:t:`meng2020large` and downloaded from `this drive <https://github.com/Lihui-Chen/Awesome-Pansharpening?tab=readme-ov-file#datasets>`_.
     We perform no other processing other than to take the "Urban" subset and provide each satellite's data separately, which you can choose using the ``satellite`` argument:
 
     - ``"gaofen-1"``: 5 images
@@ -67,6 +66,8 @@ class NBUDataset(Dataset):
     :param Callable transform_ms: optional transform for multispectral images
     :param Callable transform_pan: optional transform for panchromatic images
     :param bool download: whether to download dataset
+
+
     """
 
     satellites = {
@@ -119,8 +120,7 @@ class NBUDataset(Dataset):
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        assert len(self.ms_paths) == len(self.pan_paths), "Image dataset incomplete."
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths))
+        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 
