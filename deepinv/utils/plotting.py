@@ -154,9 +154,10 @@ def _preprocess_img(
     # clamping it between zero and one.
     if rescale_mode == "min_max":
         # Compute batch-wise minimum and maximum values
-        # NOTE: Expect a batched input of shape (B, C, H, W)
-        im_min = im.amin(dim=(1, 2, 3), keepdim=False)
-        im_max = im.amax(dim=(1, 2, 3), keepdim=False)
+        # NOTE: Expect a batched input of shape (B, *)
+        non_batched_dims = list(range(1, im.ndim))
+        im_min = im.amin(dim=non_batched_dims, keepdim=False)
+        im_max = im.amax(dim=non_batched_dims, keepdim=False)
 
         # Clone the image to avoid input mutations
         im = im.clone()
