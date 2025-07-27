@@ -179,7 +179,7 @@ def test_gaussian_noise_device_inference(sigma_device, rng_kind):
     if rng_kind != "none":
         if rng_kind == "consistent":
             rng_device = sigma.device
-        elif rng_kind == "inconsistent":
+        elif rng_kind == "inconsistent":  # pragma: no cover
             if sigma_device.type == "cuda":
                 rng_device = torch.device("cpu")
             elif sigma_device.type == "cpu":
