@@ -782,13 +782,25 @@ class DownsamplingMatlab(Downsampling):
 
     Downsamples with default MATLAB imresize, using a bicubic kernel, antialiasing and reflect padding.
 
-    Code from https://github.com/sanghyun-son/bicubic_pytorch
+    This requires the `bicubic_pytorch` package which you can install from our `maintained fork <https://github.com/Andrewwango/bicubic_pytorch>`_
+    using ``pip install bicubic-pytorch``.
+
+    Wraps `imresize` from a modified version of the `original implementation <https://github.com/sanghyun-son/bicubic_pytorch>`_.
 
     :param int, float factor: downsampling factor
     """
 
     def __init__(self, factor: Union[int, float] = 2, **kwargs):
         super().__init__(filter=None, factor=factor, **kwargs)
+
+        try:
+            from bicubic_pytorch import imresize
+        except ImportError:
+            raise ImportError(
+                "Install 'bicubic_pytorch' using 'pip install bicubic-pytorch'"
+            )
+
+        self.imresize = imresize
 
     def A(self, x, factor: Union[int, float] = None, **kwargs):
         """Downsample forward operator
@@ -798,7 +810,7 @@ class DownsamplingMatlab(Downsampling):
         """
         self.update_parameters(factor=factor, **kwargs)
         # Clone because of in-place ops
-        return imresize(
+        return self.imresize(
             x.clone(),
             scale=1 / self.factor,
             antialiasing=True,
@@ -813,7 +825,7 @@ class DownsamplingMatlab(Downsampling):
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
         self.update_parameters(factor=factor, **kwargs)
-        return imresize(
+        return self.imresize(
             y.clone(),
             scale=self.factor,
             antialiasing=True,

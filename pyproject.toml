@@ -43,9 +43,6 @@ platforms = ["any"]
 [tool.setuptools.packages]
 find = { where = ["."] }
 
-[tool.black]
-force-exclude = 'imresize'
-
 [project.readme]
 file = "README.rst"
 content-type = "text/x-rst"
@@ -80,7 +77,7 @@ lint = [
     "ruff"
 ]
 
-# optional dependencies for specific denoisers
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -94,6 +91,7 @@ denoisers = [
     "libcpab",
     "sigpy",
     "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
+    "bicubic-pytorch",
 ]
 
 # optional dependencies for specific datasets

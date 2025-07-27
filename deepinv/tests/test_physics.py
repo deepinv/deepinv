@@ -102,7 +102,14 @@ def find_operator(name, device, get_physics_param=False):
     img_size = (3, 16, 8)
     norm = 1
     dtype = torch.float
-    padding = next((p for p in ["valid", "circular", "reflect", "replicate", "constant"] if p in name), None)
+    padding = next(
+        (
+            p
+            for p in ["valid", "circular", "reflect", "replicate", "constant"]
+            if p in name
+        ),
+        None,
+    )
 
     rng = torch.Generator(device).manual_seed(0)
     if name == "CS":
@@ -342,12 +349,15 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = []
     elif name == "super_resolution_matlab":
+        pytest.importorskip(
+            "bicubic_pytorch",
+            reason="This test requires bicubic_pytorch. Install with `pip install bicubic-pytorch`.",
+        )
+
         img_size = (1, 32, 32)
         factor = 2
         norm = 1.0
-        p = dinv.physics.DownsamplingMatlab(
-            factor=factor,
-        )
+        p = dinv.physics.DownsamplingMatlab(factor=factor)
         params = []
     elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
@@ -1173,10 +1183,13 @@ def test_prox_l2_downsampling(device):
 @pytest.mark.parametrize("imsize", ((8, 16),))  # must be even here
 @pytest.mark.parametrize("channels", (1, 2))
 @pytest.mark.parametrize("factor", (2, 4))
-def test_downsampling_imsize(imsize, channels, device, factor):
+@pytest.mark.parametrize(
+    "downsampling", (dinv.physics.Downsampling, dinv.physics.DownsamplingMatlab)
+)
+def test_downsampling_imsize(imsize, channels, device, factor, downsampling):
     # Test downsampling can update imsize on the fly
     x = torch.rand(1, channels, *imsize, device=device)
-    physics = dinv.physics.Downsampling(device=device, factor=factor)
+    physics = downsampling(device=device, factor=factor)
     assert physics(x).shape == (1, channels, imsize[0] // factor, imsize[1] // factor)
     assert physics.A_adjoint(x).shape == (
         1,
