@@ -3,9 +3,8 @@ import shutil, os
 import PIL
 import pytest
 import torch
-
-import torch
 from torch import Tensor
+from torch.utils.data import DataLoader
 import numpy as np
 
 from deepinv.datasets import (
@@ -23,11 +22,13 @@ from deepinv.datasets import (
     NBUDataset,
     LidcIdriSliceDataset,
     Flickr2kHR,
+    SKMTEASliceDataset,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
+from deepinv.loss.metric import PSNR
 
 from unittest.mock import patch
 import io
@@ -660,3 +661,67 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
     )
     target1, kspace1 = dataset[0]
     assert (kspace1 == 0).sum() == 0
+
+
+@pytest.fixture
+def download_SKMTEA():
+    """Downloads dataset for tests and removes it after test executions."""
+    tmp_data_dir = "SKMTEA"
+    file_name = "SKMTEA_tiny_2_slice.h5"
+
+    # Download tiny SKMTEA volume
+    os.makedirs(tmp_data_dir, exist_ok=True)
+    url = get_image_url(file_name)
+    download_archive(url, f"{tmp_data_dir}/{file_name}")
+
+    # This will return control to the test function
+    yield tmp_data_dir
+
+    # After the test function complete, any code after the yield statement will run
+    shutil.rmtree(tmp_data_dir)
+
+
+def test_SKMTEASliceDataset(download_SKMTEA, device):
+
+    n_coils, img_size = 8, (512, 160)
+
+    data_dir = download_SKMTEA
+
+    # Test metadata caching
+    dataset = SKMTEASliceDataset(
+        root=data_dir,
+        save_metadata_to_cache=True,
+    )
+    assert len(dataset) == 2
+
+    # Test data shapes and dtypes
+    dataset = SKMTEASliceDataset(
+        root=data_dir,
+        load_metadata_from_cache=True,
+    )
+    assert len(dataset) == 2
+    x, y, params = next(iter(DataLoader(dataset)))
+    assert x.shape == (1, 2, *img_size)
+    assert y.shape == (1, 2, n_coils, *img_size)
+    assert params["mask"].shape == (1, 1, *img_size)
+    assert params["coil_maps"].shape == (1, n_coils, *img_size)
+
+    assert x.dtype == y.dtype == params["mask"].dtype == torch.float32
+    assert params["coil_maps"].dtype == torch.complex64
+
+    # Test physics compatible
+    physics = MultiCoilMRI(**params, device=device)
+    y2 = physics(x.to(device)).detach().cpu()
+    assert PSNR(max_pixel=None, complex_abs=True)(y2, y) > 40
+
+    # Test filter_id
+    assert (
+        len(
+            SKMTEASliceDataset(
+                root=data_dir,
+                load_metadata_from_cache=True,
+                filter_id=lambda s: s.slice_ind == 1,
+            )
+        )
+        == 1
+    )
