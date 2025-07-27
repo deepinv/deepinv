@@ -77,7 +77,7 @@ test_dataset = datasets.MNIST(
 # defined physics
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

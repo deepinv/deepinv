@@ -77,7 +77,7 @@ p = dinv.physics.BlurFFT(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

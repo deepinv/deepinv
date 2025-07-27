@@ -83,7 +83,7 @@ p = dinv.physics.BlurFFT(
 # Generate a dataset of blurred images
 # --------------------------------------------------------------------
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = 3  # Maximal number of images to restore from the input dataset
