@@ -115,51 +115,34 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
-@torch.no_grad
-def preprocess_img(im: torch.Tensor, rescale_mode: str = "min_max"):
+def _preprocess_img(
+    im: torch.Tensor, rescale_only: bool, rescale_mode: str = "min_max"
+):
     r"""
     Preprocesses an image tensor for plotting.
 
     :param torch.Tensor im: the image to preprocess.
+    :param bool rescale_only: if True, only rescales the image without applying the modulus function if the input is complex-valued and without casting the image values to float32.
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the preprocessed image.
     """
-    # Expect a batched input
-    channels_dim = 1
-    n_channels = im.shape[channels_dim]
-    # Assume that images with 2 channels represent complex images
-    is_complex = torch.is_complex(im) or n_channels == 2
-    if is_complex:
-        # Apply the modulus function on each (complex) entry
-        # NOTE: This implementation is meant to work for complex-valued images
-        # and for real-valued images with two channels, understood as the real
-        # and imaginary part of a complex-valued image.
-        im = torch.linalg.vector_norm(im, ord=2, dim=channels_dim, keepdim=True)
-    # Cast image values to float32 numbers
-    im = im.type(torch.float32)
-    return rescale_img(im, rescale_mode=rescale_mode)
+    if not rescale_only:
+        # Apply the modulus function on each entry if the input is complex-valued
+        # or if it has 2 channels which are assume to represent the real and
+        # imaginary parts of a complex-valued image.
+        # NOTE: Expect a batched input
+        channels_dim = 1
+        n_channels = im.shape[channels_dim]
+        is_complex = torch.is_complex(im) or n_channels == 2
+        if is_complex:
+            # NOTE: This implementation is meant to work for complex-valued images
+            # and for real-valued images with two channels, understood as the real
+            # and imaginary part of a complex-valued image.
+            im = torch.linalg.vector_norm(im, ord=2, dim=channels_dim, keepdim=True)
 
+        # Cast image values to float32 numbers
+        im = im.type(torch.float32)
 
-def tensor2uint(img):
-    img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
-    if img.ndim == 3:
-        img = np.transpose(img, (1, 2, 0))
-    return np.uint8((img * 255.0).round())
-
-
-def numpy2uint(img):
-    img = img.clip(0, 1)
-    return np.uint8((img * 255.0).round())
-
-
-def rescale_img(im: torch.Tensor, rescale_mode: str = "min_max"):
-    r"""
-    Rescale an image tensor.
-
-    :param torch.Tensor im: the image to rescale.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the rescaled image.
-    """
     min_val = 0.0
     max_val = 1.0
 
@@ -192,6 +175,41 @@ def rescale_img(im: torch.Tensor, rescale_mode: str = "min_max"):
         raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
 
     return im
+
+
+@torch.no_grad
+def preprocess_img(im: torch.Tensor, rescale_mode: str = "min_max"):
+    r"""
+    Preprocesses an image tensor for plotting.
+
+    :param torch.Tensor im: the image to preprocess.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the preprocessed image.
+    """
+    return _preprocess_img(im, rescale_only=False, rescale_mode=rescale_mode)
+
+
+def tensor2uint(img):
+    img = img.data.squeeze().float().clamp_(0, 1).cpu().numpy()
+    if img.ndim == 3:
+        img = np.transpose(img, (1, 2, 0))
+    return np.uint8((img * 255.0).round())
+
+
+def numpy2uint(img):
+    img = img.clip(0, 1)
+    return np.uint8((img * 255.0).round())
+
+
+def rescale_img(im: torch.Tensor, rescale_mode: str = "min_max"):
+    r"""
+    Rescale an image tensor.
+
+    :param torch.Tensor im: the image to rescale.
+    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
+    :return: the rescaled image.
+    """
+    return _preprocess_img(im, rescale_only=True, rescale_mode=rescale_mode)
 
 
 def plot(
