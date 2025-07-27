@@ -226,7 +226,7 @@ class RAM(Reconstructor, Denoiser):
             )
         else:
             if hasattr(physics, "noise_model"):
-                sigma = getattr(physics.noise_model, "sigma",  self.sigma_threshold)
+                sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
                 gain = getattr(physics.noise_model, "gain", 1e-3)
 
         x_temp = physics.A_adjoint(y)
