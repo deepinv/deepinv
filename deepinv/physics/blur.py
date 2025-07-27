@@ -14,7 +14,6 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint,
     conv3d_fft,
     conv_transpose3d_fft,
-    imresize,
 )
 
 

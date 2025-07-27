@@ -77,6 +77,3 @@ Similar to the PyTorch structure, they are available within ``deepinv.physics.fu
 
    * - :func:`deepinv.physics.functional.histogram`
      - Computes the histogram of 1D or 2D data, often used for intensity distribution analysis in image processing.
-
-   * - :func:`deepinv.physics.functional.imresize`
-     - Perform MATLAB bicubic imresize with antialiasing.
