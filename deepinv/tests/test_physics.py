@@ -46,6 +46,7 @@ OPERATORS = [
     "super_resolution_replicate",
     "super_resolution_constant",
     "aliased_super_resolution",
+    "super_resolution_matlab",
     "fast_singlepixel",
     "fast_singlepixel_cake_cutting",
     "fast_singlepixel_zig_zag",
@@ -101,12 +102,7 @@ def find_operator(name, device, get_physics_param=False):
     img_size = (3, 16, 8)
     norm = 1
     dtype = torch.float
-    padding = None
-    paddings = ["valid", "circular", "reflect", "replicate", "constant"]
-    for p in paddings:
-        if p in name:
-            padding = p
-            break
+    padding = next((p for p in ["valid", "circular", "reflect", "replicate", "constant"] if p in name), None)
 
     rng = torch.Generator(device).manual_seed(0)
     if name == "CS":
@@ -343,6 +339,14 @@ def find_operator(name, device, get_physics_param=False):
             padding=padding,
             device=device,
             filter=None,
+        )
+        params = []
+    elif name == "super_resolution_matlab":
+        img_size = (1, 32, 32)
+        factor = 2
+        norm = 1.0
+        p = dinv.physics.DownsamplingMatlab(
+            factor=factor,
         )
         params = []
     elif name.startswith("super_resolution"):

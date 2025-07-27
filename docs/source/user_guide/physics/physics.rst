@@ -40,6 +40,7 @@ This is particular useful when dealing with blind inverse problems or parameter 
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
+       | :class:`deepinv.physics.DownsamplingMatlab`
      -
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
