@@ -2,10 +2,7 @@
 DPIR method for PnP image deblurring.
 ====================================================================================================
 
-This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in
-the following paper:
-Zhang, K., Zuo, W., Gu, S., & Zhang, L. (2017).
-Learning deep CNN denoiser prior for image restoration.
+This example shows how to use the DPIR method to solve a PnP image deblurring problem. The DPIR method is described in :footcite:t:`zhang2021plug`.
 In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 3929-3938).
 """
 
@@ -36,9 +33,7 @@ DEG_DIR = BASE_DIR / "degradations"
 # %%
 # Load base image datasets and degradation operators.
 # ----------------------------------------------------------------------------------------
-# In this example, we use the Set3C dataset and a motion blur kernel from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
-#
+# In this example, we use the Set3C dataset and a motion blur kernel from :footcite:t:`levin2009understanding`.
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)

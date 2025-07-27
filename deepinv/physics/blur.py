@@ -1,7 +1,6 @@
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
-import numpy as np
 import torch.fft as fft
 from torch import Tensor
 from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
@@ -128,8 +127,7 @@ class Downsampling(LinearPhysics):
 
     def prox_l2(self, z, y, gamma, use_fft=True, **kwargs):
         r"""
-        If the padding is circular, it computes the proximal operator with the closed-formula of
-        https://arxiv.org/abs/1510.00143.
+        If the padding is circular, it computes the proximal operator with the closed-formula of :footcite:t:`zhu2014fast`.
 
         Otherwise, it computes it using the conjugate gradient algorithm which can be slow if applied many times.
         """

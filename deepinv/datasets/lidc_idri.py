@@ -6,7 +6,6 @@ from typing import (
 )
 import os
 
-import numpy
 import torch
 import numpy as np
 
@@ -28,6 +27,8 @@ except:
 
 class LidcIdriSliceDataset(torch.utils.data.Dataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
+
+    Published in :footcite:t:`armato2011lung`.
 
     | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
     | of diagnostic and lung cancer screening thoracic computed tomography (CT)
@@ -70,6 +71,8 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
             batch = next(iter(dataloader))
             print(batch.shape)
+
+
 
     """
 

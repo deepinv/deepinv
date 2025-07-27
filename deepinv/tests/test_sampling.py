@@ -307,7 +307,7 @@ def test_sde(device):
         HeunSolver(timesteps=timesteps, rng=rng),
     ]
     sde_classes = [VarianceExplodingDiffusion, VariancePreservingDiffusion]
-    for denoiser, kwargs in zip(denoisers, list_kwargs):
+    for denoiser, kwargs in zip(denoisers, list_kwargs, strict=True):
         for solver in solvers:
             for sde_class in sde_classes:
                 sde = sde_class(

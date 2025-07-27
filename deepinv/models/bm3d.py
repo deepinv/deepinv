@@ -13,8 +13,7 @@ class BM3D(Denoiser):
     r"""
     BM3D denoiser.
 
-    The BM3D denoiser was introduced in "Image denoising by sparse 3D transform-domain collaborative filtering", by
-    Dabov et al., IEEE Transactions on Image Processing (2007).
+    The BM3D denoiser was introduced by :footcite:t:`dabov2007image`.
 
 
     .. note::

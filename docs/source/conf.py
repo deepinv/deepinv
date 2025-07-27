@@ -43,8 +43,14 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_design",
     "sphinx_sitemap",
+    "sphinxcontrib.bibtex",
 ]
+
+bibtex_bibfiles = ["refs.bib"]
+bibtex_default_style = "plain"
+bibtex_foot_reference_style = "foot"
 copybutton_exclude = ".linenos, .gp"
+bibtex_tooltips = True
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
@@ -52,6 +58,7 @@ intersphinx_mapping = {
     "torchvision": ("https://pytorch.org/vision/stable/", None),
     "python": ("https://docs.python.org/3.9/", None),
     "deepinv": ("https://deepinv.github.io/deepinv/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 # for python3 type hints
@@ -63,6 +70,8 @@ autodoc_preserve_defaults = True
 nitpicky = True
 # Create link to the API in the auto examples
 autodoc_inherit_docstrings = False
+# For bibtex
+bibtex_footbibliography_backrefs = True
 # for sitemap
 html_baseurl = "https://deepinv.github.io/deepinv/"
 # the default scheme makes for wrong urls so we specify it properly here
@@ -123,7 +132,22 @@ class TolerantImageSg(ImageSg):
         return super().run()
 
 
+def process_docstring(app, what, name, obj, options, lines):
+    # Check if there is a footcite in the docstring
+    if any(":footcite:" in line for line in lines):
+        # Add the References section if not already present
+        if not any(":References:" in line for line in lines):
+            lines.append("")
+            lines.append("|sep|")
+            lines.append("")
+            lines.append(":References:")
+            lines.append("")
+            lines.append(".. footbibliography::")
+            lines.append("")
+
+
 def setup(app):
+    app.connect("autodoc-process-docstring", process_docstring, priority=10)
     app.add_directive("userguide", UserGuideMacro)
     app.add_directive("image-sg-ignore", TolerantImageSg)
 
@@ -158,6 +182,35 @@ cuda_available = torch.cuda.is_available()
 
 
 #############################
+
+
+def add_references_block_to_examples():
+    print("🔧 add_references_block_to_examples() called")
+    for root, _, files in os.walk("../../examples"):
+        for fname in files:
+            if not fname.endswith(".py"):
+                continue
+            full_path = os.path.join(root, fname)
+
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Skip if already has a bibliography block
+            if "footbibliography" in content:
+                continue
+
+            # Add References block if footcite appears
+            if ":footcite:" in content:
+                references_block = (
+                    "\n# %%\n" "# :References:\n" "#\n" "# .. footbibliography::\n"
+                )
+                content += references_block
+
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+
+
+add_references_block_to_examples()
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -293,4 +346,10 @@ rst_prolog = """
 .. |sep| raw:: html
 
    <hr />
+
 """
+
+napoleon_custom_sections = [
+    ("Reference", "params_style"),  # Sphinx ≥ 3.5
+    # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
+]
