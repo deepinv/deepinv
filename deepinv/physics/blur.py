@@ -447,6 +447,9 @@ class SpaceVaryingBlur(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        # NOTE: The only expected value of self.method throughout the class is
+        # "product_convolution2d", which is set here. All of the if statements
+        # like this one are no-op.
         self.method = "product_convolution2d"
         if self.method == "product_convolution2d":
             self.update_parameters(filters, multipliers, padding, **kwargs)
