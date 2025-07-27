@@ -1,10 +1,21 @@
 import torch
 
-from deepinv.physics import Physics, LinearPhysics
 from deepinv.physics.blur import Upsampling
 
+import torch.nn as nn
 
-class PhysicsMultiScaler(Physics):
+
+class BaseWrapper(nn.Module):
+    def __init__(self, base):
+        super().__init__()
+        object.__setattr__(self, "_base", base)
+
+    def __getattr__(self, name):
+        base = object.__getattribute__(self, "_base")
+        return getattr(base, name)
+
+
+class PhysicsMultiScaler(BaseWrapper):
     r"""
     Multi-scale wrapper for physics operators.
 
@@ -36,8 +47,7 @@ class PhysicsMultiScaler(Physics):
         device="cpu",
         **kwargs,
     ):
-        super().__init__(noise_model=physics.noise_model, **kwargs)
-        self.base = physics
+        super().__init__(physics, **kwargs)
         self.factors = factors
         self.img_shape = img_shape
         self.Upsamplings = [
@@ -53,9 +63,9 @@ class PhysicsMultiScaler(Physics):
     def A(self, x, scale=None, **kwargs):
         self.set_scale(scale)
         if self.scale == 0:
-            return self.base.A(x, **kwargs)
+            return self._base.A(x, **kwargs)
         else:
-            return self.base.A(self.Upsamplings[self.scale - 1].A(x), **kwargs)
+            return self._base.A(self.Upsamplings[self.scale - 1].A(x), **kwargs)
 
     def downsample(self, x, scale=None):
         self.set_scale(scale)
@@ -72,10 +82,10 @@ class PhysicsMultiScaler(Physics):
             return self.Upsamplings[self.scale - 1].A(x)
 
     def update_parameters(self, **kwargs):
-        self.base.update_parameters(**kwargs)
+        self._base.update_parameters(**kwargs)
 
 
-class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
+class LinearPhysicsMultiScaler(PhysicsMultiScaler):
     r"""
     Multi-scale wrapper for linear physics operators.
 
@@ -97,25 +107,25 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
     :param deepinv.physics.Physics physics: base physics operator.
     :param tuple img_shape: shape of the input image (C, H, W).
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
-    :param list[int] scales: list of scales to use for upsampling.
+    :param list[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
 
-    def __init__(self, physics, img_shape, filter="sinc", scales=[2, 4, 8], **kwargs):
+    def __init__(self, physics, img_shape, filter="sinc", factors=[2, 4, 8], **kwargs):
         super().__init__(
-            physics=physics, img_shape=img_shape, filter=filter, scales=scales, **kwargs
+            physics=physics, img_shape=img_shape, filter=filter, factors=factors, **kwargs
         )
 
     def A_adjoint(self, y, scale=None, **kwargs):
         self.set_scale(scale)
-        y = self.base.A_adjoint(y, **kwargs)
+        y = self._base.A_adjoint(y, **kwargs)
         if self.scale == 0:
             return y
         else:
             return self.Upsamplings[self.scale - 1].A_adjoint(y)
 
 
-class PhysicsCropper(LinearPhysics):
+class PhysicsCropper(BaseWrapper):
     r"""
     Cropping for linear physics operators.
 
@@ -127,15 +137,14 @@ class PhysicsCropper(LinearPhysics):
     """
 
     def __init__(self, physics, crop):
-        super().__init__(noise_model=physics.noise_model)
-        self.base = physics
+        super().__init__(physics)
         self.crop = crop
 
     def A(self, x):
-        return self.base.A(x[..., self.crop[0] :, self.crop[1] :])
+        return self._base.A(x[..., self.crop[0] :, self.crop[1] :])
 
     def A_adjoint(self, y):
-        y = self.base.A_adjoint(y)
+        y = self._base.A_adjoint(y)
         y = torch.nn.functional.pad(y, (self.crop[1], 0, self.crop[0], 0))
         return y
 
@@ -143,4 +152,4 @@ class PhysicsCropper(LinearPhysics):
         return x[..., self.crop[0] :, self.crop[1] :]
 
     def update_parameters(self, **kwargs):
-        self.base.update_parameters(**kwargs)
+        self._base.update_parameters(**kwargs)

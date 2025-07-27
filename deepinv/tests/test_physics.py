@@ -718,6 +718,7 @@ def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
     )
     x = torch.rand((1, *image_shape))  # add batch dim
 
+    # TODO: update so that all wrappers are tested
     new_physics = dinv.physics.LinearPhysicsMultiScaler(
         physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8]
     )  # define a multiscale physics with base img size (1, 32, 32)
@@ -726,6 +727,13 @@ def test_operator_wrappers_adjoint_shape(name, wrapper, device, rng):
 
     assert Aty.shape == x.shape
 
+    # next check that for each wrapper, the __getattr__ function works correctly
+    if wrapper is not None:
+        # check that all attributes of physics are the same as the wrapped physics
+        for attr in dir(physics):
+            assert hasattr(new_physics, attr), (
+                f"Attribute '{attr}' not found in wrapped physics '{wrapper}'"
+            )
 
 @pytest.mark.parametrize("name", OPERATORS)
 def test_operators_norm(name, device, rng):

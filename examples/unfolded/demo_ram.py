@@ -17,11 +17,11 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model = RAM(device=device)
 
 # load image
-x = dinv.utils.load_example("butterfly.png").to(device)
+x = dinv.utils.load_example("butterfly.png", img_size=(127, 129)).to(device)
 
 # create forward operator
 physics = dinv.physics.Inpainting(
-    tensor_size=(3, 256, 256),
+    img_size=(3, 127, 129),
     mask=0.3,
     noise_model=dinv.physics.GaussianNoise(0.05),
     device=device,

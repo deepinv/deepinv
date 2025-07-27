@@ -94,13 +94,8 @@ class RAM(Reconstructor, Denoiser):
 
         :param float value: constant value
         :param torch.Tensor x: input tensor
-        :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value
-        in the batch.
+        :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value in the batch.
         """
-        # if isinstance(value, torch.Tensor):
-        #     if value.ndim > 0:
-        #         value_map = value.view(x.size(0), 1, 1, 1)
-        #         value_map = value_map.expand(-1, 1, x.size(2), x.size(3))
 
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:
@@ -130,7 +125,7 @@ class RAM(Reconstructor, Denoiser):
         gain_map = self.constant2map(gain, x)
         return torch.cat((x, noise_level_map, gain_map), 1)
 
-    def realign_input(self, x, physics, y):
+    def realign_input(self, x, physics, y, sigma):
         r"""
         Realign the input x based on the measurements y and the physics model.
         Applies the proximity operator of the L2 norm with respect to the physics model.
@@ -142,33 +137,8 @@ class RAM(Reconstructor, Denoiser):
         """
         if hasattr(physics, "factor"):
             f = physics.factor
-        elif hasattr(physics, "base") and hasattr(physics.base, "factor"):
-            f = physics.base.factor
-        elif (
-            hasattr(physics, "base")
-            and hasattr(physics.base, "base")
-            and hasattr(physics.base.base, "factor")
-        ):
-            f = physics.base.base.factor
         else:
             f = 1.0
-
-        sigma = 1e-6  # default value
-        if hasattr(physics.noise_model, "sigma"):
-            sigma = physics.noise_model.sigma
-        if (
-            hasattr(physics, "base")
-            and hasattr(physics.base, "noise_model")
-            and hasattr(physics.base.noise_model, "sigma")
-        ):
-            sigma = physics.base.noise_model.sigma
-        if (
-            hasattr(physics, "base")
-            and hasattr(physics.base, "base")
-            and hasattr(physics.base.base, "noise_model")
-            and hasattr(physics.base.base.noise_model, "sigma")
-        ):
-            sigma = physics.base.base.noise_model.sigma
 
         if isinstance(y, TensorList):
             num = y[0].reshape(y[0].shape[0], -1).abs().mean(1)
@@ -201,7 +171,7 @@ class RAM(Reconstructor, Denoiser):
             )
 
         if y is not None:
-            x0 = self.realign_input(x0, physics, y)
+            x0 = self.realign_input(x0, physics, y, sigma)
 
         x0 = self.base_conditioning(x0, sigma, gain)
 
@@ -254,6 +224,16 @@ class RAM(Reconstructor, Denoiser):
                 noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
                 device=y.device,
             )
+        else:
+            if hasattr(physics, 'noise_model'):
+                if hasattr(physics.noise_model, 'sigma'):
+                    sigma = physics.noise_model.sigma
+                else:
+                    sigma = 0.0
+                if hasattr(physics.noise_model, 'gain'):
+                    gain = physics.noise_model.gain
+                else:
+                    gain = 0.0
 
         x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
@@ -261,10 +241,8 @@ class RAM(Reconstructor, Denoiser):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = getattr(physics.noise_model, "sigma", 0.0)
         sigma = self._handle_sigma(max(sigma, self.sigma_threshold))
 
-        gain = getattr(physics.noise_model, "gain", 0.0)
         gain = self._handle_sigma(max(gain, 1e-3))
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
