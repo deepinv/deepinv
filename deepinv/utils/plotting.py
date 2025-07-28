@@ -7,6 +7,7 @@ from typing import Union
 from functools import partial
 from warnings import warn
 
+import deepinv as dinv
 import wandb
 import torch
 import numpy as np
@@ -135,10 +136,7 @@ def _preprocess_img(
         n_channels = im.shape[channels_dim]
         is_complex = torch.is_complex(im) or n_channels == 2
         if is_complex:
-            # NOTE: This implementation is meant to work for complex-valued images
-            # and for real-valued images with two channels, understood as the real
-            # and imaginary part of a complex-valued image.
-            im = torch.linalg.vector_norm(im, ord=2, dim=channels_dim, keepdim=True)
+            im = dinv.loss.metric.functional.complex_abs(im, dim=channels_dim, keepdim=True)
 
         # Cast image values to float32 numbers
         im = im.type(torch.float32)
