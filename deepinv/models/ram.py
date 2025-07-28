@@ -217,7 +217,7 @@ class RAM(Reconstructor, Denoiser):
             )
 
         if physics is None:
-            gain = 1e-3 if gain is None else gain
+            gain = 1e-3 * y.abs().max() if gain is None else gain
             sigma = self.sigma_threshold if sigma is None else sigma
 
             physics = dinv.physics.Denoising(
