@@ -227,7 +227,7 @@ class RAM(Reconstructor, Denoiser):
         else:
             if hasattr(physics, "noise_model"):
                 sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
-                gain = getattr(physics.noise_model, "gain", 1e-3)
+                gain = getattr(physics.noise_model, "gain", 1e-3 * y.abs().max())
 
         x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
