@@ -235,9 +235,9 @@ class RAM(Reconstructor, Denoiser):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = self._handle_sigma(max(sigma, self.sigma_threshold))
+        sigma = self._handle_sigma(torch.maximum(sigma, torch.tensor(self.sigma_threshold)))
 
-        gain = self._handle_sigma(max(gain, 1e-3))
+        gain = self._handle_sigma(torch.maximum(gain, torch.tensor(1e-3)))
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
