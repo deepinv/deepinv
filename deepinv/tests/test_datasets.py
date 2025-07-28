@@ -1,11 +1,13 @@
 import shutil, os
 
 import PIL
+from PIL.Image import Image as PIL_Image
 import pytest
 import torch
 
 import torch
 from torch import Tensor
+from torchvision.transforms import ToTensor
 import numpy as np
 
 from deepinv.datasets import (
@@ -25,6 +27,7 @@ from deepinv.datasets import (
     Flickr2kHR,
 )
 from deepinv.datasets.utils import download_archive
+from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
@@ -40,6 +43,20 @@ def get_dummy_pil_png_image():
     im.save(buffer, format="PNG")
     buffer.seek(0)
     return PIL.PngImagePlugin.PngImageFile(buffer)
+
+
+def check_dataset_format(dataset, tensor=True, length=None, pil_gt=False):
+    check_dataset(dataset)
+    if tensor:  # test batching
+        _ = next(iter(torch.utils.data.DataLoader(dataset)))
+    if not tensor and pil_gt:
+        assert isinstance(
+            dataset[0], PIL_Image
+        ), f"PIL ground truth dataset must return only PIL Images."
+    if length is not None:
+        assert (
+            len(dataset) == length
+        ), f"Dataset should have been of len {length}, instead got {len(dataset)}."
 
 
 @pytest.fixture
@@ -59,13 +76,13 @@ def download_div2k():
 
 def test_load_div2k_dataset(download_div2k):
     """Check that DIV2K/DIV2K_train_HR contains 800 PIL images."""
-    val_dataset = DIV2K(download_div2k, mode="val", download=False)
-    assert (
-        len(val_dataset) == 100
-    ), f"Val dataset should have been of len 100, instead got {len(val_dataset)}."
-    assert (
-        type(val_dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            DIV2K(download_div2k, mode="val", download=False, transform=totensor),
+            totensor,
+            length=100,
+            pil_gt=True,
+        )
 
 
 @pytest.fixture
@@ -85,13 +102,13 @@ def download_urban100():
 
 def test_load_urban100_dataset(download_urban100):
     """Check that dataset contains 100 PIL images."""
-    dataset = Urban100HR(download_urban100, download=False)
-    assert (
-        len(dataset) == 100
-    ), f"Dataset should have been of len 100, instead got {len(dataset)}."
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            Urban100HR(download_urban100, download=False, transform=totensor),
+            totensor,
+            length=100,
+            pil_gt=True,
+        )
 
 
 @pytest.fixture
@@ -119,16 +136,15 @@ def download_set14():
             yield "/dummy"
 
 
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_load_set14_dataset(download_set14, transform):
+def test_load_set14_dataset(download_set14):
     """Check that dataset contains 14 PIL images."""
-    dataset = Set14HR(download_set14, transform=transform, download=False)
-    assert (
-        len(dataset) == 14
-    ), f"Dataset should have been of len 14, instead got {len(dataset)}."
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            Set14HR(download_set14, download=False, transform=totensor),
+            totensor,
+            length=14,
+            pil_gt=True,
+        )
 
 
 @pytest.fixture
@@ -156,14 +172,15 @@ def download_flickr2khr():
             yield "/dummy"
 
 
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_load_Flickr2kHR_dataset(download_flickr2khr, transform):
+def test_load_Flickr2kHR_dataset(download_flickr2khr):
     """Test the dataset"""
-    dataset = Flickr2kHR(download_flickr2khr, transform=transform, download=False)
-    assert len(dataset) == 100, f"The dataset should have 100 images"
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            Flickr2kHR(download_flickr2khr, download=False, transform=totensor),
+            totensor,
+            length=100,
+            pil_gt=True,
+        )
 
 
 @pytest.fixture
@@ -193,14 +210,13 @@ def test_load_cbsd68_dataset(download_cbsd68):
         reason="This test requires datasets. It should be "
         "installed with `pip install datasets`",
     )
-
-    dataset = CBSD68(download_cbsd68, download=False)
-    assert (
-        len(dataset) == 68
-    ), f"Dataset should have been of len 68, instead got {len(dataset)}."
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            CBSD68(download_cbsd68, download=False, transform=totensor),
+            totensor,
+            length=68,
+            pil_gt=True,
+        )
 
 
 @pytest.fixture

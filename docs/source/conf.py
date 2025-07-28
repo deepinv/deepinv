@@ -226,10 +226,12 @@ examples_order = {
     ]
 }
 
+
 class MySortKey(_SortKey):
     """
     Sort examples by custom order set by examples_order, otherwise by titles
     """
+
     def __call__(self, filename):
         parts = os.path.normpath(os.path.join(self.src_dir, filename)).split(os.sep)
         if parts[-2] in examples_order:
@@ -239,6 +241,7 @@ class MySortKey(_SortKey):
                 return len(examples_order[parts[-2]]) + 1
         else:
             return ExampleTitleSortKey(self.src_dir)(filename)
+
 
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples/"],
@@ -274,7 +277,7 @@ sphinx_gallery_conf = {
             "../../examples/external-libraries",
         ]
     ),
-    'within_subsection_order': MySortKey
+    "within_subsection_order": MySortKey,
 }
 
 # how to define macros: https://docs.mathjax.org/en/latest/input/tex/macros.html

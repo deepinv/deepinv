@@ -24,7 +24,7 @@ from .noise import (
     LogPoissonNoise,
     GammaNoise,
     SaltPepperNoise,
-    ZeroNoise
+    ZeroNoise,
 )
 from .mri import MRI, DynamicMRI, SequentialMRI, MultiCoilMRI, MRIMixin
 from .tomography import Tomography, TomographyWithAstra

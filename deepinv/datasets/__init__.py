@@ -17,3 +17,4 @@ from .fmd import FMD
 from .kohler import Kohler
 from .utils import download_archive
 from .satellite import NBUDataset
+from .base import BaseDataset, check_dataset

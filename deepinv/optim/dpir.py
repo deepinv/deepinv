@@ -46,7 +46,13 @@ class DPIR(BaseOptim):
     """
 
     def __init__(self, sigma=0.1, denoiser=None, device="cuda"):
-        prior = PnP(denoiser=DRUNet(pretrained="download", device=device) if denoiser is None else denoiser)
+        prior = PnP(
+            denoiser=(
+                DRUNet(pretrained="download", device=device)
+                if denoiser is None
+                else denoiser
+            )
+        )
         sigma_denoiser, stepsize, max_iter = get_DPIR_params(sigma)
         params_algo = {"stepsize": stepsize, "g_param": sigma_denoiser}
         super(DPIR, self).__init__(

@@ -32,9 +32,16 @@ physics = dinv.physics.Inpainting((1, 64, 64), mask=0.8, device=device, rng=rng)
 #
 
 from torchvision.transforms import Compose, ToTensor, Resize, CenterCrop, Grayscale
-dataset = dinv.datasets.Urban100HR(".", download=True, transform=Compose([ToTensor(), Grayscale(), Resize(256), CenterCrop(64)]))
 
-train_dataset, test_dataset = torch.utils.data.random_split(torch.utils.data.Subset(dataset, range(50)), (0.8, 0.2))
+dataset = dinv.datasets.Urban100HR(
+    ".",
+    download=True,
+    transform=Compose([ToTensor(), Grayscale(), Resize(256), CenterCrop(64)]),
+)
+
+train_dataset, test_dataset = torch.utils.data.random_split(
+    torch.utils.data.Subset(dataset, range(50)), (0.8, 0.2)
+)
 
 # Generate data pairs x,y offline using a physics generator
 dataset_path = dinv.datasets.generate_dataset(
@@ -55,7 +62,7 @@ test_dataloader = torch.utils.data.DataLoader(
 
 # %%
 # Visualise a data sample:
-# 
+#
 
 x, y = next(iter(test_dataloader))
 dinv.utils.plot({"Ground truth": x, "Measurement": y, "Mask": physics.mask})
@@ -83,7 +90,7 @@ model = dinv.models.ArtifactRemoval(
 # We perform supervised learning and use the mean squared error as loss function.
 # See :ref:`the docs <loss>` for all supported state-of-the-art loss functions.
 #
-# We evaluate using the PSNR metric. 
+# We evaluate using the PSNR metric.
 # See :ref:`the docs <metric>` for all supported metrics.
 #
 # .. note::
@@ -94,17 +101,17 @@ model = dinv.models.ArtifactRemoval(
 
 
 trainer = dinv.Trainer(
-    model = model,
-    physics = physics,
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3),
-    train_dataloader = train_dataloader,
-    eval_dataloader = test_dataloader,
-    epochs = 5,
-    losses = dinv.loss.SupLoss(metric=dinv.metric.MSE()),
-    metrics = dinv.metric.PSNR(),
-    device = device,
-    plot_images = True,
-    show_progress_bar = False
+    model=model,
+    physics=physics,
+    optimizer=torch.optim.Adam(model.parameters(), lr=1e-3),
+    train_dataloader=train_dataloader,
+    eval_dataloader=test_dataloader,
+    epochs=5,
+    losses=dinv.loss.SupLoss(metric=dinv.metric.MSE()),
+    metrics=dinv.metric.PSNR(),
+    device=device,
+    plot_images=True,
+    show_progress_bar=False,
 )
 
 _ = trainer.train()
