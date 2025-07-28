@@ -27,7 +27,7 @@ def test_deprecated_physics_image_size():
     # CS: img_shape is changed to img_size
     with pytest.warns(DeprecationWarning, match="img_shape.*deprecated"):
         p = dinv.physics.CompressedSensing(
-            m=m, img_shape=img_size, device="cpu", compute_inverse=True, rng=rng
+            m=m, img_shape=img_size, device="cpu", rng=rng
         )
         assert p.img_size == img_size
 
