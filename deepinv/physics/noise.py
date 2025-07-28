@@ -853,7 +853,7 @@ def _infer_device(
     :param default: default device to return if no candidates are bound to a device (default: cpu).
     :return: the device of the candidates or the default device if no candidates are bound to a device.
     """
-    input_devices = {}
+    input_devices = set()
 
     for device_held_candidate in device_held_candidates:
         if isinstance(device_held_candidate, (torch.Tensor, torch.Generator)):
