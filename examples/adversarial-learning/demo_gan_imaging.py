@@ -34,14 +34,12 @@ unsupervised), this may be defined on the measurements :math:`y`
 instead.
 
 """
-
+# %%
 from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import ImageFolder
 from torchvision.transforms import Compose, ToTensor, CenterCrop, Resize
-from torchvision.datasets.utils import download_and_extract_archive
 
 import deepinv as dinv
 from deepinv.loss import adversarial
@@ -65,7 +63,7 @@ ORGINAL_DATA_DIR = get_data_home() / "Urban100"
 #
 
 physics = dinv.physics.Blur(padding="circular", device=device)
-blur_generator = MotionBlurGenerator((11, 11))
+blur_generator = MotionBlurGenerator((11, 11), device=device)
 
 dataset = dinv.datasets.Urban100HR(
     root=ORGINAL_DATA_DIR,
