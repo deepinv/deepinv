@@ -245,7 +245,7 @@ class Tomography(LinearPhysics):
                 != (y.size(0), y.size(1), self.img_width, self.img_width)
             ):
                 self._auto_grad_adjoint_fn = adjoint_function(
-                    self.radon,
+                    self.A,
                     (y.shape[0], y.shape[1], self.img_width, self.img_width),
                     device=self.device,
                     dtype=self.dtype,
