@@ -15,6 +15,7 @@ Changed
 
 Fixed
 ^^^^^
+- Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 
 
 v0.3.2
