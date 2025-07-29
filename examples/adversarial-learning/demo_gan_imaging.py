@@ -57,7 +57,7 @@ ORGINAL_DATA_DIR = get_data_home() / "Urban100"
 #
 
 physics = dinv.physics.Blur(padding="circular", device=device)
-blur_generator = MotionBlurGenerator((11, 11))
+blur_generator = MotionBlurGenerator((11, 11), device=device)
 
 dataset = dinv.datasets.Urban100HR(
     root=ORGINAL_DATA_DIR,
