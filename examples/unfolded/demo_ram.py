@@ -55,7 +55,6 @@ dinv.utils.plot(
 sigma, gain = 0.2, 0.5
 physics = dinv.physics.Denoising(
     noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
-    device=device,
 )
 
 # generate measurement
