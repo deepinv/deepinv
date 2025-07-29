@@ -153,9 +153,6 @@ physics_train = dinv.physics.Demosaicing(
 x_train = x[..., :64, :64]  # take a small patch of the image
 y_train = physics_train(x_train)
 
-
-mc_loss = dinv.loss.R2RLoss()
-
 losses = [
     dinv.loss.R2RLoss(),
     dinv.loss.EILoss(dinv.transform.Shift(shift_max=0.4), weight=0.1),

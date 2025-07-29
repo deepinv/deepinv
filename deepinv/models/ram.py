@@ -79,6 +79,7 @@ class RAM(Reconstructor, Denoiser):
         self.m_tail = OutTail(nc[0], in_channels)
 
         self.sigma_threshold = 5e-3
+        self.gain_threshold = 1e-4
 
         # load pretrained weights from hugging face
         if pretrained:
@@ -217,17 +218,22 @@ class RAM(Reconstructor, Denoiser):
             )
 
         if physics is None:
-            gain = 1e-3 * y.abs().max() if gain is None else gain
+            gain = self.gain_threshold if gain is None else gain
             sigma = self.sigma_threshold if sigma is None else sigma
 
             physics = dinv.physics.Denoising(
                 noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
-                device=y.device,
             )
+        elif hasattr(physics, "noise_model"):
+            sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
+            if isinstance(sigma, TensorList):
+                sigma = sigma.abs().max()
+            gain = getattr(physics.noise_model, "gain", 1e-3)
+            if isinstance(gain, TensorList):
+                gain = gain.abs().max()
         else:
-            if hasattr(physics, "noise_model"):
-                sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
-                gain = getattr(physics.noise_model, "gain", 1e-3 * y.abs().max())
+            gain = self.gain_threshold if gain is None else gain
+            sigma = self.sigma_threshold if sigma is None else sigma
 
         x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
@@ -235,17 +241,30 @@ class RAM(Reconstructor, Denoiser):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = self._handle_sigma(
-            torch.maximum(sigma, torch.tensor(self.sigma_threshold))
-        )
+        sigma = self.threshold_snr(sigma, y, physics, threshold=self.sigma_threshold)
+        sigma = self._handle_sigma(sigma)
 
-        gain = self._handle_sigma(torch.maximum(gain, torch.tensor(1e-3)))
+        gain = self.threshold_snr(gain, y, physics, threshold=self.gain_threshold)
+        gain = self._handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
         out = physics.remove_pad(out)
 
         return out
+
+    def threshold_snr(self, val, y, physics, threshold=1e-2, eps=1e-6):
+        r"""
+        Performs the operation
+
+        .. math::
+            \text{threshold\_snr}(x) = \max(\frac{\text{val}}{\|A^\top y\|/\sqrt{m} + \epsilon}, \text{threshold}) * \|A^\top y\|/\sqrt{m}
+
+        """
+        Aty = physics.A_adjoint(y)
+        num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
+        val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
+        return val_threshold
 
 
 class BaseEncBlock(nn.Module):
