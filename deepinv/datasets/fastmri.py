@@ -638,13 +638,13 @@ class MRISliceTransform(MRIMixin):
         :param torch.Tensor kspace: input multicoil kspace of shape (2, N, H, W)
         :return: whitened kspace.
         """
-        if len(kspace.shape) < 4:
+        if kspace.ndim < 4:
             raise ValueError("kspace must be multicoil for prewhitening.")
 
         ksp = self.to_torch_complex(kspace.unsqueeze(0)).squeeze(0)  # N, H, W complex
 
         n = ksp[:, self.prewhiten[0], self.prewhiten[1]].flatten(-2)
-        n -= n.mean(axis=-1, keepdim=True)
+        n = n - n.mean(axis=-1, keepdim=True)
         cov = n @ n.H  # (N, N) complex
 
         try:

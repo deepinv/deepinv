@@ -192,12 +192,12 @@ class Downsampling(LinearPhysics):
         elif isinstance(factor, Tensor):
             if factor.ndim > 1:
                 raise ValueError("Factor tensor must be 1D.")
-            elif len(torch.unique(factor)) > 1:
+
+            factor = torch.unique(factor)
+            if len(factor) > 1:
                 raise ValueError(
                     f"Downsampling only supports one unique factor per batch, but got factors {torch.unique(factor).tolist()}."
                 )
-            elif factor.ndim == 1:
-                factor = factor[0]
 
             return int(factor.item())
         else:
@@ -787,9 +787,20 @@ class DownsamplingMatlab(Downsampling):
     Wraps `imresize` from a modified version of the `original implementation <https://github.com/sanghyun-son/bicubic_pytorch>`_.
 
     :param int, float factor: downsampling factor
+    :param str kernel: MATLAB kernel, supports only `cubic` for bicubic downsampling.
+    :param str padding: MATLAB padding type, supports only `reflect` for reflect padding.
+    :param bool antialiasing: whether to perform antialiasing in MATLAB downsampling.
+        Recommended to set to `True` to match MATLAB.
     """
 
-    def __init__(self, factor: Union[int, float] = 2, **kwargs):
+    def __init__(
+        self,
+        factor: Union[int, float] = 2,
+        kernel: str = "cubic",
+        padding: str = "reflect",
+        antialiasing: bool = True,
+        **kwargs,
+    ):
         super().__init__(filter=None, factor=factor, **kwargs)
 
         try:
@@ -800,6 +811,9 @@ class DownsamplingMatlab(Downsampling):
             )
 
         self.imresize = imresize
+        self.kernel = kernel
+        self.padding = padding
+        self.antialiasing = antialiasing
 
     def A(self, x, factor: Union[int, float] = None, **kwargs):
         """Downsample forward operator
@@ -812,9 +826,9 @@ class DownsamplingMatlab(Downsampling):
         return self.imresize(
             x.clone(),
             scale=1 / self.factor,
-            antialiasing=True,
-            kernel="cubic",
-            padding_type="reflect",
+            antialiasing=self.antialiasing,
+            kernel=self.kernel,
+            padding_type=self.padding,
         )
 
     def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
@@ -827,7 +841,7 @@ class DownsamplingMatlab(Downsampling):
         return self.imresize(
             y.clone(),
             scale=self.factor,
-            antialiasing=True,
-            kernel="cubic",
-            padding_type="reflect",
+            antialiasing=self.antialiasing,
+            kernel=self.kernel,
+            padding_type=self.padding,
         )
