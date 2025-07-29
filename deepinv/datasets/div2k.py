@@ -9,9 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import BaseDataset
 
 
-class DIV2K(torch.utils.data.Dataset):
+class DIV2K(BaseDataset):
     """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
 
     The DIV2K dataset from :footcite:t:`agustsson2017ntire` is a high-quality image dataset originally built for image super-resolution tasks.

@@ -10,9 +10,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import BaseDataset
 
 
-class LsdirHR(torch.utils.data.Dataset):
+class LsdirHR(BaseDataset):
     """Dataset for `LSDIR <https://ofsoundof.github.io/lsdir-data/>`_.
 
     Published in :footcite:t:`li2023lsdir`.

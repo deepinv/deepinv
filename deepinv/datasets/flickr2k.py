@@ -9,9 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import BaseDataset
 
 
-class Flickr2kHR(torch.utils.data.Dataset):
+class Flickr2kHR(BaseDataset):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
 
     The Flickr2k dataset introduced by :footcite:t:`agustsson2017ntire` contains 2650 2K images.

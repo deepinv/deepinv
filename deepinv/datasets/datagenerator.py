@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, Subset, Dataset
 from torch.utils import data
 from deepinv.utils import TensorList
 from deepinv.physics import StackedPhysics
+from deepinv.datasets.base import BaseDataset
 
 if TYPE_CHECKING:
     from deepinv.physics import Physics
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     from deepinv.transform import Transform
 
 
-class HDF5Dataset(data.Dataset):
+class HDF5Dataset(BaseDataset):
     r"""
     DeepInverse HDF5 dataset with signal/measurement pairs ``(x, y)``.
 

@@ -39,12 +39,7 @@ class Trainer:
     dictionary of the model, ``loss`` the loss history, ``optimizer`` the state dictionary of the optimizer,
     and ``eval_metrics`` the evaluation metrics history.
 
-    Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
-    the **dataloaders** should return one of the following options:
-
-    1. `(x, y)` or `(x, y, params)`, which requires `online_measurements=False` (default) otherwise `y` will be ignored and new measurements will be generated online.
-    2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner (optionally with parameters) as `y=physics(x)` or `y=physics(x, **params)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
-    3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`. Set `online_measurements=False`.
+    TODO ref data docs
 
     .. note::
 

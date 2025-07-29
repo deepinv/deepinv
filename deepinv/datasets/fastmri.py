@@ -30,12 +30,13 @@ import torch
 from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
+from deepinv.datasets.base import BaseDataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator
 from deepinv.physics.mri import MultiCoilMRI, MRIMixin
 
 
-class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
+class SimpleFastMRISliceDataset(BaseDataset):
     """Simple FastMRI image dataset.
 
     Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset of :footcite:t:`knoll2020advancing`, for quick loading.
@@ -148,7 +149,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
+class FastMRISliceDataset(BaseDataset, MRIMixin):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR image slices.
 
     This dataset (from :footcite:t:`knoll2020advancing`) randomly selects 2D slices from a dataset of 3D MRI volumes.

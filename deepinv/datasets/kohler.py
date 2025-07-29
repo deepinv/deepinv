@@ -1,5 +1,4 @@
 import torch
-from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
@@ -8,6 +7,8 @@ from os.path import basename, join
 from typing import Callable, Union
 from pathlib import Path
 
+from deepinv.datasets.base import BaseDataset
+
 
 def url_basename(url: str) -> str:
     parts = urlparse(url)
@@ -15,7 +16,7 @@ def url_basename(url: str) -> str:
     return basename(path)
 
 
-class Kohler(Dataset):
+class Kohler(BaseDataset):
     """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
 
     Published in :footcite:t:`kohler2012recording`.

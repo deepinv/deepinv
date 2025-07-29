@@ -1,7 +1,7 @@
-from torch.utils import data
+from deepinv.datasets.base import BaseDataset
 
 
-class PatchDataset(data.Dataset):
+class PatchDataset(BaseDataset):
     r"""
     Builds the dataset of all patches from a tensor of images.
 

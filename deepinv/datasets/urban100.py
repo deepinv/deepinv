@@ -9,9 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import BaseDataset
 
 
-class Urban100HR(torch.utils.data.Dataset):
+class Urban100HR(BaseDataset):
     """Dataset for Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
     The Urban100 dataset :footcite:p:`huang2015single` contains 100 images of urban scenes.

@@ -1,5 +1,5 @@
 import shutil, os
-
+from typing import NamedTuple, Sequence, Mapping, Type
 import PIL
 from PIL.Image import Image as PIL_Image
 import pytest
@@ -7,6 +7,7 @@ import torch
 
 import torch
 from torch import Tensor
+from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 import numpy as np
 
@@ -25,12 +26,14 @@ from deepinv.datasets import (
     NBUDataset,
     LidcIdriSliceDataset,
     Flickr2kHR,
+    BaseDataset,
 )
 from deepinv.datasets.utils import download_archive
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
 from deepinv.physics.generator import GaussianMaskGenerator
+from deepinv.utils.tensorlist import TensorList
 
 from unittest.mock import patch
 import io
@@ -45,18 +48,55 @@ def get_dummy_pil_png_image():
     return PIL.PngImagePlugin.PngImageFile(buffer)
 
 
-def check_dataset_format(dataset, tensor=True, length=None, pil_gt=False):
-    check_dataset(dataset)
-    if tensor:  # test batching
+def check_dataset_format(
+    dataset: Dataset,
+    length: int = None,
+    dtype: Type = None,
+    shape: tuple = None,
+    allow_non_tensor: bool = False,
+):
+    """Check dataset format is correct.
+
+    :param torch.utils.data.Dataset dataset: input dataset
+    :param int length: intended dataset length.
+    :param Type dtype: intended dtype of returned batch.
+    :param tuple shape: intended shape of returned batch, if it has the shape attribute.
+    :param bool allow_non_tensor: if `True`, allow non tensors e.g. PIL Image and numpy ndarray to be returned.
+    """
+    check_dataset(dataset, allow_non_tensor=allow_non_tensor)
+    assert isinstance(dataset, BaseDataset), "Dataset must be instance of base dataset."
+
+    if dtype in (
+        Tensor,
+        np.ndarray,
+        int,
+        float,
+        str,
+        dict,
+        list,
+        tuple,
+        bytes,
+        Mapping,
+        NamedTuple,
+        Sequence,
+    ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
         _ = next(iter(torch.utils.data.DataLoader(dataset)))
-    if not tensor and pil_gt:
-        assert isinstance(
-            dataset[0], PIL_Image
-        ), f"PIL ground truth dataset must return only PIL Images."
+
     if length is not None:
         assert (
             len(dataset) == length
-        ), f"Dataset should have been of len {length}, instead got {len(dataset)}."
+        ), f"Dataset should be length {length} but got {len(dataset)}."
+
+    # The below tests are for datasets that return images only (and not tuples)
+    if dtype is not None:
+        assert isinstance(
+            dataset[0], dtype
+        ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
+
+    if shape is not None:
+        assert (
+            dataset[0].shape == shape
+        ), f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
 
 
 @pytest.fixture
@@ -79,9 +119,9 @@ def test_load_div2k_dataset(download_div2k):
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             DIV2K(download_div2k, mode="val", download=False, transform=totensor),
-            totensor,
             length=100,
-            pil_gt=True,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
         )
 
 
@@ -105,9 +145,9 @@ def test_load_urban100_dataset(download_urban100):
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             Urban100HR(download_urban100, download=False, transform=totensor),
-            totensor,
             length=100,
-            pil_gt=True,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
         )
 
 
@@ -138,12 +178,14 @@ def download_set14():
 
 def test_load_set14_dataset(download_set14):
     """Check that dataset contains 14 PIL images."""
-    for totensor in [ToTensor(), None]:
+    for totensor in [
+        ToTensor(),
+    ]:
         check_dataset_format(
             Set14HR(download_set14, download=False, transform=totensor),
-            totensor,
             length=14,
-            pil_gt=True,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
         )
 
 
@@ -177,9 +219,9 @@ def test_load_Flickr2kHR_dataset(download_flickr2khr):
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             Flickr2kHR(download_flickr2khr, download=False, transform=totensor),
-            totensor,
             length=100,
-            pil_gt=True,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
         )
 
 
@@ -213,9 +255,9 @@ def test_load_cbsd68_dataset(download_cbsd68):
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             CBSD68(download_cbsd68, download=False, transform=totensor),
-            totensor,
             length=68,
-            pil_gt=True,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
         )
 
 
@@ -238,18 +280,25 @@ def download_Kohler():
 
 @pytest.mark.parametrize("frames", ["middle", "first", "last", "all", 0, -1])
 @pytest.mark.parametrize("ordering", ["printout_first", "trajectory_first"])
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_load_Kohler_dataset(download_Kohler, frames, ordering, transform):
+def test_load_Kohler_dataset(download_Kohler, frames, ordering):
     """Check that the Köhler dataset contains 48 PIL images."""
     root = download_Kohler
 
-    dataset = Kohler(
-        root=root, frames=frames, ordering=ordering, transform=transform, download=False
-    )
+    for totensor in [ToTensor(), None]:
+        dataset = Kohler(
+            root=root,
+            frames=frames,
+            ordering=ordering,
+            transform=totensor,
+            download=False,
+        )
 
-    assert (
-        len(dataset) == 48
-    ), f"The dataset should have been of len 48, instead got {len(dataset)}."
+        check_dataset_format(
+            dataset,
+            length=48,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
+        )
 
     data_points = [dataset[0], dataset.get_item(1, 1, frames)]
 
@@ -292,18 +341,15 @@ def download_lsdir():
             yield "/dummy"
 
 
-@pytest.mark.parametrize("mode", ["train", "val"])
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_load_lsdir_dataset(download_lsdir, mode, transform):
+def test_load_lsdir_dataset(download_lsdir):
     """Check that dataset contains 250 PIL images."""
-    dataset = LsdirHR(download_lsdir, mode=mode, transform=transform, download=False)
-    if mode == "val":
-        assert (
-            len(dataset) == 250
-        ), f"Dataset should have been of len 250, instead got {len(dataset)}."
-    assert (
-        type(dataset[0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            LsdirHR(download_lsdir, mode="val", transform=totensor, download=False),
+            length=250,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
+        )
 
 
 @pytest.fixture
@@ -333,24 +379,21 @@ def download_fmd():
             yield "/dummy"
 
 
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-@pytest.mark.parametrize("target_transform", [None, lambda x: x])
-def test_load_fmd_dataset(download_fmd, transform, target_transform):
+def test_load_fmd_dataset(download_fmd):
     """Check that dataset contains 5000 noisy PIL images with its ground truths."""
-    types = ["TwoPhoton_BPAE_R"]
-    dataset = FMD(
-        download_fmd,
-        img_types=types,
-        transform=transform,
-        target_transform=target_transform,
-        download=False,
-    )
-    assert (
-        len(dataset) == 5000
-    ), f"Dataset should have been of len 5000, instead got {len(dataset)}."
-    assert (
-        type(dataset[0][0]) == PIL.PngImagePlugin.PngImageFile
-    ), "Dataset image should have been a PIL image."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            FMD(
+                download_fmd,
+                img_types=["TwoPhoton_BPAE_R"],
+                transform=totensor,
+                target_transform=totensor,
+                download=False,
+            ),
+            length=5000,
+            dtype=Tensor if totensor else PIL_Image,
+            allow_non_tensor=not totensor,
+        )
 
 
 @pytest.fixture
@@ -393,17 +436,20 @@ def mock_lidc_idri():
 
 
 # NOTE: The LIDC-IDRI needs to be downloaded manually.
-@pytest.mark.parametrize("transform", [None, lambda x: x])
 @pytest.mark.parametrize("hounsfield_units", [False, True])
-def test_load_lidc_idri_dataset(mock_lidc_idri, transform, hounsfield_units):
+def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
     """Test the LIDC-IDRI dataset."""
-    dataset = LidcIdriSliceDataset(
-        root=mock_lidc_idri, transform=transform, hounsfield_units=hounsfield_units
-    )
-    assert len(dataset) >= 1018, f"Dataset should have at least 1018 elements."
-    assert (
-        type(dataset[0]) == np.ndarray
-    ), "Dataset image should have been a numpy array."
+    for totensor in [ToTensor(), None]:
+        check_dataset_format(
+            LidcIdriSliceDataset(
+                root=mock_lidc_idri,
+                transform=totensor,
+                hounsfield_units=hounsfield_units,
+            ),
+            length=1018,
+            dtype=Tensor if totensor else np.ndarray,
+            allow_non_tensor=not totensor,
+        )
 
 
 @pytest.fixture
@@ -424,14 +470,18 @@ def download_nbu():
 def test_load_nbu_dataset(download_nbu):
     """Check that dataset correct length and type."""
     dataset = NBUDataset(download_nbu, satellite="gaofen-1", download=False)
-    assert (
-        len(dataset) == 5
-    ), f"Dataset should have been of len 5, instead got {len(dataset)}."
-    assert (
-        isinstance(dataset[0], Tensor)
-        and torch.all(dataset[0] <= 1)
-        and torch.all(dataset[0] >= 0)
+    check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
+    assert torch.all(
+        (0 <= dataset[0]) & (dataset[0] <= 1)
     ), "Dataset image should be Tensor between 0-1."
+
+    # Check pan band
+    check_dataset_format(
+        NBUDataset(download_nbu, satellite="gaofen-1", download=False, return_pan=True),
+        length=5,
+        dtype=TensorList,
+        shape=[(4, 256, 256), (1, 1024, 1024)],
+    )
 
 
 @pytest.fixture
@@ -457,11 +507,8 @@ def test_SimpleFastMRISliceDataset(download_simplefastmri):
         train_percent=1.0,
         download=False,
     )
-    x = dataset[0]
-    x2 = dataset[1]
-    assert x.shape == (2, 320, 320)
-    assert not torch.all(x == x2)
-    assert len(dataset) == 2
+    check_dataset_format(dataset, length=2, dtype=Tensor, shape=(2, 320, 320))
+    assert not torch.all(dataset[0] == dataset[1])
 
 
 @pytest.fixture
@@ -509,6 +556,7 @@ def test_FastMRISliceDataset(download_fastmri):
         load_metadata_from_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
+    check_dataset_format(dataset, length=n_slices, dtype=tuple, shape=None)
 
     target1, kspace1 = dataset[0]
     target2, kspace2 = dataset[1]
@@ -534,9 +582,7 @@ def test_FastMRISliceDataset(download_fastmri):
 
     # Test save simple dataset
     subset = dataset.save_simple_dataset(f"{download_fastmri}/temp_simple.pt")
-    x = subset[0]
-    assert len(subset) == n_slices
-    assert x.shape == (2, *rss_shape)
+    check_dataset_format(subset, length=n_slices, dtype=Tensor, shape=(2, *rss_shape))
 
     # Test slicing returns correct num of slices
     def num_slices(slice_index):
@@ -631,6 +677,9 @@ def test_CMRxReconSliceDataset(download_CMRxRecon):
         mask_dir=None,
         apply_mask=True,
     )
+
+    check_dataset_format(dataset, length=3, dtype=tuple)
+
     target1, kspace1, params1 = dataset[0]
     target2, kspace2, params2 = dataset[1]
 

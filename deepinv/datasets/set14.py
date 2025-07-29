@@ -9,9 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import BaseDataset
 
 
-class Set14HR(torch.utils.data.Dataset):
+class Set14HR(BaseDataset):
     """Dataset for `Set14 <https://paperswithcode.com/dataset/set14>`_.
 
     The Set14 dataset :footcite:p:`huang2015single` is a dataset consisting of 14 images commonly used for testing performance of image reconstruction algorithms.

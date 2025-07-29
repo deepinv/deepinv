@@ -1,53 +1,85 @@
 from functools import wraps
+from warnings import warn
+from numpy import ndarray
 from torch.utils.data import Dataset
 from torch import Tensor
 from PIL.Image import Image
+from deepinv.utils.tensorlist import TensorList
 
 
-def check_dataset(dataset: Dataset) -> None:
+def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
     """Check that a torch dataset is compatible with DeepInverse.
 
-    For details of what is compatible, see :class:`ImagingDataset`.
+    For details of what is compatible, see :class:`BaseDataset`.
 
     :param torch.utils.data.Dataset dataset: torch dataset.
+    :param bool allow_non_tensor: allow image types that are not tensors (i.e. numpy ndarrays and PIL Images). Default `False`, which
+        is recommended so that the dataset is asserted to return tensors to be compatible with deepinv.
     """
+    core_types = (Tensor, TensorList)
+    image_types = core_types + ((Image, ndarray) if allow_non_tensor else ())
+
     if len(dataset) <= 0:
         raise RuntimeError(f"Dataset {dataset} should have length greater than zero.")
 
     batch = dataset.__getitem__(0)
-    error = f"Dataset {dataset} should return either non-nan image `x`, or tuples of either length 2 of 3 of (x, y) or (x, params), or (x, y, params), where x, y are images and params is a dict"
+    error = f"Dataset {dataset} should return either non-nan image `x`, or tuples of either length 2 of 3 of (x, y) or (x, params), or (x, y, params), where x, y are images (Tensor, TensorList) and params is a dict"
 
-    if isinstance(batch, (Tensor, Image)):
-        if isinstance(batch, Tensor) and batch.isnan().all():
+    def warn_core_types(x):
+        if isinstance(x, image_types) and not isinstance(x, core_types):
+            warn(
+                f"Dataset is returning samples of type {type(x)} that are not Tensors or TensorLists. These are not natively supported by DeepInverse. Pass in a transform to your dataset to cast them to Tensors before using the dataset with DeepInverse."
+            )
+
+    if isinstance(batch, image_types):
+        if isinstance(batch, core_types) and batch.isnan().all():
             raise RuntimeError(f"{error}, but returned all nan tensor `x`.")
+        warn_core_types(batch)
+
     elif isinstance(batch, (list, tuple)) and len(batch) == 2:
         x, y_or_params = batch
-        if not isinstance(x, (Tensor, Image)):
+
+        warn_core_types(x)
+        if not isinstance(x, image_types):
             raise RuntimeError(
-                f"{error}, but index 0 of returned tuple is not Tensor or Image."
+                f"{error}, but index 0 of returned tuple is type {type(batch)}."
             )
-        if not isinstance(y_or_params, (Tensor, Image)) and not isinstance(
-            y_or_params, dict
+
+        warn_core_types(y_or_params)
+        if not isinstance(y_or_params, (*image_types, dict)):
+            raise RuntimeError(
+                f"{error}, but index 1 of returned tuple is type {type(batch)}."
+            )
+        elif isinstance(y_or_params, dict) and any(
+            not isinstance(k, str) for k in y_or_params
         ):
-            raise RuntimeError(
-                f"{error}, but index 1 of returned tuple is not Tensor nor dict."
-            )
+            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+
     elif isinstance(batch, (list, tuple)) and len(batch) == 3:
         x, y, params = batch
-        if not isinstance(x, (Tensor, Image)):
+
+        warn_core_types(x)
+        if not isinstance(x, image_types):
             raise RuntimeError(
-                f"{error}, but index 0 of returned tuple is not Tensor or Image."
+                f"{error}, but index 0 of returned tuple is type {type(batch)}."
             )
-        if not isinstance(y, (Tensor, Image)):
+
+        warn_core_types(y)
+        if not isinstance(y, image_types):
             raise RuntimeError(
-                f"{error}, but index 1 of returned tuple is not Tensor or Image."
+                f"{error}, but index 1 of returned tuple is type {type(batch)}."
             )
-        if isinstance(params, dict):
+
+        if not isinstance(params, dict):
             raise RuntimeError(f"{error}, but index 2 of returned tuple is not dict.")
+        elif any(not isinstance(k, str) for k in params):
+            raise RuntimeError(f"{error}, but params dict has non-string keys.")
+
     elif isinstance(batch, (list, tuple)):
         raise RuntimeError(
             f"{error}, but returned list or tuple of length {len(batch)}."
         )
+
     else:
         raise RuntimeError(f"{error}, but returned batch of type {type(batch)}.")
 
@@ -59,7 +91,14 @@ class BaseDataset(Dataset):
     All datasets used with DeepInverse should inherit from this class. The dataset uses :func:`check_dataset` to
     automatically check that `__getitem__` returns the correct format:
 
-    *
+    Assuming that `x` is the ground-truth reference and `y` is the measurement and `params` is a dict of :ref:`physics parameters <physics_generators>`,
+    the **dataloaders** should return one of the following options:
+
+    1. `(x, y)` or `(x, y, params)`, which requires `online_measurements=False` (default) otherwise `y` will be ignored and new measurements will be generated online.
+    2. `(x)` or `(x, params)`, which requires `online_measurements=True` for generating measurements in an online manner (optionally with parameters) as `y=physics(x)` or `y=physics(x, **params)`. Otherwise, first generate a dataset of `(x,y)` with :class:`deepinv.datasets.generate_dataset` and then use option 1 above.
+    3. If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`. Set `online_measurements=False`.
+
+    TODO data types must be Tensor or TensorList so that they are batchable and can be used with deepinv.
 
     If using DeepInverse with your own custom dataset, it should either inherit from this class,
     or use the :func:`check_dataset` function to check your dataset is compatible.
@@ -73,7 +112,7 @@ class BaseDataset(Dataset):
         @wraps(init)
         def new_init(self, *args, **kwargs):
             init(self, *args, **kwargs)
-            check_dataset(self)
+            check_dataset(self, allow_non_tensor=True)
 
         cls.__init__ = new_init
 

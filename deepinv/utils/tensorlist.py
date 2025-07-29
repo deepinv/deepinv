@@ -22,7 +22,12 @@ class TensorList:
         else:
             raise TypeError("x must be a list of torch.Tensor or a single torch.Tensor")
 
-        self.shape = [xi.shape for xi in self.x]
+    @property
+    def shape(self):
+        """
+        Returns a list of the Tensor shapes.
+        """
+        return [xi.shape for xi in self.x]
 
     def __repr__(self):
         return f"TensorList({self.x})"

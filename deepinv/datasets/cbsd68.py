@@ -4,6 +4,7 @@ import os
 import torch
 
 from deepinv.datasets.utils import calculate_md5
+from deepinv.datasets.base import BaseDataset
 
 error_import = None
 try:
@@ -14,7 +15,7 @@ except:
     )
 
 
-class CBSD68(torch.utils.data.Dataset):
+class CBSD68(BaseDataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
     Color BSD68 dataset for image restoration benchmarks is part of The Berkeley Segmentation Dataset and Benchmark from :footcite:t:`martin2001database`.

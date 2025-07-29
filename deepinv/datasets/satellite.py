@@ -5,7 +5,6 @@ import os
 from natsort import natsorted
 import numpy as np
 
-from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
 
 from deepinv.datasets.utils import (
@@ -16,9 +15,10 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.datasets.base import BaseDataset
 
 
-class NBUDataset(Dataset):
+class NBUDataset(BaseDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.

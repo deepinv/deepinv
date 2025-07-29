@@ -8,6 +8,7 @@ import os
 
 import torch
 import numpy as np
+from deepinv.datasets.base import BaseDataset
 
 error_import = None
 try:
@@ -25,7 +26,7 @@ except:
     )
 
 
-class LidcIdriSliceDataset(torch.utils.data.Dataset):
+class LidcIdriSliceDataset(BaseDataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
 
     Published in :footcite:t:`armato2011lung`.
