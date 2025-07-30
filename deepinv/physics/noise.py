@@ -855,6 +855,7 @@ def _infer_device(
 
     :param device_held_candidates: list of tensors or generators to infer the device from.
     :param default: default device to return if no candidates are bound to a device (default: cpu).
+    :raises RuntimeError: if more than one device is found among the inputs.
     :return: the device of the candidates or the default device if no candidates are bound to a device.
     """
     input_devices = set()
@@ -863,8 +864,9 @@ def _infer_device(
         if isinstance(device_held_candidate, (torch.Tensor, torch.Generator)):
             input_devices.add(device_held_candidate.device)
 
-    assert (
-        len(input_devices) <= 1
-    ), f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
+    if len(input_devices) > 1:
+        raise RuntimeError(
+            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
+        )
 
     return input_devices.pop() if input_devices else default
