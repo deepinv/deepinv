@@ -31,6 +31,7 @@ Changed
 - Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
 - Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
 - Update python version to 3.10+ (:gh:`605` by `Minh Hai Nguyen`_)
+- Update the library dependencies, issue template, codecov report on linux only (:gh:`TODO` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
