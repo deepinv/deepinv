@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Union, Optional
 import warnings
 
 
@@ -11,7 +11,7 @@ class NoiseModel(nn.Module):
     Noise models can be combined via :func:`deepinv.physics.NoiseModel.__mul__`.
 
     :param Callable noise_model: noise model function :math:`N(y)`.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
         If provided, it should be on the same device as the input.
     """
 
@@ -228,12 +228,14 @@ class GaussianNoise(NoiseModel):
         >>> y = batch_gaussian_noise(x)
         >>> assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), "Wrong standard deviation value for the first GaussianNoise."
 
-    :param float | torch.Tensor sigma: Standard deviation of the noise.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(
-        self, sigma: float | torch.Tensor = 0.1, rng: torch.Generator | None = None
+        self,
+        sigma: Union[float, torch.Tensor] = 0.1,
+        rng: Optional[torch.Generator] = None,
     ):
         device = _infer_device([sigma, rng])
         super().__init__(rng=rng)
@@ -416,16 +418,16 @@ class UniformGaussianNoise(NoiseModel):
         >>> y = physics(x)
 
 
-    :param float | torch.Tensor sigma_min: minimum standard deviation of the noise.
-    :param float | torch.Tensor sigma_max: maximum standard deviation of the noise.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] sigma_min: minimum standard deviation of the noise.
+    :param Union[float, torch.Tensor] sigma_max: maximum standard deviation of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     """
 
     def __init__(
         self,
-        sigma_min: float | torch.Tensor = 0.0,
-        sigma_max: float | torch.Tensor = 0.5,
+        sigma_min: Union[float, torch.Tensor] = 0.0,
+        sigma_max: Union[float, torch.Tensor] = 0.5,
         rng: torch.Generator = None,
     ):
         device = _infer_device([sigma_min, sigma_max, rng])
@@ -488,20 +490,20 @@ class PoissonNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-    :param float | torch.Tensor gain: gain of the noise.
+    :param Union[float, torch.Tensor] gain: gain of the noise.
     :param bool normalize: normalize the output.
     :param bool clip_positive: clip the input to be positive before adding noise.
         This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     """
 
     def __init__(
         self,
-        gain: float | torch.Tensor = 1.0,
+        gain: Union[float, torch.Tensor] = 1.0,
         normalize: bool = True,
         clip_positive: bool = False,
-        rng: torch.Generator | None = None,
+        rng: Optional[torch.Generator] = None,
     ):
         device = _infer_device([gain, rng])
         super().__init__(rng=rng)
@@ -592,18 +594,18 @@ class PoissonGaussianNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-    :param float | torch.Tensor gain: gain of the noise.
-    :param float | torch.Tensor sigma: Standard deviation of the noise.
+    :param Union[float, torch.Tensor] gain: gain of the noise.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
     :param bool clip_positive: (optional) if True, the input is clipped to be positive before adding noise.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(
         self,
-        gain: float | torch.Tensor = 1.0,
-        sigma: float | torch.Tensor = 0.1,
+        gain: Union[float, torch.Tensor] = 1.0,
+        sigma: Union[float, torch.Tensor] = 0.1,
         clip_positive: bool = False,
-        rng: torch.Generator | None = None,
+        rng: Union[torch.Generator, None] = None,
     ):
         device = _infer_device([gain, sigma, rng])
         super().__init__(rng=rng)
@@ -669,11 +671,13 @@ class UniformNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-    :param float | torch.Generator a: amplitude of the noise.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Generator] a: amplitude of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
-    def __init__(self, a: float | torch.Tensor = 0.1, rng: torch.Generator = None):
+    def __init__(
+        self, a: Union[float, torch.Tensor] = 0.1, rng: torch.Generator = None
+    ):
         device = _infer_device([a, rng])
         super().__init__(rng=rng)
 
@@ -712,7 +716,7 @@ class LogPoissonNoise(NoiseModel):
 
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
-    :param float | torch.Tensor N0: number of photons
+    :param Union[float, torch.Tensor] N0: number of photons
 
         |sep|
 
@@ -729,16 +733,16 @@ class LogPoissonNoise(NoiseModel):
         >>> y = physics(x)
 
 
-    :param float | torch.Tensor mu: normalization constant
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] mu: normalization constant
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
 
     """
 
     def __init__(
         self,
-        N0: float | torch.Tensor = 1024.0,
-        mu: float | torch.Tensor = 1 / 50.0,
+        N0: Union[float, torch.Tensor] = 1024.0,
+        mu: Union[float, torch.Tensor] = 1 / 50.0,
         rng: torch.Generator = None,
     ):
         device = _infer_device([N0, mu, rng])
@@ -796,15 +800,15 @@ class SaltPepperNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-    :param float | torch.Tensor s: amount of salt noise.
-    :param float | torch.Tensor p: amount of pepper noise.
-    :param torch.Generator | None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] s: amount of salt noise.
+    :param Union[float, torch.Tensor] p: amount of pepper noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(
         self,
-        p: float | torch.Tensor = 0.025,
-        s: float | torch.Tensor = 0.025,
+        p: Union[float, torch.Tensor] = 0.025,
+        s: Union[float, torch.Tensor] = 0.025,
         rng: torch.Generator = None,
     ):
         device = _infer_device([p, s, rng])
