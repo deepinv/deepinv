@@ -26,7 +26,6 @@ version = "0.3.2"
 dependencies = [
     "numpy",
     "matplotlib",
-    "hdf5storage",
     "tqdm",
     "torch>=2.2.0",
     "torchvision",
@@ -98,6 +97,7 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
+    "h5py"
 ]
 
 # optional dependencies for training

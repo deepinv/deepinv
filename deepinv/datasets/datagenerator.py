@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Union, Callable
 from tqdm import tqdm
 import os
 from warnings import warn
-import h5py
+
+try:
+    import h5py
+except ImportError:
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )
 import torch
 
 from torch import Tensor

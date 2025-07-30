@@ -24,7 +24,14 @@ from collections import defaultdict
 import pickle
 import warnings
 import os
-import h5py
+
+try:
+    import h5py
+except ImportError:
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )
+
 from tqdm import tqdm
 import torch
 from torchvision.transforms import Compose, CenterCrop
