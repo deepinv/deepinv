@@ -93,7 +93,6 @@ physics = dinv.physics.CompressedSensing(
     fast=False,
     channelwise=True,
     img_size=img_size,
-    compute_inverse=True,
     device=device,
 )
 

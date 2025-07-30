@@ -292,7 +292,7 @@ pc_generator = ProductConvolutionBlurGenerator(
 )
 params_pc = pc_generator.step(batch_size)
 
-physics = SpaceVaryingBlur(method="product_convolution2d", **params_pc)
+physics = SpaceVaryingBlur(**params_pc)
 
 dirac_comb = torch.zeros(img_size)[None, None]
 dirac_comb[0, 0, ::delta, ::delta] = 1
