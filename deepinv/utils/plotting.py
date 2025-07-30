@@ -1,5 +1,4 @@
 import os
-import math
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
@@ -7,7 +6,6 @@ from typing import Union
 from functools import partial
 from warnings import warn
 
-import wandb
 import torch
 import numpy as np
 from torchvision.utils import make_grid
@@ -490,36 +488,6 @@ def plot_curves(metrics, save_dir=None, show=True):
         plt.savefig(save_dir / "curves.png")
     if show:
         plt.show()
-
-
-def wandb_imgs(imgs, captions, n_plot):
-    wandb_imgs = []
-    for i in range(len(imgs)):
-        wandb_imgs.append(
-            wandb.Image(
-                make_grid(imgs[i][:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
-                caption=captions[i],
-            )
-        )
-    return wandb_imgs
-
-
-def wandb_plot_curves(metrics, batch_idx=0, step=0):
-    for metric_name, metric_val in metrics.items():
-        if len(metric_val) > 0:
-            batch_size, n_iter = len(metric_val), len(metric_val[0])
-            wandb.log(
-                {
-                    f"{metric_name} batch {batch_idx}": wandb.plot.line_series(
-                        xs=range(n_iter),
-                        ys=metric_val,
-                        keys=[f"image {j}" for j in range(batch_size)],
-                        title=f"{metric_name} batch {batch_idx}",
-                        xname="iteration",
-                    )
-                },
-                step=step,
-            )
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):

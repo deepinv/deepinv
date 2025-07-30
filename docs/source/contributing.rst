@@ -23,11 +23,11 @@ by running in the root directory of the repository:
 
 .. code-block:: bash
 
-    pip install -e .[test,dataset,denoisers,doc,lint]
+    pip install -e .[all]
 
     # or using `uv` for faster installation:
 
-    uv pip install -e .[test,dataset,denoisers,doc,lint]
+    uv pip install -e .[all]
 
 
 We acknowledge all contributors in the documentation and in the source code. Significant contributions

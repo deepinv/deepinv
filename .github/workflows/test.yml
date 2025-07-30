@@ -27,28 +27,28 @@ jobs:
           # Ubuntu tests
           - os: ubuntu-latest
             version_python: "3.10"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.10 all dependencies"
           - os: ubuntu-latest
             version_python: "3.11"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.11 all dependencies"
           - os: ubuntu-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.12 all dependencies"
           # Windows tests
           - os: windows-latest
             version_python: "3.10"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.10 all dependencies"
           - os: windows-latest
             version_python: "3.11"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.11 all dependencies"
           - os: windows-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.12 all dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
