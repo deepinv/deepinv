@@ -32,7 +32,6 @@ dependencies = [
     "torchmetrics",
     "einops",
     "scipy",
-    "natsort",
 ]
 
 [tool.setuptools]
@@ -97,7 +96,8 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
-    "h5py"
+    "h5py",
+    "natsort",
 ]
 
 # optional dependencies for training

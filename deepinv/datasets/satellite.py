@@ -2,7 +2,13 @@ from typing import Union, Callable
 from pathlib import Path
 import os
 
-from natsort import natsorted
+try:
+    from natsort import natsorted
+except ImportError:
+    natsorted = ImportError(
+        "natsort is not installed. Please install it with `pip install natsort`."
+    )
+
 import numpy as np
 
 from torch.utils.data import Dataset

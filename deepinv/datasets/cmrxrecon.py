@@ -1,7 +1,14 @@
 from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
-from natsort import natsorted
+
+try:
+    from natsort import natsorted
+except ImportError:
+    natsorted = ImportError(
+        "natsort is not installed. Please install it with `pip install natsort`."
+    )
+
 from tqdm import tqdm
 from warnings import warn
 
