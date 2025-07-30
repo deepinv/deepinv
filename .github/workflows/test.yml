@@ -57,19 +57,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version_python }}
-          cache: 'uv' # caching uv pip dependencies
+          cache: 'pip' # caching uv pip dependencies
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install uv
-          uv pip install .[${{ matrix.extra }}]
+          pip install .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version
         run: python3 --version
 
       - name: Check installed packages
-        run: uv pip list
+        run: pip list
 
       # ----------------------------
 
