@@ -81,7 +81,7 @@ class ENSURELoss(SureGaussianLoss):
         :param deepinv.physics.Physics physics: Forward operator associated with the measurements.
         :param torch.nn.Module f: Reconstruction network.
         """
-        return mc_div(physics(x_net), y, f, physics, tau=self.tau, rng=self.rng)
+        return mc_div(physics.A(x_net), y, f, physics, tau=self.tau, rng=self.rng)
 
     def forward(
         self, y: Tensor, x_net: Tensor, physics: Physics, model: Reconstructor, **kwargs
