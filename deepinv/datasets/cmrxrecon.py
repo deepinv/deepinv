@@ -5,7 +5,7 @@ import os
 try:
     from natsort import natsorted
 except ImportError:
-    raise ImportError(
+    natsorted = ImportError(
         "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
     )
 
@@ -151,6 +151,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             raise ValueError(
                 f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
             )
+
+        if isinstance(natsorted, ImportError):
+            raise natsorted
 
         all_fnames = natsorted(
             f
