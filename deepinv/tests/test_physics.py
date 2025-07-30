@@ -9,7 +9,7 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI, SequentialMRI
+from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI
 from deepinv.utils import TensorList
 
 
@@ -112,7 +112,7 @@ def find_operator(name, device, get_physics_param=False):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_size=img_size, device=device, compute_inverse=True, rng=rng
+            m=m, img_size=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -355,7 +355,6 @@ def find_operator(name, device, get_physics_param=False):
             padding=padding,
             device=device,
             filter="bilinear",
-            dtype=dtype,
         )
         params = ["filter"]
     elif name == "complex_compressed_sensing":
@@ -366,7 +365,6 @@ def find_operator(name, device, get_physics_param=False):
             img_size=img_size,
             dtype=torch.cdouble,
             device=device,
-            compute_inverse=True,
             rng=rng,
         )
         dtype = p.dtype
@@ -407,7 +405,6 @@ def find_operator(name, device, get_physics_param=False):
             samples_loc=uv.permute((1, 0)),
             dataWeight=dataWeight,
             real_projection=False,
-            dtype=torch.float,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
@@ -942,7 +939,7 @@ def test_noise(device, noise_type):
     r"""
     Tests noise models.
     """
-    physics = dinv.physics.DecomposablePhysics(device=device)
+    physics = dinv.physics.DecomposablePhysics()
     physics.noise_model = choose_noise(noise_type, device)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
@@ -988,7 +985,6 @@ def test_blur(device):
     h = torch.ones((1, 1, 5, 5)) / 25.0
 
     physics_blur = dinv.physics.Blur(
-        img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
         padding="circular",
@@ -1199,10 +1195,7 @@ def test_mri_fft():
         return torch.cat((right, left), dim=dim)
 
     def roll(x: torch.Tensor, shift: list[int], dim: list[int]) -> torch.Tensor:
-        if len(shift) != len(dim):
-            raise ValueError("len(shift) must match len(dim)")
-
-        for s, d in zip(shift, dim):
+        for s, d in zip(shift, dim, strict=True):
             x = roll_one_dim(x, s, d)
 
         return x
@@ -1358,7 +1351,7 @@ def test_operators_differentiability(name, device):
         with torch.enable_grad():
             y_hat = physics.A(x_hat)
             if isinstance(y_hat, TensorList):
-                for y_hat_item, y_item in zip(y_hat.x, y.x):
+                for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                     loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                     loss.backward()
                     assert x_hat.requires_grad == True
@@ -1386,7 +1379,7 @@ def test_operators_differentiability(name, device):
             with torch.enable_grad():
                 y_hat = physics.A(x, **parameters)
                 if isinstance(y_hat, TensorList):
-                    for y_hat_item, y_item in zip(y_hat.x, y.x):
+                    for y_hat_item, y_item in zip(y_hat.x, y.x, strict=True):
                         loss = torch.nn.functional.mse_loss(y_hat_item, y_item)
                         loss.backward()
 
@@ -1473,7 +1466,7 @@ def test_device_consistency(name):
             # skip denoising that adds random noise in each forward call
             if not isinstance(physics, dinv.physics.Denoising):
                 if isinstance(y2, TensorList):
-                    for y11, y22 in zip(y1, y2):
+                    for y11, y22 in zip(y1, y2, strict=True):
                         assert torch.linalg.norm((y11.to(cuda) - y22).ravel()) < 1e-5
                 else:
                     assert torch.linalg.norm((y1.to(cuda) - y2).ravel()) < 1e-5
@@ -1879,3 +1872,10 @@ def test_clone(name, device):
     # Restore original values
     physics = saved_physics
     physics_clone = saved_physics_clone
+
+
+def test_physics_warn_extra_kwargs():
+    with pytest.warns(
+        UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
+    ):
+        dinv.physics.Denoising(sigma=0.5)

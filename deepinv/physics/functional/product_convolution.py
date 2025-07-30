@@ -12,11 +12,7 @@ def product_convolution2d(
 ) -> torch.Tensor:
     r"""
 
-    Product-convolution operator in 2d. Details available in the following paper:
-
-    Escande, P., & Weiss, P. (2017).
-    `Approximation of integral operators using product-convolution expansions. <https://hal.science/hal-01301235/file/Approximation_Integral_Operators_Convolution-Product_Expansion_Escande_Weiss_2016.pdf>`_
-    Journal of Mathematical Imaging and Vision, 58, 333-348.
+    Product-convolution operator in 2d. Details available in the paper :footcite:t:`escande2017approximation`.
 
     This forward operator performs
 

@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from typing import Union
-import warnings
 from hashlib import sha256
 
 

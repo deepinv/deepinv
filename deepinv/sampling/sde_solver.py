@@ -127,7 +127,7 @@ class BaseSDESolver(nn.Module):
             timesteps = timesteps.to(sde.device, sde.dtype)
 
         for t_cur, t_next in tqdm(
-            zip(timesteps[:-1], timesteps[1:]),
+            zip(timesteps[:-1], timesteps[1:], strict=True),
             total=len(timesteps) - 1,
             disable=not verbose,
         ):
