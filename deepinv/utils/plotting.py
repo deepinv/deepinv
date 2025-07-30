@@ -136,7 +136,9 @@ def _preprocess_img(
         n_channels = im.shape[channels_dim]
         is_complex = torch.is_complex(im) or n_channels == 2
         if is_complex:
-            im = dinv.loss.metric.functional.complex_abs(im, dim=channels_dim, keepdim=True)
+            im = dinv.loss.metric.functional.complex_abs(
+                im, dim=channels_dim, keepdim=True
+            )
 
         # Cast image values to float32 numbers
         im = im.type(torch.float32)
