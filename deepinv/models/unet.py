@@ -116,7 +116,13 @@ class UNet(Denoiser):
                     ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias, padding_mode="circular" if circular_padding else "zeros"
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
@@ -138,7 +144,13 @@ class UNet(Denoiser):
                     ),
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
-                        ch_out, ch_out, kernel_size=3, stride=1, padding=1, bias=bias, padding_mode="circular" if circular_padding else "zeros"
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
@@ -148,7 +160,13 @@ class UNet(Denoiser):
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
                     nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias, padding_mode="circular" if circular_padding else "zeros"
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     (
                         BFBatchNorm2d(ch_out, use_bias=bias)
@@ -161,7 +179,13 @@ class UNet(Denoiser):
                 return nn.Sequential(
                     nn.Upsample(scale_factor=2),
                     nn.Conv2d(
-                        ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=bias, padding_mode="circular" if circular_padding else "zeros"
+                        ch_in,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
                     ),
                     nn.ReLU(inplace=True),
                 )
