@@ -343,6 +343,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
 
+        if isinstance(h5py, ImportError):
+            raise h5py
+
         if not os.path.isdir(root):
             raise ValueError(
                 f"The `root` folder doesn't exist. Please set `root` properly. Current value `{root}`."

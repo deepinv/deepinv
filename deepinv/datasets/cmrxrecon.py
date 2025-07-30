@@ -5,8 +5,8 @@ import os
 try:
     from natsort import natsorted
 except ImportError:
-    natsorted = ImportError(
-        "natsort is not installed. Please install it with `pip install natsort`."
+    raise ImportError(
+        "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
     )
 
 from tqdm import tqdm

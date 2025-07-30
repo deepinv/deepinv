@@ -123,6 +123,8 @@ class NBUDataset(Dataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
+        if isinstance(natsorted, ImportError):
+            raise natsorted
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
