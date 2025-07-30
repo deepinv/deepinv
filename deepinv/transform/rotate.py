@@ -1,6 +1,5 @@
 from typing import Union, Iterable
 import torch
-import torchvision
 from torchvision.transforms.functional import rotate
 from torchvision.transforms import InterpolationMode
 from deepinv.transform.base import Transform, TransformParam
