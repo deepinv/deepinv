@@ -25,6 +25,10 @@ by running in the root directory of the repository:
 
     pip install -e .[test,dataset,denoisers,doc,lint]
 
+    # or using `uv` for faster installation:
+
+    uv pip install -e .[test,dataset,denoisers,doc,lint]
+
 
 We acknowledge all contributors in the documentation and in the source code. Significant contributions
 will also be taken into account when deciding on the authorship of future publications.

@@ -26,11 +26,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.12
-          cache: 'pip' # caching pip dependencies
+          cache: 'uv' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[dataset,denoisers,doc]
+          pip install uv
+          uv pip install -e .[dataset,denoisers,doc]
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build

@@ -57,27 +57,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.version_python }}
-          cache: 'pip' # caching pip dependencies
+          cache: 'uv' # caching uv pip dependencies
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install .[${{ matrix.extra }}]
+          pip install uv
+          uv pip install .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version
         run: python3 --version
 
       - name: Check installed packages
-        run: pip list
+        run: uv pip list
 
-      - name: Test importing numpy
-        run: python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
       # ----------------------------
 
-      - name: Test with pytest and generate coverage report
+      - name: Test with pytest and generate coverage report 
         run: |
           python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+
       - name: Upload coverage to Codecov
+        # Only upload coverage on Linux
+        if: ${{ runner.os == 'Linux' }}    
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
