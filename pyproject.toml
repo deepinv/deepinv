@@ -105,48 +105,6 @@ training = [
     "wandb"
 ]
 
-# 'all' optional dependencies for convenience
-all = [
-    # test
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "coverage",
-    # doc
-    "sphinx",
-    "sphinx_gallery",
-    "pydata_sphinx_theme",
-    "sphinxemoji",
-    "sphinx_copybutton",
-    "sphinx_autoapi",
-    "sphinx-design",
-    "sphinx_sitemap<2.7.0",
-    "sphinxcontrib.bibtex",
-    # lint
-    "black",
-    "ruff",
-    # denoisers
-    "bm3d",
-    "bm4d<4.2.4",
-    "timm",
-    "PyWavelets",
-    "ptwt",
-    "FrEIA",
-    "pyiqa",
-    "kornia",
-    "torchkbnufft",
-    "libcpab",
-    "sigpy",
-    "astra-toolbox>=2.2.0,!=2.3.0; platform_system=='Linux'",
-    # dataset
-    "datasets",
-    "pandas",
-    "pydicom",
-    "mat73",
-    # training
-    "wandb",
-]
-
 
 
 #####################################################################
