@@ -328,3 +328,8 @@ napoleon_custom_sections = [
     ("Reference", "params_style"),  # Sphinx ≥ 3.5
     # ("Reference", "Parameters"),   # fallback syntax for very old Sphinx (<3.5)
 ]
+
+nitpick_ignore = [
+    # This one generates a warning for some reason.
+    ("py:class", "torchvision.transforms.InterpolationMode"),
+]
