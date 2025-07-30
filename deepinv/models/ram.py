@@ -228,7 +228,7 @@ class RAM(Reconstructor, Denoiser):
             sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
-            gain = getattr(physics.noise_model, "gain", 1e-3)
+            gain = getattr(physics.noise_model, "gain", self.gain_threshold)
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
