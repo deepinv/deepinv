@@ -6,4 +6,3 @@ coverage:
 
   round: down       # up, down, or nearest
   precision: 2      # Number of decimal places, between 0 and 5
-
