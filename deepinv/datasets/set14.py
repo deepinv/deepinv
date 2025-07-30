@@ -9,10 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
 )
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageFolder
 
 
-class Set14HR(BaseDataset):
+class Set14HR(ImageFolder):
     """Dataset for `Set14 <https://paperswithcode.com/dataset/set14>`_.
 
     The Set14 dataset :footcite:p:`huang2015single` is a dataset consisting of 14 images commonly used for testing performance of image reconstruction algorithms.
@@ -74,7 +74,6 @@ class Set14HR(BaseDataset):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.transform = transform
         self.img_dir = os.path.join(self.root, "Set14", "image_SRF_4")
 
         # download dataset, we check first that dataset isn't already downloaded
@@ -106,21 +105,8 @@ class Set14HR(BaseDataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(
-            [file for file in os.listdir(self.img_dir) if file.endswith("HR.png")]
-        )
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialise ImageFolder
+        super().__init__(self.img_dir, x_glob="*HR.png", transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

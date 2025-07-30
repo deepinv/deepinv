@@ -65,8 +65,8 @@ More details can be found in the doc of each class.
 Parameter-dependent operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many (linear or non-linear) operators depend on (optional) parameters :math:`\theta` that describe the imaging system, i.e.
-:math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of parameters as an extra input.
+Many (linear or non-linear) operators depend on (optional) `params` :math:`\theta` that describe the imaging system, i.e.
+:math:`y = \noise{\forw{x, \theta}}` where the ``forward`` method can be called with a dictionary of `params` as an extra input.
 The explicit dependency on :math:`\theta` is often useful for blind inverse problems, model identification,
 imaging system optimization, etc. The following example shows how operators and their parameter can be instantiated and called as:
 
@@ -90,8 +90,8 @@ imaging system optimization, etc. The following example shows how operators and 
    >>>
    >>> # The same can be done by passing in a dictionary including 'filter' as a key
    >>> physics = Blur() # a blur operator without convolution filter
-   >>> dict_params = {'filter': theta, 'dummy': None}
-   >>> y = physics(x, **dict_params) # # we define the blur by passing in the dictionary
+   >>> params = {'filter': theta, 'dummy': None}
+   >>> y = physics(x, **params) # # we define the blur by passing in the dictionary
 
 
 One can also differentiate the parameter as:

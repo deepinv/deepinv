@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
@@ -16,6 +16,7 @@ from deepinv.physics.generator import (
     SigmaGenerator,
     DiffractionBlurGenerator,
 )
+from deepinv.datasets.base import BaseDataset
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -72,7 +73,7 @@ def test_generate_dataset_physics_generator(
 ):
     N = 10
 
-    class DummyDataset(Dataset):
+    class DummyDataset(BaseDataset):
         def __getitem__(self, i):
             return torch.ones(imsize)
 

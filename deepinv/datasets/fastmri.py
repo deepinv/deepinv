@@ -114,7 +114,7 @@ class SimpleFastMRISliceDataset(BaseDataset):
             if download:
                 url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
-                x = torch.load(root_dir / file_name, weights_only=True)
+                x = torch.load(root_dir / file_name, weights_only=True)  # N,H,W
             else:
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
@@ -122,7 +122,7 @@ class SimpleFastMRISliceDataset(BaseDataset):
 
         self.transform = Compose(
             [ToComplex()] + ([transform] if transform is not None else [])
-        )
+        )  # N,2,H,W
 
         if train:
             self.x = x[: int(train_percent * len(x))]
@@ -159,7 +159,7 @@ class FastMRISliceDataset(BaseDataset, MRIMixin):
 
     The dataset is loaded as tuples ``(x, y)`` where `y` are the kspace measurements of shape ``(2, (N,) H, W)``
     where N is the optional coil dimension depending on whether the data is singlecoil or multicoil,
-    and `x` ("target") are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``.
+    and `x` ("target") are the magnitude root-sum-square reconstructions of shape ``(1, H, W)``. If `target` does not exist (i.e. test/challenge set), then `torch.nan` is returned.
 
     If `transform` is used or `mask` exists in file, then also returns `params` dict containing e.g. `mask` and/or `coil_maps`.
 
@@ -459,10 +459,9 @@ class FastMRISliceDataset(BaseDataset, MRIMixin):
             )
 
         out = (
-            (() if target is None else (target,))
-            + (kspace,)
-            + ((params,) if params else ())
-        )
+            torch.nan if target is None else target,
+            kspace,
+        ) + ((params,) if params else ())
         return out if len(out) > 1 else out[0]
 
     def save_simple_dataset(

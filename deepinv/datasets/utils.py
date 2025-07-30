@@ -12,11 +12,12 @@ from tqdm.auto import tqdm
 from scipy.io import loadmat as scipy_loadmat
 from numpy import ndarray
 
-from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
+from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.utils.plotting import rescale_img
+from deepinv.datasets.base import BaseDataset
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -125,7 +126,7 @@ def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     return scipy_loadmat(fname)
 
 
-class PlaceholderDataset(Dataset):
+class PlaceholderDataset(BaseDataset):
     """
     A placeholder dataset for test purposes.
 
@@ -180,3 +181,28 @@ class ToComplex(Module):
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
         return stack([x, zeros_like(x)], dim=-3)
+
+
+class CornerCrop(Module):
+    """Torchvision-style transform to take crop in corner or any arbitrary place.
+
+    Expects tensor of shape (..., H, W).
+
+    :param int, tuple size: if int or tuple of ints of length 2, crop in top left corner with size specified by tuple or square of size specified by int.
+        If tuple of length 4, pass as (top, left, height, width) to torchvision crop function.
+    """
+
+    def __init__(self, size: Union[int, tuple]):
+        super().__init__()
+        if isinstance(size, int):
+            self.size = (0, 0, size, size)
+        elif isinstance(size, (tuple, list)):
+            if len(size) == 2:
+                self.size = (0, 0, *size)
+            elif len(size) == 4:
+                self.size = size
+            else:
+                raise ValueError("size must be int or tuple of ints of size 2 or 4.")
+
+    def forward(self, x: Tensor):
+        return torchvision_crop(x, *self.size)

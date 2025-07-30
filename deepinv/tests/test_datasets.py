@@ -1,4 +1,5 @@
 import shutil, os
+import math
 from typing import NamedTuple, Sequence, Mapping, Type
 import PIL
 from PIL.Image import Image as PIL_Image
@@ -27,12 +28,26 @@ from deepinv.datasets import (
     LidcIdriSliceDataset,
     Flickr2kHR,
     BaseDataset,
+    generate_dataset,
+    HDF5Dataset,
+    TensorDataset,
+    ImageFolder,
 )
-from deepinv.datasets.utils import download_archive
+from deepinv.datasets.utils import (
+    download_archive,
+    loadmat,
+    CornerCrop,
+    Rescale,
+    ToComplex,
+)
 from deepinv.datasets.base import check_dataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.mri import MultiCoilMRI, MRI, DynamicMRI
-from deepinv.physics.generator import GaussianMaskGenerator
+from deepinv.physics.generator import (
+    GaussianMaskGenerator,
+    BernoulliSplittingMaskGenerator,
+)
+from deepinv.physics.inpainting import Inpainting
 from deepinv.utils.tensorlist import TensorList
 
 from unittest.mock import patch
@@ -97,6 +112,104 @@ def check_dataset_format(
         assert (
             dataset[0].shape == shape
         ), f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
+
+
+class MyDataset(BaseDataset):
+    def __init__(self, batch):
+        self.batch = batch
+
+    def __len__(self):
+        return 1
+
+    def __getitem__(self, _):
+        return self.batch
+
+
+def test_base_dataset():
+    x, y, params = Tensor([0]), Tensor([0]), {"a": Tensor([0])}
+    bad = "hello"
+    _ = MyDataset(x)
+    _ = MyDataset([x, y])
+    _ = MyDataset([torch.nan, y])
+    _ = MyDataset([x, y, params])
+    _ = MyDataset([torch.nan, y, params])
+    _ = MyDataset([torch.nan, params])
+
+    with pytest.raises(RuntimeError):
+        _ = MyDataset(torch.nan)
+        _ = MyDataset([bad, y])
+        _ = MyDataset([x, bad])
+        _ = MyDataset([bad, y, params])
+        _ = MyDataset([x, bad, params])
+        _ = MyDataset([x, y, {1: 2}])
+        _ = MyDataset([x, x, x, params])
+        _ = MyDataset([x, params, y])
+        _ = MyDataset(bad)
+        _ = MyDataset([x])
+
+
+@pytest.mark.parametrize("physgen", [None, "mask"])
+def test_hdfdataset(physgen):
+    img_size = (1, 4, 4)
+    dataset = MyDataset(torch.zeros(1, *img_size))
+    physics = Inpainting(img_size, mask=0.5)
+    physics_generator = (
+        None if physgen is None else BernoulliSplittingMaskGenerator(img_size, 0.5)
+    )
+    pth = generate_dataset(
+        dataset,
+        physics,
+        save_dir="temp",
+        batch_size=1,
+        physics_generator=physics_generator,
+    )
+    dataset = HDF5Dataset(pth, load_physics_generator_params=True)
+    check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
+
+
+def test_tensordataset():
+    x, y, params = (
+        torch.zeros(1, 3, 4, 4),
+        torch.zeros(1, 3, 4, 4),
+        {"a": torch.zeros(1, 3, 4, 4)},
+    )
+    bad = np.zeros((1, 3, 4, 4))
+    _ = TensorDataset(x=x)
+    _ = TensorDataset(x=x, y=y)
+    _ = TensorDataset(y=y)
+    _ = TensorDataset(x=x, y=y, params=params)
+    _ = TensorDataset(x=x, params=params)
+    dataset = TensorDataset(y=y, params=params)
+    assert math.isnan(dataset[0][0])
+
+    with pytest.raises(ValueError):
+        _ = TensorDataset()
+        _ = TensorDataset(x=bad)
+        _ = TensorDataset(y=bad)
+        _ = TensorDataset(x=x, y=torch.cat([y, y]))
+
+
+def get_transforms(transform_name, shape):
+    if transform_name == "cornercrop":
+        return CornerCrop((shape[-2] // 2, shape[-1] // 2)), (
+            *shape[:-2],
+            shape[-2] // 2,
+            shape[-1] // 2,
+        )
+    elif transform_name == "rescale":
+        return Rescale(), shape
+    elif transform_name == "tocomplex":
+        return ToComplex(), (*shape[:2], 2, *shape[2:])
+    else:
+        raise ValueError("Invalid transform_name.")
+
+
+@pytest.mark.parametrize("transform_name", ["cornercrop", "rescale", "tocomplex"])
+def test_transforms(transform_name):
+    transform, shape = get_transforms(transform_name, (1, 1, 8, 8))
+    x = torch.rand(1, 1, 8, 8)
+    y = transform(x)
+    assert y.shape == shape
 
 
 @pytest.fixture
@@ -482,6 +595,25 @@ def test_load_nbu_dataset(download_nbu):
         dtype=TensorList,
         shape=[(4, 256, 256), (1, 1024, 1024)],
     )
+
+    # Test ImageFolder with globs
+    dataset = ImageFolder(
+        download_nbu,
+        x_glob="nbu/gaofen-1/MS_256/*.mat",
+        transform=ToTensor(),
+        loader=lambda f: loadmat(f)["imgMS"],
+    )
+    check_dataset_format(dataset, length=5, dtype=Tensor, shape=(4, 256, 256))
+
+    dataset = ImageFolder(
+        download_nbu,
+        y_glob="nbu/gaofen-1/MS_256/*.mat",
+        transform=ToTensor(),
+        loader=lambda f: loadmat(f)["imgMS"],
+    )
+    check_dataset_format(dataset, length=5, dtype=tuple, allow_non_tensor=True)
+    x, y = dataset[0]
+    assert math.isnan(x) and y.shape == (4, 256, 256)
 
 
 @pytest.fixture

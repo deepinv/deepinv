@@ -10,10 +10,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageFolder
 
 
-class LsdirHR(BaseDataset):
+class LsdirHR(ImageFolder):
     """Dataset for `LSDIR <https://ofsoundof.github.io/lsdir-data/>`_.
 
     Published in :footcite:t:`li2023lsdir`.
@@ -107,7 +107,6 @@ class LsdirHR(BaseDataset):
     ) -> None:
         self.root = root
         self.mode = mode
-        self.transform = transform
 
         if self.mode == "train":
             # train_folder_names = ['0001000', ..., '0085000']
@@ -160,19 +159,10 @@ class LsdirHR(BaseDataset):
                 raise RuntimeError(
                     "Data folder doesn't exist, please set `download=True`"
                 )
-        self.img_paths = sorted(self.img_paths)
 
-    def __len__(self) -> int:
-        return len(self.img_paths)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = self.img_paths[idx]
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialise ImageFolder
+        super().__init__(self.root, transform=transform)
+        self.x_paths, self.y_paths = sorted(self.img_paths), None
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

@@ -111,6 +111,21 @@ def test_tensordict_append(tensorlist):
     assert (z1[0] == z[0]).all() and (z1[-1] == z[-1]).all()
 
 
+def test_tensorlist_any_all_isnan():
+    x = torch.zeros(1, 3)
+    x_nan = torch.nan * x
+    tl = deepinv.utils.TensorList([x, x])
+    tl_mixed = deepinv.utils.TensorList([x, x_nan])
+    tl_nan = deepinv.utils.TensorList([x_nan, x_nan])
+
+    assert x_nan.isnan().all()
+    assert not tl.isnan().any()
+    assert not tl.isnan().all()
+    assert tl_mixed.isnan().any()
+    assert not tl_mixed.isnan().all()
+    assert tl_nan.isnan().all()
+
+
 # The class TensorList features many utility methods that we do not test in
 # depth but verify that they do not raise any exception when called. To do
 # that, we get a tensor list instance, we iterate over its methods and try to call
@@ -585,7 +600,7 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
 
     dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
 
-    assert isinstance(dataset, torchvision.datasets.ImageFolder)
+    assert isinstance(dataset, deepinv.datasets.ImageFolder)
 
     for k in range(n_retrievals):
         x, y = dataset[k]

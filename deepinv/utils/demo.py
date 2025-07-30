@@ -1,4 +1,5 @@
-from typing import Union, Callable
+from __future__ import annotations
+from typing import Union, Callable, TYPE_CHECKING
 import os, shutil, zipfile, requests
 from io import BytesIO
 
@@ -8,9 +9,11 @@ from PIL import Image
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 import torchvision
 from torchvision import transforms
+
+if TYPE_CHECKING:
+    from deepinv.datasets.base import ImageFolder
 
 
 def get_git_root():
@@ -73,7 +76,7 @@ def load_dataset(
     download: bool = True,
     url: str = None,
     file_type: str = "zip",
-) -> Dataset:
+) -> ImageFolder:
     """Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
 
     :param str, pathlib.Path dataset_name: dataset name without file extension.
@@ -82,8 +85,10 @@ def load_dataset(
     :param bool download: whether to download, defaults to True
     :param str url: download URL, if ``None``, gets URL using :func:`deepinv.utils.get_image_url`
     :param str file_type: file extension, defaults to "zip"
-    :return: torchvision ImageFolder dataset.
+    :return: :class:`deepinv.datasets.ImageFolder` dataset.
     """
+    from deepinv.datasets.base import ImageFolder
+
     if data_dir is None:
         data_dir = get_data_home()
 
@@ -120,7 +125,7 @@ def load_dataset(
         os.remove(f"{str(dataset_dir)}.{file_type}")
         print(f"{dataset_name} dataset downloaded in {data_dir}")
 
-    return torchvision.datasets.ImageFolder(root=dataset_dir, transform=transform)
+    return ImageFolder(root=dataset_dir, transform=transform)
 
 
 def load_degradation(

@@ -14,6 +14,32 @@ and testing :func:`deepinv.Trainer.test` a model, and can be used to save and lo
     :class:`deepinv.Trainer`
         See here for full descriptions of options provided by Trainer and how you should provide your data.
 
+Training requires data. See our :ref:`datasets User Guide <datasets>` on how to use our predefined datasets,
+how to use your own datasets with DeepInverse and how to generate datasets of measurements.
+
+.. note::
+
+    Our Trainer accepts flexible configurations of data:
+
+    * Pass a dataset of only ground truth `x` and use `online_measurements=True` to generate measurements on the fly;
+    * When a dataset loads data as a 3-tuple of ``(x, y, params)`` Trainer will automatically load the parameters into the physics each iteration.
+    * Pass a dataset of only measurements (i.e. no ground truth) using `(torch.nan, y)`
+    * See our :ref:`datasets User Guide <datasets>` for a tutorial!
+
+.. warning::
+
+    When using the trainer for **unsupervised training**, one should be careful that each measurement should be constant across epochs.
+    Generally it is preferred to do offline training by using `online_measurements=False` and generating a dataset using :func:`deepinv.datasets.generate_dataset`.
+    
+    If you want to use online measurements, and your physics is random (i.e. you are either using a `physics_generator` or a noise model),
+    you must use `loop_random_online_physics=True` to reset the randomness every epoch, and a `DataLoader` with `shuffle=False` so the measurements
+    arrive in the same order every epoch.
+
+
+
+Custom trainers
+~~~~~~~~~~~~~~~
+
 The class provides a flexible training loop that can be customized by the user. In particular, the user can
 rewrite the :func:`deepinv.Trainer.compute_loss` method to define their custom training step without having
 to write all the training code from scratch:
@@ -72,18 +98,3 @@ In this case, to update the :class:`deepinv.physics.Physics` parameters accordin
             physics.update(mask=mask.to(self.device))
 
             return x.to(self.device), y.to(self.device), physics
-
-.. note::
-
-    When using a dataset that has loads data as a 3-tuple, this is assumed to be ``(x, y, params)``
-    where ``params`` is assumed to be a dict of parameters, e.g. generated from :class:`deepinv.datasets.generate_dataset`.
-    Trainer will automatically load the parameters into the physics each iteration.
-
-.. warning::
-
-    When using the trainer for **unsupervised training**, one should be careful that each measurement should be constant across epochs.
-    Generally it is preferred to do offline training by using `online_measurements=False` and generating a dataset using :func:`deepinv.datasets.generate_dataset`.
-    
-    If you want to use online measurements, and your physics is random (i.e. you are either using a `physics_generator` or a noise model),
-    you must use `loop_random_online_physics=True` to reset the randomness every epoch, and a `DataLoader` with `shuffle=False` so the measurements
-    arrive in the same order every epoch.

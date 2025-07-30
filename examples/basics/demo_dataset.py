@@ -48,7 +48,7 @@ val_transform = transforms.Compose(
 dataset = load_dataset(dataset_name, transform=val_transform)
 
 # display an image from the base dataset
-dinv.utils.plot(dataset[0][0].unsqueeze(0))
+dinv.utils.plot(dataset[0].unsqueeze(0))
 
 
 # %%

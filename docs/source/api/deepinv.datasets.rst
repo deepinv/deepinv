@@ -1,8 +1,21 @@
 deepinv.datasets
 ================
 
-This subpackage can be used for generating reconstruction datasets from other base datasets.
+This subpackage can be used for defining datasets or generating reconstruction datasets from other base datasets.
 Please refer to the :ref:`user guide <datasets>` for more information.
+
+Base Datasets
+-------------
+.. userguide:: base-datasets
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+    deepinv.datasets.BaseDataset
+    deepinv.datasets.ImageFolder
+    deepinv.datasets.TensorDataset
 
 
 Generating Datasets
@@ -72,4 +85,5 @@ Data Transforms
 
     deepinv.datasets.utils.Rescale
     deepinv.datasets.utils.ToComplex
+    deepinv.datasets.utils.CornerCrop
     deepinv.datasets.MRISliceTransform

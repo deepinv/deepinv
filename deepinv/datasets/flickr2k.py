@@ -9,10 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_zipfile,
 )
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageFolder
 
 
-class Flickr2kHR(BaseDataset):
+class Flickr2kHR(ImageFolder):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
 
     The Flickr2k dataset introduced by :footcite:t:`agustsson2017ntire` contains 2650 2K images.
@@ -64,7 +64,6 @@ class Flickr2kHR(BaseDataset):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.transform = transform
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
         # download dataset, we check first that dataset isn't already downloaded
@@ -96,19 +95,8 @@ class Flickr2kHR(BaseDataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(os.listdir(self.img_dir))
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialise ImageFolder
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

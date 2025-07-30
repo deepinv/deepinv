@@ -9,8 +9,7 @@ import torch
 
 from torch import Tensor
 from torch.utils.data import DataLoader, Subset, Dataset
-from torch.utils import data
-from deepinv.utils import TensorList
+from deepinv.utils.tensorlist import TensorList
 from deepinv.physics import StackedPhysics
 from deepinv.datasets.base import BaseDataset
 
@@ -61,29 +60,29 @@ class HDF5Dataset(BaseDataset):
         self.load_physics_generator_params = load_physics_generator_params
         self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
 
-        hd5 = h5py.File(path, "r")
+        self.hd5 = h5py.File(path, "r")
         suffix = ("_train" if train else "_test") if split is None else f"_{split}"
 
-        if "stacked" in hd5.attrs.keys():
-            self.stacked = hd5.attrs["stacked"]
-            self.y = [hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
+        if "stacked" in self.hd5.attrs.keys():
+            self.stacked = self.hd5.attrs["stacked"]
+            self.y = [self.hd5[f"y{i}{suffix}"] for i in range(self.stacked)]
         else:
             self.stacked = 0
-            self.y = hd5[f"y{suffix}"]
+            self.y = self.hd5[f"y{suffix}"]
 
         if train or split == "train":
-            if "x_train" in hd5:
-                self.x = hd5[f"x{suffix}"]
+            if "x_train" in self.hd5:
+                self.x = self.hd5[f"x{suffix}"]
             else:
                 self.unsupervised = True
         else:
-            self.x = hd5[f"x{suffix}"]
+            self.x = self.hd5[f"x{suffix}"]
 
         if self.load_physics_generator_params:
             self.params = {}
-            for k in hd5:
+            for k in self.hd5:
                 if suffix in k and k not in (f"x{suffix}", f"y{suffix}"):
-                    self.params[k.replace(suffix, "")] = hd5[k]
+                    self.params[k.replace(suffix, "")] = self.hd5[k]
 
     def __getitem__(self, index):
         r"""
@@ -129,6 +128,20 @@ class HDF5Dataset(BaseDataset):
         else:
             return len(self.y)
 
+    def close(self):
+        """
+        Closes the HDF5 dataset. Use when you are finished with the dataset.
+        """
+        if hasattr(self, "hd5") and self.hd5:
+            self.hd5.close()
+            self.hd5 = None
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
 
 def generate_dataset(
     train_dataset: Dataset,
@@ -149,7 +162,7 @@ def generate_dataset(
     verbose: bool = True,
     show_progress_bar: bool = False,
     device: Union[torch.device, str] = "cpu",
-):
+) -> Union[str, list[str]]:
     r"""
     Generates dataset of signal/measurement pairs from base dataset.
 

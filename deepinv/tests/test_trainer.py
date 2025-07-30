@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.utils import get_timestamp
@@ -10,7 +10,7 @@ from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
-
+from deepinv.datasets.base import BaseDataset
 from unittest.mock import patch
 import math
 import io
@@ -60,7 +60,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
 
 def get_dummy_dataset(imsize, N, value):
 
-    class DummyDataset(Dataset):
+    class DummyDataset(BaseDataset):
         r"""
         Defines a constant value image dataset
         """
@@ -131,7 +131,7 @@ def test_get_samples(
     tmpdir,
 ):
     # Dummy constant GT dataset
-    class DummyDataset(Dataset):
+    class DummyDataset(BaseDataset):
         def __len__(self):
             return 2
 
@@ -568,7 +568,7 @@ def test_dataloader_formats(
         img_size=imsize, split_ratio=0.1, rng=rng, device=device
     )
 
-    class DummyDataset(Dataset):
+    class DummyDataset(BaseDataset):
         def __len__(self):
             return 10
 

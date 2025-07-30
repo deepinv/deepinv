@@ -9,10 +9,10 @@ from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageFolder
 
 
-class Urban100HR(BaseDataset):
+class Urban100HR(ImageFolder):
     """Dataset for Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
     The Urban100 dataset :footcite:p:`huang2015single` contains 100 images of urban scenes.
@@ -102,19 +102,8 @@ class Urban100HR(BaseDataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(os.listdir(self.img_dir))
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialise ImageFolder
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.
