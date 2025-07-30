@@ -3,10 +3,8 @@ import numpy as np
 from tqdm import tqdm
 from deepinv.models import Reconstructor
 
-from typing import Dict, Any
 
 import deepinv.physics
-from deepinv.utils.plotting import plot
 from deepinv.sampling import BaseSampling
 from deepinv.sampling.sampling_iterators import DiffusionIterator
 
@@ -75,10 +73,10 @@ class DiffusionSampler(BaseSampling):
 
 
 class DDRM(Reconstructor):
-    r"""DDRM(self, denoiser, sigmas=np.linspace(1, 0, 100), eta=0.85, etab=1.0, verbose=False)
+    r"""
     Denoising Diffusion Restoration Models (DDRM).
 
-    This class implements the denoising diffusion restoration model (DDRM) described in https://arxiv.org/abs/2201.11793.
+    This class implements the Denoising Diffusion Restoration Model (DDRM) described in :footcite:t:`zhu2023denoising`.
 
     The DDRM is a sampling method that uses a denoiser to sample from the posterior distribution of the inverse problem.
 
@@ -114,6 +112,8 @@ class DDRM(Reconstructor):
         >>> xhat = model(y, physics) # sample from the posterior distribution
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
+
+
 
     """
 
@@ -217,8 +217,7 @@ class DiffPIR(Reconstructor):
     r"""
     Diffusion PnP Image Restoration (DiffPIR).
 
-    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described
-    in https://arxiv.org/abs/2305.08995.
+    This class implements the Diffusion PnP image restoration algorithm (DiffPIR) described in :footcite:t:`zhu2023denoising`.
 
     The DiffPIR algorithm is inspired on a half-quadratic splitting (HQS) plug-and-play algorithm, where the denoiser
     is a conditional diffusion denoiser, combined with a diffusion process. The algorithm writes as follows,
@@ -281,6 +280,8 @@ class DiffPIR(Reconstructor):
         >>> xhat = model(y, physics) # Run the DiffPIR algorithm
         >>> (dinv.metric.PSNR()(xhat, x) > dinv.metric.PSNR()(y, x)).cpu() # Should be closer to the original
         tensor([True])
+
+
 
     """
 
@@ -516,8 +517,7 @@ class DPS(Reconstructor):
     r"""
     Diffusion Posterior Sampling (DPS).
 
-    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in
-    https://arxiv.org/abs/2209.14687.
+    This class implements the Diffusion Posterior Sampling algorithm (DPS) described in :footcite:t:`chung2022diffusion`.
 
     DPS is an approximation of a gradient-based posterior sampling algorithm,
     which has minimal assumptions on the forward model. The only restriction is that
@@ -559,6 +559,7 @@ class DPS(Reconstructor):
     :param float eta: DDIM hyperparameter which controls the stochasticity
     :param bool verbose: if True, print progress
     :param str device: the device to use for the computations
+
     """
 
     def __init__(
@@ -616,7 +617,7 @@ class DPS(Reconstructor):
 
         seq = range(0, self.num_train_timesteps, skip)
         seq_next = [-1] + list(seq[:-1])
-        time_pairs = list(zip(reversed(seq), reversed(seq_next)))
+        time_pairs = list(zip(reversed(seq), reversed(seq_next), strict=True))
 
         # Initial sample from x_T
         x = torch.randn_like(y) if x_init is None else (2 * x_init - 1)

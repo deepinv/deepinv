@@ -255,7 +255,9 @@ class BaseSampling(Reconstructor):
                     if self.history_size:
                         self.history.append(X)
 
-                    for _, (g, stat) in enumerate(zip(g_statistics, statistics)):
+                    for _, (g, stat) in enumerate(
+                        zip(g_statistics, statistics, strict=True)
+                    ):
                         stat.update(g(X))
 
             # Check convergence for all statistics

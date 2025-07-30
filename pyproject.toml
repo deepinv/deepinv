@@ -69,6 +69,7 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+    "sphinxcontrib.bibtex"
 ]
 
 lint = [
@@ -120,3 +121,7 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff.lint.per-file-ignores]
+# NOTE: Rule F401 is ruff's unused imports rule.
+"__init__.py" = ["F401"]

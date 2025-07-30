@@ -69,11 +69,23 @@ def choose_metric(metric_name, device, **kwargs) -> metric.Metric:
         raise ValueError("Incorrect metric name.")
 
 
+@pytest.fixture
+def test_image(device):
+    return load_example(
+        "celeba_example.jpg",
+        img_size=128,
+        resize_mode="resize",
+        device=device,
+    )
+
+
 @pytest.mark.parametrize("metric_name", METRICS)
 @pytest.mark.parametrize("train_loss", [True, False])
 @pytest.mark.parametrize("norm_inputs", [None])
 @pytest.mark.parametrize("channels", [1, 2, 3])
-def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
+def test_metrics(
+    metric_name, train_loss, norm_inputs, rng, device, channels, test_image
+):
     m = choose_metric(
         metric_name,
         device,
@@ -82,12 +94,8 @@ def test_metrics(metric_name, train_loss, norm_inputs, rng, device, channels):
         norm_inputs=norm_inputs,
         reduction="mean",
     )
-    x = load_example(
-        "celeba_example.jpg",
-        img_size=128,
-        resize_mode="resize",
-        device=device,
-    )
+
+    x = test_image.clone()
 
     if metric_name == "QNR":
         x_hat = x

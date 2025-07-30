@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Union
+import warnings
 import copy
 import inspect
-import itertools
 import collections.abc
 
 import torch
@@ -50,6 +50,7 @@ class Physics(torch.nn.Module):  # parent class for forward models
         solver="gradient_descent",
         max_iter=50,
         tol=1e-4,
+        **kwargs,
     ):
         super().__init__()
         self.noise_model = noise_model
@@ -59,6 +60,11 @@ class Physics(torch.nn.Module):  # parent class for forward models
         self.max_iter = max_iter
         self.tol = tol
         self.solver = solver
+
+        if len(kwargs) > 0:
+            warnings.warn(
+                f"Arguments {kwargs} are passed to {self.__class__.__name__} but are ignored."
+            )
 
     def __mul__(self, other):
         r"""
@@ -412,6 +418,7 @@ class LinearPhysics(Physics):
             max_iter=max_iter,
             solver=solver,
             tol=tol,
+            **kwargs,
         )
         self.A_adj = A_adjoint
 
@@ -552,7 +559,7 @@ class LinearPhysics(Physics):
             V = [randn_like(au) for au in Au]
             Atv = self.A_adjoint(V, **kwargs)
             s1 = 0
-            for au, v in zip(Au, V):
+            for au, v in zip(Au, V, strict=True):
                 s1 += (v.conj() * au).flatten().sum()
 
         else:
