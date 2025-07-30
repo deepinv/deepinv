@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 from typing import Callable, Union, Optional
+from collections.abc import Iterable
 import warnings
+import deepinv as dinv
 
 
 class NoiseModel(nn.Module):
@@ -847,21 +849,26 @@ class SaltPepperNoise(NoiseModel):
 
 
 def _infer_device(
-    device_held_candidates, *, default: torch.device = torch.device("cpu")
+    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
 ) -> torch.device:
     """Infer the device from a list of candidates.
 
     Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
 
-    :param device_held_candidates: list of tensors or generators to infer the device from.
-    :param default: default device to return if no candidates are bound to a device (default: cpu).
+    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
+
+    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
+    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
     :raises RuntimeError: if more than one device is found among the inputs.
     :return: the device of the candidates or the default device if no candidates are bound to a device.
     """
     input_devices = set()
 
     for device_held_candidate in device_held_candidates:
-        if isinstance(device_held_candidate, (torch.Tensor, torch.Generator)):
+        if isinstance(
+            device_held_candidate,
+            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
+        ):
             input_devices.add(device_held_candidate.device)
 
     if len(input_devices) > 1:
