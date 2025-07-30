@@ -4,10 +4,10 @@ import os
 
 try:
     from natsort import natsorted
-except ImportError:
+except ImportError:  # pragma: no cover
     natsorted = ImportError(
         "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
-    )
+    )  # pragma: no cover
 
 from tqdm import tqdm
 from warnings import warn

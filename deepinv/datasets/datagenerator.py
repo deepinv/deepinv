@@ -7,10 +7,10 @@ from warnings import warn
 
 try:
     import h5py
-except ImportError:
+except ImportError:  # pragma: no cover
     h5py = ImportError(
         "The h5py package is not installed. Please install it with `pip install h5py`."
-    )
+    )  # pragma: no cover
 import torch
 
 from torch import Tensor

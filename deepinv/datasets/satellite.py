@@ -4,10 +4,10 @@ import os
 
 try:
     from natsort import natsorted
-except ImportError:
+except ImportError:  # pragma: no cover
     natsorted = ImportError(
         "natsort is not installed. Please install it with `pip install natsort`."
-    )
+    )  # pragma: no cover
 
 import numpy as np
 

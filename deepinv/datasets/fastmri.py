@@ -27,10 +27,10 @@ import os
 
 try:
     import h5py
-except ImportError:
+except ImportError:  # pragma: no cover
     h5py = ImportError(
         "The h5py package is not installed. Please install it with `pip install h5py`."
-    )
+    )  # pragma: no cover
 
 from tqdm import tqdm
 import torch

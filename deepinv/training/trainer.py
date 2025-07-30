@@ -7,10 +7,10 @@ import torch
 
 try:
     import wandb
-except ImportError:
+except ImportError:  # pragma: no cover
     wandb = ImportError(
         "The wandb package is not installed. Please install it with `pip install wandb`."
-    )
+    )  # pragma: no cover
 
 from pathlib import Path
 from typing import Union
