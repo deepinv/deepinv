@@ -1,4 +1,4 @@
-from .signal import rescale_img as _rescale_img
+from .signal import normalize as _normalize_signal
 
 import os
 import math
@@ -161,9 +161,9 @@ def rescale_img(im, rescale_mode="min_max"):
     :return: the rescaled image.
     """
     warn(
-        "The function `deepinv.utils.plotting.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.rescale_img` instead."
+        "The function `deepinv.utils.plotting.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead."
     )
-    return _rescale_img(im, rescale_mode=rescale_mode)
+    return _normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
