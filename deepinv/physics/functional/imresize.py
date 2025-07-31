@@ -8,7 +8,7 @@ Last update: July 9th, 2020 (KST)
 """
 
 import math
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from torch.nn import functional as F
