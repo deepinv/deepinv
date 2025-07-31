@@ -33,6 +33,7 @@ dependencies = [
     "einops",
     "scipy",
     "requests",
+    "h5py",
 ]
 
 [tool.setuptools]
@@ -97,7 +98,6 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
-    "h5py",
     "natsort",
 ]
 
