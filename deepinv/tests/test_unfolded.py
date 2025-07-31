@@ -124,6 +124,7 @@ def test_DEQ(unfolded_algo, imsize, dummy_dataset, device):
                 anderson_acceleration_backward=and_acc,
                 jacobian_free=jac_free,
             )
+            model.to(device)
 
             for idx, (name, param) in enumerate(model.named_parameters()):
                 assert param.requires_grad
