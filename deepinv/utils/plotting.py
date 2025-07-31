@@ -162,13 +162,19 @@ def _preprocess_img(
         # Clone the image to avoid input mutations
         im = im.clone()
 
-        # Rescale non-constant batch images between zero and one
+        # Compute indices of non-constant batch images
         indices = im_max != im_min
+        # Make im_min and im_max broadcastable with im
+        shape = (-1,) + (1,) * (im.ndim - 1)
+        im_min = im_min.view(*shape)
+        im_max = im_max.view(*shape)
+        # Rescale non-constant batch images between zero and one
         im[indices] -= im_min[indices]
         im[indices] /= im_max[indices] - im_min[indices]
 
-        # Clamp constant batch images between zero and one
+        # Compute indices of constant batch images
         indices = torch.logical_not(indices)
+        # Clamp constant batch images between zero and one
         im[indices] = im[indices].clamp(min=min_val, max=max_val)
     elif rescale_mode == "clip":
         im = im.clamp(min=min_val, max=max_val)
