@@ -6,7 +6,6 @@ Created on Thu Jul 11 14:48:05 2024
 @author: fsarron
 """
 import pytest
-from contextlib import nullcontext
 import torch
 import deepinv as dinv
 
