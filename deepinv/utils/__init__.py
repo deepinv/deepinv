@@ -1,7 +1,6 @@
 from .logger import AverageMeter, ProgressMeter, get_timestamp
 from .metric import cal_psnr, cal_mse, cal_psnr_complex
 from .plotting import (
-    rescale_img,
     plot,
     torch2cpu,
     plot_curves,
@@ -38,3 +37,4 @@ from .tensorlist import (
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
 from .parameters import get_GSPnP_params
+from .signal import rescale_img
