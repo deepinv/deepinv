@@ -14,7 +14,7 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint,
     conv3d_fft,
     conv_transpose3d_fft,
-    imresize,
+    imresize_matlab,
 )
 
 
@@ -784,12 +784,15 @@ class DownsamplingMatlab(Downsampling):
 
     Wraps `imresize` from a modified version of the `original implementation <https://github.com/sanghyun-son/bicubic_pytorch>`_.
 
+    The adjoint is computed using autograd via :func:`deepinv.physics.adjoint_function`.
+    This is because `imresize` with reciprocal of scale is not a correct adjoint.
+    Note however the adjoint is quite slow.
+
     :param int, float factor: downsampling factor
     :param str kernel: MATLAB kernel, supports only `cubic` for bicubic downsampling.
     :param str padding: MATLAB padding type, supports only `reflect` for reflect padding.
     :param bool antialiasing: whether to perform antialiasing in MATLAB downsampling.
         Recommended to set to `True` to match MATLAB.
-    :param bool adjoint_via_backprop: if ``True``, the adjoint will be computed via :func:`deepinv.physics.adjoint_function` which is slower. Otherwise `imresize` with reciprocal of scale is used, but this has an adjoint mismatch.
     """
 
     def __init__(
@@ -798,7 +801,6 @@ class DownsamplingMatlab(Downsampling):
         kernel: str = "cubic",
         padding: str = "reflect",
         antialiasing: bool = True,
-        adjoint_via_backprop: bool = True,
         **kwargs,
     ):
         super().__init__(filter=None, factor=factor, **kwargs)
@@ -806,7 +808,6 @@ class DownsamplingMatlab(Downsampling):
         self.kernel = kernel
         self.padding = padding
         self.antialiasing = antialiasing
-        self.adjoint_via_backprop = adjoint_via_backprop
 
     def A(self, x, factor: Union[int, float] = None, **kwargs):
         """Downsample forward operator
@@ -816,7 +817,7 @@ class DownsamplingMatlab(Downsampling):
         """
         self.update_parameters(factor=factor, **kwargs)
         # Clone because of in-place ops
-        return imresize(
+        return imresize_matlab(
             x.clone(),
             scale=1 / self.factor,
             antialiasing=self.antialiasing,
@@ -825,26 +826,17 @@ class DownsamplingMatlab(Downsampling):
         )
 
     def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
-        """Downsample adjoint operator
+        """Downsample adjoint operator via autograd.
 
         :param torch.Tensor y: input measurement
         :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
         """
         self.update_parameters(factor=factor, **kwargs)
 
-        if self.adjoint_via_backprop:
-            adj = adjoint_function(
-                self.A,
-                (*y.shape[:2], y.shape[-2] * self.factor, y.shape[-1] * self.factor),
-                device=y.device,
-                dtype=y.dtype,
-            )
-            return adj(y)
-        else:
-            return imresize(
-                y.clone(),
-                scale=self.factor,
-                antialiasing=self.antialiasing,
-                kernel=self.kernel,
-                padding_type=self.padding,
-            )
+        adj = adjoint_function(
+            self.A,
+            (*y.shape[:2], y.shape[-2] * self.factor, y.shape[-1] * self.factor),
+            device=y.device,
+            dtype=y.dtype,
+        )
+        return adj(y)

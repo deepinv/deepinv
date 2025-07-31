@@ -143,7 +143,7 @@ def test_imresize(kernel, scale, antialiasing):
     sigma = 2
     img_size = (1, 64, 64)
     x = torch.randn(1, *img_size)
-    y = dinv.physics.functional.imresize(
+    y = dinv.physics.functional.imresize_matlab(
         x,
         scale=scale,
         kernel=kernel,

@@ -23,4 +23,4 @@ from .interp import ThinPlateSpline
 from .rand import random_choice
 from .dst import dst1
 from .astra import XrayTransform
-from .imresize import imresize
+from .imresize import imresize_matlab

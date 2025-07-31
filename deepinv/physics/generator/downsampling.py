@@ -103,10 +103,9 @@ class DownsamplingGenerator(PhysicsGenerator):
             generator=self.rng,
             **self.factory_kwargs,
         )
-        factors = torch.Tensor(
-            [self.list_factors[int(i)] for i in factor_indices.tolist()]
-        )
+        factors = [self.list_factors[int(i)] for i in factor_indices.tolist()]
         filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
+
         filters = [
             self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
         ]
@@ -116,9 +115,7 @@ class DownsamplingGenerator(PhysicsGenerator):
                 "Generated filters have different shapes in batch. Consider limiting factors/filters to one type per batch, or limiting batch size = 1."
             )
 
-        filters = torch.cat(filters)
-
         return {
-            "filter": filters,
-            "factor": factors,
+            "filter": torch.cat(filters),
+            "factor": torch.tensor(factors),
         }

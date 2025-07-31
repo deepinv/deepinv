@@ -19,7 +19,7 @@ Key modifications:
 
 from pathlib import Path
 from contextlib import contextmanager
-from typing import Any, Callable, NamedTuple, Optional, Union, Any
+from typing import Any, Callable, NamedTuple, Optional, Union
 from collections import defaultdict
 import pickle
 import warnings
@@ -582,7 +582,7 @@ class MRISliceTransform(MRIMixin):
             self.prewhiten = (slice(0, 30), slice(0, 30))
         self.normalise = normalise
 
-    def get_acs(self, metadata: dict = {}):
+    def get_acs(self, metadata: dict = None):
         """Get number of low frequency lines for autocalibration.
 
         First checks `acs` attribute.
@@ -621,7 +621,9 @@ class MRISliceTransform(MRIMixin):
             batch_size=0,
         )["mask"]
 
-    def generate_maps(self, kspace: torch.Tensor, metadata: dict = {}) -> torch.Tensor:
+    def generate_maps(
+        self, kspace: torch.Tensor, metadata: dict = None
+    ) -> torch.Tensor:
         """Estimate coil maps using :meth:`deepinv.physics.MultiCoilMRI.estimate_coil_maps`.
 
         :param torch.Tensor kspace: input kspace of shape (2, N, H, W)
@@ -654,10 +656,13 @@ class MRISliceTransform(MRIMixin):
                 ksp.unflatten(-1, kspace.shape[-2:]).unsqueeze(0)
             ).squeeze(0)
         except torch.linalg.LinAlgError:
-            return kspace  # Non-PSD due to ksp all zeros
+            warnings.warn(
+                "Unable to prewhiten kspace. Noise covariance matric was non-PSD due to kspace being all zeros."
+            )
+            return kspace
 
     def normalise_kspace(
-        self, kspace: torch.Tensor, metadata: dict = {}
+        self, kspace: torch.Tensor, metadata: dict = None
     ) -> torch.Tensor:
         """Normalise kspace by percentile of RSS of ACS.
 
@@ -689,7 +694,7 @@ class MRISliceTransform(MRIMixin):
         kspace: torch.Tensor,
         mask: torch.Tensor = None,
         seed: Union[str, int] = None,
-        metadata: dict = {},
+        metadata: dict = None,
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor, dict]:
         """Call transform.

@@ -194,7 +194,7 @@ def reshape_output(x: torch.Tensor, b: _I, c: _I) -> torch.Tensor:
 
 
 def cast_input(x: torch.Tensor) -> tuple[torch.Tensor, _D]:
-    if x.dtype != torch.float32 or x.dtype != torch.float64:
+    if x.dtype not in (torch.float64, torch.float32):
         dtype = x.dtype
         x = x.float()
     else:
@@ -293,11 +293,11 @@ def resize_1d(
     return x
 
 
-def imresize(
+def imresize_matlab(
     x: torch.Tensor,
     scale: Optional[float] = None,
     sizes: Optional[tuple[int, int]] = None,
-    kernel: Union[str, torch.Tensor] = "cubic",
+    kernel: str = "cubic",
     sigma: float = 2,
     padding_type: str = "reflect",
     antialiasing: bool = True,
@@ -305,14 +305,14 @@ def imresize(
     """MATLAB imresize reimplementation.
 
     A standalone PyTorch implementation for fast and efficient bicubic resampling.
-    The resulting values are the same to MATLAB function imresize('bicubic').
+    The resulting values are the same to MATLAB function imresize('bicubic') with `reflect` padding.
 
     Code reproduced with modifications from https://github.com/sanghyun-son/bicubic_pytorch
 
     :param torch.Tensor x: input tensor of shape (H,W), (C,H,W) or (B,C,H,W)
     :param float scale: imresize scale factor. > 1 = upsample.
     :param tuple sizes: optional output image size following MATLAB convention.
-    :param str, torch.Tensor kernel: downsampling kernel, choose between 'cubic' (for MATLAB bicubic) or 'gaussian'.
+    :param str kernel: downsampling kernel, choose between 'cubic' (for MATLAB bicubic) or 'gaussian'.
     :param float sigma: Gaussian kernel size. Ignored if kernel is not gaussian.
     :param str padding_type: reflect padding only.
     :param bool antialiasing: whether to perform antialiasing.
@@ -321,8 +321,9 @@ def imresize(
     :Example:
 
         >>> import torch
+        >>> from deepinv.physics.functional import imresize_matlab
         >>> x = torch.randn(1, 1, 8, 8)
-        >>> y = imresize(x, scale=2)
+        >>> y = imresize_matlab(x, scale=2)
         >>> y.shape
         torch.Size([1, 1, 16, 16])
 
