@@ -40,8 +40,8 @@ class ENSURELoss(SureGaussianLoss):
     where :math:`P` is the projection operator onto the range space of :math:`\A^\top`
     and :math:`W` is a weighting determined by the set of measurement operators where :math:`W^2=\mathbb{E}\left[P\right]`.
 
-    The ENSURE loss was proposed in `Aggarwal et al <https://arxiv.org/abs/2010.10631>`_ for MRI.
-
+    The ENSURE loss was proposed in :footcite:t:`aggarwal2023ensure` for MRI.
+    
     .. warning::
 
         This loss was originally proposed only to be used with :class:`artifact removal models <deepinv.models.ArtifactRemoval>` which can be written in the form :math:`\inverse{\cdot}=r(A^\top\cdot)`.
