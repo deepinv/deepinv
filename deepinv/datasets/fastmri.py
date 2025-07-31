@@ -603,7 +603,7 @@ class MRISliceTransform(MRIMixin):
             return metadata["acs"]
 
         raise ValueError(
-            "ACS size not specified. Either define fixed acs, or ensure metadata has acs attribute, orpass in  mask_generator with fixed ACS size."
+            "ACS size not specified. Either define fixed acs, or ensure metadata has acs attribute, or pass in  mask_generator with fixed ACS size."
         )
 
     def generate_mask(
