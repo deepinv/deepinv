@@ -7,7 +7,6 @@ from typing import Union
 from functools import partial
 from warnings import warn
 
-import deepinv as dinv
 import wandb
 import torch
 import numpy as np
@@ -116,76 +115,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
-def _preprocess_img(
-    im: torch.Tensor, rescale_only: bool, rescale_mode: str = "min_max"
-):
-    r"""
-    Preprocesses an image tensor for plotting.
-
-    :param torch.Tensor im: the image to preprocess.
-    :param bool rescale_only: if True, only rescales the image without applying the modulus function if the input is complex-valued and without casting the image values to float32.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the preprocessed image.
-    """
-    if not rescale_only:
-        # Apply the modulus function on each entry if the input is complex-valued
-        # or if it has 2 channels which are assume to represent the real and
-        # imaginary parts of a complex-valued image.
-        # NOTE: Expect a batched input
-        channels_dim = 1
-        n_channels = im.shape[channels_dim]
-        is_complex = torch.is_complex(im) or n_channels == 2
-        if is_complex:
-            im = dinv.loss.metric.functional.complex_abs(
-                im, dim=channels_dim, keepdim=True
-            )
-
-        # Cast image values to float32 numbers
-        im = im.type(torch.float32)
-
-    min_val = 0.0
-    max_val = 1.0
-
-    # NOTE: Rescaling a constant image between zero and one is ill-defined.
-    # Indeed, no matter the new scale, the image won't have a minimum value
-    # equal to zero and a maximum value equal to one. In this case, we
-    # choose to rescale the image so that its new value is the number in
-    # [0, 1] that is closest to its original value. This amounts to
-    # clamping it between zero and one.
-    if rescale_mode == "min_max":
-        # Compute batch-wise minimum and maximum values
-        # NOTE: Expect a batched input of shape (B, *)
-        non_batched_dims = list(range(1, im.ndim))
-        im_min = im.amin(dim=non_batched_dims, keepdim=False)
-        im_max = im.amax(dim=non_batched_dims, keepdim=False)
-
-        # Clone the image to avoid input mutations
-        im = im.clone()
-
-        # Compute indices of non-constant batch images
-        indices = im_max != im_min
-        # Make im_min and im_max broadcastable with im
-        shape = (-1,) + (1,) * (im.ndim - 1)
-        im_min = im_min.view(*shape)
-        im_max = im_max.view(*shape)
-        # Rescale non-constant batch images between zero and one
-        im[indices] -= im_min[indices]
-        im[indices] /= im_max[indices] - im_min[indices]
-
-        # Compute indices of constant batch images
-        indices = torch.logical_not(indices)
-        # Clamp constant batch images between zero and one
-        im[indices] = im[indices].clamp(min=min_val, max=max_val)
-    elif rescale_mode == "clip":
-        im = im.clamp(min=min_val, max=max_val)
-    else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-
-    return im
-
-
-@torch.no_grad
-def preprocess_img(im: torch.Tensor, rescale_mode: str = "min_max"):
+def preprocess_img(im, rescale_mode="min_max"):
     r"""
     Preprocesses an image tensor for plotting.
 
@@ -193,7 +123,19 @@ def preprocess_img(im: torch.Tensor, rescale_mode: str = "min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the preprocessed image.
     """
-    return _preprocess_img(im, rescale_only=False, rescale_mode=rescale_mode)
+    with torch.no_grad():
+        if im.shape[1] == 2:  # for complex images
+            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
+        elif im.shape[1] > 3:
+            pimg = im.type(torch.float32)
+        else:
+            if torch.is_complex(im):
+                pimg = im.abs().type(torch.float32)
+            else:
+                pimg = im.type(torch.float32)
+
+        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+    return pimg
 
 
 def tensor2uint(img):
@@ -208,7 +150,7 @@ def numpy2uint(img):
     return np.uint8((img * 255.0).round())
 
 
-def rescale_img(im: torch.Tensor, rescale_mode: str = "min_max"):
+def rescale_img(im, rescale_mode="min_max"):
     r"""
     Rescale an image tensor.
 
@@ -216,7 +158,22 @@ def rescale_img(im: torch.Tensor, rescale_mode: str = "min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
-    return _preprocess_img(im, rescale_only=True, rescale_mode=rescale_mode)
+    img = im.clone()
+    if rescale_mode == "min_max":
+        shape = img.shape
+        img = img.reshape(shape[0], -1)
+        mini = img.min(1)[0]
+        maxi = img.max(1)[0]
+        idx = mini < maxi
+        mini = mini[idx].unsqueeze(1)
+        maxi = maxi[idx].unsqueeze(1)
+        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
+        img = img.reshape(shape)
+    elif rescale_mode == "clip":
+        img = img.clamp(min=0.0, max=1.0)
+    else:
+        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
+    return img
 
 
 def plot(
