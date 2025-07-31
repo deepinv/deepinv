@@ -7,7 +7,6 @@ import torch
 from deepinv.physics.mri import MRI, MRIMixin
 from deepinv.physics.inpainting import Inpainting
 from deepinv.loss.sure import SureGaussianLoss, mc_div
-from deepinv.models.artifactremoval import ArtifactRemoval
 
 if TYPE_CHECKING:
     from deepinv.physics.generator.base import PhysicsGenerator
