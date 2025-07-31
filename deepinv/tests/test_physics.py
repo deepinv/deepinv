@@ -349,15 +349,10 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = []
     elif name == "super_resolution_matlab":
-        pytest.importorskip(
-            "bicubic_pytorch",
-            reason="This test requires bicubic_pytorch. Install with `pip install bicubic-pytorch`.",
-        )
-
         img_size = (1, 32, 32)
         factor = 2
-        norm = 1.0
-        p = dinv.physics.DownsamplingMatlab(factor=factor)
+        norm = 1.0 / factor**2
+        p = dinv.physics.DownsamplingMatlab(factor=factor, adjoint_via_backprop=True)
         params = []
     elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
@@ -558,9 +553,6 @@ def test_operators_adjointness(name, device, rng):
     if name == "radio":
         dtype = torch.cfloat
 
-    if name == "super_resolution_matlab":
-        pytest.skip("DownsamplingMatlab has bad adjoint.")
-
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
     error = physics.adjointness_test(x).abs()
     assert error < 1e-3
@@ -646,9 +638,6 @@ def test_pseudo_inverse(name, device, rng):
     :return: asserts error is less than 1e-3
     """
     physics, imsize, _, dtype = find_operator(name, device)
-
-    if name == "super_resolution_matlab":
-        pytest.skip("DownsamplingMatlab has bad adjoint.")
 
     x = torch.randn(imsize, device=device, dtype=dtype, generator=rng).unsqueeze(0)
 
@@ -831,9 +820,6 @@ def test_concatenation(name, device):
     if "pansharpen" in name:  # TODO: fix pansharpening
         return
     physics, imsize, _, dtype = find_operator(name, device)
-
-    if name == "super_resolution_matlab":
-        pytest.skip("DownsamplingMatlab has bad adjoint.")
 
     x = torch.randn(imsize, device=device, dtype=dtype).unsqueeze(0)
     y = physics(x)

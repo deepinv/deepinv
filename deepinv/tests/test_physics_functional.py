@@ -5,9 +5,10 @@ Created on Thu Jul 11 14:48:05 2024
 
 @author: fsarron
 """
-
-import deepinv as dinv
+import pytest
+from contextlib import nullcontext
 import torch
+import deepinv as dinv
 
 
 def test_conv2d_adjointness(device):
@@ -134,3 +135,26 @@ def test_conv3d_adjointness(device):
                     Atyx = torch.sum(Aty * x)
 
                     assert torch.abs(Axy - Atyx) < 1e-3
+
+
+@pytest.mark.parametrize("kernel", ["cubic", "gaussian"])
+@pytest.mark.parametrize("scale", [2, 0.5])
+@pytest.mark.parametrize("antialiasing", [True, False])
+def test_imresize(kernel, scale, antialiasing):
+    sigma = 2
+    img_size = (1, 64, 64)
+    x = torch.randn(1, *img_size)
+    y = dinv.physics.functional.imresize(
+        x,
+        scale=scale,
+        kernel=kernel,
+        sigma=sigma,
+        padding_type="reflect",
+        antialiasing=antialiasing,
+    )
+    assert y.shape == (
+        1,
+        img_size[0],
+        int(img_size[1] * scale),
+        int(img_size[2] * scale),
+    )
