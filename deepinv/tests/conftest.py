@@ -8,14 +8,14 @@ from dummy import DummyCircles
 import matplotlib
 import matplotlib.pyplot as plt
 import importlib
-from contextlib import contextmanager
 
 
-@pytest.fixture
-def device():
-    return (
-        dinv.utils.get_freer_gpu() if torch.cuda.is_available() else torch.device("cpu")
-    )
+@pytest.fixture(
+    params=[torch.device("cpu")]
+    + ([dinv.utils.get_freer_gpu()] if torch.cuda.is_available() else [])
+)
+def device(request):
+    return request.param
 
 
 @pytest.fixture

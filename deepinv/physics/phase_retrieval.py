@@ -172,8 +172,6 @@ class RandomPhaseRetrieval(PhaseRetrieval):
             img_size=img_size,
             fast=False,
             channelwise=channelwise,
-            unitary=unitary,
-            compute_inverse=compute_inverse,
             dtype=dtype,
             device=device,
             rng=self.rng,
@@ -291,7 +289,6 @@ class StructuredRandomPhaseRetrieval(PhaseRetrieval):
         B = StructuredRandom(
             img_size=self.img_size,
             output_size=self.output_size,
-            mode=self.mode,
             n_layers=self.n_layers,
             transform_func=transform_func,
             transform_func_inv=transform_func_inv,

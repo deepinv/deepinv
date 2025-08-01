@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from typing import Callable
+from typing import Callable, Union, Optional
+from collections.abc import Iterable
 import warnings
+import deepinv as dinv
 
 
 class NoiseModel(nn.Module):
@@ -11,7 +13,7 @@ class NoiseModel(nn.Module):
     Noise models can be combined via :func:`deepinv.physics.NoiseModel.__mul__`.
 
     :param Callable noise_model: noise model function :math:`N(y)`.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
         If provided, it should be on the same device as the input.
     """
 
@@ -22,6 +24,14 @@ class NoiseModel(nn.Module):
         self.noise_model = noise_model
         self.rng = rng
         if rng is not None:
+            # NOTE: There is no use in moving RNG states from one device to another
+            # as Generator.set_state only supports inputs living on the CPU. Yet,
+            # by registering the initial random state as a buffer, it might be
+            # moved to another device. This might hinder performance as the tensor
+            # will need to be moved back to the CPU if it needs to be used later.
+            # We could fix that by letting it be a regular class attribute instead
+            # of a buffer but it would prevent it from being included in the
+            # state dicts which is undesirable.
             self.register_buffer("initial_random_state", rng.get_state())
 
     def forward(self, input: torch.Tensor, seed: int = None) -> torch.Tensor:
@@ -71,7 +81,8 @@ class NoiseModel(nn.Module):
         Reset the random number generator to its initial state.
         """
         if self.rng is not None:
-            self.rng.set_state(self.initial_random_state)
+            # NOTE: Generator.set_state expects a tensor living on the CPU.
+            self.rng.set_state(self.initial_random_state.cpu())
         else:
             warnings.warn(
                 "Cannot reset state for random number generator because it was not initialized. This is ignored."
@@ -185,8 +196,8 @@ class GaussianNoise(NoiseModel):
     r"""
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
 
-    :param float sigma: Standard deviation of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -233,12 +244,16 @@ class GaussianNoise(NoiseModel):
 
     """
 
-    def __init__(self, sigma=0.1, rng: torch.Generator = None):
+    def __init__(
+        self,
+        sigma: Union[float, torch.Tensor] = 0.1,
+        rng: Optional[torch.Generator] = None,
+    ):
+        device = _infer_device([sigma, rng])
         super().__init__(rng=rng)
-
-        self.register_buffer(
-            "sigma", self._float_to_tensor(sigma).to(getattr(rng, "device", "cpu"))
-        )
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
 
     def __add__(self, other):
         r"""
@@ -400,6 +415,10 @@ class UniformGaussianNoise(NoiseModel):
     :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)` and
     :math:`\sigma \sim\mathcal{U}(\sigma_{\text{min}}, \sigma_{\text{max}})`
 
+    :param Union[float, torch.Tensor] sigma_min: minimum standard deviation of the noise.
+    :param Union[float, torch.Tensor] sigma_max: maximum standard deviation of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+
     |sep|
 
     :Examples:
@@ -414,24 +433,26 @@ class UniformGaussianNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-
-    :param float sigma_min: minimum standard deviation of the noise.
-    :param float sigma_max: maximum standard deviation of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
-
     """
 
-    def __init__(self, sigma_min=0.0, sigma_max=0.5, rng: torch.Generator = None):
+    def __init__(
+        self,
+        sigma_min: Union[float, torch.Tensor] = 0.0,
+        sigma_max: Union[float, torch.Tensor] = 0.5,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([sigma_min, sigma_max, rng])
         super().__init__(rng=rng)
 
-        self.register_buffer(
-            "sigma_min",
-            self._float_to_tensor(sigma_min).to(getattr(rng, "device", "cpu")),
-        )
-        self.register_buffer(
-            "sigma_max",
-            self._float_to_tensor(sigma_max).to(getattr(rng, "device", "cpu")),
-        )
+        sigma_min = self._float_to_tensor(sigma_min)
+        sigma_min = sigma_min.to(device)
+
+        self.register_buffer("sigma_min", sigma_min)
+
+        sigma_max = self._float_to_tensor(sigma_max)
+        sigma_max = sigma_max.to(device)
+
+        self.register_buffer("sigma_max", sigma_max)
 
     def forward(self, x, seed: int = None, **kwargs):
         r"""
@@ -465,6 +486,12 @@ class PoissonNoise(NoiseModel):
 
     If ``normalize=True``, the output is multiplied by the gain, i.e., :math:`\tilde{y} = \gamma y`.
 
+    :param Union[float, torch.Tensor] gain: gain of the noise.
+    :param bool normalize: normalize the output.
+    :param bool clip_positive: clip the input to be positive before adding noise.
+        This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+
     |sep|
 
     :Examples:
@@ -478,24 +505,26 @@ class PoissonNoise(NoiseModel):
         >>> physics.noise_model = PoissonNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-
-    :param float gain: gain of the noise.
-    :param bool normalize: normalize the output.
-    :param bool clip_positive: clip the input to be positive before adding noise.
-        This may be needed when a NN outputs negative values e.g. when using leaky ReLU.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
-
+        
     """
 
     def __init__(
-        self, gain=1.0, normalize=True, clip_positive=False, rng: torch.Generator = None
+        self,
+        gain: Union[float, torch.Tensor] = 1.0,
+        normalize: bool = True,
+        clip_positive: bool = False,
+        rng: Optional[torch.Generator] = None,
     ):
+        device = _infer_device([gain, rng])
         super().__init__(rng=rng)
-        self.register_buffer("normalize", torch.tensor(normalize, dtype=torch.bool))
+
+        normalize = torch.tensor(normalize, dtype=torch.bool)
+        self.register_buffer("normalize", normalize)
         self.clip_positive = clip_positive
-        self.register_buffer(
-            "gain", self._float_to_tensor(gain).to(getattr(rng, "device", "cpu"))
-        )
+
+        gain = self._float_to_tensor(gain)
+        gain = gain.to(device)
+        self.register_buffer("gain", gain)
 
     def forward(self, x, gain=None, seed: int = None, **kwargs):
         r"""
@@ -511,10 +540,23 @@ class PoissonNoise(NoiseModel):
         self.to(x.device)
         gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
 
-        y = torch.poisson(
-            torch.clip(x / gain, min=0.0) if self.clip_positive else x / gain,
-            generator=self.rng,
-        )
+        if self.clip_positive:
+            z = torch.clip(x / gain, min=0.0)
+        else:
+            # NOTE: PyTorch operations are generally run asynchronously on CUDA
+            # devices and the underlying CUDA kernel under
+            # torch.poisson typically raises a CUDA-level assertion error
+            # when its input has negative entries. Those errors can't be
+            # recovered from using Python's exception system due to their
+            # asynchronous nature. For this reason we add a manual check if the
+            # RNG is on a CUDA device.
+            if self.rng is not None and self.rng.device.type == "cuda":
+                assert gain > 0, "Gain must be positive"
+                assert torch.all(x >= 0), "Input tensor must be non-negative"
+
+            z = x / gain
+
+        y = torch.poisson(z, generator=self.rng)
         if self.normalize:
             y = y * gain
         return y
@@ -570,11 +612,10 @@ class PoissonGaussianNoise(NoiseModel):
         to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.
 
 
-    :param float gain: gain of the noise.
-    :param float sigma: Standard deviation of the noise.
-    :param bool clip_positive: clip the input to be positive before adding noise (required for Poisson noise).
-    :param float min_gain: minimum gain to avoid division by zero if gain=0.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] gain: gain of the noise.
+    :param Union[float, torch.Tensor] sigma: Standard deviation of the noise.
+    :param bool clip_positive: (optional) if True, the input is clipped to be positive before adding noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -589,25 +630,29 @@ class PoissonGaussianNoise(NoiseModel):
         >>> physics.noise_model = PoissonGaussianNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
+        
     """
 
     def __init__(
         self,
-        gain=1.0,
-        sigma=0.1,
-        clip_positive=True,
-        min_gain=1e-12,
-        rng: torch.Generator = None,
+        gain: Union[float, torch.Tensor] = 1.0,
+        sigma: Union[float, torch.Tensor] = 0.1,
+        clip_positive: bool = False,
+        min_gain: [float, torch.Tensor] =1e-12,
+        rng: Union[torch.Generator, None] = None,
     ):
+        device = _infer_device([gain, sigma, rng])
         super().__init__(rng=rng)
+
         self.clip_positive = clip_positive
         self.min_gain = min_gain
-        self.register_buffer(
-            "gain", self._float_to_tensor(gain).to(getattr(rng, "device", "cpu"))
-        )
-        self.register_buffer(
-            "sigma", self._float_to_tensor(sigma).to(getattr(rng, "device", "cpu"))
-        )
+        gain = self._float_to_tensor(gain)
+        gain = gain.to(device)
+        self.register_buffer("gain", gain)
+
+        sigma = self._float_to_tensor(sigma)
+        sigma = sigma.to(device)
+        self.register_buffer("sigma", sigma)
 
     def forward(self, x, gain=None, sigma=None, seed: int = None, **kwargs):
         r"""
@@ -637,6 +682,17 @@ class PoissonGaussianNoise(NoiseModel):
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
         else:
+            # NOTE: PyTorch operations are generally run asynchronously on CUDA
+            # devices and the underlying CUDA kernel under
+            # torch.poisson typically raises a CUDA-level assertion error
+            # when its input has negative entries. Those errors can't be
+            # recovered from using Python's exception system due to their
+            # asynchronous nature. For this reason we add a manual check if the
+            # RNG is on a CUDA device.
+            if self.rng is not None and self.rng.device.type == "cuda":
+                assert gain > 0, "Gain must be positive"
+                assert torch.all(x >= 0), "Input tensor must be non-negative"
+
             y = torch.poisson(x / gain, generator=self.rng) * gain
 
         y = y + self.randn_like(x) * sigma
@@ -648,9 +704,9 @@ class UniformNoise(NoiseModel):
     r"""
     Uniform noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
 
-    :param float a: amplitude of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
-
+    :param Union[float, torch.Generator] a: amplitude of the noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
+    
     |sep|
 
     :Examples:
@@ -667,11 +723,15 @@ class UniformNoise(NoiseModel):
 
     """
 
-    def __init__(self, a=0.1, rng: torch.Generator = None):
+    def __init__(
+        self, a: Union[float, torch.Tensor] = 0.1, rng: torch.Generator = None
+    ):
+        device = _infer_device([a, rng])
         super().__init__(rng=rng)
-        self.register_buffer(
-            "a", self._float_to_tensor(a).to(getattr(rng, "device", "cpu"))
-        )
+
+        a = self._float_to_tensor(a)
+        a = a.to(device)
+        self.register_buffer("a", a)
 
     def forward(self, x, a=None, seed: int = None, **kwargs):
         r"""
@@ -704,9 +764,9 @@ class LogPoissonNoise(NoiseModel):
 
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
-    :param float N0: number of photons
-    :param float mu: normalization constant
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    :param Union[float, torch.Tensor] N0: number of photons
+    :param Union[float, torch.Tensor] mu: normalization constant
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -721,17 +781,25 @@ class LogPoissonNoise(NoiseModel):
         >>> physics.noise_model = LogPoissonNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-
+        
     """
 
-    def __init__(self, N0=1024.0, mu=1 / 50.0, rng: torch.Generator = None):
+    def __init__(
+        self,
+        N0: Union[float, torch.Tensor] = 1024.0,
+        mu: Union[float, torch.Tensor] = 1 / 50.0,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([N0, mu, rng])
         super().__init__(rng=rng)
-        self.register_buffer(
-            "mu", self._float_to_tensor(mu).to(getattr(rng, "device", "cpu"))
-        )
-        self.register_buffer(
-            "N0", self._float_to_tensor(N0).to(getattr(rng, "device", "cpu"))
-        )
+
+        mu = self._float_to_tensor(mu)
+        mu = mu.to(device)
+        self.register_buffer("mu", mu)
+
+        N0 = self._float_to_tensor(N0)
+        N0 = N0.to(device)
+        self.register_buffer("N0", N0)
 
     def forward(self, x, mu=None, N0=None, seed: int = None, **kwargs):
         r"""
@@ -762,10 +830,10 @@ class SaltPepperNoise(NoiseModel):
     giving the appearance of an image sprinkled with salt and pepper.
 
     The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.
-
-    :param float s: amount of salt noise.
-    :param float p: amount of pepper noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+    
+    :param Union[float, torch.Tensor] s: amount of salt noise.
+    :param Union[float, torch.Tensor] p: amount of pepper noise.
+    :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -780,16 +848,25 @@ class SaltPepperNoise(NoiseModel):
         >>> physics.noise_model = SaltPepperNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
+        
     """
 
-    def __init__(self, p=0.025, s=0.025, rng: torch.Generator = None):
+    def __init__(
+        self,
+        p: Union[float, torch.Tensor] = 0.025,
+        s: Union[float, torch.Tensor] = 0.025,
+        rng: torch.Generator = None,
+    ):
+        device = _infer_device([p, s, rng])
         super().__init__(rng=rng)
-        self.register_buffer(
-            "p", self._float_to_tensor(p).to(getattr(rng, "device", "cpu"))
-        )
-        self.register_buffer(
-            "s", self._float_to_tensor(s).to(getattr(rng, "device", "cpu"))
-        )
+
+        p = self._float_to_tensor(p)
+        p = p.to(device)
+        self.register_buffer("p", p)
+
+        s = self._float_to_tensor(s)
+        s = s.to(device)
+        self.register_buffer("s", s)
 
     def forward(self, x, p=None, s=None, seed: int = None, **kwargs):
         r"""
@@ -813,3 +890,34 @@ class SaltPepperNoise(NoiseModel):
         mask_salt = (self.rand_like(x) < proba_salt_vs_pepper).float()
         y = x * (1 - mask_flipped) + mask_flipped * mask_salt
         return y
+
+
+def _infer_device(
+    device_held_candidates: Iterable, *, default: torch.device = torch.device("cpu")
+) -> torch.device:
+    """Infer the device from a list of candidates.
+
+    Check that all candidates bound to a device are bound to the same device and return that device. If no candidate is bound to a device, then return a default device.
+
+    Supported device-held types are ``torch.Tensor``, ``torch.Generator``, and ``deepinv.utils.TensorList``.
+
+    :param Iterable device_held_candidates: list of tensors or generators to infer the device from.
+    :param torch.device default: default device to return if no candidates are bound to a device (default: cpu).
+    :raises RuntimeError: if more than one device is found among the inputs.
+    :return: the device of the candidates or the default device if no candidates are bound to a device.
+    """
+    input_devices = set()
+
+    for device_held_candidate in device_held_candidates:
+        if isinstance(
+            device_held_candidate,
+            (torch.Tensor, torch.Generator, dinv.utils.TensorList),
+        ):
+            input_devices.add(device_held_candidate.device)
+
+    if len(input_devices) > 1:
+        raise RuntimeError(
+            f"Input tensors and Generator should be on the same device. Found devices: {input_devices}."
+        )
+
+    return input_devices.pop() if input_devices else default

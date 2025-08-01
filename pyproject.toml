@@ -26,15 +26,14 @@ version = "0.3.2"
 dependencies = [
     "numpy",
     "matplotlib",
-    "hdf5storage",
     "tqdm",
     "torch>=2.2.0",
     "torchvision",
     "torchmetrics",
     "einops",
-    "wandb",
     "scipy",
-    "natsort",
+    "requests",
+    "h5py",
 ]
 
 [tool.setuptools]
@@ -99,7 +98,14 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
+    "natsort",
 ]
+
+# optional dependencies for training
+training = [
+    "wandb"
+]
+
 
 
 #####################################################################
@@ -121,3 +127,7 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff.lint.per-file-ignores]
+# NOTE: Rule F401 is ruff's unused imports rule.
+"__init__.py" = ["F401"]

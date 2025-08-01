@@ -11,8 +11,8 @@ from .base import Denoiser
 try:
     import timm
     from timm.layers import trunc_normal_, DropPath
-except ImportError as e:
-    timm = e
+except ImportError as e:  # pragma: no cover
+    timm = e  # pragma: no cover
 
 
 class WMSA(nn.Module):

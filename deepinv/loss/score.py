@@ -1,5 +1,4 @@
 import torch
-import deepinv.physics
 from deepinv.loss.loss import Loss
 from deepinv.models.base import Reconstructor
 

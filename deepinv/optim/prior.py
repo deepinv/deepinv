@@ -5,15 +5,14 @@ import torch.nn as nn
 try:
     import FrEIA.framework as Ff
     import FrEIA.modules as Fm
-except:
-    Ff = ImportError("The FrEIA package is not installed.")
-    Fm = ImportError("The FrEIA package is not installed.")
+except ImportError:  # pragma: no cover
+    Ff = ImportError("The FrEIA package is not installed.")  # pragma: no cover
+    Fm = ImportError("The FrEIA package is not installed.")  # pragma: no cover
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
 from deepinv.utils import patch_extractor
-from typing import Callable
 
 
 class Prior(Potential):

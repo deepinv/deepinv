@@ -2,7 +2,13 @@ from typing import Union, Callable
 from pathlib import Path
 import os
 
-from natsort import natsorted
+try:
+    from natsort import natsorted
+except ImportError:  # pragma: no cover
+    natsorted = ImportError(
+        "natsort is not installed. Please install it with `pip install natsort`."
+    )  # pragma: no cover
+
 import numpy as np
 
 from torch.utils.data import Dataset
@@ -117,11 +123,12 @@ class NBUDataset(Dataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
+        if isinstance(natsorted, ImportError):
+            raise natsorted
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
-        assert len(self.ms_paths) == len(self.pan_paths), "Image dataset incomplete."
-        self.image_paths = list(zip(self.ms_paths, self.pan_paths))
+        self.image_paths = list(zip(self.ms_paths, self.pan_paths, strict=True))
         for _ms, _pan in self.image_paths:
             assert _ms.name == _pan.name, "MS and PAN filenames do not match."
 

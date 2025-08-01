@@ -1,7 +1,14 @@
 from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
-from natsort import natsorted
+
+try:
+    from natsort import natsorted
+except ImportError:  # pragma: no cover
+    natsorted = ImportError(
+        "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
+    )  # pragma: no cover
+
 from tqdm import tqdm
 from warnings import warn
 
@@ -144,6 +151,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             raise ValueError(
                 f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
             )
+
+        if isinstance(natsorted, ImportError):
+            raise natsorted
 
         all_fnames = natsorted(
             f

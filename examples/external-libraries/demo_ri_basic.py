@@ -206,7 +206,7 @@ tau = 0.5976 * 2e-3
 physics = RadioInterferometry(
     img_size=image_gdth.shape[-2:],
     samples_loc=uv.permute((1, 0)),
-    real=True,
+    real_projection=True,
     device=device,
 )
 

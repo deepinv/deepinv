@@ -2,6 +2,7 @@ import pytest
 import torch
 import math
 import deepinv as dinv
+from contextlib import nullcontext
 
 # Noise model which has a `rng` attribute
 NOISES = [
@@ -164,3 +165,39 @@ def test_poisson_noise_params(device, rng, dtype):
 
         # check that no negative values are present in y_3
         assert torch.all(y_3 >= 0)
+
+
+# NOTE: This is a regression test.
+@pytest.mark.parametrize("sigma_device", DEVICES)
+@pytest.mark.parametrize("rng_kind", ["none", "consistent", "inconsistent"])
+def test_gaussian_noise_device_inference(sigma_device, rng_kind):
+    if not torch.cuda.is_available() and rng_kind == "inconsistent":
+        pytest.skip("This test requires having at least one CUDA device available.")
+
+    sigma = torch.tensor(1.0, device=sigma_device)
+
+    if rng_kind != "none":
+        if rng_kind == "consistent":
+            rng_device = sigma.device
+        elif rng_kind == "inconsistent":  # pragma: no cover
+            if sigma_device.type == "cuda":
+                rng_device = torch.device("cpu")
+            elif sigma_device.type == "cpu":
+                rng_device = torch.device("cuda:0")
+            else:
+                raise ValueError(f"Unknown device type: {sigma_device.type}")
+        else:
+            raise ValueError(f"Unknown rng_kind: {rng_kind}")
+
+        rng = torch.Generator(device=rng_device)
+    else:
+        rng = None
+
+    noise_model = None
+    with pytest.raises(AssertionError) if rng_kind == "inconsistent" else nullcontext():
+        noise_model = dinv.physics.GaussianNoise(sigma=sigma, rng=rng)
+
+    if noise_model is not None:
+        assert noise_model.sigma.device == sigma.device
+        if rng is not None:
+            assert noise_model.sigma.device == rng.device

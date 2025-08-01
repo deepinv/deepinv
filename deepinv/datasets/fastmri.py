@@ -22,12 +22,17 @@ from contextlib import contextmanager
 from typing import Any, Callable, NamedTuple, Optional, Union, Any
 from collections import defaultdict
 import pickle
-import math
 import warnings
 import os
-import h5py
+
+try:
+    import h5py
+except ImportError:  # pragma: no cover
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )  # pragma: no cover
+
 from tqdm import tqdm
-import numpy as np
 import torch
 from torchvision.transforms import Compose, CenterCrop
 
@@ -337,6 +342,9 @@ class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
         self.load_metadata_from_cache = load_metadata_from_cache
         self.save_metadata_to_cache = save_metadata_to_cache
         self.metadata_cache_file = metadata_cache_file
+
+        if isinstance(h5py, ImportError):
+            raise h5py
 
         if not os.path.isdir(root):
             raise ValueError(

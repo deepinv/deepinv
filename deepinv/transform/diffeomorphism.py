@@ -53,8 +53,10 @@ class CPABDiffeomorphism(Transform):
 
         try:
             from libcpab import Cpab
-        except ImportError:
-            raise ImportError("Install libcpab using pip install libcpab")
+        except ImportError:  # pragma: no cover
+            raise ImportError(
+                "Install libcpab using pip install libcpab"
+            )  # pragma: no cover
 
         self.cpab = Cpab(
             [n_tesselation, n_tesselation],
