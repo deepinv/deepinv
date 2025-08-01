@@ -6,44 +6,41 @@ def normalize(inp, *, mode):
     Normalize a batch of signals between zero and one.
 
     :param torch.Tensor inp: the input signal to normalize, it should be of shape (B, *).
-    :param str mode: the normalization, either 'min_max' for min-max normalization or 'clip' for clipping. Note that min-max normalization of constant signals is ill-defined and here 'min_max' amounts to clipping for constant signals.
+    :param str mode: the normalization, either 'min_max' for min-max normalization or 'clip' for clipping. Note that min-max normalization of constant signals is ill-defined and here it amounts to mapping the constant value to the closest value between zero and one (which is equivalent to clipping).
     :return: the normalized batch of signals.
     """
-    min_val = 0.0
-    max_val = 1.0
-
-    # NOTE: Rescaling a constant signal between zero and one is ill-defined.
-    # Indeed, no matter the new scale, the signal won't have a minimum value
-    # equal to zero and a maximum value equal to one. In this case, we
-    # choose to rescale the signal so that its new value is the number in
-    # [0, 1] that is closest to its original value. This amounts to
-    # clamping it between zero and one.
     if mode == "min_max":
-        # Compute batch-wise minimum and maximum values
+        # Compute the minimum and maximum intensity of the batched signals
         non_batched_dims = list(range(1, inp.ndim))
-        inp_min = inp.amin(dim=non_batched_dims, keepdim=False)
-        inp_max = inp.amax(dim=non_batched_dims, keepdim=False)
+        minimum_intensity = inp.amin(dim=non_batched_dims, keepdim=False)
+        maximum_intensity = inp.amax(dim=non_batched_dims, keepdim=False)
 
         # Clone the signal to avoid input mutations
         inp = inp.clone()
 
-        # Compute indices of non-constant the batch of signals
-        indices = inp_max != inp_min
-        # Make inp_min and inp_max broadcastable with inp
-        shape = (-1,) + (1,) * (inp.ndim - 1)
-        inp_min = inp_min.view(*shape)
-        inp_max = inp_max.view(*shape)
-        # Rescale non-constant batched signals between zero and one
-        inp[indices] -= inp_min[indices]
-        inp[indices] /= inp_max[indices] - inp_min[indices]
+        # The indices corresponding to the non-constant batched signals
+        indices = maximum_intensity != minimum_intensity
 
-        # Compute indices of constant batched signals
+        # Prepare the tensors for broadcasting
+        shape = (-1,) + (1,) * len(non_batched_dims)
+        minimum_intensity = minimum_intensity.view(*shape)
+        maximum_intensity = maximum_intensity.view(*shape)
+
+        # Rescale the non-constant batched signals between zero and one
+        inp[indices] -= minimum_intensity[indices]
+        inp[indices] /= maximum_intensity[indices] - minimum_intensity[indices]
+
+        # The indices corresponding to the constant batched signals
         indices = torch.logical_not(indices)
+
         # Clamp constant batched signals between zero and one
-        inp[indices] = inp[indices].clamp(min=min_val, max=max_val)
+        inp[indices] = inp[indices].clamp(min=0.0, max=1.0)
     elif mode == "clip":
-        inp = inp.clamp(min=min_val, max=max_val)
+        # Clamp every batched signal between zero and one
+        inp = inp.clamp(min=0.0, max=1.0)
     else:
-        raise ValueError(f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'.")
+        raise ValueError(
+            f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."
+        )
 
     return inp
