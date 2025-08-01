@@ -505,7 +505,7 @@ class PoissonNoise(NoiseModel):
         >>> physics.noise_model = PoissonNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-        
+
     """
 
     def __init__(
@@ -630,7 +630,7 @@ class PoissonGaussianNoise(NoiseModel):
         >>> physics.noise_model = PoissonGaussianNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-        
+
     """
 
     def __init__(
@@ -638,7 +638,7 @@ class PoissonGaussianNoise(NoiseModel):
         gain: Union[float, torch.Tensor] = 1.0,
         sigma: Union[float, torch.Tensor] = 0.1,
         clip_positive: bool = False,
-        min_gain: [float, torch.Tensor] =1e-12,
+        min_gain: [float, torch.Tensor] = 1e-12,
         rng: Union[torch.Generator, None] = None,
     ):
         device = _infer_device([gain, sigma, rng])
@@ -706,7 +706,7 @@ class UniformNoise(NoiseModel):
 
     :param Union[float, torch.Generator] a: amplitude of the noise.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
-    
+
     |sep|
 
     :Examples:
@@ -781,7 +781,7 @@ class LogPoissonNoise(NoiseModel):
         >>> physics.noise_model = LogPoissonNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-        
+
     """
 
     def __init__(
@@ -830,7 +830,7 @@ class SaltPepperNoise(NoiseModel):
     giving the appearance of an image sprinkled with salt and pepper.
 
     The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.
-    
+
     :param Union[float, torch.Tensor] s: amount of salt noise.
     :param Union[float, torch.Tensor] p: amount of pepper noise.
     :param torch.Generator, None rng: (optional) a pseudorandom random number generator for the parameter generation.
@@ -848,7 +848,7 @@ class SaltPepperNoise(NoiseModel):
         >>> physics.noise_model = SaltPepperNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-        
+
     """
 
     def __init__(
