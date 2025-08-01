@@ -13,7 +13,6 @@ import subprocess
 import os
 import inspect
 import pathlib
-import torchvision
 import torchvision.transforms as transforms
 import PIL
 import io

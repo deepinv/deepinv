@@ -6,7 +6,6 @@ from typing import (
 )
 import os
 
-import torch
 import numpy as np
 from deepinv.datasets.base import BaseDataset
 

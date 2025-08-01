@@ -4,7 +4,6 @@ import re
 
 from PIL import Image
 import requests
-import torch
 
 from deepinv.datasets.utils import (
     download_archive,

@@ -1,9 +1,6 @@
 import hashlib
-from typing import Any, Callable
+from typing import Callable
 import os
-
-from PIL import Image
-import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,

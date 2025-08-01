@@ -1,8 +1,6 @@
 from typing import Any, Callable
 import os
 
-import torch
-
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import BaseDataset
 

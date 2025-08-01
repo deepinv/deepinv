@@ -66,7 +66,7 @@ def get_dummy_pil_png_image():
 def check_dataset_format(
     dataset: Dataset,
     length: int = None,
-    dtype: Type = None,
+    dtype: type = None,
     shape: tuple = None,
     allow_non_tensor: bool = False,
 ):
@@ -74,7 +74,7 @@ def check_dataset_format(
 
     :param torch.utils.data.Dataset dataset: input dataset
     :param int length: intended dataset length.
-    :param Type dtype: intended dtype of returned batch.
+    :param type dtype: intended dtype of returned batch.
     :param tuple shape: intended shape of returned batch, if it has the shape attribute.
     :param bool allow_non_tensor: if `True`, allow non tensors e.g. PIL Image and numpy ndarray to be returned.
     """

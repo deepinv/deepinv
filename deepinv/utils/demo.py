@@ -9,7 +9,6 @@ from PIL import Image
 
 import numpy as np
 import torch
-import torchvision
 from torchvision import transforms
 
 if TYPE_CHECKING:
