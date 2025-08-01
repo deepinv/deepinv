@@ -118,12 +118,16 @@ Noise distributions describe the noise model :math:`N`,
 where :math:`y = N(z)` with :math:`z=A(x)`. The noise models can be assigned
 to **any** operator in the list above, by setting the
 :func:`set_noise_model <deepinv.physics.Physics.set_noise_model>` attribute at initialization.
+By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoise>`.
 
 .. list-table:: Noise Distributions and Their Probability Distributions
    :header-rows: 1
 
    * - **Noise**
      - :math:`y|z`
+
+   * - :class:`deepinv.physics.ZeroNoise`
+     - :math:`y=z`
 
    * - :class:`deepinv.physics.GaussianNoise`
      - :math:`y\sim \mathcal{N}(z, I\sigma^2)`

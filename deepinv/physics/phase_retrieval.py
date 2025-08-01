@@ -345,6 +345,7 @@ class PtychographyLinearOperator(LinearPhysics):
     :param None, torch.Tensor probe: A tensor of shape ``img_size`` representing the probe function. If ``None``, a disk probe is generated with :func:`deepinv.physics.phase_retrieval.build_probe` with disk shape and radius 10.
     :param None, torch.Tensor shifts: A 2D array of shape ``(N, 2)`` corresponding to the ``N`` shift positions for the probe. If ``None``, shifts are generated with :func:`deepinv.physics.phase_retrieval.generate_shifts` with ``N=25``.
     :param torch.device, str device: Device "cpu" or "gpu".
+
     """
 
     def __init__(
@@ -459,6 +460,19 @@ class Ptychography(PhaseRetrieval):
     :param None, torch.Tensor shifts: A 2D array of shape (``n_img``, 2) corresponding to the shifts for the probe.
         If None, shifts are generated with ``deepinv.physics.phase_retrieval.generate_shifts`` function.
     :param torch.device, str device: Device "cpu" or "gpu".
+
+    |sep|
+
+    :Examples:
+
+    >>> from deepinv.physics import Ptychography
+    >>> import torch
+    >>> img_size = (1, 64, 64)  # input image
+    >>> physics = Ptychography(img_size=img_size)
+    >>> x = torch.randn(img_size, dtype=torch.cfloat)
+    >>> y = physics(x)  # Apply the Ptychography forward operator
+    >>> print(y.shape) # 25 probe positions by default
+    torch.Size([1, 25, 64, 64])
     """
 
     @_deprecated_alias(in_shape="img_size")

@@ -170,7 +170,7 @@ print("Total acceleration:", (2 * 128 * 128) / mask.sum())
 #
 # As a (static) reconstruction network, we use an unrolled network
 # (half-quadratic splitting) with a trainable denoising prior based on the
-# DnCNN architecture which was proposed in `MoDL :footcite:t:`aggarwal2018modl`.
+# DnCNN architecture which was proposed in MoDL :footcite:t:`aggarwal2018modl`.
 # See :class:`deepinv.models.MoDL` for details.
 #
 

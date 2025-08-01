@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Union
 import copy
 import inspect
-import itertools
 import collections.abc
 
 import torch
@@ -159,14 +158,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
         This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param torch.Tensor x_init: initial guess for the reconstruction.
+        :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-
         if self.solver == "gradient_descent":
             if x_init is None:
-                x_init = self.A_adjoint(y)
+                if hasattr(self, "A_adjoint"):
+                    x_init = self.A_adjoint(y)
+                else:
+                    raise ValueError(
+                        "x_init must be provided for gradient descent solver if the physics does not have"
+                        " A_adjoint defined."
+                    )
 
             x = x_init
 
@@ -398,11 +402,11 @@ class LinearPhysics(Physics):
         self,
         A=lambda x, **kwargs: x,
         A_adjoint=lambda x, **kwargs: x,
-        noise_model=lambda x, **kwargs: x,
+        noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-4,
-        solver="CG",
+        solver="lsqr",
         **kwargs,
     ):
         super().__init__(

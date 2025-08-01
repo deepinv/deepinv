@@ -165,7 +165,7 @@ class NoiseModel(nn.Module):
 
 class ZeroNoise(NoiseModel):
     r"""
-    Zero noise model :math:`y=x`, serve as a placeholder.
+    Zero noise model :math:`y=x`, serves as a placeholder.
     """
 
     def __init__(self, *args, **kwargs):
@@ -184,6 +184,9 @@ class ZeroNoise(NoiseModel):
 class GaussianNoise(NoiseModel):
     r"""
     Gaussian noise :math:`y=z+\epsilon` where :math:`\epsilon\sim \mathcal{N}(0,I\sigma^2)`.
+
+    :param float sigma: Standard deviation of the noise.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -228,8 +231,6 @@ class GaussianNoise(NoiseModel):
         >>> y = batch_gaussian_noise(x)
         >>> assert (t[0]*gaussian_noise).sigma.item() == batch_gaussian_noise.sigma[0].item(), "Wrong standard deviation value for the first GaussianNoise."
 
-    :param float sigma: Standard deviation of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, sigma=0.1, rng: torch.Generator = None):
@@ -459,7 +460,6 @@ class UniformGaussianNoise(NoiseModel):
 
 class PoissonNoise(NoiseModel):
     r"""
-
     Poisson noise :math:`y = \mathcal{P}(\frac{x}{\gamma})`
     with gain :math:`\gamma>0`.
 
@@ -561,6 +561,21 @@ class PoissonGaussianNoise(NoiseModel):
     Poisson-Gaussian noise :math:`y = \gamma z + \epsilon` where :math:`z\sim\mathcal{P}(\frac{x}{\gamma})`
     and :math:`\epsilon\sim\mathcal{N}(0, I \sigma^2)`.
 
+    This noise model allows to recover the Poisson noise model by setting the standard deviation to zero,
+    i.e., :math:`\sigma=0`, and the Gaussian noise model by setting the gain to zero, i.e., :math:`\gamma\to0`.
+
+    .. note::
+
+        If :math:`\gamma=0`, the model will clamp the input to a small value
+        to avoid division by zero, i.e., :math:`\gamma=\max(\gamma, \text{min\_gain})`.
+
+
+    :param float gain: gain of the noise.
+    :param float sigma: Standard deviation of the noise.
+    :param bool clip_positive: clip the input to be positive before adding noise (required for Poisson noise).
+    :param float min_gain: minimum gain to avoid division by zero if gain=0.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+
     |sep|
 
     :Examples:
@@ -574,17 +589,19 @@ class PoissonGaussianNoise(NoiseModel):
         >>> physics.noise_model = PoissonGaussianNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-
-    :param float gain: gain of the noise.
-    :param float sigma: Standard deviation of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(
-        self, gain=1.0, sigma=0.1, clip_positive=False, rng: torch.Generator = None
+        self,
+        gain=1.0,
+        sigma=0.1,
+        clip_positive=True,
+        min_gain=1e-12,
+        rng: torch.Generator = None,
     ):
         super().__init__(rng=rng)
         self.clip_positive = clip_positive
+        self.min_gain = min_gain
         self.register_buffer(
             "gain", self._float_to_tensor(gain).to(getattr(rng, "device", "cpu"))
         )
@@ -615,6 +632,8 @@ class PoissonGaussianNoise(NoiseModel):
         gain = self.gain[(...,) + (None,) * (x.dim() - 1)]
         sigma = self.sigma[(...,) + (None,) * (x.dim() - 1)]
 
+        gain = torch.clip(gain, min=self.min_gain)
+
         if self.clip_positive:
             y = torch.poisson(torch.clip(x / gain, min=0.0), generator=self.rng) * gain
         else:
@@ -628,6 +647,9 @@ class PoissonGaussianNoise(NoiseModel):
 class UniformNoise(NoiseModel):
     r"""
     Uniform noise :math:`y = x + \epsilon` where :math:`\epsilon\sim\mathcal{U}(-a,a)`.
+
+    :param float a: amplitude of the noise.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
     |sep|
 
@@ -643,8 +665,6 @@ class UniformNoise(NoiseModel):
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
 
-    :param float a: amplitude of the noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, a=0.1, rng: torch.Generator = None):
@@ -685,8 +705,10 @@ class LogPoissonNoise(NoiseModel):
     For more details on the interpretation of the parameters for CT measurements, we refer to the paper :footcite:t:`leuschner2021lodopab`.
 
     :param float N0: number of photons
+    :param float mu: normalization constant
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
 
-        |sep|
+    |sep|
 
     :Examples:
 
@@ -699,11 +721,6 @@ class LogPoissonNoise(NoiseModel):
         >>> physics.noise_model = LogPoissonNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-
-
-    :param float mu: normalization constant
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
-
 
     """
 
@@ -746,6 +763,10 @@ class SaltPepperNoise(NoiseModel):
 
     The parameters s and p control the amount of salt (pixel to 1) and pepper (pixel to 0) noise.
 
+    :param float s: amount of salt noise.
+    :param float p: amount of pepper noise.
+    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
+
     |sep|
 
     :Examples:
@@ -759,10 +780,6 @@ class SaltPepperNoise(NoiseModel):
         >>> physics.noise_model = SaltPepperNoise()
         >>> x = torch.rand(1, 1, 2, 2)
         >>> y = physics(x)
-
-    :param float s: amount of salt noise.
-    :param float p: amount of pepper noise.
-    :param torch.Generator rng: (optional) a pseudorandom random number generator for the parameter generation.
     """
 
     def __init__(self, p=0.025, s=0.025, rng: torch.Generator = None):
