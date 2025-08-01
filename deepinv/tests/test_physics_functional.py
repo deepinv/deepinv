@@ -157,3 +157,10 @@ def test_imresize(kernel, scale, antialiasing):
         int(img_size[1] * scale),
         int(img_size[2] * scale),
     )
+
+
+def test_imresize_div2k():
+    x = dinv.utils.load_example("div2k_valid_hr_0877.png") * 255.0
+    y = dinv.utils.load_example("div2k_valid_lr_bicubic_0877x4.png") * 255.0
+    y2 = dinv.physics.functional.imresize_matlab(x, scale=1 / 4).round()
+    assert dinv.metric.PSNR()(y2 / 255.0, y / 255.0) > 59
