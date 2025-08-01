@@ -1,4 +1,5 @@
-from .signal import normalize_signal as _normalize_signal
+import deepinv as dinv
+from .signal import normalize_signal
 
 import os
 import shutil
@@ -143,7 +144,7 @@ def preprocess_img(im, rescale_mode="min_max"):
     im = im.type(torch.float32)
 
     # Normalize values between zero and one
-    im = _normalize_signal(im, mode=rescale_mode)
+    im = normalize_signal(im, mode=rescale_mode)
 
     return im
 
@@ -171,7 +172,7 @@ def rescale_img(im, rescale_mode="min_max"):
     warn(
         "The function `deepinv.utils.plotting.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead."
     )
-    return _normalize_signal(im, mode=rescale_mode)
+    return normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
