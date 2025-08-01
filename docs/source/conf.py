@@ -278,7 +278,7 @@ sphinx_gallery_conf = {
         ]
     ),
     "within_subsection_order": MySortKey,
-    'first_notebook_cell': (
+    "first_notebook_cell": (
         "# 🚀 To get started, install DeepInverse by creating a new cell and running `%pip install deepinv`\n"
     ),
 }
