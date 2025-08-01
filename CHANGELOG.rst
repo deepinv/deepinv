@@ -16,7 +16,7 @@ Changed
 Fixed
 ^^^^^
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
-
+- Fix full-reference metrics used with measurement-only dataset (:gh:`622` by `Andrew Wang`_)
 
 v0.3.2
 ------

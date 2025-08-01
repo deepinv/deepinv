@@ -170,22 +170,23 @@ model = dinv.optim.optim_builder(
 # 4. Datasets
 # ~~~~~~~~~~~
 #
-# You can use DeepInverse with datasets, for testing or training. First,
+# You can use DeepInverse with :ref:`dataset <datasets>`, for testing or training. First,
 # define a ground-truth dataset. We implement wrappers for
 # :ref:`many popular imaging datasets <datasets>` across domains including natural images,
 # medical imaging, satellite imaging etc.
+#
+# .. tip::
+#     It's easy to use your own dataset with DeepInverse. See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a tutorial.
 #
 
 dataset = dinv.datasets.SimpleFastMRISliceDataset("data", download=True)
 
 
 # %%
-# Datasets return tuples `x, y` or `x, y, params` of images,
+# :ref:`Datasets <datasets>` return either `x`, tuples `x, y` or `x, y, params` of images,
 # measurements, and optional physics parameters. Given a ground-truth
 # dataset, you can simulate a dataset:
 #
-# **TODO** link to datasets format + clean up datasets format doc + move
-# to datasets user guide + link from trainer
 #
 
 pth = dinv.datasets.generate_dataset(dataset, physics, save_dir="data")
@@ -205,7 +206,7 @@ dinv.test(model, torch.utils.data.DataLoader(dataset), physics)
 # %%
 # .. tip::
 #
-#    Want to use DeepInverse with your own dataset? Check out TODO
+#    Want to use DeepInverse with your own dataset? Check out :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a tutorial!
 #
 
 

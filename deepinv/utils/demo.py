@@ -249,6 +249,19 @@ def load_example(name, **kwargs):
     return load_url_image(get_image_url(name), **kwargs)
 
 
+def download_example(name: str, save_dir: Union[str, Path]):
+    r"""
+    Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param str, Path save_dir: directory to save image to.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    data = requests.get(get_image_url(name)).content
+    with open(Path(save_dir) / name, "wb") as f:
+        f.write(data)
+
+
 def load_torch_url(url):
     r"""
     Load an array from url and read it by torch.load.

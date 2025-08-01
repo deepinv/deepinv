@@ -2,6 +2,7 @@ from __future__ import annotations
 from types import ModuleType
 from typing import Optional, Callable
 
+import torch
 from torch import Tensor
 from torch.nn import Module
 
@@ -34,7 +35,7 @@ class Metric(Module):
     The metric function must reduce over all dims except the batch dim (see example).
 
     :param Callable metric: metric function, it must reduce over all dims except batch dim. It must not reduce over batch dim.
-        This is unused if the ``metric`` method is overridden.
+        This is unused if the ``metric`` method is overridden. Takes as input `x_net` and `x` tensors and returns a tensor of metric scores.
     :param bool complex_abs: perform complex magnitude before passing data to metric function. If ``True``,
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param bool train_loss: if higher is better, invert metric. If lower is better, does nothing.
@@ -59,7 +60,7 @@ class Metric(Module):
 
     def __init__(
         self,
-        metric: Callable = None,
+        metric: Callable[[Tensor, Tensor], Tensor] = None,
         complex_abs: bool = False,
         train_loss: bool = False,
         reduction: Optional[str] = None,
@@ -152,6 +153,10 @@ class Metric(Module):
 
         All tensors should be of shape ``(B, ...)`` or ``(B, C, ...)`` where ``B`` is batch size and ``C`` is channels.
 
+        .. note::
+
+            If a full reference metric is used and a tensor is `None`, a tensor of NaN will be returned instead.
+
         :param torch.Tensor x_net: Reconstructed image :math:`\hat{x}=\inverse{y}` of shape ``(B, ...)`` or ``(B, C, ...)``.
         :param torch.Tensor x: Reference image :math:`x` (optional) of shape ``(B, ...)`` or ``(B, C, ...)``.
 
@@ -171,12 +176,13 @@ class Metric(Module):
                 )
             x_net = (x_net - x_net.mean()) / x_net.std() * x.std() + x.mean()
 
-        m = self.metric(
-            self.normalizer(x_net),
-            self.normalizer(x),
-            *args,
-            **kwargs,
-        )
+        x_net = self.normalizer(x_net)
+        x = self.normalizer(x) if x is not None else None
+
+        try:
+            m = self.metric(x_net, x, *args, **kwargs)
+        except TypeError:
+            return torch.tensor([torch.nan])
 
         m = self.reducer(m)
 

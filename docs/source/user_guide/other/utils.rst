@@ -79,6 +79,8 @@ We provide some useful utility and demo functions:
      - Loads an image directly from a URL for experiments or demos.
    * - :func:`deepinv.utils.load_example`
      - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
+   * - :func:`deepinv.utils.download_example`
+     - Downloads an image from DeepInverse HuggingFace repository to file.
    * - :func:`deepinv.utils.load_image`
      - Loads a local image file for experiments or demos.
    * - :func:`deepinv.utils.load_dataset`
