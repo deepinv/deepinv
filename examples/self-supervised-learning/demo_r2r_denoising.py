@@ -77,7 +77,7 @@ noise_model = predefined_noise_models[noise_name]
 physics = dinv.physics.Denoising(noise_model)
 operation = f"{operation}_{noise_name}"
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 0 if torch.cuda.is_available() else 0
 

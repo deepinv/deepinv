@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: DeepInverse Discord community support
+    url: https://discord.gg/qBqY5jKw3p
+    about: Please ask and answer questions here.
+  - name: DeepInverse github discussions
+    url: https://github.com/deepinv/deepinv/discussions
+    about: Please ask and answer questions here.
+  - name: DeepInverse maintainers
+    url: https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md
+    about: Please reach out to the maintainers for assistance.

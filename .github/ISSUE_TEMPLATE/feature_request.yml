@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest an idea or enhancement for DeepInverse.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! Please fill out the form below to help us understand your request.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment (optional)
+      description: OS, Python version, DeepInverse version, and any relevant dependencies.
+      placeholder: e.g. Ubuntu 22.04, Python 3.12, DeepInverse 1.0.0
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the feature
+      description: A clear and concise description of the feature you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this feature important? What problem does it solve?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered any alternative solutions or features?
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request here.
+    validations:
+      required: false

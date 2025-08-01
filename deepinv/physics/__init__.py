@@ -1,6 +1,6 @@
 from .inpainting import Inpainting, Demosaicing
 from .compressed_sensing import CompressedSensing
-from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur, Upsampling
+from .blur import Blur, Downsampling, BlurFFT, SpaceVaryingBlur, Upsampling, DownsamplingMatlab
 from .range import Decolorize
 from .haze import Haze
 from .unmixing import HyperSpectralUnmixing

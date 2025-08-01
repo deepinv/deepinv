@@ -30,7 +30,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install -e .[dataset,denoisers,doc]
+          pip install -e .[dataset,denoisers,doc,training]
       - name: Sphinx build
         run: |
           sphinx-build -W docs/source _build
