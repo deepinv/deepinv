@@ -18,7 +18,7 @@ Base Datasets
 
 Datasets can return optionally ground-truth images `x`, measurements `y`, or :ref:`physics parameters <parameter-dependent-operators>` `params`,
 or any combination of these. See :class:`deepinv.datasets.BaseDataset` for the formats we expect data to be returned in, in order for it to be 
-compatible with DeepInverse (e.g. to be used with :class:`deepinv.training.Trainer`).
+compatible with DeepInverse (e.g. to be used with :class:`deepinv.Trainer`).
 
 All datasets shoud inherit from :class:`deepinv.datasets.BaseDataset` which checks that the dataset is compatible.
 
@@ -35,6 +35,10 @@ We provide dataset classes for you to easily load in your own data:
      - Dataset that loads images (ground-truth, measurements or both) from a folder
    * - :class:`deepinv.datasets.TensorDataset`
      - Dataset that returns a tensors passed in at input, either single tensors or a full dataset
+
+.. seealso::
+
+  See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a simple example of how to use DeepInverse with your own dataset.
 
 .. _generating-datasets:
 
