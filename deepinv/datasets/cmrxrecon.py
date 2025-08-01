@@ -220,7 +220,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
         target = None
 
-        # The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
+        # TODO The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
         # to a separate CMRxReconTransform in future.
 
         # Load mask
@@ -270,6 +270,6 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace, {"mask": mask.float()}
+            return target, kspace.float(), {"mask": mask.float()}
         else:
-            return target, kspace
+            return target, kspace.float()

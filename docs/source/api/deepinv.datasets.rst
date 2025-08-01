@@ -54,6 +54,7 @@ Image Datasets
     deepinv.datasets.FastMRISliceDataset
     deepinv.datasets.SimpleFastMRISliceDataset
     deepinv.datasets.CMRxReconSliceDataset
+    deepinv.datasets.SKMTEASliceDataset
     deepinv.datasets.LidcIdriSliceDataset
     deepinv.datasets.Flickr2kHR
     deepinv.datasets.LsdirHR

@@ -1,9 +1,11 @@
+from warnings import warn
+from typing import Union
 from torchvision.transforms.functional import rotate
 import torchvision
 import torch
 import torch.fft as fft
 from torch import Tensor
-from deepinv.physics.forward import LinearPhysics, DecomposablePhysics
+from deepinv.physics.forward import LinearPhysics, DecomposablePhysics, adjoint_function
 from deepinv.physics.functional import (
     conv2d,
     conv_transpose2d,
@@ -12,6 +14,7 @@ from deepinv.physics.functional import (
     product_convolution2d_adjoint,
     conv3d_fft,
     conv_transpose3d_fft,
+    imresize_matlab,
 )
 
 
@@ -29,7 +32,10 @@ class Downsampling(LinearPhysics):
 
     :param torch.Tensor, str, None filter: Downsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``
         , ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
-    :param tuple[int] img_size: size of the input image
+    :param tuple[int], None img_size: optional size of the high resolution image `(C, H, W)`.
+        If `tuple`, use this fixed image size.
+        If `None`, override on-the-fly using input data size and `factor` (note that here, `A_adjoint` will
+        only produce even img shapes).
     :param int factor: downsampling factor
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -55,7 +61,7 @@ class Downsampling(LinearPhysics):
 
     def __init__(
         self,
-        img_size,
+        img_size=None,
         filter=None,
         factor=2,
         device="cpu",
@@ -63,9 +69,11 @@ class Downsampling(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        assert isinstance(factor, int), "downsampling factor should be an integer"
+        if not isinstance(factor, (int, float)):
+            raise ValueError("Downsampling factor must be an integer")
 
-        self.imsize = img_size
+        self.imsize = tuple(img_size) if isinstance(img_size, list) else img_size
+        self.imsize_dynamic = (3, 128, 128)  # placeholder
         self.padding = padding
         self.device = device
 
@@ -78,9 +86,16 @@ class Downsampling(LinearPhysics):
         Applies the downsampling operator to the input image.
 
         :param torch.Tensor x: input image.
-        :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, str, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
+        :param int, float, torch.Tensor factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+
+        .. warning::
+
+            If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
+
         """
+        self.imsize_dynamic = x.shape[-3:]
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
         if self.filter is not None:
@@ -95,26 +110,36 @@ class Downsampling(LinearPhysics):
         Adjoint operator of the downsampling operator.
 
         :param torch.Tensor y: downsampled image.
-        :param None, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
+        :param None, str, torch.Tensor filter: Filter :math:`h` to be applied to the input image before downsampling.
             If not ``None``, it uses this filter and stores it as the current filter.
+        :param int, float, torch.Tensor factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+
+        .. warning::
+
+            If `factor` is passed, `filter` must also be passed as a `str` or `Tensor`, in order to update the filter to the new factor.
+
         """
+        if factor is not None:
+            self.factor = self.check_factor(factor)
+
+        self.imsize_dynamic = (
+            y.shape[-3],
+            y.shape[-2] * self.factor,
+            y.shape[-1] * self.factor,
+        )
+
         self.update_parameters(filter=filter, factor=factor, **kwargs)
 
-        imsize = self.imsize
+        imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
 
-        if self.filter is not None:
-            if self.padding == "valid":
-                imsize = (
-                    self.imsize[0],
-                    self.imsize[1] - self.filter.shape[-2] + 1,
-                    self.imsize[2] - self.filter.shape[-1] + 1,
-                )
-            else:
-                imsize = (
-                    self.imsize[0],
-                    self.imsize[1],
-                    self.imsize[2],
-                )
+        if self.filter is not None and self.padding == "valid":
+            imsize = (
+                imsize[0],
+                imsize[1] - self.filter.shape[-2] + 1,
+                imsize[2] - self.filter.shape[-1] + 1,
+            )
+        else:
+            imsize = imsize[:3]
 
         x = torch.zeros((y.shape[0],) + imsize, device=y.device, dtype=y.dtype)
         x[:, :, :: self.factor, :: self.factor] = y  # upsample
@@ -156,22 +181,61 @@ class Downsampling(LinearPhysics):
         else:
             return LinearPhysics.prox_l2(self, z, y, gamma, **kwargs)
 
-    def update_parameters(self, filter=None, factor=None, **kwargs):
+    def check_factor(self, factor: Union[int, float, Tensor]) -> int:
+        """Check new downsampling factor.
+
+        :param int, float, torch.Tensor factor: downsampling factor to be checked and cast to `int`. If :class:`torch.Tensor`,
+            it must be 1D and all its elements must be the same, since downsampling only supports one factor per batch.
+        :return: `int`: factor
+        """
+        if isinstance(factor, (int, float)):
+            return int(factor)
+        elif isinstance(factor, Tensor):
+            if factor.ndim > 1:
+                raise ValueError("Factor tensor must be 1D.")
+
+            factor = torch.unique(factor)
+            if len(factor) > 1:
+                raise ValueError(
+                    f"Downsampling only supports one unique factor per batch, but got factors {torch.unique(factor).tolist()}."
+                )
+
+            return int(factor.item())
+        else:
+            raise ValueError(
+                f"Factor must be an integer, got {factor} of type {type(factor)}."
+            )
+
+    def update_parameters(
+        self,
+        filter: Tensor = None,
+        factor: Union[int, float, Tensor] = None,
+        **kwargs,
+    ):
         r"""
         Updates the current filter and/or factor.
 
         :param torch.Tensor filter: New filter to be applied to the input image.
-        :param int factor: New downsampling factor to be applied to the input image.
+        :param int, float, torch.Tensor factor: New downsampling factor to be applied to the input image.
         """
+        if factor is not None and filter is None and self.filter is not None:
+            warn(
+                "Updating factor but not filter. Filter will not be valid for new factor. Pass filter string or new filter to resolve this."
+            )
+
         if factor is not None:
-            if isinstance(factor, (int, float)):
-                self.factor = int(factor)
-            else:
-                raise ValueError(
-                    f"Factor must be an integer, got {factor} of type {type(factor)}."
-                )
+            self.factor = self.check_factor(factor=factor)
 
         if filter is not None:
+            if isinstance(filter, list):
+                # Batched filter strings
+                if len(set(filter)) == 1 and isinstance(filter[0], str):
+                    filter = filter[0]
+                else:
+                    raise ValueError(
+                        f"Downsampling supports filter string lists if they are identical, but got unique filters {set(filter)}."
+                    )
+
             if isinstance(filter, torch.Tensor):
                 filter = filter.to(self.device)
             elif filter == "gaussian":
@@ -188,9 +252,11 @@ class Downsampling(LinearPhysics):
             self.register_buffer("filter", filter)
 
         if self.filter is not None:
+            imsize = self.imsize if self.imsize is not None else self.imsize_dynamic
+
             self.register_buffer(
                 "Fh",
-                filter_fft_2d(self.filter, self.imsize, real_fft=False).to(self.device),
+                filter_fft_2d(self.filter, imsize, real_fft=False).to(self.device),
             )
             self.register_buffer("Fhc", torch.conj(self.Fh))
             self.register_buffer("Fh2", self.Fhc * self.Fh)
@@ -697,3 +763,68 @@ def bicubic_filter(factor=2):
     w = torch.outer(w, w)
     w = w / torch.sum(w)
     return w.unsqueeze(0).unsqueeze(0)
+
+
+class DownsamplingMatlab(Downsampling):
+    """Downsampling with MATLAB imresize
+
+    Downsamples with default MATLAB `imresize`, using a bicubic kernel, antialiasing and reflect padding.
+
+    Wraps `imresize` from a modified version of the `original implementation <https://github.com/sanghyun-son/bicubic_pytorch>`_.
+
+    The adjoint is computed using autograd via :func:`deepinv.physics.adjoint_function`.
+    This is because `imresize` with reciprocal of scale is not a correct adjoint.
+    Note however the adjoint is quite slow.
+
+    :param int, float factor: downsampling factor
+    :param str kernel: MATLAB kernel, supports only `cubic` for bicubic downsampling.
+    :param str padding: MATLAB padding type, supports only `reflect` for reflect padding.
+    :param bool antialiasing: whether to perform antialiasing in MATLAB downsampling.
+        Recommended to set to `True` to match MATLAB.
+    """
+
+    def __init__(
+        self,
+        factor: Union[int, float] = 2,
+        kernel: str = "cubic",
+        padding: str = "reflect",
+        antialiasing: bool = True,
+        **kwargs,
+    ):
+        super().__init__(filter=None, factor=factor, **kwargs)
+
+        self.kernel = kernel
+        self.padding = padding
+        self.antialiasing = antialiasing
+
+    def A(self, x, factor: Union[int, float] = None, **kwargs):
+        """Downsample forward operator
+
+        :param torch.Tensor x: input image
+        :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+        """
+        self.update_parameters(factor=factor, **kwargs)
+        # Clone because of in-place ops
+        return imresize_matlab(
+            x.clone(),
+            scale=1 / self.factor,
+            antialiasing=self.antialiasing,
+            kernel=self.kernel,
+            padding_type=self.padding,
+        )
+
+    def A_adjoint(self, y, factor: Union[int, float] = None, **kwargs):
+        """Downsample adjoint operator via autograd.
+
+        :param torch.Tensor y: input measurement
+        :param int, float factor: downsampling factor. If not `None`, use this factor and store it as current factor.
+        """
+        self.update_parameters(factor=factor, **kwargs)
+
+        adj = adjoint_function(
+            self.A,
+            (*y.shape[:2], y.shape[-2] * self.factor, y.shape[-1] * self.factor),
+            device=y.device,
+            dtype=y.dtype,
+        )
+        return adj(y)

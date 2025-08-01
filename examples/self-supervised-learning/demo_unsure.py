@@ -75,7 +75,7 @@ true_sigma = 0.1
 # defined physics
 physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(sigma=true_sigma))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
