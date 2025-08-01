@@ -36,7 +36,7 @@ model = EPLL(channels=test_img.shape[1], patch_size=patch_size, device=device)
 
 sigma = 0.1
 noise_model = GaussianNoise(sigma)
-physics = Denoising(device=device, noise_model=noise_model)
+physics = Denoising(noise_model=noise_model)
 observation = physics(test_img)
 
 # %%

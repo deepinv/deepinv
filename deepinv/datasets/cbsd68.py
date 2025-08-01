@@ -8,10 +8,10 @@ from deepinv.datasets.utils import calculate_md5
 error_import = None
 try:
     from datasets import load_dataset as load_dataset_hf, load_from_disk
-except:
+except ImportError:  # pragma: no cover
     error_import = ImportError(
         "datasets is not available. Please install the datasets package with `pip install datasets`."
-    )
+    )  # pragma: no cover
 
 
 class CBSD68(torch.utils.data.Dataset):
