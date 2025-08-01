@@ -110,7 +110,7 @@ def get_dummy_physics_generator(rng, device):
                 "f": torch.rand((batch_size,), generator=self.rng, device=device).item()
             }
 
-    return DummyPhysicsGenerator(rng=rng)
+    return DummyPhysicsGenerator(rng=rng, device=device)
 
 
 @pytest.mark.parametrize(
@@ -262,7 +262,7 @@ def test_trainer_physics_generator_params(
 ):
     N = 10
     rng1 = rng
-    rng2 = torch.Generator().manual_seed(0)
+    rng2 = torch.Generator(device).manual_seed(0)
 
     class DummyPhysics(Physics):
         # Dummy physics which sums images, and multiplies by a parameter f
@@ -377,6 +377,7 @@ def test_trainer_identity(imsize, rng, device):
             return self.dummy_param * y
 
     dummy_model = DummyModel()
+    dummy_model.to(device)
     optimizer = torch.optim.Adam(dummy_model.parameters(), lr=1e-2, weight_decay=0.0)
 
     trainer = Trainer(
@@ -439,6 +440,7 @@ def test_trainer_multidatasets(imsize, rng, device):
             return self.dummy_param * torch.ones_like(y)
 
     dummy_model = DummyModel()
+    dummy_model.to(device)
     optimizer = torch.optim.Adam(dummy_model.parameters(), lr=1e-2, weight_decay=0.0)
 
     trainer = Trainer(
@@ -574,9 +576,11 @@ def test_dataloader_formats(
 
         def __getitem__(self, i):
             params = generator.step(1)
+            # NOTE: The test relies on changing params in place.
             params["mask"] = params["mask"].squeeze(0)
-            x = torch.ones(imsize)
-            y = x * params["mask"]
+            mask = params["mask"]
+            x = torch.ones(imsize, device=mask.device, dtype=mask.dtype)
+            y = x * mask
             if ground_truth:
                 if measurements:
                     if generate_params:
@@ -627,8 +631,8 @@ def test_dataloader_formats(
 
     # fmt: off
     def assert_x_none(x): assert x is None
-    def assert_x_full(x): assert x.mean() == 1.
-    def assert_physics_unchanged(physics): assert physics.mask.mean() == 1. # params not loaded
+    def assert_x_full(x): assert math.isclose(x.mean(), 1.0, abs_tol=1e-7)
+    def assert_physics_unchanged(physics): assert math.isclose(physics.mask.mean(), 1.0, abs_tol=1e-7) # params not loaded
     def assert_physics_offline(physics): assert physics.mask.mean() < .2
     def assert_physics_online(physics): assert physics.mask.mean() > .8
     def assert_y_offline(y): assert y.mean() < .2

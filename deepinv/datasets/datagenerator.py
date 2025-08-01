@@ -4,7 +4,13 @@ from typing import TYPE_CHECKING, Union, Callable
 from tqdm import tqdm
 import os
 from warnings import warn
-import h5py
+
+try:
+    import h5py
+except ImportError:  # pragma: no cover
+    h5py = ImportError(
+        "The h5py package is not installed. Please install it with `pip install h5py`."
+    )  # pragma: no cover
 import torch
 
 from torch import Tensor
@@ -59,6 +65,9 @@ class HDF5Dataset(BaseDataset):
         self.transform = transform
         self.load_physics_generator_params = load_physics_generator_params
         self.cast = lambda x: x.type(complex_dtype if x.is_complex() else dtype)
+
+        if isinstance(h5py, ImportError):
+            raise h5py
 
         self.hd5 = h5py.File(path, "r")
         suffix = ("_train" if train else "_test") if split is None else f"_{split}"
@@ -217,6 +226,9 @@ def generate_dataset(
     :param torch.device, str device: device, e.g. cpu or gpu, on which to generate measurements. All data is moved back to cpu before saving.
 
     """
+    if isinstance(h5py, ImportError):
+        raise h5py
+
     if test_dataset is None and train_dataset is None and val_dataset is None:
         raise ValueError("No train or test datasets provided.")
 

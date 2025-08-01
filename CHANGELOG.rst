@@ -17,6 +17,7 @@ Fixed
 ^^^^^
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 - Fix full-reference metrics used with measurement-only dataset (:gh:`622` by `Andrew Wang`_)
+- Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
 
 v0.3.2
 ------
@@ -31,6 +32,7 @@ Changed
 - Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
 - Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
 - Update python version to 3.10+ (:gh:`605` by `Minh Hai Nguyen`_)
+- Update the library dependencies, issue template, codecov report on linux only (:gh:`654` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
