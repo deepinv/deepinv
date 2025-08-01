@@ -352,7 +352,7 @@ def find_operator(name, device, get_physics_param=False):
         img_size = (1, 32, 32)
         factor = 2
         norm = 1.0 / factor**2
-        p = dinv.physics.DownsamplingMatlab(factor=factor, adjoint_via_backprop=True)
+        p = dinv.physics.DownsamplingMatlab(factor=factor)
         params = []
     elif name.startswith("super_resolution"):
         img_size = (1, 32, 32)
