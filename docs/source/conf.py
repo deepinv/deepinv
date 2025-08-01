@@ -219,10 +219,9 @@ add_module_names = True  # include the module path in the function name
 examples_order = {
     "basics": [
         "demo_quickstart.py",
+        "demo_pretrained_model.py",
         "demo_custom_dataset.py",
         "demo_custom_physics.py",
-        "demo_pretrained_model.py",
-        "demo_training.py",
     ]
 }
 
@@ -271,7 +270,7 @@ sphinx_gallery_conf = {
             "../../examples/sampling",
             "../../examples/unfolded",
             "../../examples/patch-priors",
-            "../../examples/benchmarking",
+            "../../examples/models",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",

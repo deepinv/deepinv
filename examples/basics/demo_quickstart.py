@@ -101,7 +101,7 @@ x_pinv = physics.A_dagger(y)
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 
-model = dinv.models.MedianFilter()  # TODO change to RAM
+model = dinv.models.RAM(pretrained=True)
 
 x_net = model(y, physics)
 
@@ -121,7 +121,7 @@ x_net = model(y, physics)
 model = dinv.optim.DPIR(sigma=0.1)
 
 # Reconstruct Anything Model
-model = dinv.models.RAM()
+model = dinv.models.RAM(pretrained=True)
 
 
 # %%
@@ -216,9 +216,10 @@ dinv.test(model, torch.utils.data.DataLoader(dataset), physics)
 # What's next?
 # ~~~~~~~~~~~~
 #
-# -  Try basic examples, including how to inference and finetune a pretrained model, or how to use DeepInverse with your own
-#    dataset, physics operator or model, or how to train a reconstruction model with a loss function.
-#    **TODO** links
+# -  Try basic examples, including
+#    :ref:`how to inference and finetune a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
+#    :ref:`how to use DeepInverse with your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
+#    :ref:`how to use DeepInverse with your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
 # -  Dive deeper into our full library of examples
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.
