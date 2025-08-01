@@ -211,3 +211,8 @@ plot_ortho3D(
     [psf[None] for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
