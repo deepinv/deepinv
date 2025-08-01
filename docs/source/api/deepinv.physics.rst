@@ -113,6 +113,7 @@ Noise distributions
    :nosignatures:
 
    deepinv.physics.NoiseModel
+   deepinv.physics.ZeroNoise
    deepinv.physics.GaussianNoise
    deepinv.physics.LogPoissonNoise
    deepinv.physics.PoissonNoise
