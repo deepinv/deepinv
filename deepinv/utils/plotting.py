@@ -143,7 +143,7 @@ def preprocess_img(im, rescale_mode="min_max"):
     im = im.type(torch.float32)
 
     # Normalize values between zero and one
-    im = normalize_signal(im, mode=rescale_mode)
+    im = _normalize_signal(im, mode=rescale_mode)
 
     return im
 

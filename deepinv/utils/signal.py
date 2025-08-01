@@ -1,5 +1,7 @@
 """Signal processing utilities"""
 
+import torch
+
 
 def normalize(inp, *, mode):
     r"""
