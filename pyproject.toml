@@ -76,7 +76,7 @@ lint = [
     "ruff"
 ]
 
-# optional dependencies for specific denoisers
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",

@@ -10,11 +10,17 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
+- SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
+- New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
+
+- Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 - Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
 
