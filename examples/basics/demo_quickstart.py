@@ -89,7 +89,7 @@ x_pinv = physics.A_dagger(y)
 # %%
 # .. tip::
 #
-#    Want to use DeepInverse with your own physics operator? Check out TODO
+#    Want to use DeepInverse with your own physics operator? Check out :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for a tutorial!
 #
 
 
@@ -109,33 +109,16 @@ x_net = model(y, physics)
 # %%
 # DeepInverse covers
 # :ref:`many frameworks of reconstruction algorithms <reconstructors>`
-# including plug-and-play, variational optimization, sampling algorithms
-# (e.g.'diffusion models), unrolled models and foundation models. TODO
-# link to each of these items in user guide
+# including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
+# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`. TODO link to each of these items in user guide
 #
-# :ref:`Many models are pretrained <pretrained-reconstructors>` and can
-# be used out of the box. TODO tip: ref new example for how to inference / finetune pretrained model
+# .. tip::
+#     :ref:`Many models are pretrained <pretrained-reconstructors>` and can
+#     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
-# DPIR plug-and-play algorithm
-model = dinv.optim.DPIR(sigma=0.1)
-
-# Reconstruct Anything Model
+# Reconstruct Anything Model foundation model
 model = dinv.models.RAM(pretrained=True)
-
-
-# %%
-# Some models are only :ref:`denoisers <denoisers>` that **denoise**
-# images from `y` and `sigma`, which can be used to build certain
-# reconstruction algorithms.
-#
-
-denoiser = dinv.models.DRUNet()
-
-x_denoised = denoiser(y, sigma=0.1)
-
-model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
-
 
 # %%
 # Plot the image `x`, the measurement `y` and the reconstructed image
@@ -144,19 +127,17 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
 
 dinv.utils.plot({"x": x, "y": y, "x_net": x_net})
 
-
 # %%
-# **TODO** building optimization algos/PnP/unfolded/sampling?
+# Some models are only :ref:`denoisers <denoisers>` that **denoise**
+# images from `y` and `sigma`, which can be used to build many
+# :ref:`model-based reconstruction algorithms <iterative>`.
 #
 
-data_fidelity = dinv.optim.data_fidelity.L2()
-prior = dinv.optim.prior.PnP(denoiser=dinv.models.MedianFilter())
-model = dinv.optim.optim_builder(
-    iteration="HQS",
-    prior=prior,
-    data_fidelity=data_fidelity,
-    params_algo={"stepsize": 1.0, "g_param": 0.1},
-)
+denoiser = dinv.models.DRUNet()
+
+x_denoised = denoiser(y, sigma=0.1)
+
+model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
 
 
 # %%
