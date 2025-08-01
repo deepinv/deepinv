@@ -253,7 +253,7 @@ def download_example(name: str, save_dir: Union[str, Path]):
     Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
 
     :param str name: filename of the image from the HuggingFace dataset.
-    :param str, Path save_dir: directory to save image to.
+    :param str, pathlib.Path save_dir: directory to save image to.
     """
     os.makedirs(save_dir, exist_ok=True)
     data = requests.get(get_image_url(name)).content

@@ -56,7 +56,7 @@ y = physics(x)
 # :ref:`many different types of physics <physics>` and noise
 # models across various imaging modalities.
 #
-# Most physics also take
+# Many physics also take
 # :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.
 # You can easily use your own params by passing these into the `physics`,
 # or you can use a `generator`` to :ref:`generate random params <physics_generators>`.
@@ -101,7 +101,7 @@ x_pinv = physics.A_dagger(y)
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 
-model = dinv.models.RAM(pretrained=True)
+model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 x_net = model(y, physics)
 
@@ -110,7 +110,7 @@ x_net = model(y, physics)
 # DeepInverse covers
 # :ref:`many frameworks of reconstruction algorithms <reconstructors>`
 # including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
-# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`. TODO link to each of these items in user guide
+# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
 #
 # .. tip::
 #     :ref:`Many models are pretrained <pretrained-reconstructors>` and can
@@ -118,7 +118,7 @@ x_net = model(y, physics)
 #
 
 # Reconstruct Anything Model foundation model
-model = dinv.models.RAM(pretrained=True)
+model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 # %%
 # Plot the image `x`, the measurement `y` and the reconstructed image

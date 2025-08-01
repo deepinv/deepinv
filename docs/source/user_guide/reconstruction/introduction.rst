@@ -16,6 +16,7 @@ Some methods do not require any training and can be quickly deployed in your pro
 
 TODO one liner demos here!!
 TODO check they work and doctest these
+TODO ref example
 
 x = load_example
 physics = ...
@@ -29,11 +30,13 @@ model = dinv.models...
       If you need to train your model and don't have ground truth data,
       the library provides a :ref:`large set of self-supervised losses <self-supervised-losses>`
       which can learn from measurement data alone.
+      TODO ref fine tuning example
 
 Defining your own reconstructor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 TODO
+TODO ref from other examples
 
 Summary
 ~~~~~~~

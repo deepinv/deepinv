@@ -17,6 +17,12 @@ Base Datasets
     deepinv.datasets.ImageFolder
     deepinv.datasets.TensorDataset
 
+.. autosummary::
+   :toctree: stubs
+   :template: myfunc_template.rst
+   :nosignatures:
+
+   deepinv.datasets.check_dataset
 
 Generating Datasets
 -------------------

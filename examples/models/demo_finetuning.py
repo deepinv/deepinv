@@ -28,7 +28,9 @@ import deepinv as dinv
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-model = dinv.models.RAM(device=device, pretrained=True)
+model = (
+    dinv.models.MedianFilter()
+)  # TODO dinv.models.RAM(device=device, pretrained=True)
 
 # Load image
 x = dinv.utils.load_example("butterfly.png", img_size=(127, 129)).to(device)
@@ -121,7 +123,9 @@ dinv.utils.plot(
 #
 # Here, since this example is run in a no-GPU environment, we will use a small patch of the image to speed up training,
 # but in practice, we can use the full image.
-
+#
+# .. note::
+#     You can also fine-tune on larger datasets if you want, by replacing the :ref:`dataset <datasets>`.
 
 physics = dinv.physics.Demosaicing(
     img_size=(3, 64, 64),
@@ -150,36 +154,38 @@ eval_dataloader = torch.utils.data.DataLoader(
     )
 )
 
-max_epochs = 20
-trainer = dinv.Trainer(
-    model=model,
-    physics=physics,
-    eval_interval=5,
-    ckp_interval=max_epochs - 1,
-    metrics=losses[0],
-    early_stop=True,
-    device=device,
-    losses=losses,
-    epochs=max_epochs,
-    optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
-    train_dataloader=train_dataloader,
-    eval_dataloader=eval_dataloader,
-)
+# TODO UNCOMMENT AFTER RAM PR MERGED
 
-finetuned_model = trainer.train()
+# max_epochs = 20
+# trainer = dinv.Trainer(
+#     model=model,
+#     physics=physics,
+#     eval_interval=5,
+#     ckp_interval=max_epochs - 1,
+#     metrics=losses[0],
+#     early_stop=True,
+#     device=device,
+#     losses=losses,
+#     epochs=max_epochs,
+#     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
+#     train_dataloader=train_dataloader,
+#     eval_dataloader=eval_dataloader,
+# )
+
+# finetuned_model = trainer.train()
 
 # %%
 # We can now use the fine-tuned model to reconstruct the image from the measurement `y`.
 
-with torch.no_grad():
-    x_hat = finetuned_model(y, physics=physics)
+# with torch.no_grad():
+#     x_hat = finetuned_model(y, physics=physics)
 
-# Show results
-dinv.utils.plot(
-    {
-        "Original": x,
-        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    },
-    figsize=(8, 3),
-)
+# # Show results
+# dinv.utils.plot(
+#     {
+#         "Original": x,
+#         f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
+#         f"Fine-tuned reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+#     },
+#     figsize=(8, 3),
+# )

@@ -250,12 +250,12 @@ class ImageFolder(BaseDataset):
 
         Set `y_glob` only to load measurements following the file pattern. The measurement-only data will be returned as a tuple `(torch.nan, y)`.
 
-    :param str, Path root: dataset root directory.
+    :param str, pathlib.Path root: dataset root directory.
     :param str, None x_glob: file glob pattern for ground truth data, defaults to None.
     :param str, None y_glob: file glob pattern for measurement data, defaults to None.
-    :param callable loader: optional function that takes filename string and loads file. If `None`, defaults to `PIL.Image.open`.
-    :param callable estimate_params: optional function that takes tensors `x,y` and returns dict of `params`. Advanced usage only.
-    :param callable, tuple transform: optional callable transform. If `tuple` or `list` of length 2, `x` is transformed with first transform and `y` with second.
+    :param Callable loader: optional function that takes filename string and loads file. If `None`, defaults to `PIL.Image.open`.
+    :param Callable estimate_params: optional function that takes tensors `x,y` and returns dict of `params`. Advanced usage only.
+    :param Callable, tuple transform: optional callable transform. If `tuple` or `list` of length 2, `x` is transformed with first transform and `y` with second.
 
     |sep|
 

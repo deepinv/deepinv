@@ -118,8 +118,9 @@ dinv.datasets.check_dataset(dataset5)
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 physics = dinv.physics.Inpainting(img_size=(3, 256, 256))
-# model = dinv.models.RAM(pretrained=True, device=device)
-model = dinv.models.MedianFilter()
+model = (
+    dinv.models.MedianFilter()
+)  # TODO dinv.models.RAM(pretrained=True, device=device)
 
 # %%
 # If your dataset already returns measurements in the form `(x, y)` or `(x, y, params)`,
