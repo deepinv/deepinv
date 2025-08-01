@@ -16,9 +16,13 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
   | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
 
 
+.. _general_reconstructors:
+
 General reconstruction models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-We provide the following list of multiphysics reconstruction models.
+We provide the following list of reconstruction models trained on multiple various physics and datasets
+to provide robustness to different problems.
+
 See :ref:`pretrained-weights` for more information on pretrained denoisers.
 
 .. list-table:: Multiphysics reconstruction models
