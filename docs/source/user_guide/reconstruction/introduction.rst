@@ -64,12 +64,16 @@ description of their reconstruction performance and speed.
      - No
      - Yes
      - Depends
+   * - :ref:`Multi-physics models <general_reconstructors>`
+     - Models trained on multiple various physics and datasets for robustness to different problems.
+     - No
+     - No
+     - No
    * - :ref:`Specific network architectures <specific>`
      - Off-the-shelf architectures for specific inverse problems.
      - Yes
      - No
      - No
-
 
 .. note::
 
