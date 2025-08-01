@@ -44,6 +44,6 @@ def normalize(inp, *, mode):
     elif mode == "clip":
         inp = inp.clamp(min=min_val, max=max_val)
     else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
+        raise ValueError(f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'.")
 
     return inp
