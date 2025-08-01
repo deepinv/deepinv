@@ -30,6 +30,11 @@ model = dinv.models...
       the library provides a :ref:`large set of self-supervised losses <self-supervised-losses>`
       which can learn from measurement data alone.
 
+Defining your own reconstructor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
 Summary
 ~~~~~~~
 

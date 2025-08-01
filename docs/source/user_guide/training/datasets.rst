@@ -17,10 +17,18 @@ Base Datasets
 -------------
 
 Datasets can return optionally ground-truth images `x`, measurements `y`, or :ref:`physics parameters <parameter-dependent-operators>` `params`,
-or any combination of these. See :class:`deepinv.datasets.BaseDataset` for the formats we expect data to be returned in, in order for it to be 
-compatible with DeepInverse (e.g. to be used with :class:`deepinv.Trainer`).
+or any combination of these, in one of the following ways:
 
-All datasets shoud inherit from :class:`deepinv.datasets.BaseDataset` which checks that the dataset is compatible.
+* `x` i.e a dataset that returns only ground truth;
+* `(x, y)` i.e. a dataset that returns pairs of ground truth and measurement. `x` can be equal to `torch.nan` if your dataset is ground-truth-free.
+* `(x, params)` i.e. a dataset of ground truth and dict of :ref:`physics parameters <physics_generators>`. Useful for training with online measurements.
+* `(x, y, params)` i.e. a dataset that returns ground truth, measurements and dict of params.
+
+.. tip::
+
+  If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
+
+All datasets shoud inherit from :class:`deepinv.datasets.BaseDataset` which checks that the dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 We provide dataset classes for you to easily load in your own data:
 
