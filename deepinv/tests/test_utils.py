@@ -717,5 +717,36 @@ def test_load_image(
             ), f"Image shape should be {img_size}, got {x.shape[-2:]}"
 
 
+@pytest.mark.parametrize("batch_size", [1, 2])
+@pytest.mark.parametrize(
+    "signal_shape",
+    [(3, 16, 16), (1, 16, 16), (1, 16), (1, 16, 16, 16), (1, 16, 8), (16, 16), (16,)],
+)
+@pytest.mark.parametrize("mode", ["min_max", "clip"])
+@pytest.mark.parametrize("seed", [0])
+def test_normalize_signals(batch_size, signal_shape, mode, seed):
+    shape = (batch_size, *signal_shape)
+    rng = torch.Generator().manual_seed(seed)
+
+    # Generate a random tensor with the specified shape
+    inp = torch.randn(shape, generator=rng, device="cpu", dtype=torch.float32)
+
+    # Sanity check
+    assert inp.shape == shape, "Input tensor should have the specified shape."
+
+    # Apply the tested function
+    out = deepinv.utils.normalize_signal(inp, mode=mode)
+
+    # Check the tensor attributes
+    assert out.dtype == inp.dtype, "Output dtype should match input dtype."
+    assert out.device == inp.device, "Output device should match input device."
+    assert out.shape == inp.shape, "Output shape should match input shape."
+
+    # Check that the output entries are between zero and one
+    assert torch.all(0 <= out) and torch.all(
+        out <= 1
+    ), "Output entries should be in [0, 1]."
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]

@@ -40,7 +40,7 @@ def normalize(inp, *, mode):
     elif mode == "clip":
         # Clamp every batched signal between zero and one
         inp = inp.clamp(min=0.0, max=1.0)
-    else:
+    else:  # pragma: no cover
         raise ValueError(
             f"Unsupported normalization mode: {mode}. Supported modes are 'min_max' and 'clip'."
         )
