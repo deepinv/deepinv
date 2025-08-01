@@ -371,6 +371,7 @@ def choose_inpainting_generator(name, img_size, split_ratio, pixelwise, device, 
         return dinv.physics.generator.MultiplicativeSplittingMaskGenerator(
             img_size=img_size,
             split_generator=mri_gen,
+            device=device,
         )
     else:
         raise Exception("The generator chosen doesn't exist")

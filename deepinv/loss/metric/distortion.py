@@ -680,16 +680,28 @@ class HaarPSI(Metric):
         coeffs_deg_y = self._haar_wavelet_decompose(deg_y, n_scales)
         if is_color_image:
             coefficients_ref_i = torch.abs(
-                self._convolve2d(ref_i, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    ref_i,
+                    torch.ones((2, 2), device=ref_i.device, dtype=ref_i.dtype) / 4.0,
+                )
             )
             coefficients_deg_i = torch.abs(
-                self._convolve2d(deg_i, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    deg_i,
+                    torch.ones((2, 2), device=deg_i.device, dtype=deg_i.dtype) / 4.0,
+                )
             )
             coefficients_ref_q = torch.abs(
-                self._convolve2d(ref_q, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    ref_q,
+                    torch.ones((2, 2), device=ref_q.device, dtype=ref_q.dtype) / 4.0,
+                )
             )
             coefficients_deg_q = torch.abs(
-                self._convolve2d(deg_q, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    deg_q,
+                    torch.ones((2, 2), device=deg_q.device, dtype=deg_q.dtype) / 4.0,
+                )
             )
 
         B, _, H, W = ref_y.shape

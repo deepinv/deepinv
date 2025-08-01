@@ -5,8 +5,8 @@ from .base import Denoiser
 # Compat for optional dependency on BM3D
 try:
     import bm3d
-except:
-    bm3d = ImportError("The bm3d package is not installed.")
+except:  # pragma: no cover
+    bm3d = ImportError("The bm3d package is not installed.")  # pragma: no cover
 
 
 class BM3D(Denoiser):

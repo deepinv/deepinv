@@ -115,7 +115,7 @@ def find_operator(name, device, get_physics_param=False):
     if name == "CS":
         m = 30
         p = dinv.physics.CompressedSensing(
-            m=m, img_size=img_size, device=device, compute_inverse=True, rng=rng
+            m=m, img_size=img_size, device=device, rng=rng
         )
         norm = (
             1 + np.sqrt(np.prod(img_size) / m)
@@ -364,7 +364,6 @@ def find_operator(name, device, get_physics_param=False):
             padding=padding,
             device=device,
             filter="bilinear",
-            dtype=dtype,
         )
         params = ["filter"]
     elif name == "complex_compressed_sensing":
@@ -375,7 +374,6 @@ def find_operator(name, device, get_physics_param=False):
             img_size=img_size,
             dtype=torch.cdouble,
             device=device,
-            compute_inverse=True,
             rng=rng,
         )
         dtype = p.dtype
@@ -416,7 +414,6 @@ def find_operator(name, device, get_physics_param=False):
             samples_loc=uv.permute((1, 0)),
             dataWeight=dataWeight,
             real_projection=False,
-            dtype=torch.float,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
@@ -953,7 +950,7 @@ def test_noise(device, noise_type):
     r"""
     Tests noise models.
     """
-    physics = dinv.physics.DecomposablePhysics(device=device)
+    physics = dinv.physics.DecomposablePhysics()
     physics.noise_model = choose_noise(noise_type, device)
     x = torch.ones((1, 3, 2), device=device).unsqueeze(0)
 
@@ -999,7 +996,6 @@ def test_blur(device):
     h = torch.ones((1, 1, 5, 5)) / 25.0
 
     physics_blur = dinv.physics.Blur(
-        img_size=(1, x.shape[-2], x.shape[-1]),
         filter=h,
         device=device,
         padding="circular",
@@ -1902,3 +1898,10 @@ def test_clone(name, device):
     # Restore original values
     physics = saved_physics
     physics_clone = saved_physics_clone
+
+
+def test_physics_warn_extra_kwargs():
+    with pytest.warns(
+        UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
+    ):
+        dinv.physics.Denoising(sigma=0.5)

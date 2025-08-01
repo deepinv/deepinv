@@ -4,7 +4,14 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-import wandb
+
+try:
+    import wandb
+except ImportError:  # pragma: no cover
+    wandb = ImportError(
+        "The wandb package is not installed. Please install it with `pip install wandb`."
+    )  # pragma: no cover
+
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field

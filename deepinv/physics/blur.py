@@ -513,9 +513,7 @@ class SpaceVaryingBlur(LinearPhysics):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.method = "product_convolution2d"
-        if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding, **kwargs)
+        self.update_parameters(filters, multipliers, padding, **kwargs)
         self.to(device)
 
     def A(
@@ -534,14 +532,8 @@ class SpaceVaryingBlur(LinearPhysics):
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
-        if self.method == "product_convolution2d":
-            self.update_parameters(filters, multipliers, padding, **kwargs)
-
-            return product_convolution2d(
-                x, self.multipliers, self.filters, self.padding
-            )
-        else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+        self.update_parameters(filters, multipliers, padding, **kwargs)
+        return product_convolution2d(x, self.multipliers, self.filters, self.padding)
 
     def A_adjoint(
         self, y: Tensor, filters=None, multipliers=None, padding=None, **kwargs
@@ -559,16 +551,12 @@ class SpaceVaryingBlur(LinearPhysics):
             otherwise the blurred output has the same size as the image.
         :param str device: cpu or cuda
         """
-        if self.method == "product_convolution2d":
-            self.update_parameters(
-                filters=filters, multipliers=multipliers, padding=padding, **kwargs
-            )
-
-            return product_convolution2d_adjoint(
-                y, self.multipliers, self.filters, self.padding
-            )
-        else:
-            raise NotImplementedError("Method not implemented in product-convolution")
+        self.update_parameters(
+            filters=filters, multipliers=multipliers, padding=padding, **kwargs
+        )
+        return product_convolution2d_adjoint(
+            y, self.multipliers, self.filters, self.padding
+        )
 
     def update_parameters(
         self,

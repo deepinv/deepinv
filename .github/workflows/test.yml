@@ -27,28 +27,28 @@ jobs:
           # Ubuntu tests
           - os: ubuntu-latest
             version_python: "3.10"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.10 all dependencies"
           - os: ubuntu-latest
             version_python: "3.11"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.11 all dependencies"
           - os: ubuntu-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "ubuntu py3.12 all dependencies"
           # Windows tests
           - os: windows-latest
             version_python: "3.10"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.10 all dependencies"
           - os: windows-latest
             version_python: "3.11"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.11 all dependencies"
           - os: windows-latest
             version_python: "3.12"
-            extra: dataset,denoisers,test
+            extra: dataset,denoisers,test,training
             name: "windows py3.12 all dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
@@ -70,16 +70,18 @@ jobs:
       - name: Check installed packages
         run: pip list
 
-      - name: Test importing numpy
-        run: python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
       # ----------------------------
 
-      - name: Test with pytest and generate coverage report
+      - name: Test with pytest and generate coverage report 
         run: |
           python3 -m pytest -n 2 --dist=loadgroup --cov=deepinv --junitxml=junit.xml -o junit_family=legacy -v
+
       - name: Upload coverage to Codecov
+        # Only upload coverage on Linux
+        if: ${{ runner.os == 'Linux' && matrix.version_python == '3.10' }}    
         uses: codecov/codecov-action@v5
 
       - name: Upload test results to Codecov
+        # NOTE: do we need the test results on both Linux and Windows sending to Codecov?
         if: ${{ !cancelled() }}
         uses: codecov/test-results-action@v1
