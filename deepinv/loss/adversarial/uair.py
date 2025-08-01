@@ -72,7 +72,7 @@ class UAIRGeneratorLoss(GeneratorLoss):
 
         adv_loss = self.adversarial_loss(y, y_hat, D)
 
-        x_tilde = model(y_hat)
+        x_tilde = model(y_hat, physics)
         y_tilde = physics.A(x_tilde)  # use same operator as y_hat
         mc_loss = self.metric(y_tilde, y_hat)
 
