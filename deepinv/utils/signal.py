@@ -3,7 +3,7 @@
 import torch
 
 
-def normalize(inp, *, mode):
+def normalize_signal(inp, *, mode):
     r"""
     Normalize a batch of signals between zero and one.
 

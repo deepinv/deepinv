@@ -1,4 +1,4 @@
-from .signal import normalize as _normalize_signal
+from .signal import normalize_signal as _normalize_signal
 
 import os
 import shutil
