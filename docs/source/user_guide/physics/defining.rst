@@ -10,7 +10,7 @@ for linear operators with a closed-form singular value decomposition. The only r
 a :class:`deepinv.physics.Physics.A` method that computes the forward operator.
 
 **See the example** :ref:`sphx_glr_auto_examples_basics_demo_physics.py` **for more details**.
- 
+
 
 .. tip::
 
