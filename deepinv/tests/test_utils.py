@@ -598,25 +598,21 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
         transform = mock.Mock(wraps=transform)
 
     dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
-
     assert isinstance(dataset, deepinv.datasets.ImageFolder)
 
     for k in range(n_retrievals):
-        x, y = dataset[k]
-        # NOTE: We assume that the transform always converts the image to a
-        # tensor if it is provided.
+        x = dataset[k]
         if transform is not None:
             assert isinstance(x, torch.Tensor), "Dataset image should be a tensor."
         else:
             assert isinstance(
                 x, PIL.Image.Image
             ), "Dataset image should be a PIL Image."
-        assert isinstance(y, int), "Dataset label should be an integer."
 
     if transform is not None:
         assert (
-            transform.call_count == n_retrievals
-        ), "Transform should be called once for each dataset item."
+            transform.call_count == n_retrievals + 1
+        ), "Transform should be called once for each dataset item + once for checks."
 
 
 @pytest.mark.parametrize(

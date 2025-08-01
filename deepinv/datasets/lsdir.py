@@ -146,20 +146,11 @@ class LsdirHR(ImageFolder):
             else:
                 raise ValueError("There is an issue with the data downloaded.")
 
-        self.img_paths = []
-        for img_dir in self.img_dirs:
-            try:
-                self.img_paths.extend(
-                    [os.path.join(img_dir, fname) for fname in os.listdir(img_dir)]
-                )
-            except FileNotFoundError:
-                raise RuntimeError(
-                    "Data folder doesn't exist, please set `download=True`"
-                )
+        if not all(os.path.isdir(d) and os.listdir(d) for d in self.img_dirs):
+            raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
         # Initialise ImageFolder
-        super().__init__(self.root, transform=transform)
-        self.x_paths, self.y_paths = sorted(self.img_paths), None
+        super().__init__(self.root, x_glob="**/*.png", transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

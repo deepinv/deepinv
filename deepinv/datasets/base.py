@@ -134,7 +134,8 @@ class BaseDataset(Dataset):
         @wraps(init)
         def new_init(self, *args, **kwargs):
             init(self, *args, **kwargs)
-            check_dataset(self, allow_non_tensor=True)
+            if not getattr(self, "skip_check", False):
+                check_dataset(self, allow_non_tensor=True)
 
         cls.__init__ = new_init
 

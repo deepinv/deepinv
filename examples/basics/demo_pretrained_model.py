@@ -10,4 +10,5 @@ Use a pretrained model
 
 import deepinv as dinv
 
+model = dinv.models.MedianFilter()
 # just single image here, not dataset

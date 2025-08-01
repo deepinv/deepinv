@@ -962,7 +962,7 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            first_data = next(iter(dataloader))[0][: self.n_components].to(self.mu)
+            first_data = next(iter(dataloader))[: self.n_components].to(self.mu)
             if first_data.shape[0] == self.n_components:
                 self.mu.copy_(first_data)
             else:
@@ -1007,7 +1007,7 @@ class GaussianMixtureModel(nn.Module):
         C_new = torch.zeros_like(self._cov)
         n = 0
         objective = 0
-        for x, _ in tqdm(dataloader, disable=not verbose):
+        for x in tqdm(dataloader, disable=not verbose):
             x = x.to(self.mu)
             n += x.shape[0]
             component_log_likelihoods = self.component_log_likelihoods(x)

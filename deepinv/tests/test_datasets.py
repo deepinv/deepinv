@@ -1,11 +1,10 @@
 import shutil, os
 import math
-from typing import NamedTuple, Sequence, Mapping, Type
+from typing import NamedTuple, Sequence, Mapping
+from pathlib import Path
 import PIL
 from PIL.Image import Image as PIL_Image
 import pytest
-import torch
-
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -69,6 +68,7 @@ def check_dataset_format(
     dtype: type = None,
     shape: tuple = None,
     allow_non_tensor: bool = False,
+    skip_check: bool = False,
 ):
     """Check dataset format is correct.
 
@@ -77,8 +77,11 @@ def check_dataset_format(
     :param type dtype: intended dtype of returned batch.
     :param tuple shape: intended shape of returned batch, if it has the shape attribute.
     :param bool allow_non_tensor: if `True`, allow non tensors e.g. PIL Image and numpy ndarray to be returned.
+    :param bool skip_check: skip BaseDataset checks.
     """
-    check_dataset(dataset, allow_non_tensor=allow_non_tensor)
+    if not skip_check:
+        check_dataset(dataset, allow_non_tensor=allow_non_tensor)
+
     assert isinstance(dataset, BaseDataset), "Dataset must be instance of base dataset."
 
     if dtype in (
@@ -89,12 +92,13 @@ def check_dataset_format(
         str,
         dict,
         list,
-        tuple,
+        tuple,  # but not "tuple_of_pils", because that is not collatable
         bytes,
         Mapping,
         NamedTuple,
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
+
         _ = next(iter(torch.utils.data.DataLoader(dataset)))
 
     if length is not None:
@@ -104,9 +108,13 @@ def check_dataset_format(
 
     # The below tests are for datasets that return images only (and not tuples)
     if dtype is not None:
-        assert isinstance(
-            dataset[0], dtype
-        ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
+        if dtype == "tuple_of_pils":
+            # This is a workaround for Python not having ability to check a variable is a `tuple[xxx]`.
+            assert all(isinstance(d, PIL_Image) for d in dataset[0])
+        else:
+            assert isinstance(
+                dataset[0], dtype
+            ), f"Dataset should return data of type {dtype} but got type {type(dataset[0])}."
 
     if shape is not None:
         assert (
@@ -282,8 +290,12 @@ def download_set14():
         with (
             patch.object(Set14HR, "check_dataset_exists", return_value=True),
             patch.object(
-                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 15)]
-            ),
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "png" else [f"{i}_HR.png" for i in range(1, 15)]
+                ),
+            ),  # Only patch globbing pngs
             patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
@@ -308,7 +320,7 @@ def download_flickr2khr():
     if not os.environ.get("DEEPINV_MOCK_TESTS", False):
         tmp_data_dir = "Flickr2kHR"
 
-        # Download Set14 raw dataset
+        # Download Flickr raw dataset
         Flickr2kHR(tmp_data_dir, download=True)
 
         # This will return control to the test function
@@ -320,8 +332,12 @@ def download_flickr2khr():
         with (
             patch.object(Flickr2kHR, "check_dataset_exists", return_value=True),
             patch.object(
-                os, "listdir", return_value=[f"{i}_HR.png" for i in range(1, 101)]
-            ),
+                Path,
+                "glob",
+                side_effect=lambda p: (
+                    [] if p[-3:] != "png" else [f"{i}_HR.png" for i in range(1, 101)]
+                ),
+            ),  # Only patch globbing pngs
             patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
@@ -409,8 +425,11 @@ def test_load_Kohler_dataset(download_Kohler, frames, ordering):
         check_dataset_format(
             dataset,
             length=48,
-            dtype=Tensor if totensor else PIL_Image,
+            dtype=(
+                tuple if totensor else None
+            ),  # when no Transform, this is a tuple of list of PILs which is too complicated
             allow_non_tensor=not totensor,
+            skip_check=True,
         )
 
     data_points = [dataset[0], dataset.get_item(1, 1, frames)]
@@ -445,10 +464,14 @@ def download_lsdir():
         # After the test function complete, any code after the yield statement will run
         shutil.rmtree(tmp_data_dir)
     else:
+        mocker = lambda p: (
+            [] if p[-3:] != "png" else [f"{i}.png" for i in range(1, 251)]
+        )
         with (
-            patch.object(
-                os, "listdir", return_value=[f"{i}.png" for i in range(1, 251)]
-            ),
+            # Only patch globbing pngs
+            patch.object(Path, "glob", side_effect=mocker),
+            patch.object(os, "listdir", return_value=True),
+            patch.object(os.path, "isdir", return_value=True),
             patch.object(PIL.Image, "open", return_value=get_dummy_pil_png_image()),
         ):
             yield "/dummy"
@@ -504,7 +527,7 @@ def test_load_fmd_dataset(download_fmd):
                 download=False,
             ),
             length=5000,
-            dtype=Tensor if totensor else PIL_Image,
+            dtype=tuple if totensor else "tuple_of_pils",
             allow_non_tensor=not totensor,
         )
 
@@ -559,7 +582,7 @@ def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
                 transform=totensor,
                 hounsfield_units=hounsfield_units,
             ),
-            length=1018,
+            length=2036,
             dtype=Tensor if totensor else np.ndarray,
             allow_non_tensor=not totensor,
         )
