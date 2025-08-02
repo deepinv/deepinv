@@ -1,6 +1,6 @@
 .. _pretrained-reconstructors:
 
-Pretrained reconstructors
+Pretrained Reconstructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some methods do not require any training can be quickly deployed to your problem.
