@@ -20,4 +20,4 @@ jobs:
       - name: Install and run ruff
         run: |
           pip install ruff
-          ruff check --target-version "py310" --select "UP006" --select "F401" --select "B905"
+          ruff check --target-version "py310" --select "UP006" --select "F401" --select "B905" --select "B006" --select "RUF008" --select "RUF012"
