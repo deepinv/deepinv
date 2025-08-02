@@ -1,4 +1,5 @@
-from typing import Any, Callable, NamedTuple, Optional, MappingProxyType
+from typing import Any, Callable, NamedTuple, Optional
+from types import MappingProxyType
 import os
 import re
 

@@ -5,7 +5,8 @@ from PIL import Image
 
 from urllib.parse import urlparse
 from os.path import basename, join
-from typing import Callable, Union, MappingProxyType
+from typing import Callable, Union
+from types import MappingProxyType
 from pathlib import Path
 
 

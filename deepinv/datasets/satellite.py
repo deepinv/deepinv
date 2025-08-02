@@ -1,4 +1,5 @@
-from typing import Union, Callable, MappingProxyType
+from typing import Union, Callable
+from types import MappingProxyType
 from pathlib import Path
 import os
 

@@ -1,5 +1,6 @@
 import hashlib
-from typing import Any, Callable, MappingProxyType
+from typing import Any, Callable
+from types import MappingProxyType
 import os
 
 from PIL import Image
