@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union
+from typing import Union, Optional, Callable
 import warnings
 import copy
 import inspect
@@ -8,7 +8,7 @@ import collections.abc
 import torch
 from torch import Tensor
 import torch.nn as nn
-from deepinv.physics.noise import GaussianNoise, ZeroNoise
+from deepinv.physics.noise import NoiseModel, GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
 import warnings
@@ -44,14 +44,16 @@ class Physics(torch.nn.Module):  # parent class for forward models
 
     def __init__(
         self,
-        A=lambda x, **kwargs: x,
-        noise_model=ZeroNoise(),
-        sensor_model=lambda x: x,
-        solver="gradient_descent",
-        max_iter=50,
-        tol=1e-4,
+        A: Callable = lambda x, **kwargs: x,
+        noise_model: Optional[NoiseModel] = None,
+        sensor_model: Callable = lambda x: x,
+        solver: str = "gradient_descent",
+        max_iter: int = 50,
+        tol: float = 1e-4,
         **kwargs,
     ):
+        if noise_model is None:
+            noise_model = ZeroNoise()
         super().__init__()
         self.noise_model = noise_model
         self.sensor_model = sensor_model
@@ -1043,7 +1045,9 @@ class Denoising(DecomposablePhysics):
 
     """
 
-    def __init__(self, noise_model=GaussianNoise(sigma=0.1), **kwargs):
+    def __init__(self, noise_model: Optional[NoiseModel] = None, **kwargs):
+        if noise_model is None:
+            noise_model = GaussianNoise(sigma=0.1)
         super().__init__(noise_model=noise_model, **kwargs)
 
 

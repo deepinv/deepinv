@@ -120,12 +120,14 @@ class DDRM(Reconstructor):
     def __init__(
         self,
         denoiser,
-        sigmas=np.linspace(1, 0, 100),
+        sigmas=None,
         eta=0.85,
         etab=1.0,
         verbose=False,
         eps=1e-6,
     ):
+        if sigmas is None:
+            sigmas = np.linspace(1, 0, 100)
         super(DDRM, self).__init__()
         self.denoiser = denoiser
         self.sigmas = sigmas

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import torch
 from deepinv.loss.loss import Loss
@@ -25,7 +25,9 @@ class MCLoss(Loss):
     :param Metric, torch.nn.Module metric: metric used for computing data consistency, which is set as the mean squared error by default.
     """
 
-    def __init__(self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss()):
+    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super(MCLoss, self).__init__()
         self.name = "mc"
         self.metric = metric

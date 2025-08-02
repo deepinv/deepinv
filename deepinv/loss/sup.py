@@ -25,7 +25,9 @@ class SupLoss(Loss):
         which is set as the mean squared error by default.
     """
 
-    def __init__(self, metric: Union[Metric, torch.nn.Module] = torch.nn.MSELoss()):
+    def __init__(self, metric: Union[Metric, torch.nn.Module, None] = None):
+        if metric is None:
+            metric = torch.nn.MSELoss()
         super().__init__()
         self.name = "supervised"
         self.metric = metric

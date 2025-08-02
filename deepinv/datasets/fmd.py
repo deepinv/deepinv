@@ -1,4 +1,4 @@
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable, NamedTuple, Optional
 import os
 import re
 
@@ -114,12 +114,16 @@ class FMD(torch.utils.data.Dataset):
         self,
         root: str,
         img_types: list[str],
-        noise_levels: list[int] = [1, 2, 4, 8, 16],
-        fovs: list[int] = list(range(1, 20 + 1)),
+        noise_levels: Optional[list[int]] = None,
+        fovs: Optional[list[int]] = None,
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
+        if noise_levels is None:
+            noise_levels = [1, 2, 4, 8, 16]
+        if fovs is None:
+            fovs = list(range(1, 20 + 1))
         self.root = root
         self.img_types = img_types
         self.noise_levels = noise_levels

@@ -6,7 +6,7 @@ def test(
     model,
     test_dataloader,
     physics,
-    metrics=PSNR(),
+    metrics=None,
     online_measurements=False,
     physics_generator=None,
     device="cpu",
@@ -53,6 +53,8 @@ def test(
     :returns: A dictionary with the metrics computed on the test set, where the keys are the metric names, and include
         the average and standard deviation of the metric.
     """
+    if metrics is None:
+        metrics = PSNR()
     trainer = Trainer(
         model,
         physics=physics,

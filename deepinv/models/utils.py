@@ -262,13 +262,19 @@ class UNetBlock(torch.nn.Module):
         dropout=0,
         skip_scale=1,
         eps=1e-5,
-        resample_filter=[1, 1],
+        resample_filter=None,
         resample_proj=False,
         adaptive_scale=True,
-        init=dict(),
-        init_zero=dict(init_weight=0),
+        init=None,
+        init_zero=None,
         init_attn=None,
     ):
+        if resample_filter is None:
+            resample_filter = [1, 1]
+        if init is None:
+            init = dict()
+        if init_zero is None:
+            init_zero = dict(init_weight=0)
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels

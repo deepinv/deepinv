@@ -1245,7 +1245,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, list[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss], None] = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
@@ -1274,6 +1274,8 @@ def train(
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
     """
+    if losses is None:
+        losses = SupLoss()
     trainer = Trainer(
         model=model,
         physics=physics,
