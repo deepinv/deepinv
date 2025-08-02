@@ -21,9 +21,11 @@ class Reflect(Transform):
     def __init__(
         self,
         *args,
-        dim: Union[int, list[int]] = [-2, -1],
+        dim: Union[int, list[int]] = None,
         **kwargs,
     ):
+        if dim is None:
+            dim = [-2, -1]
         super().__init__(*args, **kwargs)
         self.dim = dim
 
@@ -53,7 +55,7 @@ class Reflect(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        dims: Union[torch.Tensor, Iterable] = [],
+        dims: Union[torch.Tensor, Iterable] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Reflect image in axes given in dim.
@@ -62,6 +64,8 @@ class Reflect(Transform):
         :param torch.Tensor, list dims: tensor with n_trans rows of axes to subselect for each reflected image. NaN axes are ignored.
         :return: torch.Tensor: transformed images.
         """
+        if dims is None:
+            dims = []
         dims = [dim[~torch.isnan(dim)].int().tolist() for dim in dims]
 
         return torch.cat(

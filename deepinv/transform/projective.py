@@ -247,17 +247,35 @@ class Homography(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        theta_y: Union[torch.Tensor, Iterable, TransformParam] = [],
-        theta_z: Union[torch.Tensor, Iterable, TransformParam] = [],
-        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = [],
-        shift_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        shift_y: Union[torch.Tensor, Iterable, TransformParam] = [],
-        skew: Union[torch.Tensor, Iterable, TransformParam] = [],
-        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = [],
-        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta_x: Union[torch.Tensor, Iterable, TransformParam] = None,
+        theta_y: Union[torch.Tensor, Iterable, TransformParam] = None,
+        theta_z: Union[torch.Tensor, Iterable, TransformParam] = None,
+        zoom_f: Union[torch.Tensor, Iterable, TransformParam] = None,
+        shift_x: Union[torch.Tensor, Iterable, TransformParam] = None,
+        shift_y: Union[torch.Tensor, Iterable, TransformParam] = None,
+        skew: Union[torch.Tensor, Iterable, TransformParam] = None,
+        stretch_x: Union[torch.Tensor, Iterable, TransformParam] = None,
+        stretch_y: Union[torch.Tensor, Iterable, TransformParam] = None,
         **params,
     ) -> torch.Tensor:
+        if stretch_y is None:
+            stretch_y = []
+        if stretch_x is None:
+            stretch_x = []
+        if skew is None:
+            skew = []
+        if shift_y is None:
+            shift_y = []
+        if shift_x is None:
+            shift_x = []
+        if zoom_f is None:
+            zoom_f = []
+        if theta_z is None:
+            theta_z = []
+        if theta_y is None:
+            theta_y = []
+        if theta_x is None:
+            theta_x = []
         return torch.cat(
             [
                 apply_homography(

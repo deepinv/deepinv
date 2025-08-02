@@ -42,7 +42,7 @@ class DRUNet(Denoiser):
         self,
         in_channels=3,
         out_channels=3,
-        nc=[64, 128, 256, 512],
+        nc=None,
         nb=4,
         act_mode="R",
         downsample_mode="strideconv",
@@ -50,6 +50,8 @@ class DRUNet(Denoiser):
         pretrained="download",
         device=None,
     ):
+        if nc is None:
+            nc = [64, 128, 256, 512]
         super(DRUNet, self).__init__()
         in_channels = in_channels + 1  # accounts for the input noise channel
         self.m_head = conv(in_channels, nc[0], bias=False, mode="C")

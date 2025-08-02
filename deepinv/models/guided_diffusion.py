@@ -58,15 +58,10 @@ class ADMUNet(Denoiser):
         label_dim=0,  # Number of class labels, 0 = unconditional.
         augment_dim=0,  # Augmentation label dimensionality, 0 = no augmentation.
         model_channels=192,  # Base multiplier for the number of channels.
-        channel_mult=[
-            1,
-            2,
-            3,
-            4,
-        ],  # Per-resolution multipliers for the number of channels.
+        channel_mult=None,  # Per-resolution multipliers for the number of channels.
         channel_mult_emb=4,  # Multiplier for the dimensionality of the embedding vector.
         num_blocks=3,  # Number of residual blocks per resolution.
-        attn_resolutions=[32, 16, 8],  # List of resolutions with self-attention.
+        attn_resolutions=None,  # List of resolutions with self-attention.
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
         pretrained: str = "download",
@@ -75,6 +70,10 @@ class ADMUNet(Denoiser):
         *args,
         **kwargs,
     ):
+        if attn_resolutions is None:
+            attn_resolutions = [32, 16, 8]
+        if channel_mult is None:
+            channel_mult = [1, 2, 3, 4]
         super().__init__()
         # The default model is a class-conditioned model with 1000 classes
         if pretrained is not None:

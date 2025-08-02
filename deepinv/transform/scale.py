@@ -89,8 +89,8 @@ class Scale(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        factor: Union[torch.Tensor, Iterable, TransformParam] = [],
-        center: Union[torch.Tensor, Iterable, TransformParam] = [],
+        factor: Union[torch.Tensor, Iterable, TransformParam] = None,
+        center: Union[torch.Tensor, Iterable, TransformParam] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Scale image given scale parameters.
@@ -101,6 +101,10 @@ class Scale(Transform):
         :return: torch.Tensor: scaled image.
         """
         # Prepare for multiple transforms
+        if center is None:
+            center = []
+        if factor is None:
+            factor = []
         x = x.repeat(self.n_trans, 1, 1, 1)
 
         b, _, h, w = x.shape

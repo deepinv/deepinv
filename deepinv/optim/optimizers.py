@@ -146,7 +146,7 @@ class BaseOptim(Reconstructor):
     def __init__(
         self,
         iterator,
-        params_algo={"lambda": 1.0, "stepsize": 1.0},
+        params_algo=None,
         data_fidelity=None,
         prior=None,
         max_iter=100,
@@ -166,6 +166,8 @@ class BaseOptim(Reconstructor):
         eps_anderson_acc=1e-4,
         verbose=False,
     ):
+        if params_algo is None:
+            params_algo = {"lambda": 1.0, "stepsize": 1.0}
         super(BaseOptim, self).__init__()
 
         self.early_stop = early_stop
@@ -558,7 +560,7 @@ def create_iterator(
 def optim_builder(
     iteration,
     max_iter=100,
-    params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
+    params_algo=None,
     data_fidelity=None,
     prior=None,
     F_fn=None,
@@ -593,6 +595,8 @@ def optim_builder(
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
+    if params_algo is None:
+        params_algo = {"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05}
     iterator = create_iterator(
         iteration,
         prior=prior,

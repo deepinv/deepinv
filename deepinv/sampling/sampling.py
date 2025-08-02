@@ -141,7 +141,7 @@ class BaseSampling(Reconstructor):
         physics: Physics,
         x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, list[Callable]] = [lambda d: d["x"]],
+        g_statistics: Union[Callable, list[Callable]] = None,
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""
@@ -185,6 +185,8 @@ class BaseSampling(Reconstructor):
         """
 
         # Don't store computational graphs
+        if g_statistics is None:
+            g_statistics = [lambda d: d["x"]]
         with torch.no_grad():
             # Set random seed if provided
             if seed is not None:
@@ -362,7 +364,7 @@ def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo: dict = {},
+    params_algo: dict = None,
     max_iter: int = 100,
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,
@@ -392,6 +394,8 @@ def sampling_builder(
     :param kwargs: Additional keyword arguments passed to the iterator constructor when a string is provided as the iterator parameter
     :return: Configured BaseSampling instance in eval mode
     """
+    if params_algo is None:
+        params_algo = {}
     iterator = create_iterator(iterator, params_algo, **kwargs)
     # Note we put the model in evaluation mode (.eval() is a PyTorch method inherited from nn.Module)
     return BaseSampling(

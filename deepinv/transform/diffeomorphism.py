@@ -82,7 +82,7 @@ class CPABDiffeomorphism(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        diffeo: Union[torch.Tensor, Iterable, TransformParam] = [],
+        diffeo: Union[torch.Tensor, Iterable, TransformParam] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Transform image deterministically.
@@ -90,6 +90,8 @@ class CPABDiffeomorphism(Transform):
         :param torch.Tensor x: input image
         :param Union[torch.Tensor, Iterable, TransformParam] diffeo: CPAB diffeomorphism parameters.
         """
+        if diffeo is None:
+            diffeo = []
         if self.constant_batch:
             diffeo = diffeo.repeat_interleave(len(x), dim=0)
 

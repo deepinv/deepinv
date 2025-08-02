@@ -900,7 +900,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, filename, epoch, state={}):
+    def save_model(self, filename, epoch, state=None):
         r"""
         Save the model.
 
@@ -911,6 +911,8 @@ class Trainer:
         :param dict state: custom objects to save with model
         """
 
+        if state is None:
+            state = {}
         if not self.save_path:
             return
 

@@ -294,13 +294,15 @@ class SCUNet(Denoiser):
     def __init__(
         self,
         in_nc=3,
-        config=[4, 4, 4, 4, 4, 4, 4],
+        config=None,
         dim=64,
         drop_path_rate=0.0,
         input_resolution=256,
         pretrained="download",
         device="cpu",
     ):
+        if config is None:
+            config = [4, 4, 4, 4, 4, 4, 4]
         super(SCUNet, self).__init__()
         self.config = config
         self.dim = dim

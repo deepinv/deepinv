@@ -68,7 +68,7 @@ class Rotate(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        theta: Union[torch.Tensor, Iterable, TransformParam] = [],
+        theta: Union[torch.Tensor, Iterable, TransformParam] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Rotate image given thetas.
@@ -77,6 +77,8 @@ class Rotate(Transform):
         :param torch.Tensor, list theta: iterable of rotation angles (degrees), one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
+        if theta is None:
+            theta = []
         return torch.cat(
             [
                 rotate(

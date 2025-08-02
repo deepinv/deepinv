@@ -52,8 +52,8 @@ class Shift(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        x_shift: Union[torch.Tensor, Iterable, TransformParam] = [],
-        y_shift: Union[torch.Tensor, Iterable, TransformParam] = [],
+        x_shift: Union[torch.Tensor, Iterable, TransformParam] = None,
+        y_shift: Union[torch.Tensor, Iterable, TransformParam] = None,
         **kwargs,
     ) -> torch.Tensor:
         """Shift image given shift parameters.
@@ -63,6 +63,10 @@ class Shift(Transform):
         :param torch.Tensor, list y_shift: iterable of shifts in y direction, one per ``n_trans``.
         :return: torch.Tensor: transformed image.
         """
+        if y_shift is None:
+            y_shift = []
+        if x_shift is None:
+            x_shift = []
         return torch.cat(
             [
                 torch.roll(x, [sx, sy], [-2, -1])
