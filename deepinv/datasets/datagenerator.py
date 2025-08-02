@@ -238,6 +238,8 @@ def generate_dataset(
     if not isinstance(physics, (list, tuple)):
         physics = [physics]
 
+    physics = [p.clone() for p in physics]
+
     G = len(physics)
 
     save_physics_generator_params = (

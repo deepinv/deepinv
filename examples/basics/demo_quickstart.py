@@ -65,11 +65,6 @@ y = physics(x)
 # Blur with Gaussian filter parameter
 physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur())
 
-# MRI with random mask parameter
-physics = dinv.physics.MRI(
-    **dinv.physics.generator.RandomMaskGenerator(x.shape[2:]).step()
-)
-
 # Inpainting with noise model
 physics = dinv.physics.Inpainting(
     x.shape[1:], mask=0.8, noise_model=dinv.physics.GaussianNoise(0.1)
@@ -100,25 +95,14 @@ x_pinv = physics.A_dagger(y)
 # In DeepInverse, a `model` is a reconstruction algorithm that
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
+# .. tip::
+#     :ref:`Many models, such as :class:`Reconstruct Anything Model <deepinv.models.RAM>`, are pretrained <pretrained-reconstructors>` and can
+#     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
+#
 
 model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 x_net = model(y, physics)
-
-
-# %%
-# DeepInverse covers
-# :ref:`many frameworks of reconstruction algorithms <reconstructors>`
-# including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
-# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
-#
-# .. tip::
-#     :ref:`Many models are pretrained <pretrained-reconstructors>` and can
-#     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
-#
-
-# Reconstruct Anything Model foundation model
-model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 # %%
 # Plot the image `x`, the measurement `y` and the reconstructed image
@@ -139,6 +123,15 @@ x_denoised = denoiser(y, sigma=0.1)
 
 model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
 
+# %%
+# DeepInverse covers
+# :ref:`many frameworks of reconstruction algorithms <reconstructors>`
+# including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
+# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
+#
+
+# Reconstruct Anything Model foundation model
+model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 # %%
 # .. tip::
@@ -160,19 +153,26 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
 #     It's easy to use your own dataset with DeepInverse. See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a tutorial.
 #
 
-dataset = dinv.datasets.SimpleFastMRISliceDataset("data", download=True)
+dataset = dinv.datasets.SimpleFastMRISliceDataset(
+    "data", anatomy="brain", download=True
+)
 
 
 # %%
 # :ref:`Datasets <datasets>` return either `x`, tuples `x, y` or `x, y, params` of images,
 # measurements, and optional physics parameters. Given a ground-truth
-# dataset, you can simulate a dataset:
-#
+# dataset, you can simulate a dataset with random physics:
 #
 
-pth = dinv.datasets.generate_dataset(dataset, physics, save_dir="data")
+physics = dinv.physics.MRI()
 
-dataset = dinv.datasets.HDF5Dataset(pth)
+physics_generator = dinv.physics.generator.RandomMaskGenerator((320, 320))
+
+pth = dinv.datasets.generate_dataset(
+    dataset, physics, save_dir="data", physics_generator=physics_generator
+)
+
+dataset = dinv.datasets.HDF5Dataset(pth, load_physics_generator_params=True)
 
 
 # %%
@@ -181,7 +181,7 @@ dataset = dinv.datasets.HDF5Dataset(pth)
 
 import torch
 
-dinv.test(model, torch.utils.data.DataLoader(dataset), physics)
+dinv.test(model, torch.utils.data.DataLoader(dataset), physics, plot_images=True)
 
 
 # %%
