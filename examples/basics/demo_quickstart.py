@@ -40,6 +40,10 @@ import deepinv as dinv
 
 x = dinv.utils.load_example("butterfly.png")
 
+# %%
+# Images are tensors of shape `B, C, ...` where `B` is batch size, `C` are channels and `...` are spatial dimensions:
+
+print(x.shape)
 
 # %%
 # :ref:`Imaging forward operators <physics_intro>` are called `physics` and simulate
@@ -96,7 +100,7 @@ x_pinv = physics.A_dagger(y)
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 # .. tip::
-#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>` TODO RAM, are `pretrained reconstructors <pretrained-reconstructors>` and can
+#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>` TODO RAM, are :ref:`pretrained reconstructors <pretrained-reconstructors>` and can
 #     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
@@ -127,7 +131,7 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
 # DeepInverse covers
 # :ref:`many frameworks of reconstruction algorithms <reconstructors>`
 # including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
-# (e.g.'diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
+# (e.g. diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
 #
 
 # Reconstruct Anything Model foundation model

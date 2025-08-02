@@ -1,5 +1,5 @@
 """
-Inference and fine-tune Reconstruct Anything Model (RAM) foundation model.
+Inference and fine-tune Reconstruct Anything Model (RAM) foundation model
 ====================================================================================================
 
 This example shows how to inference and fine-tune the RAM foundation model to solve inverse problems.

@@ -128,10 +128,10 @@ print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 #
 # The operator :math:`A` in this example is decomposable:
 #
-# ..math ::
+# .. math::
 #   A = U\text{diag}(s)V^{\top}
 #
-# where :math:`\text{diag}(s)` is the `mask`` of singular values.
+# where :math:`\text{diag}(s)` is the `mask` of singular values.
 
 
 class DecolorizeSVD(dinv.physics.DecomposablePhysics):
