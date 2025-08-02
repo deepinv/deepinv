@@ -93,7 +93,7 @@ transform = rotate * dinv.transform.Reflect(dim=[-1], n_trans=2)
 #
 
 sigma = 0.1
-physics = dinv.physics.GaussianNoise(sigma=sigma)
+physics = dinv.physics.Denoising(noise_model=dinv.physics.GaussianNoise(sigma=sigma))
 y = physics(Resize(128)(x))
 
 model = dinv.models.MedianFilter()
