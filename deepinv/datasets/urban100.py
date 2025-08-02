@@ -53,14 +53,18 @@ class Urban100HR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = MappingProxyType({
-        "Urban100_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz",
-    })
+    archive_urls = MappingProxyType(
+        {
+            "Urban100_HR.tar.gz": "https://huggingface.co/datasets/eugenesiow/Urban100/resolve/main/data/Urban100_HR.tar.gz",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = MappingProxyType({
-        "Urban100_HR": "6e0640850d436a359e0a9baf5eabd27b",
-    })
+    checksums = MappingProxyType(
+        {
+            "Urban100_HR": "6e0640850d436a359e0a9baf5eabd27b",
+        }
+    )
 
     def __init__(
         self,

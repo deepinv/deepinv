@@ -49,14 +49,18 @@ class Flickr2kHR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = MappingProxyType({
-        "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
-    })
+    archive_urls = MappingProxyType(
+        {
+            "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = MappingProxyType({
-        "Flickr2K": "21fc3b64443fba44d6f0ad8a8c171b1e",
-    })
+    checksums = MappingProxyType(
+        {
+            "Flickr2K": "21fc3b64443fba44d6f0ad8a8c171b1e",
+        }
+    )
 
     def __init__(
         self,

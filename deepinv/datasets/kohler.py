@@ -93,26 +93,30 @@ class Kohler(Dataset):
 
     # The checksums are used to verify the integrity of the downloaded
     # archives.
-    archive_checksums = MappingProxyType({
-        "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
-        "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
-        "GroundTruth_pngs_Image3.zip": "3a77c41c951367f35db52eb18496bbac",
-        "GroundTruth_pngs_Image4.zip": "72ce9690c3ed1296358653396cf9576d",
-        "BlurryImages.zip": "61ffb1434d93fca6c508976a7216d723",
-    })
+    archive_checksums = MappingProxyType(
+        {
+            "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
+            "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
+            "GroundTruth_pngs_Image3.zip": "3a77c41c951367f35db52eb18496bbac",
+            "GroundTruth_pngs_Image4.zip": "72ce9690c3ed1296358653396cf9576d",
+            "BlurryImages.zip": "61ffb1434d93fca6c508976a7216d723",
+        }
+    )
 
     # Most of the acquisitions of sharp images span exactly 199 frames but not
     # all of them and this lookup table gives each frame count for them all.
-    frame_count_table = MappingProxyType({
-        (2, 11): 200,
-        (1, 10): 198,
-        (1, 12): 198,
-        (2, 10): 198,
-        (3, 7): 198,
-        (3, 12): 198,
-        (4, 12): 198,
-        "others": 199,
-    })
+    frame_count_table = MappingProxyType(
+        {
+            (2, 11): 200,
+            (1, 10): 198,
+            (1, 12): 198,
+            (2, 10): 198,
+            (3, 7): 198,
+            (3, 12): 198,
+            (4, 12): 198,
+            "others": 199,
+        }
+    )
 
     def __init__(
         self,
