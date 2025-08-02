@@ -69,6 +69,7 @@ def test(
         rescale_mode=rescale_mode,
         no_learning_method=no_learning_method,
         show_progress_bar=show_progress_bar,
+        save_path=save_folder,
         **kwargs,
     )
     return trainer.test(test_dataloader, save_path=save_folder)

@@ -176,7 +176,7 @@ def DEQ_builder(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. default: False
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: None, comes back to standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.unfolded.BaseUnfold` class.
     """
     iterator = create_iterator(

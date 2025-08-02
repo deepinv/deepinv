@@ -2,7 +2,7 @@
 Vanilla PnP for computed tomography (CT).
 ====================================================================================================
 
-This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography.
+This example shows how to use a standard PnP algorithm with DnCNN denoiser for computed tomography.
 
 """
 

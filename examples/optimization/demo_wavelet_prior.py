@@ -60,7 +60,7 @@ noise_level_img = 0.05  # Gaussian Noise standard deviation for the degradation
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 
 # Select the first image from the dataset
-x = dataset[0][0].unsqueeze(0).to(device)
+x = dataset[0].unsqueeze(0).to(device)
 
 # Generate a mask for the inpainting problem
 mask = torch.ones_like(x)[0]

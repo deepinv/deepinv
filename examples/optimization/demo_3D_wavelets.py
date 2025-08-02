@@ -48,7 +48,9 @@ volume_data = torch.from_numpy(volume_data).unsqueeze(0).unsqueeze(0)
 x = volume_data / volume_data.max()
 
 noise_level_img = 0.1  # Gaussian Noise standard deviation for the degradation
-physics = dinv.physics.GaussianNoise(sigma=noise_level_img)
+physics = dinv.physics.Denoising(
+    noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img)
+)
 
 # Apply the degradation to the image
 y = physics(x)
@@ -248,3 +250,8 @@ dinv.utils.plot(
 #       model = dinv.models.WaveletDictDenoiser(list_wv=["db8", "db4"], max_iter=10, non_linearity="soft", wvdim=3)
 #       xhat = model(y, ths)
 #
+
+# %%
+# :References:
+#
+# .. footbibliography::

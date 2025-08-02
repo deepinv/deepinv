@@ -37,12 +37,13 @@ import torch
 from torchvision.transforms import Compose, CenterCrop
 
 from deepinv.datasets.utils import ToComplex, Rescale, download_archive
+from deepinv.datasets.base import BaseDataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
 from deepinv.physics.mri import MultiCoilMRI, MRIMixin
 
 
-class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
+class SimpleFastMRISliceDataset(BaseDataset):
     """Simple FastMRI image dataset.
 
     Loads in-memory a saved and processed subset of 2D slices from the full FastMRI slice dataset of :footcite:t:`knoll2020advancing`, for quick loading.
@@ -120,7 +121,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
             if download:
                 url = get_image_url(str(file_name))
                 download_archive(url, root_dir / file_name)
-                x = torch.load(root_dir / file_name, weights_only=True)
+                x = torch.load(root_dir / file_name, weights_only=True)  # N,H,W
             else:
                 raise FileNotFoundError(
                     "Local dataset not downloaded. Download by setting download=True."
@@ -128,7 +129,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
 
         self.transform = Compose(
             [ToComplex()] + ([transform] if transform is not None else [])
-        )
+        )  # N,2,H,W
 
         if train:
             self.x = x[: int(train_percent * len(x))]
@@ -155,7 +156,7 @@ class SimpleFastMRISliceDataset(torch.utils.data.Dataset):
         return len(self.x)
 
 
-class FastMRISliceDataset(torch.utils.data.Dataset, MRIMixin):
+class FastMRISliceDataset(BaseDataset, MRIMixin):
     """Dataset for `fastMRI <https://fastmri.med.nyu.edu/>`_ that provides access to raw MR kspace data.
 
     This dataset (from :footcite:t:`knoll2020advancing`) randomly selects 2D slices from a dataset of 3D MRI volumes.

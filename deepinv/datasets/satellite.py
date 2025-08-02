@@ -11,7 +11,6 @@ except ImportError:  # pragma: no cover
 
 import numpy as np
 
-from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
 
 from deepinv.datasets.utils import (
@@ -22,9 +21,10 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.datasets.base import BaseDataset
 
 
-class NBUDataset(Dataset):
+class NBUDataset(BaseDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
@@ -47,7 +47,7 @@ class NBUDataset(Dataset):
 
         Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
 
-    See :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` for example using
+    See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using
     this dataset with remote sensing inverse problems.
 
     |sep|

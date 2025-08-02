@@ -37,3 +37,7 @@ a.sphx-glr-backref-instance {
     margin: 0 auto;
     display: block;
 }
+
+html[data-theme="light"] {
+    --pst-color-surface: #f9f9fa;
+}

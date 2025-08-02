@@ -1,4 +1,5 @@
-from typing import Union, Callable
+from __future__ import annotations
+from typing import Union, Callable, TYPE_CHECKING
 import os, shutil, zipfile, requests
 from io import BytesIO
 
@@ -8,9 +9,10 @@ from PIL import Image
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
-import torchvision
 from torchvision import transforms
+
+if TYPE_CHECKING:
+    from deepinv.datasets.base import ImageFolder
 
 
 def get_git_root():
@@ -34,17 +36,14 @@ def get_degradation_url(file_name: str) -> str:
     )
 
 
-def get_image_url(file_name: str) -> str:
+def get_image_url(file_name: str, dataset: str = "images") -> str:
     """Get URL for image from DeepInverse HuggingFace repository.
 
     :param str file_name: image filename in repository
+    :param str dataset: HuggingFace dataset name, defaults to 'images'
     :return str: image URL
     """
-    return (
-        "https://huggingface.co/datasets/deepinv/images/resolve/main/"
-        + file_name
-        + "?download=true"
-    )
+    return f"https://huggingface.co/datasets/deepinv/{dataset}/resolve/main/{file_name}?download=true"
 
 
 def get_data_home() -> Path:
@@ -73,7 +72,7 @@ def load_dataset(
     download: bool = True,
     url: str = None,
     file_type: str = "zip",
-) -> Dataset:
+) -> ImageFolder:
     """Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
 
     :param str, pathlib.Path dataset_name: dataset name without file extension.
@@ -82,8 +81,10 @@ def load_dataset(
     :param bool download: whether to download, defaults to True
     :param str url: download URL, if ``None``, gets URL using :func:`deepinv.utils.get_image_url`
     :param str file_type: file extension, defaults to "zip"
-    :return: torchvision ImageFolder dataset.
+    :return: :class:`deepinv.datasets.ImageFolder` dataset.
     """
+    from deepinv.datasets.base import ImageFolder
+
     if data_dir is None:
         data_dir = get_data_home()
 
@@ -120,7 +121,7 @@ def load_dataset(
         os.remove(f"{str(dataset_dir)}.{file_type}")
         print(f"{dataset_name} dataset downloaded in {data_dir}")
 
-    return torchvision.datasets.ImageFolder(root=dataset_dir, transform=transform)
+    return ImageFolder(root=dataset_dir, transform=transform)
 
 
 def load_degradation(
@@ -194,6 +195,16 @@ def load_image(
     return x
 
 
+def load_url(url: str) -> BytesIO:
+    """Load URL to a buffer.
+
+    :param str url: URL of the file to load
+    """
+    response = requests.get(url)
+    response.raise_for_status()
+    return BytesIO(response.content)
+
+
 def load_url_image(
     url=None,
     img_size=None,
@@ -213,8 +224,7 @@ def load_url_image(
     :return: :class:`torch.Tensor` containing the image.
     """
 
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
+    img = Image.open(load_url(url))
     transform_list = []
     if img_size is not None:
         if resize_mode == "crop":
@@ -244,6 +254,19 @@ def load_example(name, **kwargs):
     return load_url_image(get_image_url(name), **kwargs)
 
 
+def download_example(name: str, save_dir: Union[str, Path]):
+    r"""
+    Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param str, pathlib.Path save_dir: directory to save image to.
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    data = requests.get(get_image_url(name)).content
+    with open(Path(save_dir) / name, "wb") as f:
+        f.write(data)
+
+
 def load_torch_url(url):
     r"""
     Load an array from url and read it by torch.load.
@@ -251,10 +274,7 @@ def load_torch_url(url):
     :param str url: URL of the image file.
     :return: whatever is pickled in the file.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    out = torch.load(BytesIO(response.content))
-    return out
+    return torch.load(load_url(url))
 
 
 def load_np_url(url=None):
@@ -264,7 +284,4 @@ def load_np_url(url=None):
     :param str url: URL of the image file.
     :return: :class:`np.array` containing the data.
     """
-    response = requests.get(url)
-    response.raise_for_status()
-    array = np.load(BytesIO(response.content))
-    return array
+    return np.load(load_url(url))

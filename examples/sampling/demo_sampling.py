@@ -145,3 +145,8 @@ plot(
     imgs,
     titles=["measurement", "ground truth", "post. mean", "post. std", "abs. error"],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
