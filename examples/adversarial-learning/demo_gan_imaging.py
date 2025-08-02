@@ -79,10 +79,16 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=True, load_physics_generator_params=True
+    ),
+    shuffle=True,
 )
 test_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=False, load_physics_generator_params=True
+    ),
+    shuffle=False,
 )
 
 
