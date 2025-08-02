@@ -3,46 +3,33 @@
 Introduction
 ------------
 Reconstruction algorithms define an inversion function :math:`\hat{x}=\inversef{y}{A}`
-which attempts to recover a signal :math:`x` from measurements :math:`y`, (possibly) given an operator :math:`A`.
-All reconstruction algorithms in the library inherit from the
-:class:`deepinv.models.Reconstructor` base class.
+which recovers a signal :math:`x` from measurements :math:`y` given an operator :math:`A`.
 
-.. _pretrained-reconstructors:
+.. codeblock::
 
-Pretrained reconstructors
-~~~~~~~~~~~~~~~~~~~~~~~~~
+  x_hat = model(y, physics)
 
-Some methods do not require any training and can be quickly deployed in your problem.
-
-TODO one liner demos here!!
-TODO check they work and doctest these
-TODO ref example
-
-x = load_example
-physics = ...
-y = physics(x)
-model = dinv.models.RAM()
-model = dinv.optim.DPIR(sigma=0.1)
-model = dinv.models...
-
-.. tip::
-
-      If you need to train your model and don't have ground truth data,
-      the library provides a :ref:`large set of self-supervised losses <self-supervised-losses>`
-      which can learn from measurement data alone.
-      TODO ref fine tuning example
+.. seealso::
+  
+  See :ref:`pretrained reconstructors <pretrained-reconstructors>` for ready-to-use pretrained reconstruction algorithms
+  that you can use to reconstruct images in one line.
 
 Defining your own reconstructor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TODO
-TODO ref from other examples
+All reconstruction algorithms inherit from the
+:class:`deepinv.models.Reconstructor` base class, take as input measurements `y`
+and forward operator `physics`, and output a reconstruction `x_hat`.
+
+To use your own reconstructor with DeepInverse, simply define the `forward` method to follow this pattern.
 
 Summary
 ~~~~~~~
 
 Below we provide a summary of existing reconstruction methods, and a qualitative
 description of their reconstruction performance and speed.
+
+For the models that require training, you can do this using the :ref:`trainer <trainer>` and :ref:`loss functions <loss>`.
 
 .. list-table:: Reconstruction methods
    :header-rows: 1

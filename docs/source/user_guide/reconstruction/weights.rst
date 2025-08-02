@@ -1,7 +1,7 @@
 .. _pretrained-weights:
 
-Pretrained Weights
-------------------
+Pretrained Denoisers
+--------------------
 
 The following denoisers have **pretrained weights** available; we next briefly summarize the origin of the weights,
 associated reference and relevant details. All pretrained weights are hosted on
@@ -48,4 +48,4 @@ associated reference and relevant details. All pretrained weights are hosted on
    * - :class:`deepinv.models.Restormer`
      - from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_. Pretrained parameters from `swz30 github <https://github.com/swz30/Restormer/tree/main>`_.
    * -
-     - Also available on the `deepinverse Restormer HugginfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
+     - Also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.

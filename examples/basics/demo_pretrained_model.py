@@ -10,8 +10,6 @@ We show three sets of general pretrained reconstruction methods, including:
 * :ref:`Plug-and-play <iterative>` with a pretrained denoiser.
 * Pretrained :ref:`diffusion model <diffusion>`;
 
-TODO link to pretrained weights for other denoisers and specific reconstructors
-
 See :ref:`User Guide <pretrained-reconstructors>` for a principled comparison between methods demonstrated in this example.
 
 .. tip::
@@ -47,6 +45,9 @@ x_hat1 = model(y, physics)
 
 # %%
 # PnP algorithm with pretrained denoiser:
+#
+# .. seealso::
+#     See :ref:`pretrained denoisers <pretrained-weights>` for a full list of denoisers that can be plugged into iterative/sampling algorithms.
 
 denoiser = dinv.models.DRUNet(pretrained="download")
 model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device="cpu")

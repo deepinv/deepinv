@@ -94,6 +94,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
+        :link: reconstructors
+        :link-type: ref
+
+        :octicon:`paper-airplane` **Pretrained Reconstructors**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Ready-to-use pretrained reconstruction algorithms.
+
+    .. grid-item-card::
         :link: denoisers
         :link-type: ref
 
@@ -167,6 +175,7 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    :caption: Reconstruction Methods
 
    user_guide/reconstruction/introduction
+   user_guide/reconstruction/pretrained-reconstructors
    user_guide/reconstruction/denoisers
    user_guide/reconstruction/artifact
    user_guide/reconstruction/optimization
