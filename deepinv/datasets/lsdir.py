@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Callable
+from typing import Any, Callable, MappingProxyType
 import os
 
 from PIL import Image
@@ -66,8 +66,8 @@ class LsdirHR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = {
-        "train": {
+    archive_urls = MappingProxyType({
+        "train": MappingProxyType({
             "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
             "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
             "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
@@ -85,17 +85,17 @@ class LsdirHR(torch.utils.data.Dataset):
             "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
             "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
             "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
-        },
-        "val": {
+        }),
+        "val": MappingProxyType({
             "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
-        },
-    }
+        }),
+    })
 
     # for integrity of downloaded data
-    checksums = {
+    checksums = MappingProxyType({
         "train": "a83bdb97076d617e4965913195cc84d1",
         "val": "972ba478c530b76eb9404b038597f65f",
-    }
+    })
 
     def __init__(
         self,

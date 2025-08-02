@@ -10,6 +10,8 @@ from deepinv.datasets.utils import (
     extract_zipfile,
 )
 
+from types import MappingProxyType
+
 
 class DIV2K(torch.utils.data.Dataset):
     """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
@@ -57,16 +59,16 @@ class DIV2K(torch.utils.data.Dataset):
     """
 
     # https://data.vision.ee.ethz.ch/cvl/DIV2K/
-    archive_urls = {
+    archive_urls = MappingProxyType({
         "DIV2K_train_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_train_HR.zip",
         "DIV2K_valid_HR.zip": "http://data.vision.ee.ethz.ch/cvl/DIV2K/DIV2K_valid_HR.zip",
-    }
+    })
 
     # for integrity of downloaded data
-    checksums = {
+    checksums = MappingProxyType({
         "DIV2K_train_HR": "f9de9c251af455c1021017e61713a48b",
         "DIV2K_valid_HR": "542325e500b0a474c7ad18bae922da72",
-    }
+    })
 
     def __init__(
         self,

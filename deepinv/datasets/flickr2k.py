@@ -10,6 +10,8 @@ from deepinv.datasets.utils import (
     extract_zipfile,
 )
 
+from types import MappingProxyType
+
 
 class Flickr2kHR(torch.utils.data.Dataset):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
@@ -47,14 +49,14 @@ class Flickr2kHR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = {
+    archive_urls = MappingProxyType({
         "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
-    }
+    })
 
     # for integrity of downloaded data
-    checksums = {
+    checksums = MappingProxyType({
         "Flickr2K": "21fc3b64443fba44d6f0ad8a8c171b1e",
-    }
+    })
 
     def __init__(
         self,

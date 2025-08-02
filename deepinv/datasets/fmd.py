@@ -1,4 +1,4 @@
-from typing import Any, Callable, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional, MappingProxyType
 import os
 import re
 
@@ -80,7 +80,7 @@ class FMD(torch.utils.data.Dataset):
             shutil.rmtree("fmd")                                           # remove raw data from disk
     """
 
-    gdrive_ids = {
+    gdrive_ids = MappingProxyType({
         "Confocal_BPAE_B.tar": "1juaumcGn5QlFRXRQyrqfbZBhF7oX__iW",
         "Confocal_BPAE_G.tar": "1Zofz11VmI1JfRIMF7rq40RVjpzM6A9vg",
         "Confocal_BPAE_R.tar": "1QoD_vMvFdFg7yREfen3t-SGLFcnLg9YQ",
@@ -93,7 +93,7 @@ class FMD(torch.utils.data.Dataset):
         "WideField_BPAE_B.tar": "19rl8zFzfXIZ2drgodCGutLPLzL4kJq6d",
         "WideField_BPAE_G.tar": "1H67O6GqIkIlQSX-n0vfMWGPwmd4zOHQr",
         "WideField_BPAE_R.tar": "19HXb2Ftrb-M7Lr9ZlHWMcnNT0Sbu85YL",
-    }
+    })
 
     class NoisySampleIdentifier(NamedTuple):
         """Data structure for identifying noisy data sample files.
