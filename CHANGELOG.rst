@@ -13,9 +13,13 @@ New Features
 - FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
 - SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
 - New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
+- Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
+- Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
+
+- PatchDataset returns tensors and not tuples (:gh:`622` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
