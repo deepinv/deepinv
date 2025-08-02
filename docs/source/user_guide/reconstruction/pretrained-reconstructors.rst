@@ -19,7 +19,7 @@ These models can be defined in one line and inferenced in one line:
   >>> y = physics(x)
   >>> model = dinv.models.ArtifactRemoval(dinv.models.MedianFilter()) # TODO dinv.models.RAM(pretrained=True) # or any of the models listed below
   >>> x_hat = model(y, physics) # Model inference
-  >>> dinv.metric.PSNR()(x_hat, x)
+  >>> dinv.metric.PSNR()(x_hat, x) # TODO CHANGE MEDIANFILTER TO RAM BELOW TOO
   tensor([5.5290])
 
 .. list-table:: Pretrained reconstructors
@@ -28,7 +28,7 @@ These models can be defined in one line and inferenced in one line:
    * - **Name**
      - **Family**
      - **Speed**
-   * - :class:`Reconstruct Anything Model <deepinv.models.RAM>`
+   * - :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>`
      - Feedforward
      - Fast
    * - :ref:`Plug-and-play <iterative>` with a pretrained denoiser

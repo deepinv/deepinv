@@ -6,7 +6,7 @@ Follow this example to reconstruct images using a pretrained model in one line.
 
 We show three sets of general pretrained reconstruction methods, including:
 
-* Pretrained feedforward :class:`Reconstruct Anything Model (RAM) <deepinv.models.RAM>`;
+* Pretrained feedforward :class:`Reconstruct Anything Model (RAM) <deepinv.models.MedianFilter>`; # TODO RAM
 * :ref:`Plug-and-play <iterative>` with a pretrained denoiser.
 * Pretrained :ref:`diffusion model <diffusion>`;
 
