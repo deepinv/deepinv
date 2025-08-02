@@ -5,7 +5,7 @@ Introduction
 Reconstruction algorithms define an inversion function :math:`\hat{x}=\inversef{y}{A}`
 which recovers a signal :math:`x` from measurements :math:`y` given an operator :math:`A`.
 
-.. codeblock::
+.. code-block::
 
   x_hat = model(y, physics)
 

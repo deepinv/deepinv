@@ -14,3 +14,10 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 - Pseudoinverse: :math:`\inversef{y}{A}=\phi(A^{\dagger}y)` with ``mode='pinv'``.
 - | Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
   | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
+
+.. _general_reconstructors:
+
+General reconstructors
+----------------------
+
+TODO TEMP THIS WILL BE OVERRIDEN BY RAM PR

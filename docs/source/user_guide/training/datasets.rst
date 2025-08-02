@@ -168,6 +168,7 @@ ground-truth only `x`, paired data `(x, y)` or with params (e.g. mask) `(x, y, p
      - Dynamic MRI sequences of cardiac cine from short axis (5-10 slices) and long axis (3 views) split by patient, from the CMRxRecon challenge.
 
    * - :class:`deepinv.datasets.SKMTEASliceDataset`
+     - `(x, y, {'mask': mask, 'coil_maps': coil_maps})`
      - 25,000 slices from 155 patients
      - Complex double-echo with 8 coils of shape 512x160.
      - Raw MRI knee multicoil undersampled k-space data and fully-sampled ground truth from the Stanford SKM-TEA dataset, with precomputed Poisson disc masks from 4x to 16x acceleration, and pre-estimated coil maps.
