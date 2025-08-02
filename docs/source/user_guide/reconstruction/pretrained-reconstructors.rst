@@ -27,15 +27,19 @@ These models can be defined in one line and inferenced in one line:
 
    * - **Name**
      - **Family**
+     - **Modality**
      - **Speed**
    * - :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>`
      - Feedforward
+     - General
      - Fast
    * - :ref:`Plug-and-play <iterative>` with a pretrained denoiser
      - Iterative
+     - General
      - Medium
    * - :ref:`Diffusion model <diffusion>` with a pretrained denoiser
      - Sampling
+     - General
      - Slow
 
 .. tip::

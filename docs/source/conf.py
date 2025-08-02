@@ -222,7 +222,17 @@ examples_order = {
         "demo_pretrained_model.py",
         "demo_custom_dataset.py",
         "demo_custom_physics.py",
-    ]
+    ],
+    "models": [
+        "demo_finetuning.py",
+        "demo_training.py",
+        "demo_denoiser_tour.py",
+    ],
+    "physics": [
+        "demo_physics_tour.py",
+        "demo_blur_tour.py",
+        "demo_mri_tour.py",
+    ],
 }
 
 
@@ -264,13 +274,13 @@ sphinx_gallery_conf = {
     "subsection_order": ExplicitOrder(
         [
             "../../examples/basics",
+            "../../examples/models",
             "../../examples/physics",
             "../../examples/optimization",
             "../../examples/plug-and-play",
             "../../examples/sampling",
             "../../examples/unfolded",
             "../../examples/patch-priors",
-            "../../examples/models",
             "../../examples/self-supervised-learning",
             "../../examples/adversarial-learning",
             "../../examples/external-libraries",
