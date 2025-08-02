@@ -170,7 +170,7 @@ def rescale_img(im, rescale_mode="min_max"):
     :return: the rescaled image.
     """
     warn(
-        "The function `deepinv.utils.plotting.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
+        "The function `deepinv.utils.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
         DeprecationWarning,
         stacklevel=2,
     )
