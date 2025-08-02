@@ -1,3 +1,4 @@
+from typing import Union
 import torch
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.physics.blur import gaussian_blur, bilinear_filter, bicubic_filter
@@ -31,8 +32,8 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        filters: [str, list[str]] = None,
-        factors: [int, list[int]] = None,
+        filters: Union[str, list[str]] = None,
+        factors: Union[int, list[int]] = None,
         rng: torch.Generator = None,
         device: str = "cpu",
         dtype: type = torch.float32,
@@ -92,17 +93,33 @@ class DownsamplingGenerator(PhysicsGenerator):
         """
         self.rng_manual_seed(seed)
 
-        random_indices = torch.randint(
+        factor_indices = torch.randint(
             low=0,
             high=len(self.list_factors),
-            size=(2,),
+            size=(batch_size,),
             generator=self.rng,
             **self.factory_kwargs,
         )
-        factor = self.list_factors[int(random_indices[0].item())]
-        filter_str = self.list_filters[int(random_indices[1].item())]
-        filters = self.get_kernel(filter_str, factor)
+        filter_indices = torch.randint(
+            low=0,
+            high=len(self.list_filters),
+            size=(batch_size,),
+            generator=self.rng,
+            **self.factory_kwargs,
+        )
+        factors = [self.list_factors[int(i)] for i in factor_indices.tolist()]
+        filters = [self.list_filters[int(i)] for i in filter_indices.tolist()]
+
+        filters = [
+            self.get_kernel(f_str, f) for f_str, f in zip(filters, factors, strict=True)
+        ]
+
+        if not all([f.shape == filters[0].shape for f in filters]):
+            raise ValueError(
+                "Generated filters have different shapes in batch. Consider limiting factors/filters to one type per batch, or limiting batch size = 1."
+            )
+
         return {
-            "filter": filters,
-            "factor": factor,
+            "filter": torch.cat(filters),
+            "factor": torch.tensor(factors),
         }

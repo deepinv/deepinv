@@ -64,7 +64,7 @@ test_base_dataset = datasets.MNIST(
 # where :math:`A` is a (normalized) random Gaussian matrix.
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
