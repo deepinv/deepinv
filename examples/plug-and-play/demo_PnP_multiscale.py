@@ -15,20 +15,15 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
-import deepinv.physics.blur
-from deepinv.physics.blur import gaussian_blur
 from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import optim_builder
 from deepinv.training import test
-from torchvision import transforms
 from deepinv.utils.demo import load_dataset
-
-from deepinv.physics import Inpainting, GaussianNoise, Blur
-
-from deepinv.optim.optim_iterators import PGDIteration
+from deepinv.physics import Inpainting, GaussianNoise
 
 # %%
 # Setup paths for data loading and results.
