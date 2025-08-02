@@ -12,6 +12,7 @@ from .plotting import (
     resize_pad_square_tensor,
     scatter_plot,
     plot_ortho3D,
+    rescale_img,  # deprecated
 )
 from .demo import (
     load_url_image,
