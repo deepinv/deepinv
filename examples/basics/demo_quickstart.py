@@ -96,7 +96,7 @@ x_pinv = physics.A_dagger(y)
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 # .. tip::
-#     :ref:`Many models, such as :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>` TODO RAM, are pretrained <pretrained-reconstructors>` and can
+#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>` TODO RAM, are `pretrained reconstructors <pretrained-reconstructors>` and can
 #     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
