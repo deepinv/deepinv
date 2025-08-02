@@ -18,6 +18,7 @@ import torchvision.transforms as transforms
 import PIL
 import io
 import copy
+import math
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -728,8 +729,20 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     shape = (batch_size, *signal_shape)
     rng = torch.Generator().manual_seed(seed)
 
-    # Generate a random tensor with the specified shape
-    inp = torch.randn(shape, generator=rng, device="cpu", dtype=torch.float32)
+    # Generate a batch of random signals, half constant and half not
+    # NOTE: Constant signals are the main edge case to test.
+    inp = torch.empty(shape, device="cpu", dtype=torch.float32)
+    indices = torch.randperm(batch_size, generator=rng)
+    N_const_idx = math.ceil(batch_size / 2)
+    const_idx, var_idx = indices[:N_const_idx], indices[N_const_idx:]
+    const_values = torch.randn(
+        N_const_idx, generator=rng, device=inp.device, dtype=inp.dtype
+    )
+    inp[const_idx] = const_values.view((-1,) + ((1,) * len(signal_shape)))
+    if var_idx.numel() != 0:
+        inp[var_idx] = torch.randn(
+            inp[const_idx].shape, generator=rng, device=inp.device, dtype=inp.dtype
+        )
 
     # Sanity check
     assert inp.shape == shape, "Input tensor should have the specified shape."
@@ -746,6 +759,39 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
     assert torch.all(0 <= out) and torch.all(
         out <= 1
     ), "Output entries should be in [0, 1]."
+
+    # Tests specific to min-max normalization
+    if mode == "min_max":
+        # Test the edge case of constant signals
+        for inp_s, out_s in zip(inp, out, strict=True):
+            inp_unique = torch.unique(inp_s)
+            is_inp_constant = inp_unique.numel() == 1
+            if is_inp_constant:
+                # Verify that constant signals remain constant after normalization
+                out_unique = torch.unique(out_s)
+                is_out_constant = out_unique.numel() == 1
+                assert (
+                    is_out_constant
+                ), "Output should be constant if input is constant."
+
+                # Input and output constant values
+                inp_c = inp_unique.item()
+                out_c = out_unique.item()
+
+                # Verify that the rescaling is the smallest possible
+                target_c = max(0, min(1, inp_c))
+                assert (
+                    out_c == target_c
+                ), "The distance between the input and ouput constants is not minimal."
+    elif mode == "clip":
+        # Check that the input is clipped between zero and one
+        assert torch.all(
+            out == torch.clamp(inp, 0, 1)
+        ), "Output should be clipped between 0 and 1."
+    else:
+        raise ValueError(
+            f"Unknown mode '{mode}'. Supported modes are 'min_max' and 'clip'."
+        )
 
 
 # Module-level fixtures
