@@ -66,15 +66,119 @@ x_hat3 = model(y, physics)
 # %%
 # Plot results
 dinv.utils.plot(
-    {"Pretrained RAM": x_hat1, "Pretrained PnP": x_hat2, "Pretrained diffusion": x_hat3}
+    {
+        "Ground truth": x,
+        "Pretrained RAM": x_hat1,
+        "Pretrained PnP": x_hat2,
+        "Pretrained diffusion": x_hat3,
+    }
 )
 
 # %%
-# These models, such as Reconstruct Anything Model, can be used on various problems involving different physics and data:
+# Reconstruct Anything
+# ~~~~~~~~~~~~~~~~~~~~
+#
+# These models, such as Reconstruct Anything Model, can be used on various problems involving different physics and data.
 
-# TODO
+model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
-# Want more performance?
-# TODO link to finetuning demo
-# Want more performance? Or want help?
-# TODO get in touch??
+# %%
+# Accelerated brain MRI, using a sample image from `FastMRI <https://fastmri.med.nyu.edu/>`:
+
+x = dinv.datasets.SimpleFastMRISliceDataset("data", anatomy="brain", download=True)[
+    0
+].unsqueeze(0)
+
+physics = dinv.physics.MRI()
+
+physics_generator = dinv.physics.generator.GaussianMaskGenerator((320, 320))
+
+y = physics(x, **physics_generator.step())
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        "Linear inverse": physics.A_adjoint(y),
+        "Pretrained RAM": model(y, physics),
+    }
+)
+
+# %%
+# Joint random motion deblurring and denoising, using data from color BSD:
+
+x = dinv.utils.load_example("CBSD_0010.png")
+
+physics = dinv.physics.BlurFFT(
+    img_size=x.shape[1:], noise_model=dinv.physics.GaussianNoise(sigma=0.05)
+)
+
+# fmt: off
+physics_generator = ( 
+    dinv.physics.generator.MotionBlurGenerator((31, 31), l=2.0, sigma=2.4) +
+    dinv.physics.generator.SigmaGenerator(sigma_min=0.001, sigma_max=0.2)
+)
+# fmt: on
+
+y = physics(x, **physics_generator.step())
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        "Linear inverse": physics.A_adjoint(y),
+        "Pretrained RAM": model(y, physics),
+    }
+)
+
+# %%
+# Computed Tomography with limited angles and log-Poisson noise,
+# using data from the `The Cancer Imaging Archive <https://link.springer.com/article/10.1007/s10278-013-9622-7>`_ of lungs:
+#
+
+x = torch.tensor(
+    dinv.datasets.utils.loadmat(
+        dinv.utils.demo.load_url(dinv.utils.get_image_url("CT100_256x256.mat"))
+    )["DATA"]
+)[None, [0]].float()
+
+physics = dinv.physics.Tomography(
+    img_width=256,
+    angles=10,
+    noise_model=dinv.physics.LogPoissonNoise(mu=1 / 50.0 * 362.0 / 256),
+)
+
+y = physics(x)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        "FBP pseudo-inverse": physics.A_dagger(y),
+        "Pretrained RAM": model(y, physics),
+    }
+)
+
+# %%
+# Satellite denoising with Poisson noise using urban data from the `WorldView-3 satellite <https://earth.esa.int/eogateway/missions/worldview-3>`_
+# over Jacksonville:
+#
+
+x = dinv.utils.load_example("JAX_018_011_RGB.tif")
+
+physics = dinv.physics.Denoising(noise_model=dinv.physics.PoissonNoise(gain=0.1))
+
+y = physics(x)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        "Noisy measurement": y,
+        "Pretrained RAM": model(y, physics),
+    }
+)
+
+# %%
+# 🎉 Well done, you now know how to use DeepInverse!
+#
+# What's next?
+# ~~~~~~~~~~~~
+#
+# **Want more performance**? Check out the :ref:`example on how to fine-tune a foundation model to your own problem <sphx_glr_auto_examples_models_demo_finetuning.py>`.

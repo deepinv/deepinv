@@ -87,7 +87,8 @@ We provide some useful utility and demo functions:
      - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
-
+   * - :func:`deepinv.utils.load_torch_url`
+     - Loads a torch tensor directly from a URL for experiments or demos.
 
 .. _tensorlist:
 
