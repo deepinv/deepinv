@@ -501,14 +501,22 @@ def test_wavelet_decomposition(channels, dimension, batch_size, device):
     # 1 decomposition
     out = model.dwt(x)
     x_hat = model.iwt(out)
-    assert x_hat.shape == x.shape and torch.allclose(x, x_hat, rtol=1e-5, atol=1e-5)
+
+    # For some reason the precision is more than 100x lower on GPU.
+    tol = 1e-3 if torch.device(device).type == "cuda" else 1e-5
+
+    # NOTE: Tensors are broadcasted in torch.allclose so
+    # they might pass the test even if they have different shapes. For this
+    # reason we also check the shapes.
+    assert x_hat.shape == x.shape
+    assert torch.allclose(x, x_hat, rtol=tol, atol=tol)
 
     # 2 decomposition
     cA1, cD1 = model.dwt(x)
     cA2, cD2 = model.dwt(cA1)
 
     x_hat = model.iwt((cA2, cD2, cD1))
-    assert torch.allclose(x, x_hat, rtol=1e-5, atol=1e-5)
+    assert torch.allclose(x, x_hat, rtol=tol, atol=tol)
 
 
 def test_drunet_inputs(imsize_1_channel, device):
