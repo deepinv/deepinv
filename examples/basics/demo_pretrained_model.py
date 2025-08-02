@@ -23,6 +23,9 @@ import deepinv as dinv
 import torch
 
 # %%
+# One-line reconstruction
+# ~~~~~~~~~~~~~~~~~~~~~~~
+#
 # Let's say you want to reconstruct a butterfly from noisy, partial measurements:
 
 # Ground truth
