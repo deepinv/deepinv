@@ -24,7 +24,7 @@ class Pansharpen(StackedLinearPhysics):
     :param int factor: downsampling factor/ratio.
     :param str, tuple, list srf: spectral response function of the decolorize operator to produce grayscale from multispectral.
         See :class:`deepinv.physics.Decolorize` for parameter options. Defaults to ``flat`` i.e. simply average the bands.
-    :param bool use_brovey: if ``True``, use the `Brovey method :footcite:t:`vivone2014critical`.
+    :param bool use_brovey: if ``True``, use the Brovey method :footcite:t:`vivone2014critical`.
         to compute the pansharpening, otherwise use the conjugate gradient method.
     :param torch.nn.Module noise_color: noise model for the RGB image.
     :param torch.nn.Module noise_gray: noise model for the grayscale image.
