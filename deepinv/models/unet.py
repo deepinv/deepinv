@@ -172,51 +172,61 @@ class UNet(Denoiser):
 
             return m
 
-        self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
-        self.Conv2 = conv_block(ch_in=64, ch_out=128)
-        self.Conv3 = (
-            conv_block(ch_in=128, ch_out=256) if self.compact in [3, 4, 5] else None
-        )
-        self.Conv4 = (
-            conv_block(ch_in=256, ch_out=512) if self.compact in [4, 5] else None
-        )
-        self.Conv5 = conv_block(ch_in=512, ch_out=1024) if self.compact in [5] else None
+        max_scale = 5
+        # Build the U-Net architecture level by level
+        for scale in range(1, max_scale + 1):
+            if scale in [1, 2]:  # for backwards compatibility
+                if scales not in range(scale, max_scale + 1):
+                    warnings.warn(f"Unexpected {scales=}, expected 2, 3, 4 or 5.")
+                present = True
+            else:
+                present = scales in range(scale, max_scale + 1)
 
-        self.Up5 = up_conv(ch_in=1024, ch_out=512) if self.compact in [5] else None
-        self.Up_conv5 = (
-            conv_block(ch_in=1024, ch_out=512) if self.compact in [5] else None
-        )
+            if scale == 1:
+                ch_enc_in = in_channels
+                ch_dec_out = out_channels
+            else:
+                ch_enc_in = ch_dec_out = 64 * (2 ** (scale - 2))
 
-        self.Up4 = up_conv(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
-        self.Up_conv4 = (
-            conv_block(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
-        )
+            ch_enc_out = ch_dec_in = 64 * (2 ** (scale - 1))
 
-        self.Up3 = up_conv(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
-        self.Up_conv3 = (
-            conv_block(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
-        )
+            # Encoder branch
+            setattr(
+                self,
+                f"Conv{scale}",
+                conv_block(ch_in=ch_enc_in, ch_out=ch_enc_out) if present else None,
+            )
 
-        self.Up2 = up_conv(ch_in=128, ch_out=64)
-        self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
+            # Decoder branch
+            if scale == 1:
+                self.Conv_1x1 = nn.Conv2d(
+                    in_channels=ch_dec_in,
+                    out_channels=ch_dec_out,
+                    bias=bias,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0,
+                )
+            else:
+                setattr(
+                    self,
+                    f"Up{scale}",
+                    up_conv(ch_in=ch_dec_in, ch_out=ch_dec_out) if present else None,
+                )
+                setattr(
+                    self,
+                    f"Up_conv{scale}",
+                    conv_block(ch_in=ch_dec_in, ch_out=ch_dec_out) if present else None,
+                )
 
-        self.Conv_1x1 = nn.Conv2d(
-            in_channels=64,
-            out_channels=out_channels,
-            bias=bias,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-        )
-
-        if self.compact == 5:
+        if scales == 5:
             self._forward = self.forward_standard
-        if self.compact == 4:
-            self._forward = self.forward_compact4
-        if self.compact == 3:
-            self._forward = self.forward_compact3
-        if self.compact == 2:
-            self._forward = self.forward_compact2
+        elif scales in [2, 3, 4]:
+            self._forward = getattr(self, f"forward_compact{scales}")
+        else:
+            warnings.warn(
+                f"Unexpected {scales=}, expected 2, 3, 4 or 5. Using standard forward."
+            )
 
     def forward(self, x, sigma=None, **kwargs):
         r"""
@@ -245,13 +255,9 @@ class UNet(Denoiser):
         return self._forward_general(x, n_scales=2)
 
     # Internal general forward algorithm for any supported number of scales
-    def _forward_general(self, x, n_scales):
-        assert n_scales in [
-            2,
-            3,
-            4,
-            5,
-        ], f"Unexpected {n_scales=}, expected 2, 3, 4 or 5"
+    def _forward_general(self, x, *, n_scales):
+        if n_scales not in [2, 3, 4, 5]:
+            raise ValueError(f"Unexpected {n_scales=}, expected 2, 3, 4 or 5.")
 
         # The variable feats_stack is a stack populated with the intermediate
         # feature maps as they are computed.
@@ -286,8 +292,13 @@ class UNet(Denoiser):
 
         im_out = self.Conv_1x1(feats)
 
-        # NOTE: Can self.residual be true while self.in_channels != self.out_channels?
-        if self.residual and self.in_channels == self.out_channels:
-            im_out = im_out + x
+        if self.residual:
+            if self.in_channels == self.out_channels:
+                im_out = im_out + x
+            else:
+                warnings.warn(
+                    "Residual connection requested but input and output channels do not match. "
+                    "Skipping residual connection."
+                )
 
         return im_out
