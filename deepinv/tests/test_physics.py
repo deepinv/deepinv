@@ -1922,6 +1922,10 @@ def test_coarse_physics_adjointness(name, device):
     x_coarse = physics.downsample_signal(x)
     p_coarse = physics.to_coarse()
 
+    assert isinstance(
+        p_coarse, dinv.physics.LinearPhysics
+    ), "Coarse physics is not LinearPhysics despite base physics being LinearPhysics"
+
     error = p_coarse.adjointness_test(x_coarse).abs()
     assert error < 1e-3
 

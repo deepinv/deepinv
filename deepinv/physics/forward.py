@@ -747,6 +747,16 @@ class LinearPhysics(Physics):
             **kwargs,
         )
 
+    def to_coarse(self):
+        r"""
+        Returns a coarse version of the current physics.
+        """
+
+        ds = self.get_downsampling_operator()
+        A_coarse = lambda x: ds.factor * self.A(ds.A_adjoint(x))
+        A_coarse_adj = lambda y: ds.factor * ds.A(self.A_adjoint(y))
+        return LinearPhysics(A=A_coarse, A_adjoint=A_coarse_adj)
+
 
 class ComposedPhysics(Physics):
     r"""
@@ -818,16 +828,6 @@ class ComposedPhysics(Physics):
         :param int item: index of the physics operator
         """
         return self.physics_list[item]
-
-    def to_coarse(self):
-        r"""
-        Returns a coarse version of the current physics.
-        """
-
-        ds = self.get_downsampling_operator()
-        A_coarse = lambda x: ds.factor * self.A(ds.A_adjoint(x))
-        A_coarse_adj = lambda y: ds.factor * ds.A(self.A_adjoint(y))
-        return LinearPhysics(A=A_coarse, A_adjoint=A_coarse_adj)
 
 
 class ComposedLinearPhysics(ComposedPhysics, LinearPhysics):
