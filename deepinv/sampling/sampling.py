@@ -141,7 +141,7 @@ class BaseSampling(Reconstructor):
         physics: Physics,
         x_init: Union[torch.Tensor, dict, None] = None,
         seed: Union[int, None] = None,
-        g_statistics: Union[Callable, list[Callable]] = [lambda d: d["x"]],
+        g_statistics: Union[Callable, list[Callable]] = (lambda d: d["x"],),
         **kwargs,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         r"""

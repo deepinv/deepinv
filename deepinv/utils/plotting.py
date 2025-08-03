@@ -570,7 +570,7 @@ def plot_inset(
     dpi: int = 1200,
     fig=None,
     axs=None,
-    labels: list[str] = [],
+    labels: list[str] = (),
     label_loc: Union[tuple, list] = (0.03, 0.03),
     extract_loc: Union[tuple, list] = (0.0, 0.0),
     extract_size: float = 0.2,

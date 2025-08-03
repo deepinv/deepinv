@@ -116,7 +116,7 @@ class UpDownConv2d(torch.nn.Module):
         bias=True,
         up=False,
         down=False,
-        resample_filter=[1, 1],
+        resample_filter=(1, 1),
         fused_resample=False,
         init_mode="kaiming_normal",
         init_weight=1,

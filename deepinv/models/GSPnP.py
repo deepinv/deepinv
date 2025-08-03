@@ -85,7 +85,7 @@ def GSDRUNet(
     in_channels=3,
     out_channels=3,
     nb=2,
-    nc=[64, 128, 256, 512],
+    nc=(64, 128, 256, 512),
     act_mode="E",
     pretrained=None,
     device=torch.device("cpu"),

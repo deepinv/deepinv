@@ -52,8 +52,8 @@ class Shift(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        x_shift: Union[torch.Tensor, Iterable, TransformParam] = [],
-        y_shift: Union[torch.Tensor, Iterable, TransformParam] = [],
+        x_shift: Union[torch.Tensor, Iterable, TransformParam] = (),
+        y_shift: Union[torch.Tensor, Iterable, TransformParam] = (),
         **kwargs,
     ) -> torch.Tensor:
         """Shift image given shift parameters.

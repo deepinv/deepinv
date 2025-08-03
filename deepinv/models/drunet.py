@@ -42,7 +42,7 @@ class DRUNet(Denoiser):
         self,
         in_channels=3,
         out_channels=3,
-        nc=[64, 128, 256, 512],
+        nc=(64, 128, 256, 512),
         nb=4,
         act_mode="R",
         downsample_mode="strideconv",
