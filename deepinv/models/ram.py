@@ -224,18 +224,32 @@ class RAM(Reconstructor, Denoiser):
             physics = dinv.physics.Denoising(
                 noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
             )
-        elif hasattr(physics, "noise_model"):
-            sigma = getattr(physics.noise_model, "sigma", self.sigma_threshold)
+
+        x_temp = physics.A_adjoint(y)
+
+        max_val = x_temp.abs().max()
+        rescale_val = 1.0 if max_val > 5 * self.sigma_threshold else max_val
+        y = y / rescale_val
+
+        if hasattr(physics, "noise_model"):
+            sigma = (
+                physics.noise_model.sigma / rescale_val
+                if hasattr(physics.noise_model, "sigma")
+                else self.sigma_threshold
+            )
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
-            gain = getattr(physics.noise_model, "gain", self.gain_threshold)
+            gain = (
+                physics.noise_model.gain / rescale_val
+                if hasattr(physics.noise_model, "gain")
+                else self.gain_threshold
+            )
             if isinstance(gain, TensorList):
                 gain = gain.abs().max()
         else:
             gain = self.gain_threshold if gain is None else gain
             sigma = self.sigma_threshold if sigma is None else sigma
 
-        x_temp = physics.A_adjoint(y)
         pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
         physics = PhysicsCropper(physics, pad)
 
@@ -249,7 +263,7 @@ class RAM(Reconstructor, Denoiser):
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
 
-        out = physics.remove_pad(out)
+        out = physics.remove_pad(out) * rescale_val
 
         return out
 
@@ -262,7 +276,8 @@ class RAM(Reconstructor, Denoiser):
 
         """
         Aty = physics.A_adjoint(y)
-        num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
+        # num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
+        num = torch.tensor(1.0)  # now assuming that range is in (0, 1)
         val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
         return val_threshold
 
