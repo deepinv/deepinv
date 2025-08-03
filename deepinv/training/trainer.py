@@ -4,6 +4,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
+from types import MappingProxyType
 
 try:
     import wandb
@@ -906,7 +907,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, filename, epoch, state={}):
+    def save_model(self, filename, epoch, state=MappingProxyType({})):
         r"""
         Save the model.
 

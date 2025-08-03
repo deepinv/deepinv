@@ -1,4 +1,5 @@
 from typing import Any, Union, Optional
+from types import MappingProxyType
 import math
 import torch
 from deepinv.physics.forward import LinearPhysics
@@ -443,10 +444,10 @@ class TomographyWithAstra(LinearPhysics):
         bounding_box: Optional[tuple[float, ...]] = None,
         angles: Optional[torch.Tensor] = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] = {
+        geometry_parameters: dict[str, Any] = MappingProxyType({
             "source_radius": 80.0,
             "detector_radius": 20.0,
-        },
+        }),
         geometry_vectors: Optional[torch.Tensor] = None,
         normalize: bool = False,
         device: Union[torch.device, str] = torch.device("cuda"),

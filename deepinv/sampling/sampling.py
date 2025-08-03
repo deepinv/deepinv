@@ -1,6 +1,7 @@
 import sys
 from collections import deque
 from typing import Union, Callable
+from types import MappingProxyType
 
 import torch
 from tqdm import tqdm
@@ -362,7 +363,7 @@ def sampling_builder(
     iterator: Union[SamplingIterator, str],
     data_fidelity: DataFidelity,
     prior: Prior,
-    params_algo: dict = {},
+    params_algo: dict = MappingProxyType({}),
     max_iter: int = 100,
     thresh_conv: float = 1e-3,
     burnin_ratio: float = 0.2,

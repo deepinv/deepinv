@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+from types import MappingProxyType
 from functools import partial
 
 import torch
@@ -164,7 +165,7 @@ class SSIM(Metric):
         multiscale=False,
         max_pixel=1.0,
         min_pixel=0.0,
-        torchmetric_kwargs: dict = {},
+        torchmetric_kwargs: dict = MappingProxyType({}),
         **kwargs,
     ):
         super().__init__(**kwargs)

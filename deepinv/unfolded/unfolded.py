@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.optimizers import BaseOptim, create_iterator
+from types import MappingProxyType
 
 
 class BaseUnfold(BaseOptim):
@@ -50,7 +51,7 @@ class BaseUnfold(BaseOptim):
     def __init__(
         self,
         iterator,
-        params_algo={"lambda": 1.0, "stepsize": 1.0},
+        params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
         data_fidelity=None,
         prior=None,
         max_iter=5,
@@ -112,7 +113,7 @@ class BaseUnfold(BaseOptim):
 
 def unfolded_builder(
     iteration,
-    params_algo={"lambda": 1.0, "stepsize": 1.0},
+    params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
     data_fidelity=None,
     prior=None,
     max_iter=5,

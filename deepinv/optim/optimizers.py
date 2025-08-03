@@ -1,6 +1,7 @@
 import sys
 import warnings
 from collections.abc import Iterable
+from types import MappingProxyType
 import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
@@ -146,7 +147,7 @@ class BaseOptim(Reconstructor):
     def __init__(
         self,
         iterator,
-        params_algo={"lambda": 1.0, "stepsize": 1.0},
+        params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0}),
         data_fidelity=None,
         prior=None,
         max_iter=100,
@@ -558,7 +559,7 @@ def create_iterator(
 def optim_builder(
     iteration,
     max_iter=100,
-    params_algo={"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05},
+    params_algo=MappingProxyType({"lambda": 1.0, "stepsize": 1.0, "g_param": 0.05}),
     data_fidelity=None,
     prior=None,
     F_fn=None,
