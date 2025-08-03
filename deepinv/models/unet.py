@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from .drunet import test_pad
 from .base import Denoiser
+import warnings
+from typing import Optional
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
@@ -95,13 +97,20 @@ class UNet(Denoiser):
         self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        def norm(ch):
+        def norm(ch: int) -> Optional[nn.Module]:
             if batch_norm == "biasfree":
                 return BFBatchNorm2d(ch, use_bias=bias)
-            else:
+            elif batch_norm == True:
                 return nn.BatchNorm2d(ch)
+            elif batch_norm == False:
+                return None
+            else:
+                warnings.warn(
+                    f"Expected batch_norm to be True, False or 'biasfree', got {batch_norm=}. "
+                )
+                return nn.BatchNorm2d(ch)  # for backwards compatibility
 
-        def conv_block(ch_in, ch_out):
+        def conv_block(ch_in: int, ch_out: int) -> nn.Module:
             m = nn.Sequential(
                 nn.Conv2d(
                     ch_in,
@@ -114,8 +123,9 @@ class UNet(Denoiser):
                 )
             )
 
-            if batch_norm:
-                m.append(norm(ch_out))
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
 
             m.extend(
                 (
@@ -132,14 +142,15 @@ class UNet(Denoiser):
                 )
             )
 
-            if batch_norm:
-                m.append(norm(ch_out))
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
 
             m.append(nn.ReLU(inplace=True))
 
             return m
 
-        def up_conv(ch_in, ch_out):
+        def up_conv(ch_in: int, ch_out: int) -> nn.Module:
             m = nn.Sequential(
                 nn.Upsample(scale_factor=2),
                 nn.Conv2d(
@@ -153,8 +164,9 @@ class UNet(Denoiser):
                 ),
             )
 
-            if batch_norm:
-                m.append(norm(ch_out))
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
 
             m.append(nn.ReLU(inplace=True))
 
