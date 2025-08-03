@@ -32,16 +32,12 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     def __init__(
         self,
-        filters: Union[str, list[str]] = None,
-        factors: Union[int, list[int]] = None,
+        filters: Union[str, list[str]] = ["gaussian", "bilinear", "bicubic"],
+        factors: Union[int, list[int]] = [2, 4],
         rng: torch.Generator = None,
         device: str = "cpu",
         dtype: type = torch.float32,
     ) -> None:
-        if factors is None:
-            factors = [2, 4]
-        if filters is None:
-            filters = ["gaussian", "bilinear", "bicubic"]
         if isinstance(filters, str):
             filters = [filters]
         if isinstance(factors, int):

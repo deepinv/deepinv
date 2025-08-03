@@ -101,14 +101,10 @@ class RandomPhaseError(Transform):
     def _transform(
         self,
         y,
-        se: Union[torch.Tensor, Iterable, TransformParam] = None,
-        so: Union[torch.Tensor, Iterable, TransformParam] = None,
+        se: Union[torch.Tensor, Iterable, TransformParam] = [],
+        so: Union[torch.Tensor, Iterable, TransformParam] = [],
         **kwargs,
     ) -> Tensor:
-        if so is None:
-            so = []
-        if se is None:
-            se = []
         out = []
         for _se, _so in zip(se, so, strict=True):
             shift = MRIMixin.to_torch_complex(torch.zeros_like(y))

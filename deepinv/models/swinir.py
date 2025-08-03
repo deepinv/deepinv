@@ -832,8 +832,8 @@ class SwinIR(Denoiser):
         patch_size=1,
         in_chans=3,
         embed_dim=180,
-        depths=None,
-        num_heads=None,
+        depths=[6, 6, 6, 6, 6, 6],
+        num_heads=[6, 6, 6, 6, 6, 6],
         window_size=8,
         mlp_ratio=2,
         qkv_bias=True,
@@ -853,10 +853,6 @@ class SwinIR(Denoiser):
         pretrained_noise_level=15,
         **kwargs,
     ):
-        if num_heads is None:
-            num_heads = [6, 6, 6, 6, 6, 6]
-        if depths is None:
-            depths = [6, 6, 6, 6, 6, 6]
         if isinstance(timm, ImportError):
             raise ImportError(
                 "timm is needed to use the SCUNet class. Please install it with `pip install timm`"

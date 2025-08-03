@@ -116,14 +116,12 @@ class UpDownConv2d(torch.nn.Module):
         bias=True,
         up=False,
         down=False,
-        resample_filter=None,
+        resample_filter=[1, 1],
         fused_resample=False,
         init_mode="kaiming_normal",
         init_weight=1,
         init_bias=0,
     ):
-        if resample_filter is None:
-            resample_filter = [1, 1]
         assert not (up and down)
         super().__init__()
         self.in_channels = in_channels

@@ -570,7 +570,7 @@ def plot_inset(
     dpi: int = 1200,
     fig=None,
     axs=None,
-    labels: list[str] = None,
+    labels: list[str] = [],
     label_loc: Union[tuple, list] = (0.03, 0.03),
     extract_loc: Union[tuple, list] = (0.0, 0.0),
     extract_size: float = 0.2,
@@ -618,8 +618,6 @@ def plot_inset(
     :param bool return_axs: return the axs object.
     """
 
-    if labels is None:
-        labels = []
     if save_dir:
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -753,7 +751,7 @@ def plot_videos(
     save_fn: str = None,
     return_anim: bool = False,
     anim_writer: str = None,
-    anim_kwargs: dict = None,
+    anim_kwargs: dict = {},
     **plot_kwargs,
 ):
     r"""Plots and animates a list of image sequences.
@@ -803,8 +801,6 @@ def plot_videos(
     :param dict anim_kwargs: keyword args for matplotlib FuncAnimation init
     :param dict plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
-    if anim_kwargs is None:
-        anim_kwargs = {}
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
 

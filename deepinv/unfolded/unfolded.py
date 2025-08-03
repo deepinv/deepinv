@@ -50,19 +50,15 @@ class BaseUnfold(BaseOptim):
     def __init__(
         self,
         iterator,
-        params_algo=None,
+        params_algo={"lambda": 1.0, "stepsize": 1.0},
         data_fidelity=None,
         prior=None,
         max_iter=5,
-        trainable_params=None,
+        trainable_params=["lambda", "stepsize"],
         device=torch.device("cpu"),
         *args,
         **kwargs,
     ):
-        if trainable_params is None:
-            trainable_params = ["lambda", "stepsize"]
-        if params_algo is None:
-            params_algo = {"lambda": 1.0, "stepsize": 1.0}
         super().__init__(
             iterator,
             max_iter=max_iter,
@@ -116,11 +112,11 @@ class BaseUnfold(BaseOptim):
 
 def unfolded_builder(
     iteration,
-    params_algo=None,
+    params_algo={"lambda": 1.0, "stepsize": 1.0},
     data_fidelity=None,
     prior=None,
     max_iter=5,
-    trainable_params=None,
+    trainable_params=["lambda", "stepsize"],
     device=torch.device("cpu"),
     F_fn=None,
     g_first=False,
@@ -183,10 +179,6 @@ def unfolded_builder(
 
 
     """
-    if trainable_params is None:
-        trainable_params = ["lambda", "stepsize"]
-    if params_algo is None:
-        params_algo = {"lambda": 1.0, "stepsize": 1.0}
     iterator = create_iterator(
         iteration,
         prior=prior,

@@ -443,14 +443,15 @@ class TomographyWithAstra(LinearPhysics):
         bounding_box: Optional[tuple[float, ...]] = None,
         angles: Optional[torch.Tensor] = None,
         geometry_type: str = "parallel",
-        geometry_parameters: dict[str, Any] = None,
+        geometry_parameters: dict[str, Any] = {
+            "source_radius": 80.0,
+            "detector_radius": 20.0,
+        },
         geometry_vectors: Optional[torch.Tensor] = None,
         normalize: bool = False,
         device: Union[torch.device, str] = torch.device("cuda"),
         **kwargs,
     ):
-        if geometry_parameters is None:
-            geometry_parameters = {"source_radius": 80.0, "detector_radius": 20.0}
         super().__init__(**kwargs)
 
         assert len(img_size) in (

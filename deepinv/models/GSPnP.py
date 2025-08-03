@@ -85,7 +85,7 @@ def GSDRUNet(
     in_channels=3,
     out_channels=3,
     nb=2,
-    nc=None,
+    nc=[64, 128, 256, 512],
     act_mode="E",
     pretrained=None,
     device=torch.device("cpu"),
@@ -114,8 +114,6 @@ def GSDRUNet(
     """
     from deepinv.models.drunet import DRUNet
 
-    if nc is None:
-        nc = [64, 128, 256, 512]
     denoiser = DRUNet(
         in_channels=in_channels,
         out_channels=out_channels,

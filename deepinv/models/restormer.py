@@ -55,9 +55,9 @@ class Restormer(Denoiser):
         in_channels: int = 3,
         out_channels: int = 3,
         dim: int = 48,
-        num_blocks: list[int] = None,
+        num_blocks: list[int] = [4, 6, 6, 8],
         num_refinement_blocks: int = 4,
-        heads: list[int] = None,
+        heads: list[int] = [1, 2, 4, 8],
         ffn_expansion_factor: float = 2.66,
         bias: bool = False,
         LayerNorm_type: str = "BiasFree",
@@ -65,10 +65,6 @@ class Restormer(Denoiser):
         pretrained: Optional[str] = "denoising",
         device: Optional[torch.device] = None,
     ) -> None:
-        if heads is None:
-            heads = [1, 2, 4, 8]
-        if num_blocks is None:
-            num_blocks = [4, 6, 6, 8]
         super(Restormer, self).__init__()
 
         # stores the filename of pretrained weights, used later in the code to download the pth file from the HuggingFace Hub

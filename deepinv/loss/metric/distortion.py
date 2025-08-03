@@ -164,11 +164,9 @@ class SSIM(Metric):
         multiscale=False,
         max_pixel=1.0,
         min_pixel=0.0,
-        torchmetric_kwargs: dict = None,
+        torchmetric_kwargs: dict = {},
         **kwargs,
     ):
-        if torchmetric_kwargs is None:
-            torchmetric_kwargs = {}
         super().__init__(**kwargs)
         self.ssim = (
             multiscale_structural_similarity_index_measure
