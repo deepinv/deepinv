@@ -12,11 +12,14 @@ New Features
 
 Changed
 ^^^^^^^
+- Changed default linear solver from `CG` to `lsqr` (:gh:`658` by `Julian Tachella`_)
+- Added positive clipping by default and gain minimum in `PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
 Fixed
 ^^^^^
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 - Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
+- Fix ZeroNoise default missing in Physics (:gh:`658` by `Julian Tachella`_)
 
 v0.3.2
 ------

@@ -16,6 +16,7 @@ from .forward import (
 )
 from .noise import (
     NoiseModel,
+    ZeroNoise,
     GaussianNoise,
     PoissonNoise,
     PoissonGaussianNoise,

@@ -1594,16 +1594,24 @@ def test_composed_physics(device):
     )
 
     # test non-linear physics - checking for possible bugs in noise model
-    non_lin_physics = dinv.physics.Physics(A=lambda x: x**2)
+    non_lin_physics = dinv.physics.Physics(
+        A=lambda x: x**2, noise_model=dinv.physics.GaussianNoise(0.0)
+    )
     p = physics * non_lin_physics
 
     y_2 = physics(non_lin_physics.A(x))
     assert torch.allclose(y_2, p(x))
 
+    assert isinstance(p.noise_model, dinv.physics.ZeroNoise)
+    assert isinstance(p, dinv.physics.Physics) and not isinstance(
+        p, dinv.physics.LinearPhysics
+    )
+
     p = non_lin_physics * physics
 
     y_2 = non_lin_physics.A(physics(x))
     assert torch.allclose(y_2, p(x))
+    assert p.noise_model.sigma == 0.0
 
 
 @pytest.mark.parametrize("name", OPERATORS)
