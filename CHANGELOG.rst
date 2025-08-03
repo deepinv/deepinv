@@ -11,12 +11,19 @@ New Features
 ^^^^^^^^^^^^
 - Add RAM model (:gh:`524` by `Matthieu Terris`_)
 
+- FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
+- SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
+- New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
 Fixed
 ^^^^^
 
+- Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
+- Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
+- Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
 
 v0.3.2
 ------
@@ -31,6 +38,7 @@ Changed
 - Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
 - Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
 - Update python version to 3.10+ (:gh:`605` by `Minh Hai Nguyen`_)
+- Update the library dependencies, issue template, codecov report on linux only (:gh:`654` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^

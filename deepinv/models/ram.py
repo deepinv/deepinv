@@ -14,10 +14,23 @@ from deepinv.models.base import Reconstructor, Denoiser
 
 class RAM(Reconstructor, Denoiser):
     r"""
-    Reconstruct Anything Model.
+    Reconstruct Anything Model (RAM) foundation model.
 
-    This model (proposed in `this paper <https://arxiv.org/abs/2503.08915>`_) is a convolutional neural network (CNN)
-    designed for image reconstruction tasks.
+    Convolutional neural network model :footcite:t:`terris2025reconstruct` that has been trained to work on a large variety
+    of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.).
+
+    See :ref:`sphx_glr_auto_examples_unfolded_demo_ram.py` for examples on the performance of RAM and how to fine-tune the
+    foundation model on a specific problem and dataset.
+
+    The model works both as a reconstructor or denoiser:
+
+    * Reconstructor: RAM takes a :ref:`physics operator <physics>` `model(y, physics)` with an optional noise model defined in the physics
+    * Denoiser: RAM takes optional Gaussian and/or Poisson noise levels (optionally set to 0) `model(y, sigma=sigma, gamma=gamma)`
+
+    .. note::
+
+        The physics operator should be normalized (i.e. have unit norm) for best results.
+        Use :func:`physics.compute_norm() <deepinv.physics.LinearPhysics.compute_norm>` to check this.
 
     :param list in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
@@ -255,10 +268,10 @@ class RAM(Reconstructor, Denoiser):
 
         x_in = physics.A_adjoint(y)
 
-        sigma = self.threshold_snr(sigma, y, physics, threshold=self.sigma_threshold)
+        sigma = self.threshold_snr(x_temp, sigma, threshold=self.sigma_threshold)
         sigma = self._handle_sigma(sigma)
 
-        gain = self.threshold_snr(gain, y, physics, threshold=self.gain_threshold)
+        gain = self.threshold_snr(x_temp, gain, threshold=self.gain_threshold)
         gain = self._handle_sigma(gain)
 
         out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
@@ -267,7 +280,7 @@ class RAM(Reconstructor, Denoiser):
 
         return out
 
-    def threshold_snr(self, val, y, physics, threshold=1e-2, eps=1e-6):
+    def threshold_snr(self, Aty, val, threshold=1e-2, eps=1e-6):
         r"""
         Performs the operation
 
@@ -275,9 +288,9 @@ class RAM(Reconstructor, Denoiser):
             \text{threshold\_snr}(x) = \max(\frac{\text{val}}{\|A^\top y\|/\sqrt{m} + \epsilon}, \text{threshold}) * \|A^\top y\|/\sqrt{m}
 
         """
-        Aty = physics.A_adjoint(y)
         # num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
         num = torch.tensor(1.0)  # now assuming that range is in (0, 1)
+        # TODO: clean this (potentially remove) if we agree
         val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
         return val_threshold
 

@@ -3,8 +3,8 @@ from deepinv.physics import LinearPhysics
 
 try:
     import torchkbnufft as tkbn
-except:
-    tkbn = ImportError("The torchkbnufft package is not installed.")
+except ImportError:  # pragma: no cover
+    tkbn = ImportError("The torchkbnufft package is not installed.")  # pragma: no cover
 
 
 class RadioInterferometry(LinearPhysics):

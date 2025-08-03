@@ -12,17 +12,17 @@ import numpy as np
 error_import = None
 try:
     import pandas as pd
-except:
+except ImportError:  # pragma: no cover
     error_import = ImportError(
         "pandas is not available. Please install the pandas package with `pip install pandas`."
-    )
+    )  # pragma: no cover
 try:
     import pydicom
     from pydicom import dcmread
-except:
+except ImportError:  # pragma: no cover
     error_import = ImportError(
         "pydicom is not available. Please install the pydicom package with `pip install pydicom`."
-    )
+    )  # pragma: no cover
 
 
 class LidcIdriSliceDataset(torch.utils.data.Dataset):

@@ -4,7 +4,14 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
-import wandb
+
+try:
+    import wandb
+except ImportError:  # pragma: no cover
+    wandb = ImportError(
+        "The wandb package is not installed. Please install it with `pip install wandb`."
+    )  # pragma: no cover
+
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
@@ -366,11 +373,14 @@ class Trainer:
 
         _ = self.load_model()
 
-    def load_model(self, ckpt_pretrained: Union[str, Path] = None) -> dict:
+    def load_model(
+        self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
+    ) -> dict:
         """Load model from checkpoint.
 
         :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
             If not `None`, override checkpoint passed to class.
+        :param bool strict: strict load weights to model.
         :return: if checkpoint loaded, return checkpoint dict, else return ``None``
         """
         if ckpt_pretrained is None and self.ckpt_pretrained is not None:
@@ -382,7 +392,7 @@ class Trainer:
             checkpoint = torch.load(
                 ckpt_pretrained, map_location=self.device, weights_only=False
             )
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self.model.load_state_dict(checkpoint["state_dict"], strict=strict)
             if "optimizer" in checkpoint and self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint["optimizer"])
             if "scheduler" in checkpoint and self.scheduler is not None:
@@ -530,7 +540,10 @@ class Trainer:
         physics = self.physics[g]
 
         if params is not None:
-            params = {k: p.to(self.device) for k, p in params.items()}
+            params = {
+                k: (p.to(self.device) if isinstance(p, torch.Tensor) else p)
+                for k, p in params.items()
+            }
             physics.update(**params)
 
         return x, y, physics
