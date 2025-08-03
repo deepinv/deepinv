@@ -102,48 +102,62 @@ class UNet(Denoiser):
                 return nn.BatchNorm2d(ch)
 
         def conv_block(ch_in, ch_out):
-            m = nn.Sequential()
-            m.append(nn.Conv2d(
-                ch_in,
-                ch_out,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=bias,
-                padding_mode="circular" if circular_padding else "zeros",
-            ))
+            m = nn.Sequential(
+                nn.Conv2d(
+                    ch_in,
+                    ch_out,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=bias,
+                    padding_mode="circular" if circular_padding else "zeros",
+                )
+            )
+
             if batch_norm:
                 m.append(norm(ch_out))
-            m.append(nn.ReLU(inplace=True))
-            m.append(nn.Conv2d(
-                ch_out,
-                ch_out,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=bias,
-                padding_mode="circular" if circular_padding else "zeros",
-            ))
+
+            m.extend(
+                (
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(
+                        ch_out,
+                        ch_out,
+                        kernel_size=3,
+                        stride=1,
+                        padding=1,
+                        bias=bias,
+                        padding_mode="circular" if circular_padding else "zeros",
+                    ),
+                )
+            )
+
             if batch_norm:
                 m.append(norm(ch_out))
+
             m.append(nn.ReLU(inplace=True))
+
             return m
 
         def up_conv(ch_in, ch_out):
-            m = nn.Sequential()
-            m.append(nn.Upsample(scale_factor=2))
-            m.append(nn.Conv2d(
-                ch_in,
-                ch_out,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=bias,
-                padding_mode="circular" if circular_padding else "zeros",
-            ))
+            m = nn.Sequential(
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(
+                    ch_in,
+                    ch_out,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=bias,
+                    padding_mode="circular" if circular_padding else "zeros",
+                ),
+            )
+
             if batch_norm:
                 m.append(norm(ch_out))
+
             m.append(nn.ReLU(inplace=True))
+
             return m
 
         self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
