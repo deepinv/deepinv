@@ -16,6 +16,7 @@ from deepinv.physics.functional import (
     conv_transpose3d_fft,
     imresize_matlab,
 )
+import numpy as np
 
 
 class Downsampling(LinearPhysics):
