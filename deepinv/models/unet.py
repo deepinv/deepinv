@@ -95,7 +95,11 @@ class UNet(Denoiser):
         self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        biasfree = batch_norm == "biasfree"
+        def norm(ch):
+            if batch_norm == "biasfree":
+                return BFBatchNorm2d(ch, use_bias=bias)
+            else:
+                return nn.BatchNorm2d(ch)
 
         def conv_block(ch_in, ch_out):
             m = nn.Sequential()
@@ -109,11 +113,7 @@ class UNet(Denoiser):
                 padding_mode="circular" if circular_padding else "zeros",
             ))
             if batch_norm:
-                m.append(
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out)
-                )
+                m.append(norm(ch_out))
             m.append(nn.ReLU(inplace=True))
             m.append(nn.Conv2d(
                 ch_out,
@@ -125,11 +125,7 @@ class UNet(Denoiser):
                 padding_mode="circular" if circular_padding else "zeros",
             ))
             if batch_norm:
-                m.append(
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out)
-                )
+                m.append(norm(ch_out))
             m.append(nn.ReLU(inplace=True))
             return m
 
@@ -146,11 +142,7 @@ class UNet(Denoiser):
                 padding_mode="circular" if circular_padding else "zeros",
             ))
             if batch_norm:
-                m.append(
-                    BFBatchNorm2d(ch_out, use_bias=bias)
-                    if biasfree
-                    else nn.BatchNorm2d(ch_out)
-                )
+                m.append(norm(ch_out))
             m.append(nn.ReLU(inplace=True))
             return m
 
