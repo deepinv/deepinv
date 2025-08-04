@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Automatic A_adjoint, U_adjoint and V computation for user-defined physics (:gh:`658` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
