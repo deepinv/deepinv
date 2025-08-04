@@ -289,7 +289,7 @@ class RAM(Reconstructor, Denoiser):
 
         """
         # num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
-        num = torch.tensor(1.0)  # now assuming that range is in (0, 1)
+        num = torch.tensor(1.0, device=Aty.device)  # now assuming that range is in (0, 1)
         # TODO: clean this (potentially remove) if we agree
         val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
         return val_threshold
