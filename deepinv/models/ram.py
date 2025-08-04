@@ -1,4 +1,6 @@
 from collections import OrderedDict
+from warnings import warn
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -34,7 +36,7 @@ class RAM(Reconstructor, Denoiser):
 
     :param list in_channels: Number of input channels. If a list is provided, the model will have separate heads for each channel.
     :param str device: Device to which the model should be moved. If None, the model will be created on the default device.
-    :param bool pretrained: If True, the model will be initialized with pretrained weights.
+    :param bool, str pretrained: If `True`, the model will be initialized with pretrained weights. If `str`, load from file.
     :param float sigma_threshold: Threshold (minimum value) for the noise level. Default is 1e-3.
     """
 
@@ -96,8 +98,16 @@ class RAM(Reconstructor, Denoiser):
 
         # load pretrained weights from hugging face
         if pretrained:
-            url_download = "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
-            self.load_state_dict(torch.hub.load_state_dict_from_url(url_download))
+            if isinstance(pretrained, (str, Path)):
+                self.load_state_dict(
+                    torch.load(pretrained, map_location=device, weights_only=True)
+                )
+            else:
+                self.load_state_dict(
+                    torch.hub.load_state_dict_from_url(
+                        "https://huggingface.co/mterris/ram/resolve/main/ram.pth.tar"
+                    )
+                )
 
         if device is not None:
             self.to(device)
@@ -221,8 +231,8 @@ class RAM(Reconstructor, Denoiser):
 
         :param torch.Tensor y: measurements
         :param deepinv.physics.Physics physics: forward operator
-        :param float, torch.Tensor sigma: Gaussian noise level
-        :param float, torch.Tensor gain: Poisson noise level
+        :param float, torch.Tensor sigma: Gaussian noise level. Ignored if noise_model already specified in physics.
+        :param float, torch.Tensor gain: Poisson noise level. Ignored if noise_model already specified in physics.
         :return: torch.Tensor: reconstructed signal estimate
         """
         if physics is None and sigma is None and gain is None:
@@ -245,6 +255,11 @@ class RAM(Reconstructor, Denoiser):
         y = y / rescale_val
 
         if hasattr(physics, "noise_model"):
+            if sigma is not None or gain is not None:
+                warn(
+                    "noise_model specified in physics. Parameters passed to sigma or gain will be ignored."
+                )
+
             sigma = (
                 physics.noise_model.sigma / rescale_val
                 if hasattr(physics.noise_model, "sigma")
@@ -252,6 +267,7 @@ class RAM(Reconstructor, Denoiser):
             )
             if isinstance(sigma, TensorList):
                 sigma = sigma.abs().max()
+
             gain = (
                 physics.noise_model.gain / rescale_val
                 if hasattr(physics.noise_model, "gain")
@@ -280,17 +296,20 @@ class RAM(Reconstructor, Denoiser):
 
         return out
 
-    def threshold_snr(self, Aty, val, threshold=1e-2, eps=1e-6):
+    def threshold_snr(self, Aty, val, threshold=1e-2, eps=1e-6) -> torch.Tensor:
         r"""
         Performs the operation
 
         .. math::
             \text{threshold\_snr}(x) = \max(\frac{\text{val}}{\|A^\top y\|/\sqrt{m} + \epsilon}, \text{threshold}) * \|A^\top y\|/\sqrt{m}
 
+        :param torch.Tensor Aty: :math:`A^\top y`
+        :param float val: noise level to threshold
+        :param float threshold: threshold to use
+        :param float eps: small epsilon value.
         """
-        # num = Aty.pow(2).mean(dim=tuple(range(1, Aty.ndim))).sqrt()
-        num = torch.tensor(1.0, device=Aty.device)  # now assuming that range is in (0, 1)
-        # TODO: clean this (potentially remove) if we agree
+        # Assuming that range is in (0, 1)
+        num = torch.tensor(1.0, device=Aty.device)
         val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
         return val_threshold
 
