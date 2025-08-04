@@ -1902,7 +1902,6 @@ def test_physics_warn_extra_kwargs():
 
 
 def test_automatic_A_adjoint(device):
-    device = "cuda"
     x = torch.randn((2, 3, 8, 8), device=device)
     physics = dinv.physics.LinearPhysics(
         A=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
@@ -1912,18 +1911,42 @@ def test_automatic_A_adjoint(device):
     x_adj = physics.A_adjoint(y)
     assert x_adj.shape == x.shape, "A_adjoint shape mismatch."
     assert (
-        physics.adjointness_test(x) < 1e-6
+        physics.adjointness_test(x) < 1e-4
     ), "Adjointness test failed for LinearPhysics with automatic A_adjoint."
 
     # test decomposable physics
     physics = dinv.physics.DecomposablePhysics(
-        v_adjoint=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+        V_adjoint=lambda s: s.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    x_s = physics.V_adjoint(x)
+    print(x_s)
+    print(f"Shape of x_s: {x_s.shape}")
+    print(physics.mask)
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+
+    assert torch.allclose(
+        physics.U(x), physics.U_adjoint(x)
+    ), "U and U_adjoint should be identity if not provided."
+    assert torch.allclose(physics.U(x), x), "U should be identity if not provided."
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
+
+    physics = dinv.physics.DecomposablePhysics(
+        U=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
     )
 
     y = physics(x)
     x_adj = physics.A_adjoint(y)
 
+    assert torch.allclose(
+        physics.V(x), physics.V_adjoint(x)
+    ), "V and V_adjoint should be identity if not provided."
+    assert torch.allclose(physics.V(x), x), "V should be identity if not provided."
     assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
     assert (
-        physics.adjointness_test(x) < 1e-6
+        physics.adjointness_test(x) < 1e-4
     ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."

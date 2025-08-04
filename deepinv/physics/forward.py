@@ -341,7 +341,7 @@ class LinearPhysics(Physics):
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
         have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter
         If you have a closed form for the adjoint, you can pass it as a callable function or rewrite the class method.
-    :param tuple img_size: size of the input signal, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image x, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
         used for the automatic adjoint computation.
     :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
@@ -831,6 +831,8 @@ class DecomposablePhysics(LinearPhysics):
 
     :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
     :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
+    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the input signal, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+        used for the automatic adjoint computation.
     :param None | Callable U_adjoint: transpose of U. If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
         from the `U` function and the `img_size` parameter.
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
@@ -839,8 +841,6 @@ class DecomposablePhysics(LinearPhysics):
         from the `V_adjoint` function and the `img_size` parameter.
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
         have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
-    :param tuple img_size: size of the input signal, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
-        used for the automatic adjoint computation.
     :param torch.nn.parameter.Parameter, float params: Singular values of the transform
 
     |sep|
@@ -874,18 +874,32 @@ class DecomposablePhysics(LinearPhysics):
     def __init__(
         self,
         U=None,
-        U_adjoint=None,
-        V=None,
         V_adjoint=None,
         img_size=None,
+        U_adjoint=None,
+        V=None,
         mask=1.0,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._V = lambda x: x if V is None else V
-        self._U = lambda x: x if U is None else U
-        self._U_adjoint = lambda x: x if U is None else U_adjoint
-        self._V_adjoint = lambda x: x if V_adjoint is None else V_adjoint
+
+        assert not (
+            U is None and not (U_adjoint is None)
+        ), "U must be provided if U_adjoint is provided."
+        assert not (
+            V_adjoint is None and not (V is None)
+        ), "V_adjoint must be provided if V is provided."
+
+        # set to identity if not provided
+        self._V_adjoint = (lambda x: x) if V_adjoint is None else V_adjoint
+        self._U = (lambda x: x) if U is None else U
+
+        # if U is the identity, we set U_adjoint as the identity as well
+        self._U_adjoint = (lambda x: x) if U is None else U_adjoint
+
+        # if V_adjoint is the identity, we set V as the identity as well
+        self._V = (lambda x: x) if V_adjoint is None else V
+
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
         self.img_size = img_size
         self.register_buffer("mask", mask)
