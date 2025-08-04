@@ -7,7 +7,7 @@ from typing import (
 import os
 
 import numpy as np
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 error_import = None
 try:
@@ -25,7 +25,7 @@ except ImportError:  # pragma: no cover
     )  # pragma: no cover
 
 
-class LidcIdriSliceDataset(BaseDataset):
+class LidcIdriSliceDataset(ImageDataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
 
     Published in :footcite:t:`armato2011lung`.

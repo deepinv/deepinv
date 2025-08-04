@@ -16,7 +16,7 @@ from deepinv.physics.generator import (
     SigmaGenerator,
     DiffractionBlurGenerator,
 )
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -73,7 +73,7 @@ def test_generate_dataset_physics_generator(
 ):
     N = 10
 
-    class DummyDataset(BaseDataset):
+    class DummyDataset(ImageDataset):
         def __getitem__(self, i):
             return torch.ones(imsize)
 

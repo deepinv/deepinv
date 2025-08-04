@@ -17,7 +17,7 @@ from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
 from deepinv.utils.plotting import rescale_img
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -126,7 +126,7 @@ def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     return scipy_loadmat(fname)
 
 
-class PlaceholderDataset(BaseDataset):
+class PlaceholderDataset(ImageDataset):
     """
     A placeholder dataset for test purposes.
 

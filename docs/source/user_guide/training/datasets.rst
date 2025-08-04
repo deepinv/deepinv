@@ -28,7 +28,7 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-All datasets shoud inherit from :class:`deepinv.datasets.BaseDataset` which checks that the dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
+All datasets shoud inherit from :class:`deepinv.datasets.ImageDataset` which checks that the dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 We provide dataset classes for you to easily load in your own data:
 
@@ -37,7 +37,7 @@ We provide dataset classes for you to easily load in your own data:
 
    * - **Dataset**
      - **Description**
-   * - :class:`deepinv.datasets.BaseDataset`
+   * - :class:`deepinv.datasets.ImageDataset`
      - Base dataset class that performs checks on returned data
    * - :class:`deepinv.datasets.ImageFolder`
      - Dataset that loads images (ground-truth, measurements or both) from a folder

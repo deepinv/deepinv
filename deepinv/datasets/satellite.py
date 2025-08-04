@@ -21,10 +21,10 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 
-class NBUDataset(BaseDataset):
+class NBUDataset(ImageDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.

@@ -22,7 +22,7 @@ CORE_TYPES = (
 def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
     """Check that a torch dataset is compatible with DeepInverse.
 
-    For details of what is compatible, see :class:`BaseDataset`.
+    For details of what is compatible, see :class:`ImageDataset`.
 
     :param torch.utils.data.Dataset dataset: torch dataset.
     :param bool allow_non_tensor: allow image types that are not tensors (i.e. numpy ndarrays and PIL Images). Default `False`, which
@@ -104,7 +104,7 @@ def check_dataset(dataset: Dataset, allow_non_tensor=True) -> None:
         raise RuntimeError(f"{error}, but returned batch of type {type(batch)}.")
 
 
-class BaseDataset(Dataset):
+class ImageDataset(Dataset):
     """
     Base class for imaging datasets in DeepInverse.
 
@@ -146,7 +146,7 @@ class BaseDataset(Dataset):
         raise NotImplementedError()
 
 
-class TensorDataset(BaseDataset):
+class TensorDataset(ImageDataset):
     r"""
     Dataset wrapping data explicitly passed as tensors.
 
@@ -235,7 +235,7 @@ class TensorDataset(BaseDataset):
             return x, self.y[idx], {k: v[idx] for (k, v) in self.params.items()}
 
 
-class ImageFolder(BaseDataset):
+class ImageFolder(ImageDataset):
     """Dataset loading images from files.
 
     By default, the images are loaded from image files (png, jpg etc.) located in `root`.

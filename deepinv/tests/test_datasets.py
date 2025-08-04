@@ -26,7 +26,7 @@ from deepinv.datasets import (
     NBUDataset,
     LidcIdriSliceDataset,
     Flickr2kHR,
-    BaseDataset,
+    ImageDataset,
     generate_dataset,
     HDF5Dataset,
     TensorDataset,
@@ -79,12 +79,12 @@ def check_dataset_format(
     :param type dtype: intended dtype of returned batch.
     :param tuple shape: intended shape of returned batch, if it has the shape attribute.
     :param bool allow_non_tensor: if `True`, allow non tensors e.g. PIL Image and numpy ndarray to be returned.
-    :param bool skip_check: skip BaseDataset checks.
+    :param bool skip_check: skip ImageDataset checks.
     """
     if not skip_check:
         check_dataset(dataset, allow_non_tensor=allow_non_tensor)
 
-    assert isinstance(dataset, BaseDataset), "Dataset must be instance of base dataset."
+    assert isinstance(dataset, ImageDataset), "Dataset must be instance of base dataset."
 
     if dtype in (
         Tensor,
@@ -124,7 +124,7 @@ def check_dataset_format(
         ), f"Dataset should return data of shape {shape} but got shape {dataset[0].shape}"
 
 
-class MyDataset(BaseDataset):
+class MyDataset(ImageDataset):
     def __init__(self, batch):
         self.batch = batch
 

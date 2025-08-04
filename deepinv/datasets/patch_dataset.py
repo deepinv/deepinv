@@ -1,7 +1,7 @@
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 
-class PatchDataset(BaseDataset):
+class PatchDataset(ImageDataset):
     r"""
     Builds the dataset of all patches from a tensor of images.
 

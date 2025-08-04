@@ -7,7 +7,7 @@ from os.path import basename, join
 from typing import Callable, Union
 from pathlib import Path
 
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 
 def url_basename(url: str) -> str:
@@ -16,7 +16,7 @@ def url_basename(url: str) -> str:
     return basename(path)
 
 
-class Kohler(BaseDataset):
+class Kohler(ImageDataset):
     """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
 
     Published in :footcite:t:`kohler2012recording`.

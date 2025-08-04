@@ -13,7 +13,7 @@ Base Datasets
    :template: myclass_template.rst
    :nosignatures:
 
-    deepinv.datasets.BaseDataset
+    deepinv.datasets.ImageDataset
     deepinv.datasets.ImageFolder
     deepinv.datasets.TensorDataset
 

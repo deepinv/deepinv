@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.loss.metric.distortion import PSNR
-from deepinv.datasets.base import BaseDataset
+from deepinv.datasets.base import ImageDataset
 
 from dummy import DummyCircles, DummyModel
 
@@ -770,7 +770,7 @@ def test_varnet(varnet_type, device):
     )
     y = physics(x)
 
-    class DummyMRIDataset(BaseDataset):
+    class DummyMRIDataset(ImageDataset):
         def __getitem__(self, i):
             return x[0], y[0]
 
