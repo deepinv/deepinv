@@ -238,16 +238,18 @@ examples_order = {
 
 class MySortKey(_SortKey):
     """
-    Sort examples by custom order set by examples_order, otherwise by titles
+    If section is listed in examples_order dict keys above, then sort
+    examples by this custom order set by examples_order[section].
+    If not, then sort by example titles.
     """
 
     def __call__(self, filename):
-        parts = os.path.normpath(os.path.join(self.src_dir, filename)).split(os.sep)
-        if parts[-2] in examples_order:
+        section, example = os.path.normpath(os.path.join(self.src_dir, filename)).split(os.sep)[-2:]
+        if section in examples_order:
             try:
-                return examples_order[parts[-2]].index(parts[-1])
+                return examples_order[section].index(example)
             except ValueError:
-                return len(examples_order[parts[-2]]) + 1
+                return len(examples_order[section]) + 1
         else:
             return ExampleTitleSortKey(self.src_dir)(filename)
 
