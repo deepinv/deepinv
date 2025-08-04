@@ -42,7 +42,7 @@ We provide dataset classes for you to easily load in your own data:
    * - :class:`deepinv.datasets.ImageFolder`
      - Dataset that loads images (ground-truth, measurements or both) from a folder
    * - :class:`deepinv.datasets.TensorDataset`
-     - Dataset that returns a tensors passed in at input, either single tensors or a full dataset
+     - Dataset that returns tensor(s) passed in at input: either tensor(s) for a single observation or a whole dataset of them
 
 .. seealso::
 

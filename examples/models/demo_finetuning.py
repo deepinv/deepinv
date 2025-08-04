@@ -2,7 +2,7 @@
 Inference and fine-tune Reconstruct Anything Model (RAM) foundation model
 ====================================================================================================
 
-This example shows how to inference and fine-tune the RAM foundation model to solve inverse problems.
+This example shows how to perform inference on and fine-tune the RAM foundation model to solve inverse problems.
 
 The :class:`RAM <deepinv.models.MedianFilter>` model TODO RAM, described in the following `paper <https://arxiv.org/abs/2503.08915>`_ TODO CITATION, is a model that is trained on
 a large number of inverse problems and datasets.

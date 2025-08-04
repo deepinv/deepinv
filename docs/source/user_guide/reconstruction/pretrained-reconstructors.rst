@@ -3,13 +3,13 @@
 Pretrained Reconstructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Some methods do not require any training can be quickly deployed to your problem.
+Some methods do not require any training and can be quickly deployed to your problem.
 
 .. seealso::
 
   See the example :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for how to get started with these models on various problems.
 
-These models can be defined in one line and inferenced in one line:
+These models can be set-up in one line and perform inference in another line:
 
 .. doctest::
 
