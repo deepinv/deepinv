@@ -341,7 +341,7 @@ class LinearPhysics(Physics):
         This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
         have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter
         If you have a closed form for the adjoint, you can pass it as a callable function or rewrite the class method.
-    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image x, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
         used for the automatic adjoint computation.
     :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
@@ -831,7 +831,7 @@ class DecomposablePhysics(LinearPhysics):
 
     :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
     :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
-    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the input signal, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
         used for the automatic adjoint computation.
     :param None | Callable U_adjoint: transpose of U. If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
         from the `U` function and the `img_size` parameter.
