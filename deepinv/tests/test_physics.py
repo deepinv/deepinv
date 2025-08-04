@@ -1899,3 +1899,31 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+def test_automatic_A_adjoint(device):
+    device = "cuda"
+    x = torch.randn((2, 3, 8, 8), device=device)
+    physics = dinv.physics.LinearPhysics(
+        A=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch."
+    assert (
+        physics.adjointness_test(x) < 1e-6
+    ), "Adjointness test failed for LinearPhysics with automatic A_adjoint."
+
+    # test decomposable physics
+    physics = dinv.physics.DecomposablePhysics(
+        v_adjoint=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
+    assert (
+        physics.adjointness_test(x) < 1e-6
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
