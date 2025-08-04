@@ -1919,10 +1919,6 @@ def test_automatic_A_adjoint(device):
         V_adjoint=lambda s: s.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
     )
 
-    x_s = physics.V_adjoint(x)
-    print(x_s)
-    print(f"Shape of x_s: {x_s.shape}")
-    print(physics.mask)
     y = physics(x)
     x_adj = physics.A_adjoint(y)
 

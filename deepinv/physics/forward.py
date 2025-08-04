@@ -991,7 +991,7 @@ class DecomposablePhysics(LinearPhysics):
         if self._V is None:
             if self.img_size is None:
                 raise ValueError(
-                    "img_size must be set for using the automatic V implementation."
+                    "img_size must be set for using the automatic V implementation. "
                     "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
                 )
             else:
@@ -1015,7 +1015,7 @@ class DecomposablePhysics(LinearPhysics):
         if self._U_adjoint is None:
             if self.img_size is None:
                 raise ValueError(
-                    "img_size must be set for using the automatic U_adjoint implementation."
+                    "img_size must be set for using the automatic U_adjoint implementation. "
                     "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
                 )
             else:
