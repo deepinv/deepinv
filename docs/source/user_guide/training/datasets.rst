@@ -3,7 +3,7 @@
 Datasets
 ========
 
-The datasets subpackage lets you use datasets with DeepInverse, for testing and training.
+The datasets module lets you use datasets with DeepInverse, for testing and training.
 
 Datasets can be either:
 

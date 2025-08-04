@@ -1,7 +1,7 @@
 deepinv.datasets
 ================
 
-This subpackage can be used for defining datasets or generating reconstruction datasets from other base datasets.
+This module can be used for defining datasets or generating reconstruction datasets from other base datasets.
 Please refer to the :ref:`user guide <datasets>` for more information.
 
 Base Datasets

@@ -3,7 +3,7 @@
 Diffusion and MCMC Algorithms
 =============================
 
-This package contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte Carlo (MCMC) methods.
+This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte Carlo (MCMC) methods.
 
 These methods build a Markov chain
 

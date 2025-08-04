@@ -3,7 +3,7 @@
 Unfolded Algorithms
 ===================
 
-This package contains a collection of routines turning the optimization algorithms defined in :ref:`optimization module <optim>`
+This module contains a collection of routines turning the optimization algorithms defined in :ref:`optimization module <optim>`
 into unfolded architectures.
 Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.

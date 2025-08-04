@@ -29,7 +29,7 @@ which can simulate the observation process:
 
         :octicon:`telescope-fill` **Introduction**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Introduction to the physics package.
+        Introduction to the physics module.
 
     .. grid-item-card::
         :link: physics

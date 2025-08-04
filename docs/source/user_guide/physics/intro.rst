@@ -3,7 +3,7 @@
 Introduction
 ---------------
 
-This package contains a large collection of forward operators appearing in imaging applications.
+This module contains a large collection of forward operators appearing in imaging applications.
 The acquisition models are of the form
 
 .. math::
