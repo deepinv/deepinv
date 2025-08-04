@@ -131,8 +131,6 @@ class Kohler(ImageDataset):
         if download:
             self.download(self.root)
 
-        self.skip_check = True
-
     @classmethod
     def download(cls, root: Union[str, Path], remove_finished: bool = False) -> None:
         """Download the dataset.

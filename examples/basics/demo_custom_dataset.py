@@ -7,7 +7,7 @@ This example shows how to use DeepInverse with your own dataset.
 A dataset in DeepInverse can consist of optional ground-truth images `x`, measurements `y`, or
 :ref:`physics parameters <parameter-dependent-operators>` `params`, or any combination of these.
 
-See :class:`deepinv.datasets.ImageDataset` for the formats we expect data to be returned in
+See :ref:`datasets User Guide <datasets>` for the formats we expect data to be returned in
 for compatibility with DeepInverse (e.g., to be used with :class:`deepinv.Trainer`).
 
 DeepInverse provides multiple ways of bringing your own dataset. This example has two parts:
@@ -105,8 +105,9 @@ class MyDataset(torch.utils.data.Dataset):
 dataset5 = MyDataset()
 
 # %%
-# You can check that it is compatible using :func:`deepinv.datasets.check_dataset`
-# (alternatively you can inherit from :class:`deepinv.datasets.ImageDataset`):
+# You should check that your dataset is compatible using :func:`deepinv.datasets.check_dataset`
+# (alternatively inherit from :class:`deepinv.datasets.ImageDataset` and use `self.check_dataset()`):
+
 dinv.datasets.check_dataset(dataset5)
 
 # %%

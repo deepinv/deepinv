@@ -102,6 +102,7 @@ def check_dataset_format(
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
 
         _ = next(iter(torch.utils.data.DataLoader(dataset)))
+        #TODO test dataloader can be used with trainer, datagenerator, tester
 
     if length is not None:
         assert (

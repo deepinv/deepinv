@@ -28,7 +28,12 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-All datasets shoud inherit from :class:`deepinv.datasets.ImageDataset` which checks that the dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
+All datasets shoud inherit from :class:`deepinv.datasets.ImageDataset`. To check that a dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`)
+use the function :func:`deepinv.datasets.check_dataset`.
+
+.. seealso::
+
+  See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a simple example of how to use DeepInverse with your own dataset.
 
 We provide dataset classes for you to easily load in your own data:
 
@@ -43,10 +48,6 @@ We provide dataset classes for you to easily load in your own data:
      - Dataset that loads images (ground-truth, measurements or both) from a folder
    * - :class:`deepinv.datasets.TensorDataset`
      - Dataset that returns tensor(s) passed in at input: either tensor(s) for a single observation or a whole dataset of them
-
-.. seealso::
-
-  See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a simple example of how to use DeepInverse with your own dataset.
 
 .. _generating-datasets:
 

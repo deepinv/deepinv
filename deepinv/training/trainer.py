@@ -48,6 +48,7 @@ class Trainer:
 
     The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets User Guide <datasets>` for
     how to use predefined datasets, create datasets, or generate datasets.
+    
     If the dataloaders do not return
     measurements `y`, then you should use the `online_measurements=True` option which generates measurements in an online manner (optionally with parameters), running
     under the hood `y=physics(x)` or `y=physics(x, **params)`. Otherwise if dataloaders do return measurements `y`, set `online_measurements=False` (default) otherwise

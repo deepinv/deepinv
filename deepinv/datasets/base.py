@@ -108,13 +108,16 @@ class ImageDataset(Dataset):
     """
     Base class for imaging datasets in DeepInverse.
 
-    All datasets used with DeepInverse should inherit from this class. The dataset uses :func:`check_dataset` to
-    automatically check that `__getitem__` returns the correct format out of the following options:
+    All datasets used with DeepInverse should inherit from this class.
+    
+    We provide the function :func:`check_dataset` to automatically check that `__getitem__` returns the correct format out of the following options:
 
     * `x` i.e a dataset that returns only ground truth;
     * `(x, y)` i.e. a dataset that returns pairs of ground truth and measurement. `x` can be equal to `torch.nan` if your dataset is ground-truth-free.
     * `(x, params)` i.e. a dataset of ground truth and dict of :ref:`physics parameters <physics_generators>`. Useful for training with online measurements.
     * `(x, y, params)` i.e. a dataset that returns ground truth, measurements and dict of params.
+
+    This check is also available for datasets using the method :meth:`ImageDataset.check_dataset`.
 
     .. tip:
 
@@ -122,22 +125,12 @@ class ImageDataset(Dataset):
 
     Datasets should generally return :class:`torch.Tensor` or :class:`deepinv.utils.TensorList` so that they are batchable and can be used with `deepinv`.
 
-    If using DeepInverse with your own custom dataset, it should either inherit from this class,
-    or use the :func:`check_dataset` function to check your dataset is compatible.
+    If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-
-        init = cls.__init__
-
-        @wraps(init)
-        def new_init(self, *args, **kwargs):
-            init(self, *args, **kwargs)
-            if not getattr(self, "skip_check", False):
-                check_dataset(self, allow_non_tensor=True)
-
-        cls.__init__ = new_init
+    def check_dataset(self):
+        """Check dataset returns correct format of images or image tuples.
+        """
+        check_dataset(self, allow_non_tensor=True)
 
     def __len__(self):
         raise NotImplementedError()
