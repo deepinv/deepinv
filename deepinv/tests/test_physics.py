@@ -45,6 +45,10 @@ OPERATORS = [
     "super_resolution_reflect",
     "super_resolution_replicate",
     "super_resolution_constant",
+    "down_resolution_circular",
+    "down_resolution_reflect",
+    "down_resolution_replicate",
+    "down_resolution_constant",
     "aliased_super_resolution",
     "super_resolution_matlab",
     "fast_singlepixel",
@@ -91,7 +95,14 @@ NOISES = [
 ]
 
 
-def find_operator(name, device, get_physics_param=False):
+WRAPPERS = [
+    None,
+    "LinearPhysicsMultiScaler",
+    "PhysicsCropper",
+]
+
+
+def find_operator(name, device, imsize=None, get_physics_param=False):
     r"""
     Chooses operator
 
@@ -99,7 +110,7 @@ def find_operator(name, device, get_physics_param=False):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
-    img_size = (3, 16, 8)
+    img_size = (3, 16, 8) if imsize is None else imsize
     norm = 1
     dtype = torch.float
     padding = next(
@@ -136,7 +147,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 0.4468
         params = ["srf"]
     elif name == "cassi":
-        img_size = (7, 37, 31)
+        img_size = (7, 37, 31) if imsize is None else imsize
         p = dinv.physics.CompressiveSpectralImaging(img_size, device=device, rng=rng)
         norm = 1 / img_size[0]
         params = ["mask"]
@@ -152,45 +163,55 @@ def find_operator(name, device, get_physics_param=False):
         norm = 1.0
         params = []
     elif name == "MRI":
-        img_size = (2, 17, 11)  # C,H,W
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         p = MRI(img_size=img_size, device=device)
         params = ["mask"]
     elif name == "3DMRI":
-        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,D,H,W where D is depth
         p = MRI(img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "DynamicMRI":
-        img_size = (2, 5, 17, 11)  # C,T,H,W where T is time
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,T,H,W where T is time
         p = DynamicMRI(img_size=img_size, device=device)
         params = ["mask"]
     elif name == "MultiCoilMRI":
-        img_size = (2, 17, 11)  # C,H,W
+        img_size = (2, 17, 11) if imsize is None else imsize  # C,H,W
         n_coils = 7
         maps = torch.ones(
-            (1, n_coils, 17, 11), dtype=torch.complex64, device=device
+            (1, n_coils, img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
         ) / sqrt(
             n_coils
         )  # B,N,H,W where N is coil dimension
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, device=device)
         params = ["mask", "coil_maps"]
     elif name == "3DMultiCoilMRI":
-        img_size = (2, 5, 17, 11)  # C,D,H,W where D is depth
+        img_size = (
+            (2, 5, 17, 11) if imsize is None else imsize
+        )  # C,D,H,W where D is depth
         n_coils = 15
         maps = torch.ones(
-            (1, n_coils, 5, 17, 11), dtype=torch.complex64, device=device
+            (1, n_coils, img_size[-3], img_size[-2], img_size[-1]),
+            dtype=torch.complex64,
+            device=device,
         ) / sqrt(
             n_coils
         )  # B,N,D,H,W where N is coils and D is depth
         p = MultiCoilMRI(coil_maps=maps, img_size=img_size, three_d=True, device=device)
         params = ["mask"]
     elif name == "Tomography":
-        img_size = (1, 16, 16)
+        img_size = (1, 16, 16) if imsize is None else imsize  # C,H,W
         p = dinv.physics.Tomography(
             img_width=img_size[-1], angles=img_size[-1], device=device
         )
         params = ["theta"]
     elif name == "composition":
-        img_size = (3, 16, 16)
+        img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
             img_size=img_size, factor=2, device=device, padding="same", filter=None
         )
@@ -203,7 +224,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 1 / 2**2
         params = ["filter"]
     elif name == "composition2":
-        img_size = (3, 16, 16)
+        img_size = (3, 16, 16) if imsize is None else imsize
         p1 = dinv.physics.Downsampling(
             img_size=img_size, factor=2, device=device, filter=None
         )
@@ -229,7 +250,7 @@ def find_operator(name, device, get_physics_param=False):
         norm = 0.4
         params = []
     elif name == "aliased_pansharpen":
-        img_size = (3, 30, 32)
+        img_size = (3, 30, 32) if imsize is None else imsize
         p = dinv.physics.Pansharpen(
             img_size=img_size, device=device, filter=None, use_brovey=False
         )
@@ -285,7 +306,7 @@ def find_operator(name, device, get_physics_param=False):
         ) ** 2 - 3.7  # Marcenko-Pastur law, second term is a small n correction
         params = ["mask"]
     elif name.startswith("deblur"):
-        img_size = (3, 17, 19)
+        img_size = (3, 17, 19) if imsize is None else imsize
         p = dinv.physics.Blur(
             filter=dinv.physics.blur.gaussian_blur(sigma=(0.25, 0.1), angle=45.0),
             padding=padding,
@@ -293,7 +314,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name == "fftdeblur":
-        img_size = (3, 17, 19)
+        img_size = (3, 17, 19) if imsize is None else imsize
         p = dinv.physics.BlurFFT(
             img_size=img_size,
             filter=dinv.physics.blur.bicubic_filter(),
@@ -301,7 +322,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name.startswith("space_deblur"):
-        img_size = (3, 20, 13)
+        img_size = (3, 20, 13) if imsize is None else imsize
         h = dinv.physics.blur.bilinear_filter(factor=2).unsqueeze(0).to(device)
         h /= torch.sum(h)
         h = torch.cat([h, h], dim=2)
@@ -322,11 +343,11 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filters", "multipliers"]
     elif name == "hyperspectral_unmixing":
-        img_size = (15, 32, 32)  # x (E, H, W)
+        img_size = (15, 32, 32) if imsize is None else imsize  # x (E, H, W)
         p = dinv.physics.HyperSpectralUnmixing(E=15, C=64, device=device)
         params = ["M"]
     elif name.startswith("3Ddeblur"):
-        img_size = (1, 7, 6, 8)
+        img_size = (1, 7, 6, 8) if imsize is None else imsize  # C,D,H,W
         h_size = (1, 1, 4, 3, 5)
         h = torch.rand(h_size)
         h /= h.sum()
@@ -337,7 +358,7 @@ def find_operator(name, device, get_physics_param=False):
         )
         params = ["filter"]
     elif name == "aliased_super_resolution":
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         factor = 2
         norm = 1.0
         p = dinv.physics.Downsampling(
@@ -355,7 +376,7 @@ def find_operator(name, device, get_physics_param=False):
         p = dinv.physics.DownsamplingMatlab(factor=factor)
         params = []
     elif name.startswith("super_resolution"):
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         factor = 2
         norm = 1.0 / factor**2
         p = dinv.physics.Downsampling(
@@ -364,16 +385,31 @@ def find_operator(name, device, get_physics_param=False):
             padding=padding,
             device=device,
             filter="bilinear",
+            dtype=dtype,
+        )
+        params = ["filter"]
+    elif name.startswith("down_resolution"):
+        img_size = (1, 32, 32) if imsize is None else imsize
+        factor = 2
+        norm = 1.0 / factor**2
+        p = dinv.physics.Upsampling(
+            img_size=(img_size[0], img_size[1] * factor, img_size[2] * factor),
+            factor=factor,
+            padding=padding,
+            device=device,
+            filter="bilinear",
+            dtype=dtype,
         )
         params = ["filter"]
     elif name == "complex_compressed_sensing":
-        img_size = (1, 8, 8)
+        img_size = (1, 8, 8) if imsize is None else imsize
         m = 50
         p = dinv.physics.CompressedSensing(
             m=m,
             img_size=img_size,
             dtype=torch.cdouble,
             device=device,
+            compute_inverse=True,
             rng=rng,
         )
         dtype = p.dtype
@@ -381,7 +417,7 @@ def find_operator(name, device, get_physics_param=False):
         params = ["mask"]
     elif "radio" in name:
         dtype = torch.cfloat
-        img_size = (1, 64, 64)
+        img_size = (1, 64, 64) if imsize is None else imsize
         pytest.importorskip(
             "torchkbnufft",
             reason="This test requires torchkbnufft. It should be "
@@ -414,18 +450,19 @@ def find_operator(name, device, get_physics_param=False):
             samples_loc=uv.permute((1, 0)),
             dataWeight=dataWeight,
             real_projection=False,
+            dtype=dtype,
             device=device,
             noise_model=dinv.physics.GaussianNoise(0.0, rng=rng),
         )
         params = []
     elif name == "structured_random":
-        img_size = (1, 8, 8)
+        img_size = (1, 8, 8) if imsize is None else imsize
         p = dinv.physics.StructuredRandom(
             img_size=img_size, output_size=img_size, device=device
         )
         params = []
     elif name == "ptychography_linear":
-        img_size = (1, 32, 32)
+        img_size = (1, 32, 32) if imsize is None else imsize
         dtype = torch.complex64
         norm = 1.32
         p = dinv.physics.PtychographyLinearOperator(
@@ -437,6 +474,7 @@ def find_operator(name, device, get_physics_param=False):
         params = ["probe", "shifts"]
     else:
         raise Exception("The inverse problem chosen doesn't exist")
+
     if not get_physics_param:
         return p, img_size, norm, dtype
     else:
@@ -451,7 +489,6 @@ def find_nonlinear_operator(name, device):
     :param device: (torch.device) cpu or cuda
     :return: (:class:`deepinv.physics.Physics`) forward operator.
     """
-
     if name == "haze":
         x = dinv.utils.TensorList(
             [
@@ -468,6 +505,28 @@ def find_nonlinear_operator(name, device):
     else:
         raise Exception("The inverse problem chosen doesn't exist")
     return p, x
+
+
+def wrap_physics(wrapper_name, physics, img_size, device):
+    if wrapper_name == "LinearPhysicsMultiScaler":
+        factors = [2, 4, 8]
+        p = dinv.physics.LinearPhysicsMultiScaler(
+            physics=physics, img_shape=img_size, factors=factors, device=device
+        )
+        img_size_out = (img_size[0], img_size[-2] // 4, img_size[-1] // 4)
+    elif wrapper_name == "PhysicsCropper":
+        crop = (2, 4)
+        p = dinv.physics.PhysicsCropper(physics=physics, crop=crop)
+        img_size_out = (
+            *img_size[:-2],
+            img_size[-2] + crop[-2],
+            img_size[-1] + crop[-1],
+        )
+    else:
+        raise Exception(
+            f"The wrapper {wrapper_name} is not in the `wrap_physics` function"
+        )
+    return p, img_size_out
 
 
 def find_phase_retrieval_operator(name, device):
@@ -564,6 +623,139 @@ def test_operators_adjointness(name, device, rng):
     error2 = (f(y) - physics.A_adjoint(y)).flatten().mean().abs()
 
     assert error2 < 1e-3
+
+
+LIST_DOWN_OP = [
+    "down_resolution_circular",
+    "down_resolution_reflect",
+    "down_resolution_replicate",
+    "down_resolution_constant",
+]
+
+
+@pytest.mark.parametrize("name", LIST_DOWN_OP)
+@pytest.mark.parametrize("kernel", ["bilinear", "bicubic", "sinc", "gaussian"])
+def test_upsampling(device, rng, name, kernel):
+    r"""
+    This function tests that the Upsampling and Downsampling operators are effectively adjoint to each other.
+
+    Note that the test does not hold when the padding is not 'valid', as the Upsampling operator
+    does not support 'valid' padding.
+    """
+    padding = name.split("_")[-1]  # get padding type from name
+    physics, imsize, _, dtype = find_operator(name, device)
+    physics_adjoint, _, _, dtype = find_operator(
+        "super_resolution_" + padding, device, imsize=imsize
+    )
+
+    # physics.register_buffer("filter", None)
+    physics.update_parameters(filter=kernel)
+
+    # physics_adjoint.register_buffer("filter", None)
+    physics_adjoint.update_parameters(filter=kernel)
+
+    factor = physics.factor
+
+    x = torch.randn(
+        (1, imsize[0], imsize[1], imsize[2]),
+        device=device,
+        dtype=dtype,
+        generator=rng,
+    )
+
+    out = physics(x)
+    assert out.shape == (1, imsize[0], imsize[1] * factor, imsize[2] * factor)
+
+    y = physics(x)
+    err1 = (physics.A_adjoint(y) - physics_adjoint(y)).flatten().mean().abs()
+    assert err1 < 1e-6
+
+    imsize_new = (*imsize[:1], imsize[1] * factor, imsize[2] * factor)
+    physics_adjoint, _, _, dtype = find_operator(
+        "super_resolution_" + padding, device, imsize=imsize_new
+    )  # we need to redefine the adjoint operator with the new image size
+
+    # physics_adjoint.register_buffer("filter", None)
+    physics_adjoint.update_parameters(filter=kernel)
+
+    x = torch.randn(imsize_new, device=device, dtype=dtype, generator=rng).unsqueeze(0)
+    y = physics_adjoint(x)
+    err2 = (physics.A(y) - physics_adjoint.A_adjoint(y)).flatten().mean().abs()
+    assert err2 < 1e-6
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_operator_multiscale_wrapper(name, device, rng):
+    r"""
+    Tests if a linear physics operator can be wrapped with a multiscale wrapper.
+    """
+
+    # defining a list of exceptions to skip  # TODO: fix for those?
+    list_exceptions = [
+        "pansharpen",  # shape handling
+        "radio",  # data type (complex)
+        "3d",  # shape handling
+        "ptychography",  # ?
+        "composition2",  # shape handling
+        "dynamicmri",  # shape handling
+        "complex_compressed_sensing",  # data type (complex)
+    ]
+
+    if any(exc in name.lower() for exc in list_exceptions):
+        pytest.skip(f"Skipping test for operator '{name}' as it matches an exception.")
+
+    base_shape = (32, 32)
+    scale = 2
+
+    _, img_size_orig, _, _ = find_operator(
+        name,
+        device,
+    )  # get img_size for the operator
+    physics, img_size_orig, _, dtype = find_operator(
+        name,
+        device,
+        imsize=(*img_size_orig[:-2], base_shape[-2], base_shape[-1]),
+    )  # get physics for the operator with base img size
+
+    image_shape = (
+        *img_size_orig[:-2],
+        base_shape[-2] // (scale**2),
+        base_shape[-1] // (scale**2),
+    )
+    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+
+    new_physics = dinv.physics.LinearPhysicsMultiScaler(
+        physics, (*image_shape[:-2], *base_shape), factors=[2, 4, 8], dtype=dtype
+    )  # define a multiscale physics with base img size (1, 32, 32)
+    y = new_physics(x, scale=scale)
+    Aty = new_physics.A_adjoint(y, scale=scale)
+
+    assert Aty.shape == x.shape
+
+
+@pytest.mark.parametrize("name", OPERATORS)
+def test_operator_cropper(name, device, rng):
+    r"""
+    Tests if a linear physics operator can be wrapped with a crop wrapper.
+    """
+
+    physics, image_shape, _, dtype = find_operator(
+        name,
+        device,
+    )  # get physics for the operator with base img size
+
+    x = torch.rand((1, *image_shape), dtype=dtype)  # add batch dim
+    padding_shape = (2, 5)
+    x_new = torch.nn.functional.pad(x, (padding_shape[1], 0, padding_shape[0], 0))
+
+    new_physics = dinv.physics.PhysicsCropper(
+        physics,
+        padding_shape,
+    )
+    y = new_physics(x_new)
+    Aty = new_physics.A_adjoint(y)
+
+    assert Aty.shape == x_new.shape
 
 
 @pytest.mark.parametrize("name", OPERATORS)
