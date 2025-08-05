@@ -611,8 +611,8 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
 
     if transform is not None:
         assert (
-            transform.call_count == n_retrievals + 1
-        ), "Transform should be called once for each dataset item + once for checks."
+            transform.call_count == n_retrievals
+        ), "Transform should be called once for each dataset item."
 
 
 @pytest.mark.parametrize(
