@@ -88,10 +88,6 @@ def check_dataset_format(
     if not skip_check:
         check_dataset(dataset, allow_non_tensor=allow_non_tensor)
 
-    assert isinstance(
-        dataset, ImageDataset
-    ), "Dataset must be instance of base dataset."
-
     if dtype in (
         Tensor,
         np.ndarray,
@@ -118,6 +114,7 @@ def check_dataset_format(
             optimizer=None,
             train_dataloader=dataloader,
             online_measurements=True,
+            save_path=None,
         ).setup_train(train=True)
         _ = test(model, dataloader, physics, online_measurements=True)
 

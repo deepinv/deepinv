@@ -21,6 +21,8 @@ import copy
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
 
+from deepinv.tests.test_datasets import check_dataset_format
+
 
 @pytest.fixture
 def tensorlist():
@@ -367,48 +369,23 @@ def test_deprecated_alias():
 @pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
-@pytest.mark.parametrize("length", [1, 2, 10, np.inf])
-def test_random_phantom_dataset(size, n_data, transform, length):
-    # Although it is the default value for the parameter length, the current
-    # implementation fails when it is used. We simply verify this behavior
-    # but it will probably need to be changed in the future.
-    dataset = None
-    with pytest.raises(ValueError) if length == np.inf else nullcontext():
+@pytest.mark.parametrize("length", [1, 10])
+@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+def test_phantom_datasets(size, n_data, transform, length, dataset_name):
+    if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
             size=size, n_data=n_data, transform=transform, length=length
         )
-        assert dataset is not None, "Dataset should not be None when length is finite."
-
-    if dataset is not None:
-        x, y = dataset[0]
-
-        assert (
-            len(dataset) == length
-        ), "Length of dataset should match the specified length."
-
-        assert x.shape == (
-            n_data,
-            size,
-            size,
-        ), "Shape of phantom should match (n_data, size, size)."
-
-
-@pytest.mark.parametrize("size", [64, 128])
-@pytest.mark.parametrize("n_data", [1, 2, 3])
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_shepp_logan_dataset(size, n_data, transform):
-    dataset = deepinv.utils.SheppLoganDataset(
-        size=size, n_data=n_data, transform=transform
+    elif dataset_name == "shepplogan":
+        dataset = deepinv.utils.SheppLoganDataset(
+            size=size, n_data=n_data, transform=transform
+        )
+    check_dataset_format(
+        dataset,
+        length=length if dataset_name != "shepplogan" else 1,
+        dtype=torch.Tensor,
+        shape=(n_data, size, size),
     )
-    x, y = dataset[0]
-
-    assert len(dataset) == 1, "Length of dataset should be 1 for Shepp-Logan phantom."
-
-    assert x.shape == (
-        n_data,
-        size,
-        size,
-    ), "Shape of phantom should match (n_data, size, size)."
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
