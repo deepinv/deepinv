@@ -109,7 +109,7 @@ class ImageDataset(Dataset):
     Base class for imaging datasets in DeepInverse.
 
     All datasets used with DeepInverse should inherit from this class.
-    
+
     We provide the function :func:`check_dataset` to automatically check that `__getitem__` returns the correct format out of the following options:
 
     * `x` i.e a dataset that returns only ground truth;
@@ -127,9 +127,9 @@ class ImageDataset(Dataset):
 
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
+
     def check_dataset(self):
-        """Check dataset returns correct format of images or image tuples.
-        """
+        """Check dataset returns correct format of images or image tuples."""
         check_dataset(self, allow_non_tensor=True)
 
     def __len__(self):

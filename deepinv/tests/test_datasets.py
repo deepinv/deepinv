@@ -48,8 +48,12 @@ from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
 )
 from deepinv.physics.inpainting import Inpainting
+from deepinv.physics.forward import Denoising
+from deepinv.physics.noise import GaussianNoise
 from deepinv.utils.tensorlist import TensorList
 from deepinv.loss.metric import PSNR
+from deepinv.training import Trainer, test
+from deepinv.tests.dummy import DummyModel
 
 from unittest.mock import patch
 import io
@@ -84,7 +88,9 @@ def check_dataset_format(
     if not skip_check:
         check_dataset(dataset, allow_non_tensor=allow_non_tensor)
 
-    assert isinstance(dataset, ImageDataset), "Dataset must be instance of base dataset."
+    assert isinstance(
+        dataset, ImageDataset
+    ), "Dataset must be instance of base dataset."
 
     if dtype in (
         Tensor,
@@ -101,8 +107,19 @@ def check_dataset_format(
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
 
-        _ = next(iter(torch.utils.data.DataLoader(dataset)))
-        #TODO test dataloader can be used with trainer, datagenerator, tester
+        dataloader = torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, [0]))
+        _ = next(iter(dataloader))
+
+        model = DummyModel()
+        physics = Denoising(GaussianNoise(0.0))
+        _ = Trainer(
+            model,
+            physics,
+            optimizer=None,
+            train_dataloader=dataloader,
+            online_measurements=True,
+        ).setup_train(train=True)
+        _ = test(model, dataloader, physics, online_measurements=True)
 
     if length is not None:
         assert (

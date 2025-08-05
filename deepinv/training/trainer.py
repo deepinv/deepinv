@@ -20,6 +20,7 @@ from deepinv.loss.metric import PSNR, Metric
 from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
+from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
 import inspect
 
@@ -47,8 +48,8 @@ class Trainer:
     and ``eval_metrics`` the evaluation metrics history.
 
     The **dataloaders** should return data in the correct format for DeepInverse: see :ref:`datasets User Guide <datasets>` for
-    how to use predefined datasets, create datasets, or generate datasets.
-    
+    how to use predefined datasets, create datasets, or generate datasets. These will be checked automatically with :func:`deepinv.datasets.check_dataset`.
+
     If the dataloaders do not return
     measurements `y`, then you should use the `online_measurements=True` option which generates measurements in an online manner (optionally with parameters), running
     under the hood `y=physics(x)` or `y=physics(x, **params)`. Otherwise if dataloaders do return measurements `y`, set `online_measurements=False` (default) otherwise
@@ -260,6 +261,12 @@ class Trainer:
 
         if self.eval_dataloader is not None and type(self.eval_dataloader) is not list:
             self.eval_dataloader = [self.eval_dataloader]
+
+        for loader in self.train_dataloader + (
+            self.eval_dataloader if self.eval_dataloader is not None else []
+        ):
+            if loader is not None:
+                check_dataset(loader.dataset)
 
         self.save_path = Path(self.save_path) if self.save_path else None
 
@@ -1206,6 +1213,9 @@ class Trainer:
 
         if not isinstance(test_dataloader, list):
             test_dataloader = [test_dataloader]
+
+        for loader in test_dataloader:
+            check_dataset(loader.dataset)
 
         self.current_eval_iterators = [iter(loader) for loader in test_dataloader]
 

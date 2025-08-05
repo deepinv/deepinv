@@ -53,7 +53,7 @@ We provide dataset classes for you to easily load in your own data:
 
 Generating Datasets
 -------------------
-You can fenerate a dataset associated with a certain forward operator using :func:`deepinv.datasets.generate_dataset`
+You can generate a dataset associated with a certain forward operator using :func:`deepinv.datasets.generate_dataset`
 using a base dataset.
 Your base dataset can be any dataset that returns ground truth, i.e. either one of our :ref:`predefined datasets <predefined-datasets>`, 
 your own data in the format provided by one of our :ref:`base datasets <base-datasets>`,

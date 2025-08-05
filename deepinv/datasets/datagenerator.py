@@ -176,8 +176,11 @@ def generate_dataset(
     Generates dataset of signal/measurement pairs from base dataset.
 
     It generates the measurement data using the forward operator provided by the user.
-    The dataset is saved in HD5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.
-    The generated dataset contains a train and test splits.
+    The dataset is saved in HDF5 format and can be easily loaded using the :class:`deepinv.datasets.HDF5Dataset` class.
+    The generated dataset contains `train` and `test` splits.
+
+    The base dataset of ground-truth images must return tensors `x` or tuples `(x, ...)`. We provide a large library of predefined
+    popular imaging datasets. See :ref:`datasets User Guide <datasets>` for more information.
 
     Optionally, if random physics generator is used to generate data, also save physics generator params.
     This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,
@@ -191,10 +194,7 @@ def generate_dataset(
 
         By default, we overwrite existing datasets if they have been previously created. To avoid this, set ``overwrite_existing=False``.
 
-    :param torch.utils.data.Dataset train_dataset: base dataset (e.g., MNIST, CelebA, etc.)
-        with images used for generating associated measurements
-        via the chosen forward operator. The generated dataset is saved in HD5 format and can be easily loaded using the
-        HD5Dataset class.
+    :param torch.utils.data.Dataset train_dataset: base dataset of ground-truth images. Must return tensors `x` or tuples `(x, ...)`.
     :param deepinv.physics.Physics physics: Forward operator used to generate the measurement data.
         It can be either a single operator or a list of forward operators. In the latter case, the dataset will be
         assigned evenly across operators.

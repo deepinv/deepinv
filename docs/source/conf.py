@@ -244,7 +244,9 @@ class MySortKey(_SortKey):
     """
 
     def __call__(self, filename):
-        section, example = os.path.normpath(os.path.join(self.src_dir, filename)).split(os.sep)[-2:]
+        section, example = os.path.normpath(os.path.join(self.src_dir, filename)).split(
+            os.sep
+        )[-2:]
         if section in examples_order:
             try:
                 return examples_order[section].index(example)
