@@ -914,8 +914,10 @@ class Trainer:
                 wandb.log(log_dict_post_epoch, step=epoch)
 
             if self.mlflow_vis:
-                # There's no caption unlike for wandb.
-                mlflow.log_image(grid_image, key=post_str + " samples", step=epoch)
+                import warnings
+                warnings.warn(
+                    "Not implemented: mlflow does not support logging images yet."
+                )
 
         if save_images:
             # save images
