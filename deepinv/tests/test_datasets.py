@@ -208,7 +208,9 @@ def test_tensordataset():
     _ = TensorDataset(x=x, y=y, params=params)
     _ = TensorDataset(x=x, params=params)
     dataset = TensorDataset(y=y, params=params)
-    assert math.isnan(dataset[0][0])
+    assert math.isnan(
+        dataset[0][0]
+    ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
 
     with pytest.raises(ValueError):
         _ = TensorDataset()

@@ -1,4 +1,7 @@
+from typing import Union
+from torch import Tensor
 from deepinv.models import DRUNet
+from deepinv.models.base import Denoiser
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.optim.optimizers import create_iterator
@@ -37,7 +40,7 @@ class DPIR(BaseOptim):
 
     The DPIR method is described in :footcite:t:`zhang2021plug`.
 
-    :param float sigma: Standard deviation of the measurement noise, which controls the choice of the
+    :param float, torch.Tensor sigma: Standard deviation of the measurement noise, which controls the choice of the
         rest of the hyperparameters of the algorithm. Default is ``0.1``.
     :param deepinv.models.Denoiser denoiser: optional denoiser. If `None`, use a pretrained denoiser :class:`deepinv.models.DRUNet`.
     :param str, torch.device device: Device to run the algorithm, either "cpu" or "cuda". Default is "cuda".
@@ -45,7 +48,12 @@ class DPIR(BaseOptim):
 
     """
 
-    def __init__(self, sigma=0.1, denoiser=None, device="cuda"):
+    def __init__(
+        self,
+        sigma: Union[float, Tensor] = 0.1,
+        denoiser: Denoiser = None,
+        device="cuda",
+    ):
         prior = PnP(
             denoiser=(
                 DRUNet(pretrained="download", device=device)

@@ -108,7 +108,7 @@ class BaseOptim(Reconstructor):
 
     :param deepinv.optim.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-        e.g. the stepsize, regularisation parameter, denoising standard deviation.
+        e.g. the stepsize, regularization parameter, denoising standard deviation.
         Each value of the dictionary can be either Iterable (distinct value for each iteration) or
         a single float (same value for each iteration).
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
@@ -576,7 +576,7 @@ def optim_builder(
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularisation parameter, denoising standard deviation.
+                            e.g. the stepsize, regularization parameter, denoising standard deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration). See :any:`optim-params` for more details.
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.

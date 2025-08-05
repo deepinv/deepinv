@@ -962,7 +962,13 @@ class GaussianMixtureModel(nn.Module):
         :param bool verbose: Output progress information in the console
         """
         if data_init:
-            first_data = next(iter(dataloader))[: self.n_components].to(self.mu)
+            first_data = next(iter(dataloader))
+
+            if isinstance(first_data, (tuple, list)):
+                first_data = first_data[0]
+
+            first_data = first_data[: self.n_components].to(self.mu)
+
             if first_data.shape[0] == self.n_components:
                 self.mu.copy_(first_data)
             else:
