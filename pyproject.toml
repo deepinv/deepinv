@@ -103,7 +103,8 @@ dataset = [
 
 # optional dependencies for training
 training = [
-    "wandb"
+    "wandb",
+    "mlflow",
 ]
 
 
