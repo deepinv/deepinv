@@ -16,6 +16,7 @@ from deepinv.physics.functional import (
     conv_transpose3d_fft,
     imresize_matlab,
 )
+import numpy as np
 
 
 class Downsampling(LinearPhysics):
@@ -359,6 +360,52 @@ class Blur(LinearPhysics):
         elif y.dim() == 5:
             return conv_transpose3d_fft(y, filter=self.filter, padding=self.padding)
 
+    def downsample_measurement(self, y, coarse_physics):
+        r"""
+        Downsamples the measurement by directly using the downsampling operator.
+        This is possible since the range of blur is part of the signal space.
+
+        :param torch.Tensor y: measurement to be downsampled.
+        :param deepinv.physics.Physics coarse_physics: physics to use in the coarse space.
+        :return: torch.Tensor downsampled measurement.
+        """
+        return self.downsample_signal(y)
+
+    def to_coarse(self):
+        r"""
+        Applies the downsampling operator on the blur filter, defining the coarse blur filter.
+
+        :return: deepinv.physics.Blur: coarse blur physics.
+        """
+        ds = self.get_downsampling_operator()
+        filt = coarse_blur_filter(self.filter, ds.filter)
+        return Blur(filter=filt, padding=self.padding, device=self.filter.device)
+
+
+def coarse_blur_filter(fine_filter, downsampling_filter):
+    in_filt = fine_filter
+
+    # ensure filter is at least 3x3
+    if in_filt.shape[-2] <= 3:
+        in_filt = torch.nn.functional.pad(in_filt, (0, 0, 1, 1))
+    if in_filt.shape[-1] <= 3:
+        in_filt = torch.nn.functional.pad(in_filt, (1, 1, 0, 0))
+
+    # left, right, top, bottom padding to perform valid convolution
+    df_shape = downsampling_filter.shape
+    pad_size = (df_shape[-2] // 2,) * 2 + (df_shape[-1] // 2,) * 2
+    pf = torch.nn.functional.pad(in_filt, pad_size)
+
+    # downsample the blur filter
+    df_groups = downsampling_filter.repeat([pf.shape[1]] + [1] * (len(pf.shape) - 1))
+    coarse_filter = torch.nn.functional.conv2d(
+        pf, df_groups, groups=pf.shape[1], padding="valid"
+    )
+    coarse_filter = coarse_filter[:, :, ::2, ::2]
+    coarse_filter = coarse_filter / torch.sum(coarse_filter) * torch.sum(in_filt)
+
+    return coarse_filter
+
 
 class BlurFFT(DecomposablePhysics):
     """
@@ -459,6 +506,19 @@ class BlurFFT(DecomposablePhysics):
             self.register_buffer("mask", mask)
 
         super().update_parameters(**kwargs)
+
+    def to_coarse(self):
+        r"""
+        Applies the downsampling operator on the blur filter, defining the coarse blur filter.
+
+        :return: deepinv.physics.Blur: coarse blur physics.
+        """
+        ds = self.get_downsampling_operator()
+        filt = coarse_blur_filter(self.filter, ds.filter)
+        fine_shape = self.img_size
+        coarse_shape = [int(np.ceil(s / ds.factor)) for s in fine_shape]
+        coarse_shape[0] = fine_shape[0]  # keep the same nb of channels
+        return BlurFFT(filter=filt, img_size=coarse_shape, device=self.filter.device)
 
 
 class SpaceVaryingBlur(LinearPhysics):
