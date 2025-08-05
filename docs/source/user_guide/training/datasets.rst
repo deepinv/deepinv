@@ -28,8 +28,8 @@ or any combination of these, in one of the following ways:
 
   If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-All datasets shoud inherit from :class:`deepinv.datasets.ImageDataset`. To check that a dataset is compatible (e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`)
-use the function :func:`deepinv.datasets.check_dataset`.
+If you have your own dataset (e.g. a PyTorch `Dataset`), check that it is compatible using the function :func:`deepinv.datasets.check_dataset` 
+(e.g. to be used with :class:`deepinv.Trainer` or :class:`deepinv.test`).
 
 .. seealso::
 
@@ -43,7 +43,7 @@ We provide dataset classes for you to easily load in your own data:
    * - **Dataset**
      - **Description**
    * - :class:`deepinv.datasets.ImageDataset`
-     - Base dataset class that performs checks on returned data
+     - Base abstract dataset class
    * - :class:`deepinv.datasets.ImageFolder`
      - Dataset that loads images (ground-truth, measurements or both) from a folder
    * - :class:`deepinv.datasets.TensorDataset`
@@ -116,6 +116,7 @@ Predefined Datasets
 Multiple popular easy-to-download datasets are available, which all either return
 ground-truth only `x`, paired data `(x, y)` or with params (e.g. mask) `(x, y, params)`.
 
+All these datasets inherit from :class:`deepinv.datasets.ImageDataset`. 
 
 .. list-table:: Datasets Overview
    :header-rows: 1
