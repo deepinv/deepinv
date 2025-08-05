@@ -191,7 +191,7 @@ class RAM(Reconstructor, Denoiser):
 
         if self.separate_head and img_channels not in self.in_channels:
             raise ValueError(
-                f"Input image has {img_channels} channels, but the network only have heads for {self.in_channels} channels."
+                f"Input image has {img_channels} channels, but the network only has heads for {self.in_channels} channels."
             )
 
         if y is not None:
@@ -254,6 +254,46 @@ class RAM(Reconstructor, Denoiser):
         rescale_val = 1.0 if max_val > 5 * self.sigma_threshold else max_val
         y = y / rescale_val
 
+        sigma, gain = self.obtain_sigma_gain(
+            physics=physics, y=y, sigma=sigma, gain=gain, rescale_val=rescale_val
+        )
+
+        pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
+        physics = PhysicsCropper(physics, pad)
+
+        x_in = physics.A_adjoint(y)
+
+        sigma = torch.maximum(
+            sigma, torch.tensor(self.sigma_threshold, device=x_in.device)
+        )
+        sigma = self._handle_sigma(sigma)
+
+        gain = torch.maximum(
+            gain, torch.tensor(self.gain_threshold, device=x_in.device)
+        )
+        gain = self._handle_sigma(gain)
+
+        out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
+
+        out = physics.remove_pad(out) * rescale_val
+
+        return out
+
+    def obtain_sigma_gain(
+        self, physics=None, y=None, sigma=None, gain=None, rescale_val=1.0
+    ):
+        r"""
+        Defines the sigma and gain values to be used in the model.
+
+        If a noise model is specified in the physics, the sigma and gain values will be taken from the noise model.
+        Else, the sigma and gain values will be set to the thresholds defined in the model (if not provided).
+
+        :param deepinv.physics.Physics physics: Physics model
+        :param torch.Tensor y: Measurements
+        :param float, torch.Tensor sigma: Gaussian noise level. If None, will be set to the threshold.
+        :param float, torch.Tensor gain: Poisson noise level. If None, will be set to the threshold.
+        :param float rescale_val: Rescale value to apply to the sigma and gain values.
+        """
         if hasattr(physics, "noise_model"):
             if sigma is not None or gain is not None:
                 warn(
@@ -279,39 +319,12 @@ class RAM(Reconstructor, Denoiser):
             gain = self.gain_threshold if gain is None else gain
             sigma = self.sigma_threshold if sigma is None else sigma
 
-        pad = (-x_temp.size(-2) % 8, -x_temp.size(-1) % 8)
-        physics = PhysicsCropper(physics, pad)
+        if not isinstance(sigma, torch.Tensor) and not isinstance(sigma, TensorList):
+            sigma = torch.tensor(sigma, device=y.device)
+        if not isinstance(gain, torch.Tensor) and not isinstance(gain, TensorList):
+            gain = torch.tensor(gain, device=y.device)
 
-        x_in = physics.A_adjoint(y)
-
-        sigma = self.threshold_snr(x_temp, sigma, threshold=self.sigma_threshold)
-        sigma = self._handle_sigma(sigma)
-
-        gain = self.threshold_snr(x_temp, gain, threshold=self.gain_threshold)
-        gain = self._handle_sigma(gain)
-
-        out = self.forward_unet(x_in, sigma=sigma, gain=gain, physics=physics, y=y)
-
-        out = physics.remove_pad(out) * rescale_val
-
-        return out
-
-    def threshold_snr(self, Aty, val, threshold=1e-2, eps=1e-6) -> torch.Tensor:
-        r"""
-        Performs the operation
-
-        .. math::
-            \text{threshold\_snr}(x) = \max(\frac{\text{val}}{\|A^\top y\|/\sqrt{m} + \epsilon}, \text{threshold}) * \|A^\top y\|/\sqrt{m}
-
-        :param torch.Tensor Aty: :math:`A^\top y`
-        :param float val: noise level to threshold
-        :param float threshold: threshold to use
-        :param float eps: small epsilon value.
-        """
-        # Assuming that range is in (0, 1)
-        num = torch.tensor(1.0, device=Aty.device)
-        val_threshold = torch.maximum(val / (num + eps), torch.tensor(threshold)) * num
-        return val_threshold
+        return sigma, gain
 
 
 class BaseEncBlock(nn.Module):
