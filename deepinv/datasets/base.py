@@ -123,7 +123,7 @@ class ImageDataset(Dataset):
 
         If you have a dataset of measurements only `(y)` or `(y, params)` you should modify it such that it returns `(torch.nan, y)` or `(torch.nan, y, params)`
 
-    Datasets should generally return :class:`torch.Tensor` or :class:`deepinv.utils.TensorList` so that they are batchable and can be used with `deepinv`.
+    Datasets should ideally return :class:`torch.Tensor` or :class:`deepinv.utils.TensorList` so that they are batchable and can be used with `deepinv`.
 
     If using DeepInverse with your own custom dataset, you should inherit from this class and use :func:`check_dataset` to check your dataset is compatible.
     """
@@ -373,5 +373,12 @@ class ImageFolder(ImageDataset):
 
         params = self.estimate_params(x, y) if self.estimate_params is not None else {}
 
-        out = (x,) + (() if y is None else (y,)) + (() if not params else (params,))
+        out = (x,)
+
+        if y is not None:
+            out += (y,)
+
+        if params:
+            out += (params,)
+
         return out[0] if len(out) == 1 else out
