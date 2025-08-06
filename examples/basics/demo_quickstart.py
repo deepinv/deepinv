@@ -54,7 +54,7 @@ print(x.shape)
 # measurements `y` from `x`.
 #
 
-physics = dinv.physics.Inpainting(x.shape[1:], mask=0.3)
+physics = dinv.physics.Inpainting(x.shape[1:], mask=0.3, device=device)
 
 y = physics(x)
 

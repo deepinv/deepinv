@@ -135,7 +135,7 @@ model = dinv.models.RAM(pretrained=True, device=device)
 #    If you're loading measurements which have randomly varying `params`, your dataset must
 #    return tuples `(x, y, params)` so that the physics is modified accordingly every image.
 
-params = {"mask": (dataset2[0][1] != 0).float()}
+params = {"mask": (dataset2[0][1].to(device) != 0).float()}
 physics.update(**params)
 
 dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
