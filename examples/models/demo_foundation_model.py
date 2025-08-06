@@ -94,7 +94,7 @@ dinv.utils.plot(
 # %%
 # Tomography
 # ~~~~~~~~~~
-# Computed Tomography with limited angles and log-Poisson noise,
+# Computed Tomography with limited angles
 # using data from the `The Cancer Imaging Archive <https://link.springer.com/article/10.1007/s10278-013-9622-7>`_ of lungs:
 #
 
@@ -103,7 +103,6 @@ x = dinv.utils.load_example("CT100_256x256_0.pt")
 physics = dinv.physics.Tomography(
     img_width=256,
     angles=10,
-    # noise_model=dinv.physics.LogPoissonNoise(mu=1 / 50.0 * 362.0 / 256),
     normalize=True,
 )
 
