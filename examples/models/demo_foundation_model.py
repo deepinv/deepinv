@@ -255,3 +255,8 @@ dinv.utils.plot(
     },
     figsize=(8, 3),
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::
