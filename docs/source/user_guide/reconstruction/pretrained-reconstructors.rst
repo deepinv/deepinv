@@ -44,7 +44,7 @@ These models can be set-up in one line and perform inference in another line:
 
 .. tip::
 
-  If you want to fine-tune these models on your own measurements (without or with ground truth) or physics, check out :ref:`sphx_glr_auto_examples_models_demo_finetuning.py`.
+  If you want to fine-tune these models on your own measurements (without or with ground truth) or physics, check out :ref:`sphx_glr_auto_examples_models_demo_foundation_model.py`.
 
 .. seealso::
 

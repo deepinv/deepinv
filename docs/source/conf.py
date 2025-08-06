@@ -224,7 +224,7 @@ examples_order = {
         "demo_custom_physics.py",
     ],
     "models": [
-        "demo_finetuning.py",
+        "demo_foundation_model.py",
         "demo_training.py",
         "demo_denoiser_tour.py",
     ],

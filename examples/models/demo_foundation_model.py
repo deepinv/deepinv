@@ -5,9 +5,8 @@ Inference and fine-tune Reconstruct Anything Model (RAM) foundation model
 This example shows how to perform inference on and fine-tune the RAM foundation model to solve inverse problems.
 
 :class:`RAM <deepinv.models.RAM>` :footcite:t:`terris2025reconstruct` is a model that has been trained to work on a large
-variety of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.).
-
-See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics.
+variety of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.)
+and is robust to a wide variety of imaging domains.
 
 .. tip::
 
@@ -16,79 +15,141 @@ See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examp
 
 """
 
-# %%
-# 1. Zero-shot inference
-# ----------------------
-#
-# First, let's evaluate the zero-shot inference performance of the foundation model.
-# Here we use an example of inpainting removing 70% of pixels with 5% Gaussian noise:
-
-import torch
 import deepinv as dinv
+import torch
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 model = dinv.models.RAM(device=device, pretrained=True)
 
-# Load demo image and crop for demo speed (comment this out in practice)
-x = dinv.utils.load_example("butterfly.png", img_size=(127, 129)).to(device)
+# %%
+# 1. Zero-shot inference
+# ----------------------
+#
+# First, let's evaluate the zero-shot inference performance of the foundation model.
+#
+# Accelerated medical imaging
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#
+# Here, we demonstrated reconstructing brain MRI from an accelerated noisy MRI scan from `FastMRI <https://fastmri.med.nyu.edu/>`_:
 
-# Define forward operator
-physics = dinv.physics.Inpainting(
-    img_size=x.shape[1:],
-    mask=0.3,
-    noise_model=dinv.physics.GaussianNoise(0.05),
-    device=device,
-)
+x = dinv.utils.load_example("demo_mini_subset_fastmri_brain_0.pt").to(device)
+
+# Define physics
+physics = dinv.physics.MRI(noise_model=dinv.physics.GaussianNoise(0.05))
+
+physics_generator = dinv.physics.generator.GaussianMaskGenerator((320, 320))
 
 # Generate measurement
-y = physics(x)
+y = physics(x, **physics_generator.step())
 
-# Run inference
+# Perform inference
 with torch.no_grad():
-    x_hat = model(y, physics=physics)
+    x_hat = model(y, physics)
+    x_lin = physics.A_adjoint(y)
 
-# Show results
 psnr = dinv.metric.PSNR()
+
 dinv.utils.plot(
     {
-        "Original": x,
-        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    },
-    figsize=(8, 3),
+        "Ground truth": x,
+        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
+        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+    }
 )
 
 # %%
-# .. seealso::#
-#     The RAM foundation model shows impressive results across various domains.
-#     See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics.
+# Computational photography
+# ~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# This model was also trained on various denoising problems, in particular on Poisson-Gaussian denoising.
+# Joint random motion deblurring and denoising, using data from color BSD:
 
-sigma, gain = 0.2, 0.5
-physics = dinv.physics.Denoising(
-    noise_model=dinv.physics.PoissonGaussianNoise(sigma=sigma, gain=gain),
+x = dinv.utils.load_example("CBSD_0010.png", img_size=(200, 200))
+
+physics = dinv.physics.BlurFFT(
+    img_size=x.shape[1:], noise_model=dinv.physics.GaussianNoise(sigma=0.05)
 )
 
-# Generate measurement
-y = physics(x)
+# fmt: off
+physics_generator = ( 
+    dinv.physics.generator.MotionBlurGenerator((31, 31), l=2.0, sigma=2.4) +
+    dinv.physics.generator.SigmaGenerator(sigma_min=0.001, sigma_max=0.2)
+)
+# fmt: on
 
-# Run inference
+y = physics(x, **physics_generator.step())
+
 with torch.no_grad():
     x_hat = model(y, physics)
-    # or alternatively, we can use the model without physics:
-    # x_hat = model(y, sigma=sigma, gain=gain)
+    x_lin = physics.A_adjoint(y)
 
-# Show results
 dinv.utils.plot(
     {
-        "Original": x,
-        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    },
-    figsize=(8, 3),
+        "Ground truth": x,
+        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
+        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+    }
 )
+
+# %%
+# Tomography
+# ~~~~~~~~~~
+# Computed Tomography with limited angles and log-Poisson noise,
+# using data from the `The Cancer Imaging Archive <https://link.springer.com/article/10.1007/s10278-013-9622-7>`_ of lungs:
+#
+
+x = dinv.utils.load_example("CT100_256x256_0.pt")
+
+physics = dinv.physics.Tomography(
+    img_width=256,
+    angles=10,
+    # noise_model=dinv.physics.LogPoissonNoise(mu=1 / 50.0 * 362.0 / 256),
+    normalize=True,
+)
+
+y = physics(x)
+
+with torch.no_grad():
+    x_hat = model(y, physics)
+    x_lin = physics.A_dagger(y)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        f"FBP pseudo-inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
+        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+    }
+)
+
+# %%
+# Remote sensing
+# ~~~~~~~~~~~~~~
+# Satellite denoising with Poisson-Gaussian noise using urban data from the `WorldView-3 satellite <https://earth.esa.int/eogateway/missions/worldview-3>`_
+# over Jacksonville:
+#
+
+x = dinv.utils.load_example("JAX_018_011_RGB.tif")[..., :300, :300]
+
+physics = dinv.physics.Denoising(
+    noise_model=dinv.physics.PoissonGaussianNoise(sigma=0.1, gain=0.1)
+)
+
+y = physics(x)
+
+with torch.no_grad():
+    x_hat = model(y, physics)
+    # Alternatively, use the model without physics:
+    # x_hat = model(y, sigma=0.1, gain=0.1)
+    x_lin = physics.A_adjoint(y)
+
+dinv.utils.plot(
+    {
+        "Ground truth": x,
+        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
+        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+    }
+)
+
 
 # %%
 # 2. Fine-tuning
@@ -96,6 +157,8 @@ dinv.utils.plot(
 # As with all models, there may be a drop in performance when used zero-shot on problems or data outside those seen during training.
 #
 # For instance, RAM is not trained on image demosaicing:
+
+x = dinv.utils.load_example("butterfly.png", img_size=(127, 129))
 
 physics = dinv.physics.Demosaicing(
     img_size=x.shape[1:], noise_model=dinv.physics.PoissonNoise(0.1), device=device

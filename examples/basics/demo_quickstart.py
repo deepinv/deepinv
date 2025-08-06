@@ -253,7 +253,7 @@ dinv.test(model, torch.utils.data.DataLoader(dataset), physics, plot_images=True
 # What's next?
 # ~~~~~~~~~~~~
 #
-# -  Try basic examples, including
+# -  Try more basic examples, including
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
 #    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
 #    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
