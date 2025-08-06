@@ -18,6 +18,7 @@ New Features
 
 Changed
 ^^^^^^^
+- Rename the normalizing function `deepinv.utils.rescale_img` to `normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
 - Changed default linear solver from `CG` to `lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in `PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
 
@@ -27,6 +28,7 @@ Fixed
 - Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 - Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
+- Clamp constant signals in `deepinv.utils.rescale_img` to ensure they are normalized (:gh:`641` by `Jérémy Scanvic`_)
 - Fix ZeroNoise default missing in Physics (:gh:`658` by `Julian Tachella`_)
 
 v0.3.2
@@ -50,7 +52,7 @@ Fixed
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 - Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
 - Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)
-- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)
+- Batching WaveletPrior and fix iwt (:gh:`530` by `Minh Hai Nguyen`_)
 - Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (:gh:`570` by `Fedor Goncharov`_)
 
 
