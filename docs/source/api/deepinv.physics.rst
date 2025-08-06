@@ -18,6 +18,9 @@ Base Classes
    deepinv.physics.DecomposablePhysics
    deepinv.physics.StackedPhysics
    deepinv.physics.StackedLinearPhysics
+   deepinv.physics.PhysicsMultiScaler
+   deepinv.physics.LinearPhysicsMultiScaler
+   deepinv.physics.PhysicsCropper
    deepinv.physics.NoiseModel
 
 Operators
@@ -37,6 +40,8 @@ Operators
    deepinv.physics.BlurFFT
    deepinv.physics.SpaceVaryingBlur
    deepinv.physics.Downsampling
+   deepinv.physics.Upsampling
+   deepinv.physics.DownsamplingMatlab
    deepinv.physics.MRI
    deepinv.physics.MRIMixin
    deepinv.physics.TimeMixin
@@ -156,6 +161,7 @@ Functional
    deepinv.physics.functional.histogramdd
    deepinv.physics.functional.histogram
    deepinv.physics.functional.dst1
+   deepinv.physics.functional.imresize_matlab
 
 
 .. autosummary::

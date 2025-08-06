@@ -9,7 +9,12 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+
 - Automatic A_adjoint, U_adjoint and V computation for user-defined physics (:gh:`658` by `Julian Tachella`_)
+- Add RAM model (:gh:`524` by `Matthieu Terris`_)
+- FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
+- SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
+- New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^
@@ -18,6 +23,8 @@ Changed
 
 Fixed
 ^^^^^
+
+- Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
 - Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
 - Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
 - Fix ZeroNoise default missing in Physics (:gh:`658` by `Julian Tachella`_)
@@ -42,9 +49,11 @@ Fixed
 - Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
 - Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
 - Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
-- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)  
-- Batching WaveletPrior and fix iwt (:gh:`530` by `Minh Hai Nguyen`_)
+- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)
+- Batching WaveletPrior and fix iwt(:gh:`530` by `Minh Hai Nguyen`_)
 - Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (:gh:`570` by `Fedor Goncharov`_)
+
+
 
 v0.3.1
 ----------------
