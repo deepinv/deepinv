@@ -150,7 +150,7 @@ class LsdirHR(ImageFolder):
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
         # Initialise ImageFolder
-        super().__init__(self.root, x_glob="**/*.png", transform=transform)
+        super().__init__(self.root, x_path="**/*.png", transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

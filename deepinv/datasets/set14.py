@@ -103,7 +103,7 @@ class Set14HR(ImageFolder):
                 )
 
         # Initialise ImageFolder
-        super().__init__(self.img_dir, x_glob="*HR.png", transform=transform)
+        super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

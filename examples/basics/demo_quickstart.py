@@ -50,32 +50,56 @@ print(x.shape)
 # measurements `y` from `x`.
 #
 
-physics = dinv.physics.Inpainting(x.shape[1:], mask=0.8)
+physics = dinv.physics.Inpainting(x.shape[1:], mask=0.3)
 
 y = physics(x)
 
 
 # %%
 # DeepInverse implements
-# :ref:`many different types of physics <physics>` and noise
-# models across various imaging modalities.
-#
-# Many physics also take
-# :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.
-# You can easily use your own params by passing these into the `physics`,
-# or you can use a `generator`` to :ref:`generate random params <physics_generators>`.
+# :ref:`many different types of physics <physics>` across various imaging modalities.
+# Physics also possess noise models such as Gaussian or Poisson noise.
 #
 
-# Blur with Gaussian filter parameter
-physics = dinv.physics.Blur(filter=dinv.physics.blur.gaussian_blur())
-
-# Inpainting with noise model
-physics = dinv.physics.Inpainting(
-    x.shape[1:], mask=0.8, noise_model=dinv.physics.GaussianNoise(0.1)
-)
+physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
 y = physics(x)
 
+dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
+
+
+# %%
+# Many physics also take
+# :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.
+# You can easily use your own params by passing these into the `physics`,
+# or you can use a `generator` to :ref:`generate random params <physics_generators>`.
+#
+
+# Blur with Gaussian filter parameter
+physics = dinv.physics.BlurFFT(
+    x.shape[1:], filter=dinv.physics.blur.gaussian_blur((5, 5))
+)
+
+# Blur kernel random generator
+physics_generator = dinv.physics.generator.MotionBlurGenerator(
+    psf_size=(31, 31), l=2, sigma=1.0, num_channels=3
+)
+
+# Generate a dict of random params {"filter": ...}
+params = physics_generator.step()
+
+# Update physics
+physics.update(**params)
+
+y = physics(x)
+
+# Generate new random params
+params = physics_generator.step()
+
+# You can also directly update physics during forward call
+y2 = physics(x, **params)
+
+dinv.utils.plot({"GT": x, "Blurred": y, "Blurred 2": y2})
 
 # %%
 # Physics are powerful objects and :ref:`have many methods <physics_intro>`, for example a
@@ -83,6 +107,17 @@ y = physics(x)
 #
 
 x_pinv = physics.A_dagger(y)
+
+# %%
+# The pseudo-inverse fails in the presence of noise:
+
+physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
+
+y = physics(x)
+
+x_pinv_noise = physics.A_dagger(y)
+
+dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_noise})
 
 
 # %%
@@ -106,14 +141,25 @@ x_pinv = physics.A_dagger(y)
 
 model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
-x_net = model(y, physics)
+x_hat = model(y, physics)
 
 # %%
 # Plot the image `x`, the measurement `y` and the reconstructed image
-# `x_net`:
+# `x_hat` and compute :ref:`metrics <metric>`:
 #
 
-dinv.utils.plot({"x": x, "y": y, "x_net": x_net})
+metric = dinv.metric.PSNR()
+
+psnr_y = metric(y, x).item()
+psnr_x_hat = metric(x_hat, x).item()
+
+dinv.utils.plot(
+    {
+        f"Measurement {psnr_y:.2f} dB": y,
+        f"Reconstruction {psnr_x_hat:.2f} dB": x_hat,
+        "GT": x,
+    }
+)
 
 # %%
 # Some models are only :ref:`denoisers <denoisers>` that **denoise**
@@ -126,6 +172,12 @@ denoiser = dinv.models.DRUNet()
 x_denoised = denoiser(y, sigma=0.1)
 
 model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
+
+x_hat = model(y, physics)
+
+dinv.utils.plot(
+    {"Measurement": y, "Denoised": x_denoised, "Reconstructed": x_hat, "GT": x}
+)
 
 # %%
 # DeepInverse covers
@@ -151,7 +203,7 @@ model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 # You can use DeepInverse with :ref:`dataset <datasets>`, for testing or training. First,
 # define a ground-truth dataset. We implement wrappers for
 # :ref:`many popular imaging datasets <datasets>` across domains including natural images,
-# medical imaging, satellite imaging etc.
+# medical imaging, satellite imaging, etc.
 #
 # .. tip::
 #     It's easy to use your own dataset with DeepInverse. See :ref:`sphx_glr_auto_examples_basics_demo_custom_dataset.py` for a tutorial.
@@ -172,15 +224,15 @@ physics = dinv.physics.MRI()
 
 physics_generator = dinv.physics.generator.RandomMaskGenerator((320, 320))
 
-pth = dinv.datasets.generate_dataset(
+path = dinv.datasets.generate_dataset(
     dataset, physics, save_dir="data", physics_generator=physics_generator
 )
 
-dataset = dinv.datasets.HDF5Dataset(pth, load_physics_generator_params=True)
+dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
 
 
 # %%
-# You can use this dataset to test or train a model:
+# You can use this dataset to :ref:`test or train <trainer>` a model:
 #
 
 import torch
@@ -203,9 +255,9 @@ dinv.test(model, torch.utils.data.DataLoader(dataset), physics, plot_images=True
 #
 # -  Try basic examples, including
 #    :ref:`how to inference a pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>`,
-#    :ref:`how to use DeepInverse with your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
-#    :ref:`how to use DeepInverse with your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
-# -  Dive deeper into our full library of examples
+#    :ref:`how to use your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`, or
+#    :ref:`how to use your custom physics operator <sphx_glr_auto_examples_basics_demo_custom_physics.py>`.
+# -  Dive deeper into our full library of examples.
 # -  Read the :ref:`User Guide <user_guide>` for further details on the
 #    concepts introduced here.
 # -  Want help?

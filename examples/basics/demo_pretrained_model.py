@@ -26,14 +26,16 @@ import torch
 # One-line reconstruction
 # ~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Let's say you want to reconstruct a butterfly from noisy, partial measurements:
+# Let's say you want to reconstruct a butterfly from noisy, blurry measurements:
 
 # Ground truth
 x = dinv.utils.load_example("butterfly.png")
 
 # Define physics
-physics = dinv.physics.Inpainting(
-    x.shape[1:], mask=0.5, noise_model=dinv.physics.GaussianNoise(0.1)
+physics = dinv.physics.BlurFFT(
+    x.shape[1:],
+    filter=dinv.physics.blur.gaussian_blur((5, 5)),
+    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
 )
 
 y = physics(x)
@@ -52,7 +54,7 @@ x_hat1 = model(y, physics)
 # .. seealso::
 #     See :ref:`pretrained denoisers <pretrained-weights>` for a full list of denoisers that can be plugged into iterative/sampling algorithms.
 
-denoiser = dinv.models.DRUNet(pretrained="download")
+denoiser = dinv.models.DRUNet()
 model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device="cpu")
 
 x_hat2 = model(y, physics)
@@ -63,7 +65,12 @@ x_hat2 = model(y, physics)
 model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 10))
 
 y = y[..., :64, :64]
-physics.update(mask=physics.mask[..., :64, :64])
+
+physics = dinv.physics.BlurFFT(
+    y.shape[1:],
+    filter=dinv.physics.blur.gaussian_blur((5, 5)),
+    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+)
 
 x_hat3 = model(y, physics)
 
@@ -79,19 +86,17 @@ dinv.utils.plot(
 )
 
 # %%
-# Reconstruct Anything
-# ~~~~~~~~~~~~~~~~~~~~
+# Imaging in various domains
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 # These models, such as Reconstruct Anything Model, can be used on various problems involving different physics and data.
 
 model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
 
 # %%
-# Accelerated brain MRI, using a sample image from `FastMRI <https://fastmri.med.nyu.edu/>`:
+# Accelerated brain MRI, using a sample image from `FastMRI <https://fastmri.med.nyu.edu/>`_:
 
-x = dinv.datasets.SimpleFastMRISliceDataset("data", anatomy="brain", download=True)[
-    0
-].unsqueeze(0)
+x = dinv.utils.load_example("demo_mini_subset_fastmri_brain_0.pt")
 
 physics = dinv.physics.MRI()
 
@@ -138,11 +143,7 @@ dinv.utils.plot(
 # using data from the `The Cancer Imaging Archive <https://link.springer.com/article/10.1007/s10278-013-9622-7>`_ of lungs:
 #
 
-x = torch.tensor(
-    dinv.datasets.utils.loadmat(
-        dinv.utils.demo.load_url(dinv.utils.get_image_url("CT100_256x256.mat"))
-    )["DATA"]
-)[None, [0]].float()
+x = dinv.utils.load_example("CT100_256x256_0.pt")
 
 physics = dinv.physics.Tomography(
     img_width=256,

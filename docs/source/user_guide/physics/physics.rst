@@ -146,3 +146,24 @@ to **any** operator in the list above, by setting the
 
    * - :class:`deepinv.physics.ZeroNoise`
      - :math:`y = z`
+
+.. _mixin:
+
+Mixins
+~~~~~~
+
+The physics module maximises code reuse via inheritance. 
+We provide mixin classes to provide specialised methods for certain physics, models, datasets and losses,
+such as temporal or MRI functionality.
+
+.. list-table:: Mixins
+   :header-rows: 1
+
+   * - **Mixin**
+     - **Description**
+
+   * - :class:`deepinv.physics.MRIMixin`
+     - Utility methods for MRI physics.
+
+   * - :class:`deepinv.physics.TimeMixin`
+     - Methods for expanding and flattening time dimension for dynamic/video data.

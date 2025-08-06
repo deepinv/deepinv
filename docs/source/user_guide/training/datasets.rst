@@ -79,7 +79,7 @@ For example, here we generate a dataset of inpainting measurements from the :cla
     >>> physics = dinv.physics.Inpainting(img_size=(3, 128, 128), mask=0.8, noise_model=dinv.physics.GaussianNoise(sigma=.05))
     >>> 
     >>> # Generate paired dataset
-    >>> pth = dinv.datasets.generate_dataset(dataset, physics, save_dir=save_dir, verbose=False)
+    >>> path = dinv.datasets.generate_dataset(dataset, physics, save_dir=save_dir, verbose=False)
 
 The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to PyTorch's standard
 :class:`torch.utils.data.DataLoader`:
@@ -88,7 +88,7 @@ The datasets are saved in ``.h5`` (HDF5) format, and can be easily loaded to PyT
 
     >>> from torch.utils.data import DataLoader
     >>> 
-    >>> train_dataset = dinv.datasets.HDF5Dataset(pth)
+    >>> train_dataset = dinv.datasets.HDF5Dataset(path)
     >>> dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
     >>> x, y = next(iter(dataloader))
     >>> x.shape, y.shape
@@ -101,8 +101,8 @@ and save and load the physics `params` into the dataset:
 .. doctest::
 
     >>> physics_generator = dinv.physics.generator.SigmaGenerator()
-    >>> pth = dinv.datasets.generate_dataset(dataset, physics, physics_generator=physics_generator, save_dir=save_dir, verbose=False)
-    >>> train_dataset = dinv.datasets.HDF5Dataset(pth, load_physics_generator_params=True)
+    >>> path = dinv.datasets.generate_dataset(dataset, physics, physics_generator=physics_generator, save_dir=save_dir, verbose=False)
+    >>> train_dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
     >>> dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
     >>> x, y, params = next(iter(dataloader))
     >>> print(params['sigma'].shape)
@@ -127,85 +127,85 @@ All these datasets inherit from :class:`deepinv.datasets.ImageDataset`.
      - **Tensor Sizes**
      - **Description**
 
-   * - :class:`deepinv.datasets.DIV2K`
+   * - :class:`DIV2K <deepinv.datasets.DIV2K>`
      - `x`
      - 800 (train) + 100 (val) images
      - RGB, up to 2040x2040 pixels (variable)
      - A widely-used dataset for natural image restoration.
 
-   * - :class:`deepinv.datasets.Urban100HR`
+   * - :class:`Urban100HR <deepinv.datasets.Urban100HR>`
      - `x`
      - 100 images
      - up to 1200x1280 pixels (variable)
      - Contains diverse high-resolution urban scenes, typically used for testing super-resolution algorithms.
 
-   * - :class:`deepinv.datasets.Set14HR`
+   * - :class:`Set14HR <deepinv.datasets.Set14HR>`
      - `x`
      - 14 high-resolution images
      - RGB, 248×248 to 512×768 pixels.
      - A small benchmark dataset for super-resolution tasks, containing a variety of natural images.
 
-   * - :class:`deepinv.datasets.CBSD68`
+   * - :class:`CBSD68 <deepinv.datasets.CBSD68>`
      - `x`
      - 68 images
      - RGB, 481x321 pixels
-     - A subset of the Berkeley Segmentation Dataset.
+     - A subset of the color Berkeley Segmentation Dataset.
 
-   * - :class:`deepinv.datasets.FastMRISliceDataset`
+   * - :class:`FastMRISliceDataset <deepinv.datasets.FastMRISliceDataset>`
      - `(x, y)` or `(x, y, {'mask': mask, 'coil_maps': coil_maps})`
      - Over 100,000 MRI slices
      - Complex, varying shape approx. 640x320
      - Raw MRI knee and brain fully-sampled or undersampled k-space data and optional RSS targets from the FastMRI dataset.
 
-   * - :class:`deepinv.datasets.SimpleFastMRISliceDataset`
+   * - :class:`SimpleFastMRISliceDataset <deepinv.datasets.SimpleFastMRISliceDataset>`
      - `x`
      - 973 (knee) and 455 (brain) images
      - 320x320 fully-sampled reconstructed slices
      - Easy-to-use in-memory prepared subset of 2D slices from the full FastMRI slice dataset for knees and brains, padded to standard size.
 
-   * - :class:`deepinv.datasets.CMRxReconSliceDataset`
+   * - :class:`CMRxReconSliceDataset <deepinv.datasets.CMRxReconSliceDataset>`
      - `(x, y)` or `(x, y, {'mask': mask})`
      - 300 patients, each with 8-13 slices
      - Padded to 512x256x12 time steps
      - Dynamic MRI sequences of cardiac cine from short axis (5-10 slices) and long axis (3 views) split by patient, from the CMRxRecon challenge.
 
-   * - :class:`deepinv.datasets.SKMTEASliceDataset`
+   * - :class:`SKMTEASliceDataset <deepinv.datasets.SKMTEASliceDataset>`
      - `(x, y, {'mask': mask, 'coil_maps': coil_maps})`
      - 25,000 slices from 155 patients
      - Complex double-echo with 8 coils of shape 512x160.
      - Raw MRI knee multicoil undersampled k-space data and fully-sampled ground truth from the Stanford SKM-TEA dataset, with precomputed Poisson disc masks from 4x to 16x acceleration, and pre-estimated coil maps.
 
-   * - :class:`deepinv.datasets.LidcIdriSliceDataset`
+   * - :class:`LidcIdriSliceDataset <deepinv.datasets.LidcIdriSliceDataset>`
      - `x`
      - Over 200,000 CT scan slices
      - Slices 512x512 voxels
      - A comprehensive dataset of lung CT scans with annotations, used for medical image processing and lung cancer detection research.
 
-   * - :class:`deepinv.datasets.Flickr2kHR`
+   * - :class:`Flickr2kHR <deepinv.datasets.Flickr2kHR>`
      - `x`
      - 2,650 images
      - RGB, up to 2000x2000 pixels (variable)
      - A dataset from Flickr containing high-resolution images for tasks like super-resolution and image restoration.
 
-   * - :class:`deepinv.datasets.LsdirHR`
+   * - :class:`LsdirHR <deepinv.datasets.LsdirHR>`
      - `x`
      - 84499 (train) + 1000 (val) images
      - RGB, up to 2160x2160 pixels (variable)
      - A dataset with high-resolution images, often used for training large reconstruction models.
 
-   * - :class:`deepinv.datasets.FMD`
+   * - :class:`FMD <deepinv.datasets.FMD>`
      - `x`
      - 12000 images
      - 512x512 pixels
      - The Fluorescence Microscopy Dataset (FMD) is a dataset of real fluorescence microscopy images.
 
-   * - :class:`deepinv.datasets.Kohler`
+   * - :class:`Kohler <deepinv.datasets.Kohler>`
      - `(x, y)`
      - 48 blurry + 9547 sharp images
      - 800x800 RGB
      - A blind-deblurring dataset consists of blurry shots and sharp frames, each blurry shot being associated with about 200 sharp frames.
 
-   * - :class:`deepinv.datasets.NBUDataset`
+   * - :class:`NBUDataset <deepinv.datasets.NBUDataset>`
      - `x` Tensor or TensorList
      - 510 images across 6 satellites
      - Cx256x256 multispectral (C=4 or 8) and 1x1024x1024 panchromatic

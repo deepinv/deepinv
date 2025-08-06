@@ -232,19 +232,19 @@ class ImageFolder(ImageDataset):
 
     By default, the images are loaded from image files (png, jpg etc.) located in `root`.
 
-    For more flexibility, set `x_glob` or `y_glob` to load ground truth `x` and/or measurements `y` from specific file patterns.
+    For more flexibility, set `x_path` or `y_path` to load ground truth `x` and/or measurements `y` from specific file patterns.
 
     .. tip::
 
-        To load data from subfolders, use globs such as `x_glob = "GT/**/*.png", y_glob = "meas/**/*.png"`.
+        To load data from subfolders, use globs such as `x_path = "GT/**/*.png", y_path = "meas/**/*.png"`.
 
     .. tip::
 
-        Set `y_glob` only to load measurements following the file pattern. The measurement-only data will be returned as a tuple `(torch.nan, y)`.
+        Set `y_path` only to load measurements following the file pattern. The measurement-only data will be returned as a tuple `(torch.nan, y)`.
 
     :param str, pathlib.Path root: dataset root directory.
-    :param str, None x_glob: file glob pattern for ground truth data, defaults to None.
-    :param str, None y_glob: file glob pattern for measurement data, defaults to None.
+    :param str, None x_path: file glob pattern for ground truth data, defaults to None.
+    :param str, None y_path: file glob pattern for measurement data, defaults to None.
     :param Callable loader: optional function that takes filename string and loads file. If `None`, defaults to `PIL.Image.open`.
     :param Callable estimate_params: optional function that takes tensors `x,y` and returns dict of `params`. Advanced usage only.
     :param Callable, tuple transform: optional callable transform. If `tuple` or `list` of length 2, `x` is transformed with first transform and `y` with second.
@@ -283,8 +283,8 @@ class ImageFolder(ImageDataset):
 
         dataset = ImageFolder(
             root,
-            x_glob="GT/**/*.pt",
-            y_glob="meas/**/*.pt",
+            x_path="GT/**/*.pt",
+            y_path="meas/**/*.pt",
             loader=torch.load
         )
         dataset[0]
@@ -302,7 +302,7 @@ class ImageFolder(ImageDataset):
 
         dataset = ImageFolder(
             "data/",
-            y_glob="meas/*.png"
+            y_path="meas/*.png"
         )
         dataset[0]
         (torch.nan, tensor(...))  # Returns unpaired y
@@ -312,8 +312,8 @@ class ImageFolder(ImageDataset):
     def __init__(
         self,
         root: Union[str, Path],
-        x_glob: Optional[str] = None,
-        y_glob: Optional[str] = None,
+        x_path: Optional[str] = None,
+        y_path: Optional[str] = None,
         loader: Callable[[Union[str, Path]], Tensor] = None,
         estimate_params: Optional[Callable[[Tensor, Tensor], dict]] = None,
         transform: Optional[Union[Callable, tuple[Callable, Callable]]] = None,
@@ -323,11 +323,11 @@ class ImageFolder(ImageDataset):
         self.x_paths = None
         self.y_paths = None
 
-        if x_glob is not None:
-            self.x_paths = natsorted(self.root.glob(x_glob))
+        if x_path is not None:
+            self.x_paths = natsorted(self.root.glob(x_path))
 
-        if y_glob is not None:
-            self.y_paths = natsorted(self.root.glob(y_glob))
+        if y_path is not None:
+            self.y_paths = natsorted(self.root.glob(y_path))
 
         if (
             self.x_paths is not None

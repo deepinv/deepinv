@@ -34,6 +34,8 @@ class Trainer:
 
         See the :ref:`User Guide <trainer>` for more details and for how to adapt the trainer to your needs.
 
+        See :ref:`sphx_glr_auto_examples_models_demo_training.py` for a simple example of how to use the trainer.
+
     Training can be done by calling the :func:`deepinv.Trainer.train` method, whereas
     testing can be done by calling the :func:`deepinv.Trainer.test` method.
 

@@ -181,14 +181,14 @@ def test_hdfdataset(physgen):
     physics_generator = (
         None if physgen is None else BernoulliSplittingMaskGenerator(img_size, 0.5)
     )
-    pth = generate_dataset(
+    path = generate_dataset(
         dataset,
         physics,
         save_dir="temp",
         batch_size=1,
         physics_generator=physics_generator,
     )
-    dataset = HDF5Dataset(pth, load_physics_generator_params=True)
+    dataset = HDF5Dataset(path, load_physics_generator_params=True)
     check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
 
 
@@ -641,7 +641,7 @@ def test_load_nbu_dataset(download_nbu):
     # Test ImageFolder with globs
     dataset = ImageFolder(
         download_nbu,
-        x_glob="nbu/gaofen-1/MS_256/*.mat",
+        x_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: loadmat(f)["imgMS"],
     )
@@ -649,7 +649,7 @@ def test_load_nbu_dataset(download_nbu):
 
     dataset = ImageFolder(
         download_nbu,
-        y_glob="nbu/gaofen-1/MS_256/*.mat",
+        y_path="nbu/gaofen-1/MS_256/*.mat",
         transform=ToTensor(),
         loader=lambda f: loadmat(f)["imgMS"],
     )

@@ -29,13 +29,15 @@ from torchvision.transforms import ToTensor
 # Here we imagine we have a folder with one ground truth image of a butterfly.
 #
 # .. tip::
-#    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT etc.)
+#    :class:`deepinv.datasets.ImageFolder` can load any type of data (e.g. MRI, CT, etc.)
 #    by passing in a custom `loader` function and `transform`.
 
 DATA_DIR = dinv.utils.demo.get_data_home() / "demo_custom_dataset"
 dinv.utils.download_example("butterfly.png", DATA_DIR / "GT")
 
 dataset1 = dinv.datasets.ImageFolder(DATA_DIR / "GT", transform=ToTensor())
+
+# Load one image from dataset
 x = next(iter(DataLoader(dataset1)))
 
 dinv.utils.plot({"x": x})
@@ -49,7 +51,7 @@ dinv.utils.plot({"x": x})
 dinv.utils.download_example("butterfly_masked.png", DATA_DIR / "Measurements")
 
 dataset2 = dinv.datasets.ImageFolder(
-    DATA_DIR, x_glob="GT/*.png", y_glob="Measurements/*.png", transform=ToTensor()
+    DATA_DIR, x_path="GT/*.png", y_path="Measurements/*.png", transform=ToTensor()
 )
 
 x, y = next(iter(DataLoader(dataset2)))
@@ -70,7 +72,7 @@ dinv.utils.plot({"x": x, "y": y})
 # Imagine you have no ground truth, only measurements. Then `x` should be loaded in as NaN:
 
 dataset3 = dinv.datasets.ImageFolder(
-    DATA_DIR, y_glob="Measurements/*.png", transform=ToTensor()
+    DATA_DIR, y_path="Measurements/*.png", transform=ToTensor()
 )
 
 x, y = next(iter(DataLoader(dataset3)))
@@ -153,15 +155,15 @@ dinv.test(model, DataLoader(dataset3), physics, plot_images=True)
 # If your dataset returns only ground-truth `x`, you can generate a dataset of measurements using
 # :func:`deepinv.datasets.generate_dataset`:
 
-pth = dinv.datasets.generate_dataset(
+path = dinv.datasets.generate_dataset(
     dataset1, physics, save_dir=DATA_DIR / "measurements"
 )
-dinv.test(model, DataLoader(dinv.datasets.HDF5Dataset(pth)), physics, plot_images=True)
+dinv.test(model, DataLoader(dinv.datasets.HDF5Dataset(path)), physics, plot_images=True)
 
 # %%
 # .. tip::
 #
-#    Pass in a :ref:`physics_generator <physics_generators>` to simulate random physics and then use
+#    Pass in a :ref:`physics generator <physics_generators>` to simulate random physics and then use
 #    `load_physics_generator_params=True` to load these `params` alongside the data during testing.
 
 # %%

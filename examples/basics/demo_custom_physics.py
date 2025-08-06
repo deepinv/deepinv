@@ -22,7 +22,7 @@ physics base class:
     * Inherit from an existing physics but override or wrap a particular method e.g. :class:`deepinv.physics.MRI` :math:`\rightarrow` :class:`deepinv.physics.DynamicMRI`
     * Define a new operator by :ref:`combining existing operators <physics_combining>`.
 
-In this example we will create a simple forward operator that converts RGB images to grayscale images.
+In this example we will demonstrate creating a simple forward operator from scratch that converts RGB images to grayscale images.
 We also show you how to exploit the singular value decomposition of the operator to speed up the evaluation of
 the pseudo-inverse and proximal operators.
 """
@@ -45,10 +45,10 @@ import torch
 #     Note however that defining a closed form adjoint is generally more efficient.
 #
 # .. note::
-#     To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>` by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel.
+#     To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>`_ by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel.
 #
 # .. tip::
-#     Inherit from mixin classes such as :class:`deepinv.physics.TimeMixin` and :class:`deepinv.physics.MRIMixin` to provide useful methods for your physics.
+#     Inherit from :ref:`mixin <mixin>` classes to provide specialised methods for your physics.
 
 
 class Decolorize(dinv.physics.LinearPhysics):
@@ -112,7 +112,7 @@ dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 # If the operator is indeed linear, you should verify that the transpose is well-defined using
 # :func:`deepinv.physics.LinearPhysics.adjointness_test`.
 #
-# You should also verify that the physics has unit norm using :func:`deepinv.physics.LinearPhysics.compute_norm`.
+# It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.LinearPhysics.compute_norm`.
 # We see that this physics fails this.
 
 if physics.adjointness_test(x) < 1e-5:
@@ -126,7 +126,7 @@ print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 # If the forward operator has a closed form singular value decomposition (SVD),
 # you should instead implement the operator using the :class:`deepinv.physics.DecomposablePhysics` base class.
 #
-# The operator :math:`A` in this example is decomposable:
+# The operator :math:`A` in this example has a known closed-form SVD:
 #
 # .. math::
 #   A = U\text{diag}(s)V^{\top}

@@ -245,13 +245,19 @@ def load_url_image(
 
 def load_example(name, **kwargs):
     r"""
-    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.load_url_image`.
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using
+    :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor.
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
     :return: :class:`torch.Tensor` containing the image.
     """
-    return load_url_image(get_image_url(name), **kwargs)
+    url = get_image_url(name)
+
+    if name.split(".")[-1].lower() == "pt":
+        return load_torch_url(url)
+
+    return load_url_image(url, **kwargs)
 
 
 def download_example(name: str, save_dir: Union[str, Path]):
@@ -274,7 +280,7 @@ def load_torch_url(url):
     :param str url: URL of the image file.
     :return: whatever is pickled in the file.
     """
-    return torch.load(load_url(url))
+    return torch.load(load_url(url), weights_only=True)
 
 
 def load_np_url(url=None):
