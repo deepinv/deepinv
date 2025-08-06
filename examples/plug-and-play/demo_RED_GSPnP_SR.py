@@ -56,7 +56,7 @@ kernel_torch = kernel_torch.unsqueeze(0).unsqueeze(
     0
 )  # add batch and channel dimensions
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous dataloading.
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 factor = 2  # down-sampling factor

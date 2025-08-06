@@ -76,7 +76,7 @@ lint = [
     "ruff"
 ]
 
-# optional dependencies for specific denoisers
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -127,6 +127,12 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["UP006", "F401", "B905"]
 
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
