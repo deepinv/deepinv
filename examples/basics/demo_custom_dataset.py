@@ -130,11 +130,11 @@ model = dinv.models.RAM(pretrained=True, device=device)
 # Our physics does not yet know the `params` (here, the inpainting mask). Since it is fixed
 # across the dataset, we can define it manually:
 
-y = dataset2[0][1]
+y = dataset2[0][1].to(device)
 params = {"mask": (y != 0).float()}
 physics.update(**params)
 
-dinv.test(model, DataLoader(dataset2), physics, plot_images=True)
+dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
 # .. note::
@@ -145,7 +145,7 @@ dinv.test(model, DataLoader(dataset2), physics, plot_images=True)
 # %%
 # Even if the dataset doesn't have ground truth:
 
-dinv.test(model, DataLoader(dataset3), physics, plot_images=True)
+dinv.test(model, DataLoader(dataset3), physics, plot_images=True, device=device)
 
 # %%
 # Generating measurements
@@ -156,7 +156,13 @@ dinv.test(model, DataLoader(dataset3), physics, plot_images=True)
 path = dinv.datasets.generate_dataset(
     dataset1, physics, save_dir=DATA_DIR / "measurements"
 )
-dinv.test(model, DataLoader(dinv.datasets.HDF5Dataset(path)), physics, plot_images=True)
+dinv.test(
+    model,
+    DataLoader(dinv.datasets.HDF5Dataset(path)),
+    physics,
+    plot_images=True,
+    device=device,
+)
 
 # %%
 # .. tip::
@@ -169,5 +175,10 @@ dinv.test(model, DataLoader(dinv.datasets.HDF5Dataset(path)), physics, plot_imag
 # ("on-the-fly") during testing or training:
 
 dinv.test(
-    model, DataLoader(dataset1), physics, plot_images=True, online_measurements=True
+    model,
+    DataLoader(dataset1),
+    physics,
+    plot_images=True,
+    device=device,
+    online_measurements=True,
 )

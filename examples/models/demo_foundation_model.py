@@ -33,12 +33,14 @@ model = dinv.models.RAM(device=device, pretrained=True)
 #
 # Here, we demonstrated reconstructing brain MRI from an accelerated noisy MRI scan from `FastMRI <https://fastmri.med.nyu.edu/>`_:
 
-x = dinv.utils.load_example("demo_mini_subset_fastmri_brain_0.pt").to(device)
+x = dinv.utils.load_example("demo_mini_subset_fastmri_brain_0.pt", device=device)
 
 # Define physics
-physics = dinv.physics.MRI(noise_model=dinv.physics.GaussianNoise(0.05))
+physics = dinv.physics.MRI(noise_model=dinv.physics.GaussianNoise(0.05), device=device)
 
-physics_generator = dinv.physics.generator.GaussianMaskGenerator((320, 320))
+physics_generator = dinv.physics.generator.GaussianMaskGenerator(
+    (320, 320), device=device
+)
 
 # Generate measurement
 y = physics(x, **physics_generator.step())
@@ -62,18 +64,20 @@ dinv.utils.plot(
 # Computational photography
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 #
-# Joint random motion deblurring and denoising, using data from color BSD:
+# Joint random motion deblurring and denoising, using a cropped image from color BSD:
 
-x = dinv.utils.load_example("CBSD_0010.png", img_size=(200, 200))
+x = dinv.utils.load_example("CBSD_0010.png", img_size=(200, 200), device=device)
 
 physics = dinv.physics.BlurFFT(
-    img_size=x.shape[1:], noise_model=dinv.physics.GaussianNoise(sigma=0.05)
+    img_size=x.shape[1:],
+    noise_model=dinv.physics.GaussianNoise(sigma=0.05),
+    device=device,
 )
 
 # fmt: off
 physics_generator = ( 
-    dinv.physics.generator.MotionBlurGenerator((31, 31), l=2.0, sigma=2.4) +
-    dinv.physics.generator.SigmaGenerator(sigma_min=0.001, sigma_max=0.2)
+    dinv.physics.generator.MotionBlurGenerator((31, 31), l=2.0, sigma=2.4, device=device) +
+    dinv.physics.generator.SigmaGenerator(sigma_min=0.001, sigma_max=0.2, device=device)
 )
 # fmt: on
 
@@ -98,12 +102,13 @@ dinv.utils.plot(
 # using data from the `The Cancer Imaging Archive <https://link.springer.com/article/10.1007/s10278-013-9622-7>`_ of lungs:
 #
 
-x = dinv.utils.load_example("CT100_256x256_0.pt")
+x = dinv.utils.load_example("CT100_256x256_0.pt", device=device)
 
 physics = dinv.physics.Tomography(
     img_width=256,
     angles=10,
     normalize=True,
+    device=device,
 )
 
 y = physics(x)
@@ -127,7 +132,7 @@ dinv.utils.plot(
 # over Jacksonville:
 #
 
-x = dinv.utils.load_example("JAX_018_011_RGB.tif")[..., :300, :300]
+x = dinv.utils.load_example("JAX_018_011_RGB.tif", device=device)[..., :300, :300]
 
 physics = dinv.physics.Denoising(
     noise_model=dinv.physics.PoissonGaussianNoise(sigma=0.1, gain=0.1)
@@ -157,7 +162,7 @@ dinv.utils.plot(
 #
 # For instance, RAM is not trained on image demosaicing:
 
-x = dinv.utils.load_example("butterfly.png", img_size=(127, 129))
+x = dinv.utils.load_example("butterfly.png", img_size=(127, 129), device=device)
 
 physics = dinv.physics.Demosaicing(
     img_size=x.shape[1:], noise_model=dinv.physics.PoissonNoise(0.1), device=device
@@ -177,7 +182,6 @@ dinv.utils.plot(
         f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
         f"Reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
     },
-    figsize=(8, 3),
 )
 
 # %%
@@ -217,7 +221,9 @@ train_dataloader = torch.utils.data.DataLoader(dataset)
 
 eval_dataloader = torch.utils.data.DataLoader(
     dinv.datasets.TensorDataset(
-        y=physics_train(dinv.utils.load_example("leaves.png")[..., :64, :64].to(device))
+        y=physics_train(
+            dinv.utils.load_example("leaves.png", device=device)[..., :64, :64]
+        )
     )
 )
 
@@ -253,7 +259,6 @@ dinv.utils.plot(
         f"Zero-shot reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
         f"Fine-tuned reconstruction\n PSNR {psnr(x_hat_ft, x).item():.2f}dB": x_hat,
     },
-    figsize=(8, 3),
 )
 
 # %%

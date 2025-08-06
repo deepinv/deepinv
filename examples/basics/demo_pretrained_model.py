@@ -22,17 +22,20 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 import deepinv as dinv
 import torch
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
 # %%
 # Let's say you want to reconstruct a butterfly from noisy, blurry measurements:
 
 # Ground truth
-x = dinv.utils.load_example("butterfly.png")
+x = dinv.utils.load_example("butterfly.png", device=device)
 
 # Define physics
 physics = dinv.physics.BlurFFT(
     x.shape[1:],
     filter=dinv.physics.blur.gaussian_blur((5, 5)),
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+    device=device,
 )
 
 y = physics(x)
@@ -44,7 +47,7 @@ y = physics(x)
 # .. seealso::
 #     See :ref:`sphx_glr_auto_examples_models_demo_foundation_model.py` for further one-line examples for the RAM model across various domains.
 
-model = dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True, device=device)
 
 with torch.no_grad():
     x_hat1 = model(y, physics)
@@ -55,15 +58,15 @@ with torch.no_grad():
 # .. seealso::
 #     See :ref:`pretrained denoisers <pretrained-weights>` for a full list of denoisers that can be plugged into iterative/sampling algorithms.
 
-denoiser = dinv.models.DRUNet()
-model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device="cpu")
+denoiser = dinv.models.DRUNet(device=device)
+model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
 
 x_hat2 = model(y, physics)
 
 # %%
 # Pretrained diffusion model (we reduce the image size for demo speed on CPU, as diffusion model is slow):
 
-model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 10))
+model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 10)).to(device)
 
 y = y[..., :64, :64]
 
@@ -71,6 +74,7 @@ physics = dinv.physics.BlurFFT(
     y.shape[1:],
     filter=dinv.physics.blur.gaussian_blur((5, 5)),
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
+    device=device,
 )
 
 x_hat3 = model(y, physics)

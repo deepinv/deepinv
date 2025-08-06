@@ -24,9 +24,13 @@ Follow this example to get started with DeepInverse in under 5 minutes.
 #
 #    pip install deepinv
 #
+# We then get the device (CPU in the case of this example).
+#
 
 import deepinv as dinv
+import torch
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # 2. Physics
@@ -38,7 +42,7 @@ import deepinv as dinv
 # In DeepInverse, `x` are images:
 #
 
-x = dinv.utils.load_example("butterfly.png")
+x = dinv.utils.load_example("butterfly.png", device=device)
 
 # %%
 # Images are tensors of shape `B, C, ...` where `B` is batch size, `C` are channels and `...` are spatial dimensions:
@@ -59,7 +63,6 @@ y = physics(x)
 # DeepInverse implements
 # :ref:`many different types of physics <physics>` across various imaging modalities.
 # Physics also possess noise models such as Gaussian or Poisson noise.
-#
 
 physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
@@ -77,12 +80,12 @@ dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
 
 # Blur with Gaussian filter parameter
 physics = dinv.physics.BlurFFT(
-    x.shape[1:], filter=dinv.physics.blur.gaussian_blur((5, 5))
+    x.shape[1:], filter=dinv.physics.blur.gaussian_blur((5, 5)), device=device
 )
 
 # Blur kernel random generator
 physics_generator = dinv.physics.generator.MotionBlurGenerator(
-    psf_size=(31, 31), l=2, sigma=1.0, num_channels=3
+    psf_size=(31, 31), l=2, sigma=1.0, num_channels=3, device=device
 )
 
 # Generate a dict of random params {"filter": ...}
@@ -139,7 +142,7 @@ dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_n
 #     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
-model = dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True, device=device)
 
 x_hat = model(y, physics)
 
@@ -167,11 +170,11 @@ dinv.utils.plot(
 # :ref:`model-based reconstruction algorithms <iterative>`.
 #
 
-denoiser = dinv.models.DRUNet()
+denoiser = dinv.models.DRUNet(device=device)
 
 x_denoised = denoiser(y, sigma=0.1)
 
-model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser)
+model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
 
 x_hat = model(y, physics)
 
@@ -187,7 +190,7 @@ dinv.utils.plot(
 #
 
 # Reconstruct Anything Model foundation model
-model = dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True, device=device)
 
 # %%
 # .. tip::
@@ -220,9 +223,11 @@ dataset = dinv.datasets.SimpleFastMRISliceDataset(
 # dataset, you can simulate a dataset with random physics:
 #
 
-physics = dinv.physics.MRI()
+physics = dinv.physics.MRI(device=device)
 
-physics_generator = dinv.physics.generator.RandomMaskGenerator((320, 320))
+physics_generator = dinv.physics.generator.RandomMaskGenerator(
+    (320, 320), device=device
+)
 
 path = dinv.datasets.generate_dataset(
     dataset, physics, save_dir="data", physics_generator=physics_generator
@@ -237,7 +242,13 @@ dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
 
 import torch
 
-dinv.test(model, torch.utils.data.DataLoader(dataset), physics, plot_images=True)
+dinv.test(
+    model,
+    torch.utils.data.DataLoader(dataset),
+    physics,
+    plot_images=True,
+    device=device,
+)
 
 
 # %%
