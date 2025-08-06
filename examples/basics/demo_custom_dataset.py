@@ -131,7 +131,7 @@ model = dinv.models.RAM(pretrained=True, device=device)
 # across the dataset, we can define it manually:
 
 y = dataset2[0][1].to(device)
-params = {"mask": (y != 0).float()}
+params = {"mask": (y.detach().cpu() != 0).float()}
 physics.update(**params)
 
 dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
@@ -154,7 +154,7 @@ dinv.test(model, DataLoader(dataset3), physics, plot_images=True, device=device)
 # :func:`deepinv.datasets.generate_dataset`:
 
 path = dinv.datasets.generate_dataset(
-    dataset1, physics, save_dir=DATA_DIR / "measurements"
+    dataset1, physics, save_dir=DATA_DIR / "measurements", device=device
 )
 dinv.test(
     model,
