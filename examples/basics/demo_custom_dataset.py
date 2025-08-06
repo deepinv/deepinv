@@ -128,19 +128,17 @@ model = dinv.models.RAM(pretrained=True, device=device)
 # you can directly test with it.
 #
 # Our physics does not yet know the `params` (here, the inpainting mask). Since it is fixed
-# across the dataset, we can define it manually:
-
-y = dataset2[0][1].to(device)
-params = {"mask": (y.detach().cpu() != 0).float()}
-physics.update(**params)
-
-dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
-
-# %%
+# across the dataset, we can define it manually by estimating it from y:
+#
 # .. note::
 #
 #    If you're loading measurements which have randomly varying `params`, your dataset must
 #    return tuples `(x, y, params)` so that the physics is modified accordingly every image.
+
+params = {"mask": (dataset2[0][1] != 0).float()}
+physics.update(**params)
+
+dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
 # Even if the dataset doesn't have ground truth:
