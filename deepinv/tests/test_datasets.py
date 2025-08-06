@@ -51,7 +51,7 @@ from deepinv.physics.inpainting import Inpainting
 from deepinv.physics.forward import Physics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.loss.metric import PSNR
-from deepinv.training import Trainer, test
+from deepinv.training import Trainer, test as trainer_test
 from deepinv.tests.dummy import DummyModel
 
 from unittest.mock import patch
@@ -123,7 +123,7 @@ def check_dataset_format(
 
                 # We must switch any physics calculations as the data being checked here can be arbitrary
                 # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
-                _ = test(
+                _ = trainer_test(
                     model,
                     dataloader,
                     physics,

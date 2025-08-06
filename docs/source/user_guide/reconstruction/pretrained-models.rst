@@ -70,7 +70,7 @@ associated reference and relevant details. All pretrained weights are hosted on
 Click on the model name to learn more about the type of model and use `pretrained=True` to use the pretrained weights.
 
 .. list-table:: Summary of pretrained weights
-   :widths: 25 10 25
+   :widths: 20 5 25
    :header-rows: 1
 
    * - Model
@@ -113,7 +113,7 @@ Click on the model name to learn more about the type of model and use `pretraine
    * -
      -
      - Alternative weights from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer):
-       `DiffUNet weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
+       `DiffUNet OpenAI weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
    * - :class:`deepinv.models.EPLLDenoiser`
      - Denoiser
      - Weights estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
@@ -124,5 +124,5 @@ Click on the model name to learn more about the type of model and use `pretraine
        `Restormer weights <https://github.com/swz30/Restormer/tree/main>`_,
        also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
    * - :class:`deepinv.models.RAM`
-     - Reconstructor/Denoiser
-     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:t:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.
+     - Reconstructor & Denoiser
+     - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:p:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.

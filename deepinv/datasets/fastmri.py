@@ -221,7 +221,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
     |sep|
 
-    For examples using raw data, see :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py`.
+    For examples using raw data, see :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py`.
 
     :Examples:
 
