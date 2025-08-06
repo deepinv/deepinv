@@ -175,7 +175,7 @@ class Trainer:
     :param bool compare_no_learning: If ``True``, the no learning method is compared to the network reconstruction. Default is ``False``.
     :param str no_learning_method: Reconstruction method used for the no learning comparison. Options are ``'A_dagger'``, ``'A_adjoint'``,
         ``'prox_l2'``, or ``'y'``. Default is ``'A_dagger'``. The user can also provide a custom method by overriding the
-        :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_dagger'``.
+        :func:`no_learning_inference <deepinv.Trainer.no_learning_inference>` method. Default is ``'A_adjoint'``.
 
     |sep|
 

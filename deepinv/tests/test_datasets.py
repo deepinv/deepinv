@@ -48,8 +48,7 @@ from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
 )
 from deepinv.physics.inpainting import Inpainting
-from deepinv.physics.forward import Denoising
-from deepinv.physics.noise import GaussianNoise
+from deepinv.physics.forward import Physics
 from deepinv.utils.tensorlist import TensorList
 from deepinv.loss.metric import PSNR
 from deepinv.training import Trainer, test
@@ -106,17 +105,37 @@ def check_dataset_format(
         dataloader = torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, [0]))
         _ = next(iter(dataloader))
 
-        model = DummyModel()
-        physics = Denoising(GaussianNoise(0.0))
-        _ = Trainer(
-            model,
-            physics,
-            optimizer=None,
-            train_dataloader=dataloader,
-            online_measurements=True,
-            save_path=None,
-        ).setup_train(train=True)
-        _ = test(model, dataloader, physics, online_measurements=True)
+        if not skip_check:
+            # Check trainer compatible with dataset
+            model = DummyModel()
+            physics = Physics()
+            try:
+                _ = Trainer(
+                    model,
+                    physics,
+                    optimizer=None,
+                    train_dataloader=dataloader,
+                    online_measurements=True,
+                    save_path=None,
+                    compare_no_learning=False,
+                    metrics=[],
+                ).setup_train(train=True)
+
+                # We must switch any physics calculations as the data being checked here can be arbitrary
+                # e.g. ints, which is currently not supported by PyTorch https://github.com/pytorch/pytorch/issues/58734
+                _ = test(
+                    model,
+                    dataloader,
+                    physics,
+                    online_measurements=True,
+                    compare_no_learning=False,
+                    metrics=[],
+                )
+
+            except ValueError as e:
+                # We may be checking paired unsup dataset, in which case training is ok to fail
+                if "Online measurements can't be used if x is all NaN" not in str(e):
+                    raise
 
     if length is not None:
         assert (
@@ -153,24 +172,24 @@ class MyDataset(ImageDataset):
 def test_base_dataset():
     x, y, params = Tensor([0]), Tensor([0]), {"a": Tensor([0])}
     bad = "hello"
-    _ = MyDataset(x)
-    _ = MyDataset([x, y])
-    _ = MyDataset([torch.nan, y])
-    _ = MyDataset([x, y, params])
-    _ = MyDataset([torch.nan, y, params])
-    _ = MyDataset([torch.nan, params])
+    check_dataset(MyDataset(x))
+    check_dataset(MyDataset([x, y]))
+    check_dataset(MyDataset([torch.nan, y]))
+    check_dataset(MyDataset([x, y, params]))
+    check_dataset(MyDataset([torch.nan, y, params]))
+    check_dataset(MyDataset([torch.nan, params]))
 
     with pytest.raises(RuntimeError):
-        _ = MyDataset(torch.nan)
-        _ = MyDataset([bad, y])
-        _ = MyDataset([x, bad])
-        _ = MyDataset([bad, y, params])
-        _ = MyDataset([x, bad, params])
-        _ = MyDataset([x, y, {1: 2}])
-        _ = MyDataset([x, x, x, params])
-        _ = MyDataset([x, params, y])
-        _ = MyDataset(bad)
-        _ = MyDataset([x])
+        check_dataset(MyDataset(torch.nan))
+        check_dataset(MyDataset([bad, y]))
+        check_dataset(MyDataset([x, bad]))
+        check_dataset(MyDataset([bad, y, params]))
+        check_dataset(MyDataset([x, bad, params]))
+        check_dataset(MyDataset([x, y, {1: 2}]))
+        check_dataset(MyDataset([x, x, x, params]))
+        check_dataset(MyDataset([x, params, y]))
+        check_dataset(MyDataset(bad))
+        check_dataset(MyDataset([x]))
 
 
 @pytest.mark.parametrize("physgen", [None, "mask"])
