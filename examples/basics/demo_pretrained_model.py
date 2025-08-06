@@ -6,7 +6,7 @@ Follow this example to reconstruct images using a pretrained model in one line.
 
 We show three sets of general pretrained reconstruction methods, including:
 
-* Pretrained feedforward :class:`Reconstruct Anything Model (RAM) <deepinv.models.MedianFilter>`; # TODO RAM
+* Pretrained feedforward :class:`Reconstruct Anything Model (RAM) <deepinv.models.RAM>`;
 * :ref:`Plug-and-play <iterative>` with a pretrained denoiser.
 * Pretrained :ref:`diffusion model <diffusion>`;
 
@@ -44,7 +44,7 @@ y = physics(x)
 # For each model, define model in one line and reconstruct in one line.
 # Pretrained Reconstruct Anything Model:
 
-model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True)
 
 x_hat1 = model(y, physics)
 
@@ -91,7 +91,7 @@ dinv.utils.plot(
 #
 # These models, such as Reconstruct Anything Model, can be used on various problems involving different physics and data.
 
-model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True)
 
 # %%
 # Accelerated brain MRI, using a sample image from `FastMRI <https://fastmri.med.nyu.edu/>`_:

@@ -4,10 +4,10 @@ Inference and fine-tune Reconstruct Anything Model (RAM) foundation model
 
 This example shows how to perform inference on and fine-tune the RAM foundation model to solve inverse problems.
 
-The :class:`RAM <deepinv.models.MedianFilter>` model TODO RAM, described in the following `paper <https://arxiv.org/abs/2503.08915>`_ TODO CITATION, is a model that is trained on
-a large number of inverse problems and datasets.
+:class:`RAM <deepinv.models.RAM>` :footcite:t:`terris2025reconstruct` is a model that has been trained to work on a large
+variety of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.).
 
-See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics.
+See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics. TODO copy over to here!
 
 .. tip::
 
@@ -28,9 +28,7 @@ import deepinv as dinv
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-model = (
-    dinv.models.MedianFilter()
-)  # TODO dinv.models.RAM(device=device, pretrained=True)
+model = dinv.models.RAM(device=device, pretrained=True)
 
 # Load image
 x = dinv.utils.load_example("butterfly.png", img_size=(127, 129)).to(device)
@@ -154,38 +152,36 @@ eval_dataloader = torch.utils.data.DataLoader(
     )
 )
 
-# TODO UNCOMMENT AFTER RAM PR MERGED
+max_epochs = 20
+trainer = dinv.Trainer(
+    model=model,
+    physics=physics,
+    eval_interval=5,
+    ckp_interval=max_epochs - 1,
+    metrics=losses[0],
+    early_stop=True,
+    device=device,
+    losses=losses,
+    epochs=max_epochs,
+    optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
+    train_dataloader=train_dataloader,
+    eval_dataloader=eval_dataloader,
+)
 
-# max_epochs = 20
-# trainer = dinv.Trainer(
-#     model=model,
-#     physics=physics,
-#     eval_interval=5,
-#     ckp_interval=max_epochs - 1,
-#     metrics=losses[0],
-#     early_stop=True,
-#     device=device,
-#     losses=losses,
-#     epochs=max_epochs,
-#     optimizer=torch.optim.Adam(model.parameters(), lr=5e-5),
-#     train_dataloader=train_dataloader,
-#     eval_dataloader=eval_dataloader,
-# )
-
-# finetuned_model = trainer.train()
+finetuned_model = trainer.train()
 
 # %%
 # We can now use the fine-tuned model to reconstruct the image from the measurement `y`.
 
-# with torch.no_grad():
-#     x_hat = finetuned_model(y, physics=physics)
+with torch.no_grad():
+    x_hat = finetuned_model(y, physics=physics)
 
-# # Show results
-# dinv.utils.plot(
-#     {
-#         "Original": x,
-#         f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-#         f"Fine-tuned reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-#     },
-#     figsize=(8, 3),
-# )
+# Show results
+dinv.utils.plot(
+    {
+        "Original": x,
+        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
+        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+    },
+    figsize=(8, 3),
+)

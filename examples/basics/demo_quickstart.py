@@ -135,11 +135,11 @@ dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_n
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 # .. tip::
-#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>` TODO RAM, are :ref:`pretrained reconstructors <pretrained-reconstructors>` and can
+#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.RAM>`, are :ref:`pretrained reconstructors <pretrained-reconstructors>` and can
 #     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
-model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True)
 
 x_hat = model(y, physics)
 
@@ -187,7 +187,7 @@ dinv.utils.plot(
 #
 
 # Reconstruct Anything Model foundation model
-model = dinv.models.MedianFilter()  # TODO dinv.models.RAM(pretrained=True)
+model = dinv.models.RAM(pretrained=True)
 
 # %%
 # .. tip::

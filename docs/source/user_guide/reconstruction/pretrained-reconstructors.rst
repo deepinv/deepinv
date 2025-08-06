@@ -17,9 +17,9 @@ These models can be set-up in one line and perform inference in another line:
   >>> x = dinv.utils.load_example("butterfly.png")
   >>> physics = dinv.physics.Downsampling()
   >>> y = physics(x)
-  >>> model = dinv.models.ArtifactRemoval(dinv.models.MedianFilter()) # TODO dinv.models.RAM(pretrained=True) # or any of the models listed below
+  >>> model = dinv.models.RAM(pretrained=True) # or any of the models listed below
   >>> x_hat = model(y, physics) # Model inference
-  >>> dinv.metric.PSNR()(x_hat, x) # TODO CHANGE MEDIANFILTER TO RAM BELOW TOO
+  >>> dinv.metric.PSNR()(x_hat, x)
   tensor([5.5290])
 
 .. list-table:: Pretrained reconstructors
@@ -29,7 +29,7 @@ These models can be set-up in one line and perform inference in another line:
      - **Family**
      - **Modality**
      - **Speed**
-   * - :class:`Reconstruct Anything Model <deepinv.models.MedianFilter>`
+   * - :class:`Reconstruct Anything Model <deepinv.models.RAM>`
      - Feedforward
      - General
      - Fast
