@@ -10,7 +10,7 @@ We show three sets of general pretrained reconstruction methods, including:
 * :ref:`Plug-and-play <iterative>` with a pretrained denoiser.
 * Pretrained :ref:`diffusion model <diffusion>`;
 
-See :ref:`User Guide <pretrained-models>` for a principled comparison between methods demonstrated in this example.
+See :ref:`pretrained models <pretrained-models>` for a principled comparison between methods demonstrated in this example.
 
 .. tip::
 
@@ -92,6 +92,6 @@ dinv.utils.plot(
 #
 # What's next?
 # ~~~~~~~~~~~~
-#
-# TODO add more signposts for diffusion/pnp methods here
-# **Want more performance**? Check out the :ref:`example on how to fine-tune a foundation model to your own problem <sphx_glr_auto_examples_models_demo_foundation_model.py>`.
+# * Check out the :ref:`example on how to fine-tune a foundation model to your own problem <sphx_glr_auto_examples_models_demo_foundation_model.py>`.
+# * See :ref:`pretrained models <pretrained-models>` for a comparison between methods demonstrated in this example.
+# * See :ref:`diffusion <diffusion>` and :ref:`iterative <iterative>` for how to fully customise your sampling or iterative algorithm using a pretrained denoiser.
