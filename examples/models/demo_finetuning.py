@@ -7,7 +7,7 @@ This example shows how to perform inference on and fine-tune the RAM foundation 
 :class:`RAM <deepinv.models.RAM>` :footcite:t:`terris2025reconstruct` is a model that has been trained to work on a large
 variety of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.).
 
-See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics. TODO copy over to here!
+See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics.
 
 .. tip::
 
@@ -30,12 +30,12 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 model = dinv.models.RAM(device=device, pretrained=True)
 
-# Load image
+# Load demo image and crop for demo speed (comment this out in practice)
 x = dinv.utils.load_example("butterfly.png", img_size=(127, 129)).to(device)
 
 # Define forward operator
 physics = dinv.physics.Inpainting(
-    img_size=(3, 127, 129),
+    img_size=x.shape[1:],
     mask=0.3,
     noise_model=dinv.physics.GaussianNoise(0.05),
     device=device,
@@ -60,6 +60,10 @@ dinv.utils.plot(
 )
 
 # %%
+# .. seealso::#
+#     The RAM foundation model shows impressive results across various domains.
+#     See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for more examples of RAM on different datasets and physics.
+#
 # This model was also trained on various denoising problems, in particular on Poisson-Gaussian denoising.
 
 sigma, gain = 0.2, 0.5
@@ -72,7 +76,7 @@ y = physics(x)
 
 # Run inference
 with torch.no_grad():
-    x_hat = model(y, physics=physics)
+    x_hat = model(y, physics)
     # or alternatively, we can use the model without physics:
     # x_hat = model(y, sigma=sigma, gain=gain)
 
@@ -102,7 +106,7 @@ y = physics(x)
 
 # Run inference
 with torch.no_grad():
-    x_hat = model(y, physics=physics)
+    x_hat = model(y, physics)
 
 # Show results
 dinv.utils.plot(
@@ -125,21 +129,24 @@ dinv.utils.plot(
 # .. note::
 #     You can also fine-tune on larger datasets if you want, by replacing the :ref:`dataset <datasets>`.
 
-physics = dinv.physics.Demosaicing(
-    img_size=(3, 64, 64),
+# Take small patch
+x_train = x[..., :64, :64]
+
+physics_train = dinv.physics.Demosaicing(
+    img_size=x_train.shape[1:],
     noise_model=dinv.physics.PoissonNoise(0.1, clip_positive=True),
     device=device,
 )
 
-x = x[..., :64, :64]
-y = physics(x)
+y_train = physics_train(x_train)
 
+# Define training loss
 losses = [
     dinv.loss.R2RLoss(),
     dinv.loss.EILoss(dinv.transform.Shift(shift_max=0.4), weight=0.1),
 ]
 
-dataset = dinv.datasets.TensorDataset(y=y)
+dataset = dinv.datasets.TensorDataset(y=y_train)
 train_dataloader = torch.utils.data.DataLoader(dataset)
 
 # %%
@@ -148,14 +155,14 @@ train_dataloader = torch.utils.data.DataLoader(dataset)
 
 eval_dataloader = torch.utils.data.DataLoader(
     dinv.datasets.TensorDataset(
-        y=physics(dinv.utils.load_example("leaves.png")[..., :64, :64].to(device))
+        y=physics_train(dinv.utils.load_example("leaves.png")[..., :64, :64].to(device))
     )
 )
 
 max_epochs = 20
 trainer = dinv.Trainer(
     model=model,
-    physics=physics,
+    physics=physics_train,
     eval_interval=5,
     ckp_interval=max_epochs - 1,
     metrics=losses[0],
@@ -174,14 +181,15 @@ finetuned_model = trainer.train()
 # We can now use the fine-tuned model to reconstruct the image from the measurement `y`.
 
 with torch.no_grad():
-    x_hat = finetuned_model(y, physics=physics)
+    x_hat_ft = finetuned_model(y, physics)
 
 # Show results
 dinv.utils.plot(
     {
         "Original": x,
         f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+        f"Zero-shot reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat_ft, x).item():.2f}dB": x_hat,
     },
     figsize=(8, 3),
 )
