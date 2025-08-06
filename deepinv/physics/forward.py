@@ -165,14 +165,19 @@ class Physics(torch.nn.Module):  # parent class for forward models
         This function uses gradient descent to find the inverse. It can be overwritten by a more efficient pseudoinverse in cases where closed form formulas exist.
 
         :param torch.Tensor y: a measurement :math:`y` to reconstruct via the pseudoinverse.
-        :param torch.Tensor x_init: initial guess for the reconstruction.
+        :param None, torch.Tensor x_init: initial guess for the reconstruction. If `None` (default) it is set to the adjoint of the forward operator (it it exists) applied to the measurements :math:`y`, i.e., :math:`x_0 = A^{\top}y`.
         :return: (:class:`torch.Tensor`) The reconstructed image :math:`x`.
 
         """
-
         if self.solver == "gradient_descent":
             if x_init is None:
-                x_init = self.A_adjoint(y)
+                if hasattr(self, "A_adjoint"):
+                    x_init = self.A_adjoint(y)
+                else:
+                    raise ValueError(
+                        "x_init must be provided for gradient descent solver if the physics does not have"
+                        " A_adjoint defined."
+                    )
 
             x = x_init
 
@@ -331,13 +336,13 @@ class LinearPhysics(Physics):
 
     :param Callable A: forward operator function which maps an image to the observed measurements :math:`x\mapsto y`.
         It is recommended to normalize it to have unit norm.
-    :param Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
-
-        .. note::
-
-            A_adjoint can be generated automatically using the :func:`deepinv.physics.adjoint_function`
-            method which relies on automatic differentiation, at the cost of a few extra computations per adjoint call.
-
+    :param None | Callable A_adjoint: transpose of the forward operator, which should verify the adjointness test.
+        By default, it is set to `None`, which means that the adjoint is computed automatically using :func:`deepinv.physics.adjoint_function`.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter
+        If you have a closed form for the adjoint, you can pass it as a callable function or rewrite the class method.
+    :param tuple img_size: (optional, only required if A_adjoint is not provided) Size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+        used for the automatic adjoint computation.
     :param Callable noise_model: function that adds noise to the measurements :math:`N(z)`.
         See the noise module for some predefined functions.
     :param Callable sensor_model: function that incorporates any sensor non-linearities to the sensing process,
@@ -403,12 +408,13 @@ class LinearPhysics(Physics):
     def __init__(
         self,
         A=lambda x, **kwargs: x,
-        A_adjoint=lambda x, **kwargs: x,
+        A_adjoint=None,
+        img_size=None,
         noise_model=ZeroNoise(),
         sensor_model=lambda x: x,
         max_iter=50,
         tol=1e-4,
-        solver="CG",
+        solver="lsqr",
         **kwargs,
     ):
         super().__init__(
@@ -421,6 +427,7 @@ class LinearPhysics(Physics):
             **kwargs,
         )
         self.A_adj = A_adjoint
+        self.img_size = img_size
 
     def A_adjoint(self, y, **kwargs):
         r"""
@@ -437,7 +444,17 @@ class LinearPhysics(Physics):
         :return: (:class:`torch.Tensor`) linear reconstruction :math:`\tilde{x} = A^{\top}y`.
 
         """
-        return self.A_adj(y, **kwargs)
+        if self.A_adj is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic A_adjoint implementation."
+                    "Set img_size in the constructor of the LinearPhyics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (y.shape[0],) + self.img_size
+            return adjoint_function(self.A, tensor_size, device=y.device)(y, **kwargs)
+        else:
+            return self.A_adj(y, **kwargs)
 
     def A_vjp(self, x, v):
         r"""
@@ -812,10 +829,18 @@ class DecomposablePhysics(LinearPhysics):
     where :math:`U\in\mathbb{C}^{n\times n}` and :math:`V\in\mathbb{C}^{m\times m}`
     are orthonormal linear transformations and :math:`s\in\mathbb{R}_{+}^{n}` are the singular values.
 
-    :param Callable U: orthonormal transformation
-    :param Callable U_adjoint: transpose of U
-    :param Callable V: orthonormal transformation
-    :param Callable V_adjoint: transpose of V
+    :param None | Callable U: orthonormal transformation. If `None` (default), it is set to the identity function.
+    :param None | Callable V_adjoint: transpose of V. If `None` (default), it is set to the identity function.
+    :param tuple img_size: (optional, only required if V and/or U_adjoint are not provided) size of the signal/image `x`, e.g. `(C, ...)` where `C` is the number of channels and `...` are the spatial dimensions,
+        used for the automatic adjoint computation.
+    :param None | Callable U_adjoint: transpose of U. If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
+        from the `U` function and the `img_size` parameter.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
+    :param None | Callable V: If `None` (default), it is computed automatically using :func:`deepinv.physics.adjoint_function`
+        from the `V_adjoint` function and the `img_size` parameter.
+        This automatic adjoint is computed using automatic differentiation, which is slower than a closed form adjoint, and can
+        have a larger memory footprint. If you want to use the automatic adjoint, you should set the `img_size` parameter.
     :param torch.nn.parameter.Parameter, float params: Singular values of the transform
 
     |sep|
@@ -848,19 +873,35 @@ class DecomposablePhysics(LinearPhysics):
 
     def __init__(
         self,
-        U=lambda x: x,
-        U_adjoint=lambda x: x,
-        V=lambda x: x,
-        V_adjoint=lambda x: x,
+        U=None,
+        V_adjoint=None,
+        img_size=None,
+        U_adjoint=None,
+        V=None,
         mask=1.0,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self._V = V
-        self._U = U
-        self._U_adjoint = U_adjoint
-        self._V_adjoint = V_adjoint
+
+        assert not (
+            U is None and not (U_adjoint is None)
+        ), "U must be provided if U_adjoint is provided."
+        assert not (
+            V_adjoint is None and not (V is None)
+        ), "V_adjoint must be provided if V is provided."
+
+        # set to identity if not provided
+        self._V_adjoint = (lambda x: x) if V_adjoint is None else V_adjoint
+        self._U = (lambda x: x) if U is None else U
+
+        # if U is the identity, we set U_adjoint as the identity as well
+        self._U_adjoint = (lambda x: x) if U is None else U_adjoint
+
+        # if V_adjoint is the identity, we set V as the identity as well
+        self._V = (lambda x: x) if V_adjoint is None else V
+
         mask = torch.tensor(mask) if not isinstance(mask, torch.Tensor) else mask
+        self.img_size = img_size
         self.register_buffer("mask", mask)
 
     def A(self, x, mask=None, **kwargs) -> Tensor:
@@ -937,7 +978,7 @@ class DecomposablePhysics(LinearPhysics):
         """
         return self._U(x)
 
-    def V(self, x):
+    def V(self, x, **kwargs):
         r"""
         Applies the :math:`V` operator of the SVD decomposition.
 
@@ -947,9 +988,21 @@ class DecomposablePhysics(LinearPhysics):
 
         :param torch.Tensor x: input tensor
         """
-        return self._V(x)
+        if self._V is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic V implementation. "
+                    "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (x.shape[0],) + self.img_size
+            return adjoint_function(self.V_adjoint, tensor_size, device=x.device)(
+                x, **kwargs
+            )
+        else:
+            return self._V(x)
 
-    def U_adjoint(self, x):
+    def U_adjoint(self, x, **kwargs):
         r"""
         Applies the :math:`U^{\top}` operator of the SVD decomposition.
 
@@ -959,7 +1012,17 @@ class DecomposablePhysics(LinearPhysics):
 
         :param torch.Tensor x: input tensor
         """
-        return self._U_adjoint(x)
+        if self._U_adjoint is None:
+            if self.img_size is None:
+                raise ValueError(
+                    "img_size must be set for using the automatic U_adjoint implementation. "
+                    "Set img_size in the constructor of the DecomposablePhysics class or pass it as a keyword argument."
+                )
+            else:
+                tensor_size = (x.shape[0],) + self.img_size
+            return adjoint_function(self.U, tensor_size, device=x.device)(x, **kwargs)
+        else:
+            return self._U_adjoint(x)
 
     def V_adjoint(self, x):
         r"""

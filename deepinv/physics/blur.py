@@ -264,6 +264,58 @@ class Downsampling(LinearPhysics):
         super().update_parameters(**kwargs)
 
 
+class Upsampling(Downsampling):
+    r"""
+    Upsampling operator.
+
+    This operator performs the operation
+
+    .. math::
+        y = h^T * S^T (x)
+
+    where :math:`S^T` is the adjoint of the subsampling operator and :math:`h` is a low-pass filter.
+
+    :param torch.Tensor, str, None filter: Upsampling filter. It can be ``'gaussian'``, ``'bilinear'``, ``'bicubic'``,
+        ``'sinc'`` or a custom ``torch.Tensor`` filter. If ``None``, no filtering is applied.
+    :param tuple[int] img_size: size of the output image
+    :param int factor: upsampling factor
+    :param str padding: options are ``'circular'``, ``'replicate'`` and ``'reflect'``.
+    :param str device: cpu or cuda
+    """
+
+    def __init__(
+        self,
+        img_size,
+        filter=None,
+        factor=2,
+        padding="circular",
+        device="cpu",
+        **kwargs,
+    ):
+
+        assert (
+            padding != "valid"
+        ), "Padding 'valid' is not supported for Upsampling operator."
+
+        super().__init__(
+            img_size=img_size,
+            filter=filter,
+            factor=factor,
+            padding=padding,
+            device=device,
+            **kwargs,
+        )
+
+    def A(self, x, **kwargs):
+        return super().A_adjoint(x, **kwargs)
+
+    def A_adjoint(self, y, **kwargs):
+        return super().A(y, **kwargs)
+
+    def prox_l2(self, z, y, gamma, **kwargs):
+        return super().prox_l2(z, y, gamma, **kwargs)
+
+
 class Blur(LinearPhysics):
     r"""
 

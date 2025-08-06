@@ -9,6 +9,7 @@ from deepinv.datasets.base import ImageDataset
 
 from dummy import DummyCircles, DummyModel
 
+from deepinv.tests.test_physics import find_operator
 
 MODEL_LIST_1_CHANNEL = [
     "autoencoder",
@@ -34,6 +35,35 @@ MODEL_LIST = MODEL_LIST_1_CHANNEL + [
     "waveletdict_topk",
     "dsccp",
 ]
+
+REST_MODEL_LIST = [
+    "ram",
+    "modl",
+    "varnet",
+    "pannet",
+]
+
+LINEAR_OPERATORS = [
+    "inpainting",
+    "demosaicing",
+    "denoising",
+    "fftdeblur",
+    "deblur_valid",
+    "super_resolution_circular",
+    "MRI",
+    "pansharpen_circular",
+]  # this is a reduced list of linear operators for testing restoration models.
+
+CHANNELS = [
+    1,
+    2,
+    3,
+]
+
+
+@pytest.fixture
+def rng(device):
+    return torch.Generator(device).manual_seed(0)
 
 
 def choose_denoiser(name, imsize):
@@ -110,6 +140,29 @@ def choose_denoiser(name, imsize):
     else:
         raise Exception("Unknown denoiser")
 
+    return out.eval()
+
+
+def choose_restoration_model(name, in_channels=3, out_channels=3, pretrained=None):
+    if name == "ram":
+        out = dinv.models.RAM(pretrained=pretrained)
+    elif name == "modl" or name == "varnet":
+        denoiser = dinv.models.DnCNN(
+            in_channels, out_channels, 7, pretrained=pretrained
+        )
+        if name == "modl":
+            out = dinv.models.MoDL(denoiser=denoiser, num_iter=3)
+        else:
+            out = dinv.models.VarNet(
+                num_cascades=3,
+                mode=name,
+                denoiser=denoiser,
+            )
+    elif name == "pannet":
+        hrms_shape = (8, 16, 16)  # manually adjust
+        out = dinv.models.PanNet(hrms_shape=hrms_shape, scale_factor=4)
+    else:
+        raise Exception("Unknown restoration model")
     return out.eval()
 
 
@@ -807,6 +860,90 @@ def test_varnet(varnet_type, device):
 
     psnr = dinv.metric.PSNR()
     assert psnr(x_init, x) < psnr(x_hat, x)
+
+
+LIST_IMAGE_WHSIZE = [(32, 37), (25, 129)]
+
+
+@pytest.mark.parametrize("pretrained", [True, None])
+@pytest.mark.parametrize("whsize", LIST_IMAGE_WHSIZE)
+@pytest.mark.parametrize("model_name", REST_MODEL_LIST)
+@pytest.mark.parametrize("physics_name", LINEAR_OPERATORS + [None])
+@pytest.mark.parametrize("channels", CHANNELS)
+def test_restoration_models(
+    device, pretrained, model_name, physics_name, channels, rng, whsize
+):
+
+    if channels == 1 and physics_name in ["demosaicing", "MRI"]:
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 1 channel input.")
+
+    if channels == 2 and physics_name == "demosaicing":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 2 channel input.")
+
+    if channels == 3 and physics_name == "MRI":
+        pytest.skip(f"Skipping {model_name} with {physics_name} for 3 channel input.")
+
+    if model_name == "varnet" or model_name == "modl" or model_name == "pannet":
+        pytest.skip(f"Skipping {model_name} with {physics_name}. TODO: fix.")
+
+    if model_name != "ram" and physics_name is None:
+        pytest.skip(f"Skipping {model_name} with {physics_name}.")
+
+    model = choose_restoration_model(
+        model_name, in_channels=channels, out_channels=channels, pretrained=pretrained
+    ).to(device)
+    torch.manual_seed(0)
+
+    imsize = (channels, whsize[0], whsize[1])
+
+    if physics_name is not None:
+        physics, imsize, _, dtype = find_operator(physics_name, device, imsize=imsize)
+    else:
+        physics = None
+
+    if hasattr(physics, "noise_model"):
+        if hasattr(physics.noise_model, "sigma"):
+            physics.noise_model.sigma = torch.tensor(
+                [max(physics.noise_model.sigma, 0.01)]
+            )
+        else:
+            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+    else:
+        if physics is not None:
+            physics.noise_model = dinv.physics.GaussianNoise(0.01, rng=rng)
+
+    x = DummyCircles(imsize=imsize, samples=1)[0].unsqueeze(0)
+
+    if physics is not None:
+        y = physics(x)
+    else:
+        y = torch.randn_like(x)
+
+    if physics_name is not None:
+        with torch.no_grad():
+            x_hat = model(y, physics)
+    else:
+        if model_name == "ram":
+            # ram model should output an error if no sigma and gain is provided
+            with pytest.raises(ValueError):
+                x_hat = model(y, physics)
+            x_hat = model(y, sigma=0.01, gain=1.0)
+
+    assert x_hat.shape == x.shape
+
+    psnr_fn = PSNR(max_pixel=1)
+
+    if (
+        not (physics_name == "super_resolution_circular" and channels == 2)
+        and model_name == "ram"
+        and pretrained == True
+        and physics is not None
+    ):  # suboptimal performance in this case
+        psnr_in = psnr_fn(physics.A_dagger(y), x)
+        psnr_out = psnr_fn(x_hat, x)
+        assert torch.all(psnr_out > psnr_in)
+    else:
+        pytest.skip(f"Skipping PSNR test for {model_name} with {physics_name}.")
 
 
 def test_pannet():

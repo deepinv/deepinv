@@ -105,7 +105,12 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - Unrolled
      - Any C, H, W
      - RGB
-     - Yes    
+     - Yes
+   * - :class:`deepinv.models.RAM`
+     - CNN-UNet
+     - C=1, 2, 3; H,W>8
+     - C=1, 2, 3
+     - Yes
 
 .. _non-learned-denoisers:
 

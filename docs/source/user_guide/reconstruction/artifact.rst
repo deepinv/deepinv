@@ -15,9 +15,27 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
 - | Direct: :math:`\inversef{y}{A}=\phi(y)` with ``mode='direct'``.
   | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
 
+
 .. _general_reconstructors:
 
-General reconstructors
-----------------------
+General reconstruction models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+We provide the following list of reconstruction models trained on multiple various physics and datasets
+to provide robustness to different problems.
 
-TODO TEMP THIS WILL BE OVERRIDEN BY RAM PR
+See :ref:`pretrained-weights` for more information on pretrained denoisers.
+
+.. list-table:: Multiphysics reconstruction models
+   :widths: 15 25 15 15 10
+   :header-rows: 1
+
+   * - Model
+     - Type
+     - Tensor Size (C, H, W)
+     - Pretrained Weights
+     - Noise level aware
+   * - :class:`deepinv.models.RAM`
+     - CNN-UNet
+     - C=1, 2, 3; H,W>8
+     - C=1, 2, 3
+     - Yes

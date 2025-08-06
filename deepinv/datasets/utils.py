@@ -16,8 +16,8 @@ from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 from torchvision.transforms.functional import crop as torchvision_crop
 
-from deepinv.utils.plotting import rescale_img
 from deepinv.datasets.base import ImageDataset
+from deepinv.utils import normalize_signal
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -165,7 +165,7 @@ class Rescale(Module):
 
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
-        return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
+        return normalize_signal(x.unsqueeze(0), mode=self.rescale_mode).squeeze(0)
 
 
 class ToComplex(Module):

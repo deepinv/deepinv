@@ -56,6 +56,18 @@ class TensorList:
         """
         return TensorList([xi.cpu() for xi in self.x])
 
+    def abs(self):
+        r"""
+        Returns a TensorList with the absolute value of each tensor.
+        """
+        return TensorList([xi.abs() for xi in self.x])
+
+    def max(self):
+        r"""
+        Returns a TensorList with the maximum value of each tensor.
+        """
+        return TensorList([xi.max() for xi in self.x])
+
     def numpy(self):
         r"""
         Returns a list of numpy arrays.
