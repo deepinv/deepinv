@@ -230,7 +230,11 @@ physics_generator = dinv.physics.generator.RandomMaskGenerator(
 )
 
 path = dinv.datasets.generate_dataset(
-    dataset, physics, save_dir="data", physics_generator=physics_generator
+    dataset,
+    physics,
+    save_dir="data",
+    physics_generator=physics_generator,
+    device=device,
 )
 
 dataset = dinv.datasets.HDF5Dataset(path, load_physics_generator_params=True)
