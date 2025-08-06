@@ -10,7 +10,7 @@ We show three sets of general pretrained reconstruction methods, including:
 * :ref:`Plug-and-play <iterative>` with a pretrained denoiser.
 * Pretrained :ref:`diffusion model <diffusion>`;
 
-See :ref:`User Guide <pretrained-reconstructors>` for a principled comparison between methods demonstrated in this example.
+See :ref:`User Guide <pretrained-models>` for a principled comparison between methods demonstrated in this example.
 
 .. tip::
 

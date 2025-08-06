@@ -1,4 +1,4 @@
-.. _pretrained-reconstructors:
+.. _pretrained-models:
 
 Pretrained models
 ~~~~~~~~~~~~~~~~~
@@ -63,53 +63,66 @@ These models can be set-up in one line and perform inference in another line:
 Description of weights
 ~~~~~~~~~~~~~~~~~~~~~~
 
-For each model (denoiser or reconstructor) that has pretrained weights, we briefly summarize the origin of the weights,
+For each model (:class:`Denoiser <deepinv.models.Denoiser>` or :class:`Reconstructor <deepinv.models.Reconstructor>`) that has pretrained weights, we briefly summarize the origin of the weights,
 associated reference and relevant details. All pretrained weights are hosted on
 `HuggingFace <https://huggingface.co/deepinv>`_.
 
 Click on the model name to learn more about the type of model and use `pretrained=True` to use the pretrained weights.
 
 .. list-table:: Summary of pretrained weights
-   :widths: 25 25
+   :widths: 25 10 25
    :header-rows: 1
 
    * - Model
+     - Type
      - Weight
    * - :class:`deepinv.models.DnCNN`
+     - Denoiser
      - Default weights from `Learning Maximally Monotone Operators <https://github.com/matthieutrs/LMMO_lightning>`_
        trained on noise level 2.0/255:
        `DnCNN grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_gray.pth?download=true>`_, `DnCNN color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_color.pth?download=true>`_.
-   * - 
+   * -
+     -
      - Alternative weights trained on noise level 2.0/255 with Lipschitz constraint to ensure approximate firm nonexpansiveness:
        `Non-expansive DnCNN grayscale weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_gray.pth?download=true>`_, `Non-expansive DnCNN color weights <https://huggingface.co/deepinv/dncnn/resolve/main/dncnn_sigma2_lipschitz_color.pth?download=true>`_.
    * - :class:`deepinv.models.DRUNet`
+     - Denoiser
      - Default weights trained with deepinv `(logs) <https://wandb.ai/matthieu-terris/drunet?workspace=user-matthieu-terris>`_, trained on noise levels in [0, 20]/255
        and on the same dataset as DPIR:
        `DRUNet grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_gray.pth?download=true>`_, `DRUNet color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_deepinv_color.pth?download=true>`_.
    * -
+     -
      - Alternative weights from `DPIR <https://github.com/cszn/DPIR>`_,
        trained on noise levels in [0, 50]/255. `DRUNet original grayscale weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_gray.pth?download=true>`_, `DRUNET original color weights <https://huggingface.co/deepinv/drunet/resolve/main/drunet_color.pth?download=true>`_.
    * - :class:`deepinv.models.GSDRUNet`
+     - Denoiser
      - Weights from `Gradient-Step PnP <https://github.com/samuro95/GSPnP>`_, trained on noise levels in [0, 50]/255:
        `GSDRUNet color weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet.ckpt>`_ and `GSDRUNet grayscale weights <https://huggingface.co/deepinv/gradientstep/blob/main/GSDRUNet_grayscale_torch.ckpt>`_.
    * - :class:`deepinv.models.SCUNet`
+     - Denoiser
      - Weights from `SCUNet <https://github.com/cszn/SCUNet>`_,
        trained on images degraded with synthetic realistic noise and camera artefacts. `SCUNet color weights <https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth?download=true>`_.
    * - :class:`deepinv.models.SwinIR`
+     - Denoiser
      - Weights from `SwinIR <https://github.com/JingyunLiang/SwinIR>`_, trained on various noise levels levels in {15, 25, 50}/255, in color and grayscale.
        The weights are automatically downloaded from the authors' `project page <https://github.com/JingyunLiang/SwinIR/releases>`_.
    * - :class:`deepinv.models.DiffUNet`
+     - Denoiser
      - Default weights from `Ho et al. <https://arxiv.org/abs/2108.02938>`_ trained on FFHQ (128 hidden channels per layer):
        `DiffUNet weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_ffhq_10m.pt?download=true>`_.
    * -
+     -
      - Alternative weights from `Dhariwal and Nichol <https://arxiv.org/abs/2105.05233>`_ trained on ImageNet128 (256 hidden channels per layer):
        `DiffUNet weights <https://huggingface.co/deepinv/diffunet/resolve/main/diffusion_openai.pt?download=true>`_.
    * - :class:`deepinv.models.EPLLDenoiser`
+     - Denoiser
      - Weights estimated with deepinv on 50 mio patches from the training/validation images from BSDS500 for grayscale and color images.
        Code for generating the weights for the example :ref:`patch-prior-demo` is contained within the demo.
    * - :class:`deepinv.models.Restormer`
+     - Denoiser
      - Weights from `Restormer: Efficient Transformer for High-Resolution Image Restoration <https://arxiv.org/abs/2111.09881>`_:
        `Restormer weights <https://github.com/swz30/Restormer/tree/main>`_,
        also available on the `deepinverse Restormer HuggingfaceHub <https://huggingface.co/deepinv/Restormer/tree/main>`_.
    * - :class:`deepinv.models.RAM`
+     - Reconstructor/Denoiser
      - Weights from `Terris et al. <https://github.com/matthieutrs/ram>`_ :footcite:t:`terris2025reconstruct`. Pretrained weights from `RAM HuggingfaceHub <https://huggingface.co/mterris/ram>`_.

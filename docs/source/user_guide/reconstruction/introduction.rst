@@ -11,7 +11,7 @@ which recovers a signal :math:`x` from measurements :math:`y` given an operator 
 
 .. seealso::
   
-  See :ref:`pretrained reconstructors <pretrained-reconstructors>` for ready-to-use pretrained reconstruction algorithms
+  See :ref:`pretrained reconstructors <pretrained-models>` for ready-to-use pretrained reconstruction algorithms
   that you can use to reconstruct images in one line.
 
 Defining your own reconstructor

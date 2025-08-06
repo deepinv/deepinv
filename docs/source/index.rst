@@ -33,7 +33,7 @@ Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/a
 ``deepinv`` features
 
 * A large framework of :ref:`predefined imaging operators <physics_intro>`
-* Many :ref:`state-of-the-art deep neural networks <reconstructors>`, including pretrained out-of-the-box :ref:`reconstruction models <pretrained-reconstructors>` and :ref:`denoisers <denoisers>`
+* Many :ref:`state-of-the-art deep neural networks <reconstructors>`, including pretrained out-of-the-box :ref:`reconstruction models <pretrained-models>` and :ref:`denoisers <denoisers>`
 * Comprehensive frameworks for :ref:`plug-and-play restoration <iterative>`, :ref:`optimization <optim>` and :ref:`unfolded architectures <unfolded>`
 * :ref:`Training losses <loss>` for inverse problems
 * :ref:`Sampling algorithms and diffusion models <sampling>` for uncertainty quantification

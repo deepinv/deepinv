@@ -135,7 +135,7 @@ dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_n
 # **reconstructs** images from `y` and knowledge of `physics`.
 #
 # .. tip::
-#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.RAM>`, are :ref:`pretrained reconstructors <pretrained-reconstructors>` and can
+#     Many models, such as :class:`Reconstruct Anything Model <deepinv.models.RAM>`, are :ref:`pretrained reconstructors <pretrained-models>` and can
 #     be used out of the box. See :ref:`sphx_glr_auto_examples_basics_demo_pretrained_model.py` for a full example.
 #
 
