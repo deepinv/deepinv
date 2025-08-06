@@ -42,7 +42,8 @@ import torch
 #
 # .. tip::
 #     You can also define the adjoint automatically using autograd with :class:`deepinv.physics.adjoint_function`.
-#     Note however that defining a closed form adjoint is generally more efficient.
+#     This is done by default if `A_adjoint` is not implemented.
+#     Note however that defining a closed form adjoint is generally more computationally efficient in memory and time.
 #
 # .. note::
 #     To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>`_ by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel.
@@ -71,15 +72,6 @@ class Decolorize(dinv.physics.LinearPhysics):
         y = x * self.coefficients[None, :, None, None]
         return torch.sum(y, dim=1, keepdim=True)
 
-    def A_adjoint(self, y: torch.Tensor, theta: torch.Tensor = None) -> torch.Tensor:
-        """Adjoint operator.
-
-        :param torch.Tensor y: input grayscale measurements
-        :param torch.Tensor theta: an optional parameter that is not used here
-        :return: torch.Tensor adjoint reconstruction
-        """
-        return y * self.coefficients[None, :, None, None]
-
 
 # %%
 # Test physics
@@ -98,27 +90,51 @@ x[:, 0, :32, :] = 1
 x[:, 1, 32:64, :] = 1
 x[:, 2, 64:, :] = 1
 
-physics = Decolorize(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+physics = Decolorize(
+    img_size=(3, 96, 128), noise_model=dinv.physics.GaussianNoise(sigma=0.1)
+)
 
 y = physics(x)
 
 dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 
-
 # %%
-# Verifying our linear operator
-# --------------------------------------------
-#
-# If the operator is indeed linear, you should verify that the transpose is well-defined using
-# :func:`deepinv.physics.LinearPhysics.adjointness_test`.
-#
 # It is often useful for reconstruction algorithms that the physics has unit norm, which you can verify using :func:`deepinv.physics.LinearPhysics.compute_norm`.
 # We see that this physics fails this.
 
-if physics.adjointness_test(x) < 1e-5:
-    print("The linear operator has a well defined transpose")
-
 print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
+
+# %%
+# Implementing a closed form adjoint
+# --------------------------------------------
+# Instead, if we know the closed form of the adjoint operator, we can implement it directly in
+# :func:`deepinv.physics.LinearPhysics.A_adjoint`, instead of relying on
+# :func:`autodifferentiation <deepinv.physics.adjoint_function>` which is generally less efficient.
+#
+# An additional benefit of implementing the adjoint is that we no longer require the `img_size` parameter when creating the
+# operator, which was needed for autodifferentiation.
+#
+# If you implement your own adjoint, it is recommended to verify that it is well-defined using
+# :func:`deepinv.physics.LinearPhysics.adjointness_test`.
+
+
+class Decolorize2(Decolorize):
+    """Override previous Decolorize using a closed-form adjoint."""
+
+    def A_adjoint(self, y: torch.Tensor, theta: torch.Tensor = None) -> torch.Tensor:
+        """Closed-form adjoint operator.
+
+        :param torch.Tensor y: input grayscale measurements
+        :param torch.Tensor theta: an optional parameter that is not used here
+        :return: torch.Tensor adjoint reconstruction
+        """
+        return y * self.coefficients[None, :, None, None]
+
+
+physics = Decolorize2()
+
+if physics.adjointness_test(x) < 1e-5:
+    print("The linear operator has a well defined adjoint")
 
 # %%
 # Creating a decomposable forward operator.
@@ -132,6 +148,11 @@ print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 #   A = U\text{diag}(s)V^{\top}
 #
 # where :math:`\text{diag}(s)` is the `mask` of singular values.
+#
+#
+# .. tip::
+#    As in the case of `LinearPhysics`, `V` and `U_adjoint` are implemented using autodifferentiation by default,
+#    but you can implement them directly if you know the closed form of the operator.
 
 
 class DecolorizeSVD(dinv.physics.DecomposablePhysics):
@@ -139,6 +160,8 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
     Converts RGB images to grayscale.
 
     We use unnormalised coefficients and a singular value of 0.447.
+
+    Here, `U` and `U_adjoint` are set to the identity.
     """
 
     def __init__(self, **kwargs):
