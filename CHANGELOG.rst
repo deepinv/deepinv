@@ -10,6 +10,18 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+Changed
+^^^^^^^
+
+Fixed
+^^^^^
+
+
+v0.3.3
+------
+New Features
+^^^^^^^^^^^^
+
 - Automatic A_adjoint, U_adjoint and V computation for user-defined physics (:gh:`658` by `Julian Tachella`_)
 - Add RAM model (:gh:`524` by `Matthieu Terris`_)
 - FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
@@ -30,6 +42,8 @@ Fixed
 - Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
 - Clamp constant signals in `deepinv.utils.rescale_img` to ensure they are normalized (:gh:`641` by `Jérémy Scanvic`_)
 - Fix ZeroNoise default missing in Physics (:gh:`658` by `Julian Tachella`_)
+
+
 
 v0.3.2
 ------
