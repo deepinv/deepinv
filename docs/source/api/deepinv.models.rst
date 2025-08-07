@@ -73,6 +73,7 @@ Denoisers Utils
    :nosignatures:
 
    deepinv.models.EquivariantDenoiser
+   deepinv.models.EquivariantReconstructor
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
 

@@ -179,6 +179,9 @@ def test_transforms(transform_name, image, add_time_dim: bool, device, rng):
 
     if add_time_dim:
         image = torch.stack((image, image), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
 
     if transform_name in "randomphaseerror":
         image = image[:, :2]  # complex image
@@ -205,6 +208,9 @@ def test_transform_identity(
 ):
     if add_time_dim:
         pattern = torch.stack((pattern, pattern), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
 
     if transform_name == "randomphaseerror":
         pattern = pattern[:, :2]  # complex image
@@ -230,6 +236,34 @@ def test_transform_identity(
     )
 
 
+@pytest.mark.parametrize("transform_name", TRANSFORMS)
+@pytest.mark.parametrize("add_time_dim", ADD_TIME_DIM)
+def test_batchwise_transform(
+    transform_name, pattern, pattern_offset, add_time_dim: bool, device, rng
+):
+    if add_time_dim:
+        pattern = torch.stack((pattern, pattern), dim=2)
+        if "scale" in transform_name:
+            # Scale transform doesn't support time dim
+            pytest.skip("Scale transform does not support time dim")
+
+    if device.type != "cpu" and transform_name in (
+        "homography",
+        "euclidean",
+        "similarity",
+        "affine",
+        "pantiltrotate",
+    ):
+        # more reliable with a cpu rng here
+        rng = torch.Generator().manual_seed(0)
+
+    t = choose_transform(transform_name, device=device, rng=rng)
+    params = t.get_params(pattern)
+    x1 = t(pattern, **params)
+    x2 = t(torch.cat([pattern] * t.n_trans), batchwise=False, **params)
+    assert torch.allclose(x1, x2)
+
+
 def test_rotate_90():
     # Test if rotate with theta=90 results in exact pixel rotation
     x = torch.randn(1, 2, 16, 16)
@@ -245,12 +279,21 @@ def test_batch_size(batch_size):
     transform = dinv.transform.Rotate(multiples=90, n_trans=3) * dinv.transform.Reflect(
         dim=[-1], n_trans=2
     )
-    x = torch.randn(batch_size, 2, 16, 16)
+    x = torch.ones(batch_size, 1, 16, 16)
+    x[..., :2:, :] = 0
     xt = transform.identity(x, average=True)
     assert torch.allclose(x, xt)
 
     # Test still works when collate_batch is False
     xt = transform.symmetrize(lambda x: x, average=True, collate_batch=False)(x)
+    assert torch.allclose(x, xt)
+
+    # Test model symmetrization
+    physics = dinv.physics.Denoising()
+    model = dinv.models.ArtifactRemoval(backbone_net=lambda x, sigma: x)
+    xt = transform.symmetrize(model, average=True, collate_batch=False)(x, physics)
+    assert torch.allclose(x, xt)
+    xt = transform.symmetrize(model, average=True, collate_batch=True)(x, physics)
     assert torch.allclose(x, xt)
 
 

@@ -20,7 +20,11 @@ from .forward import (
     DecomposablePhysics,
     adjoint_function,
     stack,
+    ComposedPhysics,
+    ComposedLinearPhysics,
+    compose,
 )
+
 from .noise import (
     NoiseModel,
     ZeroNoise,
