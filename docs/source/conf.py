@@ -20,7 +20,7 @@ sys.path.insert(0, basedir)
 
 from deepinv.utils.plotting import set_default_plot_fontsize
 
-set_default_plot_fontsize(9)
+set_default_plot_fontsize(12)
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information

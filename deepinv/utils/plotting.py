@@ -932,7 +932,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=9,
+    fontsize=None,
     interpolation="nearest",
 ):
     r"""
