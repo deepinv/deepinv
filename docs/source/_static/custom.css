@@ -45,31 +45,26 @@ a.sphx-glr-backref-instance {
     display: block;
 }
 
-
-/* Make the “horizontal” gallery vertical, centered, and pretty */
 ul.sphx-glr-horizontal {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
-    margin: 2rem auto;
+    gap: 10px !important;
     padding: 0;
+    margin: 0 auto;
     list-style: none;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-/* Each “cell” just wraps its image, no forced width */
 ul.sphx-glr-horizontal li {
     margin: 0;
     padding: 0;
 }
 
-/* Style the images themselves */
 ul.sphx-glr-horizontal li img.sphx-glr-multi-img {
     display: block;
-    max-width: 90vw;
-    width: auto;
+    max-width: 100%;
     height: auto;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
