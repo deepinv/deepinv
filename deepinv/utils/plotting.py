@@ -314,6 +314,7 @@ def plot(
             len(imgs),
             figsize=figsize,
             squeeze=False,
+            layout="compressed" if tight else "constrained",
         )
 
     if suptitle:
@@ -423,6 +424,7 @@ def scatter_plot(
         len(scatters),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
@@ -469,7 +471,9 @@ def plot_curves(metrics, save_dir=None, show=True):
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
     fig, axs = plt.subplots(
-        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+        1,
+        len(metrics.keys()),
+        figsize=(6 * len(metrics.keys()), 4),
     )
     for i, metric_name in enumerate(metrics.keys()):
         metric_val = metrics[metric_name]
@@ -1030,6 +1034,7 @@ def plot_ortho3D(
         len(imgs),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
