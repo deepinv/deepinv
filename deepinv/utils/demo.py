@@ -255,7 +255,7 @@ def load_example(name, **kwargs):
     url = get_image_url(name)
 
     if name.split(".")[-1].lower() == "pt":
-        return load_torch_url(url)
+        return load_torch_url(url, **kwargs)
 
     return load_url_image(url, **kwargs)
 
@@ -273,7 +273,7 @@ def download_example(name: str, save_dir: Union[str, Path]):
         f.write(data)
 
 
-def load_torch_url(url, device="cpu"):
+def load_torch_url(url, device="cpu", **kwargs):
     r"""
     Load an array from url and read it by torch.load.
 
@@ -281,7 +281,7 @@ def load_torch_url(url, device="cpu"):
     :param str, torch.device device: Device on which to load the tensor.
     :return: whatever is pickled in the file.
     """
-    return torch.load(load_url(url), weights_only=True, map_location=device).to(device)
+    return torch.load(load_url(url), weights_only=True, map_location=device)
 
 
 def load_np_url(url=None):
