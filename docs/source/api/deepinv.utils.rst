@@ -76,4 +76,5 @@ Other
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
     deepinv.utils.load_torch_url
+    deepinv.utils.load_np_url
     deepinv.utils.dirac_like

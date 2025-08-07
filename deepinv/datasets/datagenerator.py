@@ -180,7 +180,7 @@ def generate_dataset(
     The generated dataset contains `train` and `test` splits.
 
     The base dataset of ground-truth images must return tensors `x` or tuples `(x, ...)`. We provide a large library of predefined
-    popular imaging datasets. See :ref:`datasets User Guide <datasets>` for more information.
+    popular imaging datasets. See :ref:`datasets user guide <datasets>` for more information.
 
     Optionally, if random physics generator is used to generate data, also save physics generator params.
     This is useful e.g. if you are performing a parameter estimation task and want to evaluate the learnt parameters,

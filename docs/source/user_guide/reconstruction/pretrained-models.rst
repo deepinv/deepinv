@@ -1,7 +1,10 @@
 .. _pretrained-models:
 
 Pretrained models
-~~~~~~~~~~~~~~~~~
+=================
+
+Pretrained reconstructors
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some methods do not require any training and can be quickly deployed to your problem.
 
@@ -49,6 +52,10 @@ These models can be set-up in one line and perform inference in another line:
      - :ref:`Diffusion <diffusion>` w/ pretrained denoiser
      - General
      - Slow
+   * - :ref:`Pretrained denoisers <pretrained-weights>`
+     - Feedforward
+     - Denoising
+     - Fast
 
 .. tip::
 

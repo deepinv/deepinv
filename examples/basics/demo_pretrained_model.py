@@ -68,7 +68,7 @@ x_hat2 = model(y, physics)
 
 model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 10)).to(device)
 
-y = y[..., :64, :64]
+y = torch.nn.functional.interpolate(y, (64, 64))
 
 physics = dinv.physics.BlurFFT(
     y.shape[1:],
@@ -84,6 +84,7 @@ x_hat3 = model(y, physics)
 dinv.utils.plot(
     {
         "Ground truth": x,
+        "Blurred measurement": y,
         "Pretrained RAM": x_hat1,
         "Pretrained PnP": x_hat2,
         "Pretrained diffusion": x_hat3,

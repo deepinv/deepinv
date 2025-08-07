@@ -41,8 +41,7 @@ import torch
 # computing the proximal operator, etc.
 #
 # .. tip::
-#     You can also define the adjoint automatically using autograd with :class:`deepinv.physics.adjoint_function`.
-#     This is done by default if `A_adjoint` is not implemented.
+#     By default, the adjoint of a :class:`LinearPhysics <deepinv.physics.LinearPhysics>` is computed using autograd with :class:`deepinv.physics.adjoint_function`.
 #     Note however that defining a closed form adjoint is generally more computationally efficient in memory and time.
 #
 # .. note::
@@ -62,13 +61,18 @@ class Decolorize(dinv.physics.LinearPhysics):
         coefficients = torch.tensor([0.2989, 0.5870, 0.1140], dtype=torch.float32)
         self.register_buffer("coefficients", coefficients)
 
-    def A(self, x: torch.Tensor, theta: torch.Tensor = None) -> torch.Tensor:
+    def A(
+        self, x: torch.Tensor, coefficients: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         """Forward operator.
 
         :param torch.Tensor x: input image with 3 colour (RGB) channels, i.e. [*,3,*,*]
-        :param torch.Tensor theta: an optional parameter that is not used here
+        :param torch.Tensor coefficients: optionally set coefficients on the fly
+        :param dict kwargs: any other keyword parameters to set on the fly, such as noise model sigma
         :return: torch.Tensor grayscale measurements
         """
+        super().update_parameters(coefficients=coefficients, **kwargs)
+
         y = x * self.coefficients[None, :, None, None]
         return torch.sum(y, dim=1, keepdim=True)
 
@@ -105,6 +109,30 @@ dinv.utils.plot({"x": x, "y": y, "Linear pseudo-inverse": physics.A_dagger(y)})
 print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 
 # %%
+# All parameters or buffers of the physics, such as `coefficients` in the case of `Decolorize`, can be updated on the fly
+# with `physics.update(**params)` or in the forward pass `physics(x, **params)`:
+
+print(
+    "Original coefficients and sigma:", physics.coefficients, physics.noise_model.sigma
+)
+
+physics.update(coefficients=torch.tensor([1.0, 2.0, 3.0]), sigma=0.2)
+
+print(
+    "Updated coefficients and sigma via update:",
+    physics.coefficients,
+    physics.noise_model.sigma,
+)
+
+y = physics(x, coefficients=torch.tensor([4.0, 5.0, 6.0]), sigma=0.3)
+
+print(
+    "Updated coefficients and sigma via forward pass:",
+    physics.coefficients,
+    physics.noise_model.sigma,
+)
+
+# %%
 # Implementing a closed form adjoint
 # --------------------------------------------
 # Instead, if we know the closed form of the adjoint operator, we can implement it directly in
@@ -121,13 +149,18 @@ print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 class Decolorize2(Decolorize):
     """Override previous Decolorize using a closed-form adjoint."""
 
-    def A_adjoint(self, y: torch.Tensor, theta: torch.Tensor = None) -> torch.Tensor:
+    def A_adjoint(
+        self, y: torch.Tensor, coefficients: torch.Tensor = None, **kwargs
+    ) -> torch.Tensor:
         """Closed-form adjoint operator.
 
         :param torch.Tensor y: input grayscale measurements
-        :param torch.Tensor theta: an optional parameter that is not used here
+        :param torch.Tensor coefficients: optionally set coefficients on the fly
+        :param dict kwargs: any other keyword parameters to set on the fly, such as noise model sigma
         :return: torch.Tensor adjoint reconstruction
         """
+        super().update_parameters(coefficients=coefficients, **kwargs)
+
         return y * self.coefficients[None, :, None, None]
 
 
@@ -215,3 +248,9 @@ end = time.time()
 print(f"Elapsed time for DecomposablePhysics: {end - start:.2e} seconds")
 
 # %%
+# 🎉 Well done, you now know how to implement your own physics!
+#
+# What's next?
+# ~~~~~~~~~~~~
+# * Check out :ref:`the example on how to inference a state-of-the-art general pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>` with your new physics.
+# * Check out the :ref:`example on how to fine-tune a foundation model <sphx_glr_auto_examples_models_demo_foundation_model.py>` to your own physics.

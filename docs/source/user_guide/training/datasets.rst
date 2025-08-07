@@ -9,7 +9,7 @@ Datasets can be either:
 
 * Loaded in from your own data, see :ref:`base datasets <base-datasets>` for desired format;
 * Paired dataset generated synthetically from ground-truth, see :ref:`generating datasets <generating-datasets>`;
-* A predefined dataset, see :ref:`predefined datasets <predefined-datasets>`.
+* A public dataset, such as DIV2K or FastMRI, see :ref:`predefined datasets <predefined-datasets>`.
 
 .. _base-datasets:
 
@@ -48,6 +48,8 @@ We provide dataset classes for you to easily load in your own data:
      - Dataset that loads images (ground-truth, measurements or both) from a folder
    * - :class:`deepinv.datasets.TensorDataset`
      - Dataset that returns tensor(s) passed in at input: either tensor(s) for a single observation or a whole dataset of them
+   * - :class:`deepinv.datasets.HDF5Dataset`
+     - Dataset of measurements generated using :func:`deepinv.datasets.generate_dataset`, see :ref:`below <generating-datasets>` for how to use.
 
 .. _generating-datasets:
 

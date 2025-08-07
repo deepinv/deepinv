@@ -9,7 +9,7 @@ Training requires these components, all of which you can define with DeepInverse
 
 * A `model` to be trained from :ref:`reconstructors <reconstructors>` or define your own.
 * A `physics` from our :ref:`list of physics <physics>`. Or, :ref:`bring your own physics <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`.
-* A `dataset` of images and/or measurements from :ref:`datasets <datasets>`, or :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`.
+* A `dataset` of images and/or measurements from :ref:`datasets <datasets>`. Or, :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>`.
 * A `loss` from our :ref:`loss functions <loss>`.
 * A `metric` from our :ref:`metrics <metric>`.
 

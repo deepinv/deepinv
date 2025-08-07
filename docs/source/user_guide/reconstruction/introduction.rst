@@ -39,9 +39,9 @@ For the models that require training, you can do this using the :ref:`trainer <t
      - **Requires Training**
      - **Iterative**
      - **Sampling**
-   * - :ref:`Artifact Removal <artifact>`
-     - Applies a neural network to a non-learned pseudo-inverse
-     - Yes
+   * - :ref:`Deep Reconstruction Models <deep-reconstructors>`
+     - Deep model architectures for reconstruction.
+     - No if pretrained, yes otherwise
      - No
      - No
    * - :ref:`Plug-and-Play (PnP) <iterative>`
@@ -74,14 +74,9 @@ For the models that require training, you can do this using the :ref:`trainer <t
      - No
      - Yes
      - Depends
-   * - :ref:`Multi-physics models <general_reconstructors>`
+   * - :ref:`Multi-physics models <general-reconstructors>`
      - Models trained on multiple various physics and datasets for robustness to different problems.
      - No
-     - No
-     - No
-   * - :ref:`Specific network architectures <specific>`
-     - Off-the-shelf architectures for specific inverse problems.
-     - Yes
      - No
      - No
 

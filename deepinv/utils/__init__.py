@@ -25,6 +25,7 @@ from .demo import (
     get_degradation_url,
     download_example,
     load_torch_url,
+    load_np_url,
 )
 from .nn import get_freer_gpu
 from .tensorlist import (

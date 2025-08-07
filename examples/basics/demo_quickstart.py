@@ -97,12 +97,20 @@ physics.update(**params)
 y = physics(x)
 
 # Generate new random params
-params = physics_generator.step()
+params2 = physics_generator.step()
 
 # You can also directly update physics during forward call
-y2 = physics(x, **params)
+y2 = physics(x, **params2)
 
-dinv.utils.plot({"GT": x, "Blurred": y, "Blurred 2": y2})
+dinv.utils.plot(
+    {
+        "GT": x,
+        "Blurred...": y,
+        "... with kernel": params["filter"],
+        "Blurred2...": y2,
+        "...with kernel2": params2["filter"],
+    }
+)
 
 # %%
 # Physics are powerful objects and :ref:`have many methods <physics_intro>`, for example a
@@ -112,7 +120,8 @@ dinv.utils.plot({"GT": x, "Blurred": y, "Blurred 2": y2})
 x_pinv = physics.A_dagger(y)
 
 # %%
-# The pseudo-inverse fails in the presence of noise:
+# As it is well-known in the field of inverse problems, the pseudo-inverse can give good results
+# if the problem is noiseless, but it completely fails in the presence of noise - this is why we need reconstructors!
 
 physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
@@ -185,8 +194,8 @@ dinv.utils.plot(
 # %%
 # DeepInverse covers
 # :ref:`many frameworks of reconstruction algorithms <reconstructors>`
-# including :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
-# (e.g. diffusion models), :ref:`unfolded models <unfolded>` and :ref:`foundation models <general_reconstructors>`.
+# including :ref:`deep model architectures <deep-reconstructors>`, :ref:`iterative algorithms <iterative>`, :ref:`sampling algorithms <sampling>`
+# (e.g. diffusion models), and :ref:`unfolded models <unfolded>`.
 #
 
 # Reconstruct Anything Model foundation model

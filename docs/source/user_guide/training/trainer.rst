@@ -14,7 +14,7 @@ and testing :func:`deepinv.Trainer.test` a model, and can be used to save and lo
     :class:`deepinv.Trainer`
         See here for full descriptions of options provided by Trainer and how you should provide your data.
 
-Training requires data. See our :ref:`datasets User Guide <datasets>` on how to use our predefined datasets,
+Training requires data. See our :ref:`datasets user guide <datasets>` on how to use our predefined datasets,
 how to use your own datasets with DeepInverse and how to generate datasets of measurements.
 
 .. note::
@@ -24,7 +24,7 @@ how to use your own datasets with DeepInverse and how to generate datasets of me
     * Pass a dataset of only ground truth `x` and use `online_measurements=True` to generate measurements on the fly;
     * When a dataset loads data as a 3-tuple of ``(x, y, params)`` Trainer will automatically load the parameters into the physics each iteration.
     * Pass a dataset of only measurements (i.e. no ground truth) using `(torch.nan, y)`
-    * See our :ref:`datasets User Guide <datasets>` for a tutorial!
+    * See our :ref:`datasets user guide <datasets>` for a tutorial!
 
 .. warning::
 

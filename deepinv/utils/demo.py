@@ -283,7 +283,7 @@ def load_example(name, **kwargs):
         - (3, 256, 256)
         - natural
       * - `mbappe.jpg`
-        - 
+        -
         - (3, 443, 664)
         - natural
       * - `CT100_256x256_0.pt`

@@ -111,13 +111,12 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         pretrained weights.
 
     .. grid-item-card::
-        :link: artifact
+        :link: deep-reconstructors
         :link-type: ref
 
-        :octicon:`law` **Artifact Removal**
+        :octicon:`law` **Deep Reconstruction Methods**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Reconstruction networks from denoisers
-        and other image-to-image networks.
+        Deep model architectures for reconstruction.
 
     .. grid-item-card::
         :link: optim
@@ -160,15 +159,6 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
 
-    .. grid-item-card::
-        :link: specific
-        :link-type: ref
-
-        :octicon:`sun` **Custom Reconstruction Networks**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Custom reconstruction methods and networks.
-
-
 .. toctree::
    :maxdepth: 2
    :hidden:
@@ -177,13 +167,12 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
    user_guide/reconstruction/introduction
    user_guide/reconstruction/pretrained-models
    user_guide/reconstruction/denoisers
-   user_guide/reconstruction/artifact
+   user_guide/reconstruction/deep-reconstructors
    user_guide/reconstruction/optimization
    user_guide/reconstruction/iterative
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
-   user_guide/reconstruction/specific
 
 
 Training, Testing and Utilities

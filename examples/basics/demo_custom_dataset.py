@@ -7,7 +7,7 @@ This example shows how to use DeepInverse with your own dataset.
 A dataset in DeepInverse can consist of optional ground-truth images `x`, measurements `y`, or
 :ref:`physics parameters <parameter-dependent-operators>` `params`, or any combination of these.
 
-See :ref:`datasets User Guide <datasets>` for the formats we expect data to be returned in
+See :ref:`datasets user guide <datasets>` for the formats we expect data to be returned in
 for compatibility with DeepInverse (e.g., to be used with :class:`deepinv.Trainer`).
 
 DeepInverse provides multiple ways of bringing your own dataset. This example has two parts:
@@ -82,11 +82,13 @@ print(x)
 # You already have tensors
 # ~~~~~~~~~~~~~~~~~~~~~~~~
 # Sometimes you might already have tensor(s). You can construct a dataset using
-# :class:`deepinv.datasets.TensorDataset`:
+# :class:`deepinv.datasets.TensorDataset`, for example here an unsupervised dataset
+# containing just a single measurement (and will be loaded in as a tuple `(nan, y)`):
 
 y = dinv.utils.load_example("butterfly_masked.png")
 
 dataset4 = dinv.datasets.TensorDataset(y=y)
+
 x, y = next(iter(DataLoader(dataset4)))
 print(x)
 
@@ -142,8 +144,20 @@ dinv.test(model, DataLoader(dataset2), physics, plot_images=True, device=device)
 
 # %%
 # Even if the dataset doesn't have ground truth:
+#
+# Here reference-metrics such as PSNR will give NaN due to lack of ground truth, but
+# no-reference metrics can be used.
 
-dinv.test(model, DataLoader(dataset3), physics, plot_images=True, device=device)
+metrics = [dinv.metric.PSNR(), dinv.metric.NIQE(device=device)]
+
+dinv.test(
+    model,
+    DataLoader(dataset3),
+    physics,
+    plot_images=True,
+    metrics=metrics,
+    device=device,
+)
 
 # %%
 # Generating measurements
@@ -180,3 +194,13 @@ dinv.test(
     device=device,
     online_measurements=True,
 )
+
+# %%
+# 🎉 Well done, you now know how to use your own dataset with DeepInverse!
+#
+# What's next?
+# ~~~~~~~~~~~~
+# * Check out :ref:`the example on how to test a state-of-the-art general pretrained model <sphx_glr_auto_examples_basics_demo_pretrained_model.py>` with your new dataset.
+# * Check out the :ref:`example on how to fine-tune a foundation model <sphx_glr_auto_examples_models_demo_foundation_model.py>` to your own data.
+# * Check out the :ref:`example on how to train a reconstruction model <sphx_glr_auto_examples_models_demo_training.py>` with your dataset.
+# * Advanced: how to :ref:`stream or download a dataset from HuggingFace <sphx_glr_auto_examples_external-libraries_demo_hf_dataset.py>`.

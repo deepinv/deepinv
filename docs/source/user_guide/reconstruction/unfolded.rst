@@ -87,3 +87,20 @@ Some more specific unfolded architectures are also available.
 
 The Primal-Dual Network (PDNet) uses :class:`deepinv.models.PDNet_PrimalBlock` and
 :class:`deepinv.models.PDNet_DualBlock` as building blocks for the primal and dual steps respectively.
+
+.. _predefined-unfolded:
+
+Predefined Unfolded Architectures
+---------------------------------
+We also provide some off-the-shelf unfolded network architectures,
+taken from the respective literatures.
+
+.. list-table:: Predefined unfolded architectures
+   :header-rows: 1
+
+   * - Model
+     - Description
+   * - :class:`deepinv.models.VarNet`
+     - VarNet/E2E-VarNet MRI reconstruction models
+   * - :class:`deepinv.models.MoDL`
+     - MoDL MRI reconstruction model
