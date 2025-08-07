@@ -344,7 +344,6 @@ class Transform(torch.nn.Module, TimeMixin):
                 # Step through n_trans (or combinations) one-by-one
                 out = []
                 for _params in self.iterate_params(params):
-                    print(_params)
                     out.append(
                         self.inverse(
                             f(self.transform(x, **_params), *args, **kwargs), **_params
