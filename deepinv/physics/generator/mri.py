@@ -130,7 +130,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         if batch_size == 0:
             mask = mask[0]
 
-        return {"mask": mask.to(self.device)}
+        return {"mask": mask}
 
 
 class RandomMaskGenerator(BaseMaskGenerator):
