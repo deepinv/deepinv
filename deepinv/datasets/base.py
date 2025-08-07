@@ -186,10 +186,6 @@ class TensorDataset(ImageDataset):
     ):
         super().__init__()
 
-        self.x = x
-        self.y = y
-        self.params = params
-
         if (
             isinstance(x, CORE_TYPES)
             and isinstance(y, CORE_TYPES)
@@ -205,7 +201,24 @@ class TensorDataset(ImageDataset):
         elif not self._is_none_or_nan(y) and not isinstance(y, CORE_TYPES):
             raise ValueError("y must be Tensor or TensorList.")
 
-    def _is_none_or_nan(self, x) -> bool:
+        self._x = x
+        self._y = y
+        self._params = params
+
+    @property
+    def x(self):
+        return self._x
+
+    @property
+    def y(self):
+        return self._y
+
+    @property
+    def params(self):
+        return self._params
+
+    @staticmethod
+    def _is_none_or_nan(x) -> bool:
         """
         Check if x is None or is nan
         """
