@@ -8,8 +8,9 @@ from deepinv.models import Denoiser
 
 class EDMPrecond(Denoiser):
     r"""
-    Pre-conditioning of a denoiser, as proposed in the paper:
-    `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+    Pre-conditioning of a denoiser for diffusion models. 
+    
+    As proposed in the paper :footcite:t:`karras2022elucidating`.
 
     Given a neural network :math:`\tilde{\mathrm{F}}`, the denoiser :math:`\denoiser{x}{\sigma}` is defined for
     any noisy image :math:`x` and noise level :math:`\sigma` as follows:
@@ -27,6 +28,9 @@ class EDMPrecond(Denoiser):
         c_{\mathrm{noise}}(\sigma) &= \log(\sigma) / 4
         \end{align}
 
+    |sep|
+    
+
     """
 
     def __init__(
@@ -42,7 +46,9 @@ class EDMPrecond(Denoiser):
 
     def forward(self, x, sigma, class_labels=None, force_fp32=False, **model_kwargs):
         x = x.to(torch.float32)
-        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
         dtype = (
@@ -65,22 +71,3 @@ class EDMPrecond(Denoiser):
         assert F_x.dtype == dtype
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         return D_x
-
-    @staticmethod
-    def _handle_sigma(sigma, dtype, device, batch_size):
-        if isinstance(sigma, torch.Tensor):
-            if sigma.ndim == 0:
-                return sigma[None].to(device, dtype).view(-1, 1, 1, 1)
-            elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype).view(-1, 1, 1, 1)
-
-            else:
-                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
-
-        elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype).reshape(-1, 1, 1, 1)
-        else:
-            raise ValueError("Unsupported sigma type.")

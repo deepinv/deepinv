@@ -8,18 +8,16 @@ from torch.optim import Adam
 from deepinv.physics import Physics
 from deepinv.loss import MCLoss
 from .base import Reconstructor
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class PatchGANDiscriminator(nn.Module):
     r"""PatchGAN Discriminator model.
 
-     This discriminator model was originally proposed in `Image-to-Image Translation with Conditional Adversarial
-     Networks <https://arxiv.org/abs/1611.07004>`_ (Isola et al.) and classifies whether each patch of an image is real
-     or fake.
+    This discriminator model was originally proposed by :footcite:t:`isola2017image` and classifies whether each patch of an image is real
+    or fake.
 
-    Implementation adapted from `DeblurGAN: Blind Motion Deblurring Using Conditional Adversarial Networks
-    <https://openaccess.thecvf.com/content_cvpr_2018/papers/Kupyn_DeblurGAN_Blind_Motion_CVPR_2018_paper.pdf>`_
-    (Kupyn et al.).
+    Implementation adapted from :footcite:t:`kupyn2018deblurgan`.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
@@ -103,19 +101,21 @@ class PatchGANDiscriminator(nn.Module):
 class ESRGANDiscriminator(nn.Module):
     r"""ESRGAN Discriminator.
 
-    The ESRGAN discriminator model was originally proposed in `ESRGAN: Enhanced Super-Resolution Generative Adversarial
-    Networks <https://arxiv.org/abs/1809.00219>`_ (Wang et al.). Implementation taken from
+    The ESRGAN discriminator model was originally proposed by :footcite:t:`wang2018esrgan`. Implementation taken from
     https://github.com/edongdongchen/EI/blob/main/models/discriminator.py.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
-    :param tuple input_shape: shape of input image
+    :param tuple img_size: shape of input image
+
+
     """
 
-    def __init__(self, input_shape: tuple):
+    @_deprecated_alias(input_shape="img_size")
+    def __init__(self, img_size: tuple):
         super().__init__()
-        self.input_shape = input_shape
-        in_channels, in_height, in_width = self.input_shape
+        self.img_size = img_size
+        in_channels, in_height, in_width = self.img_size
         patch_h, patch_w = int(in_height / 2**4), int(in_width / 2**4)
         self.output_shape = (1, patch_h, patch_w)
 
@@ -158,14 +158,15 @@ class ESRGANDiscriminator(nn.Module):
 class DCGANDiscriminator(nn.Module):
     r"""DCGAN Discriminator.
 
-    The DCGAN discriminator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
-    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.). Implementation taken from
+    The DCGAN discriminator model was originally proposed by :footcite:t:`radford2015unsupervised`. Implementation taken from
     https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html.
 
     See :ref:`sphx_glr_auto_examples_adversarial-learning_demo_gan_imaging.py` for how to use this for adversarial training.
 
     :param int ndf: hidden layer size, defaults to 64
     :param int nc: number of input channels, defaults to 3
+
+
     """
 
     def __init__(self, ndf: int = 64, nc: int = 3):
@@ -202,8 +203,7 @@ class DCGANDiscriminator(nn.Module):
 class DCGANGenerator(nn.Module):
     r"""DCGAN Generator.
 
-    The DCGAN generator model was originally proposed in `Unsupervised Representation Learning with Deep Convolutional
-    Generative Adversarial Networks <https://arxiv.org/abs/1511.06434>`_ (Radford et al.)
+    The DCGAN generator model was originally proposed by :footcite:t:`radford2015unsupervised`
     and takes a latent sample as input.
 
     Implementation taken from https://pytorch.org/tutorials/beginner/dcgan_faces_tutorial.html
@@ -268,8 +268,7 @@ class CSGMGenerator(Reconstructor):
     r"""CSGMGenerator(backbone_generator=DCGANGenerator(), inf_max_iter=2500, inf_tol=1e-4, inf_lr=1e-2, inf_progress_bar=False)
     Adapts a generator model backbone (e.g DCGAN) for CSGM or AmbientGAN.
 
-    This approach was proposed in `Compressed Sensing using Generative Models <https://arxiv.org/abs/1703.03208>`_ and
-    `AmbientGAN: Generative models from lossy measurements <https://openreview.net/forum?id=Hy7fDog0b>`_ (Bora et al.).
+    This approach was proposed by :footcite:t:`bora2017compressed` and :footcite:t:`bora2018ambientgan`.
 
     At train time, the generator samples latent vector from Unif[-1, 1] and passes through backbone.
 

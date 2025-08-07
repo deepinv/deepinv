@@ -9,11 +9,8 @@ from PIL import Image
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from torch.nn import Module
 import torchvision
 from torchvision import transforms
-
-from deepinv.models.base import Reconstructor, Denoiser
 
 
 def get_git_root():
@@ -234,6 +231,17 @@ def load_url_image(
     transform = transforms.Compose(transform_list)
     x = transform(img).unsqueeze(0).to(device=device, dtype=dtype)
     return x
+
+
+def load_example(name, **kwargs):
+    r"""
+    Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using :func:`deepinv.utils.load_url_image`.
+
+    :param str name: filename of the image from the HuggingFace dataset.
+    :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
+    :return: :class:`torch.Tensor` containing the image.
+    """
+    return load_url_image(get_image_url(name), **kwargs)
 
 
 def load_torch_url(url):

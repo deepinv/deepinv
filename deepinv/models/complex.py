@@ -14,7 +14,7 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
     :return: (torch.nn.Module) the denoiser which takes in complex-valued inputs.
     """
 
-    class complex_denoiser(Denoiser):
+    class ComplexDenoiser(Denoiser):
         def __init__(
             self, denoiser: Union[torch.nn.Module, Denoiser], mode: str, *args, **kwargs
         ):
@@ -43,4 +43,4 @@ def to_complex_denoiser(denoiser, mode="real_imag"):
             else:
                 raise ValueError("style must be 'real_imag' or 'abs_angle'.")
 
-    return complex_denoiser(denoiser, mode)
+    return ComplexDenoiser(denoiser, mode)

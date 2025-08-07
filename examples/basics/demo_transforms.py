@@ -8,12 +8,8 @@ solving imaging problems. These can be used for:
 1. Data augmentation (similar to ``torchvision.transforms``)
 2. Building equivariant reconstructors or denoisers
    (:class:`deepinv.models.EquivariantReconstructor` and :class:`deepinv.models.EquivariantDenoiser`) for robust reconstruction/denoising
-   (e.g from `Terris et al., Equivariant plug-and-play image
-   reconstruction <https://arxiv.org/abs/2312.01831>`__)
-3. Self-supervised learning using Equivariant Imaging from `Chen et al.,
-   Equivariant Imaging: Learning Beyond the Range
-   Space <https://openaccess.thecvf.com/content/ICCV2021/papers/Chen_Equivariant_Imaging_Learning_Beyond_the_Range_Space_ICCV_2021_paper.pdf>`__:
-   see
+   (e.g from :footcite:t:`terris2024equivariant`)
+3. Self-supervised learning using Equivariant Imaging from :footcite:t:`chen2021equivariant`. See
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_ei_transforms.py`,
    :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_equivariant_imaging.py`
    for thorough examples.
@@ -34,12 +30,13 @@ Note that all our transforms can easily be inverted using the method ``transform
 First, load a sample image.
 
 """
+
 import torch
 
 import deepinv as dinv
 from torchvision.transforms import Compose, ColorJitter, RandomErasing, Resize
 
-x = dinv.utils.load_url_image(dinv.utils.demo.get_image_url("celeba_example.jpg"))
+x = dinv.utils.load_example("celeba_example.jpg")
 
 # Random roto-scale with random masking
 transform = Compose(
@@ -109,9 +106,15 @@ with torch.no_grad():
     x_hat = model(y, sigma=sigma)
     x_hat_eq = model_eq(y, sigma=sigma)
 
-dinv.utils.plot([x, y, x_hat, x_hat_eq], ["Ground-truth", "Noisy {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
-                                          "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
-                                          "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item())])
+dinv.utils.plot(
+    [x, y, x_hat, x_hat_eq],
+    [
+        "Ground-truth",
+        "Noisy {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
+        "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
+        "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item()),
+    ],
+)
 
 
 # %%
@@ -123,20 +126,33 @@ dinv.utils.plot([x, y, x_hat, x_hat_eq], ["Ground-truth", "Noisy {:.2f}dB".forma
 #
 
 filter = torch.zeros((1, 1, 7, 7), device=x.device)
-filter[0, 0, 3, :] = 1/7
-physics = dinv.physics.BlurFFT(img_size=x.shape[1:], filter=filter, device=x.device, noise_model=dinv.physics.GaussianNoise(sigma=sigma))
+filter[0, 0, 3, :] = 1 / 7
+physics = dinv.physics.BlurFFT(
+    img_size=x.shape[1:],
+    filter=filter,
+    device=x.device,
+    noise_model=dinv.physics.GaussianNoise(sigma=sigma),
+)
 y = physics(x)
 
-model = dinv.optim.DPIR(device='cpu')
-model_eq = dinv.models.EquivariantReconstructor(model, transform=transform, random=False)
+model = dinv.optim.DPIR(device="cpu")
+model_eq = dinv.models.EquivariantReconstructor(
+    model, transform=transform, random=False
+)
 
 with torch.no_grad():
     x_hat = model(y, physics)
     x_hat_eq = model_eq(y, physics)
 
-dinv.utils.plot([x, y, x_hat, x_hat_eq], ["Ground-truth", "Blurry {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
-                                          "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
-                                          "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item())])
+dinv.utils.plot(
+    [x, y, x_hat, x_hat_eq],
+    [
+        "Ground-truth",
+        "Blurry {:.2f}dB".format(dinv.metric.PSNR()(x, y).item()),
+        "Non-Eq. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat).item()),
+        "Equiv. {:.2f}dB".format(dinv.metric.PSNR()(x, x_hat_eq).item()),
+    ],
+)
 
 
 # %%

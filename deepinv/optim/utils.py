@@ -172,7 +172,7 @@ def least_squares(
 def dot(a, b, dim):
     if isinstance(a, TensorList):
         aux = 0
-        for ai, bi in zip(a.x, b.x):
+        for ai, bi in zip(a.x, b.x, strict=True):
             aux += (ai.conj() * bi).sum(
                 dim=dim, keepdim=True
             )  # performs batched dot product
@@ -204,7 +204,7 @@ def conjugate_gradient(
     :param int max_iter: maximum number of CG iterations
     :param float tol: absolute tolerance for stopping the CG algorithm.
     :param float eps: a small value for numerical stability
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param torch.Tensor init: Optional initial guess.
     :param bool verbose: Output progress information in the console.
     :return: torch.Tensor :math:`x` of shape (B, ...) verifying :math:`Ax=b`.
@@ -276,7 +276,7 @@ def bicgstab(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of BiCGSTAB iterations.
     :param float tol: absolute tolerance for stopping the BiCGSTAB algorithm.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable left_precon: left preconditioner as a callable function.
     :param Callable right_precon: right preconditioner as a callable function.
@@ -397,7 +397,7 @@ def lsqr(
     :param float tol: relative tolerance for stopping the LSQR algorithm.
     :param float conlim: maximum value of the condition number of the system.
     :param int max_iter: maximum number of LSQR iterations.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :retrun: (:class:`torch.Tensor`) :math:`x` of shape (B, ...), (:class:`torch.Tensor`) condition number of the system.
     """
@@ -445,7 +445,10 @@ def lsqr(
         if b_domain:
             if isinstance(v, TensorList):
                 return TensorList(
-                    [vi * alpha.view(bi_shape) for vi, bi_shape in zip(v, b_shape)]
+                    [
+                        vi * alpha.view(bi_shape)
+                        for vi, bi_shape in zip(v, b_shape, strict=True)
+                    ]
                 )
             else:
                 return v * alpha.view(b_shape)
@@ -606,7 +609,7 @@ def minres(
     :param torch.Tensor init: Optional initial guess.
     :param int max_iter: maximum number of MINRES iterations.
     :param float tol: absolute tolerance for stopping the MINRES algorithm.
-    :param None, int, List[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
+    :param None, int, list[int] parallel_dim: dimensions to be considered as batch dimensions. If None, all dimensions are considered as batch dimensions.
     :param bool verbose: Output progress information in the console.
     :param Callable precon: preconditioner is a callable function (not tested). Must be positive definite
     :return: (:class:`torch.Tensor`) :math:`x` of shape (B, ...)
@@ -669,6 +672,7 @@ def minres(
     search_update_norm = torch.zeros_like(solution_norm)
 
     # Perform iterations
+    flag = True
     for i in range(int(max_iter)):
         # Perform matmul
         prod = A(qvec_prev1)

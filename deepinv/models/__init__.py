@@ -3,6 +3,7 @@ from .drunet import DRUNet
 from .scunet import SCUNet
 from .ae import AutoEncoder
 from .dncnn import DnCNN
+from .dsccp import DScCP
 from .artifactremoval import ArtifactRemoval
 from .tv import TVDenoiser
 from .tgv import TGVDenoiser
@@ -34,3 +35,4 @@ from .unet import UNet
 from .ncsnpp import NCSNpp
 from .guided_diffusion import ADMUNet
 from .precond import EDMPrecond
+from .ram import RAM

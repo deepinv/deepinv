@@ -65,11 +65,11 @@ probability_mask = 0.5  # probability to mask pixel
 
 # Generate inpainting operator
 physics = dinv.physics.Inpainting(
-    tensor_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
+    img_size=(n_channels, img_size, img_size), mask=probability_mask, device=device
 )
 
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = (

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from itertools import product
-from typing import Tuple, Callable, Any
+from typing import Callable, Any
 import torch
 from deepinv.physics.time import TimeMixin
 from deepinv.models.base import Reconstructor
@@ -207,13 +207,13 @@ class Transform(torch.nn.Module, TimeMixin):
         out = torch.cat(
             [
                 transform(
-                    x[B * i: B * (i + 1)],
+                    x[B * i : B * (i + 1)],
                     **{k: p[[i]] for k, p in params.items() if len(p) == n_trans},
                 )
                 for i in range(n_trans)
             ]
         )
-        self.n_trans = n_trans # go back to n_trans
+        self.n_trans = n_trans  # go back to n_trans
         return out
 
     def forward(self, x: torch.Tensor, batchwise=True, **params) -> torch.Tensor:
@@ -227,7 +227,9 @@ class Transform(torch.nn.Module, TimeMixin):
         :param bool batchwise: if True, the output dim 0 expands to be of size ``len(x) * len(param)`` for the params of interest.
         :return torch.Tensor: randomly transformed images concatenated along the first dimension
         """
-        return self.transform(x, batchwise=batchwise, **(self.get_params(x) if not params else params))
+        return self.transform(
+            x, batchwise=batchwise, **(self.get_params(x) if not params else params)
+        )
 
     def inverse(self, x: torch.Tensor, batchwise=False, **params) -> torch.Tensor:
         """Perform random inverse transformation on image (i.e. when not a group).
@@ -392,7 +394,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class ChainTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.constant_shape = t1.constant_shape and t2.constant_shape
@@ -422,7 +424,11 @@ class Transform(torch.nn.Module, TimeMixin):
             ) -> torch.Tensor:
                 params = self.get_params(x) if not params else params
                 if batchwise:
-                    return self.t1.inverse(self.t2.inverse(x, batchwise=batchwise, **params), batchwise=batchwise, **params)
+                    return self.t1.inverse(
+                        self.t2.inverse(x, batchwise=batchwise, **params),
+                        batchwise=batchwise,
+                        **params,
+                    )
                 else:
                     # If batchwise False, carefully match each set of params to each subset of n_transformed images in batch
                     x = self.t2.inverse(x, batchwise=batchwise, **params)
@@ -443,7 +449,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class StackTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
 
@@ -476,7 +482,7 @@ class Transform(torch.nn.Module, TimeMixin):
 
         class EitherTransform(Transform):
             def __init__(self, t1: Transform, t2: Transform):
-                super().__init__()
+                super().__init__(flatten_video_input=t1.flatten_video_input)
                 self.t1 = t1
                 self.t2 = t2
                 self.recent_choice = None
@@ -511,3 +517,15 @@ class Transform(torch.nn.Module, TimeMixin):
                 )
 
         return EitherTransform(self, other)
+
+
+class Identity(Transform):
+    """
+    Identity transform i.e. trivial group.
+    """
+
+    def _get_params(self, *args):
+        return {}
+
+    def _transform(self, x, **params):
+        return x

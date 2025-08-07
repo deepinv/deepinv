@@ -64,13 +64,13 @@ test_base_dataset = datasets.MNIST(
 # where :math:`A` is a (normalized) random Gaussian matrix.
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
 # Generate the compressed sensing measurement operator with 10x under-sampling factor.
 physics = dinv.physics.CompressedSensing(
-    m=78, img_shape=(n_channels, img_size, img_size), fast=True, device=device
+    m=78, img_size=(n_channels, img_size, img_size), fast=True, device=device
 )
 my_dataset_name = "demo_LICP"
 n_images_max = (

@@ -22,12 +22,11 @@ from deepinv.models import DRUNet
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP, Zero
 from deepinv.optim.optimizers import optim_builder
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
     cosine_similarity,
-    spectral_methods,
 )
 from deepinv.models.complex import to_complex_denoiser
 
@@ -46,10 +45,13 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # Image size
 img_size = 32
-url = get_image_url("SheppLogan.png")
 # The pixel values of the image are in the range [0, 1].
-x = load_url_image(
-    url=url, img_size=img_size, grayscale=True, resize_mode="resize", device=device
+x = load_example(
+    "SheppLogan.png",
+    img_size=img_size,
+    grayscale=True,
+    resize_mode="resize",
+    device=device,
 )
 print(x.min(), x.max())
 
@@ -78,14 +80,14 @@ assert torch.allclose(x_phase.real**2 + x_phase.imag**2, torch.tensor(1.0))
 
 # Define physics information
 oversampling_ratio = 5.0
-img_shape = x.shape[1:]
-m = int(oversampling_ratio * torch.prod(torch.tensor(img_shape)))
+img_size = x.shape[1:]
+m = int(oversampling_ratio * torch.prod(torch.tensor(img_size)))
 n_channels = 1  # 3 for color images, 1 for gray-scale images
 
 # Create the physics
 physics = dinv.physics.RandomPhaseRetrieval(
     m=m,
-    img_shape=img_shape,
+    img_size=img_size,
     device=device,
 )
 

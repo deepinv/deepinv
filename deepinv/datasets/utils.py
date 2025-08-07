@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Union
 import hashlib
 import os
 import shutil
@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from torch import randn, Tensor, stack, zeros_like
 from torch.nn import Module
 
-from deepinv.utils.plotting import rescale_img
+from deepinv.utils import normalize_signal
 
 
 def check_path_is_a_folder(folder_path: str) -> bool:
@@ -105,7 +105,7 @@ def extract_tarball(file_path: Union[str, Path], extract_dir: Union[str, Path]) 
             tar_ref.extract(file_to_be_extracted, extract_dir)
 
 
-def loadmat(fname: str, mat73: bool = False) -> Dict[str, ndarray]:
+def loadmat(fname: str, mat73: bool = False) -> dict[str, ndarray]:
     """Load MATLAB array from file.
 
     :param str fname: filename to load
@@ -164,7 +164,7 @@ class Rescale(Module):
 
         :param torch.Tensor x: image tensor of shape (..., H, W)
         """
-        return rescale_img(x.unsqueeze(0), rescale_mode=self.rescale_mode).squeeze(0)
+        return normalize_signal(x.unsqueeze(0), mode=self.rescale_mode).squeeze(0)
 
 
 class ToComplex(Module):

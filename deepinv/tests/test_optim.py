@@ -281,7 +281,7 @@ def test_data_fidelity_amplitude_loss(device):
             (1, 1, 3, 3), dtype=torch.cfloat, device=device, requires_grad=True
         )
         physics = dinv.physics.RandomPhaseRetrieval(
-            m=10, img_shape=(1, 3, 3), device=device
+            m=10, img_size=(1, 3, 3), device=device
         )
         loss = AmplitudeLoss()
         func = lambda x: loss(x, torch.ones_like(physics(x)), physics)[0]
@@ -760,7 +760,7 @@ def test_CP_datafidsplit(imsize, dummy_dataset, device):
     A_adjoint = lambda v: A.transpose(0, 1) @ v
 
     # Define the physics model associated to this operator
-    physics = dinv.physics.LinearPhysics()
+    physics = dinv.physics.Denoising()
     y = physics(x)
 
     data_fidelity = L2()  # The data fidelity term

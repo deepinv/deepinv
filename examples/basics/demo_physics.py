@@ -39,16 +39,20 @@ class Decolorize(dinv.physics.LinearPhysics):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
+        # the RGB to grayscale coefficients
+        coefficients = torch.tensor([0.2989, 0.5870, 0.1140], dtype=torch.float32)
+
+        # register the coefficients as a buffer
+        self.register_buffer("coefficients", coefficients)
 
     def A(self, x, theta=None):  # theta is an optional parameter that is not used here
-        y = x[:, 0, :, :] * 0.2989 + x[:, 1, :, :] * 0.5870 + x[:, 2, :, :] * 0.1140
-        return y.unsqueeze(1)
+        y = (
+            x * self.coefficients[None, :, None, None]
+        )  # apply coefficients to each channel
+        return torch.sum(y, dim=1, keepdim=True)  # sum over the color channels
 
-    def A_adjoint(self, y, theta=None):
-        return torch.cat([y * 0.2989, y * 0.5870, y * 0.1140], dim=1)
 
-
-physics = Decolorize()
+physics = Decolorize(img_size=(3, 96, 128))
 
 # %%
 # Generate toy image
@@ -66,17 +70,53 @@ y = physics(x)
 xlin = physics.A_dagger(y)  # compute the linear pseudo-inverse
 
 dinv.utils.plot([x, y, xlin], titles=["image", "meas.", "linear rec."])
+print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
 
 
 # %%
-# Verifying our linear operator
+# Implementing a closed form adjoint
 # --------------------------------------------
+# If we know the closed form of the adjoint operator, we can implement it directly in the
+# :func:`deepinv.physics.LinearPhysics.A_adjoint` method. By default, the adjoint is computed using
+# autodifferentiation (see :func:`deepinv.physics.adjoint_function`), but this comes at a potential cost of
+# additional memory and computation time.
 #
-#     If the operator is linear, it is recommended to verify that the transpose well-defined using
-#     :func:`deepinv.physics.LinearPhysics.adjointness_test`,
-#     and that it has a unit norm using :func:`deepinv.physics.LinearPhysics.compute_norm`.
+# An additional benefit of implementing the adjoint is that we won't require the img_size parameter when creating the
+# operator, which is required for the autodifferentiation to work.
+#
+# If you implement your own adjoint, it is recommended to verify that the transpose well-defined using
+# :func:`deepinv.physics.LinearPhysics.adjointness_test`.
 
-print(f"The linear operator has norm={physics.compute_norm(x):.2f}")
+
+class Decolorize(dinv.physics.LinearPhysics):
+    r"""
+    Converts RGB images to grayscale.
+
+    Signals must be tensors with 3 colour (RGB) channels, i.e. [*,3,*,*]
+    The measurements are grayscale images.
+
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
+        # the RGB to grayscale coefficients
+        coefficients = torch.tensor([0.2989, 0.5870, 0.1140], dtype=torch.float32)
+
+        # register the coefficients as a buffer
+        self.register_buffer("coefficients", coefficients)
+
+    def A(self, x, theta=None):  # theta is an optional parameter that is not used here
+        y = (
+            x * self.coefficients[None, :, None, None]
+        )  # apply coefficients to each channel
+        return torch.sum(y, dim=1, keepdim=True)  # sum over the color channels
+
+    def A_adjoint(self, y, theta=None):
+        return y * self.coefficients[None, :, None, None]
+
+
+physics = Decolorize()
 
 if physics.adjointness_test(x) < 1e-5:
     print("The linear operator has a well defined transpose")
@@ -90,6 +130,10 @@ if physics.adjointness_test(x) < 1e-5:
 #
 # The operator in this example is decomposable, so we can implement it using
 # :class:`deepinv.physics.DecomposablePhysics`.
+#
+# .. tip::
+#    As in the case of LinearPhysics, V and U_adjoint are implemented using autodifferentiation by default,
+#    but you can implement them directly if you know the closed form of the operator.
 
 
 class DecolorizeSVD(dinv.physics.DecomposablePhysics):
@@ -105,12 +149,18 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
         super().__init__(mask=0.447, **kwargs)
         self.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
+        # the RGB to grayscale coefficients
+        coefficients = torch.tensor([0.6687, 1.3132, 0.2550], dtype=torch.float32)
+
+        # register the coefficients as a buffer
+        self.register_buffer("coefficients", coefficients)
+
     def V_adjoint(self, x):
-        y = x[:, 0, :, :] * 0.6687 + x[:, 1, :, :] * 1.3132 + x[:, 2, :, :] * 0.2550
-        return y.unsqueeze(1)
+        y = x * self.coefficients[None, :, None, None]
+        return torch.sum(y, dim=1, keepdim=True)
 
     def V(self, y):
-        return torch.cat([y * 0.6687, y * 1.3132, y * 0.2550], dim=1)
+        return y * self.coefficients[None, :, None, None]
 
 
 physics2 = DecolorizeSVD()
@@ -156,3 +206,5 @@ for i in range(10):
 
 end = time.time()
 print(f"Elapsed time for DecomposablePhysics: {end - start:.2e} seconds")
+
+# %%

@@ -14,11 +14,9 @@ import deepinv as dinv
 from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
-from deepinv.models import DnCNN
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from deepinv.unfolded import DEQ_builder
-from deepinv.training import train, test
 from torchvision import transforms
 from deepinv.utils.demo import load_dataset, load_degradation
 
@@ -68,7 +66,7 @@ test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 # We use the Downsampling class from the physics module to generate a dataset of low resolution images.
 
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

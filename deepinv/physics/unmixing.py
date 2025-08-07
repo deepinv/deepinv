@@ -1,9 +1,6 @@
 from math import sqrt
-
 import torch
-
-from deepinv.physics.forward import LinearPhysics, adjoint_function
-from deepinv.physics.functional import random_choice
+from deepinv.physics.forward import LinearPhysics
 
 
 class HyperSpectralUnmixing(LinearPhysics):
@@ -15,7 +12,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     As an analogy, imagine the problem of unmixing paint in a pixel. The paint at a pixel is likely a mixture of various basic colors.
     Unmixing separates the overall color (spectrum) of the pixel into the amounts (abundances) of each base color (endmember) used to create the mixture.
 
-    Please see the survey `Hyperspectral Unmixing Overview: Geometrical, Statistical, and Sparse Regression-Based Approaches <https://core.ac.uk/download/pdf/12043173.pdf>`_ for more details.
+    Please see the survey :footcite:t:`bioucas2012hyperspectral` for details.
 
     Hyperspectral mixing is modelled using a Linear Mixing Model (LMM).
 
@@ -51,23 +48,24 @@ class HyperSpectralUnmixing(LinearPhysics):
         >>> print(x.shape, y.shape, physics.M.shape)
         torch.Size([4, 15, 128, 128]) torch.Size([4, 64, 128, 128]) torch.Size([15, 64])
 
+
     """
 
     def __init__(
         self, M: torch.Tensor = None, E: int = 15, C: int = 64, device="cpu", **kwargs
     ):
         super(HyperSpectralUnmixing, self).__init__()
-        self.device = device
 
         if M is None:
             # Simulate random normalised M
-            M = torch.rand((E, C), dtype=torch.float32)
+            M = torch.rand((E, C), dtype=torch.float32, device=device)
             M /= M.sum(dim=0, keepdim=True) * sqrt(C / E)
 
         self.E, self.C = M.shape
 
-        self.update_parameters(M=M, **kwargs)
-        self.M_pinv = torch.linalg.pinv(self.M)
+        self.register_buffer("M", M)
+        self.register_buffer("M_pinv", torch.linalg.pinv(self.M))
+        self.to(device)
 
     def A(self, x: torch.Tensor, M: torch.Tensor = None, **kwargs):
         r"""
@@ -122,7 +120,7 @@ class HyperSpectralUnmixing(LinearPhysics):
                 raise ValueError(
                     "Number of endmembers and bands should be same as before."
                 )
-            self.M = torch.nn.Parameter(M.to(self.device), requires_grad=False)
+            self.register_buffer("M", M)
 
-        if hasattr(self.noise_model, "update_parameters"):
-            self.noise_model.update_parameters(**kwargs)
+        if kwargs:
+            super().update_parameters(**kwargs)

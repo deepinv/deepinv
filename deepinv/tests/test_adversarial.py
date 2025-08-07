@@ -5,7 +5,9 @@ from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.loss import adversarial
-from test_loss import dataset, physics
+
+# NOTE: They're injected in tests as fixtures.
+from test_loss import dataset, physics  # noqa: F401
 
 ADVERSARIAL_COMBOS = ["DeblurGAN", "CSGM", "AmbientGAN", "UAIR"]
 
@@ -42,7 +44,7 @@ def choose_adversarial_combo(combo_name, imsize, device):
         dis_loss = adversarial.SupAdversarialDiscriminatorLoss(device=device)
     elif combo_name == "UAIR":
         generator = unet
-        discrimin = dinv.models.ESRGANDiscriminator(input_shape=imsize).to(device)
+        discrimin = dinv.models.ESRGANDiscriminator(img_size=imsize).to(device)
         gen_loss = adversarial.UAIRGeneratorLoss(device=device)
         dis_loss = adversarial.UnsupAdversarialDiscriminatorLoss(device=device)
     elif combo_name == "CSGM":

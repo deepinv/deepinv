@@ -37,7 +37,7 @@ For example, here we generate a compressed sensing MNIST dataset:
     data_test = datasets.MNIST(root=save_dir, train=False, transform=transform_data)
 
     # define forward operator
-    physics = dinv.physics.CompressedSensing(m=300, img_shape=(1, 28, 28))
+    physics = dinv.physics.CompressedSensing(m=300, img_size=(1, 28, 28))
     physics.noise_model = dinv.physics.GaussianNoise(sigma=.05)
 
     # generate paired dataset
@@ -133,6 +133,11 @@ Multiple popular easy-to-download datasets are available:
      - Padded to 512x256x12 time steps
      - Dynamic MRI sequences of cardiac cine from short axis (5-10 slices) and long axis (3 views) split by patient, from the CMRxRecon challenge.
 
+   * - :class:`deepinv.datasets.SKMTEASliceDataset`
+     - 25,000 slices from 155 patients
+     - Complex double-echo with 8 coils of shape 512x160.
+     - Raw MRI knee multicoil undersampled k-space data and fully-sampled ground truth from the Stanford SKM-TEA dataset, with precomputed Poisson disc masks from 4x to 16x acceleration, and pre-estimated coil maps.
+
    * - :class:`deepinv.datasets.LidcIdriSliceDataset`
      - Over 200,000 CT scan slices
      - Slices 512x512 voxels
@@ -171,7 +176,7 @@ Data Transforms
 
 We provide some torchvision-style transforms for use when loading data:
 
-.. list-table:: Datasets Overview
+.. list-table:: Data Transforms Overview
    :header-rows: 1
 
    * - **Transform**
@@ -180,3 +185,5 @@ We provide some torchvision-style transforms for use when loading data:
      - Min-max or clip value rescaling.
    * - :class:`deepinv.datasets.utils.ToComplex`
      - Add empty imaginary dimension to image.
+   * - :class:`deepinv.datasets.MRISliceTransform`
+     - Transform raw FastMRI data by simulating masks and estimating coil maps.

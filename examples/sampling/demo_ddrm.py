@@ -2,16 +2,13 @@ r"""
 Image reconstruction with a diffusion model
 ====================================================================================================
 
-This code shows you how to use the DDRM diffusion algorithm to reconstruct images and also compute the
+This code shows you how to use the DDRM diffusion algorithm :footcite:t:`kawar2022denoising` to reconstruct images and also compute the
 uncertainty of a reconstruction from incomplete and noisy measurements.
-
-The paper can be found at https://arxiv.org/pdf/2209.11888.pdf.
 
 The DDRM method requires that:
 
 * The operator has a singular value decomposition (i.e., the operator is a :class:`deepinv.physics.DecomposablePhysics`).
 * The noise is Gaussian with known standard deviation (i.e., the noise model is :class:`deepinv.physics.GaussianNoise`).
-
 """
 
 import deepinv as dinv
@@ -44,7 +41,7 @@ x = load_url_image(url=url, img_size=32).to(device)
 sigma = 0.1  # noise level
 physics = dinv.physics.Inpainting(
     mask=0.5,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     device=device,
     noise_model=dinv.physics.GaussianNoise(sigma=sigma),
 )

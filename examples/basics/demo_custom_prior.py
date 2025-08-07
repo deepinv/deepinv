@@ -40,8 +40,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # %%
 # Load base image datasets and degradation operators.
 # --------------------------------------------------------------------
-# In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the motion blur kernels from
-# `Levin et al. (2009) <https://ieeexplore.ieee.org/abstract/document/5206815/>`_.
+# In this example, we use the CBSD68 dataset from the paper of Zhang et al. (2017) and the motion blur kernels from :footcite:t:`levin2009understanding`.
 #
 
 # Set up the variable to fetch dataset and operators.
@@ -83,7 +82,7 @@ p = dinv.physics.BlurFFT(
 # Generate a dataset of blurred images
 # --------------------------------------------------------------------
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 n_images_max = 3  # Maximal number of images to restore from the input dataset

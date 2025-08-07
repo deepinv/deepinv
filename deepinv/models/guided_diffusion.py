@@ -15,9 +15,11 @@ from .utils import get_weights_url
 
 class ADMUNet(Denoiser):
     r"""
-    Re-implementation of the architecture from the paper: `Diffusion Models Beat GANs on Image Synthesis <https://arxiv.org/abs/2105.05233>`_.
+    Implementation of the ADM UNet diffusion model.
 
-    The model is also pre-conditioned by the method described in the paper `Elucidating the Design Space of Diffusion-Based Generative Models <https://arxiv.org/pdf/2206.00364>`_.
+    From the paper of :footcite:t:`dhariwal2021diffusion`.
+
+    The model is also pre-conditioned by the method described in the EDM paper :footcite:t:`karras2022elucidating`.
 
     Equivalent to the original implementation by Dhariwal and Nichol, available at: https://github.com/openai/guided-diffusion.
     The architecture consists of a series of convolution layer, down-sampling residual blocks and up-sampling residual blocks with skip-connections.
@@ -40,9 +42,12 @@ class ADMUNet(Denoiser):
         using Pytorch's default initialization. If ``pretrained='download'``, the weights will be downloaded from an
         online repository (the default model is a conditional model trained on ImageNet at 64x64 resolution (`imagenet64-cond`) with default architecture).
         Finally, ``pretrained`` can also be set as a path to the user's own pretrained weights.
+        In this case, the model is supposed to be trained on `[0,1]` pixels, if it was trained on `[-1, 1]` pixels, the user should set the attribute `_train_on_minus_one_one` to `True` after loading the weights.
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param float pixel_std: The standard deviation of the normalized pixels (to `[0, 1]` for example) of the data distribution. Default to `0.75`.
     :param torch.device device: Instruct our module to be either on cpu or on gpu. Default to ``None``, which suggests working on cpu.
+
+
     """
 
     def __init__(
@@ -64,7 +69,7 @@ class ADMUNet(Denoiser):
         attn_resolutions=[32, 16, 8],  # List of resolutions with self-attention.
         dropout=0.10,  # List of resolutions with self-attention.
         label_dropout=0,  # Dropout probability of class labels for classifier-free guidance.
-        pretrained: str = None,
+        pretrained: str = "download",
         pixel_std: float = 0.75,
         device=None,
         *args,
@@ -72,8 +77,12 @@ class ADMUNet(Denoiser):
     ):
         super().__init__()
         # The default model is a class-conditioned model with 1000 classes
-        if pretrained.lower() == "imagenet64-cond" or pretrained.lower() == "download":
-            label_dim = 1000
+        if pretrained is not None:
+            if (
+                pretrained.lower() == "imagenet64-cond"
+                or pretrained.lower() == "download"
+            ):
+                label_dim = 1000
 
         self.label_dropout = label_dropout
         emb_channels = model_channels * channel_mult_emb
@@ -184,8 +193,10 @@ class ADMUNet(Denoiser):
                 self.pixel_std = 0.5
             else:
                 ckpt = torch.load(pretrained, map_location=lambda storage, loc: storage)
+                self._train_on_minus_one_one = False  # Pretrained on [0,1]
             self.load_state_dict(ckpt, strict=True)
-
+        else:
+            self._train_on_minus_one_one = False
         self.eval()
         if device is not None:
             self.to(device)
@@ -205,28 +216,30 @@ class ADMUNet(Denoiser):
         """
         if class_labels is not None:
             class_labels = class_labels.to(torch.float32)
-        sigma = self._handle_sigma(sigma, torch.float32, x.device, x.size(0))
+        sigma = self._handle_sigma(
+            sigma, batch_size=x.size(0), ndim=x.ndim, device=x.device, dtype=x.dtype
+        )
 
         # Rescale [0,1] input to [-1,-1]
-        if hasattr(self, "_train_on_minus_one_one"):
-            if self._train_on_minus_one_one:
-                x = (x - 0.5) * 2.0
-                sigma = sigma * 2.0
+        if getattr(self, "_train_on_minus_one_one", False):
+            x = (x - 0.5) * 2.0
+            sigma = sigma * 2.0
+
         c_skip = self.pixel_std**2 / (sigma**2 + self.pixel_std**2)
         c_out = sigma * self.pixel_std / (sigma**2 + self.pixel_std**2).sqrt()
         c_in = 1 / (self.pixel_std**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
         F_x = self.forward_unet(
-            c_in.view(-1, 1, 1, 1) * x,
+            c_in * x,
             c_noise.flatten(),
             class_labels=class_labels,
             augment_labels=augment_labels,
         )
-        D_x = c_skip.view(-1, 1, 1, 1) * x + c_out * F_x
+        D_x = c_skip * x + c_out * F_x
 
         # Rescale [-1,1] output to [0,-1]
-        if self._train_on_minus_one_one:
+        if getattr(self, "_train_on_minus_one_one", False):
             return (D_x + 1.0) / 2.0
         else:
             return D_x
@@ -270,22 +283,3 @@ class ADMUNet(Denoiser):
             x = block(x, emb)
         x = self.out_conv(silu(self.out_norm(x)))
         return x
-
-    @staticmethod
-    def _handle_sigma(sigma, dtype, device, batch_size):
-        if isinstance(sigma, torch.Tensor):
-            if sigma.ndim == 0:
-                return sigma[None].to(device, dtype).expand(batch_size)
-            elif sigma.ndim == 1:
-                assert (
-                    sigma.size(0) == batch_size or sigma.size(0) == 1
-                ), "sigma must be a Tensor with batch_size equal to 1 or the batch_size of input images"
-                return sigma.to(device, dtype).expand(batch_size // sigma.size(0))
-
-            else:
-                raise ValueError(f"Unsupported sigma shape {sigma.shape}.")
-
-        elif isinstance(sigma, (float, int)):
-            return torch.tensor([sigma]).to(device, dtype).expand(batch_size)
-        else:
-            raise ValueError("Unsupported sigma type.")

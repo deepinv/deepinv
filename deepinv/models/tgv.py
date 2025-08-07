@@ -7,7 +7,7 @@ class TGVDenoiser(Denoiser):
     r"""
     Proximal operator of (2nd order) Total Generalised Variation operator.
 
-    (see K. Bredies, K. Kunisch, and T. Pock, "Total generalized variation," SIAM J. Imaging Sci., 3(3), 492-526, 2010.)
+    Adapted from :footcite:t:`bredies2010total`.
 
     This algorithm converges to the unique image :math:`x` (and the auxiliary vector field :math:`r`) minimizing
 
@@ -19,9 +19,7 @@ class TGVDenoiser(Denoiser):
     For a large value of :math:`\lambda_2`, the TGV behaves like the TV.
     For a small value, it behaves like the :math:`\ell_1`-Frobenius norm of the Hessian.
 
-    The problem is solved with an over-relaxed Chambolle-Pock algorithm (see L. Condat, "A primal-dual splitting method
-    for convex optimization  involving Lipschitzian, proximable and linear composite terms", J. Optimization Theory and
-    Applications, vol. 158, no. 2, pp. 460-479, 2013.
+    The problem is solved with an over-relaxed Chambolle-Pock algorithm, see :footcite:t:`condat2013primal`.
 
     Code (and description) adapted from Laurent Condat's matlab version (https://lcondat.github.io/software.html) and
     Daniil Smolyakov's `code <https://github.com/RoundedGlint585/TGVDenoising/blob/master/TGV%20WithoutHist.ipynb>`_.
@@ -38,6 +36,8 @@ class TGVDenoiser(Denoiser):
     :param torch.Tensor, None x2: Primary variable. Default: None.
     :param torch.Tensor, None u2: Dual variable. Default: None.
     :param torch.Tensor, None r2: Auxiliary variable. Default: None.
+
+
     """
 
     def __init__(
@@ -97,17 +97,35 @@ class TGVDenoiser(Denoiser):
 
         if restart:
             self.x2 = y.clone()
-            self.r2 = torch.zeros((*self.x2.shape, 2), device=self.x2.device).type(
-                self.x2.dtype
+            self.r2 = torch.zeros(
+                (*self.x2.shape, 2), device=self.x2.device, dtype=self.x2.dtype
             )
-            self.u2 = torch.zeros((*self.x2.shape, 4), device=self.x2.device).type(
-                self.x2.dtype
+            self.u2 = torch.zeros(
+                (*self.x2.shape, 4), device=self.x2.device, dtype=self.x2.dtype
             )
             self.restart = False
 
         if ths is not None:
-            lambda1 = ths * 0.1
-            lambda2 = ths * 0.15
+            lambda1 = (
+                self._handle_sigma(
+                    ths,
+                    batch_size=y.size(0),
+                    ndim=y.ndim,
+                    device=y.device,
+                    dtype=y.dtype,
+                )
+                * 0.1
+            )
+            lambda2 = (
+                self._handle_sigma(
+                    ths,
+                    batch_size=y.size(0),
+                    ndim=y.ndim,
+                    device=y.device,
+                    dtype=y.dtype,
+                )
+                * 0.15
+            )
 
         cy = (y**2).sum() / 2
         primalcostlowerbound = 0
@@ -127,9 +145,9 @@ class TGVDenoiser(Denoiser):
             self.r2 = self.r2 + self.rho * (r - self.r2)
             self.u2 = self.u2 + self.rho * (u - self.u2)
 
-            rel_err = torch.linalg.norm(
-                x_prev.flatten() - self.x2.flatten()
-            ) / torch.linalg.norm(self.x2.flatten() + 1e-12)
+            rel_err = torch.linalg.norm(x_prev.flatten() - self.x2.flatten()) / (
+                torch.linalg.norm(self.x2.flatten()) + 1e-12
+            )
 
             if _ > 1 and rel_err < self.crit:
                 self.has_converged = True
@@ -153,7 +171,7 @@ class TGVDenoiser(Denoiser):
                     torch.sqrt(torch.sum(self.epsilon_adjoint(u) ** 2, axis=-1))
                 )  # to check feasibility: the value will be  <= lambda1 only at convergence. Since u is not feasible, the dual cost is not reliable: the gap=primalcost-dualcost can be <0 and cannot be used as stopping criterion.
                 u3 = u / torch.maximum(
-                    tmp / lambda1, torch.tensor([1], device=tmp.device).type(tmp.dtype)
+                    tmp / lambda1, torch.ones_like(tmp)
                 )  # u3 is a scaled version of u, which is feasible. so, its dual cost is a valid, but very rough lower bound of the primal cost.
                 dualcost2 = (
                     cy
@@ -201,7 +219,7 @@ class TGVDenoiser(Denoiser):
         Applies the jacobian of a vector field.
         """
         b, c, h, w, _ = I.shape
-        G = torch.zeros((b, c, h, w, 4), device=I.device).type(I.dtype)
+        G = torch.zeros((b, c, h, w, 4), device=I.device, dtype=I.dtype)
         G[:, :, 1:, :, 0] = G[:, :, 1:, :, 0] - I[:, :, :-1, :, 0]  # xdy
         G[..., 0] = G[..., 0] + I[..., 0]
         G[..., 1:, 1] = G[..., 1:, 1] - I[..., :-1, 0]  # xdx
@@ -218,7 +236,7 @@ class TGVDenoiser(Denoiser):
         Applies the adjoint of the jacobian of a vector field.
         """
         b, c, h, w, _ = G.shape
-        I = torch.zeros((b, c, h, w, 2), device=G.device).type(G.dtype)
+        I = torch.zeros((b, c, h, w, 2), device=G.device, dtype=G.dtype)
         I[:, :, :-1, :, 0] = I[:, :, :-1, :, 0] - G[:, :, 1:, :, 0]
         I[..., 0] = I[..., 0] + G[..., 0]
         I[..., :-1, 0] = I[..., :-1, 0] - G[..., 1:, 1]

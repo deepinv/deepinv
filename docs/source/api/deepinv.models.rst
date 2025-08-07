@@ -59,7 +59,8 @@ Deep Denoisers
    deepinv.models.PanNet
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp
-
+   deepinv.models.DScCP
+   deepinv.models.RAM
 
 
 Denoisers Utils
@@ -93,6 +94,7 @@ Artifact Removal
    :nosignatures:
 
    deepinv.models.ArtifactRemoval
+   deepinv.models.RAM
 
 Deep Image Prior
 ----------------

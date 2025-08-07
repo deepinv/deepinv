@@ -16,11 +16,10 @@ class LPIPS(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import get_image_url, load_url_image
+    >>> from deepinv.utils.demo import load_example
     >>> from deepinv.loss.metric import LPIPS
-    >>> ();m = LPIPS();() # doctest: +ELLIPSIS
-    (...)
-    >>> x = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
+    >>> m = LPIPS() # doctest: +IGNORE_RESULT
+    >>> x = load_example("celeba_example.jpg", img_size=128)
     >>> x_net = x - 0.01
     >>> m(x_net, x) # doctest: +ELLIPSIS
     tensor([...])
@@ -37,7 +36,7 @@ class LPIPS(Metric):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.lpips = pyiqa.create_metric(
-            "lpips", check_input_range=check_input_range
+            "lpips", check_input_range=check_input_range, device=device
         ).to(device)
         self.lower_better = self.lpips.lower_better
 
@@ -59,11 +58,11 @@ class NIQE(Metric):
 
     :Example:
 
-    >>> from deepinv.utils.demo import get_image_url, load_url_image
+    >>> from deepinv.utils.demo import load_example
     >>> from deepinv.loss.metric import NIQE
-    >>> ();m = NIQE();() # doctest: +ELLIPSIS
+    >>> m = NIQE() # doctest: +IGNORE_RESULT
     (...)
-    >>> x_net = load_url_image(get_image_url("celeba_example.jpg"), img_size=128)
+    >>> x_net = load_example("celeba_example.jpg", img_size=128)
     >>> m(x_net) # doctest: +ELLIPSIS
     tensor([...])
 
@@ -78,9 +77,9 @@ class NIQE(Metric):
     def __init__(self, device="cpu", check_input_range=False, **kwargs):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
-        self.niqe = pyiqa.create_metric("niqe", check_input_range=check_input_range).to(
-            device
-        )
+        self.niqe = pyiqa.create_metric(
+            "niqe", check_input_range=check_input_range, device=device
+        ).to(device)
         self.lower_better = self.niqe.lower_better
 
     def metric(self, x_net, *args, **kwargs):

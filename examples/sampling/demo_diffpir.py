@@ -2,9 +2,8 @@ r"""
 Implementing DiffPIR
 ====================
 
-In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from
-`Zhou et al. <https://arxiv.org/abs/2305.08995>`_. The full algorithm is implemented in
-:class:`deepinv.sampling.DiffPIR`.
+In this tutorial, we revisit the implementation of the DiffPIR diffusion algorithm for image reconstruction from :footcite:t:`zhu2023denoising`.
+The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
 import numpy as np
@@ -14,7 +13,7 @@ from tqdm import tqdm
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
-from deepinv.utils.demo import load_url_image, get_image_url
+from deepinv.utils.demo import load_example
 
 # Use matplotlib config from deepinv to get nice plots
 from deepinv.utils.plotting import config_matplotlib
@@ -37,9 +36,7 @@ config_matplotlib()
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 torch.manual_seed(1)
 
-url = get_image_url("69037.png")
-
-x_true = load_url_image(url=url, img_size=256, device=device)
+x_true = load_example("69037.png", img_size=256, device=device)
 
 x = x_true.clone()
 mask = torch.ones_like(x)
@@ -49,7 +46,7 @@ mask[:, :, 80:130, 50:100] = 0
 sigma_noise = 12.75 / 255.0  # noise level
 physics = dinv.physics.Inpainting(
     mask=mask,
-    tensor_size=x.shape[1:],
+    img_size=x.shape[1:],
     noise_model=dinv.physics.GaussianNoise(sigma=sigma_noise),
     device=device,
 )
@@ -104,7 +101,7 @@ plot(
 #
 # In this section, we show how to use the denoising diffusion model from DiffPIR.
 # The denoising step is implemented by a denoising network conditioned on the noise power. The authors
-# of DiffPIR use a U-Net architecture from `Ho et al. <https://arxiv.org/abs/2108.02938>`_,
+# of DiffPIR use a U-Net architecture from :footcite:t:`ho2020denoising`,
 # which can be loaded as follows:
 
 model = dinv.models.DiffUNet(large_model=False).to(device)

@@ -1,0 +1,50 @@
+name: Deploy to pipy 
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  deploy:
+    if: |
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'release-branch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install tools
+        run: |
+          pip install --upgrade build twine
+
+      - name: Build the package
+        run: python -m build
+
+      - name: Publish to TestPyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          python -m twine check dist/*
+          python -m twine upload --verbose --repository testpypi dist/*
+
+      - name: Install from TestPyPI and test
+        run: |
+          pip install --index-url https://test.pypi.org/simple/ deepinv --extra-index-url https://pypi.org/simple
+          python -c "import deepinv"
+          
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload dist/*
+        
+      

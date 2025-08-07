@@ -1,4 +1,5 @@
 import torch
+import warnings
 
 
 class TensorList:
@@ -49,6 +50,18 @@ class TensorList:
         Moves the TensorList to the cpu.
         """
         return TensorList([xi.cpu() for xi in self.x])
+
+    def abs(self):
+        r"""
+        Returns a TensorList with the absolute value of each tensor.
+        """
+        return TensorList([xi.abs() for xi in self.x])
+
+    def max(self):
+        r"""
+        Returns a TensorList with the maximum value of each tensor.
+        """
+        return TensorList([xi.max() for xi in self.x])
 
     def numpy(self):
         r"""
@@ -118,7 +131,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi + other for xi in self.x])
         else:
-            return TensorList([xi + otheri for xi, otheri in zip(self.x, other)])
+            return TensorList(
+                [xi + otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __mul__(self, other):
         r"""
@@ -129,7 +144,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+            return TensorList(
+                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __rmul__(self, other):
         r"""
@@ -140,7 +157,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi * other for xi in self.x])
         else:
-            return TensorList([xi * otheri for xi, otheri in zip(self.x, other)])
+            return TensorList(
+                [xi * otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __truediv__(self, other):
         r"""
@@ -151,7 +170,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi / other for xi in self.x])
         else:
-            return TensorList([xi / otheri for xi, otheri in zip(self.x, other)])
+            return TensorList(
+                [xi / otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def __neg__(self):
         r"""
@@ -169,7 +190,9 @@ class TensorList:
         if not isinstance(other, list) and not isinstance(other, TensorList):
             return TensorList([xi - other for xi in self.x])
         else:
-            return TensorList([xi - otheri for xi, otheri in zip(self.x, other)])
+            return TensorList(
+                [xi - otheri for xi, otheri in zip(self.x, other, strict=True)]
+            )
 
     def conj(self):
         r"""
@@ -230,10 +253,24 @@ class TensorList:
         return TensorList([xi < other for xi in self.x])
 
     def squeeze(self, dim=None):
-        return TensorList([xi.squeeze(dim=dim) for xi in self.x])
+        # NOTE: It is not possible to rely on Tensor.squeeze(dim=None) as it
+        # fails so we use a kwargs dictionary with the parameter dim if it is
+        # provided.
+        kwargs = {}
+        if dim is not None:
+            kwargs["dim"] = dim
+        return TensorList([xi.squeeze(**kwargs) for xi in self.x])
 
-    def unsqueeze(self, dim=None):
+    def unsqueeze(self, dim):
         return TensorList([xi.unsqueeze(dim=dim) for xi in self.x])
+
+    @property
+    def device(self):
+        if len(set([_x.device for _x in self.x])) > 1:
+            warnings.warn(
+                "The tensors in the TensorList are not in the same device! Returning the device of the first tensor."
+            )
+        return self.x[0].device
 
 
 def randn_like(x):

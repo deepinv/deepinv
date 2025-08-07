@@ -11,6 +11,8 @@ Operators
 Operators describe the forward model :math:`z = A(x,\theta)`, where
 :math:`x` is the input image and :math:`\theta` are the parameters of the operator.
 The parameters :math:`\theta` can be sampled using random generators, which are available for some specific classes.
+Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
+This is particular useful when dealing with blind inverse problems or parameter estimation.
 
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
@@ -28,6 +30,7 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
      -
        | :class:`BernoulliSplittingMaskGenerator <deepinv.physics.generator.BernoulliSplittingMaskGenerator>`
        | :class:`GaussianSplittingMaskGenerator <deepinv.physics.generator.GaussianSplittingMaskGenerator>`
+       | :class:`MultiplicativeSplittingMaskGenerator <deepinv.physics.generator.MultiplicativeSplittingMaskGenerator>`
        | :class:`Phase2PhaseSplittingMaskGenerator <deepinv.physics.generator.Phase2PhaseSplittingMaskGenerator>`
        | :class:`Artifact2ArtifactSplittingMaskGenerator <deepinv.physics.generator.Artifact2ArtifactSplittingMaskGenerator>`
 
@@ -37,6 +40,8 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`deepinv.physics.BlurFFT`
        | :class:`deepinv.physics.SpaceVaryingBlur`
        | :class:`deepinv.physics.Downsampling`
+       | :class:`deepinv.physics.Upsampling`
+       | :class:`deepinv.physics.DownsamplingMatlab`
      -
        | :class:`MotionBlurGenerator <deepinv.physics.generator.MotionBlurGenerator>`
        | :class:`DownsamplingGenerator <deepinv.physics.generator.DownsamplingGenerator>`
@@ -58,11 +63,13 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :class:`GaussianMaskGenerator <deepinv.physics.generator.GaussianMaskGenerator>`
        | :class:`RandomMaskGenerator <deepinv.physics.generator.RandomMaskGenerator>`
        | :class:`EquispacedMaskGenerator <deepinv.physics.generator.EquispacedMaskGenerator>`
+       | :class:`PolyOrderMaskGenerator <deepinv.physics.generator.PolyOrderMaskGenerator>`
        | The above all also support k+t dynamic sampling.
 
    * - Tomography
      -
        | :class:`deepinv.physics.Tomography`
+       | :class:`deepinv.physics.TomographyWithAstra`
      -
 
    * - Remote Sensing & Multispectral
@@ -105,6 +112,28 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
        | :func:`generate_shifts <deepinv.physics.phase_retrieval.generate_shifts>`
 
 
+.. _wrapper_list:
+
+Wrappers
+~~~~~~~~~
+Wrappers are operators that can be used to adapt existing operators to a new problem.
+
+.. list-table:: Wrappers
+    :header-rows: 1
+
+    * - **Family**
+      - **Operators**
+
+    * - Multiscale
+      -
+         | :class:`deepinv.physics.PhysicsMultiScaler`
+         | :class:`deepinv.physics.LinearPhysicsMultiScaler`
+
+    * - Padding/Cropping
+      -
+         | :class:`deepinv.physics.PhysicsCropper`
+
+
 .. _noise_list:
 
 Noise distributions
@@ -113,12 +142,16 @@ Noise distributions describe the noise model :math:`N`,
 where :math:`y = N(z)` with :math:`z=A(x)`. The noise models can be assigned
 to **any** operator in the list above, by setting the
 :func:`set_noise_model <deepinv.physics.Physics.set_noise_model>` attribute at initialization.
+By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoise>`.
 
 .. list-table:: Noise Distributions and Their Probability Distributions
    :header-rows: 1
 
    * - **Noise**
      - :math:`y|z`
+
+   * - :class:`deepinv.physics.ZeroNoise`
+     - :math:`y=z`
 
    * - :class:`deepinv.physics.GaussianNoise`
      - :math:`y\sim \mathcal{N}(z, I\sigma^2)`
@@ -135,4 +168,5 @@ to **any** operator in the list above, by setting the
    * - :class:`deepinv.physics.UniformNoise`
      - :math:`y\sim \mathcal{U}(z-a, z+b)`
 
-
+   * - :class:`deepinv.physics.SaltPepperNoise`
+     - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`

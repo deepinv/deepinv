@@ -4,9 +4,8 @@ Change Log
 This change log is for the `main` branch. It contains changes for each release, with the date and author of each change.
 
 
-
 Current
-----------------
+-------
 
 New Features
 ^^^^^^^^^^^^
@@ -17,6 +16,93 @@ Changed
 Fixed
 ^^^^^
 
+
+v0.3.3
+------
+New Features
+^^^^^^^^^^^^
+
+- Automatic A_adjoint, U_adjoint and V computation for user-defined physics (:gh:`658` by `Julian Tachella`_)
+- Add RAM model (:gh:`524` by `Matthieu Terris`_)
+- FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
+- SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
+- New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+- Rename the normalizing function `deepinv.utils.rescale_img` to `normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
+- Changed default linear solver from `CG` to `lsqr` (:gh:`658` by `Julian Tachella`_)
+- Added positive clipping by default and gain minimum in `PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
+
+Fixed
+^^^^^
+
+- Fix downsampling generator batching (:gh:`608` by `Andrew Wang`_)
+- Fix memory leak in `deepinv.physics.tomography` when using autograd (:gh:`651` by `Minh Hai Nguyen`_)
+- Fix the circular padded UNet (:gh:`653` by `Victor Sechaud`_)
+- Clamp constant signals in `deepinv.utils.rescale_img` to ensure they are normalized (:gh:`641` by `Jérémy Scanvic`_)
+- Fix ZeroNoise default missing in Physics (:gh:`658` by `Julian Tachella`_)
+
+
+
+v0.3.2
+------
+New Features
+^^^^^^^^^^^^
+- Add support for astra-toolbox CT operators (parallel, fan, cone) with :class:`deepinv.physics.TomographyWithAstra` (:gh:`474` by `Romain Vo`_)
+- Add `Physics.clone` (:gh:`534` by `Jérémy Scanvic`_)
+
+Changed
+^^^^^^^
+- Make autograd use the base linear operator for `deepinv.physics.adjoint_function` (:gh:`519` by `Jérémy Scanvic`_)
+- Parallelize the test suite making it 15% faster (:gh:`522` by `Jérémy Scanvic`_)
+- Adjust backward paths for tomography (:gh:`535` by `Johannes Hertrich`_)
+- Update python version to 3.10+ (:gh:`605` by `Minh Hai Nguyen`_)
+- Update the library dependencies, issue template, codecov report on linux only (:gh:`654` by `Minh Hai Nguyen`_)
+
+Fixed
+^^^^^
+- Fix the total loss reported by the trainer (:gh:`515` by `Jérémy Scanvic`_)
+- Fix the gradient norm reported by the trainer (:gh:`520` by `Jérémy Scanvic`_)
+- Fix that the max_pixel option in PSNR and SSIM and add analgous min_pixel option (:gh:`535` by `Johannes Hertrich`_)
+- Fix some issues related to denoisers: ICNN grad not working inside torch.no_grad(), batch of image and batch of sigma for some denoisers (DiffUNet, BM3D, TV, Wavemet), EPLL error when batch size > 1 (:gh:`530` by `Minh Hai Nguyen`_)
+- Batching WaveletPrior and fix iwt (:gh:`530` by `Minh Hai Nguyen`_)
+- Fix on unreliable/inconsistent automatic choosing GPU with most free VRAM (:gh:`570` by `Fedor Goncharov`_)
+
+
+
+v0.3.1
+----------------
+
+New Features
+^^^^^^^^^^^^
+
+- Added :class:`deepinv.physics.SaltPepperNoise` for impulse noise (:gh:`472` by `Thomas Moreau`_).
+- Add measurement augmentation VORTEX loss (:gh:`410` by `Andrew Wang`_)
+- Add non-geometric data augmentations (noise, phase errors) (:gh:`410` by `Andrew Wang`_)
+- Make :class:`PhysicsGenerator.average` use batches (:gh:`488` by `Jérémy Scanvic`_)
+- MRI losses subclass, weighted-SSDU, Robust-SSDU loss functions + more mask generators (:gh:`416` by `Keying Guo`_ and `Andrew Wang`_)
+- Multi-coil MRI estimates sens maps with sigpy ESPIRiT, MRISliceTransform better loads raw data by estimating coil maps and generating masks (:gh:`416` by `Andrew Wang`_)
+- Add HaarPSI metric + metric standardization (:gh:`416` by `Andrew Wang`_)
+
+Changed
+^^^^^^^
+- Added cake_cutting, zig_zag and xy orderings in `deepinv.physics.SinglePixelCamera` physics (:gh:`475` by `Brayan Monroy`_).
+
+Fixed
+^^^^^
+- Fix images not showing in sphinx examples (:gh:`478` by `Matthieu Terris`_)
+- Fix plot_inset not showing (:gh:`455` by `Andrew Wang`_)
+- Fix latex rendering in `deepinv.utils.plotting.config_matplotlib`  (:gh:`452` by `Romain Vo`_)
+- Get rid of unnecessary file system writes in `get_freer_gpu` (:gh:`468` by `Jérémy Scanvic`_)
+- Fixed sequency ordering in `deepinv.physics.SinglePixelCamera` (:gh:`475` by `Brayan Monroy`_)
+- Change array operations from numpy to PyTorch in `SinglePixelCamera` (:gh:`483` by `Jérémy Scanvic`_)
+- Get rid of commented out code (:gh:`485` by `Jérémy Scanvic`_)
+- Changed `deepinv.physics.SinglePixelCamera` parameters in demos (:gh:`493` by `Brayan Monroy`_)
+- Improved code coverage by mocking datasets (:gh:`490` by `Jérémy Scanvic`_)
+
+- Fix MRI mask generator update img_size on-the-fly not updating n_lines (:gh:`416` by `Andrew Wang`_)
+- Upgrade deprecated typing.T types in the code base (:gh:`501` by `Jérémy Scanvic`_)
 
 v0.3
 ----------------
@@ -44,6 +130,12 @@ New Features
 - Online training with noisy physics now can repeat the same noise each epoch (:gh:`414` by `Andrew Wang`_)
 - Trainer test can return unaggregated metrics (:gh:`420` by `Andrew Wang`_)
 - MoDL model (:gh:`435` by `Andrew Wang`_)
+- Add conversion to Hounsfield Units (HUs) for LIDC IDRI (:gh:`459` by `Jérémy Scanvic`_)
+- Add ComposedLinearPhysics (via __mul__ method) (:gh:`462` by `Minh Hai Nguyen`_ and `Julian Tachella`_ )
+- Register physics-dependent parameters to module buffers (:gh:`462` by `Minh Hai Nguyen`_)
+- Add example on optimizing physics parameters (:gh:`462` by `Minh Hai Nguyen`_)
+- Add `device` property to TensorList (:gh:`462` by `Minh Hai Nguyen`_)
+- Add test physics device transfer and differentiablity (:gh:`462` by `Minh Hai Nguyen`_)
 
 Fixed
 ^^^^^
@@ -56,9 +148,15 @@ Fixed
 - Fix offline training with noise generator not updating noise params (:gh:`414` by `Andrew Wang`_)
 - Fix wrong reference link in auto examples (:gh:`432` by `Minh Hai Nguyen`_)
 - Fix paths in LidcIdriSliceDataset (:gh:`446` by `Jérémy Scanvic`_)
+- Fix device inconsistency in test_physics, physics classes and noise models (:gh:`462` by `Minh Hai Nguyen`_)
+
+
+- Fix Ptychography can not handle multi-channels input (:gh:`494` by `Minh Hai Nguyen`_)
+- Fix argument name (img_size, in_shape, ...) inconsistency  (:gh:`494` by `Minh Hai Nguyen`_)
 
 Changed
 ^^^^^^^
+- Add bibtex references (:gh:`575` by `Samuel Hurault`_)
 - Set sphinx warnings as errors (:gh:`379` by `Julian Tachella`_)
 - Added single backquotes default to code mode in docs (:gh:`379` by `Julian Tachella`_)
 - Changed the __add__ method for stack method for stacking physics (:gh:`371` by `Julian Tachella`_ and `Andrew Wang`_)
@@ -316,4 +414,6 @@ Authors
 .. _Andrew Wang: https://andrewwango.github.io/about/
 .. _Pierre-Antoine Comby: https://github.com/paquiteau
 .. _Victor Sechaud: https://github.com/vsechaud
+.. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
+.. _Romain Vo: https://github.com/romainvo

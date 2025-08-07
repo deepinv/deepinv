@@ -235,7 +235,7 @@ class L2(DataFidelity):
         >>> x = torch.ones(1, 1, 3, 3)
         >>> mask = torch.ones_like(x)
         >>> mask[0, 0, 1, 1] = 0
-        >>> physics = dinv.physics.Inpainting(tensor_size=(1, 3, 3), mask=mask)
+        >>> physics = dinv.physics.Inpainting(img_size=(1, 3, 3), mask=mask)
         >>> y = physics(x)
         >>>
         >>> # Compute the data fidelity f(Ax, y)
@@ -321,7 +321,7 @@ class IndicatorL2(DataFidelity):
             \operatorname{prox}_{\gamma \iota_{\mathcal{B}_2(y, r)}(A\cdot)}(x) = \underset{u}{\text{argmin}} \,\, \iota_{\mathcal{B}_2(y, r)}(Au)+\frac{1}{2}\|u-x\|_2^2
 
         Since no closed form is available for general measurement operators, we use a dual forward-backward algorithm,
-        as suggested in `Proximal Splitting Methods in Signal Processing <https://arxiv.org/pdf/0912.3522.pdf>`_.
+        as suggested in :footcite:t:`combettes2011proximal`.
 
         :param torch.Tensor x: Variable :math:`x` at which the proximity operator is computed.
         :param torch.Tensor y: Data :math:`y` of the same dimension as :math:`\forw{x}`.
@@ -332,6 +332,7 @@ class IndicatorL2(DataFidelity):
         :param float gamma: factor in front of the indicator function. Notice that this does not affect the proximity
                             operator since the indicator is scale invariant. Default: None.
         :return: (:class:`torch.Tensor`) projection on the :math:`\ell_2` ball of radius `radius` and centered in `y`.
+
         """
         radius = self.radius if radius is None else radius
 

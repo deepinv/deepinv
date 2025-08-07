@@ -46,7 +46,6 @@ def fan_beam_grid(theta, image_size, fan_parameters, dtype=torch.float, device="
 
 
 # constants
-PI = 4 * torch.ones(1).atan()
 SQRT2 = (2 * torch.ones(1)).sqrt()
 
 
@@ -71,29 +70,77 @@ class AbstractFilter(nn.Module):
         self.device = device
         self.dtype = dtype
 
-    def forward(self, x):
-        input_size = x.shape[2]
+    def forward(self, x: torch.Tensor, dim: int = -2) -> torch.Tensor:
+        r"""Apply a high-pass filter to input sinogram ``x``.
+
+        :param torch.Tensor x: CT measurements of shape [B,C,N,A] (or [B,C,..,A,N]
+        with ``astra`` convention).
+        :param int dim: Following the shape convention of the input, ``dim`` specifies
+        along which dimension to apply the filter. By default, it assumes the
+        [B,C,N,A] convention. (default: -2)
+        :return: Filtered input x.
+        """
+        is_3d = len(x.shape) == 5
+
+        # useful in 3D to store intermediate filtering steps
+        out = torch.empty_like(x)
+
+        input_size = x.shape[dim]
         projection_size_padded = max(
             64, int(2 ** (2 * torch.tensor(input_size)).float().log2().ceil())
         )
         pad_width = projection_size_padded - input_size
-        padded_tensor = F.pad(x, (0, 0, 0, pad_width))
-        f = self._get_fourier_filter(padded_tensor.shape[2]).to(x.device)
+
+        f = self._get_fourier_filter(projection_size_padded).to(x.device)
         fourier_filter = self.create_filter(f)
-        fourier_filter = fourier_filter.unsqueeze(-2)
+        if dim == 2 or dim == -2:
+            fourier_filter = fourier_filter.unsqueeze(-1)
 
-        projection = (
-            torch.view_as_real(torch.fft.fft(padded_tensor.transpose(2, 3))).transpose(
-                2, 3
-            )
-            * fourier_filter
-        )
-        result = torch.view_as_real(
-            torch.fft.ifft(torch.view_as_complex(projection).transpose(2, 3))
-        )[..., 0]
-        result = result.transpose(2, 3)[:, :, :input_size, :]
+        if is_3d:
+            # in 3D the measurements always follow `astra` convention
+            B, C, H, A, N = x.shape
+            for i in range(H):
+                out[:, :, i] = self.filter(x[:, :, i], fourier_filter, pad_width, dim)
+        else:
+            out[:] = self.filter(x, fourier_filter, pad_width, dim)
 
-        return result
+        return out.contiguous()
+
+    def filter(
+        self,
+        x: torch.Tensor,
+        fourier_filter: torch.Tensor,
+        pad_width: int,
+        dim: int = 3,
+    ) -> torch.Tensor:
+        r"""Filter input ``x`` with ``fourier_filter``.
+
+        :param torch.Tensor x: Sinogram of shape [B,C,N,A] (or [B,C,A,N] with ``astra``
+        convention) with N the detector dimension to filter, and A the angular dimension.
+        :param torch.Tensor fourier_filter: 1D Fourier filter
+        :param int pad_width: Extra padding of the input to speed up computation
+        and limit artifacts
+        :param int dim: Dimension along which to filter.
+        :return: Filtered input x.
+        """
+
+        input_size = x.shape[dim]
+
+        if dim == 3 or dim == -1:
+            # horizontal padding --> assume that the input is of shape (B,C,A,N)
+            padded_tensor = F.pad(x, (0, pad_width, 0, 0))
+        elif dim == 2 or dim == -2:
+            # vertical padding --> assume that the input is of shape (B,C,N,A)
+            padded_tensor = F.pad(x, (0, 0, 0, pad_width))
+
+        projection = torch.fft.rfft(padded_tensor, dim=dim) * fourier_filter
+
+        result = torch.fft.irfft(projection, dim=dim)
+
+        if dim == 2 or dim == -2:
+            return result[:, :, :input_size, :]
+        elif dim == 3 or dim == -1:
+            return result[:, :, :, :input_size]
 
     def _get_fourier_filter(self, size):
         n = torch.cat(
@@ -102,10 +149,9 @@ class AbstractFilter(nn.Module):
 
         f = torch.zeros(size, dtype=self.dtype, device=self.device)
         f[0] = 0.25
-        f[1::2] = -1 / (PI * n) ** 2
+        f[1::2] = -1 / (torch.pi * n) ** 2
 
-        fourier_filter = torch.view_as_real(torch.fft.fft(f, dim=-1))
-        fourier_filter[:, 1] = fourier_filter[:, 0]
+        fourier_filter = torch.fft.rfft(f, dim=-1)
 
         return 2 * fourier_filter
 
@@ -143,7 +189,7 @@ class Radon(nn.Module):
 
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
 
-        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
+        The default values are adapted from the geometry in :footcite:t:`khalil2023hyperspectral`.
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param torch.dtype dtype: the data type of the output. Default is torch.float.
@@ -221,6 +267,21 @@ class Radon(nn.Module):
             pad_before = new_center - old_center
             pad_width = (pad_before, pad - pad_before)
             x = F.pad(x, (pad_width[0], pad_width[1], pad_width[0], pad_width[1]))
+
+        if self.circle:
+            yax = (
+                2
+                * (
+                    torch.arange(W, dtype=torch.float, device=x.device)[None, :].expand(
+                        W, -1
+                    )[None, None, :, :]
+                )
+                / (W - 1)
+                - 1.0
+            )
+            xax = yax.transpose(-2, -1)
+            mask = (xax**2 + yax**2 <= 1).to(torch.float)
+            x = x * mask
 
         N, C, W, _ = x.shape
 
@@ -387,7 +448,7 @@ class IRadon(nn.Module):
             )
             reco[~reconstruction_circle] = 0.0
 
-        reco = reco * PI.item() / (2 * len(self.theta))
+        reco = reco * torch.pi / (2 * len(self.theta))
 
         if self.out_size is not None:
             pad = (self.out_size - self.in_size) // 2
@@ -424,3 +485,45 @@ class IRadon(nn.Module):
                 torch.cat((X.unsqueeze(-1), Y.unsqueeze(-1)), dim=-1).unsqueeze(0)
             )
         return torch.stack(all_grids)
+
+
+# autograd wrapper
+class ApplyRadon(torch.autograd.Function):
+    r"""
+    (Static) Autograd Wrapper for the Radon transform and its adjoint.
+
+    It can be called by ``ApplyRadon.apply(x, radon, iradon, adjoint)`` and with inputs specified as follows:
+
+    :param torch.Tensor x: Input tensor, i.e., the input image if ``adjoint==False`` and the measurement tensor if ``adjoint==True``.
+    :param Radon radon: Radon object used.
+    :param IRadon iradon: Inverse Radon object used for the adjoint.
+    :param bool adjoint: if ``True`` the ``ApplyRadon.apply(x, radon, iradon, adjoint)`` refers to the adjoint of the Radon transform, otherwise to the forward.
+    """
+
+    @staticmethod
+    def forward(
+        x,
+        radon,
+        iradon,
+        adjoint,
+    ):
+        if adjoint:
+            # IRadon is not exactly the adjoint but a rescaled version of it...
+            return iradon(x, filtering=False) / torch.pi * (2 * len(iradon.theta))
+        else:
+            return radon(x)
+
+    @staticmethod
+    def setup_context(ctx, inputs, output):
+        ctx.radon = inputs[1]
+        ctx.iradon = inputs[2]
+        ctx.adjoint = inputs[3]
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return (
+            ApplyRadon.apply(grad_output, ctx.radon, ctx.iradon, not ctx.adjoint),
+            None,
+            None,
+            None,
+        )

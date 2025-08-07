@@ -13,10 +13,10 @@ as input and returns a denoised image:
 
     >>> import torch
     >>> import deepinv as dinv
-    >>> denoiser = dinv.models.DRUNet()
+    >>> denoiser = dinv.models.DRUNet()  # doctest: +IGNORE_RESULT
     >>> sigma = 0.1
     >>> image = torch.ones(1, 3, 32, 32) * .5
-    >>> noisy_image =  image + torch.randn(1, 3, 32, 32) * sigma
+    >>> noisy_image = image + torch.randn(1, 3, 32, 32) * sigma
     >>> denoised_image = denoiser(noisy_image, sigma)
 
 .. note::
@@ -100,6 +100,16 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - CNN-Transformer
      - Any C, H, W
      - RGB, diffusion
+     - Yes
+   * - :class:`deepinv.models.DScCP`
+     - Unrolled
+     - Any C, H, W
+     - RGB
+     - Yes
+   * - :class:`deepinv.models.RAM`
+     - CNN-UNet
+     - C=1, 2, 3; H,W>8
+     - C=1, 2, 3
      - Yes
 
 .. _non-learned-denoisers:

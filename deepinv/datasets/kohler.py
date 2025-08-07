@@ -16,7 +16,9 @@ def url_basename(url: str) -> str:
 
 
 class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
+
+    Published in :footcite:t:`kohler2012recording`.
 
     The dataset consists of blurry shots and sharp frames, each blurry shot
     being associated with about 200 sharp frames. There are 48 blurry shots in
@@ -77,6 +79,7 @@ class Kohler(Dataset):
             # Convenience method to directly index the printouts and trajectories
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
             print(sharp_frame.shape, blurry_shot.shape)
+
     """
 
     # The Köhler dataset is split into multiple archives available online.
@@ -245,7 +248,7 @@ class Kohler(Dataset):
             return sharp_frame, blurry_shot
 
     def get_sharp_frame(
-        printout_index: int, trajectory_index: int, frame_index: int
+        self, printout_index: int, trajectory_index: int, frame_index: int
     ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(
             self.root,
@@ -259,7 +262,7 @@ class Kohler(Dataset):
         return sharp_frame
 
     def get_blurry_shot(
-        printout_index: int, trajectory_index: int
+        self, printout_index: int, trajectory_index: int
     ) -> Union[torch.Tensor, Image.Image, any]:
         path = join(self.root, f"Blurry{printout_index}_{trajectory_index}.png")
         blurry_shot = Image.open(path)

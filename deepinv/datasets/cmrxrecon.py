@@ -1,7 +1,14 @@
-from typing import Any, Callable, Optional, Union, List, Dict, Tuple
+from typing import Any, Callable, Optional, Union
 from pathlib import Path
 import os
-from natsort import natsorted
+
+try:
+    from natsort import natsorted
+except ImportError:  # pragma: no cover
+    natsorted = ImportError(
+        "natsort is not available. In order to use CMRxReconSliceDataset, please install the natsort package with `pip install natsort`."
+    )  # pragma: no cover
+
 from tqdm import tqdm
 from warnings import warn
 
@@ -11,7 +18,7 @@ from torch import Tensor
 import torch
 import torch.nn.functional as F
 
-from deepinv.datasets.fastmri import FastMRISliceDataset
+from deepinv.datasets.fastmri import FastMRISliceDataset, MRISliceTransform
 from deepinv.datasets.utils import loadmat
 from deepinv.physics.mri import MRIMixin
 from deepinv.physics.generator.mri import BaseMaskGenerator
@@ -105,7 +112,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
         mask_dir: Union[str, Path] = "SingleCoil/Cine/TrainingSet/AccFactor04",
         mask_generator: Optional[BaseMaskGenerator] = None,
         transform: Optional[Callable] = None,
-        pad_size: Tuple[int, int] = (512, 256),
+        pad_size: tuple[int, int] = (512, 256),
         noise_model: NoiseModel = None,
     ):
 
@@ -145,6 +152,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                 f"Data or mask folder does not exist. Please set root, data_dir and mask_dir properly."
             )
 
+        if isinstance(natsorted, ImportError):
+            raise natsorted
+
         all_fnames = natsorted(
             f
             for f in (self.root / self.data_dir).rglob("**/*.mat")
@@ -168,7 +178,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
     def _retrieve_metadata(
         self, fname: Union[str, Path, os.PathLike]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Open file and retrieve metadata
 
         Metadata includes width, height, slices, coils (if multicoil) and timeframes.
@@ -190,7 +200,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             else {}
         )
 
-    def __getitem__(self, i: int) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
+    def __getitem__(self, i: int) -> tuple[Tensor, Tensor, dict[str, Tensor]]:
         """Get ith data sampe.
 
         :param int i: dataset index to get
@@ -208,6 +218,10 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         kspace = torch.from_numpy(np.stack((kspace.real, kspace.imag), axis=0))
         kspace = kspace.moveaxis(-1, 1)  # shape CTWH
+        target = None
+
+        # TODO The following is akin to :class:`deepinv.datasets.fastmri.MRISliceTransform` and will be moved
+        # to a separate CMRxReconTransform in future.
 
         # Load mask
         if self.apply_mask:
@@ -224,11 +238,9 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
                         "Mask not found in mask_dir and mask_generator not specified. Choose mask_dir containing masks, or specify mask_generator."
                     )
             else:
-                mask = self.mask_generator.step(
-                    seed=str(fname) + str(slice_ind),
-                    img_size=kspace.shape[-2:],
-                    batch_size=0,
-                )["mask"]
+                mask = MRISliceTransform(
+                    mask_generator=self.mask_generator
+                ).generate_mask(kspace, str(fname) + str(slice_ind))
         else:
             mask = torch.ones_like(kspace)
 
@@ -258,6 +270,6 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
 
         if self.apply_mask:
             kspace = kspace * mask + 0.0
-            return target, kspace, {"mask": mask.float()}
+            return target, kspace.float(), {"mask": mask.float()}
         else:
-            return target, kspace
+            return target, kspace.float()
