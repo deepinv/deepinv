@@ -246,7 +246,35 @@ def load_url_image(
 def load_example(name, **kwargs):
     r"""
     Load example image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ using
-    :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor.
+    :func:`deepinv.utils.load_url_image` if image file or :func:`deepinv.utils.load_torch_url` if torch tensor in `.pt` file
+    or :func:`deepinv.utils.load_np_url` if numpy array in `npy` or `npz` file.
+
+    Available examples for `name` include (see `the HuggingFace repo <https://huggingface.co/datasets/deepinv/images>`_ for full list):
+
+    * Natural images:
+        
+        * `barbara.jpeg`, `butterfly.png`  from :class:`Set14 <deepinv.datasets.Set14HR>`
+        * `cameraman.png`, a classic toy image
+        * `CBSD_0010.png` from :class:`CBSD68 <deepinv.datasets.CBSD68>`
+        * `celeba_example.jpg` from CelebA
+        * `div2k_valid_hr_0877.png`, `div2k_valid_lr_bicubic_0877x4.png` GT and measurement from :class:`Div2k <deepinv.datasets.DIV2K>`
+        * `leaves.png` from Set3C dataset
+        * `mbappe.jpg`
+        
+    * Medical images:
+        
+        * `CT100_256x256_0.pt` from `CT100 <https://doi.org/10.1007/s10278-013-9622-7>`_
+        * `brainweb_t1_ICBM_1mm_subject_0.npy` from `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_
+        * `demo_mini_subset_fastmri_brain_0.pt`, a demo sample from :class:`FastMRI <deepinv.datasets.SimpleFastMRISliceDataset>`
+        * `SheppLogan.png`, a Shepp Logan phantom
+
+    * Microscopy:
+        
+        * `FMD_TwoPhoton_MICE_R_gt_12_avg50.png`, a sample from :class:`FMD <deepinv.datasets.FMD>`
+
+    * Satellite images:
+        
+        * `JAX_018_011_RGB.tif`, a sample patch from WorldView-3
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
@@ -256,6 +284,8 @@ def load_example(name, **kwargs):
 
     if name.split(".")[-1].lower() == "pt":
         return load_torch_url(url, **kwargs)
+    elif name.split(".")[-1].lower() in ("npy", "npz"):
+        return load_np_url(url, **kwargs)
 
     return load_url_image(url, **kwargs)
 
@@ -263,6 +293,8 @@ def load_example(name, **kwargs):
 def download_example(name: str, save_dir: Union[str, Path]):
     r"""
     Download an image from the `DeepInverse HuggingFace <https://huggingface.co/datasets/deepinv/images>`_ to file.
+
+    For all available examples, see :func:`deepinv.utils.load_example`.
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param str, pathlib.Path save_dir: directory to save image to.
@@ -284,11 +316,11 @@ def load_torch_url(url, device="cpu", **kwargs):
     return torch.load(load_url(url), weights_only=True, map_location=device)
 
 
-def load_np_url(url=None):
+def load_np_url(url=None, **kwargs):
     r"""
     Load a numpy array from url.
 
     :param str url: URL of the image file.
     :return: :class:`np.array` containing the data.
     """
-    return np.load(load_url(url))
+    return np.load(load_url(url), allow_pickle=False)
