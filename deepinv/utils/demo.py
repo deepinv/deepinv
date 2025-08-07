@@ -251,30 +251,66 @@ def load_example(name, **kwargs):
 
     Available examples for `name` include (see `the HuggingFace repo <https://huggingface.co/datasets/deepinv/images>`_ for full list):
 
-    * Natural images:
-        
-        * `barbara.jpeg`, `butterfly.png`  from :class:`Set14 <deepinv.datasets.Set14HR>`
-        * `cameraman.png`, a classic toy image
-        * `CBSD_0010.png` from :class:`CBSD68 <deepinv.datasets.CBSD68>`
-        * `celeba_example.jpg` from CelebA
-        * `div2k_valid_hr_0877.png`, `div2k_valid_lr_bicubic_0877x4.png` GT and measurement from :class:`Div2k <deepinv.datasets.DIV2K>`
-        * `leaves.png` from Set3C dataset
-        * `mbappe.jpg`
-        
-    * Medical images:
-        
-        * `CT100_256x256_0.pt` from `CT100 <https://doi.org/10.1007/s10278-013-9622-7>`_
-        * `brainweb_t1_ICBM_1mm_subject_0.npy` from `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_
-        * `demo_mini_subset_fastmri_brain_0.pt`, a demo sample from :class:`FastMRI <deepinv.datasets.SimpleFastMRISliceDataset>`
-        * `SheppLogan.png`, a Shepp Logan phantom
+    .. list-table:: Example Images
+      :header-rows: 1
 
-    * Microscopy:
-        
-        * `FMD_TwoPhoton_MICE_R_gt_12_avg50.png`, a sample from :class:`FMD <deepinv.datasets.FMD>`
+      * - Name
+        - Origin
+        - Image size
+        - Domain
+      * - `barbara.jpeg`, `butterfly.png`
+        - :class:`Set14 <deepinv.datasets.Set14HR>`
+        - (3, 512, 512), (3, 256, 256)
+        - natural
+      * - `cameraman.png`
+        - Classic toy image
+        - (1, 512, 512)
+        - natural
+      * - `CBSD_0010.png`
+        - :class:`CBSD68 <deepinv.datasets.CBSD68>`
+        - (2, 481, 321)
+        - natural
+      * - `celeba_example.jpg`
+        - CelebA
+        - (3, 1024, 1024)
+        - natural
+      * - `div2k_valid_hr_0877.png`, `div2k_valid_lr_bicubic_0877x4.png`
+        - GT and measurement from :class:`Div2k <deepinv.datasets.DIV2K>`
+        - (3, 1152, 2040), (3, 288, 510)
+        - natural
+      * - `leaves.png`
+        - Set3C dataset
+        - (3, 256, 256)
+        - natural
+      * - `mbappe.jpg`
+        - 
+        - (3, 443, 664)
+        - natural
+      * - `CT100_256x256_0.pt`
+        - `CT100 <https://doi.org/10.1007/s10278-013-9622-7>`_
+        - (1, 256, 256)
+        - medical
+      * - `brainweb_t1_ICBM_1mm_subject_0.npy`
+        - `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_
+        - (181, 217, 181)
+        - medical
+      * - `demo_mini_subset_fastmri_brain_0.pt`
+        - :class:`FastMRI <deepinv.datasets.SimpleFastMRISliceDataset>`
+        - (2, 320, 320)
+        - medical
+      * - `SheppLogan.png`
+        - Shepp Logan phantom
+        - (4, 512, 512)
+        - medical
+      * - `FMD_TwoPhoton_MICE_R_gt_12_avg50.png`
+        - :class:`FMD <deepinv.datasets.FMD>`
+        - (3, 512, 512)
+        - microscopy
+      * - `JAX_018_011_RGB.tif`
+        - Sample patch from WorldView-3
+        - (3, 1024, 1024)
+        - satellite
 
-    * Satellite images:
-        
-        * `JAX_018_011_RGB.tif`, a sample patch from WorldView-3
 
     :param str name: filename of the image from the HuggingFace dataset.
     :param dict kwargs: keyword args to pass to :func:`deepinv.utils.load_url_image`
