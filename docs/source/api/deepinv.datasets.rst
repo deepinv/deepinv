@@ -92,5 +92,5 @@ Data Transforms
 
     deepinv.datasets.utils.Rescale
     deepinv.datasets.utils.ToComplex
-    deepinv.datasets.utils.CornerCrop
+    deepinv.datasets.utils.Crop
     deepinv.datasets.MRISliceTransform

@@ -36,7 +36,7 @@ from deepinv.datasets import (
 from deepinv.datasets.utils import (
     download_archive,
     loadmat,
-    CornerCrop,
+    Crop,
     Rescale,
     ToComplex,
 )
@@ -236,8 +236,8 @@ def test_tensordataset():
 
 
 def get_transforms(transform_name, shape):
-    if transform_name == "cornercrop":
-        return CornerCrop((shape[-2] // 2, shape[-1] // 2)), (
+    if transform_name == "Crop":
+        return Crop((shape[-2] // 2, shape[-1] // 2)), (
             *shape[:-2],
             shape[-2] // 2,
             shape[-1] // 2,
@@ -250,7 +250,7 @@ def get_transforms(transform_name, shape):
         raise ValueError("Invalid transform_name.")
 
 
-@pytest.mark.parametrize("transform_name", ["cornercrop", "rescale", "tocomplex"])
+@pytest.mark.parametrize("transform_name", ["Crop", "rescale", "tocomplex"])
 def test_transforms(transform_name):
     transform, shape = get_transforms(transform_name, (1, 1, 8, 8))
     x = torch.rand(1, 1, 8, 8)

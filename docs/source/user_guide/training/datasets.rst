@@ -230,7 +230,7 @@ We provide some torchvision-style transforms for use when loading data:
      - Min-max or clip value rescaling.
    * - :class:`deepinv.datasets.utils.ToComplex`
      - Add empty imaginary dimension to image.
-   * - :class:`deepinv.datasets.utils.CornerCrop`
+   * - :class:`deepinv.datasets.utils.Crop`
      - Crop image in corner or with arbitrary crop position and/or size.
    * - :class:`deepinv.datasets.MRISliceTransform`
      - Transform raw FastMRI data by simulating masks and estimating coil maps.
