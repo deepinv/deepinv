@@ -57,6 +57,8 @@ with torch.no_grad():
 #
 # .. seealso::
 #     See :ref:`pretrained denoisers <pretrained-weights>` for a full list of denoisers that can be plugged into iterative/sampling algorithms.
+#
+#     See :ref:`sphx_glr_auto_examples_plug-and-play_demo_PnP_DPIR_deblur.py` for a further example of using plug-and-play with a pretrained denoiser.
 
 denoiser = dinv.models.DRUNet(device=device)
 model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
@@ -65,6 +67,10 @@ x_hat2 = model(y, physics)
 
 # %%
 # Pretrained diffusion model (we reduce the image size for demo speed on CPU, as diffusion model is slow):
+#
+# .. seealso::
+#     See :ref:`sphx_glr_auto_examples_sampling_demo_ddrm.py` for a further example of using a pretrained diffusion model.
+
 
 model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 20)).to(device)
 
