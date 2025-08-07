@@ -273,14 +273,15 @@ def download_example(name: str, save_dir: Union[str, Path]):
         f.write(data)
 
 
-def load_torch_url(url):
+def load_torch_url(url, device="cpu"):
     r"""
     Load an array from url and read it by torch.load.
 
     :param str url: URL of the image file.
+    :param str, torch.device device: Device on which to load the tensor.
     :return: whatever is pickled in the file.
     """
-    return torch.load(load_url(url), weights_only=True)
+    return torch.load(load_url(url), weights_only=True, map_location=device)
 
 
 def load_np_url(url=None):

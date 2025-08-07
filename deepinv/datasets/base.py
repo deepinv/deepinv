@@ -184,6 +184,8 @@ class TensorDataset(ImageDataset):
         y: Optional[Tensor] = None,
         params: Optional[dict[str, Tensor]] = None,
     ):
+        super().__init__()
+        
         self.x = x
         self.y = y
         self.params = params
