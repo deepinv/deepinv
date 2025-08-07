@@ -548,10 +548,10 @@ class MultiCoilMRI(MRIMixin, LinearPhysics):
         """
         try:
             from sigpy.mri import birdcage_maps
-        except ImportError:
+        except ImportError:  # pragma: no cover
             raise ImportError(
                 "sigpy is required to simulate coil maps. Install it using pip install sigpy"
-            )
+            )  # pragma: no cover
 
         coil_maps = birdcage_maps(
             (n_coils,)

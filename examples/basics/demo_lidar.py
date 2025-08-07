@@ -18,8 +18,7 @@ import matplotlib.pyplot as plt
 # We create a lidar model with 100 bins per pixel and a Gaussian impulse response function
 # with a standard deviation of 2 bins.
 #
-# The forward model for the case of a single depth per pixel is defined as (e.g. see `this paper
-# <https://ieeexplore.ieee.org/abstract/document/9127841>`_):
+# The forward model for the case of a single depth per pixel is defined as (e.g. see :footcite:t:`rapp2020advances`):
 #
 # .. math::
 #

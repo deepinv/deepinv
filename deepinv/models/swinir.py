@@ -16,8 +16,8 @@ from .base import Denoiser
 try:
     import timm
     from timm.layers import DropPath, to_2tuple, trunc_normal_
-except ImportError as e:
-    timm = e
+except ImportError as e:  # pragma: no cover
+    timm = e  # pragma: no cover
 
 
 class Mlp(nn.Module):
@@ -790,8 +790,7 @@ class UpsampleOneStep(nn.Sequential):
 class SwinIR(Denoiser):
     r"""SwinIR denoising network.
 
-    The Swin Image Restoration (SwinIR) denoising network was introduced in `SwinIR: Image Restoration Using Swin
-    Transformer <https://arxiv.org/abs/2108.10257>`_. This code is adapted from the official implementation by the
+    The Swin Image Restoration (SwinIR) denoising network was introduced by :footcite:t:`liang2021swinir`. This code is adapted from the official implementation by the
     authors.
 
     :param int, tuple img_size: Input image size. Default 128.

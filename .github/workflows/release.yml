@@ -17,6 +17,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
+  
   
 jobs:
   build-test-publish:
@@ -46,7 +48,10 @@ jobs:
             echo "❌ One or both workflows failed — aborting."
             exit 1
           fi
-          
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -56,9 +61,6 @@ jobs:
       - name: Install tools
         run: |
           pip install --upgrade tomlkit
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Update changelog
         id: changelog

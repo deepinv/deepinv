@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, TYPE_CHECKING
+from typing import Union
 from warnings import warn
 
 import torch
@@ -11,19 +11,12 @@ from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
 from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
 
-if TYPE_CHECKING:
-    from deepinv.physics.forward import Physics
-
 
 class VarNet(ArtifactRemoval, MRIMixin):
     """
     VarNet or E2E-VarNet model.
 
-    These models are from the papers
-    `Sriram et al., End-to-End Variational Networks for Accelerated MRI Reconstruction <https://arxiv.org/abs/2004.06688>`_
-    and
-    `Hammernik et al., Learning a variational network for reconstruction of accelerated MRI data <https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.26977>`_.
-
+    These models are from the papers :footcite:t:`sriram2020end` and :footcite:t:`hammernik2018learning`.
     This performs unrolled iterations on the image estimate x (as per the original VarNet paper)
     or the kspace y (as per E2E-VarNet).
 

@@ -65,7 +65,7 @@ dinv.utils.plot(dataset[0][0].unsqueeze(0))
 n_channels = 3  # 3 for color images, 1 for gray-scale images
 physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

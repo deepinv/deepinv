@@ -7,9 +7,7 @@ from .base import GeneratorLoss, DiscriminatorLoss
 class SupAdversarialGeneratorLoss(GeneratorLoss):
     r"""Supervised adversarial consistency loss for generator.
 
-    This loss was used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-    Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-    Models".
+    This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
     Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator.
 
@@ -54,9 +52,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Supervised adversarial consistency loss for discriminator.
 
-     This loss was as used in conditional GANs such as Kupyn et al., "DeblurGAN: Blind Motion Deblurring Using
-     Conditional Adversarial Networks", and generative models such as Bora et al., "Compressed Sensing using Generative
-     Models".
+    This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
     Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
 
@@ -88,8 +84,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 class UnsupAdversarialGeneratorLoss(GeneratorLoss):
     r"""Unsupervised adversarial consistency loss for generator.
 
-    This loss was used in unsupervised generative models such as Bora et al.,
-    "AmbientGAN: Generative models from lossy measurements".
+    This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
     Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator.
 
@@ -137,8 +132,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
 class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
     r"""Unsupervised adversarial consistency loss for discriminator.
 
-    This loss was used in unsupervised generative models such as
-    Bora et al., "AmbientGAN: Generative models from lossy measurements".
+    This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
     Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximised
     by discriminator.

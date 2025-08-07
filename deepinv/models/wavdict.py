@@ -6,8 +6,8 @@ from typing import Union
 try:
     import ptwt
     import pywt
-except:
-    ptwt = ImportError("The ptwt package is not installed.")
+except:  # pragma: no cover
+    ptwt = ImportError("The ptwt package is not installed.")  # pragma: no cover
     # No need to pywt, which is a dependency of ptwt
 
 

@@ -16,8 +16,13 @@ from warnings import warn
 
 try:
     import astra
-except:
-    astra = ImportError("The astra-toolbox package is not installed.")
+
+    # NOTE: This import is used by its side effects.
+    from astra import experimental  # noqa: F401
+except ImportError:  # pragma: no cover
+    astra = ImportError(
+        "The astra-toolbox package is not installed."
+    )  # pragma: no cover
 
 
 class Tomography(LinearPhysics):
@@ -70,7 +75,7 @@ class Tomography(LinearPhysics):
 
         - "detector_spacing" distance between two pixels on the detector, default: 0.077
 
-        The default values are adapted from the geometry in `https://doi.org/10.5281/zenodo.8307932 <https://doi.org/10.5281/zenodo.8307932>`_,
+        The default values are adapted from the geometry in :footcite:t:`khalil2023hyperspectral`.
         where pixel spacing, source and detector radius and detector spacing are given in cm.
         Note that a to small value of n_detector_pixels*detector_spacing can lead to severe circular artifacts in any reconstruction.
     :param str device: gpu or cpu.
@@ -135,6 +140,9 @@ class Tomography(LinearPhysics):
 
         self.fan_beam = fan_beam
         self.adjoint_via_backprop = adjoint_via_backprop
+        if fan_beam or adjoint_via_backprop:
+            self._auto_grad_adjoint_fn = None
+            self._auto_grad_adjoint_input_shape = (1, 1, img_width, img_width)
         self.fbp_interpolate_boundary = fbp_interpolate_boundary
         if circle:
             # interpolate boundary does not make sense if circle is True
@@ -236,13 +244,25 @@ class Tomography(LinearPhysics):
                     "Image size unknown. Apply forward operator or add it for initialization."
                 )
             # lazy implementation for the adjoint...
-            adj = adjoint_function(
-                self.A,
-                (y.shape[0], y.shape[1], self.img_width, self.img_width),
-                device=self.device,
-                dtype=self.dtype,
-            )
-            return adj(y)
+            if (
+                self._auto_grad_adjoint_fn is None
+                or self._auto_grad_adjoint_input_shape
+                != (y.size(0), y.size(1), self.img_width, self.img_width)
+            ):
+                self._auto_grad_adjoint_fn = adjoint_function(
+                    self.A,
+                    (y.shape[0], y.shape[1], self.img_width, self.img_width),
+                    device=self.device,
+                    dtype=self.dtype,
+                )
+                self._auto_grad_adjoint_input_shape = (
+                    y.size(0),
+                    y.size(1),
+                    self.img_width,
+                    self.img_width,
+                )
+
+            return self._auto_grad_adjoint_fn(y)
         else:
             output = ApplyRadon.apply(y, self.radon, self.iradon, True)
             if self.normalize:

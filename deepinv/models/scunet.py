@@ -11,8 +11,8 @@ from .base import Denoiser
 try:
     import timm
     from timm.layers import trunc_normal_, DropPath
-except ImportError as e:
-    timm = e
+except ImportError as e:  # pragma: no cover
+    timm = e  # pragma: no cover
 
 
 class WMSA(nn.Module):
@@ -275,8 +275,7 @@ class SCUNet(Denoiser):
     r"""
     SCUNet denoising network.
 
-    The Swin-Conv-UNet (SCUNet) denoising was introduced in `Practical Blind Denoising via Swin-Conv-UNet and
-    Data Synthesis <https://arxiv.org/abs/2203.13278>`_.
+    The Swin-Conv-UNet (SCUNet) denoising was introduced by :footcite:t:`zhang2023practical`.
 
     :param int in_nc: number of input channels. Default: 3.
     :param list config: number of layers in each stage. Default: [4, 4, 4, 4, 4, 4, 4].
@@ -290,7 +289,6 @@ class SCUNet(Denoiser):
         See :ref:`pretrained-weights <pretrained-weights>` for more details.
     :param bool train: training or testing mode. Default: False.
     :param str device: gpu or cpu. Default: 'cpu'.
-
     """
 
     def __init__(

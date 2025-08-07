@@ -36,7 +36,7 @@ class LPIPS(Metric):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
         self.lpips = pyiqa.create_metric(
-            "lpips", check_input_range=check_input_range
+            "lpips", check_input_range=check_input_range, device=device
         ).to(device)
         self.lower_better = self.lpips.lower_better
 
@@ -77,9 +77,9 @@ class NIQE(Metric):
     def __init__(self, device="cpu", check_input_range=False, **kwargs):
         super().__init__(**kwargs)
         pyiqa = import_pyiqa()
-        self.niqe = pyiqa.create_metric("niqe", check_input_range=check_input_range).to(
-            device
-        )
+        self.niqe = pyiqa.create_metric(
+            "niqe", check_input_range=check_input_range, device=device
+        ).to(device)
         self.lower_better = self.niqe.lower_better
 
     def metric(self, x_net, *args, **kwargs):
