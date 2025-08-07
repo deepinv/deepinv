@@ -102,6 +102,11 @@ class HDF5Dataset(ImageDataset):
 
         :param int index: Index of the pair to return.
         """
+        if self.hd5 is None:
+            raise ValueError(
+                "Dataset has been closed. Redefine the dataset to continue."
+            )
+
         if self.stacked > 0:
             y = TensorList([self.cast(torch.from_numpy(y[index])) for y in self.y])
         else:
@@ -146,10 +151,7 @@ class HDF5Dataset(ImageDataset):
             self.hd5 = None
 
     def __del__(self):
-        try:
-            self.close()
-        except Exception:
-            pass
+        self.close()
 
 
 def generate_dataset(

@@ -114,7 +114,7 @@ class ImageDataset(Dataset):
     * `x` i.e a dataset that returns only ground truth;
     * `(x, y)` i.e. a dataset that returns pairs of ground truth and measurement. `x` can be equal to `torch.nan` if your dataset is ground-truth-free.
     * `(x, params)` i.e. a dataset of ground truth and dict of :ref:`physics parameters <physics_generators>`. Useful for training with online measurements.
-    * `(x, y, params)` i.e. a dataset that returns ground truth, measurements and dict of params.
+    * `(x, y, params)` i.e. a dataset that returns ground truth, measurements and dict of physics params.
 
     This check is also available for datasets using the method :meth:`ImageDataset.check_dataset`.
 

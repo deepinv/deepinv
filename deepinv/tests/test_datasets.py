@@ -102,7 +102,9 @@ def check_dataset_format(
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
 
-        dataloader = torch.utils.data.DataLoader(torch.utils.data.Subset(dataset, [0]))
+        dataloader = torch.utils.data.DataLoader(
+            torch.utils.data.Subset(dataset, [torch.randint(0, len(dataset)).item()])
+        )
         _ = next(iter(dataloader))
 
         if not skip_check:
@@ -179,17 +181,21 @@ def test_base_dataset():
     check_dataset(MyDataset([torch.nan, y, params]))
     check_dataset(MyDataset([torch.nan, params]))
 
-    with pytest.raises(RuntimeError):
-        check_dataset(MyDataset(torch.nan))
-        check_dataset(MyDataset([bad, y]))
-        check_dataset(MyDataset([x, bad]))
-        check_dataset(MyDataset([bad, y, params]))
-        check_dataset(MyDataset([x, bad, params]))
-        check_dataset(MyDataset([x, y, {1: 2}]))
-        check_dataset(MyDataset([x, x, x, params]))
-        check_dataset(MyDataset([x, params, y]))
-        check_dataset(MyDataset(bad))
-        check_dataset(MyDataset([x]))
+    for bad_dataset_input in (
+        torch.nan,
+        [bad, y],
+        [x, bad],
+        [bad, y, params],
+        [x, bad, params],
+        [x, bad, params],
+        [x, y, {1: 2}],
+        [x, x, x, params],
+        [x, params, y],
+        bad,
+        [x],
+    ):
+        with pytest.raises(RuntimeError):
+            check_dataset(MyDataset(bad_dataset_input))
 
 
 @pytest.mark.parametrize("physgen", [None, "mask"])
@@ -228,11 +234,14 @@ def test_tensordataset():
         dataset[0][0]
     ), "Dataset return tuple's first element must be NaN or single-element NaN tensor."
 
-    with pytest.raises(ValueError):
-        _ = TensorDataset()
-        _ = TensorDataset(x=bad)
-        _ = TensorDataset(y=bad)
-        _ = TensorDataset(x=x, y=torch.cat([y, y]))
+    for bad_dataset_input in (
+        {},
+        {"x": bad},
+        {"y": bad},
+        {"x": x, "y": torch.cat([y, y])},  # Batch size mismatch
+    ):
+        with pytest.raises(ValueError):
+            _ = TensorDataset(**bad_dataset_input)
 
 
 def get_transforms(transform_name, shape):

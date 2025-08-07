@@ -1,4 +1,5 @@
 from deepinv.datasets.base import ImageDataset
+from deepinv.utils.decorators import _deprecated_alias
 
 
 class PatchDataset(ImageDataset):
@@ -12,6 +13,8 @@ class PatchDataset(ImageDataset):
             The default shape is (-1,).
     """
 
+    @_deprecated_alias(transforms="transform")
+    @_deprecated_alias(shapes="shape")
     def __init__(self, imgs, patch_size=6, stride=1, transform=None, shape=(-1,)):
         self.imgs = imgs
         self.patch_size = patch_size
@@ -28,11 +31,15 @@ class PatchDataset(ImageDataset):
     def __getitem__(self, idx):
         idx_img = idx // self.patches_per_image
         idx_in_img = idx % self.patches_per_image
+
         idx_x = (idx_in_img // self.patches_per_image_y) * self.stride
         idx_y = (idx_in_img % self.patches_per_image_y) * self.stride
+
         patch = self.imgs[
             idx_img, :, idx_x : idx_x + self.patch_size, idx_y : idx_y + self.patch_size
         ]
+
         if self.transform:
             patch = self.transform(patch)
+
         return patch.reshape(self.shape) if self.shape else patch
