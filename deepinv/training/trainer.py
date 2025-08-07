@@ -4,6 +4,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 import torch
+from types import MappingProxyType
 
 try:
     import wandb
@@ -906,7 +907,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, filename, epoch, state={}):
+    def save_model(self, filename, epoch, state=MappingProxyType({})):
         r"""
         Save the model.
 
@@ -1251,7 +1252,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, list[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss], None] = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
@@ -1280,6 +1281,8 @@ def train(
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
     """
+    if losses is None:
+        losses = SupLoss()
     trainer = Trainer(
         model=model,
         physics=physics,

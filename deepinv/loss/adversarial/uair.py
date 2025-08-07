@@ -2,6 +2,7 @@ import torch.nn as nn
 from torch import Tensor
 from .base import GeneratorLoss
 from deepinv.physics import Physics
+from typing import Optional
 
 
 class UAIRGeneratorLoss(GeneratorLoss):
@@ -41,10 +42,12 @@ class UAIRGeneratorLoss(GeneratorLoss):
         self,
         weight_adv: float = 0.5,
         weight_mc: float = 1,
-        metric: nn.Module = nn.MSELoss(),
+        metric: Optional[nn.Module] = None,
         D: nn.Module = None,
         device="cpu",
     ):
+        if metric is None:
+            metric = nn.MSELoss()
         super().__init__(weight_adv=weight_adv, device=device)
         self.name = "UAIRGenerator"
         self.metric = metric

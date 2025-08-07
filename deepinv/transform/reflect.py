@@ -21,7 +21,7 @@ class Reflect(Transform):
     def __init__(
         self,
         *args,
-        dim: Union[int, list[int]] = [-2, -1],
+        dim: Union[int, list[int]] = (-2, -1),
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -53,7 +53,7 @@ class Reflect(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        dims: Union[torch.Tensor, Iterable] = [],
+        dims: Union[torch.Tensor, Iterable] = (),
         **kwargs,
     ) -> torch.Tensor:
         """Reflect image in axes given in dim.

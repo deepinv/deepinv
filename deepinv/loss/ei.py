@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 import torch
 import torch.nn as nn
@@ -43,13 +43,15 @@ class EILoss(Loss):
     def __init__(
         self,
         transform: Transform,
-        metric: Union[Metric, nn.Module] = torch.nn.MSELoss(),
+        metric: Optional[Union[Metric, nn.Module]] = None,
         apply_noise=True,
         weight=1.0,
         no_grad=False,
         *args,
         **kwargs,
     ):
+        if metric is None:
+            metric = nn.MSELoss()
         super(EILoss, self).__init__(*args, **kwargs)
         self.name = "ei"
         self.metric = metric

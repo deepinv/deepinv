@@ -440,7 +440,7 @@ class WaveletDictDenoiser(Denoiser):
     def __init__(
         self,
         level=3,
-        list_wv=["db8", "db4"],
+        list_wv=("db8", "db4"),
         max_iter=10,
         non_linearity="soft",
         wvdim=2,

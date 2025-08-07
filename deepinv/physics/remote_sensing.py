@@ -61,8 +61,8 @@ class Pansharpen(StackedLinearPhysics):
         filter="bilinear",
         factor=4,
         srf="flat",
-        noise_color=GaussianNoise(sigma=0.0),
-        noise_gray=GaussianNoise(sigma=0.05),
+        noise_color=None,
+        noise_gray=None,
         use_brovey=True,
         device="cpu",
         padding="circular",
@@ -70,6 +70,10 @@ class Pansharpen(StackedLinearPhysics):
         eps=1e-6,
         **kwargs,
     ):
+        if noise_color is None:
+            noise_color = GaussianNoise(sigma=0.0)
+        if noise_gray is None:
+            noise_gray = GaussianNoise(sigma=0.05)
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         noise_color = noise_color if noise_color is not None else lambda x: x

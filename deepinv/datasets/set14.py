@@ -1,4 +1,5 @@
 from typing import Any, Callable
+from types import MappingProxyType
 import os
 
 from PIL import Image
@@ -55,16 +56,20 @@ class Set14HR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = {
-        "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
-    }
+    archive_urls = MappingProxyType(
+        {
+            "Set14_SR.zip": "https://uofi.box.com/shared/static/igsnfieh4lz68l926l8xbklwsnnk8we9.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
-        "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
-        "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
-    }
+    checksums = MappingProxyType(
+        {
+            "image_SRF_2": "f51503d396f9419192a8075c814bcee3",
+            "image_SRF_3": "05130ee0f318dde02064d98b1e2019bc",
+            "image_SRF_4": "2b1bcbde607e6188ddfc526b252c0e1a",
+        }
+    )
 
     def __init__(
         self,

@@ -89,8 +89,8 @@ class Scale(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        factor: Union[torch.Tensor, Iterable, TransformParam] = [],
-        center: Union[torch.Tensor, Iterable, TransformParam] = [],
+        factor: Union[torch.Tensor, Iterable, TransformParam] = (),
+        center: Union[torch.Tensor, Iterable, TransformParam] = (),
         **kwargs,
     ) -> torch.Tensor:
         """Scale image given scale parameters.
