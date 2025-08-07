@@ -183,7 +183,7 @@ class ToComplex(Module):
         return stack([x, zeros_like(x)], dim=-3)
 
 
-class CornerCrop(Module):
+class Crop(Module):
     """Torchvision-style transform to take crop in corner or any arbitrary place.
 
     Expects tensor of shape (..., H, W).
