@@ -1764,7 +1764,7 @@ def test_physics_state_dict(name, device):
         shutil.rmtree(cache_dir)
 
 
-def test_composed_linear_physics(device):
+def test_composed_physics(device):
     img_size = (3, 32, 32)
     # First physics
     mask_1 = torch.ones(img_size, device=device).unsqueeze(0)
@@ -1810,6 +1810,26 @@ def test_composed_linear_physics(device):
         atol=1e-4,
         rtol=1e-4,
     )
+
+    # test non-linear physics - checking for possible bugs in noise model
+    non_lin_physics = dinv.physics.Physics(
+        A=lambda x: x**2, noise_model=dinv.physics.GaussianNoise(0.0)
+    )
+    p = physics * non_lin_physics
+
+    y_2 = physics(non_lin_physics.A(x))
+    assert torch.allclose(y_2, p(x))
+
+    assert isinstance(p.noise_model, dinv.physics.ZeroNoise)
+    assert isinstance(p, dinv.physics.Physics) and not isinstance(
+        p, dinv.physics.LinearPhysics
+    )
+
+    p = non_lin_physics * physics
+
+    y_2 = non_lin_physics.A(physics(x))
+    assert torch.allclose(y_2, p(x))
+    assert p.noise_model.sigma == 0.0
 
 
 @pytest.mark.parametrize("name", OPERATORS)
@@ -2097,3 +2117,50 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+def test_automatic_A_adjoint(device):
+    x = torch.randn((2, 3, 8, 8), device=device)
+    physics = dinv.physics.LinearPhysics(
+        A=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch."
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for LinearPhysics with automatic A_adjoint."
+
+    # test decomposable physics
+    physics = dinv.physics.DecomposablePhysics(
+        V_adjoint=lambda s: s.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+
+    assert torch.allclose(
+        physics.U(x), physics.U_adjoint(x)
+    ), "U and U_adjoint should be identity if not provided."
+    assert torch.allclose(physics.U(x), x), "U should be identity if not provided."
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
+
+    physics = dinv.physics.DecomposablePhysics(
+        U=lambda x: x.mean(dim=1, keepdim=True), img_size=(3, 8, 8)
+    )
+
+    y = physics(x)
+    x_adj = physics.A_adjoint(y)
+
+    assert torch.allclose(
+        physics.V(x), physics.V_adjoint(x)
+    ), "V and V_adjoint should be identity if not provided."
+    assert torch.allclose(physics.V(x), x), "V should be identity if not provided."
+    assert x_adj.shape == x.shape, "A_adjoint shape mismatch for DecomposablePhysics."
+    assert (
+        physics.adjointness_test(x) < 1e-4
+    ), "Adjointness test failed for DecomposablePhysics with automatic A_adjoint."
