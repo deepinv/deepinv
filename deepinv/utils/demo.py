@@ -281,7 +281,7 @@ def load_torch_url(url, device="cpu"):
     :param str, torch.device device: Device on which to load the tensor.
     :return: whatever is pickled in the file.
     """
-    return torch.load(load_url(url), weights_only=True, map_location=device)
+    return torch.load(load_url(url), weights_only=True, map_location=device).to(device)
 
 
 def load_np_url(url=None):
