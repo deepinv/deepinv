@@ -185,7 +185,7 @@ class TensorDataset(ImageDataset):
         params: Optional[dict[str, Tensor]] = None,
     ):
         super().__init__()
-        
+
         self.x = x
         self.y = y
         self.params = params
@@ -198,32 +198,32 @@ class TensorDataset(ImageDataset):
             raise ValueError(
                 f"x must be same size as y in dimension 0, but got {x.size(0)} vs {y.size(0)}"
             )
-        elif self.check_none(x) and self.check_none(y):
+        elif self._is_none_or_nan(x) and self._is_none_or_nan(y):
             raise ValueError("At least one of x or y must be not None or not nan.")
-        elif not self.check_none(x) and not isinstance(x, CORE_TYPES):
+        elif not self._is_none_or_nan(x) and not isinstance(x, CORE_TYPES):
             raise ValueError("x must be Tensor or TensorList.")
-        elif not self.check_none(y) and not isinstance(y, CORE_TYPES):
+        elif not self._is_none_or_nan(y) and not isinstance(y, CORE_TYPES):
             raise ValueError("y must be Tensor or TensorList.")
 
-    def check_none(self, x) -> bool:
+    def _is_none_or_nan(self, x) -> bool:
         """
         Check if x is None or is nan
         """
         return x is None or (isinstance(x, float) and math.isnan(x))
 
     def __len__(self):
-        return self.x.size(0) if not self.check_none(self.x) else self.y.size(0)
+        return self.x.size(0) if not self._is_none_or_nan(self.x) else self.y.size(0)
 
     def __getitem__(self, idx: int):
-        if self.check_none(self.y):
-            if self.check_none(self.params):
+        if self._is_none_or_nan(self.y):
+            if self._is_none_or_nan(self.params):
                 return self.x[idx]
             else:
                 return self.x[idx], {k: v[idx] for (k, v) in self.params.items()}
 
-        x = torch.nan if self.check_none(self.x) else self.x[idx]
+        x = torch.nan if self._is_none_or_nan(self.x) else self.x[idx]
 
-        if self.check_none(self.params):
+        if self._is_none_or_nan(self.params):
             return x, self.y[idx]
         else:
             return x, self.y[idx], {k: v[idx] for (k, v) in self.params.items()}
@@ -320,6 +320,7 @@ class ImageFolder(ImageDataset):
         estimate_params: Optional[Callable[[Tensor, Tensor], dict]] = None,
         transform: Optional[Union[Callable, tuple[Callable, Callable]]] = None,
     ):
+        super().__init__()
         self.root = Path(root)
 
         self.x_paths = None

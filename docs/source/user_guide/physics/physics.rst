@@ -179,8 +179,8 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 Mixins
 ~~~~~~
 
-The physics module maximises code reuse via inheritance. 
-We provide mixin classes to provide specialised methods for certain physics, models, datasets and losses,
+The physics module maximizes code reuse via inheritance. 
+We provide mixin classes to provide specialized methods for certain physics, models, datasets and losses,
 such as temporal or MRI functionality.
 
 .. list-table:: Mixins
