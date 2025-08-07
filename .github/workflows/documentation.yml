@@ -33,7 +33,7 @@ jobs:
           pip install -e .[dataset,denoisers,doc,training]
       - name: Sphinx build
         run: |
-          sphinx-build -W docs/source _build
+          sphinx-build -j 2 -W docs/source _build
       - name: Run doctests
         run: |
           # Get all the RST files, excluding multigpu.rst
