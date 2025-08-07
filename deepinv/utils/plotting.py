@@ -333,11 +333,9 @@ def plot(
                 axs[r, i].set_title(titles[i], wrap=True)
             axs[r, i].axis("off")
 
-    if tight:
-        if cbar:
-            plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        else:
-            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if cbar:
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
@@ -372,7 +370,7 @@ def scatter_plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=9,
+    fontsize=None,
     s=0.1,
     linewidths=1.5,
     color="b",
