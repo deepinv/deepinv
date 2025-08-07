@@ -594,6 +594,20 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
 
 
 @pytest.mark.parametrize(
+    "name",
+    [
+        "butterfly.png",
+        "CT100_256x256_0.pt",
+        "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy",
+    ],
+)
+def test_load_example(name):
+    x = deepinv.utils.load_example(name, img_size=(64, 64))
+    if name.split(".")[-1] == "png":
+        assert x.shape[-2:] == (64, 64)
+
+
+@pytest.mark.parametrize(
     "operation", ["super-resolution", "deblur", "inpaint", "dummy"]
 )
 @pytest.mark.parametrize("noise_level_img", [0, 0.03])

@@ -291,7 +291,7 @@ def load_example(name, **kwargs):
         - (1, 256, 256)
         - medical
       * - `brainweb_t1_ICBM_1mm_subject_0.npy`
-        - `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_
+        - `BrainWeb <https://brainweb.bic.mni.mcgill.ca/brainweb/>`_ 3D MRI data
         - (181, 217, 181)
         - medical
       * - `demo_mini_subset_fastmri_brain_0.pt`
@@ -307,7 +307,7 @@ def load_example(name, **kwargs):
         - (3, 512, 512)
         - microscopy
       * - `JAX_018_011_RGB.tif`
-        - Sample patch from WorldView-3
+        - Sample RGB patch from WorldView-3
         - (3, 1024, 1024)
         - satellite
 
@@ -357,6 +357,6 @@ def load_np_url(url=None, **kwargs):
     Load a numpy array from url.
 
     :param str url: URL of the image file.
-    :return: :class:`np.array` containing the data.
+    :return: numpy ndarray containing the data.
     """
     return np.load(load_url(url), allow_pickle=False)
