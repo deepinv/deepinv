@@ -42,9 +42,6 @@ physics_generator = dinv.physics.generator.GaussianMaskGenerator(
     (320, 320), device=device
 )
 
-params = physics_generator.step()
-print(params["mask"].device, physics.mask.device, x.device)
-
 # Generate measurement
 y = physics(x, **physics_generator.step())
 
