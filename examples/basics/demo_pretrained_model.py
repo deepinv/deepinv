@@ -66,18 +66,18 @@ x_hat2 = model(y, physics)
 # %%
 # Pretrained diffusion model (we reduce the image size for demo speed on CPU, as diffusion model is slow):
 
-model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 10)).to(device)
+model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 20)).to(device)
 
-y = torch.nn.functional.interpolate(y, (64, 64))
+x_crop = dinv.utils.load_example("butterfly.png", device=device, img_size=64)
 
 physics = dinv.physics.BlurFFT(
-    y.shape[1:],
+    x_crop.shape[1:],
     filter=dinv.physics.blur.gaussian_blur((5, 5)),
     noise_model=dinv.physics.GaussianNoise(sigma=0.1),
     device=device,
 )
 
-x_hat3 = model(y, physics)
+x_hat3 = model(physics(x_crop), physics)
 
 # %%
 # Plot results
@@ -87,7 +87,7 @@ dinv.utils.plot(
         "Blurred measurement": y,
         "Pretrained RAM": x_hat1,
         "Pretrained PnP": x_hat2,
-        "Pretrained diffusion": x_hat3,
+        "Pretrained diffusion (cropped)": x_hat3,
     }
 )
 
