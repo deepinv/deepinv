@@ -79,8 +79,10 @@ dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
 #
 
 # Blur with Gaussian filter parameter
+filter = dinv.physics.blur.gaussian_blur((5, 5))
+
 physics = dinv.physics.BlurFFT(
-    x.shape[1:], filter=dinv.physics.blur.gaussian_blur((5, 5)), device=device
+    x.shape[1:], filter=filter, device=device
 )
 
 # Blur kernel random generator
@@ -116,6 +118,8 @@ dinv.utils.plot(
 # Physics are powerful objects and :ref:`have many methods <physics_intro>`, for example a
 # pseudo-inverse:
 #
+
+physics.update(**params) # Reset params
 
 x_pinv = physics.A_dagger(y)
 
