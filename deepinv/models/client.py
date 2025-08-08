@@ -27,9 +27,9 @@ class Client(Reconstructor, Denoiser):
     ```python
     {
         "input": {
-            "file": <b64 serialised file>,
+            "file": <b64 serialized file>,
             "param1": "such as a config str",
-            "param2": <or a b64 serialised param>,
+            "param2": <or a b64 serialized param>,
         }
     }
     ```
@@ -39,7 +39,7 @@ class Client(Reconstructor, Denoiser):
     ```python
     {
         "output": {
-            "file": "<b64 serialised file>",
+            "file": "<b64 serialized file>",
             "other_outputs": "such as inference time",
         }
     }
@@ -72,7 +72,7 @@ class Client(Reconstructor, Denoiser):
         y_serialized = self.serialize(y)
 
         for kwarg, kval in kwargs.items():
-            ...  # TODO checks on kwarg (must be str) and kval (must be Tensor or list or int etc., serialise if needed)
+            ...  # TODO checks on kwarg (must be str) and kval (must be Tensor or list or int etc., serialize if needed)
 
         payload = {"input": {"file": y_serialized, **kwargs}}
 
@@ -102,8 +102,8 @@ class Client(Reconstructor, Denoiser):
     def to(self, *args, **kwargs):
         print("`.to()` has no effect on remote models. Ignoring.")
         return self
-    
-    def train(self, mode = True):
+
+    def train(self, mode=True):
         if mode:
             raise ValueError("Client cannot be run in training mode.")
         return super().train(mode=False)
