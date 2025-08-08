@@ -7,7 +7,7 @@ from deepinv.physics import Physics
 class UAIRGeneratorLoss(GeneratorLoss):
     r"""Reimplementation of UAIR generator's adversarial loss.
 
-    The loss, introduced by :footcite:t:`pajot2019unsupervised`, is defined as follows, to be minimised by the generator:
+    The loss, introduced by :footcite:t:`pajot2019unsupervised`, is defined as follows, to be minimized by the generator:
 
     :math:`\mathcal{L}=\mathcal{L}_\text{adv}(\hat y, y;D)+\lVert \forw{\inverse{\hat y}}- \hat y\rVert^2_2,\quad\hat y=\forw{\hat x}`
 

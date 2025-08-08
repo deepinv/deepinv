@@ -28,7 +28,7 @@ class HyperSpectralUnmixing(LinearPhysics):
     If the endmember matrix :math:`\mathbf{M}` is unknown, then this must be estimated too.
 
     :param torch.Tensor M: Matrix of endmembers of shape :math:`(E,C)`. Overrides ``E`` and ``C`` parameters.
-        If ``None``, then a random normalised matrix is simulated from a uniform distribution. Default ``None``.
+        If ``None``, then a random normalized matrix is simulated from a uniform distribution. Default ``None``.
     :param int E: Number of endmembers (e.g. number of materials). Ignored if ``M`` is set.  Default: ``15``.
     :param int C: Number of hyperspectral bands. Ignored if ``M`` is set. Default: ``64``.
     :param torch.device, str device: torch device, cpu or gpu.
@@ -57,7 +57,7 @@ class HyperSpectralUnmixing(LinearPhysics):
         super(HyperSpectralUnmixing, self).__init__()
 
         if M is None:
-            # Simulate random normalised M
+            # Simulate random normalized M
             M = torch.rand((E, C), dtype=torch.float32, device=device)
             M /= M.sum(dim=0, keepdim=True) * sqrt(C / E)
 

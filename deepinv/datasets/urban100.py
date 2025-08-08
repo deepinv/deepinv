@@ -1,17 +1,14 @@
-from typing import Any, Callable
+from typing import Callable
 import os
-
-from PIL import Image
-import torch
-
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import ImageFolder
 
 
-class Urban100HR(torch.utils.data.Dataset):
+class Urban100HR(ImageFolder):
     """Dataset for Urban100 <https://paperswithcode.com/dataset/urban100>`_.
 
     The Urban100 dataset :footcite:p:`huang2015single` contains 100 images of urban scenes.
@@ -101,19 +98,8 @@ class Urban100HR(torch.utils.data.Dataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(os.listdir(self.img_dir))
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialize ImageFolder
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

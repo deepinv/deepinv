@@ -170,3 +170,27 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.SaltPepperNoise`
      - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
+
+   * - :class:`deepinv.physics.ZeroNoise`
+     - :math:`y = z`
+
+.. _mixin:
+
+Mixins
+~~~~~~
+
+The physics module maximizes code reuse via inheritance. 
+We provide mixin classes to provide specialized methods for certain physics, models, datasets and losses,
+such as temporal or MRI functionality.
+
+.. list-table:: Mixins
+   :header-rows: 1
+
+   * - **Mixin**
+     - **Description**
+
+   * - :class:`deepinv.physics.MRIMixin`
+     - Utility methods for MRI physics.
+
+   * - :class:`deepinv.physics.TimeMixin`
+     - Methods for expanding and flattening time dimension for dynamic/video data.

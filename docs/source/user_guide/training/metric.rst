@@ -3,7 +3,7 @@
 Metrics
 =======
 
-This package contains popular metrics for inverse problems.
+This module contains popular metrics for inverse problems.
 
 Metrics are generally used to evaluate the performance of a model, or as the distance function inside a loss function.
 

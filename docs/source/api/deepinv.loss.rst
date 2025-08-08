@@ -1,7 +1,7 @@
 deepinv.loss
 ============
 
-This package provides a collection of supervised and self-supervised loss functions for training reconstruction networks.
+This module provides a collection of supervised and self-supervised loss functions for training reconstruction networks.
 Refer to the :ref:`user guide <loss>` for more information.
 
 

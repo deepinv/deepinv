@@ -196,3 +196,8 @@ test_dataloader = DataLoader(
 
 trainer.plot_images = True
 trainer.test(test_dataloader=test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

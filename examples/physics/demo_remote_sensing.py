@@ -216,3 +216,8 @@ dinv.utils.plot(
     ],
     titles=["x HRMS", "y LRMS", "y PAN", "Estimate (classical)", "Estimate (PanNet)"],
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

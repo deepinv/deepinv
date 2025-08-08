@@ -18,10 +18,10 @@ class RAM(Reconstructor, Denoiser):
     r"""
     Reconstruct Anything Model (RAM) foundation model.
 
-    Convolutional neural network model :footcite:t:`terris2025reconstruct` that has been trained to work on a large variety
+    RAM :footcite:t:`terris2025reconstruct` is a convolutional neural network model that has been trained to work on a large variety
     of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.).
 
-    See :ref:`sphx_glr_auto_examples_unfolded_demo_ram.py` for examples on the performance of RAM and how to fine-tune the
+    See :ref:`sphx_glr_auto_examples_models_demo_foundation_model.py` for examples on the performance of RAM and how to fine-tune the
     foundation model on a specific problem and dataset.
 
     The model works both as a reconstructor or denoiser:

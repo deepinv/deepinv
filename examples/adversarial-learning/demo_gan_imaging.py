@@ -14,7 +14,7 @@ This example is based on the papers DeblurGAN :footcite:p:`kupyn2018deblurgan`,
 Compressed Sensing using Generative Models (CSGM) :footcite:p:`bora2017compressed`,
 AmbiantGAN :footcite:p:`bora2018ambientgan`, and Unsupervised Adversarial Image Reconstruction (UAIR) :footcite:p:`pajot2019unsupervised`.
 
-Adversarial networks are characterised by the addition of an adversarial
+Adversarial networks are characterized by the addition of an adversarial
 loss :math:`\mathcal{L}_\text{adv}` to the standard reconstruction loss:
 
 .. math:: \mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]
@@ -79,10 +79,16 @@ dataset_path = dinv.datasets.generate_dataset(
 )
 
 train_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=True), shuffle=True
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=True, load_physics_generator_params=True
+    ),
+    shuffle=True,
 )
 test_dataloader = DataLoader(
-    dinv.datasets.HDF5Dataset(dataset_path, train=False), shuffle=False
+    dinv.datasets.HDF5Dataset(
+        dataset_path, train=False, load_physics_generator_params=True
+    ),
+    shuffle=False,
 )
 
 
@@ -366,3 +372,8 @@ G = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

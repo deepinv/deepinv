@@ -78,7 +78,7 @@ def apply_homography(
 
     The input image can be a torch Tensor, in which case ``kornia`` is used to perform the transformation, or a PIL Image where PIL transform is used.
 
-    Following :footcite:t:`wang2024perspective`, we assume principal point in centre, initial focal length 100, initial skew of 0, initial square pixels.
+    Following :footcite:t:`wang2024perspective`, we assume principal point in center, initial focal length 100, initial skew of 0, initial square pixels.
 
     :param torch.Tensor | Image.Image im: Input if tensor, image of shape (B,C,H,W), otherwise a PIL image.
     :param float theta_x: tilt angle in degrees, defaults to 0.
@@ -162,7 +162,7 @@ class Homography(Transform):
     """
     Random projective transformations (homographies).
 
-    The homography is parameterised by
+    The homography is parameterized by
     geometric parameters. By fixing these parameters, subgroup transformations are
     retrieved, see :footcite:t:`wang2024perspective`.
 
@@ -297,7 +297,7 @@ class Affine(Homography):
 
     Special case of homography which corresponds to the actions of the affine subgroup
     Aff(3). Affine transformations include translations, rotations, reflections,
-    skews, and stretches. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    skews, and stretches. These transformations are parametrized using geometric parameters in the pinhole camera model.
     See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
@@ -336,7 +336,7 @@ class Similarity(Homography):
 
     Special case of homography which corresponds to the actions of the similarity subgroup
     S(2). Similarity transformations include translations, rotations, reflections and
-    uniform scale. These transformations are parametrised using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
+    uniform scale. These transformations are parametrized using geometric parameters in the pinhole camera model. See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.
 
@@ -371,7 +371,7 @@ class Euclidean(Homography):
     """Random Euclidean image transformations using projective transformation framework.
 
     Special case of homography which corresponds to the actions of the Euclidean subgroup
-    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrised using geometric parameters in the pinhole camera model.
+    E(2). Euclidean transformations include translations, rotations and reflections. These transformations are parametrized using geometric parameters in the pinhole camera model.
     See :class:`deepinv.transform.Homography` for more details.
 
     Generates ``n_trans`` random transformations concatenated along the batch dimension.

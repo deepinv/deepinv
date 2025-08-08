@@ -17,7 +17,7 @@ class Decolorize(DecomposablePhysics):
     :param int channels: number of channels in the input image.
     :param str, tuple, list srf: spectral response function. Either pass in user-defined SRF (must be of length channels),
         or ``rec601`` (default) following the `rec601 <https://en.wikipedia.org/wiki/Rec._601>`_ convention,
-        or ``flat`` for a flat SRF (i.e. averages channels), or ``random`` for random SRF (e.g. to initialise joint learning).
+        or ``flat`` for a flat SRF (i.e. averages channels), or ``random`` for random SRF (e.g. to initialize joint learning).
     :param str, torch.device device: device on which to perform the computations. Default: ``cpu``.
 
     |sep|

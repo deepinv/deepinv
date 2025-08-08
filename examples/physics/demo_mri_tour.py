@@ -491,7 +491,7 @@ x, y, params = next(iter(DataLoader(dataset)))
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we
-# visualise t=5 frames of the ground truth ``x``, the mask, and the zero-filled
+# visualize t=5 frames of the ground truth ``x``, the mask, and the zero-filled
 # reconstruction ``x_zf`` (and crop to square for better visibility):
 #
 
@@ -505,3 +505,8 @@ dinv.utils.plot(
         for i in range(5)
     }
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

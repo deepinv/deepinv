@@ -6,7 +6,7 @@ Denoisers
 The :class:`deepinv.models.Denoiser` base class describe
 denoisers that take a noisy image as input and return a denoised image.
 They can be used as a building block for plug-and-play restoration, for building unrolled architectures,
-for artifact removal networks, or as a standalone denoisers. All denoisers have a
+for :ref:`artifact removal networks <artifact>`, or as standalone denoisers. All denoisers have a
 :func:`forward <deepinv.models.Denoiser.forward>` method that takes a
 noisy image and a noise level (which generally corresponds to the standard deviation of the noise)
 as input and returns a denoised image:
@@ -24,7 +24,7 @@ as input and returns a denoised image:
     Some denoisers (e.g., :class:`deepinv.models.DnCNN`) do not use the information about the noise level.
     In this case, the noise level is ignored.
 
-.. _deep-architectures:
+.. _deep-denoisers:
 
 Deep denoisers
 ~~~~~~~~~~~~~~

@@ -3,19 +3,20 @@ import pytest
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
 from deepinv.optim.prior import PnP
 from dummy import DummyCircles
 from deepinv.unfolded import unfolded_builder
-from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen
+from deepinv.physics import Inpainting, GaussianNoise, Blur, Pansharpen, Denoising
 from deepinv.physics.generator import (
     BernoulliSplittingMaskGenerator,
     SigmaGenerator,
     DiffractionBlurGenerator,
 )
+from deepinv.datasets.base import ImageDataset
 
 
 @pytest.mark.parametrize("physics_name", ["inpainting", "pansharpen"])
@@ -72,7 +73,7 @@ def test_generate_dataset_physics_generator(
 ):
     N = 10
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __getitem__(self, i):
             return torch.ones(imsize)
 
@@ -89,7 +90,7 @@ def test_generate_dataset_physics_generator(
             physics = Inpainting(img_size=imsize, mask=0.1)
             physics_generator = BernoulliSplittingMaskGenerator(imsize, 0.6)
         elif phys_gen == "sigma":
-            physics = GaussianNoise()
+            physics = Denoising(noise_model=GaussianNoise())
             physics_generator = SigmaGenerator()
         elif phys_gen == "diffraction":
             physics = Blur()

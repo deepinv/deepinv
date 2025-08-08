@@ -48,7 +48,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
     .. note::
 
         The data returned is directly compatible with :class:`deepinv.physics.DynamicMRI`.
-        See :ref:`sphx_glr_auto_examples_basics_demo_tour_mri.py` for example using this dataset.
+        See :ref:`sphx_glr_auto_examples_physics_demo_mri_tour.py` for example using this dataset.
 
     We provide one single downloadable demo sample, see example below on how to use this.
     Otherwise, download the full dataset from the `challenge website <https://cmrxrecon.github.io/>`_.
@@ -260,7 +260,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
 
-        # Normalise
+        # Normalize
         target = (target - target.mean()) / (target.std() + 1e-11)
 
         kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)

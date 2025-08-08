@@ -1,3 +1,3 @@
-Sampling
+Diffusion & MCMC
 -------------------------------
 

@@ -4,15 +4,15 @@ import re
 
 from PIL import Image
 import requests
-import torch
 
 from deepinv.datasets.utils import (
     download_archive,
     extract_tarball,
 )
+from deepinv.datasets.base import ImageDataset
 
 
-class FMD(torch.utils.data.Dataset):
+class FMD(ImageDataset):
     """Dataset for `Fluorescence Microscopy Denoising <https://github.com/yinhaoz/denoising-fluorescence>`_.
 
     Introduced by :footcite:t:`zhang2018poisson`.

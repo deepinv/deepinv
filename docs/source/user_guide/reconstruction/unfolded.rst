@@ -3,7 +3,7 @@
 Unfolded Algorithms
 ===================
 
-This package contains a collection of routines turning the optimization algorithms defined in :ref:`optimization module <optim>`
+This module contains a collection of routines turning the optimization algorithms defined in :ref:`optimization module <optim>`
 into unfolded architectures.
 Recall that optimization algorithms aim at solving problems of the form :math:`\datafid{x}{y} + \reg{x}`
 where :math:`\datafid{\cdot}{\cdot}` is a data-fidelity term, :math:`\reg{\cdot}` is a regularization term.
@@ -79,10 +79,27 @@ The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building 
 
 The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseDEQ`.
 
+.. _predefined-unfolded:
+
+Predefined Unfolded Architectures
+---------------------------------
+We also provide some off-the-shelf unfolded network architectures,
+taken from the respective literatures.
+
+.. list-table:: Predefined unfolded architectures
+   :header-rows: 1
+
+   * - Model
+     - Description
+   * - :class:`deepinv.models.VarNet`
+     - VarNet/E2E-VarNet MRI reconstruction models
+   * - :class:`deepinv.models.MoDL`
+     - MoDL MRI reconstruction model
+
 .. _custom-unfolded-blocks:
 
-Custom Unfolded Architectures
--------------------------------
+Predefined Unfolded Blocks
+--------------------------
 Some more specific unfolded architectures are also available.
 
 The Primal-Dual Network (PDNet) uses :class:`deepinv.models.PDNet_PrimalBlock` and

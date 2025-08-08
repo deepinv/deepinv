@@ -140,7 +140,7 @@ class Transform(torch.nn.Module, TimeMixin):
         Params store e.g rotation degrees or shift amounts.
 
         Params may be any Tensor-like object. For inverse transforms, params are negated by default.
-        To change this behaviour (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
+        To change this behavior (e.g. calculate reciprocal for inverse), wrap the param in a ``TransformParam`` class:
         ``p = TransformParam(p, neg=lambda x: 1/x)``
 
         :param torch.Tensor x: input image
@@ -262,7 +262,7 @@ class Transform(torch.nn.Module, TimeMixin):
         collate_batch: bool = True,
     ) -> Callable[[torch.Tensor, Any], torch.Tensor]:
         r"""
-        Symmetrise a function with a transform and its inverse.
+        Symmetrize a function with a transform and its inverse.
 
         Given a function :math:`f(\cdot):X\rightarrow X` and a transform :math:`T_g`, returns the group averaged function  :math:`\sum_{i=1}^N T_{g_i}^{-1} f(T_{g_i} \cdot)` where :math:`N` is the number of random transformations.
 

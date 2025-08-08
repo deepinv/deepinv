@@ -3,7 +3,7 @@
 Optimization
 ============
 
-This package contains a collection of routines that optimize
+This module contains a collection of routines that optimize
 
 .. math::
     \begin{equation}
