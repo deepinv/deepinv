@@ -1,0 +1,118 @@
+import torch
+import requests
+import io
+import base64
+import json
+
+from deepinv.models import Reconstructor, Denoiser
+
+
+class Client(Reconstructor, Denoiser):
+    r"""
+    DeepInverse model API Client.
+
+    Interact with model APIs directly from DeepInverse.
+
+    During forward pass, passes input tensor serialized as base64 to API, along with any optional params,
+    which must either be plain text, numbers, or serializable, depending on the API input requirements,
+    such as `physics` string, `config`, `sigma`, `mask` etc.
+
+    **API DOCS**
+
+    All APIs wishing to be used with Client must follow:
+
+    * Since we cannot pass objects via the API, physics are passed as strings with optional parameters and must be rebuilt in the API.
+    * The API must accept the following input body:
+
+    ```python
+    {
+        "input": {
+            "file": <b64 serialised file>,
+            "param1": "such as a config str",
+            "param2": <or a b64 serialised param>,
+        }
+    }
+    ```
+
+    * The API must return the following output response:
+
+    ```python
+    {
+        "output": {
+            "file": "<b64 serialised file>",
+            "other_outputs": "such as inference time",
+        }
+    }
+    ```
+
+    :param str api_key: API key.
+    :param str endpoint: endpoint URL.
+    """
+
+    def __init__(self, api_key: str, endpoint: str):
+        super().__init__()
+        self.api_key = api_key
+        self.endpoint = endpoint
+        self.eval()
+
+    def serialize(tensor: torch.Tensor) -> str:
+        buffer = io.BytesIO()
+        torch.save(tensor.cpu(), buffer)
+        buffer.seek(0)
+        return base64.b64encode(buffer.read()).decode("utf-8")
+
+    def deserialize(self, data: str) -> torch.Tensor:
+        buffer = io.BytesIO(base64.b64decode(data))
+        return torch.load(buffer, map_location="cpu")
+
+    def forward(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
+        if self.training:
+            raise RuntimeError("Model client can only be used in evaluation mode.")
+
+        y_serialized = self.serialize(y)
+
+        for kwarg, kval in kwargs.items():
+            ...  # TODO checks on kwarg (must be str) and kval (must be Tensor or list or int etc., serialise if needed)
+
+        payload = {"input": {"file": y_serialized, **kwargs}}
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        response = requests.post(
+            self.endpoint, headers=headers, data=json.dumps(payload)
+        )
+        if response.status_code != 200:
+            raise RuntimeError(
+                f"API call failed: {response.status_code} - {response.text}"
+            )
+
+        result = response.json()
+
+        if "output" not in result:
+            raise ValueError("Response missing 'output' field")
+
+        if "file" not in result["output"]:
+            raise ValueError("Response output missing 'file'")
+
+        return self.deserialize(result["output"]["file"])
+
+    def to(self, *args, **kwargs):
+        print("`.to()` has no effect on remote models. Ignoring.")
+        return self
+    
+    def train(self, mode = True):
+        if mode:
+            raise ValueError("Client cannot be run in training mode.")
+        return super().train(mode=False)
+
+
+if __name__ == "__main__":  # Debug
+    # TODO load endpoint from runpod and test
+    model = Client(...)
+
+    y = ...
+
+    x_hat = model(y, physics="denoising_from_client")
