@@ -24,7 +24,7 @@ def product_convolution2d(
 
     :param torch.Tensor x: Tensor of size (B, C, H, W)
     :param torch.Tensor w: Tensor of size (b, c, K, H, W). :math:`b \in \{1, B\} and c \in \{1, C\}`
-    :param torch.Tensor h: Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\} and c \in \{1, C\}, h\leq H and w\leq W.
+    :param torch.Tensor h: Tensor of size (b, c, K, h, w). :math:`b \in \{1, B\} and c \in \{1, C\}, h\leq H and w\leq W`.
     :param padding: ( options = `valid`, `circular`, `replicate`, `reflect`. If `padding = 'valid'` the blurred output is smaller than the image (no padding), otherwise the blurred output has the same size as the image.
 
     :return: torch.Tensor y

@@ -11,7 +11,7 @@ All the examples have a download link at the end. You can load the example's not
     pip install git+https://github.com/deepinv/deepinv.git#egg=deepinv
 
 to the top of the notebook
-(e.g., `as in here <>`_).
+(e.g., `as in here <https://colab.research.google.com/drive/11YKc_fq4VS70fL8mFzmWgWpZJ7iTE9tI?usp=sharing>`_).
 
 Get started
 ~~~~~~~~~~~
