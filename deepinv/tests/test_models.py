@@ -1108,3 +1108,53 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+
+import io, json, base64
+from unittest.mock import patch, MagicMock
+
+
+def test_client_mocked():
+    def make_b64_tensor(tensor: torch.Tensor) -> str:
+        """Helper to serialize a tensor to base64 in the same way the Client does."""
+        buffer = io.BytesIO()
+        torch.save(tensor.cpu(), buffer)
+        buffer.seek(0)
+        return base64.b64encode(buffer.read()).decode("utf-8")
+
+    model = dinv.models.Client(endpoint="http://example.com", api_key="test_key")
+
+    y = torch.ones(1, 3, 16, 16)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "output": {"file": make_b64_tensor(y), "time": 0.1}
+    }
+
+    with patch(
+        "deepinv.models.client.requests.post", return_value=mock_response
+    ) as mock_post:
+        x_hat = model(y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3)
+
+    assert torch.allclose(x_hat, y)
+
+    # Verify request payload structure
+    called_args, called_kwargs = mock_post.call_args
+    assert called_args[0] == "http://example.com"
+    assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+
+    sent_payload = json.loads(called_kwargs["data"])
+    assert "input" in sent_payload
+    assert "file" in sent_payload["input"]
+    assert sent_payload["input"]["physics"] == "denoising"
+
+    input_file = sent_payload["input"]["file"]
+    assert isinstance(input_file, str)
+    assert torch.allclose(torch.load(io.BytesIO(base64.b64decode(input_file))), y)
+
+    assert sent_payload["input"]["sigma"] == 0.3
+    assert torch.allclose(
+        torch.load(io.BytesIO(base64.b64decode(sent_payload["input"]["mask"]))),
+        torch.tensor([1, 2]),
+    )
