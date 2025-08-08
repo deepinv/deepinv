@@ -70,7 +70,7 @@ test_dataloader = torch.utils.data.DataLoader(
 )
 
 # %%
-# Visualise a data sample:
+# Visualize a data sample:
 #
 
 x, y = next(iter(test_dataloader))

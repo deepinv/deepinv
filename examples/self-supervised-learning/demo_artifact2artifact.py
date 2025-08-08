@@ -135,8 +135,8 @@ physics = dinv.physics.SequentialMRI(mask=mask)
 
 
 # %%
-# Let's visualise the sequential measurements using a sample image (run
-# this notebook yourself to display the video). We also visualise the
+# Let's visualize the sequential measurements using a sample image (run
+# this notebook yourself to display the video). We also visualize the
 # frame-by-frame no-learning zero-filled reconstruction.
 #
 
@@ -150,7 +150,7 @@ dinv.utils.plot_videos(
 
 
 # %%
-# Also visualise the flattened time-series, recovering the original 2x
+# Also visualize the flattened time-series, recovering the original 2x
 # undersampling mask (note the actual undersampling factor is much lower
 # due to ACS lines):
 #

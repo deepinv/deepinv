@@ -167,7 +167,7 @@ model = trainer.train()
 
 
 # %%
-# Test and visualise the model outputs using a small test set. We set the
+# Test and visualize the model outputs using a small test set. We set the
 # output to average over 5 iterations of random mask realisations. The
 # trained model improves on the no-learning reconstruction by ~7dB.
 #
