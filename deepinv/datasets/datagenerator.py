@@ -150,9 +150,6 @@ class HDF5Dataset(ImageDataset):
             self.hd5.close()
             self.hd5 = None
 
-    def __del__(self):
-        self.close()
-
 
 def generate_dataset(
     train_dataset: Dataset,
