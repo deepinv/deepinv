@@ -74,16 +74,7 @@ x_hat2 = model(y, physics)
 
 model = dinv.sampling.DDRM(denoiser, sigmas=torch.linspace(1, 0, 20)).to(device)
 
-x_crop = dinv.utils.load_example("butterfly.png", device=device, img_size=64)
-
-physics = dinv.physics.BlurFFT(
-    x_crop.shape[1:],
-    filter=dinv.physics.blur.gaussian_blur((5, 5)),
-    noise_model=dinv.physics.GaussianNoise(sigma=0.1),
-    device=device,
-)
-
-x_hat3 = model(physics(x_crop), physics)
+x_hat3 = model(y, physics)
 
 # %%
 # Plot results
@@ -93,7 +84,7 @@ dinv.utils.plot(
         "Blurred measurement": y,
         "Pretrained RAM": x_hat1,
         "Pretrained PnP": x_hat2,
-        "Pretrained diffusion (cropped)": x_hat3,
+        "Pretrained diffusion": x_hat3,
     }
 )
 
@@ -105,4 +96,4 @@ dinv.utils.plot(
 # ~~~~~~~~~~~~
 # * Check out the :ref:`example on how to fine-tune a foundation model to your own problem <sphx_glr_auto_examples_models_demo_foundation_model.py>`.
 # * See :ref:`pretrained models <pretrained-models>` for a comparison between methods demonstrated in this example.
-# * See :ref:`diffusion <diffusion>` and :ref:`iterative <iterative>` for how to fully customise your sampling or iterative algorithm using a pretrained denoiser.
+# * See :ref:`diffusion <diffusion>` and :ref:`iterative <iterative>` for how to fully customize your sampling or iterative algorithm using a pretrained denoiser.

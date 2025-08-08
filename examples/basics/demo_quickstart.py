@@ -86,7 +86,7 @@ physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
 
 # Blur kernel random generator
 physics_generator = dinv.physics.generator.MotionBlurGenerator(
-    psf_size=(31, 31), l=2, sigma=1.0, num_channels=3, device=device
+    psf_size=(31, 31), num_channels=3, device=device
 )
 
 # Generate a dict of random params {"filter": ...}

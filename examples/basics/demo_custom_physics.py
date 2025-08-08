@@ -48,7 +48,7 @@ import torch
 #     To make the new physics compatible with other torch functionalities, all physics parameters (i.e. attributes of type :class:`torch.Tensor`) should be registered as `module buffers <https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module.register_buffer>`_ by using `self.register_buffer(param_name, param_tensor)`. This ensures methods like `.to(), .cuda()` work properly, allowing one to train a model using Distributed Data Parallel.
 #
 # .. tip::
-#     Inherit from :ref:`mixin <mixin>` classes to provide specialised methods for your physics.
+#     Inherit from :ref:`mixin <mixin>` classes to provide specialized methods for your physics.
 
 
 class Decolorize(dinv.physics.LinearPhysics):
@@ -231,19 +231,23 @@ print(f"The decomposable operator has norm={physics.compute_norm(x):.2f}")
 
 import time
 
+torch.cuda.synchronize()
 start = time.time()
 for i in range(10):
     xlin = physics.A_dagger(y)
     xprox = physics.prox_l2(x, y, 0.1)
 
+torch.cuda.synchronize()
 end = time.time()
 print(f"Elapsed time for LinearPhysics: {end - start:.2f} seconds")
 
+torch.cuda.synchronize()
 start = time.time()
 for i in range(10):
     xlin2 = physics2.A_dagger(y)
     xprox2 = physics2.prox_l2(x, y2, 0.1)
 
+torch.cuda.synchronize()
 end = time.time()
 print(f"Elapsed time for DecomposablePhysics: {end - start:.2e} seconds")
 
