@@ -231,23 +231,29 @@ print(f"The decomposable operator has norm={physics.compute_norm(x):.2f}")
 
 import time
 
-torch.cuda.synchronize()
+
+def sync_cuda():
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+
+
+sync_cuda()
 start = time.time()
 for i in range(10):
     xlin = physics.A_dagger(y)
     xprox = physics.prox_l2(x, y, 0.1)
 
-torch.cuda.synchronize()
+sync_cuda()
 end = time.time()
 print(f"Elapsed time for LinearPhysics: {end - start:.2f} seconds")
 
-torch.cuda.synchronize()
+sync_cuda()
 start = time.time()
 for i in range(10):
     xlin2 = physics2.A_dagger(y)
     xprox2 = physics2.prox_l2(x, y2, 0.1)
 
-torch.cuda.synchronize()
+sync_cuda()
 end = time.time()
 print(f"Elapsed time for DecomposablePhysics: {end - start:.2e} seconds")
 
