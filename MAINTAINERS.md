@@ -23,9 +23,9 @@ If you're a contributor and are interested in becoming a maintainer, please reac
 
 ## Emeritus
 
-| Maintainer | Website | Affiliation | Email |
+| Maintainer | GitHub | Affiliation | Email |
 |------|------|-------|-------|
-| Matthieu Terris | [matthieutrs.github.io](https://matthieutrs.github.io) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
+| Matthieu Terris | [@matthieutrs](https://github.com/matthieutrs) | Université Paris-Saclay, Inria, CEA | [📧](mailto:matthieu.terris@gmail.com) |
 
 ## Responsibilities
 
