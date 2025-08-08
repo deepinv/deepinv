@@ -102,8 +102,11 @@ def check_dataset_format(
         Sequence,
     ):  # from https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.default_collate
 
+        # Define dataloader with random data sample
         dataloader = torch.utils.data.DataLoader(
-            torch.utils.data.Subset(dataset, [torch.randint(0, len(dataset)).item()])
+            torch.utils.data.Subset(
+                dataset, [torch.randint(0, len(dataset), (1,)).item()]
+            )
         )
         _ = next(iter(dataloader))
 
