@@ -218,6 +218,8 @@ def test_hdfdataset(physgen):
     )
     dataset = HDF5Dataset(path, load_physics_generator_params=True)
     check_dataset_format(dataset, length=1, dtype=tuple, allow_non_tensor=False)
+    dataset.close()
+    assert dataset.hd5 is None
 
 
 def test_tensordataset():
