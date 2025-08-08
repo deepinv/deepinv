@@ -15,11 +15,6 @@ from deepinv.utils.plotting import plot
 from deepinv.optim.data_fidelity import L2
 from deepinv.utils.demo import load_example
 
-# Use matplotlib config from deepinv to get nice plots
-from deepinv.utils.plotting import config_matplotlib
-
-config_matplotlib()
-
 # %%
 # Generate an inverse problem
 # ---------------------------
@@ -174,7 +169,7 @@ y_denoised = model(y, sigmas[t_temp] / 2.0)
 
 # Next, apply the proximity operator of the data fidelity term (this is the data fidelity step). In the algorithm,
 # the regularization parameter is carefully chosen. Here, for simplicity, we set it to :math:`1/\sigma`.
-x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=1 / sigmas[t])
+x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(device))
 
 imgs = [y, y_denoised, x_prox]
 plot(
@@ -287,11 +282,10 @@ plt.show()
 # In the algorithm, we will only use sub-sampled versions of the noise and regularization schedules. Let's visualize
 # those.
 
-list_sigmas_algo = [sigmas[seq[i]] for i in range(max_iter)]
-list_rhos_algo = [rhos[seq[i]] for i in range(max_iter)]
+list_sigmas_algo = [sigmas[seq[i]].cpu().item() for i in range(max_iter)]
+list_rhos_algo = [rhos[seq[i]].cpu().item() for i in range(max_iter)]
 
 plt.figure(figsize=(6, 3))
-plt.rcParams.update({"font.size": 9})
 plt.subplot(121)
 plt.plot(
     2 / torch.tensor(list_rhos_algo).cpu().numpy()
@@ -348,7 +342,7 @@ with torch.no_grad():
             # 3. Sampling step
             next_sigma = sigmas[T - 1 - seq[i + 1]].cpu().numpy()
             t_im1 = find_nearest(
-                sigmas, next_sigma
+                sigmas.cpu().numpy(), next_sigma
             )  # time step associated with the next noise level
 
             eps = (x - alphas_cumprod[t_i].sqrt() * x0) / torch.sqrt(

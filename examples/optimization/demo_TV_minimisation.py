@@ -107,7 +107,10 @@ cost_tv_prox = prior(x_tv).item()
 imgs = [y, x_tv]
 plot(
     imgs,
-    titles=[f"Input, TV cost: {cost_tv:.2f}", f"Output, TV cost: {cost_tv_prox:.2f}"],
+    titles=[
+        f"Input \n TV cost: {cost_tv:.2f}",
+        f"Output \n TV cost: {cost_tv_prox:.2f}",
+    ],
 )
 
 
