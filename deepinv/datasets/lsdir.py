@@ -149,7 +149,7 @@ class LsdirHR(ImageFolder):
         if not all(os.path.isdir(d) and os.listdir(d) for d in self.img_dirs):
             raise RuntimeError("Data folder doesn't exist, please set `download=True`")
 
-        # Initialise ImageFolder
+        # Initialize ImageFolder
         super().__init__(self.root, x_path="**/*.png", transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:

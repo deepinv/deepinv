@@ -24,7 +24,7 @@ transforms, and chain them together for data augmentation. Our
 transforms are customisable and offer some group-theoretic properties.
 
 We demonstrate a random roto-scale combined with a random masking, and a
-constrained pixel-shift with a random colour jitter.
+constrained pixel-shift with a random color jitter.
 Note that all our transforms can easily be inverted using the method ``transform.inverse()``.
 
 First, load a sample image.
@@ -44,7 +44,7 @@ transform = Compose(
     ]
 )
 
-# Constrained pixel-shift with a random colour jitter
+# Constrained pixel-shift with a random color jitter
 transform2 = Compose(
     [
         dinv.transform.Shift(shift_max=0.2),

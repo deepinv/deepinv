@@ -118,7 +118,7 @@ class DIV2K(ImageFolder):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`), OR set `download=True` (currently `download={download}`)."
                 )
 
-        # Initialise ImageFolder
+        # Initialize ImageFolder
         super().__init__(self.img_dir, transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:

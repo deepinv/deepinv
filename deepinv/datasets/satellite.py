@@ -45,7 +45,7 @@ class NBUDataset(ImageDataset):
 
     .. note::
 
-        Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
+        Returns images as :class:`torch.Tensor` normalized to 0-1 over the whole dataset.
 
     See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using
     this dataset with remote sensing inverse problems.
@@ -100,7 +100,7 @@ class NBUDataset(ImageDataset):
             )
 
         self.data_dir = Path(root_dir) / "nbu" / satellite
-        self.normalise = lambda x: (
+        self.normalize = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)
         self.transform_ms = transform_ms
@@ -157,17 +157,17 @@ class NBUDataset(ImageDataset):
         """Load satellite image and convert to tensor.
 
         :param int idx: image index
-        :return: torch.Tensor: normalised image to the range [0,1]
+        :return: torch.Tensor: normalized image to the range [0,1]
         """
         paths = self.image_paths[idx]
         ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
 
         transform_ms = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_ms] if self.transform_ms is not None else [])
         )
         transform_pan = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_pan] if self.transform_pan is not None else [])
         )
 

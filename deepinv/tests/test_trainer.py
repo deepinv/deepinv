@@ -339,7 +339,7 @@ def test_trainer_identity(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we check that a model can learn the identity function on several datasets simultaneously.
     """
@@ -406,7 +406,7 @@ def test_trainer_multidatasets(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we train a model to learn the average of two datasets.
     """

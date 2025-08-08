@@ -92,7 +92,7 @@ class Flickr2kHR(ImageFolder):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        # Initialise ImageFolder
+        # Initialize ImageFolder
         super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:

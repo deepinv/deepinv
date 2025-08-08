@@ -833,13 +833,13 @@ def test_FastMRISliceDataset(download_fastmri):
         transform=MRISliceTransform(
             acs=11,  # set manually as fully-sampled data has no ACS metadata
             prewhiten=True,
-            normalise=True,
+            normalize=True,
         ),
         load_metadata_from_cache=True,
         metadata_cache_file="fastmrislicedataset_cache.pkl",
     )
     assert dataset.transform.get_acs() == 11
-    assert 1 < dataset[0][1].max() < 100  # normalised
+    assert 1 < dataset[0][1].max() < 100  # normalized
     # TODO test prewhitening
 
     # Test filter_id in FastMRI init

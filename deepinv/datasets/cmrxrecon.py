@@ -260,7 +260,7 @@ class CMRxReconSliceDataset(FastMRISliceDataset, MRIMixin):
             target = F.pad(target, (h // 2, h // 2, w // 2, w // 2))
             mask = F.pad(mask, (h // 2, h // 2, w // 2, w // 2))
 
-        # Normalise
+        # Normalize
         target = (target - target.mean()) / (target.std() + 1e-11)
 
         kspace = self.im_to_kspace(target.unsqueeze(0)).squeeze(0)

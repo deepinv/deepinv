@@ -86,7 +86,7 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 # We simulate a sequential k-space sampler, that, over the course of 4
 # phases (i.e. frames), samples 64 lines (i.e 2x total undersampling from
 # 128) with Gaussian weighting (plus a few extra for the ACS signals in
-# the centre of the k-space). We use
+# the center of the k-space). We use
 # :class:`deepinv.physics.SequentialMRI` to do this.
 #
 # First, we define a static 2x acceleration mask that all measurements use

@@ -31,12 +31,12 @@ class DummyCircles(ImageDataset):
 
             for c in range(circles):
                 pos = rng.uniform(high=imsize[1:])
-                colour = rng.random((imsize[0], 1), dtype=np.float32)
+                color = rng.random((imsize[0], 1), dtype=np.float32)
                 r = rng.uniform(high=max_rad)
                 mask = torch.from_numpy(
                     create_circular_mask(imsize[1:], center=pos, radius=r)
                 )
-                self.x[i, :, mask] = torch.from_numpy(colour)
+                self.x[i, :, mask] = torch.from_numpy(color)
 
     def __getitem__(self, index):
         return self.x[index, :, :, :]

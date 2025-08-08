@@ -59,7 +59,7 @@ class SimpleFastMRISliceDataset(ImageDataset):
     and RSS reconstructions of multicoil brains (total 2 images).
     These originate from their respective fully-sampled volumes converted to images via root-sum-of-square (RSS).
     Each slice is the middle slice from one independent volume.
-    The images are of shape (2x320x320) and are normalised per-sample (0-1) and padded.
+    The images are of shape (2x320x320) and are normalized per-sample (0-1) and padded.
     Download the dataset using ``download=True``, and load them using the ``anatomy`` argument.
 
     .. note ::
@@ -245,7 +245,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
 
         >>> dataset = FastMRISliceDataset(root=root, slice_index=0)
 
-        Use MRI transform to mask, estimate sensitivity maps, normalise and/or crop:
+        Use MRI transform to mask, estimate sensitivity maps, normalize and/or crop:
 
         >>> from deepinv.datasets import MRISliceTransform
         >>> from deepinv.physics.generator import GaussianMaskGenerator
@@ -263,7 +263,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
         >>> len(dataset)
         16
 
-        Convert to a simple normalised padded in-memory slice dataset from the middle slices only:
+        Convert to a simple normalized padded in-memory slice dataset from the middle slices only:
 
         >>> simple_set = FastMRISliceDataset(root=root, slice_index="middle").save_simple_dataset(root.parent / "simple_set.pt")
         >>> len(simple_set)
@@ -518,7 +518,7 @@ class FastMRISliceDataset(ImageDataset, MRIMixin):
                 subset = dataset.save_simple_dataset(root + "/fastmri_brain_singlecoil.pt")
 
         :param str dataset_path: desired path of dataset to be saved with file extension e.g. ``fastmri_knee_singlecoil.pt``.
-        :param bool pad_to_size: if not None, normalise images to 0-1 then pad to provided shape. Must be set if images are of varying size,
+        :param bool pad_to_size: if not None, normalize images to 0-1 then pad to provided shape. Must be set if images are of varying size,
             in order to successfully stack images to tensor.
         :return: loaded SimpleFastMRISliceDataset
         :rtype: SimpleFastMRISliceDataset
@@ -557,7 +557,7 @@ class MRISliceTransform(MRIMixin):
     Preprocess raw kspace data:
 
     * Optionally prewhiten kspace
-    * Optionally normalise kspace
+    * Optionally normalize kspace
     * Optionally generate mask/load existing mask (i.e. for challenge/test sets)
     * Optionally estimate coil maps (applicable only when using with :class:`multi-coil MRI physics <deepinv.physics.MultiCoilMRI>`).
 
@@ -571,8 +571,8 @@ class MRISliceTransform(MRIMixin):
         or in metadata (only available for FastMRI test/challenge data). If unavailable, and ACS required, then raises error.
     :param tuple[slice, slice], bool prewhiten: if `True`, prewhiten kspace noise across coils,
         defaults to using a 30x30 slice in the top left corner. Optionally set tuple of slices for custom location. Defaults to False.
-    :param bool normalise: if `True`, normalise kspace by 99th percentile of RSS reconstruction of kspace ACS block.
-        if `int` or `float`, normalise kspace by `normalise / kspace.max()`.
+    :param bool normalize: if `True`, normalize kspace by 99th percentile of RSS reconstruction of kspace ACS block.
+        if `int` or `float`, normalize kspace by `normalize / kspace.max()`.
     """
 
     def __init__(
@@ -582,7 +582,7 @@ class MRISliceTransform(MRIMixin):
         estimate_coil_maps: Union[bool, int] = False,
         acs: int = None,
         prewhiten: tuple[slice, slice] = False,
-        normalise: bool = False,
+        normalize: bool = False,
     ):
         self.mask_generator = mask_generator
         self.seed_mask_generator = seed_mask_generator
@@ -591,7 +591,7 @@ class MRISliceTransform(MRIMixin):
         self.prewhiten = prewhiten
         if self.prewhiten is True:
             self.prewhiten = (slice(0, 30), slice(0, 30))
-        self.normalise = normalise
+        self.normalize = normalize
 
     def get_acs(self, metadata: dict = None):
         """Get number of low frequency lines for autocalibration.
@@ -672,19 +672,19 @@ class MRISliceTransform(MRIMixin):
             )
             return kspace
 
-    def normalise_kspace(
+    def normalize_kspace(
         self, kspace: torch.Tensor, metadata: dict = None
     ) -> torch.Tensor:
-        """Normalise kspace by percentile of RSS of ACS.
+        """Normalize kspace by percentile of RSS of ACS.
 
         :param torch.Tensor kspace: input kspace of shape (2, (N,) H, W)
         :param dict metadata: optional metadata.
         :return: whitened kspace.
         """
-        if isinstance(self.normalise, (float, int)) and not isinstance(
-            self.normalise, bool
+        if isinstance(self.normalize, (float, int)) and not isinstance(
+            self.normalize, bool
         ):
-            return kspace / kspace.max() * self.normalise
+            return kspace / kspace.max() * self.normalize
 
         acs = self.get_acs(metadata=metadata)
         H, W = kspace.shape[-2:]
@@ -723,8 +723,8 @@ class MRISliceTransform(MRIMixin):
         if self.prewhiten:
             kspace = self.prewhiten_kspace(kspace)
 
-        if self.normalise:
-            kspace = self.normalise_kspace(kspace, metadata=metadata)
+        if self.normalize:
+            kspace = self.normalize_kspace(kspace, metadata=metadata)
 
         params = {}
         if mask is not None:

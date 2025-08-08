@@ -66,7 +66,7 @@ class Decolorize(dinv.physics.LinearPhysics):
     ) -> torch.Tensor:
         """Forward operator.
 
-        :param torch.Tensor x: input image with 3 colour (RGB) channels, i.e. [*,3,*,*]
+        :param torch.Tensor x: input image with 3 color (RGB) channels, i.e. [*,3,*,*]
         :param torch.Tensor coefficients: optionally set coefficients on the fly
         :param dict kwargs: any other keyword parameters to set on the fly, such as noise model sigma
         :return: torch.Tensor grayscale measurements
@@ -192,7 +192,7 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
     r"""
     Converts RGB images to grayscale.
 
-    We use unnormalised coefficients and a singular value of 0.447.
+    We use unnormalized coefficients and a singular value of 0.447.
 
     Here, `U` and `U_adjoint` are set to the identity.
     """

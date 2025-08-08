@@ -102,7 +102,7 @@ class Set14HR(ImageFolder):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        # Initialise ImageFolder
+        # Initialize ImageFolder
         super().__init__(self.img_dir, x_path="*HR.png", transform=transform)
 
     def check_dataset_exists(self) -> bool:
