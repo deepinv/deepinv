@@ -1,6 +1,6 @@
 .. _pretrained-models:
 
-Pretrained models
+Pretrained Models
 =================
 
 Pretrained reconstructors

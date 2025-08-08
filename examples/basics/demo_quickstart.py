@@ -73,15 +73,16 @@ dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
 
 # %%
 # Many physics also take
-# :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.
-# You can easily use your own params by passing these into the `physics`,
-# or you can use a `generator` to :ref:`generate random params <physics_generators>`.
-#
+# :ref:`physics parameters <parameter-dependent-operators>` such as `mask`, `filter`, `sigma` etc.:
 
 # Blur with Gaussian filter parameter
 filter = dinv.physics.blur.gaussian_blur((5, 5))
 
 physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
+
+# %%
+# You can easily use your own params by passing these into the `physics`,
+# or you can use a `generator` to :ref:`generate random params <physics_generators>`:
 
 # Blur kernel random generator
 physics_generator = dinv.physics.generator.MotionBlurGenerator(

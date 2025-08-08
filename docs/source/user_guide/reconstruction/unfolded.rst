@@ -79,15 +79,6 @@ The :class:`deepinv.unfolded.DEQ_builder` class is a generic class for building 
 
 The builder depends on the backbone class for DEQs, :class:`deepinv.unfolded.BaseDEQ`.
 
-.. _custom-unfolded-blocks:
-
-Custom Unfolded Architectures
--------------------------------
-Some more specific unfolded architectures are also available.
-
-The Primal-Dual Network (PDNet) uses :class:`deepinv.models.PDNet_PrimalBlock` and
-:class:`deepinv.models.PDNet_DualBlock` as building blocks for the primal and dual steps respectively.
-
 .. _predefined-unfolded:
 
 Predefined Unfolded Architectures
@@ -104,3 +95,12 @@ taken from the respective literatures.
      - VarNet/E2E-VarNet MRI reconstruction models
    * - :class:`deepinv.models.MoDL`
      - MoDL MRI reconstruction model
+
+.. _custom-unfolded-blocks:
+
+Predefined Unfolded Blocks
+--------------------------
+Some more specific unfolded architectures are also available.
+
+The Primal-Dual Network (PDNet) uses :class:`deepinv.models.PDNet_PrimalBlock` and
+:class:`deepinv.models.PDNet_DualBlock` as building blocks for the primal and dual steps respectively.

@@ -4,7 +4,7 @@ Deep Reconstruction Models
 ==========================
 
 The simplest method for reconstructing an image from measurements is to pass it through a feedforward
-model architecture. We provide numerous architecture for general and specific problems.
+model architecture that is conditioned on the acquisition physics, that is :math:`\inversef{y}{A}`. We offer a range of architectures for general and specific problems.
 
 .. _artifact:
 
