@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for Poisson2Sparse
 
 Changed
 ^^^^^^^

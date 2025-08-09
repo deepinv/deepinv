@@ -387,12 +387,14 @@ class Neighbor2Neighbor(Loss):
         self.metric = metric
         self.gamma = gamma
 
-    def space_to_depth(self, x, block_size):
+    @staticmethod
+    def space_to_depth(x, block_size):
         n, c, h, w = x.size()
         unfolded_x = torch.nn.functional.unfold(x, block_size, stride=block_size)
         return unfolded_x.view(n, c * block_size**2, h // block_size, w // block_size)
 
-    def generate_mask_pair(self, img):
+    @staticmethod
+    def generate_mask_pair(img):
         # prepare masks (N x C x H/2 x W/2)
         n, c, h, w = img.shape
         mask1 = torch.zeros(
@@ -424,14 +426,15 @@ class Neighbor2Neighbor(Loss):
         mask2[rd_pair_idx[:, 1]] = 1
         return mask1, mask2
 
-    def generate_subimages(self, img, mask):
+    @classmethod
+    def generate_subimages(cls, img, mask):
         n, c, h, w = img.shape
         subimage = torch.zeros(
             n, c, h // 2, w // 2, dtype=img.dtype, layout=img.layout, device=img.device
         )
         # per channel
         for i in range(c):
-            img_per_channel = self.space_to_depth(img[:, i : i + 1, :, :], block_size=2)
+            img_per_channel = cls.space_to_depth(img[:, i : i + 1, :, :], block_size=2)
             img_per_channel = img_per_channel.permute(0, 2, 3, 1).reshape(-1)
             subimage[:, i : i + 1, :, :] = (
                 img_per_channel[mask].reshape(n, h // 2, w // 2, 1).permute(0, 3, 1, 2)
