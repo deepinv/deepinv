@@ -219,6 +219,9 @@ class BaseSampling(Reconstructor):
             self.mean_convergence = False
             self.var_convergence = False
 
+            if isinstance(g_statistics, tuple):
+                g_statistics = list(g_statistics)
+
             if not isinstance(g_statistics, list):
                 g_statistics = [g_statistics]
 

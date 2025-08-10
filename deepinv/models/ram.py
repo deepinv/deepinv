@@ -54,6 +54,9 @@ class RAM(Reconstructor, Denoiser):
 
         self.separate_head = isinstance(in_channels, list)
 
+        if isinstance(in_channels, tuple):
+            in_channels = list(in_channels)
+
         if isinstance(in_channels, list):
             in_channels_first = []
             for i in range(len(in_channels)):
