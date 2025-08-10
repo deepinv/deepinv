@@ -499,7 +499,7 @@ class Restormer(Denoiser):
         assert (
             dim == 48
         ), f"Standard restormer architecture / EXPECTED dim == 48, INSTEAD of {dim}"
-        assert num_blocks == [
+        assert list(num_blocks) == [
             4,
             6,
             6,
@@ -508,7 +508,7 @@ class Restormer(Denoiser):
         assert (
             num_refinement_blocks == 4
         ), f"Standard restormer architecture / EXPECTED num_refinement_blocks == 4, INSTEAD of {num_refinement_blocks}"
-        assert heads == [
+        assert list(heads) == [
             1,
             2,
             4,

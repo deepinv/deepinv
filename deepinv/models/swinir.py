@@ -1005,8 +1005,8 @@ class SwinIR(Denoiser):
                 assert mlp_ratio == 2
                 assert upsampler == ""
                 assert resi_connection == "1conv"
-                assert depths == [6, 6, 6, 6, 6, 6]
-                assert num_heads == [6, 6, 6, 6, 6, 6]
+                assert list(depths) == [6, 6, 6, 6, 6, 6]
+                assert list(num_heads) == [6, 6, 6, 6, 6, 6]
 
                 if in_chans == 1:
                     weights_url = (
