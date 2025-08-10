@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from .base import Denoiser
+from typing import Sequence  # noqa: F401
 
 # Compatibility with optional dependency on timm
 try:
@@ -797,8 +798,8 @@ class SwinIR(Denoiser):
     :param int, tuple patch_size: Patch size. Default: 1.
     :param int in_chans: Number of input image channels. Default: 3.
     :param int embed_dim: Patch embedding dimension. Default: 180.
-    :param tuple depths: Depth of each Swin Transformer layer.
-    :param tuple num_heads: Number of attention heads in different layers.
+    :param Sequence depths: Depth of each Swin Transformer layer.
+    :param Sequence num_heads: Number of attention heads in different layers.
     :param int window_size: Window size. Default: 8.
     :param float mlp_ratio: Ratio of mlp hidden dim to embedding dim. Default: 2.
     :param bool qkv_bias: If True, add a learnable bias to query, key, value. Default: True.

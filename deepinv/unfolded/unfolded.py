@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from deepinv.optim.optimizers import BaseOptim, create_iterator
-from types import MappingProxyType
+from types import MappingProxyType, Sequence  # noqa: F401
 
 
 class BaseUnfold(BaseOptim):
@@ -40,7 +40,7 @@ class BaseUnfold(BaseOptim):
         Either a single instance (same prior for each iteration) or a list of instances of
         deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
-    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
+    :param Sequence trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
     :param torch.device device: Device on which to perform the computations. Default: ``torch.device("cpu")``.
@@ -148,7 +148,7 @@ def unfolded_builder(
         Either a single instance (same prior for each iteration - weight tied) or a list of instances of
         deepinv.optim.Prior (distinct prior for each iteration - weight untied). Default: ``None``.
     :param int max_iter: number of iterations of the unfolded algorithm. Default: 5.
-    :param list trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
+    :param Sequence trainable_params: List of parameters to be trained. Each parameter should be a key of the ``params_algo``
         dictionary for the :class:`deepinv.optim.OptimIterator` class.
         This does not encompass the trainable weights of the prior module.
     :param Callable F_fn: Custom user input cost function. default: None.

@@ -10,6 +10,7 @@ from .utils import (
 from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from .utils import get_weights_url
+from typing import Sequence
 
 
 class NCSNpp(Denoiser):
@@ -62,7 +63,7 @@ class NCSNpp(Denoiser):
         label_dim: int = 0,  # Number of class labels, 0 = unconditional.
         augment_dim: int = 9,  # Augmentation label dimensionality, 0 = no augmentation.
         model_channels: int = 128,  # Base multiplier for the number of channels.
-        channel_mult: list = (
+        channel_mult: Sequence = (
             1,
             2,
             2,
@@ -70,14 +71,14 @@ class NCSNpp(Denoiser):
         ),  # Per-resolution multipliers for the number of channels.
         channel_mult_emb: int = 4,  # Multiplier for the dimensionality of the embedding vector.
         num_blocks: int = 4,  # Number of residual blocks per resolution.
-        attn_resolutions: list = (16,),  # List of resolutions with self-attention.
+        attn_resolutions: Sequence = (16,),  # List of resolutions with self-attention.
         dropout: float = 0.10,  # Dropout probability of intermediate activations.
         label_dropout: float = 0.0,  # Dropout probability of class labels for classifier-free guidance.
         embedding_type: str = "fourier",  # Timestep embedding type: 'positional' for DDPM++, 'fourier' for NCSN++.
         channel_mult_noise: int = 2,  # Timestep embedding size: 1 for DDPM++, 2 for NCSN++.
         encoder_type: str = "residual",  # Encoder architecture: 'standard' for DDPM++, 'residual' for NCSN++.
         decoder_type: str = "standard",  # Decoder architecture: 'standard' for both DDPM++ and NCSN++.
-        resample_filter: list = (
+        resample_filter: Sequence = (
             1,
             3,
             3,

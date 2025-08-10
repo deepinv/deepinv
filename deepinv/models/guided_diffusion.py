@@ -11,6 +11,7 @@ from .base import Denoiser
 from torch.nn import Linear, GroupNorm
 from math import floor
 from .utils import get_weights_url
+from typing import Sequence  # noqa: F401
 
 
 class ADMUNet(Denoiser):
@@ -32,7 +33,7 @@ class ADMUNet(Denoiser):
     :param int label_dim: Number of class labels, 0 = unconditional.
     :param int augment_dim: Augmentation label dimensionality, 0 = no augmentation.
     :param int model_channels: Base multiplier for the number of channels.
-    :param list[int] channel_mult: Per-resolution multipliers for the number of channels.
+    :param Sequence[int] channel_mult: Per-resolution multipliers for the number of channels.
     :param int channel_mult_emb: Multiplier for the dimensionality of the embedding vector.
     :param int num_blocks: Number of residual blocks per resolution.
     :param list[int] attn_resolutions: List of resolutions with self-attention.

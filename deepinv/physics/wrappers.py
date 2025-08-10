@@ -2,6 +2,7 @@ import torch
 
 from deepinv.physics import Physics, LinearPhysics
 from deepinv.physics.blur import Upsampling
+from typing import Sequence  # noqa: F401
 
 
 class PhysicsMultiScaler(Physics):
@@ -24,7 +25,7 @@ class PhysicsMultiScaler(Physics):
     :param deepinv.physics.Physics physics: base physics operator.
     :param tuple img_shape: shape of the input image (C, H, W).
     :param str filter: type of filter to use for upsampling, e.g., 'sinc', 'nearest', 'bilinear'.
-    :param list[int] factors: list of factors to use for upsampling.
+    :param Sequence[int] factors: list of factors to use for upsampling.
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
 
