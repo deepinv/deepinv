@@ -15,7 +15,7 @@ from .diffunet import DiffUNet
 from .swinir import SwinIR
 from .PDNet import PDNet_PrimalBlock, PDNet_DualBlock
 from .bm3d import BM3D
-from .equivariant import EquivariantDenoiser
+from .equivariant import EquivariantDenoiser, EquivariantReconstructor
 from .epll import EPLLDenoiser
 from .restormer import Restormer
 from .icnn import ICNN

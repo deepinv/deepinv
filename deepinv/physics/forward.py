@@ -76,7 +76,6 @@ class Physics(torch.nn.Module):  # parent class for forward models
         :return: (:class:`deepinv.physics.Physics`) concatenated operator
 
         """
-
         warnings.warn(
             "You are composing two physics objects. The resulting physics will not retain the original attributes. "
             "You may instead retrieve attributes of the original physics by indexing the resulting physics."
@@ -1328,3 +1327,12 @@ class StackedLinearPhysics(StackedPhysics, LinearPhysics):
                 for i, physics in enumerate(self.physics_list)
             ]
         )
+
+    def update_parameters(self, **kwargs):
+        r"""
+        Updates the parameters of the stacked operator.
+
+        :param dict kwargs: dictionary of parameters to update.
+        """
+        for physics in self.physics_list:
+            physics.update_parameters(**kwargs)
