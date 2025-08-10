@@ -33,7 +33,7 @@ class PhysicsMultiScaler(Physics):
         physics,
         img_shape,
         filter="sinc",
-        factors=[2, 4, 8],
+        factors=(2, 4, 8),
         device="cpu",
         **kwargs,
     ):
@@ -102,7 +102,7 @@ class LinearPhysicsMultiScaler(PhysicsMultiScaler, LinearPhysics):
     :param torch.device, str device: device to use for the upsampling operator, e.g., 'cpu', 'cuda'.
     """
 
-    def __init__(self, physics, img_shape, filter="sinc", factors=[2, 4, 8], **kwargs):
+    def __init__(self, physics, img_shape, filter="sinc", factors=(2, 4, 8), **kwargs):
         super().__init__(
             physics=physics,
             img_shape=img_shape,

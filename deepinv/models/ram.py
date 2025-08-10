@@ -42,7 +42,7 @@ class RAM(Reconstructor, Denoiser):
 
     def __init__(
         self,
-        in_channels=[1, 2, 3],
+        in_channels=(1, 2, 3),
         device=None,
         pretrained=True,
     ):
