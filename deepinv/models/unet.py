@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from .drunet import test_pad
 from .base import Denoiser
+import warnings
+from typing import Optional
 
 
 class BFBatchNorm2d(nn.BatchNorm2d):
@@ -95,25 +97,38 @@ class UNet(Denoiser):
         self.compact = scales
         self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        biasfree = batch_norm == "biasfree"
+        def norm(ch: int) -> Optional[nn.Module]:
+            if batch_norm == "biasfree":
+                return BFBatchNorm2d(ch, use_bias=bias)
+            elif batch_norm == True:
+                return nn.BatchNorm2d(ch)
+            elif batch_norm == False:
+                return None
+            else:
+                warnings.warn(
+                    f"Expected batch_norm to be True, False or 'biasfree', got {batch_norm=}. "
+                )
+                return nn.BatchNorm2d(ch)  # for backwards compatibility
 
-        def conv_block(ch_in, ch_out):
-            if batch_norm:
-                return nn.Sequential(
-                    nn.Conv2d(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else nn.BatchNorm2d(ch_out)
-                    ),
+        def conv_block(ch_in: int, ch_out: int) -> nn.Module:
+            m = nn.Sequential(
+                nn.Conv2d(
+                    ch_in,
+                    ch_out,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=bias,
+                    padding_mode="circular" if circular_padding else "zeros",
+                )
+            )
+
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
+
+            m.extend(
+                (
                     nn.ReLU(inplace=True),
                     nn.Conv2d(
                         ch_out,
@@ -124,117 +139,94 @@ class UNet(Denoiser):
                         bias=bias,
                         padding_mode="circular" if circular_padding else "zeros",
                     ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else nn.BatchNorm2d(ch_out)
-                    ),
-                    nn.ReLU(inplace=True),
+                )
+            )
+
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
+
+            m.append(nn.ReLU(inplace=True))
+
+            return m
+
+        def up_conv(ch_in: int, ch_out: int) -> nn.Module:
+            m = nn.Sequential(
+                nn.Upsample(scale_factor=2),
+                nn.Conv2d(
+                    ch_in,
+                    ch_out,
+                    kernel_size=3,
+                    stride=1,
+                    padding=1,
+                    bias=bias,
+                    padding_mode="circular" if circular_padding else "zeros",
+                ),
+            )
+
+            m_norm = norm(ch_out)
+            if m_norm is not None:
+                m.append(m_norm)
+
+            m.append(nn.ReLU(inplace=True))
+
+            return m
+
+        max_scale = 5
+        # Build the U-Net architecture level by level
+        for scale in range(1, max_scale + 1):
+            if scale in [1, 2]:  # for backwards compatibility
+                if scales not in range(scale, max_scale + 1):
+                    warnings.warn(f"Unexpected {scales=}, expected 2, 3, 4 or 5.")
+                present = True
+            else:
+                present = scales in range(scale, max_scale + 1)
+
+            if scale == 1:
+                ch_enc_in = in_channels
+                ch_dec_out = out_channels
+            else:
+                ch_enc_in = ch_dec_out = 64 * (2 ** (scale - 2))
+
+            ch_enc_out = ch_dec_in = 64 * (2 ** (scale - 1))
+
+            # Encoder branch
+            setattr(
+                self,
+                f"Conv{scale}",
+                conv_block(ch_in=ch_enc_in, ch_out=ch_enc_out) if present else None,
+            )
+
+            # Decoder branch
+            if scale == 1:
+                self.Conv_1x1 = nn.Conv2d(
+                    in_channels=ch_dec_in,
+                    out_channels=ch_dec_out,
+                    bias=bias,
+                    kernel_size=1,
+                    stride=1,
+                    padding=0,
                 )
             else:
-                return nn.Sequential(
-                    nn.Conv2d(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
-                    nn.Conv2d(
-                        ch_out,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
+                setattr(
+                    self,
+                    f"Up{scale}",
+                    up_conv(ch_in=ch_dec_in, ch_out=ch_dec_out) if present else None,
+                )
+                setattr(
+                    self,
+                    f"Up_conv{scale}",
+                    conv_block(ch_in=ch_dec_in, ch_out=ch_dec_out) if present else None,
                 )
 
-        def up_conv(ch_in, ch_out):
-            if batch_norm:
-                return nn.Sequential(
-                    nn.Upsample(scale_factor=2),
-                    nn.Conv2d(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    (
-                        BFBatchNorm2d(ch_out, use_bias=bias)
-                        if biasfree
-                        else nn.BatchNorm2d(ch_out)
-                    ),
-                    nn.ReLU(inplace=True),
-                )
-            else:
-                return nn.Sequential(
-                    nn.Upsample(scale_factor=2),
-                    nn.Conv2d(
-                        ch_in,
-                        ch_out,
-                        kernel_size=3,
-                        stride=1,
-                        padding=1,
-                        bias=bias,
-                        padding_mode="circular" if circular_padding else "zeros",
-                    ),
-                    nn.ReLU(inplace=True),
-                )
-
-        self.Conv1 = conv_block(ch_in=in_channels, ch_out=64)
-        self.Conv2 = conv_block(ch_in=64, ch_out=128)
-        self.Conv3 = (
-            conv_block(ch_in=128, ch_out=256) if self.compact in [3, 4, 5] else None
-        )
-        self.Conv4 = (
-            conv_block(ch_in=256, ch_out=512) if self.compact in [4, 5] else None
-        )
-        self.Conv5 = conv_block(ch_in=512, ch_out=1024) if self.compact in [5] else None
-
-        self.Up5 = up_conv(ch_in=1024, ch_out=512) if self.compact in [5] else None
-        self.Up_conv5 = (
-            conv_block(ch_in=1024, ch_out=512) if self.compact in [5] else None
-        )
-
-        self.Up4 = up_conv(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
-        self.Up_conv4 = (
-            conv_block(ch_in=512, ch_out=256) if self.compact in [4, 5] else None
-        )
-
-        self.Up3 = up_conv(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
-        self.Up_conv3 = (
-            conv_block(ch_in=256, ch_out=128) if self.compact in [3, 4, 5] else None
-        )
-
-        self.Up2 = up_conv(ch_in=128, ch_out=64)
-        self.Up_conv2 = conv_block(ch_in=128, ch_out=64)
-
-        self.Conv_1x1 = nn.Conv2d(
-            in_channels=64,
-            out_channels=out_channels,
-            bias=bias,
-            kernel_size=1,
-            stride=1,
-            padding=0,
-        )
-
-        if self.compact == 5:
+        if scales == 5:
             self._forward = self.forward_standard
-        if self.compact == 4:
-            self._forward = self.forward_compact4
-        if self.compact == 3:
-            self._forward = self.forward_compact3
-        if self.compact == 2:
-            self._forward = self.forward_compact2
+        elif scales in [2, 3, 4]:
+            self._forward = getattr(self, f"forward_compact{scales}")
+        else:
+            warnings.warn(
+                f"Unexpected {scales=}, expected 2, 3, 4 or 5. Using standard forward."
+            )
 
     def forward(self, x, sigma=None, **kwargs):
         r"""
@@ -251,128 +243,62 @@ class UNet(Denoiser):
             return test_pad(self._forward, x, modulo=factor)
 
     def forward_standard(self, x):
-        # encoding path
-        cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
-
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
-
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)
-
-        x5 = self.Maxpool(x4)
-        x5 = self.Conv5(x5)
-
-        # decoding + concat path
-        d5 = self.Up5(x5)
-        if self.cat:
-            d5 = torch.cat((x4, d5), dim=cat_dim)
-            d5 = self.Up_conv5(d5)
-
-        d4 = self.Up4(d5)
-        if self.cat:
-            d4 = torch.cat((x3, d4), dim=cat_dim)
-            d4 = self.Up_conv4(d4)
-
-        d3 = self.Up3(d4)
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
-
-        d2 = self.Up2(d3)
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+        return self._forward_general(x, n_scales=5)
 
     def forward_compact4(self, x):
-        # def forward_compact4(self, x):
-        # encoding path
-        cat_dim = 1
-        input = x
-
-        x1 = self.Conv1(input)  # 1->64
-
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)  # 64->128
-
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)  # 128->256
-
-        x4 = self.Maxpool(x3)
-        x4 = self.Conv4(x4)  # 256->512
-
-        d4 = self.Up4(x4)  # 512->256
-        if self.cat:
-            d4 = torch.cat((x3, d4), dim=cat_dim)
-            d4 = self.Up_conv4(d4)
-
-        d3 = self.Up3(d4)  # 256->128
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
-
-        d2 = self.Up2(d3)  # 128->64
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+        return self._forward_general(x, n_scales=4)
 
     def forward_compact3(self, x):
-        # encoding path
-        cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
-
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
-
-        x3 = self.Maxpool(x2)
-        x3 = self.Conv3(x3)
-
-        d3 = self.Up3(x3)
-        if self.cat:
-            d3 = torch.cat((x2, d3), dim=cat_dim)
-            d3 = self.Up_conv3(d3)
-
-        d2 = self.Up2(d3)
-        if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
-
-        d1 = self.Conv_1x1(d2)
-
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+        return self._forward_general(x, n_scales=3)
 
     def forward_compact2(self, x):
-        # encoding path
-        cat_dim = 1
-        input = x
-        x1 = self.Conv1(input)
+        return self._forward_general(x, n_scales=2)
 
-        x2 = self.Maxpool(x1)
-        x2 = self.Conv2(x2)
+    # Internal general forward algorithm for any supported number of scales
+    def _forward_general(self, x, *, n_scales):
+        if n_scales not in [2, 3, 4, 5]:
+            raise ValueError(f"Unexpected {n_scales=}, expected 2, 3, 4 or 5.")
 
-        d2 = self.Up2(x2)
+        # The variable feats_stack is a stack populated with the intermediate
+        # feature maps as they are computed.
+        # NOTE: We rely heavily on feats_stack being None being equivalent to
+        # self.cat having been False.
         if self.cat:
-            d2 = torch.cat((x1, d2), dim=cat_dim)
-            d2 = self.Up_conv2(d2)
+            feats_stack = []
+        else:
+            feats_stack = None
 
-        d1 = self.Conv_1x1(d2)
+        # encoding path
+        for scale in range(1, n_scales + 1):
+            if scale == 1:
+                inp = x
+            else:
+                # NOTE: The variable feats is always initialized at this point.
+                inp = self.Maxpool(feats)
+            m_conv = getattr(self, f"Conv{scale}")
+            feats = m_conv(inp)
+            if feats_stack is not None and scale != n_scales:
+                feats_stack.append(feats)
 
-        out = d1 + x if self.residual and self.in_channels == self.out_channels else d1
-        return out
+        # decoding + concat path
+        for scale in range(n_scales, 1, -1):
+            m_up = getattr(self, f"Up{scale}")
+            feats = m_up(feats)
+            if feats_stack is not None:
+                feats_skip = feats_stack.pop()
+                feats = torch.cat((feats_skip, feats), dim=1)
+                m_upconv = getattr(self, f"Up_conv{scale}")
+                feats = m_upconv(feats)
+
+        im_out = self.Conv_1x1(feats)
+
+        if self.residual:
+            if self.in_channels == self.out_channels:
+                im_out = im_out + x
+            else:
+                warnings.warn(
+                    "Residual connection requested but input and output channels do not match. "
+                    "Skipping residual connection."
+                )
+
+        return im_out
