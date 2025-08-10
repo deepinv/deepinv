@@ -287,7 +287,7 @@ class Trainer:
             self.mlflow_setup != {}
             and self.mlflow_setup is not None
             and not self.mlflow_vis
-        ):
+        ):  # pragma: no cover
             warnings.warn(
                 "mlflow_vis is False but mlflow_setup is provided. Mlflow deactivated (mlflow_vis=False)."
             )
@@ -422,7 +422,7 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
-            if "mlflow_run_id" in checkpoint and self.mlflow_vis:
+            if "mlflow_run_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
                 self.mlflow_setup["run_id"] = checkpoint["mlflow_run_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
@@ -914,7 +914,6 @@ class Trainer:
                 wandb.log(log_dict_post_epoch, step=epoch)
 
             if self.mlflow_vis:
-                import warnings
                 warnings.warn(
                     "Not implemented: mlflow does not support logging images yet."
                 )

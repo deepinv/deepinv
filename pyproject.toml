@@ -127,6 +127,9 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+exclude_also = [
+    "if self.mlflow_vis",
+]
 
 [tool.ruff]
 target-version = "py310"
