@@ -1,6 +1,5 @@
 from typing import Sequence, Union, Callable
 from pathlib import Path
-from natsort import natsorted
 from tqdm import tqdm
 import h5py
 import numpy as np
@@ -8,6 +7,13 @@ import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
 from deepinv.physics.mri import MRIMixin
+
+try:
+    from natsort import natsorted
+except ImportError:  # pragma: no cover
+    natsorted = ImportError(
+        "natsort is not available. In order to use SKMTEASliceDataset, please install the natsort package with `pip install natsort`."
+    )  # pragma: no cover
 
 
 class SKMTEASliceDataset(FastMRISliceDataset, MRIMixin):

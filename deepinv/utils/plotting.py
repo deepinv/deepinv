@@ -1,3 +1,6 @@
+import deepinv as dinv
+from .signal import normalize_signal
+
 import os
 import shutil
 from pathlib import Path
@@ -114,27 +117,37 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
+@torch.no_grad
 def preprocess_img(im, rescale_mode="min_max"):
     r"""
-    Preprocesses an image tensor for plotting.
+    Prepare a batch of images for plotting.
 
-    :param torch.Tensor im: the image to preprocess.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the preprocessed image.
+    Real and complex images are transformed into images with values between
+    zero and one by first applying the modulus function for complex images, and
+    then by normalizing the resulting images between zero and one using min-max
+    normalization ``min_max`` or clipping ``clip``.
+
+    .. note::
+
+        Real-valued tensors with two channels are assumed to be Cartesian
+        representation of complex images and are processed accordingly.
+
+    :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
+    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :return: the batch of pre-processed images.
     """
-    with torch.no_grad():
-        if im.shape[1] == 2:  # for complex images
-            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
-        elif im.shape[1] > 3:
-            pimg = im.type(torch.float32)
-        else:
-            if torch.is_complex(im):
-                pimg = im.abs().type(torch.float32)
-            else:
-                pimg = im.type(torch.float32)
+    # Apply the modulus function if the image is inferred to be complex
+    if torch.is_complex(im) or im.shape[1] == 2:
+        im = dinv.loss.metric.functional.complex_abs(im, dim=1, keepdim=True)
 
-        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-    return pimg
+    # Cast image values to float32 numbers
+    # NOTE: Why is it needed?
+    im = im.type(torch.float32)
+
+    # Normalize values between zero and one
+    im = normalize_signal(im, mode=rescale_mode)
+
+    return im
 
 
 def tensor2uint(img):
@@ -157,22 +170,12 @@ def rescale_img(im, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
-    img = im.clone()
-    if rescale_mode == "min_max":
-        shape = img.shape
-        img = img.reshape(shape[0], -1)
-        mini = img.min(1)[0]
-        maxi = img.max(1)[0]
-        idx = mini < maxi
-        mini = mini[idx].unsqueeze(1)
-        maxi = maxi[idx].unsqueeze(1)
-        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
-        img = img.reshape(shape)
-    elif rescale_mode == "clip":
-        img = img.clamp(min=0.0, max=1.0)
-    else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-    return img
+    warn(
+        "The function `deepinv.utils.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
@@ -1015,7 +1018,7 @@ def plot_ortho3D(
                     pimg = im[i, :, :, :, :].abs().type(torch.float32)
                 else:
                     pimg = im[i, :, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+            pimg = preprocess_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
         imgs.append(col_imgs)
 
