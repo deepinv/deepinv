@@ -1905,3 +1905,24 @@ def test_physics_warn_extra_kwargs():
         UserWarning, match="Arguments {'sigma': 0.5} are passed to Denoising"
     ):
         dinv.physics.Denoising(sigma=0.5)
+
+
+def test_separate_noise_models():
+    physics1 = dinv.physics.Denoising()
+    physics2 = dinv.physics.Denoising()
+    assert id(physics1.noise_model) != id(
+        physics2.noise_model
+    ), "Expected distinct noise models for the distinct physics"
+    assert isinstance(
+        physics1.noise_model, dinv.physics.GaussianNoise
+    ), f"Expected the default noise model to be GaussianNoise, got {type(physics1.noise_model).__name__}"
+    sigma1 = physics1.noise_model.sigma
+    sigma2 = physics2.noise_model.sigma
+    sigma1_new = sigma2 + 1
+    assert (
+        sigma1_new != sigma2
+    ), "Expected a standard deviation different from that of physics2"
+    physics1.update(sigma=sigma1_new)
+    assert (
+        physics2.noise_model.sigma == sigma2
+    ), "Expected physics2 to be unchanged after updating physics1"
