@@ -123,7 +123,7 @@ print(f"SPC Undersampling Rate: {undersampling_rate:.2f}")
 # Plot Reconstructions
 # --------------------
 # Visualize the ground truth and reconstructed images with PSNR values.
-plot([x] + x_list, titles=titles, show=True, figsize=(15, 5))
+plot([x] + x_list, titles=titles, show=True, figsize=(15, 5), fontsize=24)
 
 # Recovery Algorithm
 # ------------------
@@ -192,6 +192,7 @@ plot(
     titles=titles,
     show=True,
     figsize=(15, 5),
+    fontsize=24,
 )
 
 # %%
@@ -219,4 +220,7 @@ plot(
     show=True,
     figsize=(15, 5),
     cmap="jet",
+    fontsize=24,
 )
+
+# %%
