@@ -84,7 +84,7 @@ class Kohler(Dataset):
     """
 
     # The Köhler dataset is split into multiple archives available online.
-    archive_urls = (
+    _archive_urls = (
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image1.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image2.zip",
         "http://people.kyb.tuebingen.mpg.de/rolfk/BenchmarkECCV2012/GroundTruth_pngs_Image3.zip",
@@ -94,7 +94,7 @@ class Kohler(Dataset):
 
     # The checksums are used to verify the integrity of the downloaded
     # archives.
-    archive_checksums = MappingProxyType(
+    _archive_checksums = MappingProxyType(
         {
             "GroundTruth_pngs_Image1.zip": "acb90b6d9bfdb4b2370e08a5fcb80e68",
             "GroundTruth_pngs_Image2.zip": "da440d3bf43b32bec0b7170ccd828f29",
@@ -106,7 +106,7 @@ class Kohler(Dataset):
 
     # Most of the acquisitions of sharp images span exactly 199 frames but not
     # all of them and this lookup table gives each frame count for them all.
-    frame_count_table = MappingProxyType(
+    _frame_count_table = MappingProxyType(
         {
             (2, 11): 200,
             (1, 10): 198,
@@ -151,9 +151,9 @@ class Kohler(Dataset):
                 from deepinv.datasets import Kohler
                 Kohler.download("datasets/Kohler")
         """
-        for url in cls.archive_urls:
+        for url in cls._archive_urls:
             archive_name = url_basename(url)
-            checksum = cls.archive_checksums[archive_name]
+            checksum = cls._archive_checksums[archive_name]
 
             # Download the archive and verify its integrity
             download_and_extract_archive(
@@ -299,9 +299,9 @@ class Kohler(Dataset):
     def get_frame_count(cls, printout_index: int, trajectory_index: int) -> int:
         index = (printout_index, trajectory_index)
 
-        if index in cls.frame_count_table:
-            count = cls.frame_count_table[index]
+        if index in cls._frame_count_table:
+            count = cls._frame_count_table[index]
         else:
-            count = cls.frame_count_table["others"]
+            count = cls._frame_count_table["others"]
 
         return count

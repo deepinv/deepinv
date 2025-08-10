@@ -60,6 +60,9 @@ class BaseUnfold(BaseOptim):
         *args,
         **kwargs,
     ):
+        if isinstance(params_algo, MappingProxyType):
+            params_algo = params_algo.copy()
+
         super().__init__(
             iterator,
             max_iter=max_iter,
@@ -180,6 +183,9 @@ def unfolded_builder(
 
 
     """
+    if isinstance(params_algo, MappingProxyType):
+        params_algo = params_algo.copy()
+
     iterator = create_iterator(
         iteration,
         prior=prior,

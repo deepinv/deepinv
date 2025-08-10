@@ -457,6 +457,9 @@ class TomographyWithAstra(LinearPhysics):
     ):
         super().__init__(**kwargs)
 
+        if isinstance(geometry_parameters, MappingProxyType):
+            geometry_parameters = geometry_parameters.copy()
+
         assert len(img_size) in (
             2,
             3,

@@ -81,7 +81,7 @@ class FMD(torch.utils.data.Dataset):
             shutil.rmtree("fmd")                                           # remove raw data from disk
     """
 
-    gdrive_ids = MappingProxyType(
+    _gdrive_ids = MappingProxyType(
         {
             "Confocal_BPAE_B.tar": "1juaumcGn5QlFRXRQyrqfbZBhF7oX__iW",
             "Confocal_BPAE_G.tar": "1Zofz11VmI1JfRIMF7rq40RVjpzM6A9vg",
@@ -167,7 +167,7 @@ class FMD(torch.utils.data.Dataset):
 
             for img_type in self.img_types:
                 filename = img_type + ".tar"
-                gdrive_id = self.gdrive_ids[filename]
+                gdrive_id = self._gdrive_ids[filename]
 
                 ## We need to access the content of a html file to retrieve information
                 ## Which will be needed to download the archive ------------------------

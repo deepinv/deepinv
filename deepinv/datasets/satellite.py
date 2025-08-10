@@ -77,7 +77,7 @@ class NBUDataset(Dataset):
 
     """
 
-    satellites = MappingProxyType(
+    _satellites = MappingProxyType(
         {
             "ikonos": "cf6fdb64ca5fbbf7050b8e27b2f9399d",
             "gaofen-1": "ea1525b7bd5342f0177d898e3c44bb51",
@@ -97,7 +97,7 @@ class NBUDataset(Dataset):
         transform_pan: Callable = None,
         download: bool = False,
     ):
-        if satellite not in self.satellites:
+        if satellite not in self._satellites:
             raise ValueError(
                 'satellite must be "ikonos", "gaofen-1", "quickbird", "worldview-2", "worldview-3", or "worldview-4".'
             )
@@ -150,7 +150,7 @@ class NBUDataset(Dataset):
             os.path.isdir(self.data_dir)
             and len(list(self.data_dir.glob("MS_256/*.mat"))) > 0
             and calculate_md5_for_folder(str(self.data_dir / "MS_256"))
-            == self.satellites[self.data_dir.stem]
+            == self._satellites[self.data_dir.stem]
         )
 
     def __len__(self):

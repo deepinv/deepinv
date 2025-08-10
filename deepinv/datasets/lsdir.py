@@ -67,7 +67,7 @@ class LsdirHR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = MappingProxyType(
+    _archive_urls = MappingProxyType(
         {
             "train": MappingProxyType(
                 {
@@ -99,7 +99,7 @@ class LsdirHR(torch.utils.data.Dataset):
     )
 
     # for integrity of downloaded data
-    checksums = MappingProxyType(
+    _checksums = MappingProxyType(
         {
             "train": "a83bdb97076d617e4965913195cc84d1",
             "val": "972ba478c530b76eb9404b038597f65f",
@@ -144,7 +144,7 @@ class LsdirHR(torch.utils.data.Dataset):
                     f"The {self.mode} folders already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dirs}`."
                 )
 
-            for filename, url in self.archive_urls[self.mode].items():
+            for filename, url in self._archive_urls[self.mode].items():
                 # download tar file from the Internet and save it locally
                 download_archive(
                     url=url,
@@ -208,4 +208,4 @@ class LsdirHR(torch.utils.data.Dataset):
         md5_folders = hashlib.md5()
         for img_dir in self.img_dirs:
             md5_folders.update(calculate_md5_for_folder(img_dir).encode())
-        return md5_folders.hexdigest() == self.checksums[self.mode]
+        return md5_folders.hexdigest() == self._checksums[self.mode]

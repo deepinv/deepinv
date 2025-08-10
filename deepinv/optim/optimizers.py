@@ -183,6 +183,9 @@ class BaseOptim(Reconstructor):
         self.get_output = get_output
         self.has_cost = has_cost
 
+        if isinstance(params_algo, MappingProxyType):
+            params_algo = params_algo.copy()
+
         # By default ``params_algo`` should contain a prior ``g_param`` parameter, set by default to ``None``.
         if "g_param" not in params_algo.keys():
             params_algo["g_param"] = None
@@ -594,6 +597,9 @@ def optim_builder(
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 
     """
+    if isinstance(params_algo, MappingProxyType):
+        params_algo = params_algo.copy()
+
     iterator = create_iterator(
         iteration,
         prior=prior,

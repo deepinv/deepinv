@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from types import MappingProxyType
 from functools import partial
 
 import torch
@@ -165,7 +164,7 @@ class SSIM(Metric):
         multiscale=False,
         max_pixel=1.0,
         min_pixel=0.0,
-        torchmetric_kwargs: dict = MappingProxyType({}),
+        torchmetric_kwargs: dict = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -174,6 +173,8 @@ class SSIM(Metric):
             if multiscale
             else structural_similarity_index_measure
         )
+        if torchmetric_kwargs is None:
+            torchmetric_kwargs = {}
         self.torchmetric_kwargs = torchmetric_kwargs
         self.max_pixel = max_pixel
         self.min_pixel = min_pixel
