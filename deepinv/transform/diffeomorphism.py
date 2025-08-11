@@ -82,7 +82,7 @@ class CPABDiffeomorphism(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        diffeo: Union[torch.Tensor, Iterable, TransformParam] = (),
+        diffeo: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Transform image deterministically.

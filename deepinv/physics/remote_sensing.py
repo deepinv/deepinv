@@ -26,8 +26,8 @@ class Pansharpen(StackedLinearPhysics):
         See :class:`deepinv.physics.Decolorize` for parameter options. Defaults to ``flat`` i.e. simply average the bands.
     :param bool use_brovey: if ``True``, use the Brovey method :footcite:t:`vivone2014critical`.
         to compute the pansharpening, otherwise use the conjugate gradient method.
-    :param torch.nn.Module noise_color: noise model for the RGB image.
-    :param torch.nn.Module noise_gray: noise model for the grayscale image.
+    :param torch.nn.Module noise_color: noise model for the RGB image. It defaults to zero noise.
+    :param torch.nn.Module noise_gray: noise model for the grayscale image. It defaults to Gaussian noise with a standard deviation of 0.05.
     :param torch.device, str device: torch device.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)

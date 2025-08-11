@@ -1088,7 +1088,7 @@ class Denoising(DecomposablePhysics):
 
     The linear operator is just the identity mapping :math:`A(x)=x`
 
-    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module.
+    :param torch.nn.Module noise: noise distribution, e.g., :class:`deepinv.physics.GaussianNoise`, or a user-defined torch.nn.Module. By default, it is set to Gaussian noise with a standard deviation of 0.1.
 
     |sep|
 

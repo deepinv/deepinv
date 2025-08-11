@@ -1,4 +1,4 @@
-from typing import Any, Callable, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional, Sequence
 from types import MappingProxyType
 import os
 import re
@@ -58,8 +58,8 @@ class FMD(torch.utils.data.Dataset):
 
     :param str root: Root directory of dataset. Directory path from where we load and save the dataset.
     :param list[str] img_types: Types of microscopy image among 12.
-    :param list[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
-    :param list[int] fovs: "Field of view", value between 1 and 20.
+    :param Sequence[int] noise_levels: Level of noises applied to the image among [1, 2, 4, 8, 16].
+    :param Sequence[int] fovs: "Field of view", value between 1 and 20.
     :param bool download: If ``True``, downloads the dataset from the internet and puts it in root directory.
         If dataset is already downloaded, it is not downloaded again. Default at False.
     :param Callable transform:: (optional) A function/transform that takes in a noisy PIL image
@@ -117,16 +117,12 @@ class FMD(torch.utils.data.Dataset):
         self,
         root: str,
         img_types: list[str],
-        noise_levels: Optional[list[int]] = None,
-        fovs: Optional[list[int]] = None,
+        noise_levels: Sequence[int] = (1, 2, 4, 8, 16),
+        fovs: Sequence[int] = tuple(range(1, 20 + 1)),
         download: bool = False,
         transform: Callable = None,
         target_transform: Callable = None,
     ) -> None:
-        if noise_levels is None:
-            noise_levels = [1, 2, 4, 8, 16]
-        if fovs is None:
-            fovs = list(range(1, 20 + 1))
         self.root = root
         self.img_types = img_types
         self.noise_levels = noise_levels

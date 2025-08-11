@@ -85,7 +85,7 @@ class DDRM(Reconstructor):
 
     :param torch.nn.Module denoiser: a denoiser model that can handle different noise levels.
     :param list[int] sigmas: a list of noise levels to use in the diffusion, they should be in decreasing
-        order from 1 to 0.
+        order from 1 to 0. Defaults to ``np.linspace(1, 0, 100)``.
     :param float eta: hyperparameter
     :param float etab: hyperparameter
     :param bool verbose: if True, print progress
