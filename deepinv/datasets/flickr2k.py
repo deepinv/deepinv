@@ -10,6 +10,8 @@ from deepinv.datasets.utils import (
     extract_zipfile,
 )
 
+from types import MappingProxyType
+
 
 class Flickr2kHR(torch.utils.data.Dataset):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
@@ -47,14 +49,18 @@ class Flickr2kHR(torch.utils.data.Dataset):
 
     """
 
-    archive_urls = {
-        "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "Flickr2K.zip": "https://huggingface.co/datasets/goodfellowliu/Flickr2K/resolve/main/Flickr2K.zip",
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "Flickr2K": "21fc3b64443fba44d6f0ad8a8c171b1e",
-    }
+    _checksums = MappingProxyType(
+        {
+            "Flickr2K": "21fc3b64443fba44d6f0ad8a8c171b1e",
+        }
+    )
 
     def __init__(
         self,
@@ -76,7 +82,7 @@ class Flickr2kHR(torch.utils.data.Dataset):
                         f"The image folder already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dir}`."
                     )
 
-                for filename, url in self.archive_urls.items():
+                for filename, url in self._archive_urls.items():
                     # download zip file from the Internet and save it locally
                     download_archive(
                         url=url,
@@ -125,5 +131,5 @@ class Flickr2kHR(torch.utils.data.Dataset):
             return False
         return all(
             calculate_md5_for_folder(os.path.join(self.root, folder_name)) == checksum
-            for folder_name, checksum in self.checksums.items()
+            for folder_name, checksum in self._checksums.items()
         )

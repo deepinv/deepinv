@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .base import Denoiser
-from typing import Union
+from typing import Union, Sequence  # noqa: F401
 
 try:
     import ptwt
@@ -430,7 +430,7 @@ class WaveletDictDenoiser(Denoiser):
         ``pip install ptwt``.
 
     :param int level: decomposition level of the wavelet transform.
-    :param list[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
+    :param Sequence[str] wv: list of mother wavelets. The names of the wavelets can be found in `here
         <https://wavelets.pybytes.com/>`_. (default: ["db8", "db4"]).
     :param str device: cpu or gpu.
     :param int max_iter: number of iterations of the optimization algorithm (default: 10).
@@ -440,7 +440,7 @@ class WaveletDictDenoiser(Denoiser):
     def __init__(
         self,
         level=3,
-        list_wv=["db8", "db4"],
+        list_wv=("db8", "db4"),
         max_iter=10,
         non_linearity="soft",
         wvdim=2,
