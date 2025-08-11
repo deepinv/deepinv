@@ -33,6 +33,7 @@ Changed
 - Rename the normalizing function `deepinv.utils.rescale_img` to `normalize_signal` (:gh:`641` by `Jérémy Scanvic`_)
 - Changed default linear solver from `CG` to `lsqr` (:gh:`658` by `Julian Tachella`_)
 - Added positive clipping by default and gain minimum in `PoissonGaussianNoise` (:gh:`658` by `Julian Tachella`_).
+- Move mixins to utils and reduce number of cross-submodule top-level imports (:gh:`680` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
