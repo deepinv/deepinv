@@ -22,13 +22,6 @@ class BM3D(Denoiser):
 
     """
 
-    def __init__(self):
-        super().__init__()
-        if isinstance(bm3d, ImportError):
-            raise ImportError(
-                "BM3D denoiser not available. Please install the bm3d package with `pip install bm3d`."
-            ) from bm3d
-
     def forward(self, x, sigma, **kwargs):
         r"""
         Run the denoiser on image with noise level :math:`\sigma`.
