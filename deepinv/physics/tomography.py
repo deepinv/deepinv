@@ -527,6 +527,7 @@ class TomographyWithAstra(LinearPhysics):
         :return: Weighted sinogram.
         """
         import astra
+
         # NOTE: This import is used by its side effects.
         from astra import experimental  # noqa: F401
 

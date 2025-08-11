@@ -92,6 +92,7 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
         hounsfield_units: bool = False,
     ) -> None:
         import pandas as pd
+
         if error_import is not None and isinstance(error_import, ImportError):
             raise error_import
 

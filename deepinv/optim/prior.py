@@ -567,6 +567,7 @@ class PatchNR(Prior):
     ):
         import FrEIA.framework as Ff
         import FrEIA.modules as Fm
+
         super(PatchNR, self).__init__()
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
@@ -580,7 +581,6 @@ class PatchNR(Prior):
                     nn.ReLU(),
                     nn.Linear(sub_net_size, c_out),
                 )
-
 
             nodes = [Ff.InputNode(dimension, name="input")]
             for k in range(num_layers):

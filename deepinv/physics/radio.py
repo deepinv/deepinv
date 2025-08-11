@@ -46,6 +46,7 @@ class RadioInterferometry(LinearPhysics):
         **kwargs,
     ):
         import torchkbnufft as tkbn
+
         super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device

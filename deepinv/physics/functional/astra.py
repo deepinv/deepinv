@@ -32,6 +32,7 @@ class XrayTransform:
         is_2d: bool = False,
     ):
         import astra
+
         self.projection_geometry = projection_geometry
         self.object_geometry = object_geometry
         self.is_2d = is_2d
@@ -44,12 +45,14 @@ class XrayTransform:
     def domain_shape(self) -> tuple:
         """The shape of the input volume."""
         import astra
+
         return astra.geom_size(self.object_geometry)
 
     @property
     def range_shape(self) -> tuple:
         """The shape of the output projection."""
         import astra
+
         return astra.geom_size(self.projection_geometry)
 
     @property
@@ -100,6 +103,7 @@ class XrayTransform:
     def source_radius(self) -> float:
         """The distance between the source and the axis of rotation."""
         import astra
+
         if not hasattr(self, "_source_radius"):
             if "vec" in self.projection_geometry["type"]:
                 self._source_radius = np.sqrt(
@@ -119,6 +123,7 @@ class XrayTransform:
     def detector_radius(self) -> float:
         """The distance between the center of the detector and the axis of rotation."""
         import astra
+
         if not hasattr(self, "_detector_radius"):
             if "vec" in self.projection_geometry["type"]:
                 self._detector_radius = np.sqrt(
@@ -219,6 +224,7 @@ class XrayTransform:
 
     def _forward_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
         import astra
+
         assert (
             x.shape == self.domain_shape
         ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
@@ -239,6 +245,7 @@ class XrayTransform:
 
     def _backprojection(self, y: torch.Tensor, out: torch.Tensor) -> None:
         import astra
+
         assert (
             y.shape == self.range_shape
         ), f"Input shape {y.shape} does not match expected shape {self.range_shape}"

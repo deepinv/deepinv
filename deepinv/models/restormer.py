@@ -525,11 +525,13 @@ class Restormer(Denoiser):
 ## Layer Norm
 def to_3d(x):
     from einops import rearrange
+
     return rearrange(x, "b c h w -> b (h w) c")
 
 
 def to_4d(x, h, w):
     from einops import rearrange
+
     return rearrange(x, "b (h w) c -> b c h w", h=h, w=w)
 
 
@@ -634,6 +636,7 @@ class Attention(nn.Module):
 
     def forward(self, x):
         from einops import rearrange
+
         b, c, h, w = x.shape
 
         qkv = self.qkv_dwconv(self.qkv(x))

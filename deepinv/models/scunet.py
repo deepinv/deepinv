@@ -46,6 +46,7 @@ class WMSA(nn.Module):
             attn_mask: should be (1 1 w p p),
         """
         from einops import rearrange
+
         # supporting sqaure.
         attn_mask = torch.zeros(
             h,
@@ -79,6 +80,7 @@ class WMSA(nn.Module):
             output: tensor shape [b h w c]
         """
         from einops import rearrange
+
         if self.type != "W":
             x = torch.roll(
                 x,
@@ -252,6 +254,7 @@ class ConvTransBlock(nn.Module):
 
     def forward(self, x):
         from einops.layers.torch import Rearrange
+
         conv_x, trans_x = torch.split(
             self.conv1_1(x), (self.conv_dim, self.trans_dim), dim=1
         )

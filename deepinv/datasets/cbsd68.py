@@ -7,6 +7,7 @@ from deepinv.datasets.utils import calculate_md5
 
 error_import = None
 
+
 class CBSD68(torch.utils.data.Dataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
 
@@ -57,6 +58,7 @@ class CBSD68(torch.utils.data.Dataset):
         transform: Callable = None,
     ) -> None:
         from datasets import load_dataset as load_dataset_hf, load_from_disk
+
         self.root = root
         self.transform = transform
 

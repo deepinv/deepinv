@@ -62,6 +62,7 @@ def non_blocking_plots():
     """Make plots in a test non-blocking"""
     import matplotlib
     import matplotlib.pyplot as plt
+
     original_backend = matplotlib.get_backend()
     try:
         # Use a non-interactive backend to avoid blocking the tests

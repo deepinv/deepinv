@@ -63,6 +63,7 @@ class WaveletDenoiser(Denoiser):
         """
         import pywt
         import ptwt
+
         if self.dimension == 2:
             dec = ptwt.wavedec2(
                 x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
@@ -102,6 +103,7 @@ class WaveletDenoiser(Denoiser):
         """
         import pywt
         import ptwt
+
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
