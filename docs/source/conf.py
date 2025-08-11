@@ -246,6 +246,7 @@ examples_order = {
     "basics": [
         "demo_quickstart.py",
         "demo_pretrained_model.py",
+        "demo_custom_optim.py",
         "demo_custom_dataset.py",
         "demo_custom_physics.py",
     ],
