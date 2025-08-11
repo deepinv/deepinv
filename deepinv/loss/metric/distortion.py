@@ -4,12 +4,6 @@ from functools import partial
 
 import torch
 from torch import Tensor
-from torchmetrics.functional.image import (
-    structural_similarity_index_measure,
-    multiscale_structural_similarity_index_measure,
-    spectral_angle_mapper,
-    error_relative_global_dimensionless_synthesis,
-)
 
 from deepinv.loss.metric.metric import Metric
 from deepinv.loss.metric.functional import cal_mse, cal_psnr, cal_mae
@@ -168,6 +162,11 @@ class SSIM(Metric):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        from torchmetrics.functional.image import (
+            structural_similarity_index_measure,
+            multiscale_structural_similarity_index_measure,
+        )
+
         self.ssim = (
             multiscale_structural_similarity_index_measure
             if multiscale
@@ -401,6 +400,10 @@ class QNR(Metric):
     ):
         super().__init__(**kwargs)
         self.alpha, self.beta, self.p, self.q = alpha, beta, p, q
+        from torchmetrics.functional.image import (
+            structural_similarity_index_measure,
+        )
+
         self.Q = partial(
             structural_similarity_index_measure, reduction="none"
         )  # Wang-Bovik
@@ -508,6 +511,8 @@ class SpectralAngleMapper(Metric):
     """
 
     def metric(self, x_net, x, *args, **kwargs):
+        from torchmetrics.functional.image import spectral_angle_mapper
+
         return spectral_angle_mapper(x_net, x, reduction="none").mean(
             dim=tuple(range(1, x.ndim - 1)), keepdim=False
         )
@@ -544,6 +549,10 @@ class ERGAS(Metric):
 
     def __init__(self, factor: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from torchmetrics.functional.image import (
+            error_relative_global_dimensionless_synthesis,
+        )
+
         self._metric = self._metric = (
             lambda x_hat, x, *args, **kwargs: error_relative_global_dimensionless_synthesis(
                 x_hat, x, ratio=factor, reduction="none"

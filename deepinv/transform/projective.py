@@ -8,13 +8,6 @@ from PIL import Image
 
 from deepinv.transform.base import Transform, TransformParam
 
-try:
-    from kornia.geometry.transform import warp_perspective
-except ImportError:  # pragma: no cover
-
-    def warp_perspective(*args, **kwargs):
-        raise ImportError("The kornia package is not installed.")
-
 
 def rotation_matrix(tx: float, ty: float, tz: float) -> np.ndarray:
     """Numpy implementation of ``scipy`` rotation matrix from Euler angles.
@@ -98,6 +91,7 @@ def apply_homography(
 
 
     """
+    from kornia.geometry.transform import warp_perspective
 
     assert interpolation in ("bilinear", "bicubic", "nearest")
 

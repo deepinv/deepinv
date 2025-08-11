@@ -3,13 +3,6 @@ import torch.nn as nn
 from .base import Denoiser
 from typing import Union
 
-try:
-    import ptwt
-    import pywt
-except:  # pragma: no cover
-    ptwt = ImportError("The ptwt package is not installed.")  # pragma: no cover
-    # No need to pywt, which is a dependency of ptwt
-
 
 class WaveletDenoiser(Denoiser):
     r"""
@@ -56,11 +49,6 @@ class WaveletDenoiser(Denoiser):
         mode: str = "zero",
         wvdim: int = 2,
     ):
-        if isinstance(ptwt, ImportError):
-            raise ImportError(
-                "pytorch_wavelets is needed to use the WaveletDenoiser class. "
-                "It should be installed with `pip install ptwt`."
-            ) from ptwt
         super().__init__()
         self.level = level
         self.wv = wv
@@ -73,6 +61,8 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet decomposition.
         """
+        import pywt
+        import ptwt
         if self.dimension == 2:
             dec = ptwt.wavedec2(
                 x, pywt.Wavelet(self.wv), mode=self.mode, level=self.level
@@ -110,6 +100,8 @@ class WaveletDenoiser(Denoiser):
         :param int level: decomposition level.
         :param int dimension: dimension of the wavelet transform (either 2 or 3).
         """
+        import pywt
+        import ptwt
         if dimension == 2:
             dec = ptwt.wavedec2(x, pywt.Wavelet(wavelet), mode=mode, level=level)
             dec = list(dec)
@@ -126,6 +118,8 @@ class WaveletDenoiser(Denoiser):
         r"""
         Applies the wavelet recomposition.
         """
+        import pywt
+        import ptwt
 
         coeffs = self._list_to_tuple(coeffs)
         if self.dimension == 2:

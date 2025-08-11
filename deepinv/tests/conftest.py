@@ -5,8 +5,6 @@ import torch
 import deepinv as dinv
 from dummy import DummyCircles
 
-import matplotlib
-import matplotlib.pyplot as plt
 import importlib
 
 
@@ -62,6 +60,8 @@ def rng(device):
 @pytest.fixture
 def non_blocking_plots():
     """Make plots in a test non-blocking"""
+    import matplotlib
+    import matplotlib.pyplot as plt
     original_backend = matplotlib.get_backend()
     try:
         # Use a non-interactive backend to avoid blocking the tests

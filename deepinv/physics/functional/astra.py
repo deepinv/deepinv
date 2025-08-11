@@ -3,13 +3,6 @@ from typing import Any, Optional, Union
 import torch
 import numpy as np
 
-try:
-    import astra
-except ImportError:  # pragma: no cover
-    astra = ImportError(
-        "The astra-toolbox package is not installed."
-    )  # pragma: no cover
-
 
 class XrayTransform:
     r"""X-ray Transform operator with ``astra-toolbox`` backend.
@@ -38,6 +31,7 @@ class XrayTransform:
         object_geometry: dict[str, Any],
         is_2d: bool = False,
     ):
+        import astra
         self.projection_geometry = projection_geometry
         self.object_geometry = object_geometry
         self.is_2d = is_2d
@@ -49,11 +43,13 @@ class XrayTransform:
     @property
     def domain_shape(self) -> tuple:
         """The shape of the input volume."""
+        import astra
         return astra.geom_size(self.object_geometry)
 
     @property
     def range_shape(self) -> tuple:
         """The shape of the output projection."""
+        import astra
         return astra.geom_size(self.projection_geometry)
 
     @property
@@ -103,6 +99,7 @@ class XrayTransform:
     @property
     def source_radius(self) -> float:
         """The distance between the source and the axis of rotation."""
+        import astra
         if not hasattr(self, "_source_radius"):
             if "vec" in self.projection_geometry["type"]:
                 self._source_radius = np.sqrt(
@@ -121,6 +118,7 @@ class XrayTransform:
     @property
     def detector_radius(self) -> float:
         """The distance between the center of the detector and the axis of rotation."""
+        import astra
         if not hasattr(self, "_detector_radius"):
             if "vec" in self.projection_geometry["type"]:
                 self._detector_radius = np.sqrt(
@@ -220,6 +218,7 @@ class XrayTransform:
         return _Adjoint()
 
     def _forward_projection(self, x: torch.Tensor, out: torch.Tensor) -> None:
+        import astra
         assert (
             x.shape == self.domain_shape
         ), f"Input shape {x.shape} does not match expected shape {self.domain_shape}"
@@ -239,6 +238,7 @@ class XrayTransform:
         )
 
     def _backprojection(self, y: torch.Tensor, out: torch.Tensor) -> None:
+        import astra
         assert (
             y.shape == self.range_shape
         ), f"Input shape {y.shape} does not match expected shape {self.range_shape}"
@@ -264,6 +264,7 @@ def _create_astra_link(data: torch.Tensor) -> object:
     :param torch.Tensor data: CUDA torch.Tensor
     :return: GPULink, instance of a utility class which holds the pointer of the underlying CUDA array, its shape and the the stride of the data.
     """
+    import astra
 
     assert data.is_contiguous(), "Data must be contiguous"
     assert data.dtype == torch.float32, "Data must be of type float32"
@@ -377,6 +378,7 @@ def create_projection_geometry(
 
         When specified, ``geometry_vectors`` overrides ``detector_spacing``, ``angles`` and ``geometry_parameters``. It is particularly useful to build the geometry for the `Walnut-CBCT dataset <https://zenodo.org/records/2686726>`_, where the acquisition parameters are provided via such vectors.
     """
+    import astra
 
     if is_2d:
         if geometry_vectors is None:
@@ -503,6 +505,7 @@ def create_object_geometry(
     :param tuple[float, ...] spacing: Dimensions of reconstruction cell along the axis [x,y,...].
     :param tuple[float, ...] bounding_box: Extent of the reconstruction area [min_x, max_x, min_y, max_y, ...]
     """
+    import astra
 
     if is_2d:
         if bounding_box is not None:

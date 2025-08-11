@@ -2,12 +2,6 @@ import numpy as np
 import torch
 from .base import Denoiser
 
-# Compat for optional dependency on BM3D
-try:
-    import bm3d
-except:  # pragma: no cover
-    bm3d = ImportError("The bm3d package is not installed.")  # pragma: no cover
-
 
 class BM3D(Denoiser):
     r"""
@@ -42,6 +36,7 @@ class BM3D(Denoiser):
         :param torch.Tensor x: noisy image
         :param float sigma: noise level
         """
+        import bm3d
 
         out = torch.zeros_like(x)
 

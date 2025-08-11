@@ -6,8 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import einops
-
 import deepinv as dinv
 from deepinv.physics import LinearPhysicsMultiScaler, PhysicsCropper
 from deepinv.utils.tensorlist import TensorList
@@ -120,6 +118,7 @@ class RAM(Reconstructor, Denoiser):
         :param torch.Tensor x: input tensor
         :return torch.Tensor: a tensor of size (B, 1, W, H) containing constant maps of shapes (W, H) for each value in the batch.
         """
+        import einops
 
         if isinstance(value, torch.Tensor):
             if value.ndim > 0:

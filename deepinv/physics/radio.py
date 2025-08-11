@@ -1,11 +1,6 @@
 import torch
 from deepinv.physics import LinearPhysics
 
-try:
-    import torchkbnufft as tkbn
-except ImportError:  # pragma: no cover
-    tkbn = ImportError("The torchkbnufft package is not installed.")  # pragma: no cover
-
 
 class RadioInterferometry(LinearPhysics):
     r"""
@@ -50,6 +45,7 @@ class RadioInterferometry(LinearPhysics):
         device="cpu",
         **kwargs,
     ):
+        import torchkbnufft as tkbn
         super(RadioInterferometry, self).__init__(**kwargs)
 
         self.device = device

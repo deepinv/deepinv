@@ -15,16 +15,12 @@ from torchvision.utils import make_grid
 import torchvision.transforms as T
 import torchvision.transforms.functional as F
 
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-from matplotlib.animation import FuncAnimation
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 from PIL import Image
 
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
+    import matplotlib.pyplot as plt
     plt.rcParams.update({"font.size": fontsize})
     plt.rcParams["lines.linewidth"] = 2
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
@@ -252,6 +248,7 @@ def plot(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -301,6 +298,7 @@ def plot(
         for r, img in enumerate(row_imgs):
             im = axs[r, i].imshow(img, cmap=cmap, interpolation=interpolation)
             if cbar:
+                from mpl_toolkits.axes_grid1 import make_axes_locatable
                 divider = make_axes_locatable(axs[r, i])
                 cax = divider.append_axes("right", size="5%", pad=0.05)
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
@@ -382,6 +380,7 @@ def scatter_plot(
     :param float linewidths: width of the lines. Default: 1.5
     :param str color: color of the points. Default: blue
     """
+    import matplotlib.pyplot as plt
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -443,6 +442,7 @@ def plot_curves(metrics, save_dir=None, show=True):
     :param str save_dir: path to save the plot.
     :param bool show: show the image plot.
     """
+    import matplotlib.pyplot as plt
     # Use the matplotlib config from deepinv
     config_matplotlib()
 
@@ -482,6 +482,7 @@ def plot_curves(metrics, save_dir=None, show=True):
                     axs[i].plot(metric_val[b], "-o", label=f"batch {b+1}")
                 else:
                     axs[i].semilogy(metric_val[b], "-o", label=f"batch {b+1}")
+            from matplotlib.ticker import MaxNLocator
             axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
             # axs[i].set_xlabel("iterations")
             axs[i].set_title(label)
@@ -504,6 +505,7 @@ def plot_parameters(model, init_params=None, save_dir=None, show=True):
     :param str, pathlib.Path save_dir: the directory where to save the plot. Defaults to ``None``.
     :param bool show: whether to show the plot. Defaults to ``True``.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -620,6 +622,7 @@ def plot_inset(
     :param bool return_fig: return the figure object.
     :param bool return_axs: return the axs object.
     """
+    import matplotlib.pyplot as plt
 
     if save_dir:
         save_dir = Path(save_dir)
@@ -834,6 +837,7 @@ def plot_videos(
     # plt.gcf().set_visible(not plt.gcf().get_visible())
     # fig, axs = plt.subplots()
 
+    from matplotlib.animation import FuncAnimation
     anim = FuncAnimation(
         fig,
         partial(animate, fig=fig, axs=axs),
@@ -898,6 +902,7 @@ def save_videos(
     :param str save_fn: if not `None`, save the animation to this filename. File extension must be provided, note `anim_writer` might have to be specified. Defaults to `None`
     :param \*\*plot_kwargs: kwargs to pass to :func:`deepinv.utils.plot`
     """
+    import matplotlib.pyplot as plt
     if isinstance(vid_list, torch.Tensor):
         vid_list = [vid_list]
 
@@ -980,6 +985,7 @@ def plot_ortho3D(
     :param int fontsize: fontsize for the titles. Default: 17
     :param str interpolation: interpolation to use for the images. See https://matplotlib.org/stable/gallery/images_contours_and_fields/interpolation_methods.html for more details. Default: none
     """
+    import matplotlib.pyplot as plt
     # Use the matplotlib config from deepinv
     config_matplotlib(fontsize=fontsize)
 
@@ -1054,6 +1060,7 @@ def plot_ortho3D(
                 img[img.shape[0] // 2] ** 0.5, cmap=cmap, interpolation=interpolation
             )
             # ax_XY.set_aspect(1.)
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
             divider = make_axes_locatable(ax_XY)
             ax_XZ = divider.append_axes(
                 "bottom", 3 * 0.5 * split_ratios[i, r], sharex=ax_XY

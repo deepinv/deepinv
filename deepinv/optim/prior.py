@@ -2,13 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-try:
-    import FrEIA.framework as Ff
-    import FrEIA.modules as Fm
-except ImportError:  # pragma: no cover
-    Ff = ImportError("The FrEIA package is not installed.")  # pragma: no cover
-    Fm = ImportError("The FrEIA package is not installed.")  # pragma: no cover
-
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
 from deepinv.models.wavdict import WaveletDenoiser, WaveletDictDenoiser
@@ -572,12 +565,9 @@ class PatchNR(Prior):
         sub_net_size=256,
         device="cpu",
     ):
+        import FrEIA.framework as Ff
+        import FrEIA.modules as Fm
         super(PatchNR, self).__init__()
-        if isinstance(Ff, ImportError):
-            raise ImportError(
-                "FrEIA is needed to use the PatchNR class. "
-                "It should be installed with `pip install FrEIA`."
-            ) from Ff
         if normalizing_flow is None:
             # Create Normalizing Flow with FrEIA
             dimension = patch_size**2 * channels
@@ -590,6 +580,7 @@ class PatchNR(Prior):
                     nn.ReLU(),
                     nn.Linear(sub_net_size, c_out),
                 )
+
 
             nodes = [Ff.InputNode(dimension, name="input")]
             for k in range(num_layers):

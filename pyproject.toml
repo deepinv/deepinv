@@ -136,7 +136,8 @@ select = ["UP006", "F401", "B905", "TID253"]
 [tool.ruff.lint.per-file-ignores]
 # NOTE: Rule F401 is ruff's unused imports rule.
 "__init__.py" = ["F401"]
+"examples/**/*" = ["TID253"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Modules that slow down startup and should be imported lazily
-banned-module-level-imports = ["timm"]
+banned-module-level-imports = ["timm", "torchmetrics", "matplotlib", "datasets", "FrEIA", "bm3d", "einops", "wandb", "pandas", "kornia", "ptwt", "pywt", "astra", "torchkbnufft"]
