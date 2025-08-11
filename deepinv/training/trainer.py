@@ -28,6 +28,7 @@ from deepinv.physics import Physics
 from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -914,9 +915,8 @@ class Trainer:
                 wandb.log(log_dict_post_epoch, step=epoch)
 
             if self.mlflow_vis:
-                warnings.warn(
-                    "Not implemented: mlflow does not support logging images yet."
-                )
+                image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
             # save images
