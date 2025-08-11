@@ -1,5 +1,5 @@
 r"""
-Define and use iterative reconstruction algorithms
+Use iterative reconstruction algorithms
 ====================================================================================================
 
 Follow this example to reconstruct images using an iterative algorithm.
@@ -118,7 +118,7 @@ dinv.utils.plot(
     {
         f"Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
-        f"Reconstruction with TV prior\n {metric(x_k, x).item():.2f} dB": x_k,
+        f"Recon w/ TV prior\n {metric(x_k, x).item():.2f} dB": x_k,
     }
 )
 
@@ -145,7 +145,7 @@ dinv.utils.plot(
     {
         f"Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
-        f"Reconstruction with PnP prior\n {metric(x_k, x).item():.2f} dB": x_k,
+        f"Recon w/ PnP prior\n {metric(x_k, x).item():.2f} dB": x_k,
     }
 )
 
@@ -193,7 +193,7 @@ dinv.utils.plot(
     {
         f"Ground truth": x,
         f"Measurements\n {metric(y, x).item():.2f} dB": y,
-        f"Reconstruction with custom PGD\n {metric(x_hat, x).item():.2f} dB": x_hat,
+        f"Recon w/ custom PGD\n {metric(x_hat, x).item():.2f} dB": x_hat,
     }
 )
 

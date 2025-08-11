@@ -166,8 +166,8 @@ psnr_x_hat = metric(x_hat, x).item()
 
 dinv.utils.plot(
     {
-        f"Measurement {psnr_y:.2f} dB": y,
-        f"Reconstruction {psnr_x_hat:.2f} dB": x_hat,
+        f"Measurement\n {psnr_y:.2f} dB": y,
+        f"Reconstruction\n {psnr_x_hat:.2f} dB": x_hat,
         "GT": x,
     }
 )
