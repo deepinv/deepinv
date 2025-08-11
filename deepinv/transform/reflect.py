@@ -53,7 +53,7 @@ class Reflect(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        dims: Union[torch.Tensor, Iterable] = (),
+        dims: Union[torch.Tensor, Iterable] = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         """Reflect image in axes given in dim.

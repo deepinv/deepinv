@@ -59,7 +59,7 @@ class ShiftTime(Transform):
     def _transform(
         self,
         x: torch.Tensor,
-        amounts: Union[torch.Tensor, Iterable, TransformParam] = (),
+        amounts: Union[torch.Tensor, Iterable, TransformParam] = tuple(),
         **kwargs,
     ) -> torch.Tensor:
         roll = torch.roll if self.padding == "wrap" else self.roll_reflect_1d
