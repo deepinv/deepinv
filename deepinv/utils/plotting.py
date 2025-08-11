@@ -17,13 +17,33 @@ import torchvision.transforms.functional as F
 
 from PIL import Image
 
+_DEFAULT_PLOT_FONTSIZE = 17
+
+
+def set_default_plot_fontsize(fontsize: int):
+    """Set global default fontsize for DeepInv plots."""
+    global _DEFAULT_PLOT_FONTSIZE
+    _DEFAULT_PLOT_FONTSIZE = fontsize
+
+
+def get_default_plot_fontsize() -> int:
+    """Get global default fontsize for DeepInv plots."""
+    return _DEFAULT_PLOT_FONTSIZE
+
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
     import matplotlib.pyplot as plt
-    plt.rcParams.update({"font.size": fontsize})
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+    plt.rcParams["font.size"] = fontsize
+    plt.rcParams["axes.titlesize"] = fontsize
+    plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+    plt.rcParams["text.latex.preamble"] = (
+        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
+    )
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -186,7 +206,7 @@ def plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="none",
     cbar=False,
     dpi=1200,
@@ -288,10 +308,11 @@ def plot(
             len(imgs),
             figsize=figsize,
             squeeze=False,
+            layout="compressed" if tight else "constrained",
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12, wrap=True)
+        plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
@@ -304,14 +325,12 @@ def plot(
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, wrap=True)
+                axs[r, i].set_title(titles[i], wrap=True)
             axs[r, i].axis("off")
 
-    if tight:
-        if cbar:
-            plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        else:
-            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if cbar:
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
@@ -349,7 +368,7 @@ def scatter_plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     s=0.1,
     linewidths=1.5,
     color="b",
@@ -402,10 +421,11 @@ def scatter_plot(
         len(scatters),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -414,7 +434,7 @@ def scatter_plot(
                 xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
             )
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i])
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
@@ -450,7 +470,9 @@ def plot_curves(metrics, save_dir=None, show=True):
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
     fig, axs = plt.subplots(
-        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+        1,
+        len(metrics.keys()),
+        figsize=(6 * len(metrics.keys()), 4),
     )
     # NOTE: axs is not an array when a single metric is passed in
     if isinstance(axs, plt.Axes):
@@ -946,7 +968,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="nearest",
 ):
     r"""
@@ -1045,6 +1067,7 @@ def plot_ortho3D(
         len(imgs),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
