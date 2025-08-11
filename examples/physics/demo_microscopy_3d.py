@@ -54,6 +54,8 @@ plot_ortho3D(
     suptitle="3D convolution",
     interpolation="nearest",
     figsize=(13, 5),
+    tight=False,
+    fontsize=24,
 )
 
 
