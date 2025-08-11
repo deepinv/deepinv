@@ -16,8 +16,8 @@ from .base import Denoiser
 try:
     import timm
     from timm.layers import DropPath, to_2tuple, trunc_normal_
-except ImportError as e:
-    timm = e
+except ImportError as e:  # pragma: no cover
+    timm = e  # pragma: no cover
 
 
 class Mlp(nn.Module):

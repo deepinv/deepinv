@@ -1,5 +1,7 @@
+import deepinv as dinv
+from .signal import normalize_signal
+
 import os
-import math
 import shutil
 from pathlib import Path
 from collections.abc import Iterable
@@ -7,7 +9,6 @@ from typing import Union
 from functools import partial
 from warnings import warn
 
-import wandb
 import torch
 import numpy as np
 from torchvision.utils import make_grid
@@ -21,12 +22,33 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from PIL import Image
 
+_DEFAULT_PLOT_FONTSIZE = 17
+
+
+def set_default_plot_fontsize(fontsize: int):
+    """Set global default fontsize for DeepInv plots."""
+    global _DEFAULT_PLOT_FONTSIZE
+    _DEFAULT_PLOT_FONTSIZE = fontsize
+
+
+def get_default_plot_fontsize() -> int:
+    """Get global default fontsize for DeepInv plots."""
+    return _DEFAULT_PLOT_FONTSIZE
+
 
 def config_matplotlib(fontsize=17):
     """Config matplotlib for nice plots in the examples."""
-    plt.rcParams.update({"font.size": fontsize})
+    if fontsize is None:
+        fontsize = get_default_plot_fontsize()
+
+    plt.rcParams["font.size"] = fontsize
+    plt.rcParams["axes.titlesize"] = fontsize
+    plt.rcParams["figure.titlesize"] = fontsize
     plt.rcParams["lines.linewidth"] = 2
     plt.rcParams["text.usetex"] = True if shutil.which("latex") else False
+    plt.rcParams["text.latex.preamble"] = (
+        r"\usepackage{amsmath}" if plt.rcParams["text.usetex"] else ""
+    )
 
 
 def resize_pad_square_tensor(tensor, size):
@@ -115,27 +137,37 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     return imgs, titles, grid_image, caption
 
 
+@torch.no_grad
 def preprocess_img(im, rescale_mode="min_max"):
     r"""
-    Preprocesses an image tensor for plotting.
+    Prepare a batch of images for plotting.
 
-    :param torch.Tensor im: the image to preprocess.
-    :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
-    :return: the preprocessed image.
+    Real and complex images are transformed into images with values between
+    zero and one by first applying the modulus function for complex images, and
+    then by normalizing the resulting images between zero and one using min-max
+    normalization ``min_max`` or clipping ``clip``.
+
+    .. note::
+
+        Real-valued tensors with two channels are assumed to be Cartesian
+        representation of complex images and are processed accordingly.
+
+    :param torch.Tensor im: the batch of images to preprocess, it is expected to be of shape (B, C, *).
+    :param str rescale_mode: the normalization mode, either 'min_max' or 'clip'.
+    :return: the batch of pre-processed images.
     """
-    with torch.no_grad():
-        if im.shape[1] == 2:  # for complex images
-            pimg = im.pow(2).sum(dim=1, keepdim=True).sqrt().type(torch.float32)
-        elif im.shape[1] > 3:
-            pimg = im.type(torch.float32)
-        else:
-            if torch.is_complex(im):
-                pimg = im.abs().type(torch.float32)
-            else:
-                pimg = im.type(torch.float32)
+    # Apply the modulus function if the image is inferred to be complex
+    if torch.is_complex(im) or im.shape[1] == 2:
+        im = dinv.loss.metric.functional.complex_abs(im, dim=1, keepdim=True)
 
-        pimg = rescale_img(pimg, rescale_mode=rescale_mode)
-    return pimg
+    # Cast image values to float32 numbers
+    # NOTE: Why is it needed?
+    im = im.type(torch.float32)
+
+    # Normalize values between zero and one
+    im = normalize_signal(im, mode=rescale_mode)
+
+    return im
 
 
 def tensor2uint(img):
@@ -158,22 +190,12 @@ def rescale_img(im, rescale_mode="min_max"):
     :param str rescale_mode: the rescale mode, either 'min_max' or 'clip'.
     :return: the rescaled image.
     """
-    img = im.clone()
-    if rescale_mode == "min_max":
-        shape = img.shape
-        img = img.reshape(shape[0], -1)
-        mini = img.min(1)[0]
-        maxi = img.max(1)[0]
-        idx = mini < maxi
-        mini = mini[idx].unsqueeze(1)
-        maxi = maxi[idx].unsqueeze(1)
-        img[idx, :] = (img[idx, :] - mini) / (maxi - mini)
-        img = img.reshape(shape)
-    elif rescale_mode == "clip":
-        img = img.clamp(min=0.0, max=1.0)
-    else:
-        raise ValueError("rescale_mode has to be either 'min_max' or 'clip'.")
-    return img
+    warn(
+        "The function `deepinv.utils.rescale_img` is deprecated and will be removed in a future version. Use `deepinv.utils.normalize_signal` instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return normalize_signal(im, mode=rescale_mode)
 
 
 def plot(
@@ -189,7 +211,7 @@ def plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="none",
     cbar=False,
     dpi=1200,
@@ -290,10 +312,11 @@ def plot(
             len(imgs),
             figsize=figsize,
             squeeze=False,
+            layout="compressed" if tight else "constrained",
         )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12, wrap=True)
+        plt.suptitle(suptitle, wrap=True)
         fig.subplots_adjust(top=0.75)
 
     for i, row_imgs in enumerate(imgs):
@@ -305,14 +328,12 @@ def plot(
                 colbar = fig.colorbar(im, cax=cax, orientation="vertical")
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9, wrap=True)
+                axs[r, i].set_title(titles[i], wrap=True)
             axs[r, i].axis("off")
 
-    if tight:
-        if cbar:
-            plt.subplots_adjust(hspace=0.2, wspace=0.2)
-        else:
-            plt.subplots_adjust(hspace=0.01, wspace=0.05)
+    if cbar:
+        plt.subplots_adjust(hspace=0.2, wspace=0.2)
+        fig.get_layout_engine().set(w_pad=0.2, h_pad=0.2)
 
     if save_fn:
         plt.savefig(save_fn, dpi=dpi)
@@ -350,7 +371,7 @@ def scatter_plot(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     s=0.1,
     linewidths=1.5,
     color="b",
@@ -402,10 +423,11 @@ def scatter_plot(
         len(scatters),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:
-        plt.suptitle(suptitle, size=12)
+        plt.suptitle(suptitle)
         fig.subplots_adjust(top=0.75, wspace=0.15)
 
     for i, row_scatter in enumerate(scatters):
@@ -414,7 +436,7 @@ def scatter_plot(
                 xy[:, 0], xy[:, 1], s=s, linewidths=linewidths, c=color, cmap=cmap
             )
             if titles and r == 0:
-                axs[r, i].set_title(titles[i], size=9)
+                axs[r, i].set_title(titles[i])
             axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
@@ -449,7 +471,9 @@ def plot_curves(metrics, save_dir=None, show=True):
         save_dir = Path(save_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
     fig, axs = plt.subplots(
-        1, len(metrics.keys()), figsize=(6 * len(metrics.keys()), 4)
+        1,
+        len(metrics.keys()),
+        figsize=(6 * len(metrics.keys()), 4),
     )
     # NOTE: axs is not an array when a single metric is passed in
     if isinstance(axs, plt.Axes):
@@ -490,36 +514,6 @@ def plot_curves(metrics, save_dir=None, show=True):
         plt.savefig(save_dir / "curves.png")
     if show:
         plt.show()
-
-
-def wandb_imgs(imgs, captions, n_plot):
-    wandb_imgs = []
-    for i in range(len(imgs)):
-        wandb_imgs.append(
-            wandb.Image(
-                make_grid(imgs[i][:n_plot], nrow=int(math.sqrt(n_plot)) + 1),
-                caption=captions[i],
-            )
-        )
-    return wandb_imgs
-
-
-def wandb_plot_curves(metrics, batch_idx=0, step=0):
-    for metric_name, metric_val in metrics.items():
-        if len(metric_val) > 0:
-            batch_size, n_iter = len(metric_val), len(metric_val[0])
-            wandb.log(
-                {
-                    f"{metric_name} batch {batch_idx}": wandb.plot.line_series(
-                        xs=range(n_iter),
-                        ys=metric_val,
-                        keys=[f"image {j}" for j in range(batch_size)],
-                        title=f"{metric_name} batch {batch_idx}",
-                        xname="iteration",
-                    )
-                },
-                step=step,
-            )
 
 
 def plot_parameters(model, init_params=None, save_dir=None, show=True):
@@ -970,7 +964,7 @@ def plot_ortho3D(
     figsize=None,
     suptitle=None,
     cmap="gray",
-    fontsize=17,
+    fontsize=None,
     interpolation="nearest",
 ):
     r"""
@@ -1046,7 +1040,7 @@ def plot_ortho3D(
                     pimg = im[i, :, :, :, :].abs().type(torch.float32)
                 else:
                     pimg = im[i, :, :, :, :].type(torch.float32)
-            pimg = rescale_img(pimg, rescale_mode=rescale_mode)
+            pimg = preprocess_img(pimg, rescale_mode=rescale_mode)
             col_imgs.append(pimg.detach().permute(1, 2, 3, 0).cpu().numpy())
         imgs.append(col_imgs)
 
@@ -1068,6 +1062,7 @@ def plot_ortho3D(
         len(imgs),
         figsize=figsize,
         squeeze=False,
+        layout="compressed" if tight else "constrained",
     )
 
     if suptitle:

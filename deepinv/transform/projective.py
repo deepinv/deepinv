@@ -10,7 +10,7 @@ from deepinv.transform.base import Transform, TransformParam
 
 try:
     from kornia.geometry.transform import warp_perspective
-except ImportError:
+except ImportError:  # pragma: no cover
 
     def warp_perspective(*args, **kwargs):
         raise ImportError("The kornia package is not installed.")

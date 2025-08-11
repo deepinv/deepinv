@@ -62,7 +62,7 @@ train_transform = transforms.Compose(
 train_base_dataset = load_dataset(train_dataset_name, transform=train_transform)
 test_base_dataset = load_dataset(test_dataset_name, transform=test_transform)
 
-# Use parallel dataloader if using a GPU to fasten training, otherwise, as all computes are on CPU, use synchronous
+# Use parallel dataloader if using a GPU to speed up training, otherwise, as all computes are on CPU, use synchronous
 # dataloading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

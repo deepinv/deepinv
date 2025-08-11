@@ -111,8 +111,8 @@ imgs = [y, x_wv]
 plot(
     imgs,
     titles=[
-        f"Input, wavelet cost: {cost_wv.item():.2f}",
-        f"Output, wavelet cost: {cost_wv_prox.item():.2f}",
+        f"Input \nWavelet cost: {cost_wv.item():.2f}",
+        f"Output \nWavelet cost: {cost_wv_prox.item():.2f}",
     ],
 )
 

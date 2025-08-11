@@ -5,9 +5,9 @@ import torch.nn as nn
 try:
     import FrEIA.framework as Ff
     import FrEIA.modules as Fm
-except:
-    Ff = ImportError("The FrEIA package is not installed.")
-    Fm = ImportError("The FrEIA package is not installed.")
+except ImportError:  # pragma: no cover
+    Ff = ImportError("The FrEIA package is not installed.")  # pragma: no cover
+    Fm = ImportError("The FrEIA package is not installed.")  # pragma: no cover
 
 from deepinv.optim.potential import Potential
 from deepinv.models.tv import TVDenoiser
@@ -148,7 +148,7 @@ class ScorePrior(Prior):
     .. note::
 
         If :math:`\sigma=1`, this prior is equal to :class:`deepinv.optim.RED`, which is defined in
-        `Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn't require the normalization.
+        Regularization by Denoising (RED) :footcite:t:`romano2017little` and doesn't require the normalization.
 
 
     .. note::
