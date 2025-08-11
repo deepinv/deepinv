@@ -14,6 +14,10 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
 Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
+.. tip::
+  The operator you are looking for is not on this list?
+  **See** :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for how to implement your own physics operator.
+
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
 

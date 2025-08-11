@@ -80,6 +80,9 @@ filter = dinv.physics.blur.gaussian_blur((5, 5))
 
 physics = dinv.physics.BlurFFT(x.shape[1:], filter=filter, device=device)
 
+# Simulate measurements
+y = physics(x)
+
 # %%
 # You can easily use your own params by passing these into the `physics`,
 # or you can use a `generator` to :ref:`generate random params <physics_generators>`:
@@ -92,24 +95,16 @@ physics_generator = dinv.physics.generator.MotionBlurGenerator(
 # Generate a dict of random params {"filter": ...}
 params = physics_generator.step()
 
-# Update physics
-physics.update(**params)
-
-y = physics(x)
-
-# Generate new random params
-params2 = physics_generator.step()
-
-# You can also directly update physics during forward call
-y2 = physics(x, **params2)
+# Update physics during forward call
+y2 = physics(x, **params)
 
 dinv.utils.plot(
     {
         "GT": x,
         "Blurred...": y,
-        "... with kernel": params["filter"],
-        "Blurred2...": y2,
-        "...with kernel2": params2["filter"],
+        "... with Gaussian kernel": filter,
+        "Blurred ...": y2,
+        "...with motion kernel": params["filter"],
     }
 )
 
@@ -118,7 +113,8 @@ dinv.utils.plot(
 # pseudo-inverse:
 #
 
-physics.update(**params)  # Reset params
+# You can also update params like so
+physics.update(filter=filter)
 
 x_pinv = physics.A_dagger(y)
 

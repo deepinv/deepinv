@@ -1,10 +1,10 @@
 """
-Inference and fine-tune Reconstruct Anything Model (RAM) foundation model
-====================================================================================================
+Inference and fine-tune a foundation model
+==========================================
 
-This example shows how to perform inference on and fine-tune the RAM foundation model to solve inverse problems.
+This example shows how to perform inference on and fine-tune the Reconstruct Anything Model (RAM) foundation model :footcite:p:`terris2025reconstruct` to solve inverse problems.
 
-The :class:`Reconstruct Anything Model <deepinv.models.RAM>` :footcite:p:`terris2025reconstruct` is a model that has been trained to work on a large
+The :class:`Reconstruct Anything Model <deepinv.models.RAM>` is a model that has been trained to work on a large
 variety of linear image reconstruction tasks and datasets (deblurring, inpainting, denoising, tomography, MRI, etc.)
 and is robust to a wide variety of imaging domains.
 
@@ -257,7 +257,7 @@ dinv.utils.plot(
         "Original": x,
         f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
         f"Zero-shot reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat_ft, x).item():.2f}dB": x_hat,
+        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat_ft, x).item():.2f}dB": x_hat_ft,
     },
 )
 

@@ -40,15 +40,6 @@ which can simulate the observation process:
         Forward operators and noise distributions.
 
     .. grid-item-card::
-        :link: physics_defining
-        :link-type: ref
-
-        :octicon:`tools` **Defining your operator**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        How to define your own forward operator,
-        if the existing ones are not enough.
-
-    .. grid-item-card::
         :link: physics_functional
         :link-type: ref
 
@@ -65,7 +56,6 @@ which can simulate the observation process:
 
    user_guide/physics/intro
    user_guide/physics/physics
-   user_guide/physics/defining
    user_guide/physics/functional
 
 
