@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from deepinv.datasets.fastmri import FastMRISliceDataset
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.mixins import MRIMixin
 
 try:
     from natsort import natsorted

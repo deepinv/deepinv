@@ -372,8 +372,8 @@ model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(devic
 
 def crop(x_net, x):
     """Crop to GT shape then take magnitude."""
-    return dinv.physics.MRIMixin().rss(
-        dinv.physics.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
+    return dinv.utils.MRIMixin().rss(
+        dinv.utils.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
     )
 
 

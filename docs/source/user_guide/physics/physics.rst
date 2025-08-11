@@ -53,7 +53,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
    * - Magnetic Resonance Imaging (MRI)
      -
-       | :class:`deepinv.physics.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`

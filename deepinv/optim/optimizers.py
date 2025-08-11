@@ -5,7 +5,6 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
-from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 
 
@@ -350,9 +349,12 @@ class BaseOptim(Reconstructor):
         :param torch.Tensor x_gt: ground truth image, required for PSNR computation. Default: ``None``.
         :return dict: A dictionary containing the metrics.
         """
+        from deepinv.loss.metric.distortion import PSNR
+
         init = {}
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
+
         if x_gt is not None:
             psnr = [
                 [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
