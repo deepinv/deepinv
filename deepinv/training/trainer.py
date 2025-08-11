@@ -387,9 +387,13 @@ class Trainer:
         else:
             self.is_denoiser = False
 
+<<<<<<< HEAD
     def load_model(
         self, ckpt_pretrained: Union[str, Path] = None, strict: bool = True
     ) -> dict:
+=======
+    def load_model(self, ckpt_pretrained: Union[str, Path] = None) -> dict:
+>>>>>>> d11d94dcfcf8af4f70c490d1b8d73405159f8da0
         """Load model from checkpoint.
 
         :param str ckpt_pretrained: checkpoint filename. If `None`, use checkpoint passed to class init.
