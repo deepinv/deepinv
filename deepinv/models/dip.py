@@ -173,7 +173,7 @@ class DeepImagePrior(Reconstructor):
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y=y, x=x, physics=physics)
+            error = self.loss(y=y, x_net=x, physics=physics)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()
