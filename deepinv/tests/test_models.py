@@ -779,24 +779,47 @@ def test_icnn(device, rng):
     assert grad.shape == x.shape
 
 
-# def test_dip(imsize, device): TODO: fix this test
-#     torch.manual_seed(0)
-#     channels = 64
-#     physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
-#     f = dinv.models.DeepImagePrior(
-#         generator=dinv.models.ConvDecoder(imsize, layers=3, channels=channels).to(
-#             device
-#         ),
-#         input_size=(channels, imsize[1], imsize[2]),
-#         iterations=30,
-#     )
-#     x = torch.ones(imsize, device=device).unsqueeze(0)
-#     y = physics(x)
-#     mse_in = (y - x).pow(2).mean()
-#     x_net = f(y, physics)
-#     mse_out = (x_net - x).pow(2).mean()
-#
-#     assert mse_out < mse_in
+@pytest.mark.parametrize("model_kind", ["DIP", "Poisson2Sparse"])
+def test_dip_like(model_kind, imsize, device):
+    torch.manual_seed(0)
+    if model_kind == "DIP":
+        physics = dinv.physics.Denoising(dinv.physics.GaussianNoise(0.2))
+        channels = 64
+        f = dinv.models.DeepImagePrior(
+            generator=dinv.models.ConvDecoder(
+                img_size=imsize, layers=3, channels=channels
+            ).to(device),
+            input_size=(channels, imsize[1], imsize[2]),
+            iterations=30,
+        )
+    elif model_kind == "Poisson2Sparse":
+        physics = dinv.physics.Denoising(
+            dinv.physics.PoissonNoise(gain=0.05, normalize=True)
+        )
+        backbone = dinv.models.ConvLista(
+            channels=imsize[0],
+            kernel_size=3,
+            norm=False,
+            num_filters=512,
+            num_iter=5,
+            stride=1,
+            threshold=0.01,
+        )
+        f = dinv.models.Poisson2Sparse(
+            backbone=backbone,
+            lr=1e-4,
+            num_iter=10,
+            weight_n2n=2.0,
+            weight_l1_regularization=1e-5,
+            verbose=True,
+        ).to(device)
+    x = torch.ones(imsize, device=device).unsqueeze(0)
+    y = physics(x)
+    mse_in = (y - x).pow(2).mean()
+    x_net = f(y, physics)
+    mse_out = (x_net - x).pow(2).mean()
+
+    assert mse_out < mse_in
 
 
 def test_time_agnostic_net():
