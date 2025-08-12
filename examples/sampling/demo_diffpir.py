@@ -6,6 +6,7 @@ In this tutorial, we revisit the implementation of the DiffPIR diffusion algorit
 The full algorithm is implemented in :class:`deepinv.sampling.DiffPIR`.
 """
 
+# %%
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -51,7 +52,7 @@ y = physics(x)
 imgs = [y, x_true]
 plot(
     imgs,
-    titles=["measurement", "ground-truth"],
+    titles=["Measurement", "Ground Truth"],
 )
 # %%
 # The DiffPIR algorithm
@@ -149,7 +150,7 @@ den = model(x_noisy, sigmas[t])
 imgs = [x_noisy, den, den - x_true]
 plot(
     imgs,
-    titles=["noisy input", "denoised image", "error"],
+    titles=["Noisy Input", "Denoised Image", "Error"],
 )
 
 # %%
@@ -174,7 +175,8 @@ x_prox = data_fidelity.prox(y_denoised, y, physics, gamma=(1 / sigmas[t]).to(dev
 imgs = [y, y_denoised, x_prox]
 plot(
     imgs,
-    titles=["measurement", "denoised measurement", "data fidelity step"],
+    titles=["Measurement", "Denoised Measurement", "Data Fidelity Step"],
+    tight=False,
 )
 
 # %%
@@ -213,8 +215,8 @@ x_sampled_scaled = alphas_cumprod[t_i - 1].sqrt() * x_prox_scaled + torch.sqrt(
 x_sampled = (x_sampled_scaled + 1) / 2  # Rescale the output in [0, 1]
 
 imgs = [y, y_denoised, x_prox, x_sampled]
-titles = ["measurement", "denoised measurement", "data fidelity step", "sampling step"]
-plot(imgs, titles=titles)
+titles = ["Measurement", "Denoised Measurement", "Data Fidelity Step", "Sampling Step"]
+plot(imgs, titles=titles, tight=False)
 
 # %%
 # (notice that noise has been added everywhere in the image, including in the masked region)
@@ -365,7 +367,7 @@ x = (x + 1) / 2
 imgs = [y, x, x_true]
 plot(
     imgs,
-    titles=["measurement", "model output", "ground-truth"],
+    titles=["Measurement", "Model Output", "Ground Truth"],
 )
 
 # %%
@@ -375,19 +377,20 @@ plot(
 # sphinx_gallery_multi_image = "single"
 plot(
     list_noisy,
-    titles=[f"noisy sample step {i}" for i in save_steps],
+    titles=[f"Noisy Sample Step {i}" for i in save_steps],
     dpi=1500,
+    tight=False,
 )
 
 plot(
     list_denoised,
-    titles=[f"denoised step {i}" for i in save_steps],
+    titles=[f"Denoised Step {i}" for i in save_steps],
     dpi=1500,
 )
 
 plot(
     list_prox,
-    titles=[f"proximal step {i}" for i in save_steps],
+    titles=[f"Proximal Step {i}" for i in save_steps],
     dpi=1500,
 )
 

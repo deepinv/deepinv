@@ -8,6 +8,7 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -111,9 +112,14 @@ imgs = [y, x_wv]
 plot(
     imgs,
     titles=[
-        f"Input \nWavelet cost: {cost_wv.item():.2f}",
-        f"Output \nWavelet cost: {cost_wv_prox.item():.2f}",
+        f"Input",
+        f"Output",
     ],
+    subtitles=[
+        f"Wavelet cost:\n{int(cost_wv.item())}",
+        f"Wavelet cost:\n{int(cost_wv_prox.item())}",
+    ],
+    tight=False,
 )
 
 

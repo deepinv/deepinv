@@ -49,7 +49,7 @@ y = physics(x_true)
 imgs = [y, x_true]
 plot(
     imgs,
-    titles=["measurement", "groundtruth"],
+    titles=["Measurement", "Ground Truth"],
 )
 
 
@@ -153,7 +153,7 @@ x0_t = model(xt, sigmat)
 imgs = [x0, xt, x0_t]
 plot(
     imgs,
-    titles=["ground-truth", "noisy", "posterior mean"],
+    titles=["Ground Truth", "Noisy", "Posterior Mean"],
 )
 
 # %%
@@ -218,7 +218,7 @@ with torch.enable_grad():
 imgs = [x0, xt, x0_t, grad_ll]
 plot(
     imgs,
-    titles=["groundtruth", "noisy", "posterior mean", "gradient"],
+    titles=["Ground Truth", "Noisy", "Posterior Mean", "Gradient"],
 )
 
 # %%
@@ -321,7 +321,7 @@ recon = xs[-1]
 # plot the results
 x = recon / 2 + 0.5
 imgs = [y, x, x_true]
-plot(imgs, titles=["measurement", "model output", "groundtruth"])
+plot(imgs, titles=["Measurement", "Model Output", "Groundtruth"])
 
 
 # %%

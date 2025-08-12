@@ -8,6 +8,7 @@ to recover the original image :math:`x` from the blurred and noisy image :math:`
 the problem.
 """
 
+# %%
 import deepinv as dinv
 from pathlib import Path
 import torch
@@ -108,9 +109,14 @@ imgs = [y, x_tv]
 plot(
     imgs,
     titles=[
-        f"Input \n TV cost: {cost_tv:.2f}",
-        f"Output \n TV cost: {cost_tv_prox:.2f}",
+        f"Input",
+        f"Output",
     ],
+    subtitles=[
+        f"TV cost: {int(cost_tv)}",
+        f"TV cost: {int(cost_tv_prox)}",
+    ],
+    tight=False,
 )
 
 
@@ -177,16 +183,28 @@ x_model, metrics = model(
 )  # reconstruction with PGD algorithm
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
+psnr_input = dinv.metric.PSNR()(x, y)
+psnr_lin = dinv.metric.PSNR()(x, x_lin)
+psnr_model = dinv.metric.PSNR()(x, x_model)
+print(f"Input PSNR: {psnr_input.item():.2f} dB")
+print(f"Linear reconstruction PSNR: {psnr_lin.item():.2f} dB")
+print(f"PGD reconstruction PSNR: {psnr_model.item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
+imgs = [x, y, x_lin, x_model]
 plot(
     imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    titles=["GT", "Input", "Linear", "Recons."],
+    subtitles=[
+        "PSNR:",
+        f"{psnr_input.item():.2f} dB",
+        f"{psnr_lin.item():.2f} dB",
+        f"{psnr_model.item():.2f} dB",
+    ],
 )
 
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%

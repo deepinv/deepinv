@@ -7,6 +7,7 @@ the following `paper <https://arxiv.org/abs/2503.08915>`_, is a modified DRUNet 
 a large number of inverse problems.
 """
 
+# %%
 import torch
 import deepinv as dinv
 from deepinv.models import RAM
@@ -43,8 +44,13 @@ dinv.utils.plot(
     [x, y, x_hat],
     [
         "Original",
-        "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
-        "Reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
+        "Measurement",
+        "Reconstruction",
+    ],
+    subtitles=[
+        "",
+        f"PSNR = {in_psnr:.2f}dB",
+        f"PSNR = {out_psnr:.2f}dB",
     ],
     figsize=(8, 3),
 )
@@ -75,8 +81,13 @@ dinv.utils.plot(
     [x, y, x_hat],
     [
         "Original",
-        "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
-        "Reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
+        "Measurement",
+        "Reconstruction",
+    ],
+    subtitles=[
+        "",
+        f"PSNR = {in_psnr:.2f}dB",
+        f"PSNR = {out_psnr:.2f}dB",
     ],
     figsize=(8, 3),
 )
@@ -108,8 +119,13 @@ dinv.utils.plot(
     [x, y, x_hat],
     [
         "Original",
-        "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
-        "0 shot reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
+        "Measurement",
+        "0 Shot Reconstruction",
+    ],
+    subtitles=[
+        "",
+        f"PSNR = {in_psnr:.2f}dB",
+        f"PSNR = {out_psnr:.2f}dB",
     ],
     figsize=(8, 3),
 )
@@ -204,8 +220,15 @@ dinv.utils.plot(
     [x, y, x_hat],
     [
         "Original",
-        "Measurement\n PSNR = {:.2f}dB".format(in_psnr),
-        "Finetuned reconstruction\n PSNR = {:.2f}dB".format(out_psnr),
+        "Measurement",
+        "Finetuned reconstruction",
+    ],
+    subtitles=[
+        "",
+        f"PSNR = {in_psnr:.2f}dB",
+        f"PSNR = {out_psnr:.2f}dB",
     ],
     figsize=(8, 3),
 )
+
+# %%
