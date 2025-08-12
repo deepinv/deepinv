@@ -18,6 +18,7 @@ optimizer.
 
 """
 
+# %%
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
@@ -105,8 +106,14 @@ dip = f(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"DIP PSNR: {dinv.metric.PSNR()(x, dip).item():.2f} dB")
+psnr_linear = dinv.metric.PSNR()(x, x_lin).item()
+psnr_dip = dinv.metric.PSNR()(x, dip).item()
+print(f"Linear reconstruction PSNR: {psnr_linear:.2f} dB")
+print(f"DIP PSNR: {psnr_dip:.2f} dB")
 
 # plot results
-plot([x_lin, x, dip], titles=["measurement", "ground truth", "DIP"])
+plot(
+    [x_lin, x, dip],
+    titles=["Measurement", "Ground Truth", "DIP"],
+    subtitles=["PSNR", f"{psnr_linear:.2f} dB", f"{psnr_dip:.2f} dB"],
+)
