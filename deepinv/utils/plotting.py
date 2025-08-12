@@ -263,7 +263,7 @@ def plot(
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
-    :param list[list[str]], str subtitles: list of subtitles for each image, has to be same shape as img_list.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images.
@@ -332,7 +332,11 @@ def plot(
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
             if subtitles is not None:
-                axs[r, i].set_xlabel(subtitles[r][i], fontsize=fontsize, labelpad=4)
+                if all(isinstance(s, str) for s in subtitles):
+                    sub = subtitles[i]
+                else:
+                    sub = subtitles[r][i]
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
                 axs[r, i].set_xticks([])
                 axs[r, i].set_yticks([])
                 for spine in axs[r, i].spines.values():
@@ -399,7 +403,7 @@ def scatter_plot(
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
     :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
-    :param list[list[str]], str subtitles: list of subtitles for each image, has to be same shape as img_list.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
@@ -450,7 +454,11 @@ def scatter_plot(
                 axs[r, i].set_title(titles[i])
 
             if subtitles is not None:
-                axs[r, i].set_xlabel(subtitles[r][i], fontsize=fontsize, labelpad=4)
+                if all(isinstance(s, str) for s in subtitles):
+                    sub = subtitles[i]
+                else:
+                    sub = subtitles[r][i]
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
                 axs[r, i].set_xticks([])
                 axs[r, i].set_yticks([])
                 for spine in axs[r, i].spines.values():
@@ -644,7 +652,7 @@ def plot_inset(
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
-    :param list[list[str]], str subtitles: list of subtitles for each image, has to be same shape as img_list.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param int fontsize: fontsize for the plot. Default: 17
