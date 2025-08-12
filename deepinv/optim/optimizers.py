@@ -107,7 +107,7 @@ class BaseOptim(Reconstructor):
 
     :param deepinv.optim.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-        e.g. the stepsize, regularisation parameter, denoising standard deviation.
+        e.g. the stepsize, regularization parameter, denoising standard deviation.
         Each value of the dictionary can be either Iterable (distinct value for each iteration) or
         a single float (same value for each iteration).
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
@@ -515,7 +515,7 @@ def create_iterator(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     """
     # If no prior is given, we set it to a zero prior.
     if prior is None:
@@ -580,7 +580,7 @@ def optim_builder(
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            e.g. the stepsize, regularization parameter, denoising standard deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration). See :any:`optim-params` for more details.
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
@@ -592,7 +592,7 @@ def optim_builder(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 

@@ -93,3 +93,8 @@ for i in range(2):
 
 plt.tight_layout()
 plt.show()
+
+# %%
+# :References:
+#
+# .. footbibliography::

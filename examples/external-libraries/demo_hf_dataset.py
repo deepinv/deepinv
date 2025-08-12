@@ -1,12 +1,12 @@
 """
-Using huggingface dataset
+Using HuggingFace datasets
 ====================================================================================================
 
-| This simple example shows how to load and prepare properly a huggingface dataset.
-| Context: having a quick access to several datasets available under the huggingface format.
-| Available datasets: https://huggingface.co/datasets?search=deepinv
+This example shows how to load and prepare properly a HuggingFace dataset
+using the `datasets` library.
 
-| Here we use `drunet_dataset <https://github.com/samuro95/GSPnP>`_.
+Available datasets: https://huggingface.co/datasets?search=deepinv
+Here we use `drunet_dataset <https://github.com/samuro95/GSPnP>`_.
 """
 
 # %%
@@ -25,7 +25,7 @@ import deepinv as dinv
 # Stream data from Internet
 # ----------------------------------------------------------------------------------------
 #
-# Stream data from huggingface servers: only a limited number of samples is loaded on memory at all time,
+# Stream data from HuggingFace servers: only a limited number of samples is loaded on memory at all time,
 # which avoid having to save the dataset on disk and avoid overloading the memory capacity.
 #
 
@@ -67,7 +67,7 @@ img_transforms = transforms.Compose(
 # Class that apply `transform` on data samples of a datasets.iterable_dataset.IterableDataset
 class HFDataset(IterableDataset):
     r"""
-    Creates an iteratble dataset from a Hugging Face dataset to enable streaming.
+    Creates an iterable dataset from a HuggingFace dataset to enable streaming.
     """
 
     def __init__(self, hf_dataset, transforms=None, key="png"):

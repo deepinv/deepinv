@@ -1,18 +1,23 @@
 from typing import Any, Union, Optional
+from warnings import warn
 import math
+
+from numpy import ndarray
 import torch
-from deepinv.physics.forward import LinearPhysics
 
-from deepinv.physics.functional import Radon, IRadon, RampFilter, ApplyRadon
-from deepinv.physics import adjoint_function
-
-from deepinv.physics.functional import XrayTransform
+from deepinv.physics.forward import LinearPhysics, adjoint_function
+from deepinv.physics.functional import (
+    Radon,
+    IRadon,
+    RampFilter,
+    ApplyRadon,
+    XrayTransform,
+)
 from deepinv.physics.functional.astra import (
     AutogradTransform,
     create_projection_geometry,
     create_object_geometry,
 )
-from warnings import warn
 
 try:
     import astra
@@ -133,8 +138,14 @@ class Tomography(LinearPhysics):
             theta = torch.linspace(0, 180, steps=angles + 1, device=device)[:-1].to(
                 device
             )
-        else:
+        elif isinstance(angles, (list, tuple, ndarray)):
             theta = torch.tensor(angles).to(device)
+        elif isinstance(angles, torch.Tensor):
+            theta = angles
+        else:
+            raise ValueError(
+                f"angles must be int, float, iterable or Tensor, but got {type(angles)}"
+            )
 
         self.register_buffer("theta", theta)
 
