@@ -10,7 +10,7 @@ from deepinv.datasets.base import ImageFolder
 
 
 class DIV2K(ImageFolder):
-    """ Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
+    """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
 
     The DIV2K dataset from :footcite:t:`agustsson2017ntire` is a high-quality image dataset originally built for image super-resolution tasks.
 
