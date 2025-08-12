@@ -1,7 +1,8 @@
 from torch import Tensor
 import torch.nn as nn
-from deepinv.physics import Physics, TimeMixin
+from deepinv.physics import Physics
 from deepinv.models.base import Reconstructor
+from deepinv.utils.mixins import TimeMixin
 
 
 class TimeAgnosticNet(Reconstructor, TimeMixin):

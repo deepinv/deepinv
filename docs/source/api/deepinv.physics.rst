@@ -43,8 +43,6 @@ Operators
    deepinv.physics.Upsampling
    deepinv.physics.DownsamplingMatlab
    deepinv.physics.MRI
-   deepinv.physics.MRIMixin
-   deepinv.physics.TimeMixin
    deepinv.physics.DynamicMRI
    deepinv.physics.MultiCoilMRI
    deepinv.physics.SequentialMRI

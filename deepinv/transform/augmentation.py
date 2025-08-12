@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from deepinv.transform.base import Transform, TransformParam
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.noise import GaussianNoise, NoiseModel
 
 

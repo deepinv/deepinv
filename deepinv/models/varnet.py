@@ -9,7 +9,8 @@ import torch.nn as nn
 from deepinv.models.base import Denoiser
 from deepinv.models.artifactremoval import ArtifactRemoval
 from deepinv.models import DnCNN
-from deepinv.physics.mri import MRIMixin, MRI, MultiCoilMRI
+from deepinv.physics.mri import MRI, MultiCoilMRI
+from deepinv.utils.mixins import MRIMixin
 
 
 class VarNet(ArtifactRemoval, MRIMixin):

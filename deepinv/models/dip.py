@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
@@ -142,10 +141,13 @@ class DeepImagePrior(Reconstructor):
         self.generator = generator
         self.max_iter = int(iterations)
         self.lr = learning_rate
-        self.loss = MCLoss()
         self.verbose = verbose
         self.re_init = re_init
         self.img_size = img_size
+
+        from deepinv.loss.mc import MCLoss
+
+        self.loss = MCLoss()
 
     def forward(self, y, physics, **kwargs):
         r"""
@@ -171,7 +173,7 @@ class DeepImagePrior(Reconstructor):
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y, x, physics)
+            error = self.loss(y=y, x_net=x, physics=physics)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()

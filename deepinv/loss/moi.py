@@ -1,13 +1,16 @@
-from typing import Union, Optional
+from __future__ import annotations
+from typing import Union, Optional, TYPE_CHECKING
 
 import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.ei import EILoss
-from deepinv.loss.metric.metric import Metric
-from deepinv.physics import Physics
-from deepinv.physics.generator import PhysicsGenerator
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.physics import Physics
+    from deepinv.physics.generator import PhysicsGenerator
+    from deepinv.transform.base import Transform
 
 
 class MOILoss(Loss):

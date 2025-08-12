@@ -1,10 +1,13 @@
-from typing import Union
+from __future__ import annotations
+from typing import Union, TYPE_CHECKING
 
 import torch
 import torch.nn as nn
 from deepinv.loss.loss import Loss
-from deepinv.loss.metric.metric import Metric
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.transform.base import Transform
 
 
 class EILoss(Loss):

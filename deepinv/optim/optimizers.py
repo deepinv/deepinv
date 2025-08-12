@@ -5,7 +5,6 @@ import torch
 from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
-from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 
 
@@ -259,6 +258,10 @@ class BaseOptim(Reconstructor):
             verbose=verbose,
         )
 
+        from deepinv.loss.metric.distortion import PSNR
+
+        self.psnr = PSNR()
+
     def update_params_fn(self, it):
         r"""
         For each parameter ``params_algo``, selects the parameter value for iteration ``it``
@@ -353,9 +356,10 @@ class BaseOptim(Reconstructor):
         init = {}
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
+
         if x_gt is not None:
             psnr = [
-                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                [self.psnr(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
                 for i in range(self.batch_size)
             ]
         else:
@@ -391,7 +395,7 @@ class BaseOptim(Reconstructor):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    psnr = self.psnr(x[i : i + 1], x_gt[i : i + 1])
                     metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]

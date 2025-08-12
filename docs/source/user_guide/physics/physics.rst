@@ -57,7 +57,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
    * - Magnetic Resonance Imaging (MRI)
      -
-       | :class:`deepinv.physics.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
@@ -177,24 +176,3 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.ZeroNoise`
      - :math:`y = z`
-
-.. _mixin:
-
-Mixins
-~~~~~~
-
-The physics module maximizes code reuse via inheritance. 
-We provide mixin classes to provide specialized methods for certain physics, models, datasets and losses,
-such as temporal or MRI functionality.
-
-.. list-table:: Mixins
-   :header-rows: 1
-
-   * - **Mixin**
-     - **Description**
-
-   * - :class:`deepinv.physics.MRIMixin`
-     - Utility methods for MRI physics.
-
-   * - :class:`deepinv.physics.TimeMixin`
-     - Methods for expanding and flattening time dimension for dynamic/video data.

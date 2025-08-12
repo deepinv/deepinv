@@ -107,3 +107,23 @@ elementary operations on the list of tensors, such as sum, multiplication, etc.:
     >>> t2 = TensorList([x1*2, x2/2])
     >>> t3 = t1 + t2
 
+.. _mixin:
+
+Mixins
+~~~~~~
+
+DeepInverse maximizes code reuse via inheritance. 
+We provide mixin classes to provide specialized methods for certain physics, models, datasets and losses,
+such as temporal or MRI functionality.
+
+.. list-table:: Mixins
+   :header-rows: 1
+
+   * - **Mixin**
+     - **Description**
+
+   * - :class:`deepinv.utils.MRIMixin`
+     - Utility methods for MRI physics.
+
+   * - :class:`deepinv.utils.TimeMixin`
+     - Methods for expanding and flattening time dimension for dynamic/video data.

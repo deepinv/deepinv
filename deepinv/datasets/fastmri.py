@@ -40,7 +40,8 @@ from deepinv.datasets.utils import ToComplex, Rescale, download_archive
 from deepinv.datasets.base import ImageDataset
 from deepinv.utils.demo import get_image_url
 from deepinv.physics.generator.mri import BaseMaskGenerator, ceildiv
-from deepinv.physics.mri import MultiCoilMRI, MRIMixin
+from deepinv.physics.mri import MultiCoilMRI
+from deepinv.utils.mixins import MRIMixin
 
 
 class SimpleFastMRISliceDataset(ImageDataset):
