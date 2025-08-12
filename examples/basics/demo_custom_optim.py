@@ -85,9 +85,10 @@ stepsize = 1.9 / norm_A2  # stepsize for the PGD algorithm
 
 # PGD algorithm
 max_iter = 20  # number of iterations
-x_k = torch.zeros_like(x)  # initial guess
+x_k = torch.zeros_like(x, device=device)  # initial guess
 
-cost_history = torch.zeros(max_iter)  # to store the cost at each iteration
+# To store the cost at each iteration:
+cost_history = torch.zeros(max_iter, device=device)
 
 with torch.no_grad():  # disable autodifferentiation
     for it in range(max_iter):
@@ -102,7 +103,7 @@ with torch.no_grad():  # disable autodifferentiation
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(8, 4))
-plt.plot(cost_history.cpu().numpy(), marker="o")
+plt.plot(cost_history.detach().cpu().numpy(), marker="o")
 plt.title("Cost history")
 plt.xlabel("Iteration")
 plt.ylabel("Cost")
@@ -131,8 +132,13 @@ dinv.utils.plot(
 # with a denoising step.
 # The library provides :ref:`a collection of classical and pretrained denoisers <denoisers>`
 # that can be used in iterative algorithms.
+#
+# .. note::
+#     Plug-and-play algorithms can be sensitive to the choice of initialization.
+#     Here we use the TV estimate as the initial guess.
 
-x_k = x_k.clone()  # use TV solution as initial guess
+
+x_k = x_k.clone()
 
 denoiser = dinv.models.DRUNet(device=device)  # Load a pretrained denoiser
 
@@ -168,12 +174,17 @@ class MyPGD(dinv.models.Reconstructor):
         self.max_iter = max_iter
 
     def forward(self, y, physics, **kwargs):
-        x_k = torch.zeros_like(y)  # initial guess
+        """Algorithm forward pass.
 
-        with (
-            torch.no_grad()
-        ):  # disable autodifferentiation, remove this if you want to unfold
-            for it in range(self.max_iter):
+        :param torch.Tensor y: measurements.
+        :param dinv.physics.Physics physics: measurement operator.
+        :return: torch.Tensor: reconstructed image.
+        """
+        x_k = torch.zeros_like(y, device=y.device)  # initial guess
+
+        # Disable autodifferentiation, remove this if you want to unfold
+        with torch.no_grad():
+            for _ in range(self.max_iter):
                 u = x_k - self.stepsize * self.data_fidelity.grad(
                     x_k, y, physics
                 )  # Gradient step
@@ -184,10 +195,10 @@ class MyPGD(dinv.models.Reconstructor):
         return x_k
 
 
-model = MyPGD(data_fidelity, prior, stepsize, lambd, max_iter)
+tv_algo = MyPGD(data_fidelity, prior, stepsize, lambd, max_iter)
 
 # Standard reconstructor forward pass
-x_hat = model(y, physics)
+x_hat = tv_algo(y, physics)
 
 dinv.utils.plot(
     {
@@ -210,12 +221,26 @@ dinv.utils.plot(
 
 prior = dinv.optim.PnP(denoiser=denoiser)  # prior with prox via denoising step
 
+
+def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
+    """
+    Custom initialization function for the optimization algorithm.
+    The function should return a dictionary with the key "est" containing a tuple
+    with the initial guess (the TV solution in this case)
+    and the dual variables (None in this case).
+    """
+    primal = tv_algo(y, physics)
+    dual = None  # No dual variables in this case
+    return {"est": (primal, dual)}
+
+
 model = dinv.optim.optim_builder(
     iteration="PGD",
     prior=prior,
     data_fidelity=data_fidelity,
     params_algo={"stepsize": stepsize, "g_param": 0.05},
     max_iter=max_iter,
+    custom_init=custom_init,
 )
 
 x_hat = model(y, physics)
