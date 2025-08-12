@@ -230,7 +230,7 @@ def custom_init(y: torch.Tensor, physics: dinv.physics.Physics) -> torch.Tensor:
     and the dual variables (None in this case).
     """
     primal = tv_algo(y, physics)
-    dual = None  # No dual variables in this case
+    dual = None  #  No dual variables in this case
     return {"est": (primal, dual)}
 
 
