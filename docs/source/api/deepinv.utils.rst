@@ -58,7 +58,7 @@ Logging
 
 Mixins
 ------
-.. userguide:: mixins
+.. userguide:: mixin
 
 .. autosummary::
    :toctree: stubs
