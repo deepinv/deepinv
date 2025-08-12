@@ -114,7 +114,7 @@ dinv.utils.plot(
 #
 
 # You can also update params like so
-physics.update(filter=filter)
+physics.update(filter=filter.to(device))
 
 x_pinv = physics.A_dagger(y)
 
