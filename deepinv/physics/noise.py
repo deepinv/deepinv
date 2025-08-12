@@ -180,7 +180,7 @@ class ZeroNoise(NoiseModel):
     """
 
     def __init__(self, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
     def forward(self, x, *args, **kwargs):
         r"""

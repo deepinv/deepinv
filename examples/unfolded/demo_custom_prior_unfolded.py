@@ -95,7 +95,7 @@ test_dataset = dinv.datasets.HDF5Dataset(path=generated_datasets_path, train=Fal
 # %%
 # Define the unfolded Proximal Gradient algorithm.
 # ------------------------------------------------
-# In this example, we propose to minimise a function of the form
+# In this example, we propose to minimize a function of the form
 #
 # .. math::
 #

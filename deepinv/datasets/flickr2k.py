@@ -1,17 +1,15 @@
-from typing import Any, Callable
+from typing import Callable
 import os
-
-from PIL import Image
-import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import ImageFolder
 
 
-class Flickr2kHR(torch.utils.data.Dataset):
+class Flickr2kHR(ImageFolder):
     """Dataset for `Flickr2K <https://github.com/limbee/NTIRE2017>`_.
 
     The Flickr2k dataset introduced by :footcite:t:`agustsson2017ntire` contains 2650 2K images.
@@ -63,7 +61,6 @@ class Flickr2kHR(torch.utils.data.Dataset):
         transform: Callable = None,
     ) -> None:
         self.root = root
-        self.transform = transform
         self.img_dir = os.path.join(self.root, "Flickr2K")
 
         # download dataset, we check first that dataset isn't already downloaded
@@ -95,19 +92,8 @@ class Flickr2kHR(torch.utils.data.Dataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`) OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = sorted(os.listdir(self.img_dir))
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialize ImageFolder
+        super().__init__(self.img_dir, transform=transform)
 
     def check_dataset_exists(self) -> bool:
         """Verify that the image folders exist and contain all the images.

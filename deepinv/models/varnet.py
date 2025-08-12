@@ -28,7 +28,7 @@ class VarNet(ArtifactRemoval, MRIMixin):
 
     Code loosely adapted from E2E-VarNet implementation from https://github.com/facebookresearch/fastMRI/blob/main/fastmri/models/varnet.py.
 
-    :param Denoiser, torch.nn.Module denoiser: backbone network that parametrises the grad of the regulariser.
+    :param Denoiser, torch.nn.Module denoiser: backbone network that parametrizes the grad of the regulariser.
         If ``None``, a small DnCNN is used.
     :param torch.nn.Module sensitivity_model: network to jointly estimate coil sensitivity maps for multi-coil MRI. If ``None``, do not perform any map estimation. For single-coil MRI, unused.
     :param int num_cascades: number of unrolled iterations ('cascades').
