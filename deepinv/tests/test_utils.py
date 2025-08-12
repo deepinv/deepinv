@@ -13,7 +13,6 @@ import subprocess
 import os
 import inspect
 import pathlib
-import torchvision
 import torchvision.transforms as transforms
 import PIL
 import io
@@ -22,6 +21,8 @@ import math
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
+
+from deepinv.tests.test_datasets import check_dataset_format
 
 
 @pytest.fixture
@@ -110,6 +111,21 @@ def test_tensordict_append(tensorlist):
     z1 = deepinv.utils.TensorList([z, z, z, z])
     z = x.append(y)
     assert (z1[0] == z[0]).all() and (z1[-1] == z[-1]).all()
+
+
+def test_tensorlist_any_all_isnan():
+    x = torch.zeros(1, 3)
+    x_nan = torch.nan * x
+    tl = deepinv.utils.TensorList([x, x])
+    tl_mixed = deepinv.utils.TensorList([x, x_nan])
+    tl_nan = deepinv.utils.TensorList([x_nan, x_nan])
+
+    assert x_nan.isnan().all()
+    assert not tl.isnan().any()
+    assert not tl.isnan().all()
+    assert tl_mixed.isnan().any()
+    assert not tl_mixed.isnan().all()
+    assert tl_nan.isnan().all()
 
 
 # The class TensorList features many utility methods that we do not test in
@@ -354,48 +370,23 @@ def test_deprecated_alias():
 @pytest.mark.parametrize("size", [64, 128])
 @pytest.mark.parametrize("n_data", [1, 2, 3])
 @pytest.mark.parametrize("transform", [None, lambda x: x])
-@pytest.mark.parametrize("length", [1, 2, 10, np.inf])
-def test_random_phantom_dataset(size, n_data, transform, length):
-    # Although it is the default value for the parameter length, the current
-    # implementation fails when it is used. We simply verify this behavior
-    # but it will probably need to be changed in the future.
-    dataset = None
-    with pytest.raises(ValueError) if length == np.inf else nullcontext():
+@pytest.mark.parametrize("length", [1, 10])
+@pytest.mark.parametrize("dataset_name", ["random", "shepplogan"])
+def test_phantom_datasets(size, n_data, transform, length, dataset_name):
+    if dataset_name == "random":
         dataset = deepinv.utils.RandomPhantomDataset(
             size=size, n_data=n_data, transform=transform, length=length
         )
-        assert dataset is not None, "Dataset should not be None when length is finite."
-
-    if dataset is not None:
-        x, y = dataset[0]
-
-        assert (
-            len(dataset) == length
-        ), "Length of dataset should match the specified length."
-
-        assert x.shape == (
-            n_data,
-            size,
-            size,
-        ), "Shape of phantom should match (n_data, size, size)."
-
-
-@pytest.mark.parametrize("size", [64, 128])
-@pytest.mark.parametrize("n_data", [1, 2, 3])
-@pytest.mark.parametrize("transform", [None, lambda x: x])
-def test_shepp_logan_dataset(size, n_data, transform):
-    dataset = deepinv.utils.SheppLoganDataset(
-        size=size, n_data=n_data, transform=transform
+    elif dataset_name == "shepplogan":
+        dataset = deepinv.utils.SheppLoganDataset(
+            size=size, n_data=n_data, transform=transform
+        )
+    check_dataset_format(
+        dataset,
+        length=length if dataset_name != "shepplogan" else 1,
+        dtype=torch.Tensor,
+        shape=(n_data, size, size),
     )
-    x, y = dataset[0]
-
-    assert len(dataset) == 1, "Length of dataset should be 1 for Shepp-Logan phantom."
-
-    assert x.shape == (
-        n_data,
-        size,
-        size,
-    ), "Shape of phantom should match (n_data, size, size)."
 
 
 @pytest.mark.parametrize("input_shape", [(1, 3, 32, 64)])
@@ -585,25 +576,35 @@ def test_load_dataset(n_retrievals, dataset_name, transform):
         transform = mock.Mock(wraps=transform)
 
     dataset = deepinv.utils.load_dataset(dataset_name, transform=transform)
-
-    assert isinstance(dataset, torchvision.datasets.ImageFolder)
+    assert isinstance(dataset, deepinv.datasets.ImageFolder)
 
     for k in range(n_retrievals):
-        x, y = dataset[k]
-        # NOTE: We assume that the transform always converts the image to a
-        # tensor if it is provided.
+        x = dataset[k]
         if transform is not None:
             assert isinstance(x, torch.Tensor), "Dataset image should be a tensor."
         else:
             assert isinstance(
                 x, PIL.Image.Image
             ), "Dataset image should be a PIL Image."
-        assert isinstance(y, int), "Dataset label should be an integer."
 
     if transform is not None:
         assert (
             transform.call_count == n_retrievals
         ), "Transform should be called once for each dataset item."
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "butterfly.png",
+        "CT100_256x256_0.pt",
+        "brainweb_t1_ICBM_1mm_subject_0_slice_0.npy",
+    ],
+)
+def test_load_example(name):
+    x = deepinv.utils.load_example(name, img_size=(64, 64))
+    if name.split(".")[-1] == "png":
+        assert x.shape[-2:] == (64, 64)
 
 
 @pytest.mark.parametrize(

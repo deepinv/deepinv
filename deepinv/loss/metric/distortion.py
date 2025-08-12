@@ -32,7 +32,7 @@ class MAE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
+        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
 
     :Example:
 
@@ -66,7 +66,7 @@ class MSE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
+        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
     :Example:
 
@@ -89,10 +89,10 @@ class MSE(Metric):
 
 class NMSE(MSE):
     r"""
-    Normalised Mean Squared Error metric.
+    Normalized Mean Squared Error metric.
 
     Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
-    Normalises MSE by the L2 norm of the ground truth ``x``.
+    Normalizes MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
 

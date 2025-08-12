@@ -45,6 +45,10 @@ a.sphx-glr-backref-instance {
     display: block;
 }
 
+html[data-theme="light"] {
+    --pst-color-surface: #f9f9fa;
+}
+
 ul.sphx-glr-horizontal {
     display: flex;
     flex-direction: column;

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
 from deepinv.utils import get_timestamp
@@ -10,7 +10,7 @@ from deepinv.training.trainer import Trainer
 from deepinv.physics.generator.base import PhysicsGenerator
 from deepinv.physics.forward import Physics
 from deepinv.physics.noise import GaussianNoise, PoissonNoise
-
+from deepinv.datasets.base import ImageDataset
 from unittest.mock import patch
 import math
 import io
@@ -60,7 +60,7 @@ def test_nolearning(imsize, physics, model, no_learning, device, tmpdir):
 
 def get_dummy_dataset(imsize, N, value):
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         r"""
         Defines a constant value image dataset
         """
@@ -131,7 +131,7 @@ def test_get_samples(
     tmpdir,
 ):
     # Dummy constant GT dataset
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __len__(self):
             return 2
 
@@ -339,7 +339,7 @@ def test_trainer_identity(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we check that a model can learn the identity function on several datasets simultaneously.
     """
@@ -406,7 +406,7 @@ def test_trainer_multidatasets(imsize, rng, device):
     r"""
     A simple test to check that the trainer manages to learn specific functions.
 
-    We follow the setup from above with added noise and custom physics to check the behaviour with physics generators.
+    We follow the setup from above with added noise and custom physics to check the behavior with physics generators.
 
     In this test, we train a model to learn the average of two datasets.
     """
@@ -570,7 +570,7 @@ def test_dataloader_formats(
         img_size=imsize, split_ratio=0.1, rng=rng, device=device
     )
 
-    class DummyDataset(Dataset):
+    class DummyDataset(ImageDataset):
         def __len__(self):
             return 10
 

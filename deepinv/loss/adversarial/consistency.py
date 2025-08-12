@@ -9,7 +9,7 @@ class SupAdversarialGeneratorLoss(GeneratorLoss):
 
     This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
-    Constructs adversarial loss between reconstructed image and the ground truth, to be minimised by generator.
+    Constructs adversarial loss between reconstructed image and the ground truth, to be minimized by generator.
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
@@ -54,7 +54,7 @@ class SupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     This loss was as used in conditional GANs such as :footcite:t:`kupyn2018deblurgan` and generative models such as :footcite:t:`bora2017compressed`.
 
-    Constructs adversarial loss between reconstructed image and the ground truth, to be maximised by discriminator.
+    Constructs adversarial loss between reconstructed image and the ground truth, to be maximized by discriminator.
 
     :math:`\mathcal{L}_\text{adv}(x,\hat x;D)=\mathbb{E}_{x\sim p_x}\left[q(D(x))\right]+\mathbb{E}_{\hat x\sim p_{\hat x}}\left[q(1-D(\hat x))\right]`
 
@@ -86,7 +86,7 @@ class UnsupAdversarialGeneratorLoss(GeneratorLoss):
 
     This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimised by generator.
+    Constructs adversarial loss between input measurement and re-measured reconstruction :math:`\hat{y}`, to be minimized by generator.
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
 
@@ -134,7 +134,7 @@ class UnsupAdversarialDiscriminatorLoss(DiscriminatorLoss):
 
     This loss was used for unsupervised generative models such as in :footcite:t:`bora2018ambientgan`.
 
-    Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximised
+    Constructs adversarial loss between input measurement and re-measured reconstruction, to be maximized
     by discriminator.
 
     :math:`\mathcal{L}_\text{adv}(y,\hat y;D)=\mathbb{E}_{y\sim p_y}\left[q(D(y))\right]+\mathbb{E}_{\hat y\sim p_{\hat y}}\left[q(1-D(\hat y))\right]`
