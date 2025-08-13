@@ -5,12 +5,6 @@ from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
 
 error_import = None
-try:
-    from datasets import load_dataset as load_dataset_hf, load_from_disk
-except ImportError:  # pragma: no cover
-    error_import = ImportError(
-        "datasets is not available. Please install the datasets package with `pip install datasets`."
-    )  # pragma: no cover
 
 
 class CBSD68(ImageDataset):
@@ -62,8 +56,7 @@ class CBSD68(ImageDataset):
         download: bool = False,
         transform: Callable = None,
     ) -> None:
-        if error_import is not None and isinstance(error_import, ImportError):
-            raise error_import
+        from datasets import load_dataset as load_dataset_hf, load_from_disk
 
         self.root = root
         self.transform = transform

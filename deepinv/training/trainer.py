@@ -5,13 +5,6 @@ import numpy as np
 from tqdm import tqdm
 import torch
 
-try:
-    import wandb
-except ImportError:  # pragma: no cover
-    wandb = ImportError(
-        "The wandb package is not installed. Please install it with `pip install wandb`."
-    )  # pragma: no cover
-
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
@@ -257,6 +250,7 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
+        import wandb
 
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
@@ -429,6 +423,8 @@ class Trainer:
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        import wandb
+
         if step is None:
             raise ValueError("wandb logging step must be specified.")
 
@@ -868,6 +864,8 @@ class Trainer:
         :param torch.Tensor x_net: Network reconstruction.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        import wandb
+
         post_str = "Training" if train else "Eval"
 
         plot_images = self.plot_images and ((epoch + 1) % self.plot_interval == 0)
@@ -931,6 +929,7 @@ class Trainer:
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
+        import wandb
 
         if not self.save_path:
             return
@@ -1060,6 +1059,7 @@ class Trainer:
 
         :returns: The trained model.
         """
+        import wandb
 
         self.setup_train()
         stop_flag = False
