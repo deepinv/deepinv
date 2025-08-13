@@ -16,7 +16,7 @@ Changed
 Fixed
 ^^^^^
 
-- NaN motion blur generator (:gh:`xxx` by `Matthieu Terris`_)
+- NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 
 
 v0.3.3
