@@ -202,6 +202,7 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("with_titles", [False, True])
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
+@pytest.mark.parametrize("with_subtitles", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -211,14 +212,18 @@ def test_plot(
     with_titles,
     dict_img_list,
     suptitle,
+    with_subtitles,
 ):
     shape = (1, C, 2, 2)
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
+    subtitles = ["subtitle"] * n_images
     img_list = {k: v for k, v in zip(titles, img_list, strict=True)}
     if not with_titles:
         titles = None
+    if not with_subtitles:
+        subtitles = None
     if not dict_img_list:
         img_list = list(img_list.values())
     save_dir = tmp_path if save_plot else None
@@ -233,6 +238,7 @@ def test_plot(
             save_dir=save_dir,
             cbar=cbar,
             suptitle=suptitle,
+            subtitles=subtitles,
         )
 
 
@@ -241,14 +247,23 @@ def test_plot(
 @pytest.mark.parametrize("save_plot", [False, True])
 @pytest.mark.parametrize("show", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
-def test_scatter_plot(tmp_path, n_plots, titles, save_plot, show, suptitle):
+@pytest.mark.parametrize("with_subtitles", [False, True])
+def test_scatter_plot(
+    tmp_path, n_plots, titles, save_plot, show, suptitle, with_subtitles
+):
     xy_list = torch.randn(100, 2, generator=torch.Generator().manual_seed(0))
     xy_list = [xy_list] * n_plots if n_plots > 1 else xy_list
     if titles is not None:
         titles = [titles] * n_plots if n_plots > 1 else titles
+    subtitles = ["subtitle"] * n_plots if with_subtitles else None
     save_dir = tmp_path if save_plot else None
     deepinv.utils.scatter_plot(
-        xy_list, titles=titles, suptitle=suptitle, save_dir=save_dir, show=show
+        xy_list,
+        titles=titles,
+        suptitle=suptitle,
+        save_dir=save_dir,
+        show=show,
+        subtitles=subtitles,
     )
 
 
