@@ -262,4 +262,4 @@ dinv.utils.plot(
 # * Check out more about optimization algorithms in the :ref:`optimization user guide <optim>`.
 # * Check out diffusion and MCMC iterative algorithms in the :ref:`sampling user guide <sampling>`.
 # * Check out more :ref:`iterative algorithms examples <sphx_glr_auto_examples_optimization>`.
-# * Check out how to try the algorithm on a whole dataset by following the :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_dataset>` tutorial.
+# * Check out how to try the algorithm on a whole dataset by following the :ref:`bring your own dataset <sphx_glr_auto_examples_basics_demo_custom_dataset.py>` tutorial.
