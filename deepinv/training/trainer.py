@@ -12,6 +12,13 @@ except ImportError:  # pragma: no cover
         "The wandb package is not installed. Please install it with `pip install wandb`."
     )  # pragma: no cover
 
+try:
+    import mlflow
+except ImportError:
+    mlflow = ImportError(
+        "The mlflow package is not installed. Please install it with `pip install mlflow`."
+    )
+
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
@@ -22,6 +29,7 @@ from deepinv.physics.generator import PhysicsGenerator
 from deepinv.utils.plotting import prepare_images
 from deepinv.datasets.base import check_dataset
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 import inspect
 
 
@@ -233,7 +241,9 @@ class Trainer:
     grad_clip: float = None
     check_grad: bool = False
     wandb_vis: bool = False
+    mlflow_vis: bool = False
     wandb_setup: dict = field(default_factory=dict)
+    mlflow_setup: dict = field(default_factory=dict)
     ckp_interval: int = 1
     eval_interval: int = 1
     plot_interval: int = 1
@@ -289,6 +299,15 @@ class Trainer:
                 "wandb_vis is False but wandb_setup is provided. Wandb deactivated (wandb_vis=False)."
             )
 
+        if (
+            self.mlflow_setup != {}
+            and self.mlflow_setup is not None
+            and not self.mlflow_vis
+        ):  # pragma: no cover
+            warnings.warn(
+                "mlflow_vis is False but mlflow_setup is provided. Mlflow deactivated (mlflow_vis=False)."
+            )
+
         if self.physics_generator is not None and not self.online_measurements:
             warnings.warn(
                 "Physics generator is provided but online_measurements is False. Physics generator will not be used."
@@ -309,6 +328,10 @@ class Trainer:
         if self.wandb_vis:
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
+
+        if self.mlflow_vis:
+            if mlflow.active_run() is None:
+                mlflow.start_run(**self.mlflow_setup)
 
         if not isinstance(self.losses, (list, tuple)):
             self.losses = [self.losses]
@@ -415,6 +438,8 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
+            if "mlflow_run_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
+                self.mlflow_setup["run_id"] = checkpoint["mlflow_run_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
@@ -437,6 +462,8 @@ class Trainer:
 
         if self.wandb_vis:
             wandb.log(logs, step=step)
+        if self.mlflow_vis:
+            mlflow.log_metrics(logs, step=step)
 
     def check_clip_grad(self):
         r"""
@@ -902,6 +929,10 @@ class Trainer:
                 log_dict_post_epoch["step"] = epoch
                 wandb.log(log_dict_post_epoch, step=epoch)
 
+            if self.mlflow_vis:
+                image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
+
         if save_images:
             # save images
             for k, img in enumerate(imgs):
@@ -946,6 +977,8 @@ class Trainer:
         state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
             state["wandb_id"] = wandb.run.id
+        if self.mlflow_vis:
+            state["mlflow_run_id"] = mlflow.active_run().info.run_id
 
         torch.save(
             state,
@@ -1183,6 +1216,9 @@ class Trainer:
         if self.wandb_vis:
             wandb.save("model.h5")
             wandb.finish()
+        if self.mlflow_vis:
+            mlflow.log_artifact("model.h5")
+            mlflow.end_run()
 
         return self.model
 
