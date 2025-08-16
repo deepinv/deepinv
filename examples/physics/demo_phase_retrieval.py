@@ -256,10 +256,23 @@ plot([x, x_pnp], titles=["Signal", "Reconstruction"], rescale_mode="clip")
 # We further compute the PSNR (Peak Signal-to-Noise Ratio) scores (higher better) for every reconstruction and their cosine similarities with the original image (range in [0,1], higher better).
 # In conclusion, gradient descent with random intialization provides a poor reconstruction, while spectral methods provide a good initial estimate which can later be improved by gradient descent to acquire the best reconstruction results. Besides, the PnP framework with a deep denoiser as the prior also provides a very good denoising results as it exploits prior information about the set of natural images.
 
+psnr_rand = dinv.metric.cal_psnr(x, x_gd_rand).item()
+psnr_spec = dinv.metric.cal_psnr(x, x_spec).item()
+psnr_gd_spec = dinv.metric.cal_psnr(x, x_gd_spec).item()
+psnr_pnp = dinv.metric.cal_psnr(x, x_pnp).item()
+
 imgs = [x, x_gd_rand, x_spec, x_gd_spec, x_pnp]
+subtitles = [
+    "PSNR",
+    f"{psnr_rand:.2f} dB",
+    f"{psnr_spec:.2f} dB",
+    f"{psnr_gd_spec:.2f} dB",
+    f"{psnr_pnp:.2f} dB",
+]
 plot(
     imgs,
     titles=["Original", "GD random", "Spectral", "GD spectral", "PnP"],
+    subtitles=subtitles,
     save_dir=RESULTS_DIR / "images",
     show=True,
     rescale_mode="clip",
@@ -267,14 +280,16 @@ plot(
 
 # Compute metrics
 print(
-    f"GD Random reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_rand).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase).item():.3f}."
+    f"GD Random reconstruction, PSNR: {psnr_rand:.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_rand, x_phase).item():.3f}."
 )
 print(
-    f"Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase).item():.3f}."
+    f"Spectral reconstruction, PSNR: {psnr_spec:.2f} dB; cosine similarity: {cosine_similarity(x_phase_spec, x_phase).item():.3f}."
 )
 print(
-    f"GD Spectral reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_gd_spec).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase).item():.3f}."
+    f"GD Spectral reconstruction, PSNR: {psnr_gd_spec:.2f} dB; cosine similarity: {cosine_similarity(x_phase_gd_spec, x_phase).item():.3f}."
 )
 print(
-    f"PnP reconstruction, PSNR: {dinv.metric.cal_psnr(x, x_pnp).item():.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase).item():.3f}."
+    f"PnP reconstruction, PSNR: {psnr_pnp:.2f} dB; cosine similarity: {cosine_similarity(x_phase_pnp, x_phase).item():.3f}."
 )
+
+# %%

@@ -29,6 +29,7 @@ and Hadamard spectrum.
 
 """
 
+# %%
 import torch
 from pathlib import Path
 import deepinv as dinv
@@ -108,11 +109,8 @@ psnr_values = [psnr_metric(x_recon, x).item() for x_recon in x_list]
 # Prepare titles for plotting
 title_orderings = [o.replace("_", " ").title() for o in orderings]
 title_orderings[-1] = "XY"  # Special case for 'xy'
-titles = ["Ground Truth"] + [
-    f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
-]
-
+titles = ["Ground Truth"] + title_orderings
+subtitles = ["PSNR"] + [f"{psnr:.2f} dB" for psnr in psnr_values]
 # Print information about the SPC setup
 undersampling_rate = physics_list[0].mask.sum().float() / n
 print(f"Image Size: {x.shape}")
@@ -123,7 +121,14 @@ print(f"SPC Undersampling Rate: {undersampling_rate:.2f}")
 # Plot Reconstructions
 # --------------------
 # Visualize the ground truth and reconstructed images with PSNR values.
-plot([x] + x_list, titles=titles, show=True, figsize=(15, 5), fontsize=24)
+plot(
+    [x] + x_list,
+    titles=titles,
+    subtitles=subtitles,
+    show=True,
+    figsize=(15, 5),
+    fontsize=24,
+)
 
 # Recovery Algorithm
 # ------------------
@@ -178,10 +183,8 @@ for y, physics in zip(y_list, physics_list, strict=True):
     psnr_values.append(psnr_metric(x_recon[-1], x).item())
 
 # Update titles with PSNR values for the reconstructed images
-titles = ["Ground Truth"] + [
-    f"{ordering}\nPSNR: {psnr:.2f}"
-    for ordering, psnr in zip(title_orderings, psnr_values, strict=True)
-]
+titles = ["Ground Truth"] + title_orderings
+subtitles = ["PSNR"] + [f"{psnr:.2f} dB" for psnr in psnr_values]
 
 # %%
 # Plot ADMM-TV Reconstructions
@@ -190,6 +193,7 @@ titles = ["Ground Truth"] + [
 plot(
     [x] + x_recon,
     titles=titles,
+    subtitles=subtitles,
     show=True,
     figsize=(15, 5),
     fontsize=24,
