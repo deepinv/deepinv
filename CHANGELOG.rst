@@ -9,6 +9,7 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Add support for separable priors as :class:`deepinv.optim.SeparablePrior` (:gh:`422` by `Leo Davy`_)
 
 Changed
 ^^^^^^^
@@ -424,3 +425,4 @@ Authors
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
+.. _Leo Davy: https://perso.ens-lyon.fr/leo.davy
