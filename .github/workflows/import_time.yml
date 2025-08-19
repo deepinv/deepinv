@@ -6,10 +6,7 @@ on:
       - main
 
 permissions:
-  # Required to checkout the repo
   contents: read
-  # Required to post a comment on the PR
-  pull-requests: write
 
 jobs:
   benchmark-comparison:
@@ -62,47 +59,30 @@ jobs:
           echo "Benchmarking main branch..."
           hyperfine --warmup 3 --show-output --export-json base.json 'python -c "import deepinv"'
 
-      - name: "Compare results and post comment"
+      - name: "Compare results and fail on regression"
         uses: actions/github-script@v7
         with:
           script: |
+            const core = require('@actions/core');
             const fs = require('fs');
-            const head = JSON.parse(fs.readFileSync('head.json', 'utf8')).results[0];
-            const base = JSON.parse(fs.readFileSync('base.json', 'utf8')).results[0];
 
-            // Helper to format time in milliseconds
-            const formatMs = (seconds) => (seconds * 1000).toFixed(2);
+            const headResult = JSON.parse(fs.readFileSync('head.json', 'utf8')).results[0];
+            const baseResult = JSON.parse(fs.readFileSync('base.json', 'utf8')).results[0];
 
-            const head_mean = formatMs(head.mean);
-            const head_stddev = formatMs(head.stddev);
-            const base_mean = formatMs(base.mean);
-            const base_stddev = formatMs(base.stddev);
+            const headMean = headResult.mean;
+            const baseMean = baseResult.mean;
 
-            const ratio = head.mean / base.mean;
-            let comparison_text;
-            // Use a 5% tolerance threshold to avoid noise
-            if (ratio > 1.05) {
-              comparison_text = `🔥 **Regression**: This PR is **${ratio.toFixed(2)}x slower**.`;
-            } else if (ratio < 0.95) {
-              comparison_text = `🚀 **Improvement**: This PR is **${ratio.toFixed(2)}x faster**.`;
+            const ratio = headMean / baseMean;
+            const threshold = 1.10; // 10% regression threshold
+
+            core.info(`Base (main) mean time: ${(baseMean * 1000).toFixed(2)} ms`);
+            core.info(`Head (PR) mean time:   ${(headMean * 1000).toFixed(2)} ms`);
+            core.info(`Ratio (PR/main):       ${ratio.toFixed(2)}`);
+            core.info(`Failure threshold:     >${threshold}`);
+
+            if (ratio > threshold) {
+              const percentage = ((ratio - 1) * 100).toFixed(2);
+              core.setFailed(`❌ Performance regression detected! Import time increased by ${percentage}%, which is over the 10% threshold.`);
             } else {
-              comparison_text = `✅ **No significant change** detected (${ratio.toFixed(2)}x).`;
+              core.info('✅ No significant performance regression detected.');
             }
-
-            const body = `
-            ### 🔬 Import Time Benchmark
-
-            | Branch  | Mean Import Time (ms) |
-            |---------|-----------------------|
-            | \`main\`  | \`${base_mean} ± ${base_stddev}\`  |
-            | This PR | \`${head_mean} ± ${head_stddev}\`  |
-
-            ${comparison_text}
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
