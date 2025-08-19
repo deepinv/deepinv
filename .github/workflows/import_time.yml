@@ -1,4 +1,4 @@
-name: "🔬 Import Time Benchmark (vs main)"
+name: "⏰ Import Time Benchmark (vs main)"
 
 on:
   pull_request:
@@ -42,6 +42,7 @@ jobs:
             pip install .
           else
             pip install .[${{ matrix.extra }}]
+          fi
 
       - name: "Benchmark PR (HEAD)"
         run: |
