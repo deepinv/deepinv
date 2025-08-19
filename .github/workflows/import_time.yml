@@ -1,4 +1,104 @@
-name: import_time.yml
-on:
+name: "🔬 Import Time Benchmark (vs main)"
+
+pull_request:
+    branches:
+    - main
+
+permissions:
+  # Required to checkout the repo
+  contents: read
+  # Required to post a comment on the PR
+  pull-requests: write
 
 jobs:
+  benchmark-comparison:
+    name: Benchmark vs main
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout PR code"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python and Hyperfine"
+        run: |
+          # Use a specific Python version for consistency
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt-get update
+          sudo apt-get install -y python3.11-venv hyperfine
+          python3.11 -m venv .venv
+          source .venv/bin/activate
+
+      - name: "Install project dependencies"
+        run: |
+          source .venv/bin/activate
+          # Add any build-time dependencies here if needed
+          pip install build
+
+      - name: "Benchmark PR (HEAD)"
+        run: |
+          source .venv/bin/activate
+          PACKAGE_NAME="your_library_name" # IMPORTANT: Change this
+          
+          echo "Benchmarking PR branch..."
+          pip install .
+          hyperfine --warmup 3 --export-json head.json "python -c 'import $PACKAGE_NAME'"
+          pip uninstall -y $PACKAGE_NAME # Clean up for the next step
+
+      - name: "Checkout main branch"
+        run: |
+          git fetch origin main --depth=1
+          git checkout main
+
+      - name: "Benchmark main (BASE)"
+        run: |
+          source .venv/bin/activate
+          PACKAGE_NAME="your_library_name" # IMPORTANT: Change this
+
+          echo "Benchmarking main branch..."
+          pip install .
+          hyperfine --warmup 3 --export-json base.json "python -c 'import $PACKAGE_NAME'"
+
+      - name: "Compare results and post comment"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const head = JSON.parse(fs.readFileSync('head.json', 'utf8')).results[0];
+            const base = JSON.parse(fs.readFileSync('base.json', 'utf8')).results[0];
+
+            // Helper to format time in milliseconds
+            const formatMs = (seconds) => (seconds * 1000).toFixed(2);
+
+            const head_mean = formatMs(head.mean);
+            const head_stddev = formatMs(head.stddev);
+            const base_mean = formatMs(base.mean);
+            const base_stddev = formatMs(base.stddev);
+
+            const ratio = head.mean / base.mean;
+            let comparison_text;
+            // Use a 5% tolerance threshold to avoid noise
+            if (ratio > 1.05) {
+              comparison_text = `🔥 **Regression**: This PR is **${ratio.toFixed(2)}x slower**.`;
+            } else if (ratio < 0.95) {
+              comparison_text = `🚀 **Improvement**: This PR is **${ratio.toFixed(2)}x faster**.`;
+            } else {
+              comparison_text = `✅ **No significant change** detected (${ratio.toFixed(2)}x).`;
+            }
+
+            const body = `
+            ### 🔬 Import Time Benchmark
+
+            | Branch  | Mean Import Time (ms) |
+            |---------|-----------------------|
+            | \`main\`  | \`${base_mean} ± ${base_stddev}\`  |
+            | This PR | \`${head_mean} ± ${head_stddev}\`  |
+
+            ${comparison_text}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
