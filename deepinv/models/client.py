@@ -88,7 +88,7 @@ class Client(Reconstructor, Denoiser):
             physics = ... # Create physics depending on other params in inp
 
             x_hat = model(y, physics) # Server-side inference
-            
+
             return jsonify({
                 "output": {
                     "file": Client.serialize(x_hat)
@@ -134,7 +134,7 @@ class Client(Reconstructor, Denoiser):
             if all(isinstance(x, ALLOWED) for x in v):
                 return v
             raise TypeError("Lists/tuples may only contain primitive types")
-        
+
         raise TypeError(f"Unsupported kwarg value type: {type(v).__name__}")
 
     def forward(self, y: torch.Tensor, **kwargs) -> torch.Tensor:
