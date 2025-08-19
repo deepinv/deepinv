@@ -68,6 +68,7 @@ jobs:
         run: |
           # if the extra is empty, install without optional dependencies
           if [ "${{ matrix.extra }}" = "" ]; then
+            pip install pytest
             pip install .
           else
             pip install .[${{ matrix.extra }}]
