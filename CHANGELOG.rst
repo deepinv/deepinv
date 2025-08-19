@@ -10,7 +10,7 @@ Current
 New Features
 ^^^^^^^^^^^^
 
-- Client model for server-side inference (:gh:`691` by `Andrew Wang`_)
+- Client model for server-side inference for using models in the cloud (:gh:`691` by `Andrew Wang`_)
 
 Changed
 ^^^^^^^

@@ -65,9 +65,9 @@ Deep Architectures
    deepinv.models.RAM
    deepinv.models.ArtifactRemoval
 
-Denoisers Utils
----------------
-.. userguide:: denoiser-utils
+Model Utils
+-----------
+.. userguide:: model-utils
 
 .. autosummary::
    :toctree: stubs
@@ -77,6 +77,7 @@ Denoisers Utils
    deepinv.models.EquivariantDenoiser
    deepinv.models.TimeAgnosticNet
    deepinv.models.TimeAveragingNet
+   deepinv.models.Client
 
 .. autosummary::
    :toctree: stubs
