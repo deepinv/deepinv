@@ -10,6 +10,8 @@ Current
 New Features
 ^^^^^^^^^^^^
 
+- Client model for server-side inference (:gh:`691` by `Andrew Wang`_)
+
 Changed
 ^^^^^^^
 
@@ -29,7 +31,7 @@ New Features
 - FastMRI better raw data loading: load targets from different folder for test sets, load mask from test set, prewhitening, normalisation (:gh:`608` by `Andrew Wang`_)
 - SKM-TEA raw MRI dataset (:gh:`608` by `Andrew Wang`_)
 - New downsampling physics that matches MATLAB bicubic imresize (:gh:`608` by `Andrew Wang`_)
-- Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
+- Dataset base class + ImageFolder and TensorDataset classes (:gh:`685` by `Matthieu Terris`_)
 - Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
 
 Changed
