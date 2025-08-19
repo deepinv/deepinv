@@ -1126,35 +1126,58 @@ def test_client_mocked():
 
     y = torch.ones(1, 3, 16, 16)
 
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "output": {"file": make_b64_tensor(y), "time": 0.1}
-    }
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {"output": {"file": make_b64_tensor(y), "time": 0.1}}
 
-    with patch(
-        "deepinv.models.client.requests.post", return_value=mock_response
-    ) as mock_post:
-        x_hat = model(y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3)
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        x_hat = model(
+            y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3, another=[1, 2]
+        )
 
-    assert torch.allclose(x_hat, y)
+        assert torch.allclose(x_hat, y)
 
-    # Verify request payload structure
-    called_args, called_kwargs = mock_post.call_args
-    assert called_args[0] == "http://example.com"
-    assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+        # Verify request payload structure
+        called_args, called_kwargs = post.call_args
+        assert called_args[0] == "http://example.com"
+        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
 
-    sent_payload = json.loads(called_kwargs["data"])
-    assert "input" in sent_payload
-    assert "file" in sent_payload["input"]
-    assert sent_payload["input"]["physics"] == "denoising"
+        sent_payload = json.loads(called_kwargs["data"])
+        assert "input" in sent_payload
+        assert "file" in sent_payload["input"]
+        assert sent_payload["input"]["physics"] == "denoising"
 
-    input_file = sent_payload["input"]["file"]
-    assert isinstance(input_file, str)
-    assert torch.allclose(torch.load(io.BytesIO(base64.b64decode(input_file))), y)
+        input_file = sent_payload["input"]["file"]
+        assert isinstance(input_file, str)
+        assert torch.allclose(torch.load(io.BytesIO(base64.b64decode(input_file))), y)
 
-    assert sent_payload["input"]["sigma"] == 0.3
-    assert torch.allclose(
-        torch.load(io.BytesIO(base64.b64decode(sent_payload["input"]["mask"]))),
-        torch.tensor([1, 2]),
-    )
+        assert sent_payload["input"]["sigma"] == 0.3
+        assert torch.allclose(
+            torch.load(io.BytesIO(base64.b64decode(sent_payload["input"]["mask"]))),
+            torch.tensor([1, 2]),
+        )
+
+        with pytest.raises(TypeError):
+            _ = model(y, a={"a": 3})
+
+        with pytest.raises(TypeError):
+            _ = model(y, a=[{"a": 3}, 3])
+
+        with pytest.raises(ValueError):
+            model.train()
+
+    resp.status_code = 404
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(RuntimeError, match="404"):
+            _ = model(y)
+
+    resp.status_code = 200
+    resp.json.return_value = {"output": {"time": 0.1}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="file"):
+            _ = model(y)
+
+    resp.json.return_value = {"other": {"time": 0.1}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="output"):
+            _ = model(y)

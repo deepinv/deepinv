@@ -170,13 +170,9 @@ class Client(Reconstructor, Denoiser):
         if self.training:
             raise RuntimeError("Model client can only be used in evaluation mode.")
 
-        safe_kwargs = {
-            k: Client._check_value(v) for k, v in kwargs.items() if isinstance(k, str)
-        }
-        if len(safe_kwargs) != len(kwargs):
-            raise TypeError("All kwarg keys must be strings")
+        params = {k: Client._check_value(v) for k, v in kwargs.items()}
 
-        payload = {"input": {"file": Client.serialize(y), **safe_kwargs}}
+        payload = {"input": {"file": Client.serialize(y), **params}}
 
         headers = {"Content-Type": "application/json"}
         if self.api_key != "":
