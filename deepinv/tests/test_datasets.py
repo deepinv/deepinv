@@ -588,6 +588,16 @@ def test_load_fmd_dataset(download_fmd):
 def mock_lidc_idri():
     """Mock the LIDC-IDRI dataset"""
     if os.environ.get("DEEPINV_MOCK_TESTS", False):
+        pytest.importorskip(
+            "pandas",
+            reason="This test requires pandas. It should be "
+            "installed with `pip install pandas`",
+        )
+        pytest.importorskip(
+            "pydicom",
+            reason="This test requires pandas. It should be "
+            "installed with `pip install pydicom`",
+        )
         import pandas as pd
         import pydicom
 
@@ -627,11 +637,6 @@ def mock_lidc_idri():
 @pytest.mark.parametrize("hounsfield_units", [False, True])
 def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
     """Test the LIDC-IDRI dataset."""
-    pytest.importorskip(
-        "pandas",
-        reason="This test requires pandas. It should be "
-        "installed with `pip install pandas`",
-    )
 
     for totensor in [ToTensor(), None]:
         check_dataset_format(
