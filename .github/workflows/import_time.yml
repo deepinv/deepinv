@@ -21,7 +21,7 @@ jobs:
           # Ubuntu tests
           - extra: dataset,denoisers,test,training
             name: "all optional dependencies"
-          - extra:
+          - extra: ""
             name: "no optional dependencies"
 
     steps:
@@ -37,12 +37,16 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install .[${{ matrix.extra }}]
+          # if the extra is empty, install without optional dependencies
+          if [ "${{ matrix.extra }}" = "" ]; then
+            pip install .
+          else
+            pip install .[${{ matrix.extra }}]
 
       - name: "Benchmark PR (HEAD)"
         run: |
           echo "Benchmarking PR branch..."
-          hyperfine --warmup 3 --export-json head.json 'python -c "import deepinv"'
+          hyperfine --warmup 3 --show-output --export-json head.json 'python -c "import deepinv"'
           pip uninstall -y deepinv # Clean up for the next step
 
       - name: "Checkout main branch"
