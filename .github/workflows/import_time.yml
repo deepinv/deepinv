@@ -33,8 +33,6 @@ jobs:
 
       - name: "Benchmark PR (HEAD)"
         run: |
-          source .venv/bin/activate
-          
           echo "Benchmarking PR branch..."
           pip install .
           hyperfine --warmup 3 --export-json head.json "python -c 'import deepinv'"
