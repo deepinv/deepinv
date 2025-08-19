@@ -15,6 +15,7 @@ Changed
 
 Fixed
 ^^^^^
+- Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
 
 
 v0.3.3

@@ -270,7 +270,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size):
         "DownsamplingGenerator", size, num_channels, device, dtype
     )
 
-    batch_size = 1  # Must be 1 as filters with different shapes can't be batched
+    batch_size = 1  # Must be 1 as filters with different shapes can't be batched (case psf_size=None)
     params = generator.step(batch_size=batch_size, seed=0)
 
     x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
@@ -290,7 +290,7 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size):
             psf_size=psf_size,
         )
 
-        batch_size = 128  # Must be 1 as filters with different shapes can't be batched
+        batch_size = 128  # must be > 1 to test batchability of multiple filters
         if psf_size is None:
             with pytest.raises(ValueError):
                 params = generator.step(batch_size=batch_size, seed=1)

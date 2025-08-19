@@ -21,7 +21,7 @@ class DownsamplingGenerator(PhysicsGenerator):
     >>> factor = ds['factor']
 
     .. note::
-        If batch size = 1, a random filter and factor is sampled in (filters, factors).
+        If batch size = 1, a random filter and factor is sampled in (filters, factors) at each step.
         If batch size > 1, a unique factor needs to be sampled for the whole batch, but filters can vary. In this case,
         it is recommended to set the `psf_size` argument to ensure that all filters in the batch have the same shape.
 
