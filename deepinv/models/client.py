@@ -73,7 +73,7 @@ class Client(Reconstructor, Denoiser):
 
     :Example:
 
-    **Server** ::
+    **Simple server using Flask** ::
 
         from flask import Flask, request, jsonify
         from deepinv.models import Client
@@ -97,6 +97,29 @@ class Client(Reconstructor, Denoiser):
 
         if __name__ == "__main__":
             app.run()
+
+    **Server using RunPod** ::
+
+        import runpod
+        from deepinv.models import Client
+
+        model = ... # Your DeepInverse model
+
+        def handler(event):
+            inp = event['input']
+            y = Client.deserialize(inp["file"])
+            physics = ... # Create physics depending on other params in inp
+
+            x_hat = model(y, physics) # Server-side inference
+
+            return {
+                "output": {
+                    "file": Client.serialize(x_hat)
+                }
+            }
+
+        if __name__ == '__main__':
+            runpod.serverless.start({'handler': handler })
 
     :param str endpoint: endpoint URL.
     :param str api_key: API key.
