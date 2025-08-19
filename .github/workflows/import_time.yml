@@ -15,6 +15,14 @@ jobs:
   benchmark-comparison:
     name: Import time vs main
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Ubuntu tests
+          - extra: dataset,denoisers,test,training
+            name: "all optional dependencies"
+          - extra:
+            name: "no optional dependencies"
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +37,7 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install .
+          pip install .[${{ matrix.extra }}]
 
       - name: "Benchmark PR (HEAD)"
         run: |
