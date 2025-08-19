@@ -64,6 +64,7 @@ jobs:
           cache: 'pip' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
+        shell: bash
         run: |
           # if the extra is empty, install without optional dependencies
           if [ "${{ matrix.extra }}" = "" ]; then
