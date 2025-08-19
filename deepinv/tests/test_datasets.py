@@ -627,6 +627,12 @@ def mock_lidc_idri():
 @pytest.mark.parametrize("hounsfield_units", [False, True])
 def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
     """Test the LIDC-IDRI dataset."""
+    pytest.importorskip(
+        "pandas",
+        reason="This test requires pandas. It should be "
+        "installed with `pip install pandas`",
+    )
+
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             LidcIdriSliceDataset(
@@ -881,6 +887,12 @@ def download_CMRxRecon():
 
 
 def test_CMRxReconSliceDataset(download_CMRxRecon):
+    pytest.importorskip(
+        "sigpy",
+        reason="This test requires sigpy. It should be "
+        "installed with `pip install sigpy`",
+    )
+
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)

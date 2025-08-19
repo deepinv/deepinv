@@ -1028,6 +1028,11 @@ def test_dsccp_net(device, n_channels):
 
 
 def test_denoiser_perf(device):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",
