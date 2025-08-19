@@ -86,7 +86,7 @@ jobs:
             core.info(`Main mean time: ${(baseMean * 1000).toFixed(2)} ms`);
             core.info(`PR mean time:   ${(headMean * 1000).toFixed(2)} ms`);
             core.info(`Rel difference (PR-main)/main: ${rel_diff.toFixed(2)} %`);
-            core.info(`Failure threshold:     >+${threshold} %`);
+            core.info(`Failure threshold >+${threshold} %`);
 
             if (rel_diff > threshold) {
               core.setFailed(`❌ Performance regression detected! Import time increased by ${rel_diff}%, which is over the 10% threshold.`);
