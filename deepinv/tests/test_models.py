@@ -1,5 +1,8 @@
 import sys
 import pytest
+import io, json, base64
+from unittest.mock import patch, MagicMock
+
 import torch
 from torch.utils.data import DataLoader, Dataset
 
@@ -1108,10 +1111,6 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
-
-
-import io, json, base64
-from unittest.mock import patch, MagicMock
 
 
 def test_client_mocked():
