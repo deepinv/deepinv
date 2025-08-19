@@ -41,6 +41,11 @@ jobs:
             pip install .[${{ matrix.extra }}]
           fi
 
+      - name: "Benchmark torch"
+        run: |
+          echo "Benchmarking torch..."
+          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch"'
+
       - name: "Benchmark PR"
         run: |
           echo "Benchmarking PR branch..."
@@ -65,15 +70,18 @@ jobs:
           script: |
             const fs = require('fs');
 
+            const torchResult = JSON.parse(fs.readFileSync('torch.json', 'utf8')).results[0];
             const headResult = JSON.parse(fs.readFileSync('head.json', 'utf8')).results[0];
             const baseResult = JSON.parse(fs.readFileSync('base.json', 'utf8')).results[0];
 
+            const torchMean = torchResult.mean;
             const headMean = headResult.mean;
             const baseMean = baseResult.mean;
 
             const rel_diff = (headMean - baseMean) / baseMean * 100;
             const threshold = 5; // 5% regression threshold
 
+            core.info(`Torch mean time: ${(torchMean * 1000).toFixed(2)} ms`);
             core.info(`Main mean time: ${(baseMean * 1000).toFixed(2)} ms`);
             core.info(`PR mean time:   ${(headMean * 1000).toFixed(2)} ms`);
             core.info(`Rel difference (PR-main)/main: ${rel_diff.toFixed(2)} %`);
