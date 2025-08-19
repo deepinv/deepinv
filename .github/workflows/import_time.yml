@@ -87,7 +87,7 @@ jobs:
             core.info(`Rel difference (PR-main)/main: ${rel_diff.toFixed(2)} %`);
             core.info(`Failure threshold:     >+${threshold} %`);
 
-            if (ratio > threshold) {
+            if (rel_diff > threshold) {
               core.setFailed(`❌ Performance regression detected! Import time increased by ${rel_diff}%, which is over the 10% threshold.`);
             } else {
               core.info('✅ No significant performance regression detected.');
