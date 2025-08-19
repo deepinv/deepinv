@@ -31,7 +31,7 @@ jobs:
             name: "ubuntu py3.10 all dependencies"
           - os: ubuntu-latest
             version_python: "3.12"
-            extra: ""
+            extra: test
             name: "ubuntu py3.12 no optional dependencies"
           - os: ubuntu-latest
             version_python: "3.11"
@@ -64,15 +64,8 @@ jobs:
           cache: 'pip' # caching pip dependencies
 
       - name: Install deepinv and its dependencies
-        shell: bash
         run: |
-          # if the extra is empty, install without optional dependencies
-          if [ "${{ matrix.extra }}" = "" ]; then
-            pip install pytest
-            pip install .
-          else
-            pip install .[${{ matrix.extra }}]
-          fi
+          pip install -e .[${{ matrix.extra }}]
 
       # For debugging purposes
       - name: Check Python version

@@ -57,7 +57,7 @@ jobs:
           pip uninstall -y deepinv # Clean up for the next step
           git fetch origin main --depth=1
           git checkout main
-          pip install natsort
+          pip install natsort 
           pip install .
 
       - name: "Benchmark main"
