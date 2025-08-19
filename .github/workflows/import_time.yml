@@ -48,18 +48,18 @@ jobs:
         run: |
           echo "Benchmarking PR branch..."
           hyperfine --warmup 3 --show-output --export-json head.json 'python -c "import deepinv"'
-          pip uninstall -y deepinv # Clean up for the next step
 
       - name: "Checkout main branch"
         run: |
+          pip uninstall -y deepinv # Clean up for the next step
           git fetch origin main --depth=1
           git checkout main
+          pip install .
 
       - name: "Benchmark main (BASE)"
         run: |
           echo "Benchmarking main branch..."
-          pip install .
-          hyperfine --warmup 3 --export-json base.json 'python -c "import deepinv"'
+          hyperfine --warmup 3 --show-output --export-json base.json 'python -c "import deepinv"'
 
       - name: "Compare results and post comment"
         uses: actions/github-script@v7
