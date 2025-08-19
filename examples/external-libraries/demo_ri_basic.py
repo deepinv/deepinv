@@ -370,3 +370,8 @@ if plot_convergence_metrics:
 # `AIRI <https://basp-group.github.io/BASPLib/AIRI.html>`_,
 # `SARA <https://basp-group.github.io/BASPLib/SARA_family.html>`_,
 # and corresponding reconstructions.
+
+# %%
+# :References:
+#
+# .. footbibliography::

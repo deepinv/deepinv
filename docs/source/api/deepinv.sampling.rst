@@ -1,7 +1,7 @@
 deepinv.sampling
 ================
 
-This package contains various posterior sampling algorithms, including diffusion-based methods and MCMC methods.
+This module contains various posterior sampling algorithms, including diffusion-based methods and MCMC methods.
 Please refer to the :ref:`user guide <sampling>` for more details.
 
 Diffusion models with Stochastic Differential Equations for Image Generation and Posterior Sampling

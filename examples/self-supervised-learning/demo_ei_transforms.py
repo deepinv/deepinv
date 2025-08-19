@@ -155,3 +155,8 @@ y = physics(x)
 x_hat = model(y)
 
 dinv.utils.plot([x, y, x_hat], ["x", "y", "reconstruction"])
+
+# %%
+# :References:
+#
+# .. footbibliography::

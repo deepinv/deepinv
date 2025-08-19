@@ -79,13 +79,16 @@ We provide some useful utility and demo functions:
      - Loads an image directly from a URL for experiments or demos.
    * - :func:`deepinv.utils.load_example`
      - Loads an image directly from DeepInverse HuggingFace repository for experiments or demos.
+   * - :func:`deepinv.utils.download_example`
+     - Downloads an image from DeepInverse HuggingFace repository to file.
    * - :func:`deepinv.utils.load_image`
      - Loads a local image file for experiments or demos.
    * - :func:`deepinv.utils.load_dataset`
      - Loads an ImageFolder dataset from DeepInverse HuggingFace repository.
    * - :func:`deepinv.utils.load_degradation`
      - Loads a degradation tensor from DeepInverse HuggingFace repository.
-
+   * - :func:`deepinv.utils.load_torch_url`
+     - Loads a torch tensor directly from a URL for experiments or demos.
 
 .. _tensorlist:
 
