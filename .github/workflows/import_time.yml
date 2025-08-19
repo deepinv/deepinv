@@ -41,7 +41,7 @@ jobs:
             pip install .[${{ matrix.extra }}]
           fi
 
-      - name: "Benchmark PR (HEAD)"
+      - name: "Benchmark PR"
         run: |
           echo "Benchmarking PR branch..."
           hyperfine --warmup 3 --show-output --export-json head.json 'python -c "import deepinv"'
@@ -54,7 +54,7 @@ jobs:
           pip install natsort
           pip install .
 
-      - name: "Benchmark main (BASE)"
+      - name: "Benchmark main"
         run: |
           echo "Benchmarking main branch..."
           hyperfine --warmup 3 --show-output --export-json base.json 'python -c "import deepinv"'
@@ -71,17 +71,16 @@ jobs:
             const headMean = headResult.mean;
             const baseMean = baseResult.mean;
 
-            const ratio = headMean / baseMean;
-            const threshold = 1.10; // 10% regression threshold
+            const rel_diff = (headMean - baseMean) / baseMean * 100;
+            const threshold = 5; // 5% regression threshold
 
-            core.info(`Base (main) mean time: ${(baseMean * 1000).toFixed(2)} ms`);
-            core.info(`Head (PR) mean time:   ${(headMean * 1000).toFixed(2)} ms`);
-            core.info(`Ratio (PR/main):       ${ratio.toFixed(2)}`);
-            core.info(`Failure threshold:     >${threshold}`);
+            core.info(`Main mean time: ${(baseMean * 1000).toFixed(2)} ms`);
+            core.info(`PR mean time:   ${(headMean * 1000).toFixed(2)} ms`);
+            core.info(`Rel difference (PR-main)/main: ${rel_diff.toFixed(2)} %`);
+            core.info(`Failure threshold:     >+${threshold} %`);
 
             if (ratio > threshold) {
-              const percentage = ((ratio - 1) * 100).toFixed(2);
-              core.setFailed(`❌ Performance regression detected! Import time increased by ${percentage}%, which is over the 10% threshold.`);
+              core.setFailed(`❌ Performance regression detected! Import time increased by ${rel_diff}%, which is over the 10% threshold.`);
             } else {
               core.info('✅ No significant performance regression detected.');
             }
