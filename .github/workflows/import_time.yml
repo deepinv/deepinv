@@ -47,9 +47,6 @@ jobs:
 
       - name: "Benchmark main (BASE)"
         run: |
-          source .venv/bin/activate
-          PACKAGE_NAME=deepinv 
-
           echo "Benchmarking main branch..."
           pip install .
           hyperfine --warmup 3 --export-json base.json "python -c 'import deepinv'"
