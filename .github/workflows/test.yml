@@ -30,26 +30,30 @@ jobs:
             extra: dataset,denoisers,test,training
             name: "ubuntu py3.10 all dependencies"
           - os: ubuntu-latest
+            version_python: "3.12"
+            extra: ""
+            name: "ubuntu py3.12 no optional dependencies"
+          - os: ubuntu-latest
             version_python: "3.11"
             extra: dataset,denoisers,test,training
-            name: "ubuntu py3.11 all dependencies"
+            name: "ubuntu py3.11 all optional dependencies"
           - os: ubuntu-latest
             version_python: "3.12"
             extra: dataset,denoisers,test,training
-            name: "ubuntu py3.12 all dependencies"
+            name: "ubuntu py3.12 all optional dependencies"
           # Windows tests
           - os: windows-latest
             version_python: "3.10"
             extra: dataset,denoisers,test,training
-            name: "windows py3.10 all dependencies"
+            name: "windows py3.10 all optional dependencies"
           - os: windows-latest
             version_python: "3.11"
             extra: dataset,denoisers,test,training
-            name: "windows py3.11 all dependencies"
+            name: "windows py3.11 all optional dependencies"
           - os: windows-latest
             version_python: "3.12"
             extra: dataset,denoisers,test,training
-            name: "windows py3.12 all dependencies"
+            name: "windows py3.12 all optional dependencies"
     env:
       DEEPINV_MOCK_TESTS: "True"
     steps:
@@ -61,7 +65,12 @@ jobs:
 
       - name: Install deepinv and its dependencies
         run: |
-          pip install .[${{ matrix.extra }}]
+          # if the extra is empty, install without optional dependencies
+          if [ "${{ matrix.extra }}" = "" ]; then
+            pip install .
+          else
+            pip install .[${{ matrix.extra }}]
+          fi
 
       # For debugging purposes
       - name: Check Python version

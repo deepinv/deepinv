@@ -63,7 +63,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
             const fs = require('fs');
 
             const headResult = JSON.parse(fs.readFileSync('head.json', 'utf8')).results[0];
