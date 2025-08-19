@@ -11,7 +11,7 @@ from deepinv.utils.mixins import MRIMixin
 try:
     from natsort import natsorted
 except ImportError:  # pragma: no cover
-    natsorted = ImportError(
+    error_import = ImportError(
         "natsort is not available. In order to use SKMTEASliceDataset, please install the natsort package with `pip install natsort`."
     )  # pragma: no cover
 

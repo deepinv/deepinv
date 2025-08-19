@@ -737,6 +737,12 @@ def download_fastmri():
 
 
 def test_FastMRISliceDataset(download_fastmri):
+    pytest.importorskip(
+        "sigpy",
+        reason="This test requires sigpy. It should be "
+        "installed with `pip install "
+        "sigpy`",
+    )
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
@@ -875,7 +881,6 @@ def download_CMRxRecon():
 
 
 def test_CMRxReconSliceDataset(download_CMRxRecon):
-
     img_size = (12, 512, 256)
 
     physics_generator = GaussianMaskGenerator(img_size)
@@ -969,7 +974,6 @@ def download_SKMTEA():
 
 
 def test_SKMTEASliceDataset(download_SKMTEA, device):
-
     n_coils, img_size = 8, (512, 160)
 
     data_dir = download_SKMTEA
