@@ -3,7 +3,7 @@
 Training Losses
 ===============
 
-This package contains popular training losses for supervised and self-supervised learning,
+This module contains popular training losses for supervised and self-supervised learning,
 which are especially designed for inverse problems.
 
 Introduction

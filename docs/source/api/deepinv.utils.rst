@@ -71,7 +71,10 @@ Other
     deepinv.utils.get_degradation_url
     deepinv.utils.load_url_image
     deepinv.utils.load_example
+    deepinv.utils.download_example
     deepinv.utils.load_image
     deepinv.utils.load_dataset
     deepinv.utils.load_degradation
+    deepinv.utils.load_torch_url
+    deepinv.utils.load_np_url
     deepinv.utils.dirac_like
