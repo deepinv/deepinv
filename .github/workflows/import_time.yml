@@ -13,28 +13,19 @@ permissions:
 
 jobs:
   benchmark-comparison:
-    name: Benchmark vs main
+    name: Import time vs main
     runs-on: ubuntu-latest
 
     steps:
-      - name: "Checkout PR code"
-        uses: actions/checkout@v4
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: 3.11
           cache: 'pip' # caching pip dependencies
 
-
-      - name: "Set up Python and Hyperfine"
+      - name: "Set up Hyperfine"
         run: |
-          # Use a specific Python version for consistency
-          sudo add-apt-repository ppa:deadsnakes/ppa -y
-          sudo apt-get update
-          sudo apt-get install -y python3.11-venv hyperfine
-          python3.11 -m venv .venv
-          source .venv/bin/activate
+          sudo apt-get update && sudo apt-get install -y hyperfine
 
       - name: Install deepinv and its dependencies
         run: |
