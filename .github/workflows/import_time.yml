@@ -26,9 +26,6 @@ jobs:
           python-version: 3.11
           cache: 'pip' # caching pip dependencies
 
-      - name: Install deepinv and its dependencies
-        run: |
-          pip install .
 
       - name: "Set up Python and Hyperfine"
         run: |
@@ -39,11 +36,9 @@ jobs:
           python3.11 -m venv .venv
           source .venv/bin/activate
 
-      - name: "Install project dependencies"
+      - name: Install deepinv and its dependencies
         run: |
-          source .venv/bin/activate
-          # Add any build-time dependencies here if needed
-          pip install build
+          pip install .
 
       - name: "Benchmark PR (HEAD)"
         run: |
