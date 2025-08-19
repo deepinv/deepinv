@@ -34,7 +34,6 @@ jobs:
       - name: "Benchmark PR (HEAD)"
         run: |
           echo "Benchmarking PR branch..."
-          pip install .
           hyperfine --warmup 3 --export-json head.json "python -c 'import deepinv'"
           pip uninstall -y deepinv # Clean up for the next step
 
