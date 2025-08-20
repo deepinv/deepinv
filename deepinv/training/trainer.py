@@ -423,8 +423,8 @@ class Trainer:
             if "wandb_id" in checkpoint and self.wandb_vis:
                 self.wandb_setup["id"] = checkpoint["wandb_id"]
                 self.wandb_setup["resume"] = "allow"
-            if "mlflow_run_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
-                self.mlflow_setup["run_id"] = checkpoint["mlflow_run_id"]
+            if "mlflow_id" in checkpoint and self.mlflow_vis:  # pragma: no cover
+                self.mlflow_setup["run_id"] = checkpoint["mlflow_id"]
             if "epoch" in checkpoint:
                 self.epoch_start = checkpoint["epoch"] + 1
             return checkpoint
@@ -963,7 +963,7 @@ class Trainer:
         if self.wandb_vis:
             state["wandb_id"] = wandb.run.id
         if self.mlflow_vis:
-            state["mlflow_run_id"] = mlflow.active_run().info.run_id
+            state["mlflow_id"] = mlflow.active_run().info.run_id
 
         torch.save(
             state,
