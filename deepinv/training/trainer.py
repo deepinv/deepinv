@@ -583,9 +583,7 @@ class Trainer:
                         y, physics, x_gt=x, compute_metrics=True, **kwargs
                     )
                 else:
-                    x_net = self.model(
-                        y, physics, **kwargs
-                    )
+                    x_net = self.model(y, physics, **kwargs)
         else:
             x_net = self.model(y, physics, **kwargs)
 
