@@ -10,6 +10,8 @@ from torchvision.datasets.folder import IMG_EXTENSIONS
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
+from natsort import natsorted
+
 
 
 CORE_TYPES = (

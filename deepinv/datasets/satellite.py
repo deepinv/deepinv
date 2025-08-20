@@ -2,12 +2,7 @@ from typing import Union, Callable
 from pathlib import Path
 import os
 
-try:
-    from natsort import natsorted
-except ImportError:  # pragma: no cover
-    natsorted = ImportError(
-        "natsort is not installed. Please install it with `pip install natsort`."
-    )  # pragma: no cover
+from natsort import natsorted
 
 import numpy as np
 
@@ -123,8 +118,6 @@ class NBUDataset(ImageDataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
-        if isinstance(natsorted, ImportError):
-            raise natsorted
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))

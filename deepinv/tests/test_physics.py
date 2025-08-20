@@ -9,7 +9,8 @@ import numpy as np
 from deepinv.physics.forward import adjoint_function
 import deepinv as dinv
 from deepinv.optim.data_fidelity import L2
-from deepinv.physics.mri import MRI, MRIMixin, DynamicMRI, MultiCoilMRI
+from deepinv.physics.mri import MRI, DynamicMRI, MultiCoilMRI
+from deepinv.utils.mixins import MRIMixin
 from deepinv.utils import TensorList
 
 
@@ -874,6 +875,13 @@ def test_MRI(mri, mri_img_size, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :param rng: (torch.Generator)
     """
+    if mri is MultiCoilMRI:
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
 
     B, C, T, H, W = mri_img_size
     if rng.device != device:
@@ -962,6 +970,13 @@ def test_MRI_noise_domain(mri, mri_img_size, device, rng):
     :param device: (torch.device) cpu or cuda:x
     :param rng: (torch.Generator)
     """
+    if mri is MultiCoilMRI:
+        pytest.importorskip(
+            "sigpy",
+            reason="This test requires sigpy. It should be "
+            "installed with `pip install "
+            "sigpy`",
+        )
 
     B, C, T, H, W = mri_img_size
     if rng.device != device:
