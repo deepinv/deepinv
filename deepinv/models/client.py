@@ -28,7 +28,7 @@ class Client(Reconstructor, Denoiser):
 
     :Example:
 
-    ::
+    .. code-block:: python
 
         import deepinv as dinv
         import torch
@@ -45,27 +45,27 @@ class Client(Reconstructor, Denoiser):
     * Since we cannot pass objects via the API, physics are passed as strings with optional parameters and must be rebuilt in the API.
     * The API must accept the following input body:
 
-    ```python
-    {
-        "input": {
-            "file": <b64 serialized file>,
-            "param1": "such as a config str",
-            "param2": <or a b64 serialized param>,
-            ...
+    .. code-block:: python
+
+        {
+            "input": {
+                "file": <b64 serialized file>,
+                "param1": "such as a config str",
+                "param2": <or a b64 serialized param>,
+                ...
+            }
         }
-    }
-    ```
 
     * The API must return the following output response:
 
-    ```python
-    {
-        "output": {
-            "file": "<b64 serialized file>",
-            "other_outputs": "such as inference time",
+    .. code-block:: python
+
+        {
+            "output": {
+                "file": "<b64 serialized file>",
+                "other_outputs": "such as inference time",
+            }
         }
-    }
-    ```
 
     During forward pass, the client passes input tensor serialized as base64 to API, along with any optional params,
     which must either be plain text, numbers, or serializable, depending on the API input requirements,
@@ -73,7 +73,9 @@ class Client(Reconstructor, Denoiser):
 
     :Example:
 
-    **Simple server using Flask** ::
+    **Simple server using Flask**
+
+    .. code-block:: python
 
         from flask import Flask, request, jsonify
         from deepinv.models import Client
@@ -98,7 +100,9 @@ class Client(Reconstructor, Denoiser):
         if __name__ == "__main__":
             app.run()
 
-    **Server using RunPod** ::
+    **Server using RunPod**
+
+    .. code-block:: python
 
         import runpod
         from deepinv.models import Client
