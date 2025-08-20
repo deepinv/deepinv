@@ -56,6 +56,18 @@ Logging
         deepinv.utils.ProgressMeter
         deepinv.utils.get_timestamp
 
+Mixins
+------
+.. userguide:: mixin
+
+.. autosummary::
+   :toctree: stubs
+   :template: myclass_template.rst
+   :nosignatures:
+
+        deepinv.utils.MRIMixin
+        deepinv.utils.TimeMixin
+
 Other
 -----
 .. userguide:: other-utils

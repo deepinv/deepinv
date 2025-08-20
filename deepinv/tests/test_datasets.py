@@ -588,6 +588,16 @@ def test_load_fmd_dataset(download_fmd):
 def mock_lidc_idri():
     """Mock the LIDC-IDRI dataset"""
     if os.environ.get("DEEPINV_MOCK_TESTS", False):
+        pytest.importorskip(
+            "pandas",
+            reason="This test requires pandas. It should be "
+            "installed with `pip install pandas`",
+        )
+        pytest.importorskip(
+            "pydicom",
+            reason="This test requires pandas. It should be "
+            "installed with `pip install pydicom`",
+        )
         import pandas as pd
         import pydicom
 
@@ -627,6 +637,7 @@ def mock_lidc_idri():
 @pytest.mark.parametrize("hounsfield_units", [False, True])
 def test_load_lidc_idri_dataset(mock_lidc_idri, hounsfield_units):
     """Test the LIDC-IDRI dataset."""
+
     for totensor in [ToTensor(), None]:
         check_dataset_format(
             LidcIdriSliceDataset(
@@ -737,6 +748,12 @@ def download_fastmri():
 
 
 def test_FastMRISliceDataset(download_fastmri):
+    pytest.importorskip(
+        "sigpy",
+        reason="This test requires sigpy. It should be "
+        "installed with `pip install "
+        "sigpy`",
+    )
     # Raw data shape
     kspace_shape = (512, 213)
     n_coils = 4
@@ -875,6 +892,11 @@ def download_CMRxRecon():
 
 
 def test_CMRxReconSliceDataset(download_CMRxRecon):
+    pytest.importorskip(
+        "sigpy",
+        reason="This test requires sigpy. It should be "
+        "installed with `pip install sigpy`",
+    )
 
     img_size = (12, 512, 256)
 
@@ -969,7 +991,6 @@ def download_SKMTEA():
 
 
 def test_SKMTEASliceDataset(download_SKMTEA, device):
-
     n_coils, img_size = 8, (512, 160)
 
     data_dir = download_SKMTEA

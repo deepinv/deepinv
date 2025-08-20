@@ -509,6 +509,12 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
 def test_wavelet_denoiser_ths(
     level, channels, dimension, non_linearity, batch_size, device
 ):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(
         level=level, wvdim=dimension, non_linearity=non_linearity
     ).to(device)
@@ -539,6 +545,12 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
 def test_wavelet_decomposition(channels, dimension, batch_size, device):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
@@ -1019,6 +1031,11 @@ def test_dsccp_net(device, n_channels):
 
 
 def test_denoiser_perf(device):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",
