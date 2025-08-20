@@ -2,7 +2,6 @@ from warnings import warn
 from typing import Optional, Callable, Union
 from pathlib import Path
 import math
-from natsort import natsorted
 from numpy import ndarray
 import torch
 from torch.utils.data import Dataset
@@ -11,6 +10,8 @@ from torchvision.datasets.folder import IMG_EXTENSIONS
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
+from natsort import natsorted
+
 
 CORE_TYPES = (
     Tensor,

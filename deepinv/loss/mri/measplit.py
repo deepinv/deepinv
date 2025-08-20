@@ -11,7 +11,7 @@ from deepinv.physics.generator import (
     Artifact2ArtifactSplittingMaskGenerator,
 )
 from deepinv.models.dynamic import TimeAveragingNet
-from deepinv.physics.time import TimeMixin
+from deepinv.utils.mixins import TimeMixin
 from deepinv.models.base import Reconstructor
 from deepinv.loss.measplit import SplittingLoss
 from deepinv.utils.decorators import _deprecated_alias

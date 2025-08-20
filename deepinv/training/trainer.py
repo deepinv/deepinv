@@ -182,8 +182,8 @@ class Trainer:
     :Plotting:
 
     :param bool plot_images: Plots reconstructions every ``ckp_interval`` epochs. Default is ``False``.
-    :param bool plot_measurements: Plot the measurements y, default=`True`.
-    :param bool plot_convergence_metrics: Plot convergence metrics for model, default=`False`.
+    :param bool plot_measurements: Plot the measurements y, default is ``True``.
+    :param bool plot_convergence_metrics: Plot convergence metrics for model, default is ``False``.
     :param str rescale_mode: Rescale mode for plotting images. Default is ``'clip'``.
 
     |sep|
@@ -604,14 +604,14 @@ class Trainer:
         if "update_parameters" in inspect.signature(self.model.forward).parameters:
             kwargs["update_parameters"] = True
 
-        if self.plot_convergence_metrics and not train:
+        if not train:
             with torch.no_grad():
-                x_net, self.conv_metrics = self.model(
-                    y, physics, x_gt=x, compute_metrics=True, **kwargs
-                )
-            x_net, self.conv_metrics = self.model(
-                y, physics, x_gt=x, compute_metrics=True, **kwargs
-            )
+                if self.plot_convergence_metrics:
+                    x_net, self.conv_metrics = self.model(
+                        y, physics, x_gt=x, compute_metrics=True, **kwargs
+                    )
+                else:
+                    x_net = self.model(y, physics, **kwargs)
         else:
             x_net = self.model(y, physics, **kwargs)
 
