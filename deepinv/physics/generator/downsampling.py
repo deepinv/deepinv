@@ -27,7 +27,7 @@ class DownsamplingGenerator(PhysicsGenerator):
 
     :param list[str] filters: list of filters to use for downsampling. Default is ["gaussian", "bilinear", "bicubic"].
     :param list[int] factors: list of factors to use for downsampling. Default is [2, 4].
-    :param tuple[int, int] psf_size: size of the point spread function (PSF) to use for the filters. Default is None.
+    :param tuple[int, int] psf_size: size of the point spread function (PSF) to use for the filters, necessary to stack different filters. If None, the default size of the filter from the filter functions will be used. Default is None.
     :param rng: random number generator. Default is None.
     :param device: device to use. Default is "cpu".
     :param dtype: data type to use. Default is torch.float32.

@@ -251,7 +251,8 @@ def test_average(name, device, dtype):
 @pytest.mark.parametrize("device", DEVICES)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("psf_size", [None, (31, 31)])
-def test_downsampling_generator(num_channels, device, dtype, psf_size):
+@pytest.mark.parametrize("fact", [None, 2, 4])
+def test_downsampling_generator(num_channels, device, dtype, psf_size, fact):
     r"""
     Test downsampling generator.
     This test is different from the above ones because we do not generate a random kernel at each iteration, but
@@ -260,6 +261,8 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size):
     # we need sufficiently large sizes to ensure well definedness of the operation
     size = (32, 32)
 
+    str_fact = "" if fact is None else str(fact)
+
     physics = dinv.physics.Downsampling(
         img_size=(num_channels, size[0], size[1]),
         device=device,
@@ -267,42 +270,32 @@ def test_downsampling_generator(num_channels, device, dtype, psf_size):
         factor=4,
     )
     generator, _, _ = find_generator(
-        "DownsamplingGenerator", size, num_channels, device, dtype
+        "DownsamplingGenerator" + str_fact,
+        size,
+        num_channels,
+        device,
+        dtype,
+        psf_size=psf_size,
     )
 
-    batch_size = 1  # Must be 1 as filters with different shapes can't be batched (case psf_size=None)
-    params = generator.step(batch_size=batch_size, seed=0)
+    batch_size = (
+        1 if fact is None else 128
+    )  # Must be 1 as filters with different shapes can't be batched (case psf_size=None)
 
-    x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
-    y = physics(x, **params)
-
-    assert y.shape[-1] == x.shape[-1] // params["factor"]
-
-    # next check with batch size > 1
-    for fact in [2, 4]:
-
-        generator, _, _ = find_generator(
-            "DownsamplingGenerator" + str(fact),
-            size,
-            num_channels,
-            device,
-            dtype,
-            psf_size=psf_size,
-        )
-
-        batch_size = 128  # must be > 1 to test batchability of multiple filters
-        if psf_size is None:
-            with pytest.raises(ValueError):
-                params = generator.step(batch_size=batch_size, seed=1)
-            continue
-        else:
+    if psf_size is None and batch_size > 1:
+        # in this case, we have a generator that generates filters of different shapes
+        with pytest.raises(ValueError):
             params = generator.step(batch_size=batch_size, seed=1)
+    else:
+        params = generator.step(batch_size=batch_size, seed=1)
 
         x = torch.randn((batch_size, num_channels, size[0], size[1])).to(device)
         y = physics(x, **params)
 
-        assert y.shape[-1] == x.shape[-1] // fact
-        assert fact == params["factor"].unique().item()
+        assert y.shape[-1] == x.shape[-1] // params["factor"].unique().item()
+
+        if fact is not None:
+            assert fact == params["factor"].unique().item()
 
 
 ######################
