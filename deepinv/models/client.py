@@ -15,8 +15,9 @@ class Client(Reconstructor, Denoiser):
 
     Perform inference on models hosted in the cloud directly from DeepInverse.
 
-    The client allows contributors to disseminate their reconstruction models, without requiring the user to have high GPU resources
-    or to accurately define their physics. As a contributor, all you have to do is:
+    This functionality allows contributors to develop APIs to disseminate their reconstruction models,
+    without requiring the client user to host the model themselves
+    or to accurately define their physics. As an API developer, all you have to do is:
 
     * Define your model to take tensors as input and output tensors (like :class:`deepinv.models.Reconstructor`)
     * Create a simple API (see below for example)
@@ -71,6 +72,9 @@ class Client(Reconstructor, Denoiser):
     which must either be plain text, numbers, or serializable, depending on the API input requirements,
     such as `physics` string, `config`, `sigma`, `mask` etc.
 
+    The API can be developed and deployed on any platform you prefer, e.g. server, containers, or functions. See below for
+    some simple examples.
+
     :Example:
 
     **Simple server using Flask**
@@ -100,7 +104,7 @@ class Client(Reconstructor, Denoiser):
         if __name__ == "__main__":
             app.run()
 
-    **Server using RunPod**
+    **Serverless container using RunPod**
 
     .. code-block:: python
 
