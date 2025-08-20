@@ -75,6 +75,16 @@ class Client(Reconstructor, Denoiser):
     The API can be developed and deployed on any platform you prefer, e.g. server, containers, or functions. See below for
     some simple examples.
 
+    .. note::
+        Authentication is handled at the application level via the API key by default. 
+        However, you may also choose to enforce authentication or rate-limiting at an upstream 
+        layer (e.g. an nginx reverse proxy or API gateway) if preferred.
+
+    .. warning::
+        Security is critical when exposing models via Web APIs.
+        Always use HTTPS, validate and sanitize inputs, and restrict access with strong API keys or 
+        authentication mechanisms. Consider rate-limiting and monitoring to reduce attack surface.
+
     :Example:
 
     **Simple server using Flask**
