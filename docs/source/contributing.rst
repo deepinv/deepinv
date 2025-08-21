@@ -1,4 +1,5 @@
 :html_theme.sidebar_secondary.remove:
+.. _contributing:
 
 Contributing to DeepInverse
 ===========================
@@ -43,7 +44,7 @@ check the following points:
   making the desired changes.
 - **Typing**: your docstrings and code are adequately typed. Typing rules such as PEP585 are automatically checked using ruff.
 - **Tests**: write tests in ``deepinv/tests`` to test your code's intended functionality,
-  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behaviour),
+  including unit tests (e.g. checking each method's return values) and integration tests (i.e. end-to-end behavior),
   following a test-driven development methodology. We use ``pytest`` and ``unittest.mock`` to write our tests.
   All existing tests should pass on your local machine. This can be done by installing ``pytest`` and running
   ``python -m pytest deepinv/tests`` in the root directory of the repository after making the desired changes.

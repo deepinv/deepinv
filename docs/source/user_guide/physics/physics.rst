@@ -14,6 +14,10 @@ The parameters :math:`\theta` can be sampled using random generators, which are 
 Using automatic differentiation, we can compute derivatives w.r.t to both the input :math:`x` or the parameters :math:`\theta`. 
 This is particular useful when dealing with blind inverse problems or parameter estimation.
 
+.. tip::
+  The operator you are looking for is not on this list?
+  **See** :ref:`sphx_glr_auto_examples_basics_demo_custom_physics.py` for how to implement your own physics operator.
+
 .. list-table:: Operators, Definitions, and Generators
    :header-rows: 1
 
@@ -53,7 +57,6 @@ This is particular useful when dealing with blind inverse problems or parameter 
 
    * - Magnetic Resonance Imaging (MRI)
      -
-       | :class:`deepinv.physics.MRIMixin`
        | :class:`deepinv.physics.MRI`
        | :class:`deepinv.physics.MultiCoilMRI`
        | :class:`deepinv.physics.DynamicMRI`
@@ -170,3 +173,6 @@ By default, the noise model is set to :class:`ZeroNoise <deepinv.physics.ZeroNoi
 
    * - :class:`deepinv.physics.SaltPepperNoise`
      - :math:`y = \begin{cases} 0 & \text{if } z < p\\ x & \text{if } z \in [p, 1-s]\\ 1 & \text{if } z > 1 - s\end{cases}` with :math:`z\sim\mathcal{U}(0,1)`
+
+   * - :class:`deepinv.physics.ZeroNoise`
+     - :math:`y = z`

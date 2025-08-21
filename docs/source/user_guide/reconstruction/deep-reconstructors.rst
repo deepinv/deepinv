@@ -1,10 +1,18 @@
+.. _deep-reconstructors:
+
+Deep Reconstruction Models
+==========================
+
+The simplest method for reconstructing an image from measurements is to pass it through a feedforward
+model architecture that is conditioned on the acquisition physics, that is :math:`\inversef{y}{A}`. We offer a range of architectures for general and specific problems.
+
 .. _artifact:
 
 Artifact Removal
-================
-The simplest method for reconstructing an image from a measurements is to first map the measurements
-to the image domain via a non-learned mapping, and then apply a denoiser network to the obtain the final reconstruction.
+~~~~~~~~~~~~~~~~
 
+The simplest reconstruction architecture first maps the measurements
+to the image domain via a non-learned mapping, and then applys a denoiser network to the obtain the final reconstruction.
 
 The :class:`deepinv.models.ArtifactRemoval` class converts a denoiser :class:`deepinv.models.Denoiser` or other image-to-image network :math:`\phi` into a
 reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
@@ -16,7 +24,7 @@ reconstruction network :class:`deepinv.models.Reconstructor` :math:`R` by doing
   | This option serves as a wrapper to obtain a :class:`Reconstructor <deepinv.models.Reconstructor>`, and can be used to adapt a generic denoiser or image-to-image network into one that is specific to an inverse problem.
 
 
-.. _general_reconstructors:
+.. _general-reconstructors:
 
 General reconstruction models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,3 +47,18 @@ See :ref:`pretrained-weights` for more information on pretrained denoisers.
      - C=1, 2, 3; H,W>8
      - C=1, 2, 3
      - Yes
+
+.. _specific-reconstructors:
+
+Specific reconstruction models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We also provide some architectures for specific inverse problems.
+
+.. list-table:: Specific architectures
+   :header-rows: 1
+
+   * - Model
+     - Description
+   * - :class:`deepinv.models.PanNet`
+     - PanNet model for pansharpening.

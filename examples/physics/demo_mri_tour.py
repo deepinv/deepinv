@@ -27,6 +27,7 @@ Contents:
 
 """
 
+# %%
 import deepinv as dinv
 import torch, torchvision
 from torch.utils.data import DataLoader
@@ -96,7 +97,7 @@ dinv.utils.plot(
     {
         "x": (x := next(iter(DataLoader(knee_dataset)))),
         "mask": mask,
-        "y": physics(x).clamp(-1, 1),
+        "y": physics(x.to(device)).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
@@ -371,8 +372,8 @@ model = dinv.models.VarNet(denoiser, num_cascades=2, mode="e2e-varnet").to(devic
 
 def crop(x_net, x):
     """Crop to GT shape then take magnitude."""
-    return dinv.physics.MRIMixin().rss(
-        dinv.physics.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
+    return dinv.utils.MRIMixin().rss(
+        dinv.utils.MRIMixin().crop(x_net, shape=x.shape), multicoil=False
     )
 
 
@@ -491,7 +492,7 @@ x, y, params = next(iter(DataLoader(dataset)))
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we
-# visualise t=5 frames of the ground truth ``x``, the mask, and the zero-filled
+# visualize t=5 frames of the ground truth ``x``, the mask, and the zero-filled
 # reconstruction ``x_zf`` (and crop to square for better visibility):
 #
 
@@ -505,3 +506,8 @@ dinv.utils.plot(
         for i in range(5)
     }
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

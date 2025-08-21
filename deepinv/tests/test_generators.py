@@ -304,7 +304,7 @@ def choose_mri_generator(generator_name, img_size, acc, center_fraction):
 @pytest.mark.parametrize("center_fraction", MRI_CENTER_FRACTIONS)
 def test_mri_generator(generator_name, img_size, batch_size, acc, center_fraction):
     generator = choose_mri_generator(generator_name, img_size, acc, center_fraction)
-    # test across different accs and centre fracations
+    # test across different accs and center fracations
     H, W = img_size[-2:]
     assert W // generator.acc == (generator.n_lines + generator.n_center)
 
