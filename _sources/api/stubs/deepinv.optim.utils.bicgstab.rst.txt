@@ -1,0 +1,9 @@
+﻿bicgstab
+========
+
+.. currentmodule:: deepinv.optim.utils
+
+.. autofunction:: bicgstab
+
+.. minigallery:: deepinv.optim.utils.bicgstab
+    :add-heading: Examples using ``bicgstab``:
