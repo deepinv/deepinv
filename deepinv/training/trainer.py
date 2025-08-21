@@ -949,6 +949,7 @@ class Trainer:
 
             if self.mlflow_vis:
                 image = TF.to_pil_image(grid_image, mode="RGB")
+                mlflow.log_metrics({ "step": epoch }, step=epoch)
                 mlflow.log_image(image, key=f"{post_str} samples", step=epoch)
 
         if save_images:
