@@ -85,9 +85,9 @@ class Trainer:
 
     .. note::
 
-        The training code can synchronize with `Weights & Biases <https://wandb.ai/site>`_ for logging and visualization
-        by setting ``wandb_vis=True``. The user can also customize the wandb setup by providing
-        a dictionary with the setup for wandb.
+        The training code can synchronize with MLOps tools like `Weights & Biases <https://wandb.ai/site>`_ and `MLflow <https://mlflow.org>`_
+        for logging and visualization by setting ``wandb_vis=True`` or ``mlflow_vis=True``. The user can also customize the setup of wandb and MLflow
+        by providing a dictionary for the parameters ``wandb_setup`` or ``mlflow_setup`` respectively.
 
     Parameters are described below, grouped into **Basics**, **Optimization**, **Evaluation**, **Physics Generators**,
     **Model Saving**, **Comparing with Pseudoinverse Baseline**, **Plotting**, **Verbose** and **Weights & Biases**.
@@ -211,9 +211,16 @@ class Trainer:
 
     :param bool wandb_vis: Logs data onto Weights & Biases, see https://wandb.ai/ for more details. Default is ``False``.
     :param dict wandb_setup: Dictionary with the setup for wandb, see https://docs.wandb.ai/quickstart for more details. Default is ``{}``.
-    :param int plot_interval: Frequency of plotting images to wandb during train evaluation (at the end of each epoch).
+    :param int plot_interval: Frequency of plotting images to MLOps tools (wandb or MLflow) during evaluation (at the end of each epoch).
         If ``1``, plots at each epoch. Default is ``1``.
     :param int freq_plot: deprecated. Use ``plot_interval``
+
+    |sep|
+
+    :MLflow:
+
+    :param bool mlflow_vis: Logs data onto MLflow, see https://mlflow.org/ for more details. Default is ``False``.
+    :param dict mlflow_setup: Dictionary with the setup for mlflow, see https://www.mlflow.org/docs/latest/python_api/mlflow.html#mlflow.start_run for more details. Default is ``{}``.
     """
 
     model: torch.nn.Module
@@ -1243,8 +1250,11 @@ class Trainer:
         self.setup_train(train=False)
 
         self.save_folder_im = save_path
-        aux = (self.wandb_vis, self.log_train_batch)
+
+        # Disable mlops and visualization during testing
+        former_values = (self.wandb_vis, self.mlflow_vis, self.log_train_batch)
         self.wandb_vis = False
+        self.mlflow_vis = False
         self.log_train_batch = False
 
         self.reset_metrics()
@@ -1270,7 +1280,7 @@ class Trainer:
             progress_bar.set_description(f"Test")
             self.step(0, progress_bar, train=False, last_batch=(i == batches - 1))
 
-        self.wandb_vis, self.log_train_batch = aux
+        self.wandb_vis, self.mlflow_vis, self.log_train_batch = former_values
 
         if self.verbose:
             print("Test results:")
