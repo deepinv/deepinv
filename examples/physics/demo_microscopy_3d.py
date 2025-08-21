@@ -54,6 +54,8 @@ plot_ortho3D(
     suptitle="3D convolution",
     interpolation="nearest",
     figsize=(13, 5),
+    tight=False,
+    fontsize=24,
 )
 
 
@@ -211,3 +213,8 @@ plot_ortho3D(
     [psf[None] for psf in psf_confocal],
     suptitle="Corresponding PSFs of Confocal microscope",
 )
+
+# %%
+# :References:
+#
+# .. footbibliography::

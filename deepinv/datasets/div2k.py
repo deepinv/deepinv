@@ -1,19 +1,17 @@
-from typing import Any, Callable
+from typing import Callable
 import os
-
-from PIL import Image
-import torch
 
 from deepinv.datasets.utils import (
     calculate_md5_for_folder,
     download_archive,
     extract_zipfile,
 )
+from deepinv.datasets.base import ImageFolder
 
 from types import MappingProxyType
 
 
-class DIV2K(torch.utils.data.Dataset):
+class DIV2K(ImageFolder):
     """Dataset for `DIV2K Image Super-Resolution Challenge <https://data.vision.ee.ethz.ch/cvl/DIV2K>`_.
 
     The DIV2K dataset from :footcite:t:`agustsson2017ntire` is a high-quality image dataset originally built for image super-resolution tasks.
@@ -83,7 +81,6 @@ class DIV2K(torch.utils.data.Dataset):
     ) -> None:
         self.root = root
         self.mode = mode
-        self.transform = transform
 
         if self.mode == "train":
             self.img_dir = os.path.join(self.root, "DIV2K_train_HR")
@@ -127,19 +124,8 @@ class DIV2K(torch.utils.data.Dataset):
                     f"Dataset not found at `{self.root}`. Please set `root` correctly (currently `root={self.root}`), OR set `download=True` (currently `download={download}`)."
                 )
 
-        self.img_list = os.listdir(self.img_dir)
-
-    def __len__(self) -> int:
-        return len(self.img_list)
-
-    def __getitem__(self, idx: int) -> Any:
-        img_path = os.path.join(self.img_dir, self.img_list[idx])
-        # PIL Image
-        img = Image.open(img_path)
-
-        if self.transform is not None:
-            img = self.transform(img)
-        return img
+        # Initialize ImageFolder
+        super().__init__(self.img_dir, transform=transform)
 
     def verify_split_dataset_integrity(self) -> bool:
         """Verify the integrity and existence of the specified dataset split.

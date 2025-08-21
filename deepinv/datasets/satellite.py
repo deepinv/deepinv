@@ -3,16 +3,10 @@ from types import MappingProxyType
 from pathlib import Path
 import os
 
-try:
-    from natsort import natsorted
-except ImportError:  # pragma: no cover
-    natsorted = ImportError(
-        "natsort is not installed. Please install it with `pip install natsort`."
-    )  # pragma: no cover
+from natsort import natsorted
 
 import numpy as np
 
-from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor, Compose
 
 from deepinv.datasets.utils import (
@@ -23,9 +17,10 @@ from deepinv.datasets.utils import (
 )
 from deepinv.utils.demo import get_image_url
 from deepinv.utils.tensorlist import TensorList
+from deepinv.datasets.base import ImageDataset
 
 
-class NBUDataset(Dataset):
+class NBUDataset(ImageDataset):
     """NBU remote sensing multispectral satellite imagery dataset.
 
     Returns ``Cx256x256`` multispectral (MS) satellite images of urban scenes from 6 different satellites.
@@ -46,9 +41,9 @@ class NBUDataset(Dataset):
 
     .. note::
 
-        Returns images as :class:`torch.Tensor` normalised to 0-1 over the whole dataset.
+        Returns images as :class:`torch.Tensor` normalized to 0-1 over the whole dataset.
 
-    See :ref:`sphx_glr_auto_examples_basics_demo_remote_sensing.py` for example using
+    See :ref:`sphx_glr_auto_examples_physics_demo_remote_sensing.py` for example using
     this dataset with remote sensing inverse problems.
 
     |sep|
@@ -103,7 +98,7 @@ class NBUDataset(Dataset):
             )
 
         self.data_dir = Path(root_dir) / "nbu" / satellite
-        self.normalise = lambda x: (
+        self.normalize = lambda x: (
             x / (1023 if satellite == "gaofen-1" else 2047)
         ).astype(np.float32)
         self.transform_ms = transform_ms
@@ -126,8 +121,6 @@ class NBUDataset(Dataset):
                 raise FileNotFoundError(
                     "Local dataset not downloaded or root set incorrectly. Download by setting download=True."
                 )
-        if isinstance(natsorted, ImportError):
-            raise natsorted
 
         self.ms_paths = natsorted(self.data_dir.glob("MS_256/*.mat"))
         self.pan_paths = natsorted(self.data_dir.glob("PAN_1024/*.mat"))
@@ -160,17 +153,17 @@ class NBUDataset(Dataset):
         """Load satellite image and convert to tensor.
 
         :param int idx: image index
-        :return: torch.Tensor: normalised image to the range [0,1]
+        :return: torch.Tensor: normalized image to the range [0,1]
         """
         paths = self.image_paths[idx]
         ms, pan = loadmat(paths[0])["imgMS"], loadmat(paths[1])["imgPAN"]
 
         transform_ms = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_ms] if self.transform_ms is not None else [])
         )
         transform_pan = Compose(
-            [self.normalise, ToTensor()]
+            [self.normalize, ToTensor()]
             + ([self.transform_pan] if self.transform_pan is not None else [])
         )
 

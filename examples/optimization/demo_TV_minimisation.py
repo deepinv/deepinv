@@ -72,7 +72,7 @@ physics = dinv.physics.BlurFFT(
 )
 
 # Select the first image from the dataset
-x = dataset[0][0].unsqueeze(0).to(device)
+x = dataset[0].unsqueeze(0).to(device)
 
 # Apply the degradation to the image
 y = physics(x)
@@ -107,7 +107,10 @@ cost_tv_prox = prior(x_tv).item()
 imgs = [y, x_tv]
 plot(
     imgs,
-    titles=[f"Input, TV cost: {cost_tv:.2f}", f"Output, TV cost: {cost_tv_prox:.2f}"],
+    titles=[
+        f"Input \n TV cost: {cost_tv:.2f}",
+        f"Output \n TV cost: {cost_tv_prox:.2f}",
+    ],
 )
 
 
@@ -187,3 +190,8 @@ plot(
 # plot convergence curves
 if plot_convergence_metrics:
     plot_curves(metrics)
+
+# %%
+# :References:
+#
+# .. footbibliography::

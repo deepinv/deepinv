@@ -9,12 +9,21 @@ Current
 
 New Features
 ^^^^^^^^^^^^
+- Quickstart tutorials + clean examples (:gh:`622` by `Andrew Wang`_)
+- Dataset base class + ImageFolder and TensorDataset classes (:gh:`622` by `Andrew Wang`_)
+- Added GitHub action checking import time (:gh:`680` by `Julian Tachella`_)
 
 Changed
 ^^^^^^^
+- Move mixins to utils and reduce number of cross-submodule top-level imports (:gh:`680` by `Andrew Wang`_)
+- PatchDataset returns tensors and not tuples (:gh:`622` by `Andrew Wang`_)
 
 Fixed
 ^^^^^
+- Fixed natsorted issue (:gh:`680` by `Julian Tachella`_)
+- Fix full-reference metrics used with measurement-only dataset (:gh:`622` by `Andrew Wang`_)
+- Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
+- NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 
 
 v0.3.3

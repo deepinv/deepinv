@@ -1,10 +1,11 @@
 import sys
 import pytest
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
 import deepinv as dinv
-from deepinv.loss import PSNR
+from deepinv.loss.metric.distortion import PSNR
+from deepinv.datasets.base import ImageDataset
 
 from dummy import DummyCircles, DummyModel
 
@@ -505,6 +506,12 @@ def test_denoiser_sigma_color(batch_size, denoiser, device):
 def test_wavelet_denoiser_ths(
     level, channels, dimension, non_linearity, batch_size, device
 ):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(
         level=level, wvdim=dimension, non_linearity=non_linearity
     ).to(device)
@@ -535,6 +542,12 @@ def test_wavelet_denoiser_ths(
 @pytest.mark.parametrize("batch_size", [1, 2])
 @pytest.mark.parametrize("dimension", [2, 3])
 def test_wavelet_decomposition(channels, dimension, batch_size, device):
+    pytest.importorskip(
+        "ptwt",
+        reason="This test requires pytorch_wavelets. It should be "
+        "installed with `pip install "
+        "git+https://github.com/fbcotter/pytorch_wavelets.git`",
+    )
     model = dinv.models.WaveletDenoiser(level=1, wvdim=dimension).to(device)
     img_size = (
         (batch_size, channels, 64, 64)
@@ -822,7 +835,7 @@ def test_varnet(varnet_type, device):
     )
     y = physics(x)
 
-    class DummyMRIDataset(Dataset):
+    class DummyMRIDataset(ImageDataset):
         def __getitem__(self, i):
             return x[0], y[0]
 
@@ -1015,6 +1028,11 @@ def test_dsccp_net(device, n_channels):
 
 
 def test_denoiser_perf(device):
+    pytest.importorskip(
+        "timm",
+        reason="This test requires timm. It should be "
+        "installed with `pip install timm`",
+    )
     # Load 2 example images
     x1 = dinv.utils.load_example(
         "butterfly.png",

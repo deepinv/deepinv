@@ -33,6 +33,7 @@ dependencies = [
     "scipy",
     "requests",
     "h5py",
+    "natsort",
 ]
 
 [tool.setuptools]
@@ -97,7 +98,6 @@ dataset = [
     "pandas",
     "pydicom",
     "mat73",
-    "natsort",
 ]
 
 # optional dependencies for training

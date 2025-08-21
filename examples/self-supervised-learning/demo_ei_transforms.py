@@ -69,6 +69,7 @@ x = dinv.utils.load_example("celeba_example.jpg")
 dinv.utils.plot(
     [x] + [t(x) for t in transforms],
     ["Orig"] + [t.__class__.__name__ for t in transforms],
+    fontsize=24,
 )
 
 
@@ -154,3 +155,8 @@ y = physics(x)
 x_hat = model(y)
 
 dinv.utils.plot([x, y, x_hat], ["x", "y", "reconstruction"])
+
+# %%
+# :References:
+#
+# .. footbibliography::

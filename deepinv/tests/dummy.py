@@ -1,6 +1,7 @@
 import torch
-from torch.utils.data import Dataset
 import numpy as np
+
+from deepinv.datasets.base import ImageDataset
 
 
 def create_circular_mask(imsize, center=None, radius=None):
@@ -16,7 +17,7 @@ def create_circular_mask(imsize, center=None, radius=None):
     return mask
 
 
-class DummyCircles(Dataset):
+class DummyCircles(ImageDataset):
     def __init__(self, samples, imsize=(3, 32, 28), max_circles=10, seed=1):
         super().__init__()
 
@@ -30,12 +31,12 @@ class DummyCircles(Dataset):
 
             for c in range(circles):
                 pos = rng.uniform(high=imsize[1:])
-                colour = rng.random((imsize[0], 1), dtype=np.float32)
+                color = rng.random((imsize[0], 1), dtype=np.float32)
                 r = rng.uniform(high=max_rad)
                 mask = torch.from_numpy(
                     create_circular_mask(imsize[1:], center=pos, radius=r)
                 )
-                self.x[i, :, mask] = torch.from_numpy(colour)
+                self.x[i, :, mask] = torch.from_numpy(color)
 
     def __getitem__(self, index):
         return self.x[index, :, :, :]
