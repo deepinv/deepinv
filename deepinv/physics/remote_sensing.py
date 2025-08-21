@@ -27,7 +27,7 @@ class Pansharpen(StackedLinearPhysics):
     :param bool use_brovey: if ``True``, use the Brovey method :footcite:t:`vivone2014critical`.
         to compute the pansharpening, otherwise use the conjugate gradient method.
     :param torch.nn.Module noise_color: noise model for the RGB image. It defaults to zero noise.
-    :param torch.nn.Module noise_gray: noise model for the grayscale image. It defaults to Gaussian noise with a standard deviation of 0.05.
+    :param torch.nn.Module noise_gray: noise model for the grayscale image. It defaults to zero noise.
     :param torch.device, str device: torch device.
     :param str padding: options are ``'valid'``, ``'circular'``, ``'replicate'`` and ``'reflect'``.
         If ``padding='valid'`` the blurred output is smaller than the image (no padding)
@@ -73,7 +73,7 @@ class Pansharpen(StackedLinearPhysics):
         if noise_color is None:
             noise_color = GaussianNoise(sigma=0.0)
         if noise_gray is None:
-            noise_gray = GaussianNoise(sigma=0.05)
+            noise_gray = GaussianNoise(sigma=0.0)
         assert len(img_size) == 3, "img_size must be of shape (C,H,W)"
 
         noise_color = noise_color if noise_color is not None else lambda x: x
