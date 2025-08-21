@@ -22,7 +22,7 @@ Fixed
 ^^^^^
 - Fixed natsorted issue (:gh:`680` by `Julian Tachella`_)
 - Fix full-reference metrics used with measurement-only dataset (:gh:`622` by `Andrew Wang`_)
-
+- Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
 
 
