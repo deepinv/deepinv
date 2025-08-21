@@ -453,9 +453,20 @@ class Trainer:
 
     def log_metrics_wandb(self, logs: dict, step: int, train: bool = True):
         r"""
-        Log the metrics to wandb.
+        This method is deprecated and will be removed in a future release. Instead, use :func:`log_metrics_mlops`.
+        """
+        warnings.warn(
+            "This method is deprecated and will be removed in a future release. Use log_metrics_mlops instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.log_metrics_mlops(self, logs=logs, step=step, train=train)
 
-        It logs the metrics to wandb.
+    def log_metrics_mlops(self, logs: dict, step: int, train: bool = True):
+        r"""
+        Log the metrics to MLOps tools including wandb and MLflow.
+
+        It logs the metrics to wandb and MLflow.
 
         :param dict logs: Dictionary containing the metrics to log.
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
@@ -854,7 +865,7 @@ class Trainer:
             progress_bar.set_postfix(logs)
 
         if self.log_train_batch and train:
-            self.log_metrics_wandb(logs, step=train_ite, train=train)
+            self.log_metrics_mlops(logs, step=train_ite, train=train)
 
         if train and self.optimizer_step_multi_dataset:
             self.optimizer.step()  # Optimizer step
@@ -875,12 +886,12 @@ class Trainer:
                 logs["step"] = train_ite
             elif train:
                 logs["step"] = epoch
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
             elif self.log_train_batch:  # train=False
                 logs["step"] = train_ite
-                self.log_metrics_wandb(logs, step=train_ite, train=train)
+                self.log_metrics_mlops(logs, step=train_ite, train=train)
             else:
-                self.log_metrics_wandb(logs, step=epoch, train=train)
+                self.log_metrics_mlops(logs, step=epoch, train=train)
 
             self.plot(
                 epoch,
