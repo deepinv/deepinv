@@ -226,6 +226,7 @@ trainer = dinv.Trainer(
     epochs=1,
     show_progress_bar=False,
     save_path=None,
+    device=device,
 )
 
 # %%
@@ -399,6 +400,7 @@ trainer = dinv.Trainer(
     epochs=1,
     save_path=None,
     show_progress_bar=False,
+    device=device,
 )
 _ = trainer.train()
 
@@ -491,6 +493,8 @@ dataset = dinv.datasets.CMRxReconSliceDataset(
 )
 
 x, y, params = next(iter(DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
+params = {k: v.to(device) if torch.is_tensor(v) else v for k, v in params.items()}
 
 # %%
 # We provide a video plotting function, :class:`deepinv.utils.plot_videos`. Here, we

@@ -65,11 +65,9 @@ denoiser = dinv.models.DRUNet(pretrained="download").to(device)
 # have a closed form singular value decomposition of the forward operator.
 # The diffusion method requires a schedule of noise levels ``sigmas`` that are used to evaluate the denoiser.
 
-sigmas = np.linspace(
-    1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
+sigmas = np.linspace(1, 0, 100) if torch.cuda.is_available() else np.linspace(1, 0, 10)
 
-diff = dinv.sampling.DDRM(denoiser=denoiser, etab=1.0,
-                          sigmas=sigmas, verbose=True)
+diff = dinv.sampling.DDRM(denoiser=denoiser, etab=1.0, sigmas=sigmas, verbose=True)
 
 # %%
 # Generate the measurement
@@ -90,8 +88,7 @@ xhat = diff(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(
-    f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
 print(f"Diffusion PSNR: {dinv.metric.PSNR()(x, xhat).item():.2f} dB")
 
 # plot results
@@ -121,8 +118,7 @@ f = dinv.sampling.DiffusionSampler(diff, max_iter=10)
 mean, var = f(y, physics)
 
 # compute PSNR
-print(
-    f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
+print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
 print(f"Posterior mean PSNR: {dinv.metric.PSNR()(x, mean).item():.2f} dB")
 
 # plot results
