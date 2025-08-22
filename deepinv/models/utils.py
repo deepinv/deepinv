@@ -116,7 +116,7 @@ class UpDownConv2d(torch.nn.Module):
         bias=True,
         up=False,
         down=False,
-        resample_filter=[1, 1],
+        resample_filter=(1, 1),
         fused_resample=False,
         init_mode="kaiming_normal",
         init_weight=1,
@@ -262,13 +262,17 @@ class UNetBlock(torch.nn.Module):
         dropout=0,
         skip_scale=1,
         eps=1e-5,
-        resample_filter=[1, 1],
+        resample_filter=(1, 1),
         resample_proj=False,
         adaptive_scale=True,
-        init=dict(),
-        init_zero=dict(init_weight=0),
+        init=None,
+        init_zero=None,
         init_attn=None,
     ):
+        if init is None:
+            init = dict()
+        if init_zero is None:
+            init_zero = dict(init_weight=0)
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels

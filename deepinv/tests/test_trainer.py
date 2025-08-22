@@ -16,6 +16,7 @@ import math
 import io
 import contextlib
 import re
+import typing
 
 # NOTE: It's used as a fixture.
 from conftest import non_blocking_plots  # noqa: F401
@@ -287,8 +288,8 @@ def test_trainer_physics_generator_params(
 
     class SkeletonTrainer(Trainer):
         # hijack the step method to output samples to list
-        ys = []
-        fs = []
+        ys: typing.ClassVar = []
+        fs: typing.ClassVar = []
 
         def step(self, *args, **kwargs):
             x, y, physics_cur = self.get_samples(self.current_train_iterators, 0)

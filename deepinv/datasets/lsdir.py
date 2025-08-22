@@ -1,5 +1,6 @@
 import hashlib
 from typing import Callable
+from types import MappingProxyType
 import os
 
 from deepinv.datasets.utils import (
@@ -64,36 +65,44 @@ class LsdirHR(ImageFolder):
 
     """
 
-    archive_urls = {
-        "train": {
-            "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
-            "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
-            "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
-            "shard-03.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-03.tar.gz",
-            "shard-04.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-04.tar.gz",
-            "shard-05.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-05.tar.gz",
-            "shard-06.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-06.tar.gz",
-            "shard-07.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-07.tar.gz",
-            "shard-08.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-08.tar.gz",
-            "shard-09.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-09.tar.gz",
-            "shard-10.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-10.tar.gz",
-            "shard-11.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-11.tar.gz",
-            "shard-12.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-12.tar.gz",
-            "shard-13.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-13.tar.gz",
-            "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
-            "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
-            "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
-        },
-        "val": {
-            "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
-        },
-    }
+    _archive_urls = MappingProxyType(
+        {
+            "train": MappingProxyType(
+                {
+                    "shard-00.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-00.tar.gz",
+                    "shard-01.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-01.tar.gz",
+                    "shard-02.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-02.tar.gz",
+                    "shard-03.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-03.tar.gz",
+                    "shard-04.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-04.tar.gz",
+                    "shard-05.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-05.tar.gz",
+                    "shard-06.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-06.tar.gz",
+                    "shard-07.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-07.tar.gz",
+                    "shard-08.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-08.tar.gz",
+                    "shard-09.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-09.tar.gz",
+                    "shard-10.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-10.tar.gz",
+                    "shard-11.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-11.tar.gz",
+                    "shard-12.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-12.tar.gz",
+                    "shard-13.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-13.tar.gz",
+                    "shard-14.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-14.tar.gz",
+                    "shard-15.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-15.tar.gz",
+                    "shard-16.tar.gz": "https://data.vision.ee.ethz.ch/yawli/shard-16.tar.gz",
+                }
+            ),
+            "val": MappingProxyType(
+                {
+                    "val1.tar.gz": "https://data.vision.ee.ethz.ch/yawli/val1.tar.gz",
+                }
+            ),
+        }
+    )
 
     # for integrity of downloaded data
-    checksums = {
-        "train": "a83bdb97076d617e4965913195cc84d1",
-        "val": "972ba478c530b76eb9404b038597f65f",
-    }
+    _checksums = MappingProxyType(
+        {
+            "train": "a83bdb97076d617e4965913195cc84d1",
+            "val": "972ba478c530b76eb9404b038597f65f",
+        }
+    )
 
     def __init__(
         self,
@@ -132,7 +141,7 @@ class LsdirHR(ImageFolder):
                     f"The {self.mode} folders already exists, thus the download is aborted. Please set `download=False` OR remove `{self.img_dirs}`."
                 )
 
-            for filename, url in self.archive_urls[self.mode].items():
+            for filename, url in self._archive_urls[self.mode].items():
                 # download tar file from the Internet and save it locally
                 download_archive(
                     url=url,
@@ -178,4 +187,4 @@ class LsdirHR(ImageFolder):
         md5_folders = hashlib.md5()
         for img_dir in self.img_dirs:
             md5_folders.update(calculate_md5_for_folder(img_dir).encode())
-        return md5_folders.hexdigest() == self.checksums[self.mode]
+        return md5_folders.hexdigest() == self._checksums[self.mode]

@@ -224,7 +224,7 @@ class Trainer:
     physics_generator: Union[PhysicsGenerator, list[PhysicsGenerator]] = None
     loop_random_online_physics: bool = False
     optimizer_step_multi_dataset: bool = True
-    metrics: Union[Metric, list[Metric]] = PSNR()
+    metrics: Union[Metric, list[Metric]] = field(default_factory=PSNR)
     device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt_pretrained: Union[str, None] = None
     save_path: Union[str, Path] = "."
@@ -921,7 +921,7 @@ class Trainer:
             )
             self.conv_metrics = None
 
-    def save_model(self, filename, epoch, state={}):
+    def save_model(self, filename, epoch, state=None):
         r"""
         Save the model.
 
@@ -931,6 +931,8 @@ class Trainer:
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
+        if state is None:
+            state = {}
 
         if not self.save_path:
             return
@@ -1269,7 +1271,7 @@ def train(
     optimizer: torch.optim.Optimizer,
     train_dataloader: torch.utils.data.DataLoader,
     epochs: int = 100,
-    losses: Union[Loss, list[Loss]] = SupLoss(),
+    losses: Union[Loss, list[Loss], None] = None,
     eval_dataloader: torch.utils.data.DataLoader = None,
     *args,
     **kwargs,
@@ -1298,6 +1300,8 @@ def train(
     :param kwargs: Keyword arguments to pass to Trainer constructor. See :class:`deepinv.Trainer`.
     :return: Trained model.
     """
+    if losses is None:
+        losses = SupLoss()
     trainer = Trainer(
         model=model,
         physics=physics,
