@@ -1131,26 +1131,39 @@ def test_denoiser_perf(device):
         )
 
 
-def test_client_mocked():
-    def make_b64_tensor(tensor: torch.Tensor) -> str:
-        """Helper to serialize a tensor to base64 in the same way the Client does."""
-        buffer = io.BytesIO()
-        torch.save(tensor.cpu(), buffer)
-        buffer.seek(0)
-        return base64.b64encode(buffer.read()).decode("utf-8")
-
-    model = dinv.models.Client(endpoint="http://example.com", api_key="test_key")
+@pytest.mark.parametrize("return_metadata", [False, True])
+def test_client_mocked(return_metadata):
+    model = dinv.models.Client(
+        endpoint="http://example.com",
+        api_key="test_key",
+        return_metadata=return_metadata,
+    )
 
     y = torch.ones(1, 3, 16, 16)
 
+    # First test just serialize/deserialize
+    assert isinstance(dinv.models.Client.serialize(y), str)
+    assert torch.allclose(
+        dinv.models.Client.deserialize(dinv.models.Client.serialize(y)), y
+    )
+
+    # Test mocked API
     resp = MagicMock()
     resp.status_code = 200
-    resp.json.return_value = {"output": {"file": make_b64_tensor(y), "time": 0.1}}
+    resp.json.return_value = {
+        "output": {"file": dinv.models.Client.serialize(y), "metadata": {"time": 0.1}}
+    }
 
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
-        x_hat = model(
+        out = model(
             y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3, another=[1, 2]
         )
+
+        if return_metadata:
+            x_hat, metadata = out
+            assert metadata["time"] == 0.1
+        else:
+            x_hat = out
 
         assert torch.allclose(x_hat, y)
 
@@ -1162,15 +1175,16 @@ def test_client_mocked():
         sent_payload = json.loads(called_kwargs["data"])
         assert "input" in sent_payload
         assert "file" in sent_payload["input"]
-        assert sent_payload["input"]["physics"] == "denoising"
+        assert "metadata" in sent_payload["input"]
+        assert sent_payload["input"]["metadata"]["physics"] == "denoising"
 
         input_file = sent_payload["input"]["file"]
         assert isinstance(input_file, str)
-        assert torch.allclose(torch.load(io.BytesIO(base64.b64decode(input_file))), y)
+        assert torch.allclose(dinv.models.Client.deserialize(input_file), y)
 
-        assert sent_payload["input"]["sigma"] == 0.3
+        assert sent_payload["input"]["metadata"]["sigma"] == 0.3
         assert torch.allclose(
-            torch.load(io.BytesIO(base64.b64decode(sent_payload["input"]["mask"]))),
+            dinv.models.Client.deserialize(sent_payload["input"]["metadata"]["mask"]),
             torch.tensor([1, 2]),
         )
 
@@ -1189,12 +1203,12 @@ def test_client_mocked():
             _ = model(y)
 
     resp.status_code = 200
-    resp.json.return_value = {"output": {"time": 0.1}}
+    resp.json.return_value = {"output": {"xxx": 0.0}}
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="file"):
             _ = model(y)
 
-    resp.json.return_value = {"other": {"time": 0.1}}
+    resp.json.return_value = {"other": {"xxx": 0.1}}
     with patch("deepinv.models.client.requests.post", return_value=resp) as post:
         with pytest.raises(ValueError, match="output"):
             _ = model(y)

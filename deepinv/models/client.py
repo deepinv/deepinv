@@ -25,6 +25,11 @@ class Client(Reconstructor, Denoiser):
 
     The user then only needs to define this client, specify the endpoint URL and API key, and pass in an image as a tensor.
 
+    .. warning::
+
+        This feature is **experimental**. Its interface and behavior may change
+        without notice in future releases. Use with caution in production workflows.
+
     |sep|
 
     :Example:
@@ -51,9 +56,11 @@ class Client(Reconstructor, Denoiser):
         {
             "input": {
                 "file": <b64 serialized file>,
-                "param1": "such as a config str",
-                "param2": <or a b64 serialized param>,
-                ...
+                "metadata": {
+                    "param1": "such as a config str",
+                    "param2": <or a b64 serialized param>,
+                    ...
+                },
             }
         }
 
@@ -64,7 +71,9 @@ class Client(Reconstructor, Denoiser):
         {
             "output": {
                 "file": "<b64 serialized file>",
-                "other_outputs": "such as inference time",
+                "metadata": {
+                    "other_outputs": "such as inference time",
+                }
             }
         }
 
@@ -101,7 +110,7 @@ class Client(Reconstructor, Denoiser):
         def infer():
             inp = request.get_json()["input"]
             y = Client.deserialize(inp["file"])
-            physics = ... # Create physics depending on other params in inp
+            physics = ... # Create physics depending on metadata
 
             x_hat = model(y, physics) # Server-side inference
 
@@ -126,7 +135,7 @@ class Client(Reconstructor, Denoiser):
         def handler(event):
             inp = event['input']
             y = Client.deserialize(inp["file"])
-            physics = ... # Create physics depending on other params in inp
+            physics = ... # Create physics depending on metadata
 
             x_hat = model(y, physics) # Server-side inference
 
@@ -141,25 +150,31 @@ class Client(Reconstructor, Denoiser):
 
     :param str endpoint: endpoint URL.
     :param str api_key: API key.
+    :param bool return_metadata: optionally return metadata dict outputted from API.
     """
 
-    def __init__(self, endpoint: str, api_key: str = ""):
+    def __init__(self, endpoint: str, api_key: str = "", return_metadata: bool = False):
         super().__init__(device=None)
         self.api_key = api_key
         self.endpoint = endpoint
         self.training = False
+        self.return_metadata = return_metadata
 
     @staticmethod
     def serialize(tensor: torch.Tensor) -> str:
         buffer = io.BytesIO()
         torch.save(tensor.cpu(), buffer)
         buffer.seek(0)
-        return base64.b64encode(buffer.read()).decode("utf-8")
+        b64 = base64.b64encode(buffer.read()).decode("utf-8")
+        return f"data:application/octet-stream;base64,{b64}"
 
     @staticmethod
     def deserialize(data: str) -> torch.Tensor:
+        if data.startswith("data:"):
+            _, data = data.split(",", 1)
+
         buffer = io.BytesIO(base64.b64decode(data))
-        return torch.load(buffer, map_location="cpu")
+        return torch.load(buffer, map_location="cpu", weights_only=True)
 
     @staticmethod
     def _check_value(v: Any):
@@ -190,7 +205,7 @@ class Client(Reconstructor, Denoiser):
 
         params = {k: Client._check_value(v) for k, v in kwargs.items()}
 
-        payload = {"input": {"file": Client.serialize(y), **params}}
+        payload = {"input": {"file": Client.serialize(y), "metadata": params}}
 
         headers = {"Content-Type": "application/json"}
         if self.api_key != "":
@@ -206,13 +221,18 @@ class Client(Reconstructor, Denoiser):
 
         result = response.json()
 
-        if "output" not in result:
+        if "output" not in result or not isinstance(result["output"], dict):
             raise ValueError("Response missing 'output' field")
 
         if "file" not in result["output"]:
             raise ValueError("Response output missing 'file'")
 
-        return Client.deserialize(result["output"]["file"])
+        out = Client.deserialize(result["output"]["file"])
+
+        if self.return_metadata:
+            return out, result["output"].get("metadata")
+        else:
+            return out
 
     def to(self, *args, **kwargs):
         if args[0] and args[0] != "cpu":
