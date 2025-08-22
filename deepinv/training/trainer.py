@@ -250,8 +250,6 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-        import wandb
-
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
@@ -301,6 +299,7 @@ class Trainer:
         self.conv_metrics = None
         # wandb initialization
         if self.wandb_vis:
+            import wandb
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
@@ -432,6 +431,7 @@ class Trainer:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
+            import wandb
             wandb.log(logs, step=step)
 
     def check_clip_grad(self):
@@ -891,6 +891,7 @@ class Trainer:
             )
 
             if self.wandb_vis:
+                import wandb
                 log_dict_post_epoch = {}
                 images = wandb.Image(
                     grid_image,
@@ -944,6 +945,7 @@ class Trainer:
         }
         state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
+            import wandb
             state["wandb_id"] = wandb.run.id
 
         torch.save(
@@ -1181,6 +1183,7 @@ class Trainer:
                 break
 
         if self.wandb_vis:
+            import wandb
             wandb.save("model.h5")
             wandb.finish()
 
