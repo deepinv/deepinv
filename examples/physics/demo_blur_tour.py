@@ -20,7 +20,7 @@ from deepinv.utils.demo import load_example
 # First, let's load some test images.
 
 dtype = torch.float32
-device = "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 img_size = (173, 125)
 
 x_rgb = load_example(
@@ -218,7 +218,7 @@ plot(
 n_zernike = len(
     diffraction_generator.list_param
 )  # number of Zernike coefficients in the decomposition
-filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike))
+filters = diffraction_generator.step(coeff=torch.zeros(3, n_zernike, device=device))
 plot(
     [f for f in filters["filter"][:, None] ** 0.3],
     suptitle="Airy pattern",

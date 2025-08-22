@@ -30,6 +30,8 @@ the pseudo-inverse and proximal operators.
 import deepinv as dinv
 import torch
 
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
+
 # %%
 # Creating a custom forward operator.
 # ----------------------------------------------------------------------------------------
@@ -89,14 +91,14 @@ class Decolorize(dinv.physics.LinearPhysics):
 #
 
 
-x = torch.zeros(1, 3, 96, 128)
+x = torch.zeros(1, 3, 96, 128, device=device)
 x[:, 0, :32, :] = 1
 x[:, 1, 32:64, :] = 1
 x[:, 2, 64:, :] = 1
 
 physics = Decolorize(
     img_size=(3, 96, 128), noise_model=dinv.physics.GaussianNoise(sigma=0.1)
-)
+).to(device)
 
 y = physics(x)
 
@@ -116,7 +118,7 @@ print(
     "Original coefficients and sigma:", physics.coefficients, physics.noise_model.sigma
 )
 
-physics.update(coefficients=torch.tensor([1.0, 2.0, 3.0]), sigma=0.2)
+physics.update(coefficients=torch.tensor([1.0, 2.0, 3.0], device=device), sigma=0.2)
 
 print(
     "Updated coefficients and sigma via update:",
@@ -124,7 +126,7 @@ print(
     physics.noise_model.sigma,
 )
 
-y = physics(x, coefficients=torch.tensor([4.0, 5.0, 6.0]), sigma=0.3)
+y = physics(x, coefficients=torch.tensor([4.0, 5.0, 6.0], device=device), sigma=0.3)
 
 print(
     "Updated coefficients and sigma via forward pass:",
@@ -164,7 +166,7 @@ class Decolorize2(Decolorize):
         return y * self.coefficients[None, :, None, None]
 
 
-physics = Decolorize2()
+physics = Decolorize2().to(device)
 
 if physics.adjointness_test(x) < 1e-5:
     print("The linear operator has a well defined adjoint")
@@ -210,7 +212,7 @@ class DecolorizeSVD(dinv.physics.DecomposablePhysics):
         return y * self.coefficients[None, :, None, None]
 
 
-physics2 = DecolorizeSVD(noise_model=dinv.physics.GaussianNoise(sigma=0.1))
+physics2 = DecolorizeSVD(noise_model=dinv.physics.GaussianNoise(sigma=0.1)).to(device)
 
 y2 = physics2(x)
 

@@ -31,7 +31,7 @@ else:
         "The TomographyWithAstra operator runs with astra backend"
     )
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 if device == "cpu":
     raise RuntimeError(

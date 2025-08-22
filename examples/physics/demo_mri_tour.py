@@ -93,11 +93,12 @@ mask = physics_generator.step()["mask"]
 
 physics = dinv.physics.MRI(mask=mask, img_size=img_size, device=device)
 
+x = next(iter(DataLoader(knee_dataset))).to(device)
 dinv.utils.plot(
     {
-        "x": (x := next(iter(DataLoader(knee_dataset)))),
+        "x": x,
         "mask": mask,
-        "y": physics(x.to(device)).clamp(-1, 1),
+        "y": physics(x).clamp(-1, 1),
     }
 )
 print("Shapes:", x.shape, physics.mask.shape)
@@ -277,6 +278,7 @@ dataset = dinv.datasets.FastMRISliceDataset(
 )
 
 x, y = next(iter(DataLoader(dataset)))
+x, y = x.to(device), y.to(device)
 
 img_size, kspace_shape = x.shape[-2:], y.shape[-2:]
 n_coils = y.shape[2]
