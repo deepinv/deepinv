@@ -1,6 +1,6 @@
 import sys
 import pytest
-import io, json, base64
+import json
 from unittest.mock import patch, MagicMock
 
 import torch
