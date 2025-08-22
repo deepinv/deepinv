@@ -22,7 +22,7 @@ from deepinv.utils.plotting import plot, plot_curves, scatter_plot, plot_inset
 from deepinv.utils.demo import load_np_url, get_image_url, get_degradation_url
 from deepinv.utils.tensorlist import dirac_like
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
 # %%
 # The RI measurement operator

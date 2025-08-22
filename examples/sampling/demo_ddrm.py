@@ -92,7 +92,8 @@ print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB
 print(f"Diffusion PSNR: {dinv.metric.PSNR()(x, xhat).item():.2f} dB")
 
 # plot results
-error = (xhat - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
+# per pixel average abs. error
+error = (xhat - x).abs().sum(dim=1).unsqueeze(1)
 imgs = [x_lin, x, xhat]
 plot(imgs, titles=["measurement", "ground truth", "DDRM reconstruction"])
 
@@ -121,7 +122,8 @@ print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB
 print(f"Posterior mean PSNR: {dinv.metric.PSNR()(x, mean).item():.2f} dB")
 
 # plot results
-error = (mean - x).abs().sum(dim=1).unsqueeze(1)  # per pixel average abs. error
+# per pixel average abs. error
+error = (mean - x).abs().sum(dim=1).unsqueeze(1)
 std = var.sum(dim=1).unsqueeze(1).sqrt()  # per pixel average standard dev.
 imgs = [
     x_lin,
