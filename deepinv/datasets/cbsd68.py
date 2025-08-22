@@ -4,8 +4,6 @@ import os
 from deepinv.datasets.utils import calculate_md5
 from deepinv.datasets.base import ImageDataset
 
-error_import = None
-
 
 class CBSD68(ImageDataset):
     """Dataset for `CBSBD68 <https://paperswithcode.com/dataset/cbsd68>`_.
