@@ -10,7 +10,6 @@ from torchvision.datasets.folder import IMG_EXTENSIONS
 from PIL import Image
 from PIL.Image import Image as PIL_Image
 from deepinv.utils.tensorlist import TensorList
-from natsort import natsorted
 
 
 CORE_TYPES = (
@@ -339,6 +338,13 @@ class ImageFolder(ImageDataset):
 
         self.x_paths = None
         self.y_paths = None
+
+        try:
+            from natsort import natsorted
+        except ImportError:
+            natsorted = ImportError(
+                "natsort is not available. In order to use ImageFolder, please install the natsort package with `pip install natsort`."
+            )
 
         if x_path is not None:
             self.x_paths = natsorted(self.root.glob(x_path))

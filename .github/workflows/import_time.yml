@@ -42,10 +42,10 @@ jobs:
             pip install .[${{ matrix.extra }}]
           fi
 
-      - name: "Benchmark torch"
+      - name: "Benchmark torch+torchvision"
         run: |
           echo "Benchmarking torch..."
-          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch"'
+          hyperfine --warmup 3 --show-output --export-json torch.json 'python -c "import torch, torchvision"'
 
       - name: "Benchmark PR"
         run: |
