@@ -66,6 +66,7 @@ Specialized self-supervised losses for MRI
     deepinv.loss.mri.RobustSplittingLoss
     deepinv.loss.mri.Phase2PhaseLoss
     deepinv.loss.mri.Artifact2ArtifactLoss
+    deepinv.loss.mri.ENSURELoss
 
 Adversarial Learning
 --------------------
