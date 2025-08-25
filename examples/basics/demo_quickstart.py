@@ -68,7 +68,7 @@ physics.noise_model = dinv.physics.GaussianNoise(sigma=0.1)
 
 y = physics(x)
 
-dinv.utils.plot({"GT": x, "Noisy inpainting measurement": y})
+dinv.utils.plot({"GT": x, "Noisy Inpainting \nMeasurement": y})
 
 
 # %%
@@ -128,7 +128,9 @@ y = physics(x)
 
 x_pinv_noise = physics.A_dagger(y)
 
-dinv.utils.plot({"Pseudoinv w/o noise": x_pinv, "Pseudoinv with noise": x_pinv_noise})
+dinv.utils.plot(
+    {"Pseudoinv \nw/o noise": x_pinv, "Pseudoinv \nwith noise": x_pinv_noise}
+)
 
 
 # %%
@@ -165,11 +167,9 @@ psnr_y = metric(y, x).item()
 psnr_x_hat = metric(x_hat, x).item()
 
 dinv.utils.plot(
-    {
-        f"Measurement\n {psnr_y:.2f} dB": y,
-        f"Reconstruction\n {psnr_x_hat:.2f} dB": x_hat,
-        "GT": x,
-    }
+    [x, y, x_hat],
+    titles=["Ground Truth", "Measurement", "Reconstruction"],
+    subtitles=["PSNR:", f"{psnr_y:.2f} dB", f"{psnr_x_hat:.2f} dB"],
 )
 
 # %%
@@ -187,7 +187,14 @@ model = dinv.optim.DPIR(sigma=0.1, denoiser=denoiser, device=device)
 x_hat = model(y, physics)
 
 dinv.utils.plot(
-    {"Measurement": y, "Denoised": x_denoised, "Reconstructed": x_hat, "GT": x}
+    [x, y, x_denoised, x_hat],
+    titles=["Ground Truth", "Measurement", "Denoised", "Reconstruction"],
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(y, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_denoised, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_hat, x).item():.2f} dB",
+    ],
 )
 
 # %%
@@ -289,3 +296,5 @@ dinv.test(
 #    get in touch with our
 #    `MAINTAINERS <https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md>`_.
 #
+
+# %%

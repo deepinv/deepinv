@@ -104,25 +104,30 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         imgs = []
         titles = []
         caption = "From left to right: "
+        subtitles = []
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
+            subtitles.append("PSNR:")
 
         if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
+            subtitles.append(f"{dinv.metric.PSNR()(x, y).item():.2f} dB")
 
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
+            subtitles.append(f"{dinv.metric.PSNR()(x, x_nl).item():.2f} dB")
 
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
+            subtitles.append(f"{dinv.metric.PSNR()(x, x_net).item():.2f} dB")
 
         vis_array = []
         for img in imgs:
@@ -134,7 +139,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
 
-    return imgs, titles, grid_image, caption
+    return imgs, titles, grid_image, caption, subtitles
 
 
 @torch.no_grad
@@ -332,10 +337,11 @@ def plot(
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
             if subtitles is not None:
-                if all(isinstance(s, str) for s in subtitles):
-                    sub = subtitles[i]
-                else:
-                    sub = subtitles[r][i]
+                sub = (
+                    subtitles[i]
+                    if all(isinstance(s, str) for s in subtitles)
+                    else subtitles[r][i]
+                )
                 axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
                 axs[r, i].set_xticks([])
                 axs[r, i].set_yticks([])
