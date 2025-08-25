@@ -827,7 +827,7 @@ class ADMM(BaseOptim):
     where :math:`\gamma>0` is a stepsize and :math:`\beta>0` is a relaxation parameter.  If the attribute ``g_first`` is set to ``True``, the functions :math:`f` and :math:`\regname` are
     inverted in the previous iterations. The ADMM iterations are defined in the iterator class :class:`deepinv.optim.optim_iterators.ADMMIteration`.
 
-    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters of the algorithm are trainable.
+    If the attribute ``unfold`` is set to ``True``, the algorithm is unfolded and the algorithmic parameters (stepsize, regularization parameter, etc.) of the algorithm are trainable. 
     By default, all the algorithm parameters are trainiable : the stepsize :math:`\gamma`, the regularization parameter :math:`\lambda`, the prior parameter and the relaxation parameter :math:`\beta`.
     Use the ``trainable_params`` argument to adjust the list of trainable parameters.
 
