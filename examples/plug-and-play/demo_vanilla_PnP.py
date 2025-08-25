@@ -61,7 +61,7 @@ physics = dinv.physics.Tomography(
     noise_model=dinv.physics.GaussianNoise(sigma=noise_level_img),
 )
 
-SCALING = torch.pi / (2 * angles)  # approximate operator norm of A^T A
+scaling = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
 # Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
