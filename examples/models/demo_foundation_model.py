@@ -15,6 +15,7 @@ and is robust to a wide variety of imaging domains.
 
 """
 
+# %%
 import deepinv as dinv
 import torch
 
@@ -55,9 +56,15 @@ psnr = dinv.metric.PSNR()
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
-        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    }
+        f"Linear inverse": x_lin,
+        f"Pretrained RAM": x_hat,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, x_lin).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 # %%
@@ -90,9 +97,15 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
-        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    }
+        f"Linear inverse": x_lin,
+        f"Pretrained RAM": x_hat,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, x_lin).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 # %%
@@ -120,9 +133,15 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"FBP pseudo-inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
-        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    }
+        f"FBP pseudo-inverse": x_lin,
+        f"Pretrained RAM": x_hat,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, x_lin).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 # %%
@@ -149,9 +168,15 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Ground truth": x,
-        f"Linear inverse\n PSNR {psnr(x_lin, x).item():.2f}dB": x_lin,
-        f"Pretrained RAM\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-    }
+        f"Linear inverse": x_lin,
+        f"Pretrained RAM": x_hat,
+    },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, x_lin).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 
@@ -179,9 +204,15 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Original": x,
-        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
+        f"Measurement": y,
+        f"Reconstruction": x_hat,
     },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, y).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 # %%
@@ -255,10 +286,17 @@ with torch.no_grad():
 dinv.utils.plot(
     {
         "Original": x,
-        f"Measurement\n PSNR {psnr(y, x).item():.2f}dB": y,
-        f"Zero-shot reconstruction\n PSNR {psnr(x_hat, x).item():.2f}dB": x_hat,
-        f"Fine-tuned reconstruction\n PSNR {psnr(x_hat_ft, x).item():.2f}dB": x_hat_ft,
+        f"Measurement": y,
+        f"Zero-shot \nReconstruction": x_hat,
+        f"Fine-tuned \nReconstruction": x_hat_ft,
     },
+    subtitles=[
+        "PSNR:",
+        f"{psnr(x, y).item():.2f} dB",
+        f"{psnr(x, x_hat).item():.2f} dB",
+        f"{psnr(x, x_hat_ft).item():.2f} dB",
+    ],
+    figsize=(6, 4),
 )
 
 # %%
