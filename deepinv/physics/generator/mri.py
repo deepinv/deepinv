@@ -61,7 +61,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
         self.calculate_lines(self.W)
 
     def calculate_lines(self, W: int):
-        """Calculate number of lines and centre lines from total width.
+        """Calculate number of lines and center lines from total width.
 
         :param int W: total number of columns (width of mask)
         """
@@ -92,7 +92,7 @@ class BaseMaskGenerator(PhysicsGenerator, ABC):
     def get_pdf(self) -> torch.Tensor:
         """Get mask probability density function (PDF).
 
-        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        :return torch.Tensor: unnormalized 1D vector representing pdf evaluated across mask columns.
         """
         pass
 
@@ -163,7 +163,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
         """Create one-dimensional uniform probability density function across columns, ignoring any fixed sampling columns.
 
         :param int W: total number of columns (width of mask)
-        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        :return torch.Tensor: unnormalized 1D vector representing pdf evaluated across mask columns.
         """
         return torch.ones(W, device=self.device)
 
@@ -173,7 +173,7 @@ class RandomMaskGenerator(BaseMaskGenerator):
         # lines are never randomly sampled from the already sampled center
         pdf[_W // 2 - self.n_center // 2 : _W // 2 + ceildiv(self.n_center, 2)] = 0
 
-        # normalise distribution
+        # normalize distribution
         pdf = pdf / torch.sum(pdf)
         # select low-frequency lines according to pdf
         if self.n_lines > 0:
@@ -204,7 +204,7 @@ class PolyOrderMaskGenerator(BaseMaskGenerator):
 
     This is achieved by the following:
 
-    1. Create 1D polynomial function :math:`(1 - r)^{p}` where :math:`r` is the distance from the centre and :math:`p` is the polynomial order.
+    1. Create 1D polynomial function :math:`(1 - r)^{p}` where :math:`r` is the distance from the center and :math:`p` is the polynomial order.
     2. Scale so that its mean matches desired acceleration factor
     3. Use the function as a probability density function (pdf) to sample from a Bernoulli.
 
@@ -292,7 +292,7 @@ class GaussianMaskGenerator(RandomMaskGenerator):
 
     The mask is repeated across channels and randomly varies across batch dimension.
 
-    Algorithm taken from Schlemper et al. `A Deep Cascade of Convolutional Neural Networks for Dynamic MR Image Reconstruction <https://github.com/js3611/Deep-MRI-Reconstruction/blob/master/utils/compressed_sensing.py>`_.
+    Algorithm taken from :footcite:t:`schlemper2017deep`.
 
     For parameter descriptions see :class:`deepinv.physics.generator.mri.BaseMaskGenerator`
 
@@ -317,7 +317,7 @@ class GaussianMaskGenerator(RandomMaskGenerator):
         Add uniform distribution so that the probability of sampling high-frequency lines is non-zero.
 
         :param int W: total number of columns (width of sampling mask)
-        :return torch.Tensor: unnormalised 1D vector representing pdf evaluated across mask columns.
+        :return torch.Tensor: unnormalized 1D vector representing pdf evaluated across mask columns.
         """
         x = torch.arange(W, device=self.device)
         pdf = torch.exp(-(0.5 / (W / 10.0) ** 2) * (x - W / 2) ** 2)

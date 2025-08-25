@@ -4,7 +4,6 @@ from functools import partial
 
 import torch
 from torch import Tensor
-from torch.nn import MSELoss, L1Loss
 from torchmetrics.functional.image import (
     structural_similarity_index_measure,
     multiscale_structural_similarity_index_measure,
@@ -33,7 +32,7 @@ class MAE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MAE` is functionally equivalent to :class:`torch.nn.L1Loss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
+        but when ``reduction=None`` our MAE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``L1Loss`` does not perform any reduction.
 
     :Example:
 
@@ -67,7 +66,7 @@ class MSE(Metric):
     .. note::
 
         :class:`deepinv.loss.metric.MSE` is functionally equivalent to :class:`torch.nn.MSELoss` when ``reduction='mean'`` or ``reduction='sum'``,
-        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behaviour as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
+        but when ``reduction=None`` our MSE reduces over all dims except batch dim (same behavior as ``torchmetrics``) whereas ``MSELoss`` does not perform any reduction.
 
     :Example:
 
@@ -90,10 +89,10 @@ class MSE(Metric):
 
 class NMSE(MSE):
     r"""
-    Normalised Mean Squared Error metric.
+    Normalized Mean Squared Error metric.
 
     Calculates :math:`\text{NMSE}(\hat{x},x)` where :math:`\hat{x}=\inverse{y}`.
-    Normalises MSE by the L2 norm of the ground truth ``x``.
+    Normalizes MSE by the L2 norm of the ground truth ``x``.
 
     .. note::
 
@@ -321,7 +320,7 @@ class LpNorm(Metric):
     If ``onesided=False`` then the metric is defined as
     :math:`d(x,y)=\|x-y\|_p^p`.
 
-    Otherwise, it is the one-sided error https://ieeexplore.ieee.org/abstract/document/6418031/, defined as
+    Otherwise, it is the one-sided error :footcite:t:`jacques2013robust`, defined as
     :math:`d(x,y)= \|\max(x\circ y) \|_p^p`. where :math:`\circ` denotes element-wise multiplication.
 
     .. note::
@@ -343,6 +342,7 @@ class LpNorm(Metric):
         the data must either be of complex dtype or have size 2 in the channel dimension (usually the second dimension after batch).
     :param str reduction: a method to reduce metric score over individual batch scores. ``mean``: takes the mean, ``sum`` takes the sum, ``none`` or None no reduction will be applied (default).
     :param str norm_inputs: normalize images before passing to metric. ``l2``normalizes by L2 spatial norm, ``min_max`` normalizes by min and max of each input.
+
     """
 
     def __init__(self, p=2, onesided=False, **kwargs):
@@ -680,16 +680,28 @@ class HaarPSI(Metric):
         coeffs_deg_y = self._haar_wavelet_decompose(deg_y, n_scales)
         if is_color_image:
             coefficients_ref_i = torch.abs(
-                self._convolve2d(ref_i, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    ref_i,
+                    torch.ones((2, 2), device=ref_i.device, dtype=ref_i.dtype) / 4.0,
+                )
             )
             coefficients_deg_i = torch.abs(
-                self._convolve2d(deg_i, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    deg_i,
+                    torch.ones((2, 2), device=deg_i.device, dtype=deg_i.dtype) / 4.0,
+                )
             )
             coefficients_ref_q = torch.abs(
-                self._convolve2d(ref_q, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    ref_q,
+                    torch.ones((2, 2), device=ref_q.device, dtype=ref_q.dtype) / 4.0,
+                )
             )
             coefficients_deg_q = torch.abs(
-                self._convolve2d(deg_q, torch.ones((2, 2)) / 4.0)
+                self._convolve2d(
+                    deg_q,
+                    torch.ones((2, 2), device=deg_q.device, dtype=deg_q.dtype) / 4.0,
+                )
             )
 
         B, _, H, W = ref_y.shape

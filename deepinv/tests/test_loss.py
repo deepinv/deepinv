@@ -11,7 +11,8 @@ import deepinv as dinv
 from deepinv.loss.regularisers import JacobianSpectralNorm, FNEJacobianSpectralNorm
 from deepinv.loss.scheduler import RandomLossScheduler, InterleavedLossScheduler
 
-from conftest import no_plot
+# NOTE: It's used as a fixture.
+from conftest import non_blocking_plots  # noqa: F401
 
 LOSSES = [
     "sup",
@@ -99,7 +100,7 @@ def test_jacobian_spectral_values(toymatrix, reduction):
     assert torch.allclose(regfnel2, reg_fne_target, rtol=1e-3)
 
 
-def choose_loss(loss_name, rng=None):
+def choose_loss(loss_name, rng=None, device="cpu"):
     loss = []
     if loss_name == "mcei":
         loss.append(dinv.loss.MCLoss())
@@ -114,7 +115,7 @@ def choose_loss(loss_name, rng=None):
             "installed with `pip install kornia`",
         )
         loss.append(dinv.loss.MCLoss())
-        loss.append(dinv.loss.EILoss(dinv.transform.Homography()))
+        loss.append(dinv.loss.EILoss(dinv.transform.Homography(device=device)))
     elif loss_name == "splittv":
         loss.append(dinv.loss.SplittingLoss(split_ratio=0.25))
         loss.append(dinv.loss.TVLoss())
@@ -288,9 +289,11 @@ def test_notraining(physics, tmp_path, imsize, device):
 
 
 @pytest.mark.parametrize("loss_name", LOSSES)
-def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
+def test_losses(
+    non_blocking_plots, loss_name, tmp_path, dataset, physics, imsize, device, rng
+):
     # choose training losses
-    loss = choose_loss(loss_name, rng)
+    loss = choose_loss(loss_name, rng, device=device)
 
     save_dir = tmp_path / "dataset"
     # choose backbone denoiser
@@ -326,13 +329,12 @@ def test_losses(loss_name, tmp_path, dataset, physics, imsize, device, rng):
         log_train_batch=(loss_name == "sup_log_train_batch"),
     )
 
-    with no_plot():
-        # test the untrained model
-        initial_test = trainer.test(test_dataloader=test_dataloader)
+    # test the untrained model
+    initial_test = trainer.test(test_dataloader=test_dataloader)
 
-        # train the network
-        trainer.train()
-        final_test = trainer.test(test_dataloader=test_dataloader)
+    # train the network
+    trainer.train()
+    final_test = trainer.test(test_dataloader=test_dataloader)
 
     assert final_test["PSNR"] > initial_test["PSNR"]
 
@@ -432,6 +434,7 @@ def test_measplit(device, loss_name, rng):
             dinv.physics.generator.BernoulliSplittingMaskGenerator(
                 imsize, 0.5, device=device, rng=rng
             ),
+            device=device,
         )
         loss = dinv.loss.mri.WeightedSplittingLoss(
             mask_generator=gen, physics_generator=physics.gen
@@ -442,6 +445,7 @@ def test_measplit(device, loss_name, rng):
             dinv.physics.generator.BernoulliSplittingMaskGenerator(
                 imsize, 0.5, device=device, rng=rng
             ),
+            device=device,
         )
         loss = dinv.loss.mri.RobustSplittingLoss(
             mask_generator=gen,

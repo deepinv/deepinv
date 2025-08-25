@@ -1,14 +1,16 @@
-from typing import Union, Optional
+from __future__ import annotations
+from typing import Union, Optional, TYPE_CHECKING
 
-import numpy as np
 import torch
 
 from deepinv.loss.loss import Loss
 from deepinv.loss.ei import EILoss
-from deepinv.loss.metric.metric import Metric
-from deepinv.physics import Physics
-from deepinv.physics.generator import PhysicsGenerator
-from deepinv.transform.base import Transform
+
+if TYPE_CHECKING:
+    from deepinv.loss.metric.metric import Metric
+    from deepinv.physics import Physics
+    from deepinv.physics.generator import PhysicsGenerator
+    from deepinv.transform.base import Transform
 
 
 class MOILoss(Loss):
@@ -17,7 +19,7 @@ class MOILoss(Loss):
 
     This loss can be used to learn when signals are observed via multiple (possibly incomplete)
     forward operators :math:`\{A_g\}_{g=1}^{G}`,
-    i.e., :math:`y_i = A_{g_i}x_i` where :math:`g_i\in \{1,\dots,G\}` (see https://arxiv.org/abs/2201.12151).
+    i.e., :math:`y_i = A_{g_i}x_i` where :math:`g_i\in \{1,\dots,G\}` (see :footcite:t:`tachella2022unsupervised`).
 
 
     The measurement consistency loss is defined as
@@ -45,6 +47,7 @@ class MOILoss(Loss):
         :math:`\sensor{\noise{\forw{\hat{x}}}}` (i.e., noise and sensor model),
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
+
     """
 
     def __init__(
@@ -155,7 +158,7 @@ class MOEILoss(EILoss, MOILoss):
         otherwise is generated as :math:`\forw{\hat{x}}`.
     :param float weight: Weight of the loss.
     :param bool no_grad: if ``True``, the gradient does not propagate through :math:`T_g`. Default: ``False``.
-        This option is useful for super-resolution problems, see https://arxiv.org/abs/2312.11232.
+        This option is useful for super-resolution problems, see :footcite:t:`scanvic2025scale`.
     :param torch.Generator rng: torch randon number generator for randomly selecting from physics list. If using physics generator, rng is ignored.
     """
 

@@ -5,9 +5,10 @@ import numpy as np
 
 try:
     import astra
-    from astra import experimental
-except:
-    astra = ImportError("The astra-toolbox package is not installed.")
+except ImportError:  # pragma: no cover
+    astra = ImportError(
+        "The astra-toolbox package is not installed."
+    )  # pragma: no cover
 
 
 class XrayTransform:

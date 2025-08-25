@@ -7,3 +7,12 @@ __version__ = metadata["Version"]
 __author__ = metadata["Author"]
 __license__ = metadata["License"]
 __url__ = metadata["Project-URL"]
+
+__all__ = [
+    "__title__",
+    "__summary__",
+    "__version__",
+    "__author__",
+    "__license__",
+    "__url__",
+]

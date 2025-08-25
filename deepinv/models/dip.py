@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from deepinv.loss.mc import MCLoss
 from tqdm import tqdm
 from .base import Reconstructor
 from deepinv.utils.decorators import _deprecated_alias
@@ -18,7 +17,7 @@ class ConvDecoder(nn.Module):
     r"""
     Convolutional decoder network.
 
-    The architecture was introduced in `"Accelerated MRI with Un-trained Neural Networks" <https://arxiv.org/abs/2007.02471>`_,
+    The architecture was introduced by :footcite:t:`darestani2021accelerated`,
     and it is well suited as a deep image prior (see :class:`deepinv.models.DeepImagePrior`).
 
 
@@ -26,6 +25,7 @@ class ConvDecoder(nn.Module):
     :param tuple in_size: size of the input vector.
     :param int layers: number of layers in the network.
     :param int channels: number of channels in the network.
+
     """
 
     #  Code adapted from https://github.com/MLI-lab/ConvDecoder/tree/master by Darestani and Heckel.
@@ -98,9 +98,7 @@ class DeepImagePrior(Reconstructor):
 
     Deep Image Prior reconstruction.
 
-    This method is based on the paper `"Deep Image Prior" by Ulyanov et al. (2018)
-    <https://arxiv.org/abs/1711.10925>`_, and reconstructs
-    an image by minimizing the loss function
+    This method, introduced by :footcite:t:`ulyanov2018deep`, reconstructs an image by minimizing the loss function
 
     .. math::
 
@@ -127,7 +125,6 @@ class DeepImagePrior(Reconstructor):
     :param float learning_rate: Learning rate of the Adam optimizer.
     :param bool verbose: If ``True``, print progress.
     :param bool re_init: If ``True``, re-initialize the network parameters before each reconstruction.
-
     """
 
     @_deprecated_alias(input_size="img_size")
@@ -144,10 +141,13 @@ class DeepImagePrior(Reconstructor):
         self.generator = generator
         self.max_iter = int(iterations)
         self.lr = learning_rate
-        self.loss = MCLoss()
         self.verbose = verbose
         self.re_init = re_init
         self.img_size = img_size
+
+        from deepinv.loss.mc import MCLoss
+
+        self.loss = MCLoss()
 
     def forward(self, y, physics, **kwargs):
         r"""
@@ -173,7 +173,7 @@ class DeepImagePrior(Reconstructor):
 
         for it in tqdm(range(self.max_iter), disable=(not self.verbose)):
             x = self.generator(z)
-            error = self.loss(y, x, physics)
+            error = self.loss(y=y, x_net=x, physics=physics)
             optimizer.zero_grad()
             error.backward()
             optimizer.step()

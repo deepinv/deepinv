@@ -35,9 +35,11 @@ Classical Denoisers
    deepinv.models.EPLLDenoiser
 
 
-Deep Denoisers
---------------
-.. userguide:: deep-architectures
+Deep Architectures
+------------------
+.. userguide:: deep-denoisers
+
+.. userguide:: deep-reconstructors
 
 .. autosummary::
    :toctree: stubs
@@ -60,7 +62,8 @@ Deep Denoisers
    deepinv.models.ADMUNet
    deepinv.models.NCSNpp
    deepinv.models.DScCP
-
+   deepinv.models.RAM
+   deepinv.models.ArtifactRemoval
 
 Denoisers Utils
 ---------------
@@ -82,16 +85,6 @@ Denoisers Utils
 
    deepinv.models.complex.to_complex_denoiser
 
-Artifact Removal
-----------------
-.. userguide:: artifact
-
-.. autosummary::
-   :toctree: stubs
-   :template: myclass_template.rst
-   :nosignatures:
-
-   deepinv.models.ArtifactRemoval
 
 Deep Image Prior
 ----------------

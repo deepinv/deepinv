@@ -3,11 +3,11 @@
 Transforms
 =================
 
-This package contains different transforms which can be used for data augmentation or together with the equivariant losses.
+This module contains different transforms which can be used for data augmentation or together with the equivariant losses.
 
 We implement various geometric transforms, ranging from Euclidean to homography and diffeomorphisms, some of which offer group-theoretic properties.
 
-**See** :ref:`sphx_glr_auto_examples_basics_demo_transforms.py` **for example usage and visualisations.**
+**See** :ref:`sphx_glr_auto_examples_self-supervised-learning_demo_transforms.py` **for example usage and visualisations.**
 
 Transforms inherit from :class:`deepinv.transform.Transform`. Transforms can also be stacked by summing them, chained by multiplying them (i.e. product group), or joined via ``|`` to randomly select.
 There are numerous other parameters e.g to randomly transform multiple times at once, to constrain the parameters to a range etc.

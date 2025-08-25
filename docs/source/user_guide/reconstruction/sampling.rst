@@ -3,7 +3,7 @@
 Diffusion and MCMC Algorithms
 =============================
 
-This package contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte Carlo (MCMC) methods.
+This module contains posterior sampling algorithms, based on diffusion models and Markov Chain Monte Carlo (MCMC) methods.
 
 These methods build a Markov chain
 
@@ -221,8 +221,8 @@ or with a user-defined one (an instance of :class:`deepinv.sampling.SamplingIter
 
 ::
 
-    model = dinv.sampling.sampling_builder(iteration="ULA", prior=prior, data_fidelity=data_fidelity,
-                                    params = {"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
+    model = dinv.sampling.sampling_builder(iterator="ULA", prior=prior, data_fidelity=data_fidelity,
+                                           params_algo={"step_size": step_size, "alpha": alpha, "sigma": sigma}, max_iter=max_iter)
     x_hat = model(y, physics)
 
 

@@ -1,4 +1,3 @@
-import torch.nn as nn
 from deepinv.sampling.utils import projbox
 import torch
 import numpy as np
@@ -22,8 +21,7 @@ class SKRockIterator(SamplingIterator):
     Obtains samples of the posterior distribution using an orthogonal Runge-Kutta-Chebyshev stochastic
     approximation to accelerate the standard Unadjusted Langevin Algorithm.
 
-    The algorithm was introduced in "Accelerating proximal Markov chain Monte Carlo by using an explicit stabilised method"
-    by L. Vargas, M. Pereyra and K. Zygalakis (https://arxiv.org/abs/1908.08845)
+    The algorithm was introduced in :footcite:t:`pereyra2020accelerating`.
 
     - SKROCK assumes that the denoiser is :math:`L`-Lipschitz differentiable
     - For convergence, SKROCK requires that ``step_size`` smaller than :math:`\frac{1}{L+\|A\|_2^2}`
