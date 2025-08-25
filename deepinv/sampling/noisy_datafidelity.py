@@ -151,11 +151,6 @@ class DPSDataFidelity(NoisyDataFidelity):
             physics.A(self.denoiser(x, sigma)), y, *args, **kwargs
         )
 
-    def grad(self, x, y, physics, sigma=None, *args, **kwargs):
-        return self.weight * physics.A_vjp(
-            x, self.d.grad(physics.A(x), y, *args, **kwargs)
-        )
-
 
 class DPSDataFidelity(NoisyDataFidelity):
     r"""
