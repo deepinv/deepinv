@@ -20,7 +20,7 @@ Introduction
 Get started
 -----------
 
-Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
+Read our **documentation** at `deepinv.github.io <https://deepinv.github.io>`_. Check out our `5 minute quickstart tutorial <https://deepinv.github.io/deepinv/auto_examples/basics/demo_quickstart.html>`_, our `comprehensive examples <https://deepinv.github.io/deepinv/auto_examples/index.html>`_, or our `User Guide <https://deepinv.github.io/deepinv/user_guide.html>`_.
 
 ``deepinv`` features
 
