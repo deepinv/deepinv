@@ -103,7 +103,7 @@ plot_convergence_metrics = True  # compute performance and convergence metrics a
 # instantiate the algorithm class to solve the IP problem.
 # initialize with the rescaled adjoint such that the initialization lives already at the correct scale
 init = lambda y, physics: {
-    "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * SCALING)
+    "est": (physics.A_adjoint(y) * SCALING, physics.A_adjoint(y) * scaling)
 }
 
 # define the model
