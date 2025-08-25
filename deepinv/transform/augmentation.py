@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from deepinv.transform.base import Transform, TransformParam
-from deepinv.physics.mri import MRIMixin
+from deepinv.utils.mixins import MRIMixin
 from deepinv.physics.noise import GaussianNoise, NoiseModel
 
 
@@ -106,7 +106,7 @@ class RandomPhaseError(Transform):
         **kwargs,
     ) -> Tensor:
         out = []
-        for _se, _so in zip(se, so):
+        for _se, _so in zip(se, so, strict=True):
             shift = MRIMixin.to_torch_complex(torch.zeros_like(y))
             shift[..., 0::2] = torch.exp(-1j * _se)  # assume readouts in w
             shift[..., 1::2] = torch.exp(-1j * _so)

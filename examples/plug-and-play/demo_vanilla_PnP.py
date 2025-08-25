@@ -2,7 +2,7 @@
 Vanilla PnP for computed tomography (CT).
 ====================================================================================================
 
-This example shows how to use a standart PnP algorithm with DnCNN denoiser for computed tomography.
+This example shows how to use a standard PnP algorithm with DnCNN denoiser for computed tomography.
 
 """
 
@@ -63,7 +63,7 @@ physics = dinv.physics.Tomography(
 
 SCALING = torch.pi / (2 * angles)  # approximate operator norm of A^T A
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 

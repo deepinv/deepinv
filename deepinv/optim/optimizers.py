@@ -6,7 +6,6 @@ from deepinv.optim.optim_iterators import *
 from deepinv.optim.fixed_point import FixedPoint
 from deepinv.optim.prior import Zero
 from deepinv.optim.data_fidelity import ZeroFidelity
-from deepinv.loss.metric.distortion import PSNR
 from deepinv.models import Reconstructor
 from deepinv.optim.bregman import BregmanL2
 import torch.nn as nn
@@ -133,7 +132,7 @@ class BaseOptim(Reconstructor):
 
     :param deepinv.optim.OptimIterator iterator: Fixed-point iterator of the optimization algorithm of interest.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-        e.g. the stepsize, regularisation parameter, denoising standard deviation.
+        e.g. the stepsize, regularization parameter, denoising standard deviation.
         Each value of the dictionary can be either Iterable (distinct value for each iteration) or
         a single float (same value for each iteration).
         Default: ``{"stepsize": 1.0, "lambda": 1.0}``. See :any:`optim-params` for more details.
@@ -278,7 +277,7 @@ class BaseOptim(Reconstructor):
         # By default, each parameter in ``params_algo` is a list.
         # If given as a single number, we convert it to a list of 1 element.
         # If given as a list of more than 1 element, it should have lenght ``max_iter``.
-        for key, value in zip(params_algo.keys(), params_algo.values()):
+        for key, value in params_algo.items():
             if not isinstance(value, Iterable):
                 params_algo[key] = [value]
             else:
@@ -353,6 +352,10 @@ class BaseOptim(Reconstructor):
             verbose=verbose,
         )
 
+        from deepinv.loss.metric.distortion import PSNR
+
+        self.psnr = PSNR()
+
     def update_params_fn(self, it):
         r"""
         For each parameter ``params_algo``, selects the parameter value for iteration ``it``
@@ -363,7 +366,7 @@ class BaseOptim(Reconstructor):
         """
         cur_params_dict = {
             key: value[it] if len(value) > 1 else value[0]
-            for key, value in zip(self.params_algo.keys(), self.params_algo.values())
+            for key, value in self.params_algo.items()
         }
         return cur_params_dict
 
@@ -447,9 +450,10 @@ class BaseOptim(Reconstructor):
         init = {}
         x_init = self.get_output(X_init)
         self.batch_size = x_init.shape[0]
+
         if x_gt is not None:
             psnr = [
-                [PSNR()(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
+                [self.psnr(x_init[i : i + 1], x_gt[i : i + 1]).cpu().item()]
                 for i in range(self.batch_size)
             ]
         else:
@@ -485,15 +489,16 @@ class BaseOptim(Reconstructor):
                 )
                 metrics["residual"][i].append(residual)
                 if x_gt is not None:
-                    psnr = PSNR()(x[i : i + 1], x_gt[i : i + 1])
+                    psnr = self.psnr(x[i : i + 1], x_gt[i : i + 1])
                     metrics["psnr"][i].append(psnr.cpu().item())
                 if self.has_cost:
                     F = X["cost"][i]
                     metrics["cost"][i].append(F.detach().cpu().item())
                 if self.custom_metrics is not None:
-                    for custom_metric_name, custom_metric_fn in zip(
-                        self.custom_metrics.keys(), self.custom_metrics.values()
-                    ):
+                    for (
+                        custom_metric_name,
+                        custom_metric_fn,
+                    ) in self.custom_metrics.items():
                         metrics[custom_metric_name][i].append(
                             custom_metric_fn(
                                 metrics[custom_metric_name], x_prev[i], x[i]
@@ -687,7 +692,7 @@ def create_iterator(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: None.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: False
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     """
     # If no prior is given, we set it to a zero prior.
     if prior is None:
@@ -757,7 +762,7 @@ def optim_builder(
         ``"HQS"`` (half-quadratic splitting), ``"CP"`` (Chambolle-Pock) or ``"DRS"`` (Douglas Rachford).
     :param int max_iter: maximum number of iterations of the optimization algorithm. Default: 100.
     :param dict params_algo: dictionary containing all the relevant parameters for running the algorithm,
-                            e.g. the stepsize, regularisation parameter, denoising standart deviation.
+                            e.g. the stepsize, regularization parameter, denoising standard deviation.
                             Each value of the dictionary can be either Iterable (distinct value for each iteration) or
                             a single float (same value for each iteration). See :any:`optim-params` for more details.
                             Default: ``{"stepsize": 1.0, "lambda": 1.0}``.
@@ -769,7 +774,7 @@ def optim_builder(
                             deepinv.optim.Prior (distinct prior for each iteration). Default: ``None``.
     :param Callable F_fn: Custom user input cost function. default: ``None``.
     :param bool g_first: whether to perform the step on :math:`g` before that on :math:`f` before or not. Default: `False`
-    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standart Euclidean optimization.
+    :param deepinv.optim.Bregman bregman_potential: Bregman potential used for Bregman optimization algorithms such as Mirror Descent. Default: ``None``, uses standard Euclidean optimization.
     :param kwargs: additional arguments to be passed to the :class:`deepinv.optim.BaseOptim` class.
     :return: an instance of the :class:`deepinv.optim.BaseOptim` class.
 

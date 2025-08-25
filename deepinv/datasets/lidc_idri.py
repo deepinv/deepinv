@@ -6,28 +6,29 @@ from typing import (
 )
 import os
 
-import numpy
-import torch
 import numpy as np
+from deepinv.datasets.base import ImageDataset
 
 error_import = None
 try:
     import pandas as pd
-except:
+except ImportError:  # pragma: no cover
     error_import = ImportError(
         "pandas is not available. Please install the pandas package with `pip install pandas`."
-    )
+    )  # pragma: no cover
 try:
     import pydicom
     from pydicom import dcmread
-except:
+except ImportError:  # pragma: no cover
     error_import = ImportError(
         "pydicom is not available. Please install the pydicom package with `pip install pydicom`."
-    )
+    )  # pragma: no cover
 
 
-class LidcIdriSliceDataset(torch.utils.data.Dataset):
+class LidcIdriSliceDataset(ImageDataset):
     """Dataset for `LIDC-IDRI <https://www.cancerimagingarchive.net/collection/lidc-idri/>`_ that provides access to CT image slices.
+
+    Published in :footcite:t:`armato2011lung`.
 
     | The Lung Image Database Consortium image collection (LIDC-IDRI) consists
     | of diagnostic and lung cancer screening thoracic computed tomography (CT)
@@ -70,6 +71,8 @@ class LidcIdriSliceDataset(torch.utils.data.Dataset):
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True)
             batch = next(iter(dataloader))
             print(batch.shape)
+
+
 
     """
 

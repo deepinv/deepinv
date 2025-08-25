@@ -9,21 +9,22 @@ from deepinv.optim.optim_iterators import HQSIteration
 
 
 class MoDL(BaseOptim):
+    """MoDL unfolded network.
+
+    The model is a simple unrolled network using half-quadratic splitting
+    where the prox is replaced by a trainable denoising prior.
+
+    This was proposed for MRI reconstruction in :footcite:t:`aggarwal2018modl`.
+
+    :param Denoiser, torch.nn.Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
+    :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
+
+    """
     def __init__(
         self,
         denoiser: Union[Denoiser, Module] = None,
         num_iter: int = 3,
     ):
-        """Unrolled network proposed in MoDL.
-
-        The model is a simple unrolled network using half-quadratic splitting
-        where the prox is replaced by a trainable denoising prior.
-
-        This was proposed for MRI reconstruction in `MoDL <https://ieeexplore.ieee.org/document/8434321>`_.
-
-        :param Denoiser, torch.nn.Module denoiser: backbone denoiser model. If ``None``, uses :class:`deepinv.models.DnCNN`
-        :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
-        """
         # Select the data fidelity term
         data_fidelity = L2()
 

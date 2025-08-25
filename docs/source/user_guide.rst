@@ -29,7 +29,7 @@ which can simulate the observation process:
 
         :octicon:`telescope-fill` **Introduction**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Introduction to the physics package.
+        Introduction to the physics module.
 
     .. grid-item-card::
         :link: physics
@@ -38,15 +38,6 @@ which can simulate the observation process:
         :octicon:`device-camera-video` **Operators**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Forward operators and noise distributions.
-
-    .. grid-item-card::
-        :link: physics_defining
-        :link-type: ref
-
-        :octicon:`tools` **Defining your operator**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        How to define your own forward operator,
-        if the existing ones are not enough.
 
     .. grid-item-card::
         :link: physics_functional
@@ -65,7 +56,6 @@ which can simulate the observation process:
 
    user_guide/physics/intro
    user_guide/physics/physics
-   user_guide/physics/defining
    user_guide/physics/functional
 
 
@@ -94,6 +84,14 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         Introduction and summary of reconstruction algorithms.
 
     .. grid-item-card::
+        :link: pretrained-models
+        :link-type: ref
+
+        :octicon:`paper-airplane` **Pretrained Models**
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Ready-to-use pretrained models and denoisers.
+
+    .. grid-item-card::
         :link: denoisers
         :link-type: ref
 
@@ -103,13 +101,12 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         pretrained weights.
 
     .. grid-item-card::
-        :link: artifact
+        :link: deep-reconstructors
         :link-type: ref
 
-        :octicon:`law` **Artifact Removal**
+        :octicon:`law` **Deep Reconstruction Methods**
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Reconstruction networks from denoisers
-        and other image-to-image networks.
+        Deep model architectures for reconstruction.
 
     .. grid-item-card::
         :link: optim
@@ -152,30 +149,20 @@ Given a restoration model ``model``, the reconstruction is therefore provided as
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         Conditional, unconditional GANs and deep image prior.
 
-    .. grid-item-card::
-        :link: specific
-        :link-type: ref
-
-        :octicon:`sun` **Custom Reconstruction Networks**
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        Custom reconstruction methods and networks.
-
-
 .. toctree::
    :maxdepth: 2
    :hidden:
    :caption: Reconstruction Methods
 
    user_guide/reconstruction/introduction
+   user_guide/reconstruction/pretrained-models
    user_guide/reconstruction/denoisers
-   user_guide/reconstruction/artifact
+   user_guide/reconstruction/deep-reconstructors
    user_guide/reconstruction/optimization
    user_guide/reconstruction/iterative
    user_guide/reconstruction/sampling
    user_guide/reconstruction/unfolded
    user_guide/reconstruction/adversarial
-   user_guide/reconstruction/specific
-   user_guide/reconstruction/weights
 
 
 Training, Testing and Utilities
@@ -267,3 +254,4 @@ Reconstruction networks ``model`` can be trained on datasets to improve their pe
 
    user_guide/other/utils
    user_guide/other/notation
+   user_guide/other/biblio

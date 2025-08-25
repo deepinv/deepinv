@@ -1,7 +1,6 @@
 from .logger import AverageMeter, ProgressMeter, get_timestamp
 from .metric import cal_psnr, cal_mse, cal_psnr_complex
 from .plotting import (
-    rescale_img,
     plot,
     torch2cpu,
     plot_curves,
@@ -10,11 +9,10 @@ from .plotting import (
     plot_videos,
     save_videos,
     make_grid,
-    wandb_imgs,
-    wandb_plot_curves,
     resize_pad_square_tensor,
     scatter_plot,
     plot_ortho3D,
+    rescale_img,  # deprecated
 )
 from .demo import (
     load_url_image,
@@ -25,6 +23,9 @@ from .demo import (
     get_data_home,
     get_image_url,
     get_degradation_url,
+    download_example,
+    load_torch_url,
+    load_np_url,
 )
 from .nn import get_freer_gpu
 from .tensorlist import (
@@ -37,3 +38,6 @@ from .tensorlist import (
 )
 from .phantoms import RandomPhantomDataset, SheppLoganDataset
 from .patch_extractor import patch_extractor
+from .parameters import get_GSPnP_params
+from .signal import normalize_signal
+from .mixins import TimeMixin, MRIMixin

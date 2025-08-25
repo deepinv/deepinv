@@ -5,32 +5,34 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "deepinv"
 authors = [{name="DeepInverse maintainers (see https://github.com/deepinv/deepinv/blob/main/MAINTAINERS.md)"}]
-license = {text = "BSD 3-Clause"}
+license = "BSD-3-Clause"
 description = "DeepInverse: a PyTorch library for imaging with deep learning"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Utilities",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-requires-python = ">=3.9"
-version = "0.3.2"
+requires-python = ">=3.10"
+version = "0.3.3"
 dependencies = [
     "numpy",
     "matplotlib",
-    "hdf5storage",
     "tqdm",
-    "torch<2.7",
+    "torch>=2.2.0",
     "torchvision",
     "torchmetrics",
     "einops",
-    "wandb",
     "scipy",
+    "requests",
+    "h5py",
     "natsort",
 ]
 
@@ -66,9 +68,15 @@ doc = [
     "sphinx_autoapi",
     "sphinx-design",
     "sphinx_sitemap<2.7.0",
+    "sphinxcontrib.bibtex"
 ]
 
-# optional dependencies for specific denoisers
+lint = [
+    "black",
+    "ruff"
+]
+
+# optional dependencies for specific denoisers, physics or transforms
 denoisers = [
     "bm3d",
     "bm4d<4.2.4",
@@ -92,6 +100,12 @@ dataset = [
     "mat73",
 ]
 
+# optional dependencies for training
+training = [
+    "wandb"
+]
+
+
 
 #####################################################################
 # Pytest configuration and coverage reporting
@@ -112,3 +126,13 @@ omit = ['examples/*', 'deepinv/tests']  # define paths to omit
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["UP006", "F401", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# NOTE: Rule F401 is ruff's unused imports rule.
+"__init__.py" = ["F401"]

@@ -5,9 +5,7 @@ Self-supervised denoising with the Neighbor2Neighbor loss.
 This example shows you how to train a denoiser network in a fully self-supervised way,
 i.e., using noisy images only via the Neighbor2Neighbor loss, which exploits the local correlation of natural images.
 
-The Neighbor2Neighbor loss is presented in `"Neighbor2Neighbor: Self-Supervised Denoising from Single Noisy Images"
-<https://openaccess.thecvf.com/content/CVPR2021/papers/Huang_Neighbor2Neighbor_Self-Supervised_Denoising_From_Single_Noisy_Images_CVPR_2021_paper.pdf>`_
-and is defined as:
+The Neighbor2Neighbor loss is presented in :footcite:t:`huang2021neighbor2neighbor` and is defined as:
 
 .. math::
 
@@ -16,8 +14,6 @@ and is defined as:
 where :math:`A_1` and :math:`A_2` are two masks, each choosing a different neighboring map,
 :math:`R` is the trainable denoiser network, :math:`\gamma>0` is a regularization parameter
 and no gradient is propagated when computing :math:`R(y)`.
-
-
 """
 
 from pathlib import Path
@@ -51,7 +47,7 @@ device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 # In this example, we use the MNIST dataset as the base image dataset.
 #
 
-operation = "denoising"
+operation = "denoising_n2n"
 train_dataset_name = "MNIST"
 
 transform = transforms.Compose([transforms.ToTensor()])
@@ -77,7 +73,7 @@ test_dataset = datasets.MNIST(
 # defined physics
 physics = dinv.physics.Denoising(dinv.physics.PoissonNoise(0.1))
 
-# Use parallel dataloader if using a GPU to fasten training,
+# Use parallel dataloader if using a GPU to speed up training,
 # otherwise, as all computes are on CPU, use synchronous data loading.
 num_workers = 4 if torch.cuda.is_available() else 0
 
@@ -187,3 +183,8 @@ model = trainer.train()
 #
 
 trainer.test(test_dataloader)
+
+# %%
+# :References:
+#
+# .. footbibliography::

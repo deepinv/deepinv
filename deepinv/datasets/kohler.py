@@ -1,5 +1,4 @@
 import torch
-from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_and_extract_archive
 from PIL import Image
 
@@ -8,6 +7,8 @@ from os.path import basename, join
 from typing import Callable, Union
 from pathlib import Path
 
+from deepinv.datasets.base import ImageDataset
+
 
 def url_basename(url: str) -> str:
     parts = urlparse(url)
@@ -15,8 +16,10 @@ def url_basename(url: str) -> str:
     return basename(path)
 
 
-class Kohler(Dataset):
-    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_.
+class Kohler(ImageDataset):
+    """Dataset for `Recording and Playback of Camera Shake <https://doi.org/10.1007/978-3-642-33786-4_3>`_
+
+    Published in :footcite:t:`kohler2012recording`.
 
     The dataset consists of blurry shots and sharp frames, each blurry shot
     being associated with about 200 sharp frames. There are 48 blurry shots in
@@ -77,6 +80,7 @@ class Kohler(Dataset):
             # Convenience method to directly index the printouts and trajectories
             sharp_frame, blurry_shot = dataset.get_item(1, 1, frames="middle")
             print(sharp_frame.shape, blurry_shot.shape)
+
     """
 
     # The Köhler dataset is split into multiple archives available online.

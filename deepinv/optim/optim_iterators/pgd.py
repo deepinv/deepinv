@@ -33,8 +33,7 @@ class FISTAIteration(OptimIterator):
     r"""
     Iterator for fast iterative soft-thresholding (FISTA).
 
-    Class for a single iteration of the FISTA algorithm for minimizing :math:`f(x) + \lambda \regname(x)` as proposed by
-    `Chambolle \& Dossal <https://inria.hal.science/hal-01060130v3/document>`_.
+    Class for a single iteration of the FISTA algorithm for minimizing :math:`f(x) + \lambda \regname(x)` as proposed by :footcite:t:`chambolle2015convergence`.
 
     The iteration is given by
 
