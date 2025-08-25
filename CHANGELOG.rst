@@ -24,6 +24,7 @@ Fixed
 - Fix full-reference metrics used with measurement-only dataset (:gh:`622` by `Andrew Wang`_)
 - Batching DownsamplingGenerator in the case of multiple filters (:gh:`690` by `Matthieu Terris`_)
 - NaN motion blur generator (:gh:`685` by `Matthieu Terris`_)
+- Fix the condition for break in compute_norm (:gh:`699` by `Quentin Barthélemy`_)
 
 
 v0.3.3
@@ -426,3 +427,4 @@ Authors
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
+.. _Quentin Barthélemy: https://github.com/qbarthelemy

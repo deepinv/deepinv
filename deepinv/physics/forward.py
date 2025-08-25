@@ -11,7 +11,6 @@ import torch.nn as nn
 from deepinv.physics.noise import GaussianNoise, ZeroNoise
 from deepinv.utils.tensorlist import randn_like, TensorList
 from deepinv.optim.utils import least_squares, lsqr
-import warnings
 
 
 class Physics(torch.nn.Module):  # parent class for forward models
@@ -530,7 +529,7 @@ class LinearPhysics(Physics):
         r"""
         Computes the spectral :math:`\ell_2` norm (Lipschitz constant) of the operator
 
-        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|`.
+        :math:`A^{\top}A`, i.e., :math:`\|A^{\top}A\|_2`,
 
         using the `power method <https://en.wikipedia.org/wiki/Power_iteration>`_.
 
@@ -550,13 +549,16 @@ class LinearPhysics(Physics):
             z = torch.matmul(x.conj().reshape(-1), y.reshape(-1)) / torch.norm(x) ** 2
 
             rel_var = torch.norm(z - zold)
-            if rel_var < tol and verbose:
-                print(
-                    f"Power iteration converged at iteration {it}, value={z.item():.2f}"
-                )
+            if rel_var < tol:
+                if verbose:
+                    print(
+                        f"Power iteration converged at iteration {it}, value={z.item():.2f}"
+                    )
                 break
             zold = z
             x = y / torch.norm(y)
+        else:
+            warnings.warn("Power iteration: convergence not reached")
 
         return z.real
 
