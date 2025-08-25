@@ -109,30 +109,34 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
-            for i in range(x.shape[0]):
-                subtitles.append(["PSNR:"])
+            subtitles = [["PSNR:"] for _ in range(x.shape[0])]
 
         if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
             psnr = dinv.metric.PSNR()(x, y)
-            for i in range(x.shape[0]):
+            if subtitles == []:
+                subtitles = [[] for _ in range(y.shape[0])]
+            for i in range(y.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
-
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
             psnr = dinv.metric.PSNR()(x, x_nl)
-            for i in range(x.shape[0]):
+            if subtitles == []:
+                subtitles = [[] for _ in range(x_nl.shape[0])]
+            for i in range(x_nl.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
             psnr = dinv.metric.PSNR()(x, x_net)
-            for i in range(x.shape[0]):
+            if subtitles == []:
+                subtitles = [[] for _ in range(x_net.shape[0])]
+            for i in range(x_net.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
         vis_array = []
         for img in imgs:
