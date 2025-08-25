@@ -226,5 +226,3 @@ plot(
     cmap="jet",
     fontsize=24,
 )
-
-# %%

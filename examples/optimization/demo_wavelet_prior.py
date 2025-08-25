@@ -191,14 +191,17 @@ x_model, metrics = model(
 x_model = x_model.clamp(0, 1)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"PGD reconstruction PSNR: {dinv.metric.PSNR()(x, x_model).item():.2f} dB")
-
 # plot images. Images are saved in RESULTS_DIR.
-imgs = [y, x, x_lin, x_model]
+imgs = [x, y, x_lin, x_model]
 plot(
     imgs,
-    titles=["Input", "GT", "Linear", "Recons."],
+    titles=["GT", "Input", "Linear", "Recons."],
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(x, y).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_lin).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x, x_model).item():.2f} dB",
+    ],
 )
 
 # plot convergence curves

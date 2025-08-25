@@ -186,9 +186,6 @@ x_model, metrics = model(
 psnr_input = dinv.metric.PSNR()(x, y)
 psnr_lin = dinv.metric.PSNR()(x, x_lin)
 psnr_model = dinv.metric.PSNR()(x, x_model)
-print(f"Input PSNR: {psnr_input.item():.2f} dB")
-print(f"Linear reconstruction PSNR: {psnr_lin.item():.2f} dB")
-print(f"PGD reconstruction PSNR: {psnr_model.item():.2f} dB")
 
 # plot images. Images are saved in RESULTS_DIR.
 imgs = [x, y, x_lin, x_model]
