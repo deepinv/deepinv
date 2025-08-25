@@ -50,43 +50,6 @@ sigma = 0.2
 noisy_image = image + sigma * torch.randn_like(image)
 
 # %%
-# For this tour, we define an helper function to display comparison of various
-# restored images, with their PSNR values and zoom-in on a region of interest.
-
-
-def show_image_comparison(images, suptitle=None, ref=None):
-    """Display various images restoration with PSNR and zoom-in"""
-
-    titles = list(images.keys())
-    if "Original" in images or ref is not None:
-        # If the original image is in the dict, add PSNR in the titles.
-        image = images["Original"] if "Original" in images else ref
-        psnr = [dinv.metric.cal_psnr(image, im).item() for im in images.values()]
-        titles = [
-            f"{name} \n (PSNR: {psnr:.2f})" if name != "Original" else name
-            for name, psnr in zip(images.keys(), psnr, strict=True)
-        ]
-    # Plot the images with zoom-in
-    fig = plot_inset(
-        list(images.values()),
-        titles=titles,
-        extract_size=0.2,
-        extract_loc=(0.5, 0.0),
-        inset_size=0.5,
-        return_fig=True,
-        show=False,
-        figsize=(len(images) * 1.5, 2.5),
-    )
-
-    # Add a suptitle if it is provided
-    if suptitle:
-        plt.suptitle(suptitle, size=12)
-        plt.tight_layout()
-        fig.subplots_adjust(top=0.85, bottom=0.02, left=0.02, right=0.95)
-        plt.show()
-
-
-# %%
 # We are now ready to explore the different denoisers.
 #
 # Classical Denoisers
