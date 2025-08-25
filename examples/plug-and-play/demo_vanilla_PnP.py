@@ -131,7 +131,7 @@ model.eval()
 
 y = physics(x)
 x_lin = (
-    physics.A_adjoint(y) * SCALING
+    physics.A_adjoint(y) * scaling
 )  # rescaled linear reconstruction with the adjoint operator
 
 # run the model on the problem.
