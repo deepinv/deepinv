@@ -79,7 +79,7 @@ num_workers = 4 if torch.cuda.is_available() else 0
 # Attention: The choice of the stepsize is crucial as it also defines the amount of regularization.  Indeed, the regularization parameter ``lambda`` is implicitly defined by the stepsize.
 # Both the stepsize and the noise level of the denoiser control the regularization power and should be tuned to the specific problem.
 # The following parameters have been chosen manually.
-stepsize = 0.01 * SCALING
+stepsize = 0.01 * scaling
 sigma_denoiser = noise_level_img
 max_iter = 100
 early_stop = True
