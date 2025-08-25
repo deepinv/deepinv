@@ -752,7 +752,7 @@ def optim_builder(
 
     .. note::
 
-        Since 0.3.1, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
+        Since 0.3.4, instead of using this function, it is possible to define optimization algorithms using directly the algorithm name e.g.
         ``model = ProximalGradientDescent(data_fidelity, prior, ...)``.
 
     :param str, deepinv.optim.OptimIterator iteration: either the name of the algorithm to be used,
