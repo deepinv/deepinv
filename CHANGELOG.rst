@@ -427,4 +427,4 @@ Authors
 .. _Keying Guo: https://github.com/g-keying
 .. _Sebastian Neumayer: https://www.tu-chemnitz.de/mathematik/invimg/index.en.php
 .. _Romain Vo: https://github.com/romainvo
-.. _Quentin Barthélemy Vo: https://github.com/qbarthelemy
+.. _Quentin Barthélemy: https://github.com/qbarthelemy
