@@ -20,6 +20,7 @@ class MoDL(BaseOptim):
     :param int num_iter: number of unfolded layers ("cascades"), defaults to 3.
 
     """
+
     def __init__(
         self,
         denoiser: Union[Denoiser, Module] = None,
