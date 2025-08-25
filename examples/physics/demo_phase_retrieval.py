@@ -26,7 +26,6 @@ from deepinv.utils.demo import load_example
 from deepinv.utils.plotting import plot
 from deepinv.optim.phase_retrieval import (
     correct_global_phase,
-    cosine_similarity,
 )
 from deepinv.models.complex import to_complex_denoiser
 
