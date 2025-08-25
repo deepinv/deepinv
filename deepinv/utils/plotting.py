@@ -104,26 +104,40 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         imgs = []
         titles = []
         caption = "From left to right: "
+        subtitles = []
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
+            subtitles = [["PSNR:"] for _ in range(x.shape[0])]
 
         if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
-
+            psnr = dinv.metric.PSNR()(x, y)
+            if subtitles == []:
+                subtitles = [[] for _ in range(y.shape[0])]
+            for i in range(y.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
-
+            psnr = dinv.metric.PSNR()(x, x_nl)
+            if subtitles == []:
+                subtitles = [[] for _ in range(x_nl.shape[0])]
+            for i in range(x_nl.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
-
+            psnr = dinv.metric.PSNR()(x, x_net)
+            if subtitles == []:
+                subtitles = [[] for _ in range(x_net.shape[0])]
+            for i in range(x_net.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
         vis_array = []
         for img in imgs:
             out = preprocess_img(img, rescale_mode=rescale_mode)
@@ -134,7 +148,7 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
 
-    return imgs, titles, grid_image, caption
+    return imgs, titles, grid_image, caption, subtitles
 
 
 @torch.no_grad
@@ -209,6 +223,7 @@ def plot(
     show=True,
     close=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
     fontsize=None,
@@ -262,6 +277,7 @@ def plot(
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param bool close: close the image plot. Under the hood, this calls the ``plt.close()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param str interpolation: interpolation to use for the images.
@@ -329,7 +345,19 @@ def plot(
                 colbar.ax.tick_params(labelsize=8)
             if titles and r == 0:
                 axs[r, i].set_title(titles[i], wrap=True)
-            axs[r, i].axis("off")
+            if subtitles is not None:
+                sub = (
+                    subtitles[i]
+                    if all(isinstance(s, str) for s in subtitles)
+                    else subtitles[r][i]
+                )
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
 
     if cbar:
         plt.subplots_adjust(hspace=0.2, wspace=0.2)
@@ -369,6 +397,7 @@ def scatter_plot(
     show=True,
     return_fig=False,
     figsize=None,
+    subtitles=None,
     suptitle=None,
     cmap="gray",
     fontsize=None,
@@ -389,6 +418,7 @@ def scatter_plot(
         scatter_plot([xy, xy], titles=["scatter1", "scatter2"], save_dir="test.png")
 
     :param list[torch.Tensor], torch.Tensor xy_list: list of scatter plots data, or single scatter plot data.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param list[str] titles: list of titles for each image, has to be same length as img_list.
     :param None, str, pathlib.Path save_dir: path to save the plot.
     :param bool tight: use tight layout.
@@ -437,7 +467,19 @@ def scatter_plot(
             )
             if titles and r == 0:
                 axs[r, i].set_title(titles[i])
-            axs[r, i].axis("off")
+
+            if subtitles is not None:
+                if all(isinstance(s, str) for s in subtitles):
+                    sub = subtitles[i]
+                else:
+                    sub = subtitles[r][i]
+                axs[r, i].set_xlabel(sub, fontsize=fontsize, labelpad=4)
+                axs[r, i].set_xticks([])
+                axs[r, i].set_yticks([])
+                for spine in axs[r, i].spines.values():
+                    spine.set_visible(False)
+            else:
+                axs[r, i].axis("off")
     if tight:
         plt.subplots_adjust(hspace=0.01, wspace=0.05)
 
@@ -589,6 +631,7 @@ def plot_inset(
     show: bool = True,
     figsize: tuple[int] = None,
     suptitle=None,
+    subtitles=None,
     cmap: str = "gray",
     fontsize=17,
     interpolation="none",
@@ -624,6 +667,7 @@ def plot_inset(
         their min and max values) or ``'clip'`` (images are clipped between 0 and 1).
     :param bool show: show the image plot. Under the hood, this calls the ``plt.show()`` function.
     :param tuple[int] figsize: size of the figure. If ``None``, calculated from the size of ``img_list``.
+    :param list[list[str]], list[str], str, None subtitles: list of subtitles for each image, can be either the same length or the same shape as img_list.
     :param str suptitle: title of the figure.
     :param str cmap: colormap to use for the images. Default: gray
     :param int fontsize: fontsize for the plot. Default: 17
@@ -658,6 +702,7 @@ def plot_inset(
         show=False,
         close=False,
         figsize=figsize,
+        subtitles=subtitles,
         suptitle=suptitle,
         cmap=cmap,
         fontsize=fontsize,
