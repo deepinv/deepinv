@@ -109,26 +109,31 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
-            subtitles.append("PSNR:")
+            for i in range(x.shape[0]):
+                subtitles.append(["PSNR:"])
 
         if y is not None and y.shape == x_net.shape:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
-            subtitles.append(f"{dinv.metric.PSNR()(x, y).item():.2f} dB")
+            psnr = dinv.metric.PSNR()(x, y)
+            for i in range(x.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
 
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
-            subtitles.append(f"{dinv.metric.PSNR()(x, x_nl).item():.2f} dB")
-
+            psnr = dinv.metric.PSNR()(x, x_nl)
+            for i in range(x.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
-            subtitles.append(f"{dinv.metric.PSNR()(x, x_net).item():.2f} dB")
-
+            psnr = dinv.metric.PSNR()(x, x_net)
+            for i in range(x.shape[0]):
+                subtitles[i].append(f"{psnr[i].item():.2f} dB")
         vis_array = []
         for img in imgs:
             out = preprocess_img(img, rescale_mode=rescale_mode)
