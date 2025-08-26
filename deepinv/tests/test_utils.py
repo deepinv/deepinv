@@ -810,5 +810,37 @@ def test_normalize_signals(batch_size, signal_shape, mode, seed):
         )
 
 
+@pytest.mark.parametrize("x", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("y", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_net", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("x_nl", [None, torch.randn(2, 3, 32, 32)])
+@pytest.mark.parametrize("rescale_mode", ["min_max", "clip"])
+def test_prepare_images(x, y, x_net, x_nl, rescale_mode):
+    imgs, titles, grid_image, caption, subtitles = (
+        deepinv.utils.plotting.prepare_images(
+            x, y, x_net, x_nl, rescale_mode=rescale_mode
+        )
+    )
+
+    # Checks for empty inputs
+    if all(v is None for v in [x, y, x_net, x_nl]):
+        assert imgs == [], "Images list should be empty when all inputs are None."
+        assert titles == [], "Titles list should be empty when all inputs are None."
+        assert (
+            grid_image == None
+        ), "Grid image list should be empty when all inputs are None."
+        assert (
+            subtitles == []
+        ), "Subtitles list should be empty when all inputs are None."
+
+    else:
+        assert all(
+            isinstance(img, torch.Tensor) for img in imgs
+        ), "All images should be torch tensors."
+        assert all(
+            isinstance(title, str) for title in titles
+        ), "All titles should be strings."
+
+
 # Module-level fixtures
 pytestmark = [pytest.mark.usefixtures("non_blocking_plots")]

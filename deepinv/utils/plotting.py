@@ -105,45 +105,59 @@ def prepare_images(x=None, y=None, x_net=None, x_nl=None, rescale_mode="min_max"
         titles = []
         caption = "From left to right: "
         subtitles = []
+
         if x is not None:
             imgs.append(x)
             titles.append("Ground truth")
             caption += "Ground truth, "
             subtitles = [["PSNR:"] for _ in range(x.shape[0])]
 
-        if y is not None and y.shape == x_net.shape:
+        if y is not None:
             imgs.append(y)
             titles.append("Measurement")
             caption += "Measurement, "
             psnr = dinv.metric.PSNR()(x, y)
+            if torch.isnan(psnr).any():
+                psnr = torch.full_like(y[:, 0, 0, 0], float("nan"))
+
             if subtitles == []:
                 subtitles = [[] for _ in range(y.shape[0])]
             for i in range(y.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
+
         if x_nl is not None:
             imgs.append(x_nl)
             titles.append("No learning")
             caption += "No learning, "
             psnr = dinv.metric.PSNR()(x, x_nl)
+            if torch.isnan(psnr).any():
+                psnr = torch.full_like(x_nl[:, 0, 0, 0], float("nan"))
             if subtitles == []:
                 subtitles = [[] for _ in range(x_nl.shape[0])]
             for i in range(x_nl.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
+
         if x_net is not None:
             imgs.append(x_net)
             titles.append("Reconstruction")
             caption += "Reconstruction"
             psnr = dinv.metric.PSNR()(x, x_net)
+            if torch.isnan(psnr).any():
+                psnr = torch.full_like(x_net[:, 0, 0, 0], float("nan"))
             if subtitles == []:
                 subtitles = [[] for _ in range(x_net.shape[0])]
             for i in range(x_net.shape[0]):
                 subtitles[i].append(f"{psnr[i].item():.2f} dB")
+
         vis_array = []
         for img in imgs:
             out = preprocess_img(img, rescale_mode=rescale_mode)
             vis_array.append(out)
-        vis_array = torch.cat(vis_array)
-        grid_image = make_grid(vis_array, nrow=x_net.shape[0])
+        if vis_array != []:
+            vis_array = torch.cat(vis_array)
+            grid_image = make_grid(vis_array, nrow=vis_array[0].shape[0])
+        else:
+            grid_image = None
 
     for k in range(len(imgs)):
         imgs[k] = preprocess_img(imgs[k], rescale_mode=rescale_mode)
