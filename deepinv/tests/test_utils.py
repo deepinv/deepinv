@@ -203,6 +203,7 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("dict_img_list", [False, True])
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
 @pytest.mark.parametrize("with_subtitles", [False, True])
+@pytest.mark.parametrize("batched", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -213,8 +214,12 @@ def test_plot(
     dict_img_list,
     suptitle,
     with_subtitles,
+    batched,
 ):
-    shape = (1, C, 2, 2)
+    if batched:
+        shape = (1, C, 2, 2)
+    else:
+        shape = (C, 2, 2)
     img_list = torch.ones(shape)
     img_list = [img_list] * n_images if isinstance(img_list, torch.Tensor) else img_list
     titles = "0" if n_images == 1 else [str(i) for i in range(n_images)]
