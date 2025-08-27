@@ -204,6 +204,7 @@ def test_dirac_like(shape, length):
 @pytest.mark.parametrize("suptitle", [None, "dummy_title"])
 @pytest.mark.parametrize("with_subtitles", [False, True])
 @pytest.mark.parametrize("batched", [False, True])
+@pytest.mark.parametrize("return_axs", [False, True])
 def test_plot(
     tmp_path,
     C,
@@ -215,6 +216,7 @@ def test_plot(
     suptitle,
     with_subtitles,
     batched,
+    return_axs,
 ):
     if batched:
         shape = (1, C, 2, 2)
@@ -237,14 +239,19 @@ def test_plot(
         if titles is not None and isinstance(img_list, dict)
         else nullcontext()
     ):
-        deepinv.utils.plot(
+        axs = deepinv.utils.plot(
             img_list,
             titles=titles,
             save_dir=save_dir,
             cbar=cbar,
             suptitle=suptitle,
             subtitles=subtitles,
+            return_axs=return_axs,
         )
+        if return_axs:
+            assert axs is not None
+        else:
+            assert axs is None
 
 
 @pytest.mark.parametrize("n_plots", [1, 2, 3])
