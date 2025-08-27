@@ -19,6 +19,7 @@ See :ref:`pretrained models <pretrained-models>` for a principled comparison bet
 
 """
 
+# %%
 import deepinv as dinv
 import torch
 
@@ -79,15 +80,23 @@ x_hat3 = model(y, physics)
 # %%
 # Plot results
 dinv.utils.plot(
-    {
-        "Ground truth": x,
-        "Blurred measurement": y,
-        "Pretrained RAM": x_hat1,
-        "Pretrained PnP": x_hat2,
-        "Pretrained diffusion": x_hat3,
-    }
+    [x, y, x_hat1, x_hat2, x_hat3],
+    titles=[
+        "Ground Truth",
+        "Blurred \nMeasurement",
+        "Pretrained \nRAM",
+        "Pretrained \nPnP",
+        "Pretrained \nDiffusion",
+    ],
+    subtitles=[
+        "PSNR:",
+        f"{dinv.metric.PSNR()(y, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_hat1, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_hat2, x).item():.2f} dB",
+        f"{dinv.metric.PSNR()(x_hat3, x).item():.2f} dB",
+    ],
+    figsize=(10, 5),
 )
-
 
 # %%
 # 🎉 Well done, you now know how to use pretrained models!

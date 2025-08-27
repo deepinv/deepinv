@@ -9,6 +9,7 @@ to accelerate the sampling.
 
 """
 
+# %%
 import torch
 from typing import Any
 import deepinv as dinv
@@ -207,12 +208,24 @@ preconula_mean, preconula_var = preconula.sample(y, physics)
 x_lin = physics.A_adjoint(y)
 
 # compute PSNR
-print(f"Linear reconstruction PSNR: {dinv.metric.PSNR()(x, x_lin).item():.2f} dB")
-print(f"ULA posterior mean PSNR: {dinv.metric.PSNR()(x, ula_mean).item():.2f} dB")
-print(
-    f"PreconULA posterior mean PSNR: {dinv.metric.PSNR()(x, preconula_mean).item():.2f} dB"
-)
+psnr_lin = dinv.metric.PSNR()(x, x_lin).item()
+psnr_ula = dinv.metric.PSNR()(x, ula_mean).item()
+psnr_preconula = dinv.metric.PSNR()(x, preconula_mean).item()
+print(f"Linear reconstruction PSNR: {psnr_lin:.2f} dB")
+print(f"ULA posterior mean PSNR: {psnr_ula:.2f} dB")
+print(f"PreconULA posterior mean PSNR: {psnr_preconula:.2f} dB")
 
 # plot results
 imgs = [x_lin, x, ula_mean, preconula_mean]
-plot(imgs, titles=["measurement", "ground truth", "ULA", "PreconULA"])
+plot(
+    imgs,
+    titles=["Ground Truth", "Measurement", "ULA", "PreconULA"],
+    subtitles=[
+        f"PSNR:",
+        f"{psnr_lin:.2f} dB",
+        f"{psnr_ula:.2f} dB",
+        f"{psnr_preconula:.2f} dB",
+    ],
+)
+
+# %%
