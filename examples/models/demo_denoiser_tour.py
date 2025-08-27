@@ -33,7 +33,7 @@ from deepinv.utils.demo import load_example
 # First, let's load a test image to illustrate the denoisers.
 
 dtype = torch.float32
-device = "cpu"
+device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 img_size = (173, 125)
 
 image = load_example(
@@ -119,10 +119,10 @@ show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.
 # To instantiate them, you can simply call their corresponding class with default
 # parameters and ``pretrained="download"`` to load their weights.
 # You can then apply them by calling the model with the noisy image and the noise level.
-dncnn = dinv.models.DnCNN()
-drunet = dinv.models.DRUNet()
-swinir = dinv.models.SwinIR()
-scunet = dinv.models.SCUNet()
+dncnn = dinv.models.DnCNN().to(device)
+drunet = dinv.models.DRUNet().to(device)
+swinir = dinv.models.SwinIR().to(device)
+scunet = dinv.models.SCUNet().to(device)
 
 denoiser_results = {
     "Original": image,
@@ -157,8 +157,8 @@ show_image_comparison(denoiser_results, suptitle=rf"Noise level $\sigma={sigma:.
 #
 # Let us generate a set of noisy images with varying noise levels.
 
-noise_levels = torch.logspace(-2, 0, 9)
-noise = torch.randn((len(noise_levels), *image.shape[1:]))
+noise_levels = torch.logspace(-2, 0, 9, device=device)
+noise = torch.randn((len(noise_levels), *image.shape[1:]), device=device)
 noisy_images = image + noise_levels[:, None, None, None] * noise
 
 # %%
