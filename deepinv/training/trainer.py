@@ -5,13 +5,6 @@ import numpy as np
 from tqdm import tqdm
 import torch
 
-try:
-    import wandb
-except ImportError:  # pragma: no cover
-    wandb = ImportError(
-        "The wandb package is not installed. Please install it with `pip install wandb`."
-    )  # pragma: no cover
-
 from pathlib import Path
 from typing import Union
 from dataclasses import dataclass, field
@@ -257,7 +250,6 @@ class Trainer:
 
         :param bool train: whether model is being trained.
         """
-
         if type(self.train_dataloader) is not list:
             self.train_dataloader = [self.train_dataloader]
 
@@ -307,6 +299,8 @@ class Trainer:
         self.conv_metrics = None
         # wandb initialization
         if self.wandb_vis:
+            import wandb
+
             if wandb.run is None:
                 wandb.init(**self.wandb_setup)
 
@@ -429,6 +423,8 @@ class Trainer:
         :param int step: Current step to log. If ``Trainer.log_train_batch=True``, this is the batch iteration, if ``False`` (default), this is the epoch.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        import wandb
+
         if step is None:
             raise ValueError("wandb logging step must be specified.")
 
@@ -436,6 +432,8 @@ class Trainer:
             logs = {"Eval " + str(key): val for key, val in logs.items()}
 
         if self.wandb_vis:
+            import wandb
+
             wandb.log(logs, step=step)
 
     def check_clip_grad(self):
@@ -868,6 +866,8 @@ class Trainer:
         :param torch.Tensor x_net: Network reconstruction.
         :param bool train: If ``True``, the model is trained, otherwise it is evaluated.
         """
+        import wandb
+
         post_str = "Training" if train else "Eval"
 
         plot_images = self.plot_images and ((epoch + 1) % self.plot_interval == 0)
@@ -893,6 +893,8 @@ class Trainer:
             )
 
             if self.wandb_vis:
+                import wandb
+
                 log_dict_post_epoch = {}
                 images = wandb.Image(
                     grid_image,
@@ -931,6 +933,7 @@ class Trainer:
         :param None, float eval_metrics: Evaluation metrics across epochs.
         :param dict state: custom objects to save with model
         """
+        import wandb
 
         if not self.save_path:
             return
@@ -945,6 +948,8 @@ class Trainer:
         }
         state["eval_metrics"] = self.eval_metrics_history
         if self.wandb_vis:
+            import wandb
+
             state["wandb_id"] = wandb.run.id
 
         torch.save(
@@ -1060,6 +1065,7 @@ class Trainer:
 
         :returns: The trained model.
         """
+        import wandb
 
         self.setup_train()
         stop_flag = False
@@ -1181,6 +1187,8 @@ class Trainer:
                 break
 
         if self.wandb_vis:
+            import wandb
+
             wandb.save("model.h5")
             wandb.finish()
 
