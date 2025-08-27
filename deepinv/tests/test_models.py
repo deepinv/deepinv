@@ -1,5 +1,8 @@
 import sys
 import pytest
+import json
+from unittest.mock import patch, MagicMock
+
 import torch
 from torch.utils.data import DataLoader
 
@@ -1126,3 +1129,86 @@ def test_denoiser_perf(device):
         assert torch.all(
             psnr_fn(x_hat, x) >= psnr_fn(y, x) + torch.tensor(expected_perf).to(device)
         )
+
+
+@pytest.mark.parametrize("return_metadata", [False, True])
+def test_client_mocked(return_metadata):
+    model = dinv.models.Client(
+        endpoint="http://example.com",
+        api_key="test_key",
+        return_metadata=return_metadata,
+    )
+
+    y = torch.ones(1, 3, 16, 16)
+
+    # First test just serialize/deserialize
+    assert isinstance(dinv.models.Client.serialize(y), str)
+    assert torch.allclose(
+        dinv.models.Client.deserialize(dinv.models.Client.serialize(y)), y
+    )
+
+    # Test mocked API
+    resp = MagicMock()
+    resp.status_code = 200
+    resp.json.return_value = {
+        "output": {"file": dinv.models.Client.serialize(y), "metadata": {"time": 0.1}}
+    }
+
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        out = model(
+            y, physics="denoising", mask=torch.tensor([1, 2]), sigma=0.3, another=[1, 2]
+        )
+
+        if return_metadata:
+            x_hat, metadata = out
+            assert metadata["time"] == 0.1
+        else:
+            x_hat = out
+
+        assert torch.allclose(x_hat, y)
+
+        # Verify request payload structure
+        called_args, called_kwargs = post.call_args
+        assert called_args[0] == "http://example.com"
+        assert called_kwargs["headers"]["Authorization"] == f"Bearer test_key"
+
+        sent_payload = json.loads(called_kwargs["data"])
+        assert "input" in sent_payload
+        assert "file" in sent_payload["input"]
+        assert "metadata" in sent_payload["input"]
+        assert sent_payload["input"]["metadata"]["physics"] == "denoising"
+
+        input_file = sent_payload["input"]["file"]
+        assert isinstance(input_file, str)
+        assert torch.allclose(dinv.models.Client.deserialize(input_file), y)
+
+        assert sent_payload["input"]["metadata"]["sigma"] == 0.3
+        assert torch.allclose(
+            dinv.models.Client.deserialize(sent_payload["input"]["metadata"]["mask"]),
+            torch.tensor([1, 2]),
+        )
+
+        with pytest.raises(TypeError):
+            _ = model(y, a={"a": 3})
+
+        with pytest.raises(TypeError):
+            _ = model(y, a=[{"a": 3}, 3])
+
+        with pytest.raises(ValueError):
+            model.train()
+
+    resp.status_code = 404
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(RuntimeError, match="404"):
+            _ = model(y)
+
+    resp.status_code = 200
+    resp.json.return_value = {"output": {"xxx": 0.0}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="file"):
+            _ = model(y)
+
+    resp.json.return_value = {"other": {"xxx": 0.1}}
+    with patch("deepinv.models.client.requests.post", return_value=resp) as post:
+        with pytest.raises(ValueError, match="output"):
+            _ = model(y)
