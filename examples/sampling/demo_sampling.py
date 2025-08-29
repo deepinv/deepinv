@@ -17,24 +17,21 @@ where :math:`z_k \sim \mathcal{N}(0, I)` is a Gaussian random variable, :math:`\
 The PnP-ULA method is described in the paper :footcite:t:`laumont2022bayesian`.
 """
 
+# %%
 import deepinv as dinv
 from deepinv.utils.plotting import plot
 import torch
-from deepinv.utils.demo import load_url_image
+from deepinv.utils.demo import load_example
 
 # %%
 # Load image from the internet
 # --------------------------------------------
 #
-# This example uses an image of Lionel Messi from Wikipedia.
+# This example uses an image of Messi.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-url = (
-    "https://upload.wikimedia.org/wikipedia/commons/b/b4/"
-    "Lionel-Messi-Argentina-2022-FIFA-World-Cup_%28cropped%29.jpg"
-)
-x = load_url_image(url=url, img_size=32).to(device)
+x = load_example("messi.jpg", img_size=32).to(device)
 
 # %%
 # Define forward operator and noise model
