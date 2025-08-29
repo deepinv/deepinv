@@ -28,11 +28,11 @@ from deepinv.utils import load_example
 # Load image from the internet
 # ----------------------------
 #
-# This example uses an image of the set3c dataset.
+# This example uses an image of Messi.
 
 device = dinv.utils.get_freer_gpu() if torch.cuda.is_available() else "cpu"
 
-x = load_example("leaves.png", img_size=32).to(device)
+x = load_example("messi.jpg", img_size=32).to(device)
 
 # Set the global random seed from pytorch to ensure reproducibility of the example.
 torch.manual_seed(0)
