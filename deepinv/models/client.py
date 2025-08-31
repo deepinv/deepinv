@@ -177,7 +177,7 @@ class Client(Reconstructor, Denoiser):
         return torch.load(buffer, map_location="cpu", weights_only=True)
 
     @staticmethod
-    def _check_value(v: Any):
+    def _sanitize_value(v: Any):
         """
         Checks if value can be directly jsonified, or serialises tensors, otherwise raise error.
         """
@@ -203,7 +203,7 @@ class Client(Reconstructor, Denoiser):
         if self.training:
             raise RuntimeError("Model client can only be used in evaluation mode.")
 
-        params = {k: Client._check_value(v) for k, v in kwargs.items()}
+        params = {k: Client._sanitize_value(v) for k, v in kwargs.items()}
 
         payload = {"input": {"file": Client.serialize(y), "metadata": params}}
 
@@ -230,7 +230,12 @@ class Client(Reconstructor, Denoiser):
         out = Client.deserialize(result["output"]["file"])
 
         if self.return_metadata:
-            return out, result["output"].get("metadata")
+            metadata = result["output"].get("metadata")
+
+            if metadata is not None:
+                metadata = {k: Client._sanitize_value(v) for k, v in metadata.items()}
+
+            return out, metadata
         else:
             return out
 
