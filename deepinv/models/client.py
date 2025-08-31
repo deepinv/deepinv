@@ -170,6 +170,51 @@ class Client(Reconstructor, Denoiser):
 
     @staticmethod
     def deserialize(data: str) -> torch.Tensor:
+        """
+        Helper function to deserialize client inputs and outputs
+
+        Instances of torch.Tensor are serialized by first `pickling
+        <https://docs.python.org/3/library/pickle.html>`_ them using
+        :func:`torch.save` and then returning a URI pointing to the pickle
+        file. For now, only data URIs are supported, but in the future
+        short-lived URLs may also be supported. The media type for the pickled
+        documents is expected to be ``application/octet-stream``.
+
+        :param str data: input serialized using :meth:`serialize`
+        :return: torch.Tensor deserialized Tensor
+        """
+        import urllib
+        from urllib.request import build_opener, UnknownHandler, DataHandler
+        from email.message import EmailMessage
+
+        # A URI reader that only reads data URIs
+        opener = urllib.request.OpenerDirector()
+        handlers = [
+            # Handle data URIs
+            DataHandler(),
+            # Fallback for better error reporting
+            UnknownHandler(),
+        ]
+        for handler in handlers:
+            opener.add_handler(handler)
+
+        f: urllib.response.addinfourl
+        with opener.open(data) as f:
+            headers: EmailMessage = f.headers
+            ctype: str = headers.get_content_type()
+
+            if ctype != "application/octet-stream":
+                raise RuntimeError(f"Unexpected media type: {ctype}, expected 'application/octet-stream'")
+
+            # The function torch.load can return objects of various types, even
+            # when weights_only=True is set. Here, we expect a torch.Tensor
+            # specifically.
+            obj = torch.load(f, map_location="cpu", weights_only=True)
+
+            if not isinstance(obj, torch.Tensor):
+                raise RuntimeError(f"Expected a torch.Tensor, got {type(obj).__name__}")
+
+            return obj
         if data.startswith("data:"):
             _, data = data.split(",", 1)
 
