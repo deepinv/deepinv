@@ -204,7 +204,9 @@ class Client(Reconstructor, Denoiser):
             ctype: str = headers.get_content_type()
 
             if ctype != "application/octet-stream":
-                raise RuntimeError(f"Unexpected media type: {ctype}, expected 'application/octet-stream'")
+                raise RuntimeError(
+                    f"Unexpected media type: {ctype}, expected 'application/octet-stream'"
+                )
 
             # The function torch.load can return objects of various types, even
             # when weights_only=True is set. Here, we expect a torch.Tensor
